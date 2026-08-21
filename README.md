@@ -1,0 +1,170 @@
+# DONOR
+
+DONOR is a production-oriented healthcare technology platform that connects donors, hospitals, blood centers, and couriers around a safer, more transparent blood supply.
+
+This repository contains the **Phase 1 + Phase 2 foundation**: a scalable monorepo with the API, mobile application, hospital web console, blood-center web console, shared packages, database schema, authentication, RBAC, and development tooling.
+
+## Monorepo structure
+
+```
+donor/
+├── apps/
+│   ├── api/                 # NestJS REST API
+│   ├── hospital-web/        # Next.js hospital dashboard
+│   ├── blood-center-web/    # Next.js blood-center dashboard
+│   └── mobile/              # Expo React Native mobile app
+├── packages/
+│   ├── ui/                  # Shared web components and design tokens
+│   ├── types/               # Shared TypeScript types
+│   ├── validation/          # Shared Zod schemas
+│   ├── utils/               # Shared utility functions
+│   └── config/              # Shared configuration helpers
+├── database/                # Reserved for future database utilities
+├── docs/                    # Architecture, API, security, and development docs
+├── scripts/                 # Reserved for automation scripts
+├── .env.example             # Environment variable template
+├── package.json
+├── pnpm-workspace.yaml
+├── turbo.json
+└── tsconfig.json
+```
+
+## Tech stack
+
+- **Mobile:** React Native, Expo, Expo Router, TypeScript, TanStack Query, Zustand, React Hook Form, Zod, Expo SecureStore, lucide-react-native.
+- **Web:** Next.js 14 (App Router), React 18, TypeScript, Tailwind CSS, lucide-react, shared `@donor/ui` components.
+- **Backend:** NestJS, TypeScript, Prisma, PostgreSQL, argon2, JWT access/refresh tokens, Passport, Swagger/OpenAPI, structured logging with pino, rate limiting, Helmet security headers.
+- **Tooling:** pnpm workspaces, Turborepo, TypeScript, ESLint (API), Prettier.
+
+## Quick start
+
+### Prerequisites
+
+- Node.js 20+ (tested on Node 26)
+- pnpm 9.x (`npm install -g pnpm@9.15.5`)
+- PostgreSQL (required to run migrations, seeds, and the full API)
+
+### Install dependencies
+
+```bash
+pnpm install
+```
+
+### Environment variables
+
+```bash
+cp .env.example .env
+cp .env.example apps/api/.env
+```
+
+Edit `.env` and `apps/api/.env` with your local database URL and strong JWT secrets. The example values are safe for local development only.
+
+### Database
+
+```bash
+# Generate Prisma Client
+pnpm db:generate
+
+# Create and apply migrations (requires a running PostgreSQL server)
+pnpm db:migrate
+
+# Seed development data
+pnpm db:seed
+```
+
+### Run the project
+
+```bash
+# Start the API (http://localhost:3001)
+pnpm dev:api
+
+# Start the hospital web app (http://localhost:3000)
+pnpm dev:hospital
+
+# Start the blood-center web app (http://localhost:3002)
+pnpm dev:blood-center
+
+# Start the Expo mobile app
+pnpm dev:mobile
+```
+
+### Verification
+
+```bash
+pnpm typecheck
+pnpm lint
+pnpm test
+```
+
+## Phase 2: Authentication, Authorization, RBAC
+
+The platform now includes a complete authentication and authorization system:
+
+### Authentication Endpoints
+
+| Endpoint                       | Method | Description                     |
+| ------------------------------ | ------ | ------------------------------- |
+| `/api/v1/auth/register`        | POST   | Register a new donor account    |
+| `/api/v1/auth/login`           | POST   | Authenticate and receive tokens |
+| `/api/v1/auth/refresh`         | POST   | Rotate access token             |
+| `/api/v1/auth/logout`          | POST   | Revoke current session          |
+| `/api/v1/auth/change-password` | POST   | Change password                 |
+| `/api/v1/auth/me`              | GET    | Get current user profile        |
+
+### User Status
+
+Users can have one of the following statuses:
+
+- `ACTIVE` — fully authenticated user
+- `PENDING_VERIFICATION` — registered but email not verified
+- `SUSPENDED` — temporarily blocked
+- `DEACTIVATED` — permanently deactivated
+
+### Roles
+
+| Role                 | Description                                     |
+| -------------------- | ----------------------------------------------- |
+| `DONOR`              | Blood donor with profile management             |
+| `HOSPITAL_ADMIN`     | Hospital staff with management permissions      |
+| `HOSPITAL_STAFF`     | Hospital staff with operational permissions     |
+| `BLOOD_CENTER_ADMIN` | Blood center staff with management permissions  |
+| `BLOOD_CENTER_STAFF` | Blood center staff with operational permissions |
+| `COURIER`            | Delivery personnel                              |
+| `SUPER_ADMIN`        | Platform administrator                          |
+
+### Permissions
+
+The system uses granular permissions (e.g., `hospital.read`, `donor.update.self`, `inventory.manage`). Roles are assigned collections of permissions.
+
+### Organization Isolation
+
+Hospital A staff cannot access Hospital B data. The system enforces organization-scoped authorization through the `OrganizationGuard`.
+
+## Development Credentials
+
+The seed script creates the following development-only accounts:
+
+| Email                            | Password              | Role               |
+| -------------------------------- | --------------------- | ------------------ |
+| `admin@donor.local`              | `DevelopmentOnly!123` | SUPER_ADMIN        |
+| `donor@donor.local`              | `DevelopmentOnly!123` | DONOR              |
+| `hospital.admin@donor.local`     | `DevelopmentOnly!123` | HOSPITAL_ADMIN     |
+| `hospital.staff@donor.local`     | `DevelopmentOnly!123` | HOSPITAL_STAFF     |
+| `blood.center.admin@donor.local` | `DevelopmentOnly!123` | BLOOD_CENTER_ADMIN |
+| `blood.center.staff@donor.local` | `DevelopmentOnly!123` | BLOOD_CENTER_STAFF |
+| `courier@donor.local`            | `DevelopmentOnly!123` | COURIER            |
+
+**Never use these credentials in production.**
+
+## Documentation
+
+- [Architecture](./docs/architecture.md)
+- [Database](./docs/database.md)
+- [API](./docs/api.md)
+- [Development](./docs/development.md)
+- [Security](./docs/security.md)
+- [Roadmap](./docs/roadmap.md)
+
+## License
+
+Proprietary — DONOR platform. All rights reserved.

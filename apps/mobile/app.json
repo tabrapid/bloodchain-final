@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "name": "DONOR",
+    "slug": "donor",
+    "scheme": "donor",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "plugins": ["expo-router", "expo-secure-store"],
+    "experiments": { "typedRoutes": true }
+  }
+}
