@@ -12,6 +12,7 @@
     "test": "echo 'Mobile component tests scheduled with the first native feature'"
   },
   "dependencies": {
+    "@babel/runtime": "^8.0.0",
     "@donor/config": "workspace:*",
     "@donor/types": "workspace:*",
     "@donor/utils": "workspace:*",
