@@ -137,6 +137,152 @@ enum BloodUnitStatus {
   USED
   EXPIRED
   DISCARDED
+  QUARANTINED
+}
+
+enum ComponentType {
+  WHOLE_BLOOD
+  RED_CELLS
+  PLASMA
+  PLATELETS
+  OTHER
+}
+
+enum MovementType {
+  RECEIVED
+  MOVED
+  RESERVED
+  RELEASED
+  USED
+  EXPIRED
+  DISCARDED
+  QUARANTINED
+  RELEASED_FROM_QUARANTINE
+  TRANSFER_OUT
+  TRANSFER_IN
+}
+
+enum ReservationStatus {
+  ACTIVE
+  RELEASED
+  FULFILLED
+  EXPIRED
+  CANCELLED
+}
+
+enum AlertType {
+  LOW_STOCK
+  EXPIRING_SOON
+  EXPIRED
+  QUARANTINED
+}
+
+enum BloodRequestStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  PARTIALLY_APPROVED
+  REJECTED
+  CANCELLED
+  READY_FOR_PICKUP
+  IN_TRANSIT
+  DELIVERED
+  PARTIALLY_DELIVERED
+}
+
+enum BloodRequestPriority {
+  ROUTINE
+  URGENT
+  CRITICAL
+}
+
+enum ShipmentStatus {
+  CREATED
+  COURIER_ASSIGNED
+  COURIER_ACCEPTED
+  COURIER_DECLINED
+  PICKUP_STARTED
+  PICKED_UP
+  IN_TRANSIT
+  ARRIVED_AT_HOSPITAL
+  DELIVERED
+  FAILED
+  CANCELLED
+}
+
+enum CourierStatus {
+  AVAILABLE
+  BUSY
+  OFFLINE
+  SUSPENDED
+}
+
+enum ShipmentEventType {
+  CREATED
+  COURIER_ASSIGNED
+  COURIER_ACCEPTED
+  COURIER_DECLINED
+  PICKUP_STARTED
+  PICKED_UP
+  IN_TRANSIT
+  LOCATION_UPDATED
+  ARRIVED_AT_HOSPITAL
+  DELIVERED
+  FAILED
+  CANCELLED
+}
+
+enum DeliveryFailureReason {
+  VEHICLE_ISSUE
+  ROAD_ISSUE
+  COURIER_ISSUE
+  HOSPITAL_UNAVAILABLE
+  PACKAGE_ISSUE
+  OTHER
+}
+
+enum EmergencyStatus {
+  DRAFT
+  ACTIVE
+  MATCHING
+  RESPONSES_RECEIVED
+  DONOR_CONFIRMED
+  DONOR_EN_ROUTE
+  DONOR_ARRIVED
+  DONATION_STARTED
+  COMPLETED
+  CANCELLED
+  EXPIRED
+  FAILED
+}
+
+enum EmergencyMatchStatus {
+  MATCHED
+  NOTIFIED
+  VIEWED
+  ACCEPTED
+  DECLINED
+  EXPIRED
+  CANCELLED
+  NO_RESPONSE
+}
+
+enum EmergencyResponseStatus {
+  ACCEPTED
+  EN_ROUTE
+  ARRIVED
+  DONATION_STARTED
+  COMPLETED
+  CANCELLED
+  FAILED
+}
+
+enum LocationType {
+  STORAGE
+  QUARANTINE
+  PROCESSING
+  DISTRIBUTION
 }
 
 enum DonationEventType {
@@ -181,6 +327,14 @@ model User {
   donationEvents        DonationEvent[]
   donationAssessments   DonationAssessment[]
   verifiedBloodUnits    BloodUnit[]         @relation("BloodUnitVerifier")
+  inventoryMovements    InventoryMovement[]
+  reservations          BloodUnitReservation[]
+  courier               Courier?
+  bloodRequestEvents    BloodRequestEvent[]
+  shipmentEvents        ShipmentEvent[]
+  emergencyRequests     EmergencyRequest[] @relation("EmergencyCreator")
+  emergencyMatches     EmergencyMatch[]   @relation("EmergencyDonor")
+  emergencyResponses    EmergencyResponse[] @relation("EmergencyResponseDonor")
 
   @@index([email])
   @@index([status])
@@ -236,6 +390,19 @@ model Organization {
   donations     Donation[]
   donationEvents DonationEvent[]
   bloodUnits    BloodUnit[]
+  locations     InventoryLocation[]
+  movements     InventoryMovement[]
+  reservations  BloodUnitReservation[]
+  reservedFor  BloodUnitReservation[]  @relation("ReservationForOrganization")
+  alerts        InventoryAlert[]
+  bloodRequestsRequested BloodRequest[] @relation("RequestingOrganization")
+  bloodRequestsFulfilled BloodRequest[] @relation("FulfillingOrganization")
+  shipmentsSource Shipment[] @relation("ShipmentSource")
+  shipmentsDestination Shipment[] @relation("ShipmentDestination")
+  couriers     Courier[]
+  bloodRequestEvents BloodRequestEvent[]
+  shipmentEvents   ShipmentEvent[]
+  emergencyRequests EmergencyRequest[]
 
   @@index([type])
   @@index([status])
@@ -543,12 +710,15 @@ model DonationAssessment {
 
 model BloodUnit {
   id             String         @id @default(cuid())
+  unitReference  String         @unique
   donationId     String         @unique
   organizationId String
+  componentType  ComponentType  @default(WHOLE_BLOOD)
   bloodType      BloodType
   rhFactor       RhFactor
   volumeMl       Int
   status         BloodUnitStatus @default(COLLECTED)
+  locationId     String?
   collectedAt    DateTime
   expiresAt      DateTime?
   verifiedAt     DateTime?
@@ -556,13 +726,415 @@ model BloodUnit {
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
 
-  donation    Donation     @relation(fields: [donationId], references: [id], onDelete: Cascade)
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  verifier    User?        @relation("BloodUnitVerifier", fields: [verifiedBy], references: [id], onDelete: SetNull)
+  donation       Donation              @relation(fields: [donationId], references: [id], onDelete: Cascade)
+  organization   Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  location      InventoryLocation?    @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  verifier      User?                @relation("BloodUnitVerifier", fields: [verifiedBy], references: [id], onDelete: SetNull)
+  movements     InventoryMovement[]
+  reservations  BloodUnitReservation[]
+  shipmentUnits ShipmentUnit[]
 
   @@index([donationId])
   @@index([organizationId])
   @@index([bloodType])
   @@index([status])
   @@index([collectedAt])
+  @@index([locationId])
+  @@index([unitReference])
+}
+
+model InventoryLocation {
+  id             String       @id @default(cuid())
+  organizationId String
+  name           String
+  code           String
+  type           LocationType @default(STORAGE)
+  active        Boolean      @default(true)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  organization Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  bloodUnits   BloodUnit[]
+  movementsFrom InventoryMovement[] @relation("FromLocation")
+  movementsTo   InventoryMovement[] @relation("ToLocation")
+
+  @@index([organizationId])
+  @@index([active])
+}
+
+model InventoryMovement {
+  id             String       @id @default(cuid())
+  bloodUnitId    String
+  organizationId String
+  fromLocationId String?
+  toLocationId   String?
+  type           MovementType
+  actorId        String?
+  reason         String?
+  createdAt      DateTime     @default(now())
+
+  bloodUnit     BloodUnit         @relation(fields: [bloodUnitId], references: [id], onDelete: Cascade)
+  organization  Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  fromLocation  InventoryLocation? @relation("FromLocation", fields: [fromLocationId], references: [id], onDelete: SetNull)
+  toLocation    InventoryLocation? @relation("ToLocation", fields: [toLocationId], references: [id], onDelete: SetNull)
+  actor         User?            @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([bloodUnitId])
+  @@index([organizationId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+model BloodUnitReservation {
+  id                       String            @id @default(cuid())
+  bloodUnitId               String
+  organizationId            String
+  reservedForOrganizationId String?
+  status                   ReservationStatus @default(ACTIVE)
+  reservedBy                String
+  reservedAt                DateTime          @default(now())
+  expiresAt                DateTime?
+  releasedAt               DateTime?
+  fulfilledAt              DateTime?
+  reason                   String?
+  createdAt                DateTime          @default(now())
+  updatedAt                DateTime          @updatedAt
+
+  bloodUnit                BloodUnit     @relation(fields: [bloodUnitId], references: [id], onDelete: Cascade)
+  organization             Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  reservedForOrganization   Organization? @relation("ReservationForOrganization", fields: [reservedForOrganizationId], references: [id], onDelete: SetNull)
+  reservedByUser           User         @relation(fields: [reservedBy], references: [id], onDelete: Cascade)
+  bloodRequestItems        BloodRequestItem[]
+  shipmentUnits            ShipmentUnit[]
+
+  @@index([bloodUnitId])
+  @@index([organizationId])
+  @@index([status])
+  @@index([reservedAt])
+}
+
+model InventoryAlert {
+  id             String      @id @default(cuid())
+  organizationId String
+  type           AlertType
+  bloodType      BloodType?
+  rhFactor       RhFactor?
+  message        String
+  threshold      Int?
+  currentValue   Int?
+  acknowledged   Boolean     @default(false)
+  acknowledgedAt DateTime?
+  acknowledgedBy String?
+  createdAt      DateTime    @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([type])
+  @@index([acknowledged])
+}
+
+model BloodRequest {
+  id                       String             @id @default(cuid())
+  requestReference         String             @unique
+  requestingOrganizationId String
+  fulfillingOrganizationId  String?
+  priority                  BloodRequestPriority @default(ROUTINE)
+  status                    BloodRequestStatus  @default(DRAFT)
+  notes                     String?
+  deliveryAddress           String?
+  deliveryLatitude          Decimal?           @db.Decimal(9, 6)
+  deliveryLongitude         Decimal?           @db.Decimal(9, 6)
+  deliveryPhone             String?
+  expectedDeliveryDate      DateTime?
+  deliveredAt               DateTime?
+  cancelledAt               DateTime?
+  cancellationReason        String?
+  createdAt                 DateTime           @default(now())
+  updatedAt                 DateTime           @updatedAt
+
+  requestingOrganization  Organization          @relation("RequestingOrganization", fields: [requestingOrganizationId], references: [id], onDelete: Cascade)
+  fulfillingOrganization  Organization?         @relation("FulfillingOrganization", fields: [fulfillingOrganizationId], references: [id], onDelete: SetNull)
+  items                  BloodRequestItem[]
+  events                 BloodRequestEvent[]
+  shipment               Shipment?
+
+  @@index([requestingOrganizationId])
+  @@index([fulfillingOrganizationId])
+  @@index([status])
+  @@index([priority])
+  @@index([createdAt])
+}
+
+model BloodRequestItem {
+  id              String   @id @default(cuid())
+  bloodRequestId  String
+  bloodType       BloodType
+  rhFactor        RhFactor
+  componentType   ComponentType @default(WHOLE_BLOOD)
+  unitsRequested  Int
+  unitsApproved   Int      @default(0)
+  unitsFulfilled  Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  bloodRequest   BloodRequest @relation(fields: [bloodRequestId], references: [id], onDelete: Cascade)
+  reservations    BloodUnitReservation[]
+  shipmentUnits   ShipmentUnit[]
+
+  @@index([bloodRequestId])
+  @@index([bloodType])
+  @@index([rhFactor])
+}
+
+model BloodRequestEvent {
+  id              String            @id @default(cuid())
+  bloodRequestId  String
+  eventType       String
+  actorId         String?
+  organizationId  String?
+  metadata        Json?
+  createdAt       DateTime          @default(now())
+
+  bloodRequest  BloodRequest @relation(fields: [bloodRequestId], references: [id], onDelete: Cascade)
+  actor         User?        @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  organization  Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+
+  @@index([bloodRequestId])
+  @@index([actorId])
+  @@index([createdAt])
+}
+
+model Courier {
+  id                 String        @id @default(cuid())
+  userId             String        @unique
+  organizationId     String
+  displayName        String
+  phone              String?
+  status             CourierStatus @default(OFFLINE)
+  currentShipmentId  String?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  user              User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  shipments         Shipment[]
+  locations         ShipmentLocation[]
+
+  @@index([userId])
+  @@index([organizationId])
+  @@index([status])
+}
+
+model Shipment {
+  id                        String        @id @default(cuid())
+  shipmentReference         String        @unique
+  bloodRequestId            String        @unique
+  sourceOrganizationId      String
+  destinationOrganizationId  String
+  courierId                 String?
+  status                    ShipmentStatus @default(CREATED)
+  pickupAddress             String?
+  pickupLatitude            Decimal?      @db.Decimal(9, 6)
+  pickupLongitude           Decimal?      @db.Decimal(9, 6)
+  destinationAddress        String?
+  destinationLatitude       Decimal?      @db.Decimal(9, 6)
+  destinationLongitude      Decimal?      @db.Decimal(9, 6)
+  assignedAt                DateTime?
+  acceptedAt                DateTime?
+  declinedAt                DateTime?
+  declineReason             String?
+  pickupStartedAt           DateTime?
+  pickedUpAt                DateTime?
+  inTransitAt               DateTime?
+  arrivedAt                 DateTime?
+  deliveredAt               DateTime?
+  failedAt                  DateTime?
+  failureReason             DeliveryFailureReason?
+  failureNotes              String?
+  cancelledAt               DateTime?
+  cancellationReason        String?
+  estimatedArrivalAt        DateTime?
+  createdAt                 DateTime      @default(now())
+  updatedAt                 DateTime      @updatedAt
+
+  bloodRequest             BloodRequest   @relation(fields: [bloodRequestId], references: [id], onDelete: Cascade)
+  sourceOrganization       Organization   @relation("ShipmentSource", fields: [sourceOrganizationId], references: [id], onDelete: Cascade)
+  destinationOrganization  Organization   @relation("ShipmentDestination", fields: [destinationOrganizationId], references: [id], onDelete: Cascade)
+  courier                  Courier?       @relation(fields: [courierId], references: [id], onDelete: SetNull)
+  units                    ShipmentUnit[]
+  events                   ShipmentEvent[]
+  locations                ShipmentLocation[]
+
+  @@index([bloodRequestId])
+  @@index([sourceOrganizationId])
+  @@index([destinationOrganizationId])
+  @@index([courierId])
+  @@index([status])
+  @@index([shipmentReference])
+  @@index([createdAt])
+}
+
+model ShipmentUnit {
+  id              String        @id @default(cuid())
+  shipmentId      String
+  bloodUnitId    String
+  reservationId   String
+  pickedUpAt      DateTime?
+  deliveredAt     DateTime?
+  status          String        @default("PENDING")
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  shipment        Shipment      @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  bloodUnit       BloodUnit     @relation(fields: [bloodUnitId], references: [id], onDelete: Cascade)
+  reservation     BloodUnitReservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  bloodRequestItem BloodRequestItem? @relation(fields: [bloodRequestItemId], references: [id], onDelete: SetNull)
+  bloodRequestItemId String?
+
+  @@unique([shipmentId, bloodUnitId])
+  @@index([shipmentId])
+  @@index([bloodUnitId])
+  @@index([reservationId])
+}
+
+model ShipmentEvent {
+  id              String          @id @default(cuid())
+  shipmentId      String
+  eventType       ShipmentEventType
+  actorId         String?
+  organizationId  String?
+  metadata        Json?
+  createdAt       DateTime        @default(now())
+
+  shipment       Shipment       @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  actor          User?          @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  organization   Organization?  @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+
+  @@index([shipmentId])
+  @@index([actorId])
+  @@index([createdAt])
+}
+
+model ShipmentLocation {
+  id           String   @id @default(cuid())
+  shipmentId   String
+  courierId    String
+  latitude     Decimal  @db.Decimal(9, 6)
+  longitude    Decimal  @db.Decimal(9, 6)
+  accuracy     Decimal? @db.Decimal(8, 2)
+  heading      Decimal? @db.Decimal(5, 2)
+  speed        Decimal? @db.Decimal(6, 2)
+  recordedAt   DateTime @default(now())
+
+  shipment     Shipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  courier      Courier  @relation(fields: [courierId], references: [id], onDelete: Cascade)
+
+  @@index([shipmentId])
+  @@index([courierId])
+  @@index([recordedAt])
+}
+
+model EmergencyRequest {
+  id                   String          @id @default(cuid())
+  emergencyReference   String         @unique
+  hospitalId           String
+  bloodType           BloodType
+  rhFactor            RhFactor
+  unitsRequired       Int
+  urgencyLevel         String         @default("CRITICAL")
+  status              EmergencyStatus @default(DRAFT)
+  patientReference    String?
+  description         String?
+  requiredBefore      DateTime?
+  donationLocation    String?
+  latitude            Decimal?        @db.Decimal(9, 6)
+  longitude           Decimal?        @db.Decimal(9, 6)
+  unitsCommitted     Int             @default(0)
+  unitsArrived        Int             @default(0)
+  unitsCollected      Int             @default(0)
+  createdBy           String
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+  closedAt           DateTime?
+  cancelledAt        DateTime?
+
+  hospital           Organization        @relation(fields: [hospitalId], references: [id], onDelete: Cascade)
+  creator           User               @relation("EmergencyCreator", fields: [createdBy], references: [id], onDelete: Cascade)
+  matches           EmergencyMatch[]
+  responses         EmergencyResponse[]
+
+  @@index([hospitalId])
+  @@index([bloodType])
+  @@index([rhFactor])
+  @@index([status])
+  @@index([urgencyLevel])
+  @@index([createdAt])
+}
+
+model EmergencyMatch {
+  id                   String               @id @default(cuid())
+  emergencyRequestId   String
+  donorId             String
+  matchScore          Float?
+  distanceKm          Float?
+  status              EmergencyMatchStatus @default(MATCHED)
+  notifiedAt          DateTime?
+  viewedAt            DateTime?
+  respondedAt          DateTime?
+  expiredAt           DateTime?
+  createdAt          DateTime        @default(now())
+
+  emergencyRequest    EmergencyRequest @relation(fields: [emergencyRequestId], references: [id], onDelete: Cascade)
+  donor              User             @relation("EmergencyDonor", fields: [donorId], references: [id], onDelete: Cascade)
+  response          EmergencyResponse?
+
+  @@unique([emergencyRequestId, donorId])
+  @@index([emergencyRequestId])
+  @@index([donorId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model EmergencyResponse {
+  id                   String                   @id @default(cuid())
+  emergencyRequestId   String
+  matchId             String?              @unique
+  donorId             String
+  status              EmergencyResponseStatus @default(ACCEPTED)
+  acceptedAt          DateTime?
+  enRouteAt           DateTime?
+  arrivedAt           DateTime?
+  donationStartedAt    DateTime?
+  completedAt         DateTime?
+  cancelledAt         DateTime?
+  cancellationReason  String?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  emergencyRequest    EmergencyRequest @relation(fields: [emergencyRequestId], references: [id], onDelete: Cascade)
+  donor              User             @relation("EmergencyResponseDonor", fields: [donorId], references: [id], onDelete: Cascade)
+  match              EmergencyMatch?  @relation(fields: [matchId], references: [id], onDelete: SetNull)
+  locations         EmergencyLocation[]
+
+  @@index([emergencyRequestId])
+  @@index([donorId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model EmergencyLocation {
+  id                   String   @id @default(cuid())
+  emergencyResponseId  String
+  latitude             Decimal  @db.Decimal(9, 6)
+  longitude            Decimal  @db.Decimal(9, 6)
+  accuracy             Decimal? @db.Decimal(8, 2)
+  heading              Decimal? @db.Decimal(5, 2)
+  speed                Decimal? @db.Decimal(6, 2)
+  recordedAt          DateTime @default(now())
+
+  emergencyResponse    EmergencyResponse @relation(fields: [emergencyResponseId], references: [id], onDelete: Cascade)
+
+  @@index([emergencyResponseId])
+  @@index([recordedAt])
 }

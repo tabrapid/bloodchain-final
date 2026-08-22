@@ -12,10 +12,13 @@ import { AppointmentSlotsModule } from './modules/appointment-slots/appointment-
 import { AuthModule } from './modules/auth/auth.module';
 import { DonationsModule } from './modules/donations/donations.module';
 import { DonorsModule } from './modules/donors/donors.module';
+import { EmergencyModule } from './modules/emergency/emergency.module';
 import { HealthModule } from './modules/health/health.module';
+import { InventoryModule } from './modules/inventory/inventory.module';
 import { NotificationPreferencesModule } from './modules/notification-preferences/notification-preferences.module';
 import { OrganizationsModule } from './modules/organizations/organizations.module';
 import { PermissionsModule } from './modules/permissions/permissions.module';
+import { ShipmentsModule } from './modules/shipments/shipments.module';
 import { UsersModule } from './modules/users/users.module';
 
 @Module({
@@ -68,6 +71,9 @@ import { UsersModule } from './modules/users/users.module';
     AppointmentsModule,
     AppointmentSlotsModule,
     DonationsModule,
+    InventoryModule,
+    ShipmentsModule,
+    EmergencyModule,
   ],
   providers: [
     {

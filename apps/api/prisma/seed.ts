@@ -2,8 +2,11 @@ import {
   AppointmentStatus,
   AppointmentType,
   BloodType,
+  ComponentType,
+  CourierStatus,
   DonationStatus,
   DonationType,
+  LocationType,
   OrganizationType,
   PrismaClient,
   RhFactor,
@@ -293,6 +296,79 @@ async function main() {
     },
   });
 
+  const mainStorage = await db.inventoryLocation.create({
+    data: {
+      organizationId: centerOrg.id,
+      name: 'Main Storage',
+      code: 'MS-01',
+      type: LocationType.STORAGE,
+      active: true,
+    },
+  });
+
+  const quarantineStorage = await db.inventoryLocation.create({
+    data: {
+      organizationId: centerOrg.id,
+      name: 'Quarantine Storage',
+      code: 'QS-01',
+      type: LocationType.QUARANTINE,
+      active: true,
+    },
+  });
+
+  const testingLab = await db.inventoryLocation.create({
+    data: {
+      organizationId: centerOrg.id,
+      name: 'Testing Laboratory',
+      code: 'TL-01',
+      type: LocationType.PROCESSING,
+      active: true,
+    },
+  });
+
+  const issuingPoint = await db.inventoryLocation.create({
+    data: {
+      organizationId: centerOrg.id,
+      name: 'Issuing Counter',
+      code: 'IC-01',
+      type: LocationType.DISTRIBUTION,
+      active: true,
+    },
+  });
+
+  const bloodUnitsData = [
+    { bloodType: BloodType.A, rhFactor: RhFactor.POSITIVE, volumeMl: 450, daysAgo: 5 },
+    { bloodType: BloodType.A, rhFactor: RhFactor.POSITIVE, volumeMl: 450, daysAgo: 10 },
+    { bloodType: BloodType.A, rhFactor: RhFactor.NEGATIVE, volumeMl: 450, daysAgo: 3 },
+    { bloodType: BloodType.B, rhFactor: RhFactor.POSITIVE, volumeMl: 450, daysAgo: 7 },
+    { bloodType: BloodType.B, rhFactor: RhFactor.NEGATIVE, volumeMl: 450, daysAgo: 12 },
+    { bloodType: BloodType.AB, rhFactor: RhFactor.POSITIVE, volumeMl: 450, daysAgo: 8 },
+    { bloodType: BloodType.AB, rhFactor: RhFactor.NEGATIVE, volumeMl: 450, daysAgo: 2 },
+    { bloodType: BloodType.O, rhFactor: RhFactor.POSITIVE, volumeMl: 450, daysAgo: 1 },
+    { bloodType: BloodType.O, rhFactor: RhFactor.POSITIVE, volumeMl: 450, daysAgo: 6 },
+    { bloodType: BloodType.O, rhFactor: RhFactor.NEGATIVE, volumeMl: 450, daysAgo: 4 },
+  ];
+
+  const bloodUnits = await Promise.all(
+    bloodUnitsData.map((unit, index) =>
+      db.bloodUnit.create({
+        data: {
+          unitReference: `BU-${new Date().getFullYear()}-${String(index + 1).padStart(6, '0')}`,
+          donationId: completedDonation.id,
+          organizationId: centerOrg.id,
+          bloodType: unit.bloodType,
+          rhFactor: unit.rhFactor,
+          componentType: ComponentType.WHOLE_BLOOD,
+          volumeMl: unit.volumeMl,
+          status: index === 2 ? 'QUARANTINED' : 'AVAILABLE',
+          locationId: index === 2 ? quarantineStorage.id : mainStorage.id,
+          collectedAt: new Date(Date.now() - unit.daysAgo * 24 * 60 * 60 * 1000),
+          expiresAt: new Date(Date.now() - unit.daysAgo * 24 * 60 * 60 * 1000 + 42 * 24 * 60 * 60 * 1000),
+        },
+      }),
+    ),
+  );
+
   await db.organizationMembership.upsert({
     where: {
       userId_organizationId_roleId: {
@@ -426,6 +502,18 @@ async function main() {
       organizationId: centerOrg.id,
       roleId: courierRole.id,
       status: 'ACTIVE',
+    },
+  });
+
+  await db.courier.upsert({
+    where: { userId: courierUser.id },
+    update: {},
+    create: {
+      userId: courierUser.id,
+      organizationId: centerOrg.id,
+      displayName: 'John Courier',
+      phone: '+14155550300',
+      status: CourierStatus.AVAILABLE,
     },
   });
 
@@ -576,6 +664,7 @@ async function main() {
 
   await db.bloodUnit.create({
     data: {
+      unitReference: `BU-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 999999)).padStart(6, '0')}`,
       donationId: completedDonation.id,
       organizationId: hospitalOrg.id,
       bloodType: BloodType.O,

@@ -526,3 +526,205 @@ Recommended Phase 6:
 - Notification events infrastructure
 - Blood inventory management system
 ▣  Build · MiniMax-M2.7
+
+
+
+
+
+
+Summary: Phase 6 Progress
+Completed:
+- Created inventory.controller.ts with all inventory endpoints
+- Created inventory.module.ts and wired into app.module.ts
+- Fixed type errors:
+- Added unitReference generation in donations service when creating blood units
+- Fixed seed file to include unitReference
+- Changed referenceNumber → donationReference in inventory service queries
+- Typecheck passes, lint has only warnings, tests pass
+Pending:
+- Blood center web inventory dashboard UI
+- Inventory seed data (locations, blood units)
+Want me to continue with the web UI implementation or the seed data?
+
+
+
+
+
+Phase 6 yakunlandi
+Bajarilgan ishlar:
+1. Inventory Controller - Barcha inventory endpointlari yaratildi
+2. Inventory Module - App module ga ulandi
+3. Web UI Dashboard (apps/blood-center-web/app/inventory/page.tsx):
+- Statistika kartalar (umumiy, mavjud, karantin, rezerv)
+- Qidiruv va filtrlar (qon turi, Rh, komponent, status)
+- DataTable bilan qon buyumlari ro'yxati
+- Unit details modal
+- Move, Quarantine, Discard amallari
+- Location yaratish modal
+4. Seed data (apps/api/prisma/seed.ts):
+- 4 ta inventory location (Main Storage, Quarantine Storage, Testing Lab, Issuing Counter)
+- 10 ta blood unit (turli qon turlari va statuslar)
+5. Typecheck va lint - o'tdi
+6. Test - 16 ta test o'tdi
+API endpoints:
+- GET /organizations/:orgId/inventory/summary
+- GET /organizations/:orgId/inventory
+- GET /organizations/:orgId/inventory/units/:unitId
+- POST /organizations/:orgId/inventory/units/:unitId/move|quarantine|discard|release
+- GET|POST|PATCH /organizations/:orgId/inventory/locations
+- GET /organizations/:orgId/inventory/movements|reservations|alerts
+
+
+
+
+
+
+
+Phase 8 Implementation Report
+1. Summary of Implementation
+Phase 8 implements a complete blood delivery workflow with real-time shipment tracking. The system transforms READY_FOR_PICKUP blood requests into delivered blood units at hospitals through a structured courier-based delivery process.
+2. Files/Modules Created
+API Backend:
+- apps/api/src/modules/shipments/shipments.service.ts - Main service with all business logic
+- apps/api/src/modules/shipments/shipments.controller.ts - REST API endpoints
+- apps/api/src/modules/shipments/shipments.module.ts - NestJS module
+- apps/api/src/modules/shipments/dto/shipment.dto.ts - Data transfer objects
+Web Frontend:
+- apps/blood-center-web/lib/shipments.ts - API client for shipments
+- apps/blood-center-web/app/shipments/page.tsx - Blood center shipment dashboard
+3. Files Modified
+Database Schema (apps/api/prisma/schema.prisma):
+- Added enums: BloodRequestStatus, BloodRequestPriority, ShipmentStatus, CourierStatus, ShipmentEventType, DeliveryFailureReason
+- Extended MovementType with TRANSFER_OUT, TRANSFER_IN
+- Added models: BloodRequest, BloodRequestItem, BloodRequestEvent, Courier, Shipment, ShipmentUnit, ShipmentEvent, ShipmentLocation
+- Added relations to existing models
+Seed File (apps/api/prisma/seed.ts):
+- Added CourierStatus import
+- Added courier profile creation for existing courier user
+App Module (apps/api/src/app.module.ts):
+- Added ShipmentsModule import
+4. Database Changes
+New tables:
+- BloodRequest - Hospital blood requests
+- BloodRequestItem - Individual items in a request
+- BloodRequestEvent - Audit trail for requests
+- Courier - Courier profiles
+- Shipment - Delivery shipments
+- ShipmentUnit - Blood units in shipments
+- ShipmentEvent - Shipment audit trail
+- ShipmentLocation - GPS tracking points
+5. Shipment State Machine
+CREATED → COURIER_ASSIGNED → COURIER_ACCEPTED → PICKUP_STARTED → PICKED_UP → IN_TRANSIT → ARRIVED_AT_HOSPITAL → DELIVERED
+                                    ↓
+                            COURIER_DECLINED (can reassign)
+Also supports: FAILED, CANCELLED
+6. Courier Workflow
+1. Blood center creates shipment from READY_FOR_PICKUP request
+2. Blood center assigns available courier
+3. Courier accepts or declines
+4. If accepted: Courier starts pickup → confirms pickup → starts delivery → updates location en route → arrives at hospital
+5. Hospital confirms delivery
+6. Courier becomes AVAILABLE again
+7. Pickup Workflow
+1. Courier clicks "Start Pickup" (COURIER_ACCEPTED → PICKUP_STARTED)
+2. At blood center: Courier confirms pickup (PICKUP_STARTED → PICKED_UP)
+3. Inventory movement created (TRANSFER_OUT)
+4. Blood units remain traceable
+8. Real-Time Tracking Architecture
+Location tracking via REST API endpoint (POST /courier/shipments/:id/update-location):
+- Courier sends GPS coordinates during active delivery
+- Server validates: lat/long ranges, timestamp, authorization
+- Location stored in ShipmentLocation table
+- Retrieved via GET /shipments/:id/locations
+- Authorization enforced: Hospital can only see its own shipments
+9. WebSocket Architecture
+Not implemented in this phase. Real-time updates via polling available through REST endpoints.
+10. Location Security
+- Latitude: -90 to 90
+- Longitude: -180 to 180
+- Authorization check: User must belong to source/destination org or be the assigned courier
+- Active shipment required for location updates
+- Accuracy, heading, speed recorded
+11. Delivery Confirmation
+Two-party confirmation:
+1. Courier indicates "Arrived" (IN_TRANSIT → ARRIVED_AT_HOSPITAL)
+2. Hospital staff verifies and confirms receipt (ARRIVED_AT_HOSPITAL → DELIVERED)
+12. Inventory Transfer
+- At pickup: TRANSFER_OUT movement created at blood center
+- At delivery: TRANSFER_IN movement created at hospital
+- Blood unit organizationId updated to hospital
+- Reservation marked FULFILLED
+13. Transaction Safety
+All critical operations use database transactions:
+- Shipment creation
+- Courier assignment
+- Pickup confirmation
+- Delivery confirmation
+Rollback on any failure ensures data consistency.
+14. Concurrency Protection
+- Unique constraint on BloodRequest.shipment (one active shipment per request)
+- Unique constraint on ShipmentUnit.shipmentId + bloodUnitId
+- Transaction isolation for critical operations
+15. API Endpoints
+Blood Requests:
+- POST /organizations/:orgId/blood-requests - Create request
+- GET /organizations/:orgId/blood-requests - List requests
+- GET /organizations/:orgId/blood-requests/:id - Get request
+- POST /organizations/:orgId/blood-requests/:id/approve - Approve
+- POST /organizations/:orgId/blood-requests/:id/ready-for-pickup - Mark ready
+- POST /organizations/:orgId/blood-requests/:id/shipments - Create shipment
+Shipments:
+- GET /organizations/:orgId/shipments - List shipments
+- GET /organizations/:orgId/shipments/:id - Get shipment
+- POST /organizations/:orgId/shipments/:id/assign - Assign courier
+- POST /courier/shipments/:id/accept - Accept
+- POST /courier/shipments/:id/decline - Decline
+- POST /courier/shipments/:id/start-pickup - Start pickup
+- POST /courier/shipments/:id/confirm-pickup - Confirm pickup
+- POST /courier/shipments/:id/start-delivery - Start delivery
+- POST /courier/shipments/:id/update-location - Update location
+- POST /courier/shipments/:id/arrive - Arrive at hospital
+- POST /courier/shipments/:id/fail - Fail shipment
+- POST /organizations/:orgId/shipments/:id/confirm-delivery - Confirm delivery
+- GET /shipments/:id/locations - Get location history
+16. Permissions
+New permissions added:
+- shipment.read - Read shipments
+- shipment.create - Create shipments
+- shipment.assign - Assign couriers
+- shipment.accept - Accept shipments
+- shipment.start_pickup - Start pickup
+- shipment.confirm_pickup - Confirm pickup
+- shipment.start_delivery - Start delivery
+- shipment.update_location - Update location
+- shipment.arrive - Arrive at hospital
+- shipment.confirm_delivery - Confirm delivery
+- shipment.fail - Fail shipment
+- shipment.cancel - Cancel shipment
+17. Tests
+- 16 existing tests pass
+- No new tests added (Phase 8 would require comprehensive E2E tests)
+18. Regression Results
+- API typecheck: PASS
+- API lint: PASS (warnings only)
+- API tests: PASS (16/16)
+- Web typecheck: Pending fixes needed for shipments page
+19. Documentation Updates
+No documentation updates made. Following files should be updated:
+- docs/architecture.md
+- docs/database.md
+- docs/api.md
+20. Known Limitations
+1. WebSocket not implemented - Real-time updates via polling only
+2. Hospital UI not created - Only Blood Center UI created
+3. Courier mobile UI not created - Courier interface in mobile app not implemented
+4. No blood request creation flow - Only existing READY_FOR_PICKUP requests can create shipments
+5. No ETA calculation - estimatedArrivalAt not implemented
+6. No map provider - Uses raw coordinates only
+7. Web UI type errors - Some TypeScript errors in shipments page
+21. Commands Used to Verify
+pnpm --filter @donor/api typecheck  # PASS
+pnpm --filter @donor/api lint      # PASS (warnings)
+pnpm --filter @donor/api test     # PASS (16 tests)
+22. Recommended Next Phase
+Phase 9: SOS and Emergency Donor Matching (NOT implemented as per requirements)

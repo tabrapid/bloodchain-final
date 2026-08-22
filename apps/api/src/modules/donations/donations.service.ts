@@ -42,6 +42,12 @@ export class DonationsService {
     return `DONATION-${year}-${random}`;
   }
 
+  private generateUnitReference(): string {
+    const year = new Date().getFullYear();
+    const random = Math.floor(Math.random() * 999999).toString().padStart(6, '0');
+    return `BU-${year}-${random}`;
+  }
+
   async checkInDonation(
     appointmentId: string,
     organizationId: string,
@@ -420,6 +426,7 @@ export class DonationsService {
       if (bloodTypeEnum && rhFactorEnum) {
         await tx.bloodUnit.create({
           data: {
+            unitReference: this.generateUnitReference(),
             donationId,
             organizationId,
             bloodType: bloodTypeEnum,
