@@ -41,8 +41,16 @@ The API is organized under `apps/api/src/modules/`:
 - `audit-logs` — foundation for logging sensitive operations.
 - `health` — health check endpoint.
 - `permissions` — role and permission management.
+- `laboratory` — blood testing, test types, parameters, reference ranges, appointment booking, result entry, review, and publication workflow.
+- `health-trends` — personal health analytics, trend data aggregation, statistics, and chart data for donor health history.
+- `ai-health` — AI-powered health insights, trend summaries, result explanations, and health-data-grounded chat assistance.
+- `appointments` — appointment and slot management for donations and blood tests.
+- `donations` — donation session tracking, blood unit creation.
+- `inventory` — blood unit inventory, storage locations, component management.
+- `shipments` — courier shipments for blood units.
+- `emergency` — emergency blood requests and donor matching.
 
-Future modules (appointments, inventory, emergency, shipments, analytics, gamification, AI) will follow the same structure.
+Future modules (gamification, advanced analytics, notifications) will follow the same structure.
 
 ## Authentication flow
 

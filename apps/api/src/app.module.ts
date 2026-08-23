@@ -14,6 +14,8 @@ import { DonationsModule } from './modules/donations/donations.module';
 import { DonorsModule } from './modules/donors/donors.module';
 import { EmergencyModule } from './modules/emergency/emergency.module';
 import { HealthModule } from './modules/health/health.module';
+import { HealthTrendsModule } from './modules/health-trends/health-trends.module';
+import { AIHealthModule } from './modules/ai-health/ai-health.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
 import { LaboratoryModule } from './modules/laboratory/laboratory.module';
 import { NotificationPreferencesModule } from './modules/notification-preferences/notification-preferences.module';
@@ -76,6 +78,8 @@ import { UsersModule } from './modules/users/users.module';
     ShipmentsModule,
     EmergencyModule,
     LaboratoryModule,
+    HealthTrendsModule,
+    AIHealthModule,
   ],
   providers: [
     {

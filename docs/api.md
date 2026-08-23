@@ -16,19 +16,28 @@ Authorization: Bearer <accessToken>
 
 ### Endpoints
 
-| Method | Endpoint                    | Description                | Auth                |
-| ------ | --------------------------- | -------------------------- | ------------------- |
-| POST   | `/api/v1/auth/register`     | Register a donor account   | Public              |
-| POST   | `/api/v1/auth/login`        | Login and receive tokens   | Public              |
-| POST   | `/api/v1/auth/refresh`      | Rotate access token        | Public              |
-| POST   | `/api/v1/auth/logout`       | Revoke refresh token       | Public              |
-| GET    | `/api/v1/auth/me`           | Current user               | Bearer              |
-| GET    | `/api/v1/users`             | List users (admin)         | Bearer + admin role |
-| GET    | `/api/v1/users/:id`         | Get a user                 | Bearer              |
-| GET    | `/api/v1/organizations`     | List organizations (admin) | Bearer + admin role |
-| GET    | `/api/v1/organizations/:id` | Get an organization        | Bearer              |
-| GET    | `/api/v1/donors/profile`    | Donor profile placeholder  | Bearer + DONOR      |
-| GET    | `/api/v1/health`            | Health check               | Public              |
+| Method | Endpoint                           | Description                              | Auth                |
+| ------ | ---------------------------------- | ---------------------------------------- | ------------------- |
+| POST   | `/api/v1/auth/register`            | Register a donor account                 | Public              |
+| POST   | `/api/v1/auth/login`               | Login and receive tokens                 | Public              |
+| POST   | `/api/v1/auth/refresh`             | Rotate access token                      | Public              |
+| POST   | `/api/v1/auth/logout`              | Revoke refresh token                     | Public              |
+| GET    | `/api/v1/auth/me`                  | Current user                             | Bearer              |
+| GET    | `/api/v1/users`                    | List users (admin)                       | Bearer + admin role |
+| GET    | `/api/v1/users/:id`                | Get a user                               | Bearer              |
+| GET    | `/api/v1/organizations`            | List organizations (admin)               | Bearer + admin role |
+| GET    | `/api/v1/organizations/:id`        | Get an organization                      | Bearer              |
+| GET    | `/api/v1/donors/profile`           | Donor profile placeholder                 | Bearer + DONOR      |
+| GET    | `/api/v1/health`                   | Health check                             | Public              |
+| GET    | `/api/v1/me/health-trends`         | Health trends summary                     | Bearer (DONOR)      |
+| GET    | `/api/v1/me/health-trends/parameters` | Available trend parameters             | Bearer (DONOR)      |
+| GET    | `/api/v1/me/health-trends/:parameter` | Trend data for specific parameter       | Bearer (DONOR)      |
+| GET    | `/api/v1/me/health-trends/:parameter/statistics` | Statistics for parameter    | Bearer (DONOR)      |
+| GET    | `/api/v1/me/health-trends/:parameter/history` | History for parameter        | Bearer (DONOR)      |
+| POST   | `/api/v1/me/ai/insights`            | Generate AI health insight              | Bearer (DONOR)      |
+| POST   | `/api/v1/me/ai/explain-result`      | Explain a specific result              | Bearer (DONOR)      |
+| POST   | `/api/v1/me/ai/analyze-trend`       | Analyze a parameter trend              | Bearer (DONOR)      |
+| POST   | `/api/v1/me/ai/chat`                | Chat with AI assistant                 | Bearer (DONOR)      |
 
 ## Request/response format
 

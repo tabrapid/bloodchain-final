@@ -823,3 +823,119 @@ Mobile
 Blood Center Web
 All Phase 10 work is complete.
 ▣  Build · MiniMax-M2.7 · 6m 49s
+
+
+
+Phase 11 Implementation Complete
+Implementation Summary
+Phase 11: Health Trends & Personal Health Analytics
+1. API Module (apps/api/src/modules/health-trends/)
+File	Purpose
+health-trends.module.ts	NestJS module
+health-trends.service.ts	Business logic: parameter discovery, trend data, statistics, history
+health-trends.controller.ts	REST endpoints under /api/v1/me/health-trends
+dto/get-trends.dto.ts	Query parameters (parameter, range, from, to, category)Build·MiniMax-M2.7OpenCode Go
+dto/trend-response.dto.ts	Response DTOs (TrendDataDto, ParameterStatisticsDto, etc.)
+/Users/tabrapid/projects/bloodchainhealth-trends.service.spec.ts	Unit tests (13 test cases)
+API Endpoints:
+- GET /api/v1/me/health-trends - Summary with available parameters
+- GET /api/v1/me/health-trends/parameters - List all parameters with data
+- GET /api/v1/me/health-trends/:parameter - Trend data for specific parameter
+- GET /api/v1/me/health-trends/:parameter/statistics - Statistics (avg, min, max, count)
+- GET /api/v1/me/health-trends/:parameter/history - Paginated history
+2. Mobile App (apps/mobile/)
+File	Purpose
+src/api/health-trends.ts	API client with all trend endpoints
+app/(app)/health-trends/index.tsx	Full Health Trends screen with charts
+app/(app)/health.tsx	Updated Health Dashboard with trends card
+Mobile Features:
+- Dynamic parameter discovery from actual data
+- Time range selector (1M, 3M, 6M, 1Y, 2Y, ALL)
+- Interactive line chart (react-native-chart-kit)
+- Current/previous value comparison
+- Change calculation (absolute + percentage)
+- Trend indicators (INCREASING/DECREASING/STABLE/INSUFFICIENT_DATA)
+- Reference range visualization
+- History list with result details
+- Empty/insufficient data states
+3. Dependencies Added
+- react-native-chart-kit@7.0.2 to mobile
+- react-native-svg@15.12.1 upgrade
+4. Documentation Updated
+- docs/architecture.md - Added health-trends and other Phase 10 modules
+- docs/api.md - Added Health Trends endpoints
+- docs/database.md - Added laboratory models and health trends architecture
+Verification Results
+Check	Result
+API typecheck	✓
+Mobile typecheck	✓
+All 9 packages typecheck	✓
+API lint	✓ (0 errors, 41 pre-existing warnings)
+API tests	✓ 29 passed
+Regression tests	✓
+Key Design Decisions
+1. No duplicate storage - Trends derived from LaboratoryResultItem at query time
+2. Unit compatibility - Only combines data with matching units
+3. Reference ranges - From TestReferenceRange when available; not invented
+4. Trend calculation - 2% threshold for STABLE; neutral wording only
+5. No medical interpretation - System shows values/changes, never diagnoses
+6. User isolation - Donor ID from JWT, never from request parameters
+
+
+
+Phase 12 Implementation Complete
+Summary
+Phase 12: AI Health Insights & Personal Health Assistant
+1. API Module (apps/api/src/modules/ai-health/)
+File
+ai-health.module.ts
+ai-health.controller.ts
+ai-health.service.ts
+ai-context-builder.service.ts
+ai-safety.service.ts
+ai-response.service.ts
+providers/ai-provider.interface.ts
+providers/openai.provider.ts
+prompts/system.ts
+prompts/prompt-builder.ts
+dto/*.ts
+ai-safety.service.spec.ts
+API Endpoints:
+- POST /api/v1/me/ai/insights - Generate AI health insight
+- POST /api/v1/me/ai/explain-result - Explain specific result
+- POST /api/v1/me/ai/analyze-trend - Analyze parameter trend
+- POST /api/v1/me/ai/chat - Chat with AI assistant
+2. Mobile App (apps/mobile/)
+File
+src/api/ai-health.ts
+app/(app)/insights/index.tsx
+3. Key Safety Features
+- Request Classification: Detects out-of-scope requests (diagnosis, prescription)
+- Output Validation: Rejects unsafe AI outputs
+- Structured JSON: AI responses validated against strict schemas
+- Fallback Responses: Safe default when AI unavailable or unsafe
+- Safety Disclaimers: Every insight includes medical disclaimer
+4. What AI DOES NOT Do (Enforced)
+- Diagnose diseases
+- Prescribe medication
+- Recommend dosage
+- Predict serious outcomes
+- Replace healthcare professionals
+- Provide emergency medical instructions
+Verification Results
+Check
+API typecheck
+Mobile typecheck
+All 9 packages typecheck
+API lint
+API tests
+Regression tests
+Environment Variables Required
+AI_ENABLED=true
+AI_PROVIDER=openai
+AI_MODEL=gpt-4o-mini
+AI_API_KEY=your-api-key
+Documentation
+- docs/architecture.md - Updated with AI module
+- docs/api.md - Added AI endpoints
+- docs/ai.md - New comprehensive AI architecture guide

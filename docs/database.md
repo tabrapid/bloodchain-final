@@ -32,6 +32,8 @@ The schema lives in `apps/api/prisma/schema.prisma`.
 - **DonorStatus**: `ACTIVE`, `INACTIVE`, `DEFERRED`
 - **VerificationStatus**: `UNVERIFIED`, `VERIFIED`, `REQUIRES_REVIEW`
 - **VerificationSource**: `BLOOD_CENTER`, `HOSPITAL`, `LABORATORY`, `OTHER_AUTHORIZED_SOURCE`
+- **TestCategory**: `HEMATOLOGY`, `IRON`, `BLOOD_GROUP`, `LIVER_FUNCTION`, `KIDNEY_FUNCTION`, `DIABETES`, `THYROID`, `LIPID`, `GENERAL`, `OTHER`
+- **ResultFlag**: `NORMAL`, `LOW`, `HIGH`, `CRITICAL`, `ABNORMAL`, `NOT_AVAILABLE`
 
 ### Indexes
 
@@ -44,6 +46,10 @@ Indexes are defined on commonly queried columns:
 - `Session.userId`, `Session.tokenHash`, `Session.expiresAt`
 - `AuditLog.actorId`, `AuditLog.organizationId`, `AuditLog.action`, `AuditLog.entityType`, `AuditLog.createdAt`
 - `DonorProfile.bloodType`, `DonorProfile.donorStatus`
+- `LaboratoryResult.donorId`, `LaboratoryResult.status`, `LaboratoryResult.publishedAt`
+- `LaboratoryResultItem.resultId`, `LaboratoryResultItem.parameterId`
+- `TestType.category`, `TestType.isActive`
+- `TestReferenceRange.testTypeId`, `TestReferenceRange.isActive`
 
 ## Migrations
 
@@ -74,3 +80,30 @@ Blood type verification:
 - Donor-entered blood type is marked as `UNVERIFIED` until verified by authorized staff.
 - Only users with `donor.verify` permission can mark blood types as `VERIFIED`.
 - Verification creates an audit log entry with source, timestamp, and actor.
+
+## Laboratory models (Phase 10)
+
+The laboratory system consists of:
+
+- **TestType** — defines laboratory tests (CBC, Lipid Panel, Blood Grouping, etc.) with category and display order.
+- **TestParameter** — individual parameters within a test (Hemoglobin, WBC, RBC, etc.) with unit and data type.
+- **TestReferenceRange** — normal value ranges per test type, optionally per laboratory.
+- **LaboratoryProfile** — laboratory organization metadata (linked to Organization).
+- **LaboratoryResult** — a donor's completed test result with status workflow (ENTERED → REVIEWED → PUBLISHED).
+- **LaboratoryResultItem** — individual parameter result with value, reference range, and flag.
+- **LaboratoryResultVersion** — audit trail for result changes.
+
+Results flow: Appointment → Check-in → Start Test → Enter Results → Review → Publish → Visible to Donor
+
+## Health Trends (Phase 11)
+
+Health Trends is a query/analytics layer over LaboratoryResult data:
+
+- No duplicate storage — trends are derived from published LaboratoryResultItem records.
+- TrendData includes: parameter code/name, latest/previous values, change calculations, trend direction (INCREASING/DECREASING/STABLE/INSUFFICIENT_DATA).
+- Reference ranges are visualized from TestReferenceRange when available.
+- Unit compatibility is enforced — different units are not blindly combined.
+- Date filtering supports: 1M, 3M, 6M, 1Y, 2Y, ALL.
+- Statistics include: count, min, max, average, first/latest values with dates.
+
+Privacy: Donor can only access their own health trend data. User identity is derived from JWT, never from request parameters.
