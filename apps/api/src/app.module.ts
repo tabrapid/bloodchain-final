@@ -15,6 +15,7 @@ import { DonorsModule } from './modules/donors/donors.module';
 import { EmergencyModule } from './modules/emergency/emergency.module';
 import { HealthModule } from './modules/health/health.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
+import { LaboratoryModule } from './modules/laboratory/laboratory.module';
 import { NotificationPreferencesModule } from './modules/notification-preferences/notification-preferences.module';
 import { OrganizationsModule } from './modules/organizations/organizations.module';
 import { PermissionsModule } from './modules/permissions/permissions.module';
@@ -74,6 +75,7 @@ import { UsersModule } from './modules/users/users.module';
     InventoryModule,
     ShipmentsModule,
     EmergencyModule,
+    LaboratoryModule,
   ],
   providers: [
     {

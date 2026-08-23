@@ -277,7 +277,10 @@ export class EmergencyService {
       });
 
       const compatibleDonors = donors.filter((donor) => {
-        if (!donor.donorProfile || donor.emergencyMatches.length > 0 || donor.emergencyResponses.length > 0) {
+        if (!donor.donorProfile || !donor.donorProfile.bloodType || !donor.donorProfile.rhFactor) {
+          return false;
+        }
+        if (donor.emergencyMatches.length > 0 || donor.emergencyResponses.length > 0) {
           return false;
         }
         return this.isBloodCompatible(
@@ -410,20 +413,21 @@ export class EmergencyService {
 
     const activeEmergencies = user.emergencyMatches
       .filter((m) => {
-        const validStatuses = [EmergencyMatchStatus.MATCHED, EmergencyMatchStatus.NOTIFIED, EmergencyMatchStatus.VIEWED];
-        return validStatuses.includes(m.status);
+        const validStatuses = new Set<EmergencyMatchStatus>([EmergencyMatchStatus.MATCHED, EmergencyMatchStatus.NOTIFIED, EmergencyMatchStatus.VIEWED]);
+        return validStatuses.has(m.status);
       })
       .filter((m) => {
         const req = m.emergencyRequest;
-        return req.status === EmergencyStatus.ACTIVE || req.status === EmergencyStatus.MATCHING || req.status === EmergencyStatus.RESPONSES_RECEIVED;
+        const activeStatuses = new Set<EmergencyStatus>([EmergencyStatus.ACTIVE, EmergencyStatus.MATCHING, EmergencyStatus.RESPONSES_RECEIVED]);
+        return activeStatuses.has(req.status);
       })
       .map((m) => ({
         ...m.emergencyRequest,
         matchId: m.id,
         matchStatus: m.status,
         canAccept: this.isBloodCompatible(
-          user.donorProfile!.bloodType,
-          user.donorProfile!.rhFactor,
+          user.donorProfile!.bloodType!,
+          user.donorProfile!.rhFactor!,
           m.emergencyRequest.bloodType,
           m.emergencyRequest.rhFactor,
         ),
@@ -495,8 +499,8 @@ export class EmergencyService {
 
     const emergency = match.emergencyRequest;
 
-    const activeStatuses = [EmergencyStatus.ACTIVE, EmergencyStatus.MATCHING, EmergencyStatus.RESPONSES_RECEIVED];
-    if (!activeStatuses.includes(emergency.status)) {
+    const activeStatuses = new Set<EmergencyStatus>([EmergencyStatus.ACTIVE, EmergencyStatus.MATCHING, EmergencyStatus.RESPONSES_RECEIVED]);
+    if (!activeStatuses.has(emergency.status)) {
       throw new BadRequestException('Emergency is no longer active.');
     }
 
@@ -801,7 +805,8 @@ export class EmergencyService {
       throw new ForbiddenException('This emergency does not belong to your organization.');
     }
 
-    if ([EmergencyStatus.COMPLETED, EmergencyStatus.CANCELLED, EmergencyStatus.EXPIRED].includes(emergency.status)) {
+    const nonCancellableStatuses = new Set<EmergencyStatus>([EmergencyStatus.COMPLETED, EmergencyStatus.CANCELLED, EmergencyStatus.EXPIRED]);
+    if (nonCancellableStatuses.has(emergency.status)) {
       throw new BadRequestException('Emergency cannot be cancelled in current status.');
     }
 
@@ -912,7 +917,8 @@ export class EmergencyService {
       throw new ForbiddenException('This response does not belong to you.');
     }
 
-    if ([EmergencyResponseStatus.COMPLETED, EmergencyResponseStatus.CANCELLED, EmergencyResponseStatus.FAILED].includes(response.status)) {
+    const terminalStatuses = new Set<EmergencyResponseStatus>([EmergencyResponseStatus.COMPLETED, EmergencyResponseStatus.CANCELLED, EmergencyResponseStatus.FAILED]);
+    if (terminalStatuses.has(response.status)) {
       throw new BadRequestException('Response cannot be cancelled in current status.');
     }
 

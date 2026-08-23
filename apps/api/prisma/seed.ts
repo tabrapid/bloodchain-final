@@ -6,12 +6,17 @@ import {
   CourierStatus,
   DonationStatus,
   DonationType,
+  EmergencyMatchStatus,
+  EmergencyStatus,
   LocationType,
   OrganizationType,
+  Prisma,
   PrismaClient,
+  ResultFlag,
   RhFactor,
   RoleCode,
   SlotStatus,
+  TestCategory,
 } from '@prisma/client';
 import * as argon2 from 'argon2';
 
@@ -718,6 +723,364 @@ async function main() {
     },
   });
 
+  const emergency1 = await db.emergencyRequest.create({
+    data: {
+      emergencyReference: `SOS-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 999999)).padStart(6, '0')}`,
+      hospitalId: hospitalOrg.id,
+      bloodType: BloodType.O,
+      rhFactor: RhFactor.NEGATIVE,
+      unitsRequired: 2,
+      urgencyLevel: 'CRITICAL',
+      status: EmergencyStatus.ACTIVE,
+      patientReference: 'ICU-PATIENT-001',
+      description: 'Trauma patient in ICU, immediate surgery required',
+      donationLocation: hospitalOrg.address || 'Northstar Hospital, Emergency Wing',
+      createdBy: hospitalAdminUser.id,
+    },
+  });
+
+  const emergency2 = await db.emergencyRequest.create({
+    data: {
+      emergencyReference: `SOS-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 999999)).padStart(6, '0')}`,
+      hospitalId: hospitalOrg.id,
+      bloodType: BloodType.A,
+      rhFactor: RhFactor.POSITIVE,
+      unitsRequired: 1,
+      urgencyLevel: 'HIGH',
+      status: EmergencyStatus.MATCHING,
+      patientReference: 'ER-PATIENT-002',
+      description: 'Emergency cesarean section scheduled',
+      donationLocation: hospitalOrg.address || 'Northstar Hospital, Maternity Ward',
+      createdBy: hospitalAdminUser.id,
+    },
+  });
+
+  const emergency3 = await db.emergencyRequest.create({
+    data: {
+      emergencyReference: `SOS-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 999999)).padStart(6, '0')}`,
+      hospitalId: hospitalOrg.id,
+      bloodType: BloodType.B,
+      rhFactor: RhFactor.POSITIVE,
+      unitsRequired: 3,
+      urgencyLevel: 'MEDIUM',
+      status: EmergencyStatus.DRAFT,
+      patientReference: 'ONCOLOGY-003',
+      description: 'Chemotherapy patient, planned procedure',
+      createdBy: hospitalAdminUser.id,
+    },
+  });
+
+  const emergencyMatch1 = await db.emergencyMatch.create({
+    data: {
+      emergencyRequestId: emergency1.id,
+      donorId: donor.id,
+      status: EmergencyMatchStatus.MATCHED,
+    },
+  });
+
+  const emergencyMatch2 = await db.emergencyMatch.create({
+    data: {
+      emergencyRequestId: emergency2.id,
+      donorId: donor.id,
+      status: EmergencyMatchStatus.VIEWED,
+      viewedAt: new Date(),
+    },
+  });
+
+  await db.emergencyResponse.create({
+    data: {
+      emergencyRequestId: emergency1.id,
+      matchId: emergencyMatch1.id,
+      donorId: donor.id,
+      status: 'ACCEPTED',
+      acceptedAt: new Date(),
+    },
+  });
+
+  const cbcTestType = await db.testType.create({
+    data: {
+      code: 'CBC',
+      name: 'Complete Blood Count (CBC)',
+      description: 'A complete blood count test measures several components of your blood including red blood cells, white blood cells, hemoglobin, hematocrit, and platelets.',
+      category: TestCategory.HEMATOLOGY,
+      isActive: true,
+      displayOrder: 1,
+    },
+  });
+
+  const hemoglobinParam = await db.testParameter.create({
+    data: {
+      testTypeId: cbcTestType.id,
+      code: 'HEMOGLOBIN',
+      name: 'Hemoglobin',
+      unit: 'g/dL',
+      dataType: 'numeric',
+      required: true,
+      displayOrder: 1,
+    },
+  });
+
+  const rbcParam = await db.testParameter.create({
+    data: {
+      testTypeId: cbcTestType.id,
+      code: 'RBC',
+      name: 'Red Blood Cell Count',
+      unit: 'million cells/mcL',
+      dataType: 'numeric',
+      required: true,
+      displayOrder: 2,
+    },
+  });
+
+  const wbcParam = await db.testParameter.create({
+    data: {
+      testTypeId: cbcTestType.id,
+      code: 'WBC',
+      name: 'White Blood Cell Count',
+      unit: 'cells/mcL',
+      dataType: 'numeric',
+      required: true,
+      displayOrder: 3,
+    },
+  });
+
+  const hematocritParam = await db.testParameter.create({
+    data: {
+      testTypeId: cbcTestType.id,
+      code: 'HEMATOCRIT',
+      name: 'Hematocrit',
+      unit: '%',
+      dataType: 'numeric',
+      required: true,
+      displayOrder: 4,
+    },
+  });
+
+  const plateletParam = await db.testParameter.create({
+    data: {
+      testTypeId: cbcTestType.id,
+      code: 'PLATELETS',
+      name: 'Platelet Count',
+      unit: 'cells/mcL',
+      dataType: 'numeric',
+      required: true,
+      displayOrder: 5,
+    },
+  });
+
+  const bloodGroupTestType = await db.testType.create({
+    data: {
+      code: 'BLOOD_GROUP',
+      name: 'Blood Grouping',
+      description: 'Determines your blood type (A, B, AB, or O) and Rh factor (positive or negative).',
+      category: TestCategory.BLOOD_GROUP,
+      isActive: true,
+      displayOrder: 2,
+    },
+  });
+
+  await db.testParameter.create({
+    data: {
+      testTypeId: bloodGroupTestType.id,
+      code: 'ABO',
+      name: 'ABO Blood Type',
+      dataType: 'text',
+      required: true,
+      displayOrder: 1,
+    },
+  });
+
+  await db.testParameter.create({
+    data: {
+      testTypeId: bloodGroupTestType.id,
+      code: 'RH_FACTOR',
+      name: 'Rh Factor',
+      dataType: 'text',
+      required: true,
+      displayOrder: 2,
+    },
+  });
+
+  const ferritinTestType = await db.testType.create({
+    data: {
+      code: 'FERRITIN',
+      name: 'Ferritin',
+      description: 'Measures the amount of ferritin in your blood. Ferritin is a protein that stores iron in your body.',
+      category: TestCategory.IRON,
+      isActive: true,
+      displayOrder: 3,
+    },
+  });
+
+  await db.testParameter.create({
+    data: {
+      testTypeId: ferritinTestType.id,
+      code: 'FERRITIN_LEVEL',
+      name: 'Ferritin Level',
+      unit: 'ng/mL',
+      dataType: 'numeric',
+      required: true,
+      displayOrder: 1,
+    },
+  });
+
+  await db.testReferenceRange.create({
+    data: {
+      testTypeId: cbcTestType.id,
+      minValue: new Prisma.Decimal(12.0),
+      maxValue: new Prisma.Decimal(17.5),
+      unit: 'g/dL',
+      notes: 'Normal range for adults',
+      isActive: true,
+    },
+  });
+
+  await db.testReferenceRange.create({
+    data: {
+      testTypeId: ferritinTestType.id,
+      minValue: new Prisma.Decimal(20.0),
+      maxValue: new Prisma.Decimal(200.0),
+      unit: 'ng/mL',
+      notes: 'Normal range for adults',
+      isActive: true,
+    },
+  });
+
+  const labProfile = await db.laboratoryProfile.create({
+    data: {
+      organizationId: centerOrg.id,
+      name: 'Northstar Laboratory Services',
+      address: centerOrg.address || '123 Blood Center Dr, Medical City, MC 12345',
+      phone: '+1-555-LAB-0001',
+      email: 'lab@bloodcenter.local',
+      workingHours: 'Mon-Fri: 7:00 AM - 7:00 PM, Sat: 8:00 AM - 2:00 PM',
+      isActive: true,
+    },
+  });
+
+  await db.laboratoryProfile.update({
+    where: { id: labProfile.id },
+    data: {
+      testTypes: {
+        connect: [{ id: cbcTestType.id }, { id: bloodGroupTestType.id }, { id: ferritinTestType.id }],
+      },
+    },
+  });
+
+  const labSlot = await db.appointmentSlot.create({
+    data: {
+      organizationId: centerOrg.id,
+      appointmentType: AppointmentType.BLOOD_TEST,
+      startAt: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
+      endAt: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000 + 30 * 60 * 1000),
+      capacity: 3,
+      bookedCount: 0,
+      status: SlotStatus.AVAILABLE,
+    },
+  });
+
+  const labAppointment = await db.appointment.create({
+    data: {
+      referenceNumber: `LAB-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 999999)).padStart(6, '0')}`,
+      donorId: donor.id,
+      organizationId: centerOrg.id,
+      slotId: labSlot.id,
+      appointmentType: AppointmentType.BLOOD_TEST,
+      status: AppointmentStatus.CONFIRMED,
+      scheduledStart: labSlot.startAt,
+      scheduledEnd: labSlot.endAt,
+    },
+  });
+
+  const labResult = await db.laboratoryResult.create({
+    data: {
+      appointmentId: labAppointment.id,
+      donorId: donor.id,
+      laboratoryId: centerOrg.id,
+      testTypeId: cbcTestType.id,
+      status: 'PUBLISHED',
+      performedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+      performedBy: bloodCenterAdminUser.id,
+      reviewedAt: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000),
+      reviewedBy: bloodCenterAdminUser.id,
+      publishedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
+      publishedBy: bloodCenterAdminUser.id,
+    },
+  });
+
+  await db.laboratoryResultItem.createMany({
+    data: [
+      {
+        resultId: labResult.id,
+        parameterId: hemoglobinParam.id,
+        value: '14.2',
+        numericValue: new Prisma.Decimal(14.2),
+        unit: 'g/dL',
+        referenceMin: new Prisma.Decimal(12.0),
+        referenceMax: new Prisma.Decimal(17.5),
+        flag: ResultFlag.NORMAL,
+      },
+      {
+        resultId: labResult.id,
+        parameterId: rbcParam.id,
+        value: '5.1',
+        numericValue: new Prisma.Decimal(5.1),
+        unit: 'million cells/mcL',
+        referenceMin: new Prisma.Decimal(4.5),
+        referenceMax: new Prisma.Decimal(5.5),
+        flag: ResultFlag.NORMAL,
+      },
+      {
+        resultId: labResult.id,
+        parameterId: wbcParam.id,
+        value: '7500',
+        numericValue: new Prisma.Decimal(7500),
+        unit: 'cells/mcL',
+        referenceMin: new Prisma.Decimal(4500),
+        referenceMax: new Prisma.Decimal(11000),
+        flag: ResultFlag.NORMAL,
+      },
+      {
+        resultId: labResult.id,
+        parameterId: hematocritParam.id,
+        value: '42',
+        numericValue: new Prisma.Decimal(42),
+        unit: '%',
+        referenceMin: new Prisma.Decimal(36),
+        referenceMax: new Prisma.Decimal(50),
+        flag: ResultFlag.NORMAL,
+      },
+      {
+        resultId: labResult.id,
+        parameterId: plateletParam.id,
+        value: '250000',
+        numericValue: new Prisma.Decimal(250000),
+        unit: 'cells/mcL',
+        referenceMin: new Prisma.Decimal(150000),
+        referenceMax: new Prisma.Decimal(400000),
+        flag: ResultFlag.NORMAL,
+      },
+    ],
+  });
+
+  await db.laboratoryResultVersion.create({
+    data: {
+      resultId: labResult.id,
+      version: 1,
+      status: 'ENTERED',
+      changedBy: bloodCenterAdminUser.id,
+    },
+  });
+
+  await db.laboratoryResultVersion.create({
+    data: {
+      resultId: labResult.id,
+      version: 2,
+      status: 'PUBLISHED',
+      changedBy: bloodCenterAdminUser.id,
+    },
+  });
+
   console.log('Seeded development data:');
   console.log('=== SUPER_ADMIN ===');
   console.log('  admin@donor.local / DevelopmentOnly!123');
@@ -734,6 +1097,10 @@ async function main() {
   console.log('=== ORGANIZATIONS ===');
   console.log('  Northstar Hospital (Development) - Hospital');
   console.log('  Northstar Blood Center (Development) - Blood Center');
+  console.log('=== EMERGENCY REQUESTS ===');
+  console.log(`  ${emergency1.emergencyReference} - O- (CRITICAL, ACTIVE)`);
+  console.log(`  ${emergency2.emergencyReference} - A+ (HIGH, MATCHING)`);
+  console.log(`  ${emergency3.emergencyReference} - B+ (MEDIUM, DRAFT)`);
   console.log(
     'WARNING: These credentials are for local development only and must never be used in production.',
   );

@@ -40,6 +40,9 @@ enum RoleCode {
   BLOOD_CENTER_STAFF
   COURIER
   SUPER_ADMIN
+  LAB_TECHNICIAN
+  LAB_REVIEWER
+  LAB_ADMIN
 }
 
 enum BloodType {
@@ -74,6 +77,28 @@ enum VerificationSource {
   OTHER_AUTHORIZED_SOURCE
 }
 
+enum TestCategory {
+  HEMATOLOGY
+  IRON
+  BLOOD_GROUP
+  LIVER_FUNCTION
+  KIDNEY_FUNCTION
+  DIABETES
+  THYROID
+  LIPID
+  GENERAL
+  OTHER
+}
+
+enum ResultFlag {
+  NORMAL
+  LOW
+  HIGH
+  CRITICAL
+  ABNORMAL
+  NOT_AVAILABLE
+}
+
 enum AppointmentType {
   BLOOD_DONATION
   BLOOD_TEST
@@ -83,7 +108,12 @@ enum AppointmentType {
 enum AppointmentStatus {
   PENDING
   CONFIRMED
+  CHECKED_IN
+  IN_PROGRESS
   COMPLETED
+  RESULT_PENDING
+  RESULT_READY
+  RESULT_PUBLISHED
   CANCELLED
   NO_SHOW
   RESCHEDULED
@@ -335,6 +365,7 @@ model User {
   emergencyRequests     EmergencyRequest[] @relation("EmergencyCreator")
   emergencyMatches     EmergencyMatch[]   @relation("EmergencyDonor")
   emergencyResponses    EmergencyResponse[] @relation("EmergencyResponseDonor")
+  laboratoryResults     LaboratoryResult[] @relation("LaboratoryResultDonor")
 
   @@index([email])
   @@index([status])
@@ -403,6 +434,9 @@ model Organization {
   bloodRequestEvents BloodRequestEvent[]
   shipmentEvents   ShipmentEvent[]
   emergencyRequests EmergencyRequest[]
+  laboratoryProfile  LaboratoryProfile?
+  laboratoryResults LaboratoryResult[] @relation("LaboratoryResultOrganization")
+  testReferenceRanges TestReferenceRange[]
 
   @@index([type])
   @@index([status])
@@ -598,6 +632,7 @@ model Appointment {
   slot               AppointmentSlot   @relation(fields: [slotId], references: [id], onDelete: Cascade)
   history            AppointmentHistory[]
   donation          Donation?
+  laboratoryResult   LaboratoryResult?
 
   @@index([donorId])
   @@index([organizationId])
@@ -1137,4 +1172,152 @@ model EmergencyLocation {
 
   @@index([emergencyResponseId])
   @@index([recordedAt])
+}
+
+model TestType {
+  id            String       @id @default(cuid())
+  code          String       @unique
+  name          String
+  description   String?
+  category      TestCategory @default(GENERAL)
+  isActive      Boolean      @default(true)
+  displayOrder  Int         @default(0)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  parameters         TestParameter[]
+  referenceRanges    TestReferenceRange[]
+  laboratoryProfiles LaboratoryProfile[]
+  laboratoryResults  LaboratoryResult[]
+
+  @@index([category])
+  @@index([isActive])
+}
+
+model TestParameter {
+  id                String   @id @default(cuid())
+  testTypeId       String
+  code             String
+  name             String
+  description       String?
+  unit              String?
+  dataType          String   @default("numeric")
+  required          Boolean  @default(true)
+  displayOrder      Int      @default(0)
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  testType           TestType               @relation(fields: [testTypeId], references: [id], onDelete: Cascade)
+  resultItems        LaboratoryResultItem[]
+
+  @@unique([testTypeId, code])
+  @@index([testTypeId])
+}
+
+model TestReferenceRange {
+  id             String    @id @default(cuid())
+  testTypeId     String
+  laboratoryId   String?
+  minValue       Decimal?  @db.Decimal(10, 3)
+  maxValue       Decimal?  @db.Decimal(10, 3)
+  unit           String?
+  notes          String?
+  effectiveFrom  DateTime?
+  effectiveTo   DateTime?
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  testType     TestType      @relation(fields: [testTypeId], references: [id], onDelete: Cascade)
+  laboratory   Organization? @relation(fields: [laboratoryId], references: [id], onDelete: SetNull)
+
+  @@index([testTypeId])
+  @@index([laboratoryId])
+  @@index([isActive])
+}
+
+model LaboratoryProfile {
+  id             String   @id @default(cuid())
+  organizationId String   @unique
+  name           String
+  address        String?
+  phone          String?
+  email          String?
+  workingHours   String?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  testTypes      TestType[]
+
+  @@index([organizationId])
+}
+
+model LaboratoryResult {
+  id              String            @id @default(cuid())
+  appointmentId   String           @unique
+  donorId         String
+  laboratoryId    String
+  testTypeId      String
+  status          String           @default("PENDING")
+  performedAt     DateTime?
+  performedBy     String?
+  reviewedAt      DateTime?
+  reviewedBy      String?
+  publishedAt     DateTime?
+  publishedBy     String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  appointment     Appointment      @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  donor           User             @relation("LaboratoryResultDonor", fields: [donorId], references: [id], onDelete: Cascade)
+  laboratory      Organization     @relation("LaboratoryResultOrganization", fields: [laboratoryId], references: [id], onDelete: Cascade)
+  testType        TestType         @relation(fields: [testTypeId], references: [id], onDelete: Cascade)
+  items           LaboratoryResultItem[]
+  versions        LaboratoryResultVersion[]
+
+  @@index([donorId])
+  @@index([laboratoryId])
+  @@index([testTypeId])
+  @@index([status])
+  @@index([appointmentId])
+  @@index([publishedAt])
+}
+
+model LaboratoryResultItem {
+  id              String    @id @default(cuid())
+  resultId        String
+  parameterId     String
+  value           String?
+  numericValue    Decimal?  @db.Decimal(15, 4)
+  unit            String?
+  referenceMin    Decimal?  @db.Decimal(10, 3)
+  referenceMax    Decimal?  @db.Decimal(10, 3)
+  flag            ResultFlag @default(NOT_AVAILABLE)
+  notes           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  result          LaboratoryResult @relation(fields: [resultId], references: [id], onDelete: Cascade)
+  parameter       TestParameter    @relation(fields: [parameterId], references: [id], onDelete: Cascade)
+
+  @@index([resultId])
+  @@index([parameterId])
+}
+
+model LaboratoryResultVersion {
+  id              String    @id @default(cuid())
+  resultId        String
+  version         Int
+  status          String
+  changeReason    String?
+  changedBy       String?
+  createdAt       DateTime  @default(now())
+
+  result          LaboratoryResult @relation(fields: [resultId], references: [id], onDelete: Cascade)
+
+  @@unique([resultId, version])
+  @@index([resultId])
 }

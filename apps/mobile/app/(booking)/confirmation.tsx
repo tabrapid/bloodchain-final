@@ -128,7 +128,7 @@ export default function BookingConfirmation() {
         </AppButton>
         <AppButton
           variant="secondary"
-          onPress={() => router.replace('/(app)/')}
+          onPress={() => router.replace('/home' as const)}
           style={styles.homeButton}
         >
           Go to Home
