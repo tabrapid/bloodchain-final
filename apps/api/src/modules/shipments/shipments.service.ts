@@ -17,9 +17,12 @@ import {
   ShipmentEventType,
   ShipmentStatus,
 } from '@prisma/client';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../database/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { Courier, Organization, User } from '@prisma/client';
+
+const SHIPMENT_EVENT = 'shipment.event';
 
 type OrganizationWithType = Organization & { __typename?: string };
 
@@ -28,6 +31,7 @@ export class ShipmentsService {
   constructor(
     private readonly db: PrismaService,
     private readonly audit: AuditLogsService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   private generateShipmentReference(): string {
@@ -545,6 +549,17 @@ export class ShipmentsService {
       ipAddress,
     });
 
+    const bloodCenterUsers = await this.db.user.findMany({
+      where: { memberships: { some: { organizationId } } },
+      select: { id: true },
+    });
+
+    this.eventEmitter.emit(SHIPMENT_EVENT, {
+      shipmentId: result.id,
+      eventType: 'created',
+      recipientIds: bloodCenterUsers.map((u) => u.id),
+    });
+
     return result;
   }
 
@@ -736,6 +751,12 @@ export class ShipmentsService {
       ipAddress,
     });
 
+    this.eventEmitter.emit(SHIPMENT_EVENT, {
+      shipmentId,
+      eventType: 'courier_assigned',
+      recipientIds: [courier.userId],
+    });
+
     return result;
   }
 
@@ -788,6 +809,17 @@ export class ShipmentsService {
       organizationId: courier.organizationId,
       metadata: { shipmentReference: shipment.shipmentReference },
       ipAddress,
+    });
+
+    const bloodCenterUsers = await this.db.user.findMany({
+      where: { memberships: { some: { organizationId: shipment.sourceOrganizationId } } },
+      select: { id: true },
+    });
+
+    this.eventEmitter.emit(SHIPMENT_EVENT, {
+      shipmentId,
+      eventType: 'accepted',
+      recipientIds: bloodCenterUsers.map((u) => u.id),
     });
 
     return result;
@@ -992,6 +1024,17 @@ export class ShipmentsService {
       ipAddress,
     });
 
+    const bloodCenterUsers = await this.db.user.findMany({
+      where: { memberships: { some: { organizationId: shipment.sourceOrganizationId } } },
+      select: { id: true },
+    });
+
+    this.eventEmitter.emit(SHIPMENT_EVENT, {
+      shipmentId,
+      eventType: 'picked_up',
+      recipientIds: bloodCenterUsers.map((u) => u.id),
+    });
+
     return result;
   }
 
@@ -1044,6 +1087,17 @@ export class ShipmentsService {
       organizationId: courier.organizationId,
       metadata: { shipmentReference: shipment.shipmentReference },
       ipAddress,
+    });
+
+    const hospitalUsers = await this.db.user.findMany({
+      where: { memberships: { some: { organizationId: shipment.destinationOrganizationId } } },
+      select: { id: true },
+    });
+
+    this.eventEmitter.emit(SHIPMENT_EVENT, {
+      shipmentId,
+      eventType: 'in_transit',
+      recipientIds: hospitalUsers.map((u) => u.id),
     });
 
     return result;
@@ -1168,6 +1222,17 @@ export class ShipmentsService {
       organizationId: courier.organizationId,
       metadata: { shipmentReference: shipment.shipmentReference },
       ipAddress,
+    });
+
+    const hospitalUsers = await this.db.user.findMany({
+      where: { memberships: { some: { organizationId: shipment.destinationOrganizationId } } },
+      select: { id: true },
+    });
+
+    this.eventEmitter.emit(SHIPMENT_EVENT, {
+      shipmentId,
+      eventType: 'arrived',
+      recipientIds: hospitalUsers.map((u) => u.id),
     });
 
     return result;
@@ -1300,6 +1365,27 @@ export class ShipmentsService {
       ipAddress,
     });
 
+    const bloodCenterUsers = await this.db.user.findMany({
+      where: { memberships: { some: { organizationId: shipment.sourceOrganizationId } } },
+      select: { id: true },
+    });
+
+    const courierUser = await this.db.courier.findUnique({
+      where: { id: shipment.courierId! },
+      select: { userId: true },
+    });
+
+    const recipientIds = [
+      ...bloodCenterUsers.map((u) => u.id),
+      ...(courierUser ? [courierUser.userId] : []),
+    ];
+
+    this.eventEmitter.emit(SHIPMENT_EVENT, {
+      shipmentId,
+      eventType: 'delivered',
+      recipientIds,
+    });
+
     return result;
   }
 
@@ -1392,6 +1478,17 @@ export class ShipmentsService {
       ipAddress,
     });
 
+    const bloodCenterUsers = await this.db.user.findMany({
+      where: { memberships: { some: { organizationId: shipment.sourceOrganizationId } } },
+      select: { id: true },
+    });
+
+    this.eventEmitter.emit(SHIPMENT_EVENT, {
+      shipmentId,
+      eventType: 'failed',
+      recipientIds: bloodCenterUsers.map((u) => u.id),
+    });
+
     return result;
   }
 
@@ -1450,5 +1547,556 @@ export class ShipmentsService {
     });
 
     return { data: shipments };
+  }
+
+  async getShipmentTimeline(shipmentId: string, userId: string) {
+    const shipment = await this.db.shipment.findUnique({
+      where: { id: shipmentId },
+      include: {
+        bloodRequest: { select: { requestingOrganizationId: true } },
+      },
+    });
+
+    if (!shipment) {
+      throw new NotFoundException('Shipment not found.');
+    }
+
+    const courier = await this.db.courier.findUnique({ where: { userId } });
+    const user = await this.db.user.findUnique({
+      where: { id: userId },
+      include: { memberships: true },
+    });
+
+    const organizationIds = user?.memberships.map((m: any) => m.organizationId) || [];
+    const isAuthorized =
+      shipment.sourceOrganizationId === courier?.organizationId ||
+      shipment.destinationOrganizationId === courier?.organizationId ||
+      organizationIds.includes(shipment.sourceOrganizationId) ||
+      organizationIds.includes(shipment.destinationOrganizationId) ||
+      courier?.userId === userId;
+
+    if (!isAuthorized) {
+      throw new ForbiddenException('You are not authorized to view this shipment timeline.');
+    }
+
+    const events = await this.db.shipmentEvent.findMany({
+      where: { shipmentId },
+      orderBy: { createdAt: 'asc' },
+      include: {
+        actor: { select: { firstName: true, lastName: true } },
+        organization: { select: { name: true } },
+      },
+    });
+
+    const timeline = events.map((event: any) => ({
+      id: event.id,
+      type: event.eventType,
+      timestamp: event.createdAt,
+      actor: event.actor
+        ? `${event.actor.firstName} ${event.actor.lastName}`
+        : 'System',
+      organization: event.organization?.name,
+      metadata: event.metadata,
+    }));
+
+    return {
+      shipmentId,
+      reference: shipment.shipmentReference,
+      status: shipment.status,
+      timeline,
+    };
+  }
+
+  async getShipmentTracking(shipmentId: string, userId: string) {
+    const shipment = await this.db.shipment.findUnique({
+      where: { id: shipmentId },
+      include: {
+        bloodRequest: {
+          select: {
+            id: true,
+            requestReference: true,
+            priority: true,
+          },
+        },
+        sourceOrganization: {
+          select: { id: true, name: true, address: true },
+        },
+        destinationOrganization: {
+          select: { id: true, name: true, address: true },
+        },
+        courier: {
+          select: { id: true, displayName: true, phone: true },
+        },
+        units: {
+          select: { id: true },
+        },
+      },
+    });
+
+    if (!shipment) {
+      throw new NotFoundException('Shipment not found.');
+    }
+
+    const courier = await this.db.courier.findUnique({ where: { userId } });
+    const user = await this.db.user.findUnique({
+      where: { id: userId },
+      include: { memberships: true },
+    });
+
+    const organizationIds = user?.memberships.map((m: any) => m.organizationId) || [];
+    const isAuthorized =
+      shipment.sourceOrganizationId === courier?.organizationId ||
+      shipment.destinationOrganizationId === courier?.organizationId ||
+      organizationIds.includes(shipment.sourceOrganizationId) ||
+      organizationIds.includes(shipment.destinationOrganizationId) ||
+      courier?.userId === userId;
+
+    if (!isAuthorized) {
+      throw new ForbiddenException('You are not authorized to view this shipment tracking.');
+    }
+
+    const lastLocation = await this.db.shipmentLocation.findFirst({
+      where: { shipmentId },
+      orderBy: { recordedAt: 'desc' },
+    });
+
+    const latestEvent = await this.db.shipmentEvent.findFirst({
+      where: { shipmentId },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    let eta = null;
+    if (lastLocation && shipment.destinationLatitude && shipment.destinationLongitude) {
+      const distance = this.calculateHaversineDistance(
+        Number(lastLocation.latitude),
+        Number(lastLocation.longitude),
+        Number(shipment.destinationLatitude),
+        Number(shipment.destinationLongitude),
+      );
+      const etaMinutes = Math.round((distance / 40) * 60);
+      eta = {
+        distanceKm: Math.round(distance * 10) / 10,
+        etaMinutes,
+        calculatedAt: new Date().toISOString(),
+        note: 'Estimated based on straight-line distance and average speed. Not a guaranteed delivery time.',
+      };
+    }
+
+    return {
+      shipmentId,
+      reference: shipment.shipmentReference,
+      status: shipment.status,
+      priority: shipment.bloodRequest.priority,
+      bloodGroup: 'Available after delivery confirmation',
+      units: shipment.units?.length || 0,
+      source: {
+        id: shipment.sourceOrganization.id,
+        name: shipment.sourceOrganization.name,
+        address: shipment.sourceOrganization.address,
+        coordinates: shipment.pickupLatitude && shipment.pickupLongitude ? {
+          latitude: Number(shipment.pickupLatitude),
+          longitude: Number(shipment.pickupLongitude),
+        } : null,
+      },
+      destination: {
+        id: shipment.destinationOrganization.id,
+        name: shipment.destinationOrganization.name,
+        address: shipment.destinationOrganization.address,
+        coordinates: shipment.destinationLatitude && shipment.destinationLongitude ? {
+          latitude: Number(shipment.destinationLatitude),
+          longitude: Number(shipment.destinationLongitude),
+        } : null,
+      },
+      courier: shipment.courier ? {
+        id: shipment.courier.id,
+        name: shipment.courier.displayName,
+        phone: shipment.courier.phone,
+      } : null,
+      currentLocation: lastLocation ? {
+        latitude: Number(lastLocation.latitude),
+        longitude: Number(lastLocation.longitude),
+        recordedAt: lastLocation.recordedAt.toISOString(),
+      } : null,
+      eta,
+      lastUpdated: latestEvent?.createdAt.toISOString(),
+      timestamps: {
+        createdAt: shipment.createdAt.toISOString(),
+        assignedAt: shipment.assignedAt?.toISOString(),
+        acceptedAt: shipment.acceptedAt?.toISOString(),
+        pickedUpAt: shipment.pickedUpAt?.toISOString(),
+        inTransitAt: shipment.inTransitAt?.toISOString(),
+        arrivedAt: shipment.arrivedAt?.toISOString(),
+        deliveredAt: shipment.deliveredAt?.toISOString(),
+        estimatedArrivalAt: shipment.estimatedArrivalAt?.toISOString(),
+      },
+    };
+  }
+
+  async cancelShipment(
+    organizationId: string,
+    userId: string,
+    shipmentId: string,
+    reason?: string,
+    ipAddress?: string,
+  ) {
+    const { user } = await this.checkBloodCenterAccess(userId, organizationId);
+
+    const shipment = await this.db.shipment.findUnique({
+      where: { id: shipmentId },
+      include: {
+        bloodRequest: { select: { requestReference: true } },
+        units: { select: { id: true } },
+      },
+    });
+
+    if (!shipment) {
+      throw new NotFoundException('Shipment not found.');
+    }
+
+    if (shipment.sourceOrganizationId !== organizationId) {
+      throw new ForbiddenException('You cannot cancel this shipment.');
+    }
+
+    if (shipment.status === ShipmentStatus.DELIVERED || shipment.status === ShipmentStatus.CANCELLED) {
+      throw new BadRequestException('Cannot cancel a delivered or already cancelled shipment.');
+    }
+
+    const result = await this.db.$transaction(async (tx) => {
+      if (shipment.courierId) {
+        await tx.courier.update({
+          where: { id: shipment.courierId },
+          data: { status: CourierStatus.AVAILABLE },
+        });
+      }
+
+      for (const unit of shipment.units) {
+        await tx.shipmentUnit.update({
+          where: { id: unit.id },
+          data: { status: 'CANCELLED' },
+        });
+      }
+
+      const updated = await tx.shipment.update({
+        where: { id: shipmentId },
+        data: {
+          status: ShipmentStatus.CANCELLED,
+          cancelledAt: new Date(),
+          cancellationReason: reason,
+        },
+      });
+
+      await tx.shipmentEvent.create({
+        data: {
+          shipmentId,
+          eventType: ShipmentEventType.CANCELLED,
+          actorId: user.id,
+          organizationId,
+          metadata: { reason },
+        },
+      });
+
+      return updated;
+    });
+
+    await this.audit.log({
+      actorId: user.id,
+      action: 'SHIPMENT_CANCELLED',
+      entityType: 'Shipment',
+      entityId: shipmentId,
+      organizationId,
+      metadata: { shipmentReference: shipment.shipmentReference, reason },
+      ipAddress,
+    });
+
+    return result;
+  }
+
+  async reassignCourier(
+    organizationId: string,
+    userId: string,
+    shipmentId: string,
+    newCourierId: string,
+    ipAddress?: string,
+  ) {
+    const { user } = await this.checkBloodCenterAccess(userId, organizationId);
+
+    const [shipment, newCourier] = await Promise.all([
+      this.db.shipment.findUnique({ where: { id: shipmentId } }),
+      this.db.courier.findUnique({ where: { id: newCourierId } }),
+    ]);
+
+    if (!shipment) {
+      throw new NotFoundException('Shipment not found.');
+    }
+
+    if (!newCourier) {
+      throw new NotFoundException('Courier not found.');
+    }
+
+    if (shipment.sourceOrganizationId !== organizationId) {
+      throw new ForbiddenException('You cannot reassign this shipment.');
+    }
+
+    if (shipment.status !== ShipmentStatus.FAILED && shipment.status !== ShipmentStatus.COURIER_DECLINED && shipment.status !== ShipmentStatus.CREATED) {
+      throw new BadRequestException('Shipment can only be reassigned from CREATED, COURIER_DECLINED, or FAILED status.');
+    }
+
+    if (newCourier.organizationId !== organizationId) {
+      throw new ForbiddenException('Courier does not belong to your organization.');
+    }
+
+    if (newCourier.status !== CourierStatus.AVAILABLE) {
+      throw new ConflictException('New courier is not available.');
+    }
+
+    const oldCourierId = shipment.courierId;
+
+    const result = await this.db.$transaction(async (tx) => {
+      if (oldCourierId && oldCourierId !== newCourierId) {
+        await tx.courier.update({
+          where: { id: oldCourierId },
+          data: { status: CourierStatus.AVAILABLE },
+        });
+      }
+
+      const updated = await tx.shipment.update({
+        where: { id: shipmentId },
+        data: {
+          courierId: newCourierId,
+          status: ShipmentStatus.COURIER_ASSIGNED,
+          assignedAt: new Date(),
+        },
+      });
+
+      await tx.courier.update({
+        where: { id: newCourierId },
+        data: { status: CourierStatus.BUSY },
+      });
+
+      await tx.shipmentEvent.create({
+        data: {
+          shipmentId,
+          eventType: ShipmentEventType.COURIER_ASSIGNED,
+          actorId: user.id,
+          organizationId,
+          metadata: {
+            courierId: newCourierId,
+            courierName: newCourier.displayName,
+            previousCourierId: oldCourierId,
+          },
+        },
+      });
+
+      return updated;
+    });
+
+    await this.audit.log({
+      actorId: user.id,
+      action: 'SHIPMENT_REASSIGNED',
+      entityType: 'Shipment',
+      entityId: shipmentId,
+      organizationId,
+      metadata: { newCourierId, previousCourierId: oldCourierId },
+      ipAddress,
+    });
+
+    return result;
+  }
+
+  async confirmDeliveryFull(
+    organizationId: string,
+    userId: string,
+    shipmentId: string,
+    dto: {
+      unitsReceived: number;
+      condition?: string;
+      notes?: string;
+      discrepancyReason?: string;
+    },
+    ipAddress?: string,
+  ) {
+    const { user } = await this.checkHospitalAccess(userId, organizationId);
+
+    const shipment = await this.db.shipment.findUnique({
+      where: { id: shipmentId },
+      include: {
+        units: {
+          include: {
+            bloodUnit: true,
+            reservation: true,
+          },
+        },
+        bloodRequest: true,
+      },
+    });
+
+    if (!shipment) {
+      throw new NotFoundException('Shipment not found.');
+    }
+
+    if (shipment.destinationOrganizationId !== organizationId) {
+      throw new ForbiddenException('This shipment is not destined for your organization.');
+    }
+
+    if (shipment.status !== ShipmentStatus.ARRIVED_AT_HOSPITAL) {
+      throw new BadRequestException('Shipment has not arrived at the hospital.');
+    }
+
+    const totalUnits = shipment.units.length;
+    if (dto.unitsReceived > totalUnits) {
+      throw new BadRequestException(`Cannot receive more units than shipped (${totalUnits}).`);
+    }
+
+    const hasDiscrepancy = dto.unitsReceived < totalUnits;
+    if (hasDiscrepancy && !dto.discrepancyReason) {
+      throw new BadRequestException('Discrepancy reason is required when units received does not match shipped units.');
+    }
+
+    const result = await this.db.$transaction(async (tx) => {
+      const now = new Date();
+
+      const unitsToReceive = shipment.units.slice(0, dto.unitsReceived);
+
+      for (const unit of unitsToReceive) {
+        await tx.shipmentUnit.update({
+          where: { id: unit.id },
+          data: {
+            deliveredAt: now,
+            status: 'DELIVERED',
+          },
+        });
+
+        await tx.bloodUnit.update({
+          where: { id: unit.bloodUnitId },
+          data: {
+            organizationId: organizationId,
+            status: 'AVAILABLE',
+          },
+        });
+
+        await tx.inventoryMovement.create({
+          data: {
+            bloodUnitId: unit.bloodUnitId,
+            organizationId,
+            type: MovementType.TRANSFER_IN,
+            actorId: user.id,
+            reason: `Shipment ${shipment.shipmentReference} delivery`,
+          },
+        });
+
+        await tx.bloodUnitReservation.update({
+          where: { id: unit.reservationId },
+          data: {
+            status: ReservationStatus.FULFILLED,
+            fulfilledAt: now,
+          },
+        });
+      }
+
+      for (const unit of shipment.units.slice(dto.unitsReceived)) {
+        await tx.shipmentUnit.update({
+          where: { id: unit.id },
+          data: {
+            status: 'DISCREPANCY',
+          },
+        });
+
+        await tx.bloodUnit.update({
+          where: { id: unit.bloodUnitId },
+          data: {
+            status: 'RESERVED',
+          },
+        });
+      }
+
+      const updated = await tx.shipment.update({
+        where: { id: shipmentId },
+        data: {
+          status: ShipmentStatus.DELIVERED,
+          deliveredAt: now,
+        },
+      });
+
+      await tx.bloodRequest.update({
+        where: { id: shipment.bloodRequestId },
+        data: {
+          status: hasDiscrepancy ? BloodRequestStatus.PARTIALLY_DELIVERED : BloodRequestStatus.DELIVERED,
+          deliveredAt: now,
+        },
+      });
+
+      if (shipment.courierId) {
+        await tx.courier.update({
+          where: { id: shipment.courierId },
+          data: { status: CourierStatus.AVAILABLE },
+        });
+      }
+
+      await tx.shipmentEvent.create({
+        data: {
+          shipmentId,
+          eventType: ShipmentEventType.DELIVERED,
+          actorId: user.id,
+          organizationId,
+          metadata: {
+            unitsDelivered: dto.unitsReceived,
+            totalUnits,
+            condition: dto.condition,
+            notes: dto.notes,
+            discrepancy: hasDiscrepancy ? {
+              unitsMissing: totalUnits - dto.unitsReceived,
+              reason: dto.discrepancyReason,
+            } : null,
+          },
+        },
+      });
+
+      return updated;
+    });
+
+    await this.audit.log({
+      actorId: user.id,
+      action: 'SHIPMENT_DELIVERED',
+      entityType: 'Shipment',
+      entityId: shipmentId,
+      organizationId,
+      metadata: {
+        shipmentReference: shipment.shipmentReference,
+        unitsDelivered: dto.unitsReceived,
+        totalUnits,
+        discrepancy: hasDiscrepancy,
+      },
+      ipAddress,
+    });
+
+    return {
+      ...result,
+      deliveryDetails: {
+        unitsDelivered: dto.unitsReceived,
+        totalUnits,
+        condition: dto.condition,
+        notes: dto.notes,
+        discrepancy: hasDiscrepancy ? {
+          unitsMissing: totalUnits - dto.unitsReceived,
+          reason: dto.discrepancyReason,
+        } : null,
+      },
+    };
+  }
+
+  private calculateHaversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 6371;
+    const dLat = this.toRad(lat2 - lat1);
+    const dLon = this.toRad(lon2 - lon1);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(this.toRad(lat1)) * Math.cos(this.toRad(lat2)) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
+
+  private toRad(deg: number): number {
+    return deg * (Math.PI / 180);
   }
 }

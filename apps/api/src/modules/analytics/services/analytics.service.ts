@@ -1,5 +1,6 @@
 import { Injectable, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../../database/prisma.service';
+import { ShipmentStatus } from '@prisma/client';
 
 export enum DateRangeType {
   TODAY = 'TODAY',
@@ -21,16 +22,17 @@ export class AnalyticsService {
     await this.validateOrganizationAccess(organizationId, userId);
     const { startDate, endDate } = this.getDateRange(filters.range, filters.startDate, filters.endDate, filters.timezone);
 
-    const [inventory, donations, emergencies, appointments, requests, alerts] = await Promise.all([
+    const [inventory, donations, emergencies, appointments, requests, shipments, alerts] = await Promise.all([
       this.getInventorySummary(organizationId),
       this.getDonationKpis(organizationId, startDate, endDate),
       this.getEmergencyKpis(organizationId, startDate, endDate),
       this.getAppointmentKpis(organizationId, startDate, endDate),
       this.getRequestKpis(organizationId, startDate, endDate),
+      this.getShipmentKpis(organizationId, startDate, endDate),
       this.getAlertCounts(organizationId),
     ]);
 
-    return { inventory, donations, emergencies, appointments, requests, alerts };
+    return { inventory, donations, emergencies, appointments, requests, shipments, alerts };
   }
 
   async getInventoryAnalytics(organizationId: string, userId: string, filters: any) {
@@ -554,6 +556,73 @@ export class AnalyticsService {
       pending: { value: pending, previousValue: null, changePercent: null, trend: 'stable' as const, label: '' },
       fulfilled: { value: fulfilled, previousValue: null, changePercent: null, trend: 'stable' as const, label: '' },
       fulfillmentRate: fulfilled > 0 && total > 0 ? Math.round((fulfilled / total) * 100) : null,
+    };
+  }
+
+  private async getShipmentKpis(organizationId: string, startDate: Date, endDate: Date) {
+    const activeStatuses: ShipmentStatus[] = [
+      ShipmentStatus.COURIER_ASSIGNED,
+      ShipmentStatus.COURIER_ACCEPTED,
+      ShipmentStatus.PICKUP_STARTED,
+      ShipmentStatus.PICKED_UP,
+      ShipmentStatus.IN_TRANSIT,
+      ShipmentStatus.ARRIVED_AT_HOSPITAL,
+    ];
+
+    const [total, inTransit, delivered, failed] = await Promise.all([
+      this.prisma.shipment.count({
+        where: {
+          OR: [{ sourceOrganizationId: organizationId }, { destinationOrganizationId: organizationId }],
+          createdAt: { gte: startDate, lte: endDate },
+        },
+      }),
+      this.prisma.shipment.count({
+        where: {
+          OR: [{ sourceOrganizationId: organizationId }, { destinationOrganizationId: organizationId }],
+          status: { in: activeStatuses },
+          createdAt: { gte: startDate, lte: endDate },
+        },
+      }),
+      this.prisma.shipment.count({
+        where: {
+          OR: [{ sourceOrganizationId: organizationId }, { destinationOrganizationId: organizationId }],
+          status: ShipmentStatus.DELIVERED,
+          createdAt: { gte: startDate, lte: endDate },
+        },
+      }),
+      this.prisma.shipment.count({
+        where: {
+          OR: [{ sourceOrganizationId: organizationId }, { destinationOrganizationId: organizationId }],
+          status: ShipmentStatus.FAILED,
+          createdAt: { gte: startDate, lte: endDate },
+        },
+      }),
+    ]);
+
+    const deliveredShipments = await this.prisma.shipment.findMany({
+      where: {
+        OR: [{ sourceOrganizationId: organizationId }, { destinationOrganizationId: organizationId }],
+        status: ShipmentStatus.DELIVERED,
+        deliveredAt: { gte: startDate, lte: endDate },
+      },
+      select: { createdAt: true, deliveredAt: true },
+    });
+
+    let avgDeliveryTimeMinutes: number | null = null;
+    if (deliveredShipments.length > 0) {
+      const totalMinutes = deliveredShipments.reduce((sum, s) => {
+        const diff = (s.deliveredAt!.getTime() - s.createdAt.getTime()) / 60000;
+        return sum + diff;
+      }, 0);
+      avgDeliveryTimeMinutes = Math.round(totalMinutes / deliveredShipments.length);
+    }
+
+    return {
+      total: { value: total, previousValue: null, changePercent: null, trend: 'stable' as const, label: '' },
+      inTransit: { value: inTransit, previousValue: null, changePercent: null, trend: 'stable' as const, label: '' },
+      delivered: { value: delivered, previousValue: null, changePercent: null, trend: 'stable' as const, label: '' },
+      failed: { value: failed, previousValue: null, changePercent: null, trend: 'stable' as const, label: '' },
+      avgDeliveryTimeMinutes,
     };
   }
 

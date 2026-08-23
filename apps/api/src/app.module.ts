@@ -26,6 +26,8 @@ import { OrganizationsModule } from './modules/organizations/organizations.modul
 import { PermissionsModule } from './modules/permissions/permissions.module';
 import { ShipmentsModule } from './modules/shipments/shipments.module';
 import { UsersModule } from './modules/users/users.module';
+import { CourierModule } from './modules/courier/courier.module';
+import { ShipmentGateway } from './gateways/shipment.gateway';
 
 @Module({
   imports: [
@@ -87,12 +89,14 @@ import { UsersModule } from './modules/users/users.module';
     GamificationModule,
     AnalyticsModule,
     InventoryModule,
+    CourierModule,
   ],
   providers: [
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
     },
+    ShipmentGateway,
   ],
 })
 export class AppModule {}

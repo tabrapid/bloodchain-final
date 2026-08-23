@@ -236,3 +236,99 @@ export function assignCourier(organizationId: string, shipmentId: string, courie
 export function getShipmentLocations(shipmentId: string): Promise<ShipmentLocation[]> {
   return apiRequest(`/shipments/${shipmentId}/locations`);
 }
+
+export function getShipmentTimeline(shipmentId: string): Promise<{
+  shipmentId: string;
+  reference: string;
+  status: string;
+  timeline: Array<{
+    id: string;
+    type: string;
+    timestamp: string;
+    actor: string;
+    organization?: string;
+    metadata?: Record<string, unknown>;
+  }>;
+}> {
+  return apiRequest(`/shipments/${shipmentId}/timeline`);
+}
+
+export function getShipmentTracking(shipmentId: string): Promise<{
+  shipmentId: string;
+  reference: string;
+  status: string;
+  priority: string;
+  bloodGroup: string;
+  units: number;
+  source: {
+    id: string;
+    name: string;
+    address?: string;
+    coordinates: { latitude: number; longitude: number } | null;
+  };
+  destination: {
+    id: string;
+    name: string;
+    address?: string;
+    coordinates: { latitude: number; longitude: number } | null;
+  };
+  courier: { id: string; name: string; phone?: string | null } | null;
+  currentLocation: { latitude: number; longitude: number; recordedAt: string } | null;
+  eta: {
+    distanceKm: number;
+    etaMinutes: number;
+    calculatedAt: string;
+    note: string;
+  } | null;
+  lastUpdated: string;
+  timestamps: {
+    createdAt: string;
+    assignedAt?: string;
+    acceptedAt?: string;
+    pickedUpAt?: string;
+    inTransitAt?: string;
+    arrivedAt?: string;
+    deliveredAt?: string;
+    estimatedArrivalAt?: string;
+  };
+}> {
+  return apiRequest(`/shipments/${shipmentId}/tracking`);
+}
+
+export function cancelShipment(
+  organizationId: string,
+  shipmentId: string,
+  reason?: string
+): Promise<Shipment> {
+  return apiRequest(`/organizations/${organizationId}/shipments/${shipmentId}/cancel`, {
+    method: 'POST',
+    body: JSON.stringify({ reason }),
+  });
+}
+
+export function reassignShipment(
+  organizationId: string,
+  shipmentId: string,
+  courierId: string
+): Promise<Shipment> {
+  return apiRequest(`/organizations/${organizationId}/shipments/${shipmentId}/reassign`, {
+    method: 'POST',
+    body: JSON.stringify({ courierId }),
+  });
+}
+
+export function confirmDeliveryFull(
+  organizationId: string,
+  shipmentId: string,
+  data: {
+    unitsReceived: number;
+    condition?: string;
+    notes?: string;
+    discrepancyReason?: string;
+  }
+): Promise<Shipment & { deliveryDetails: { unitsDelivered: number; totalUnits: number; discrepancy: { unitsMissing: number; reason: string } | null } }> {
+  return apiRequest(`/organizations/${organizationId}/shipments/${shipmentId}/confirm-delivery`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}

@@ -167,3 +167,36 @@ export class GetCourierShipmentsDto {
   @IsString()
   status?: string;
 }
+
+export class CancelShipmentDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  reason?: string;
+}
+
+export class ReassignCourierDto {
+  @IsString()
+  courierId!: string;
+}
+
+export class DeliveryConfirmationDto {
+  @IsNumber()
+  @Min(0)
+  unitsReceived!: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  condition?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  notes?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  discrepancyReason?: string;
+}

@@ -125,6 +125,13 @@ export interface OverviewAnalytics {
     fulfilled: KpiDto;
     fulfillmentRate: number | null;
   };
+  shipments: {
+    total: KpiDto;
+    inTransit: KpiDto;
+    delivered: KpiDto;
+    failed: KpiDto;
+    avgDeliveryTimeMinutes: number | null;
+  };
   alerts: {
     critical: number;
     high: number;

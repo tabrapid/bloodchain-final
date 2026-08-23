@@ -27,6 +27,9 @@ import {
   GetRequestsDto,
   GetShipmentsDto,
   UpdateLocationDto,
+  CancelShipmentDto,
+  ReassignCourierDto,
+  DeliveryConfirmationDto,
 } from './dto/shipment.dto';
 
 @ApiTags('Shipments')
@@ -274,5 +277,64 @@ export class ShipmentsController {
     @Query() filters: GetCourierShipmentsDto,
   ) {
     return this.shipments.getCourierShipments(userId, filters);
+  }
+
+  @Get('shipments/:shipmentId/timeline')
+  @Roles(RoleCode.SUPER_ADMIN, RoleCode.HOSPITAL_ADMIN, RoleCode.HOSPITAL_STAFF, RoleCode.BLOOD_CENTER_ADMIN, RoleCode.BLOOD_CENTER_STAFF, RoleCode.COURIER)
+  @ApiOperation({ summary: 'Get shipment timeline' })
+  getShipmentTimeline(
+    @Param('shipmentId') shipmentId: string,
+    @CurrentUser('sub') userId: string,
+  ) {
+    return this.shipments.getShipmentTimeline(shipmentId, userId);
+  }
+
+  @Get('shipments/:shipmentId/tracking')
+  @Roles(RoleCode.SUPER_ADMIN, RoleCode.HOSPITAL_ADMIN, RoleCode.HOSPITAL_STAFF, RoleCode.BLOOD_CENTER_ADMIN, RoleCode.BLOOD_CENTER_STAFF, RoleCode.COURIER)
+  @ApiOperation({ summary: 'Get shipment tracking info' })
+  getShipmentTracking(
+    @Param('shipmentId') shipmentId: string,
+    @CurrentUser('sub') userId: string,
+  ) {
+    return this.shipments.getShipmentTracking(shipmentId, userId);
+  }
+
+  @Post('organizations/:organizationId/shipments/:shipmentId/cancel')
+  @Roles(RoleCode.BLOOD_CENTER_ADMIN, RoleCode.BLOOD_CENTER_STAFF, RoleCode.SUPER_ADMIN)
+  @ApiOperation({ summary: 'Cancel shipment' })
+  cancelShipment(
+    @Param('organizationId') organizationId: string,
+    @Param('shipmentId') shipmentId: string,
+    @Body() dto: CancelShipmentDto,
+    @CurrentUser('sub') userId: string,
+    @Req() req: Request,
+  ) {
+    return this.shipments.cancelShipment(organizationId, userId, shipmentId, dto.reason, req.headers['x-forwarded-for'] as string);
+  }
+
+  @Post('organizations/:organizationId/shipments/:shipmentId/reassign')
+  @Roles(RoleCode.BLOOD_CENTER_ADMIN, RoleCode.BLOOD_CENTER_STAFF, RoleCode.SUPER_ADMIN)
+  @ApiOperation({ summary: 'Reassign shipment to different courier' })
+  reassignShipment(
+    @Param('organizationId') organizationId: string,
+    @Param('shipmentId') shipmentId: string,
+    @Body() dto: ReassignCourierDto,
+    @CurrentUser('sub') userId: string,
+    @Req() req: Request,
+  ) {
+    return this.shipments.reassignCourier(organizationId, userId, shipmentId, dto.courierId, req.headers['x-forwarded-for'] as string);
+  }
+
+  @Post('organizations/:organizationId/shipments/:shipmentId/confirm-delivery')
+  @Roles(RoleCode.HOSPITAL_ADMIN, RoleCode.HOSPITAL_STAFF, RoleCode.SUPER_ADMIN)
+  @ApiOperation({ summary: 'Hospital confirms delivery with details' })
+  confirmDeliveryFull(
+    @Param('organizationId') organizationId: string,
+    @Param('shipmentId') shipmentId: string,
+    @Body() dto: DeliveryConfirmationDto,
+    @CurrentUser('sub') userId: string,
+    @Req() req: Request,
+  ) {
+    return this.shipments.confirmDeliveryFull(organizationId, userId, shipmentId, dto, req.headers['x-forwarded-for'] as string);
   }
 }
