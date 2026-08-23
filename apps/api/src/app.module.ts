@@ -16,9 +16,12 @@ import { EmergencyModule } from './modules/emergency/emergency.module';
 import { HealthModule } from './modules/health/health.module';
 import { HealthTrendsModule } from './modules/health-trends/health-trends.module';
 import { AIHealthModule } from './modules/ai-health/ai-health.module';
+import { GamificationModule } from './modules/gamification/gamification.module';
+import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
 import { LaboratoryModule } from './modules/laboratory/laboratory.module';
 import { NotificationPreferencesModule } from './modules/notification-preferences/notification-preferences.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 import { OrganizationsModule } from './modules/organizations/organizations.module';
 import { PermissionsModule } from './modules/permissions/permissions.module';
 import { ShipmentsModule } from './modules/shipments/shipments.module';
@@ -71,6 +74,7 @@ import { UsersModule } from './modules/users/users.module';
     HealthModule,
     PermissionsModule,
     NotificationPreferencesModule,
+    NotificationsModule,
     AppointmentsModule,
     AppointmentSlotsModule,
     DonationsModule,
@@ -80,6 +84,9 @@ import { UsersModule } from './modules/users/users.module';
     LaboratoryModule,
     HealthTrendsModule,
     AIHealthModule,
+    GamificationModule,
+    AnalyticsModule,
+    InventoryModule,
   ],
   providers: [
     {

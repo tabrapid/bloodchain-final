@@ -4,6 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   Appointment,
   AppointmentStatus,
@@ -14,12 +15,14 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
+import { BLOOD_TEST_COMPLETED_EVENT, BloodTestCompletedPayload } from '../gamification/events/gamification-event.handler';
 
 @Injectable()
 export class LaboratoryService {
   constructor(
     private readonly db: PrismaService,
     private readonly audit: AuditLogsService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async getTestTypes(filters?: { category?: string; isActive?: boolean }) {
@@ -919,6 +922,11 @@ export class LaboratoryService {
       entityId: resultId,
       organizationId,
     });
+
+    this.eventEmitter.emit(BLOOD_TEST_COMPLETED_EVENT, {
+      resultId: resultId,
+      donorId: result.donorId,
+    } as BloodTestCompletedPayload);
 
     return updated;
   }

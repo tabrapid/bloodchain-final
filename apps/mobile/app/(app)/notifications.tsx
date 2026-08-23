@@ -1,151 +1,291 @@
-import { useState } from 'react';
-import { View, StyleSheet, ScrollView, Alert } from 'react-native';
-import { AppButton, AppText, Card, Screen, SectionHeader } from '../../src/components';
-import { useNotificationPreferences, useUpdateNotificationPreferences } from '../../src/hooks/useNotifications';
-import { colors, spacing } from '../../src/theme';
+import { useState, useCallback } from 'react';
+import { View, StyleSheet, FlatList, TouchableOpacity, RefreshControl } from 'react-native';
+import { useRouter } from 'expo-router';
+import { AppButton, AppText, Card, Screen, EmptyState, LoadingState } from '../../src/components';
+import {
+  useNotifications,
+  useNotificationStats,
+  useMarkAllNotificationsAsRead,
+  useMarkNotificationAsRead,
+} from '../../src/hooks/useNotifications';
+import { colors, spacing, radius } from '../../src/theme';
+import type { Notification, NotificationType } from '../../src/api/notifications';
 
-interface NotificationToggleProps {
-  label: string;
-  description: string;
-  value: boolean;
-  onValueChange: (value: boolean) => void;
+const TYPE_ICONS: Record<NotificationType, string> = {
+  EMERGENCY: 'alert-circle',
+  DONATION: 'heart',
+  APPOINTMENT: 'calendar',
+  LABORATORY: 'flask',
+  AI: 'cpu',
+  GAMIFICATION: 'trophy',
+  BLOOD_REQUEST: 'droplet',
+  SHIPMENT: 'truck',
+  INVENTORY: 'package',
+  SECURITY: 'shield',
+  SYSTEM: 'settings',
+};
+
+const TYPE_COLORS: Record<NotificationType, string> = {
+  EMERGENCY: colors.danger,
+  DONATION: colors.primary,
+  APPOINTMENT: colors.secondary,
+  LABORATORY: colors.secondary,
+  AI: colors.ai,
+  GAMIFICATION: colors.ai,
+  BLOOD_REQUEST: colors.danger,
+  SHIPMENT: colors.secondary,
+  INVENTORY: colors.warning,
+  SECURITY: colors.warning,
+  SYSTEM: colors.textMuted,
+};
+
+interface NotificationItemProps {
+  notification: Notification;
+  onPress: () => void;
+  onMarkRead: () => void;
 }
 
-function NotificationToggle({ label, description, value, onValueChange }: NotificationToggleProps) {
+function NotificationItem({ notification, onPress, onMarkRead }: NotificationItemProps) {
+  const isUnread = !notification.readAt;
+  const typeColor = TYPE_COLORS[notification.type] || colors.textMuted;
+  const timeAgo = formatTimeAgo(new Date(notification.createdAt));
+
   return (
-    <View style={styles.toggleItem}>
-      <View style={styles.toggleText}>
-        <AppText variant="heading">{label}</AppText>
-        <AppText muted style={styles.description}>{description}</AppText>
-      </View>
-      <AppButton
-        variant={value ? 'primary' : 'secondary'}
-        size="small"
-        onPress={() => onValueChange(!value)}
-      >
-        {value ? 'ON' : 'OFF'}
-      </AppButton>
-    </View>
+    <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
+      <Card style={[styles.notificationCard, isUnread && styles.unreadCard]}>
+        <View style={styles.notificationHeader}>
+          <View style={[styles.typeIndicator, { backgroundColor: typeColor }]} />
+          <View style={styles.notificationContent}>
+            <View style={styles.notificationTitleRow}>
+              <AppText variant="heading" style={styles.notificationTitle} numberOfLines={1}>
+                {notification.title}
+              </AppText>
+              {isUnread && <View style={styles.unreadDot} />}
+            </View>
+            <AppText muted style={styles.notificationBody} numberOfLines={2}>
+              {notification.body}
+            </AppText>
+            <View style={styles.notificationMeta}>
+              <AppText muted style={styles.timeAgo}>{timeAgo}</AppText>
+              {notification.priority === 'CRITICAL' && (
+                <View style={styles.priorityBadge}>
+                  <AppText style={styles.priorityText}>URGENT</AppText>
+                </View>
+              )}
+            </View>
+          </View>
+        </View>
+      </Card>
+    </TouchableOpacity>
   );
 }
 
-export default function Notifications() {
-  const { data, isLoading } = useNotificationPreferences();
-  const updatePrefs = useUpdateNotificationPreferences();
-  const prefs = data?.data;
+function formatTimeAgo(date: Date): string {
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
 
-  const [localPrefs, setLocalPrefs] = useState({
-    emergencyRequests: prefs?.emergencyRequests ?? true,
-    appointments: prefs?.appointments ?? true,
-    donationReminders: prefs?.donationReminders ?? true,
-    healthResults: prefs?.healthResults ?? false,
-    system: prefs?.system ?? true,
-    promotional: prefs?.promotional ?? false,
-  });
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return date.toLocaleDateString();
+}
 
-  const updateField = (field: string, value: boolean) => {
-    setLocalPrefs((prev) => ({ ...prev, [field]: value }));
-  };
+export default function NotificationsCenter() {
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState<'all' | 'unread' | NotificationType>('all');
+  const [refreshing, setRefreshing] = useState(false);
 
-  const handleSave = async () => {
-    try {
-      await updatePrefs.mutateAsync(localPrefs);
-      Alert.alert('Success', 'Notification preferences updated.');
-    } catch (error) {
-      Alert.alert('Error', 'Failed to update preferences.');
+  const { data, isLoading, refetch } = useNotifications(
+    activeTab === 'unread' ? { isRead: false } : undefined,
+  );
+  const { data: stats } = useNotificationStats();
+  const markAllRead = useMarkAllNotificationsAsRead();
+
+  const notifications = data?.items || [];
+  const markAsRead = useMarkNotificationAsRead();
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await refetch();
+    setRefreshing(false);
+  }, [refetch]);
+
+  const handleNotificationPress = useCallback((notification: Notification) => {
+    if (!notification.readAt) {
+      markAsRead.mutate(notification.id);
     }
-  };
 
-  const hasChanges = prefs && (
-    localPrefs.emergencyRequests !== prefs.emergencyRequests ||
-    localPrefs.appointments !== prefs.appointments ||
-    localPrefs.donationReminders !== prefs.donationReminders ||
-    localPrefs.healthResults !== prefs.healthResults ||
-    localPrefs.system !== prefs.system ||
-    localPrefs.promotional !== prefs.promotional
+    if (notification.deepLink) {
+      router.push(notification.deepLink as any);
+    }
+  }, [router, markAsRead]);
+
+  const tabs: { key: 'all' | 'unread' | NotificationType; label: string }[] = [
+    { key: 'all', label: 'All' },
+    { key: 'unread', label: `Unread${stats?.unread ? ` (${stats.unread})` : ''}` },
+  ];
+
+  const renderNotification = ({ item }: { item: Notification }) => (
+    <NotificationItem
+      notification={item}
+      onPress={() => handleNotificationPress(item)}
+      onMarkRead={() => markAsRead.mutate(item.id)}
+    />
   );
 
   if (isLoading) {
     return (
       <Screen>
-        <AppText>Loading...</AppText>
+        <LoadingState />
       </Screen>
     );
   }
 
   return (
     <Screen>
-      <ScrollView contentContainerStyle={styles.content}>
-        <AppText variant="title">Notifications</AppText>
-
-        <SectionHeader>ALERTS</SectionHeader>
-        <Card>
-          <NotificationToggle
-            label="Emergency blood requests"
-            description="Be alerted when there is an urgent need for your blood type"
-            value={localPrefs.emergencyRequests}
-            onValueChange={(v) => updateField('emergencyRequests', v)}
+      <FlatList
+        data={notifications}
+        renderItem={renderNotification}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.listContent}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+        }
+        ListHeaderComponent={
+          <View style={styles.header}>
+            <View style={styles.tabs}>
+              {tabs.map((tab) => (
+                <TouchableOpacity
+                  key={tab.key}
+                  style={[styles.tab, activeTab === tab.key && styles.activeTab]}
+                  onPress={() => setActiveTab(tab.key)}
+                >
+                  <AppText
+                    variant="body"
+                    style={[styles.tabText, activeTab === tab.key && styles.activeTabText]}
+                  >
+                    {tab.label}
+                  </AppText>
+                </TouchableOpacity>
+              ))}
+            </View>
+            {notifications.some((n) => !n.readAt) && (
+              <AppButton variant="ghost" size="small" onPress={() => markAllRead.mutate()}>
+                Mark all read
+              </AppButton>
+            )}
+          </View>
+        }
+        ListEmptyComponent={
+          <EmptyState
+            title="No notifications"
+            description={
+              activeTab === 'unread'
+                ? "You're all caught up!"
+                : "Push notifications and reminders will appear here."
+            }
           />
-        </Card>
-
-        <SectionHeader>APPOINTMENTS</SectionHeader>
-        <Card>
-          <NotificationToggle
-            label="Appointment reminders"
-            description="Get reminded about upcoming donation appointments"
-            value={localPrefs.appointments}
-            onValueChange={(v) => updateField('appointments', v)}
-          />
-          <NotificationToggle
-            label="Donation reminders"
-            description="Stay informed about your donation schedule"
-            value={localPrefs.donationReminders}
-            onValueChange={(v) => updateField('donationReminders', v)}
-          />
-        </Card>
-
-        <SectionHeader>HEALTH</SectionHeader>
-        <Card>
-          <NotificationToggle
-            label="Health results"
-            description="Receive notifications about blood test results"
-            value={localPrefs.healthResults}
-            onValueChange={(v) => updateField('healthResults', v)}
-          />
-        </Card>
-
-        <SectionHeader>SYSTEM</SectionHeader>
-        <Card>
-          <NotificationToggle
-            label="System notifications"
-            description="Important updates about your account and the platform"
-            value={localPrefs.system}
-            onValueChange={(v) => updateField('system', v)}
-          />
-          <NotificationToggle
-            label="Promotional"
-            description="News, tips, and promotional content"
-            value={localPrefs.promotional}
-            onValueChange={(v) => updateField('promotional', v)}
-          />
-        </Card>
-      </ScrollView>
-
-      <View style={styles.footer}>
-        <AppButton
-          onPress={handleSave}
-          disabled={!hasChanges || updatePrefs.isPending}
-        >
-          {updatePrefs.isPending ? 'Saving...' : 'Save Preferences'}
-        </AppButton>
-      </View>
+        }
+      />
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  content: {
+  listContent: {
     paddingBottom: spacing['2xl'],
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  tabs: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  tab: {
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
+  },
+  activeTab: {
+    borderBottomWidth: 2,
+    borderBottomColor: colors.primary,
+  },
+  tabText: {
+    fontSize: 14,
+  },
+  activeTabText: {
+    color: colors.primary,
+  },
+  notificationCard: {
+    marginHorizontal: spacing.md,
+    marginTop: spacing.sm,
+    padding: spacing.md,
+  },
+  unreadCard: {
+    backgroundColor: colors.surfaceHighlight,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.primary,
+  },
+  notificationHeader: {
+    flexDirection: 'row',
+  },
+  typeIndicator: {
+    width: 4,
+    borderRadius: 2,
+    marginRight: spacing.sm,
+  },
+  notificationContent: {
+    flex: 1,
+  },
+  notificationTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  notificationTitle: {
+    flex: 1,
+    fontSize: 15,
+  },
+  unreadDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.primary,
+  },
+  notificationBody: {
+    fontSize: 14,
+    marginTop: 2,
+    lineHeight: 20,
+  },
+  notificationMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: spacing.xs,
+    gap: spacing.sm,
+  },
+  timeAgo: {
+    fontSize: 12,
+  },
+  priorityBadge: {
+    backgroundColor: colors.danger,
+    paddingHorizontal: spacing.xs,
+    paddingVertical: 2,
+    borderRadius: radius.sm,
+  },
+  priorityText: {
+    fontSize: 10,
+    color: colors.white,
+    fontWeight: '600',
   },
   toggleItem: {
     flexDirection: 'row',
@@ -159,12 +299,8 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: spacing.md,
   },
-  description: {
+  toggleDescription: {
     fontSize: 13,
     marginTop: 2,
-  },
-  footer: {
-    marginTop: spacing.xl,
-    paddingBottom: spacing.lg,
   },
 });

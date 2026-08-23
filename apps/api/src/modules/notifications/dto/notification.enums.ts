@@ -1,0 +1,45 @@
+export enum NotificationType {
+  EMERGENCY = 'EMERGENCY',
+  DONATION = 'DONATION',
+  APPOINTMENT = 'APPOINTMENT',
+  LABORATORY = 'LABORATORY',
+  AI = 'AI',
+  GAMIFICATION = 'GAMIFICATION',
+  BLOOD_REQUEST = 'BLOOD_REQUEST',
+  SHIPMENT = 'SHIPMENT',
+  INVENTORY = 'INVENTORY',
+  SECURITY = 'SECURITY',
+  SYSTEM = 'SYSTEM',
+}
+
+export enum NotificationPriority {
+  CRITICAL = 'CRITICAL',
+  HIGH = 'HIGH',
+  NORMAL = 'NORMAL',
+  LOW = 'LOW',
+}
+
+export enum NotificationStatus {
+  PENDING = 'PENDING',
+  SENT = 'SENT',
+  DELIVERED = 'DELIVERED',
+  READ = 'READ',
+  ARCHIVED = 'ARCHIVED',
+  EXPIRED = 'EXPIRED',
+}
+
+export enum DeliveryStatus {
+  PENDING = 'PENDING',
+  SENT = 'SENT',
+  DELIVERED = 'DELIVERED',
+  FAILED = 'FAILED',
+  INVALID_TOKEN = 'INVALID_TOKEN',
+}
+
+export enum UserRole {
+  DONOR = 'DONOR',
+  HOSPITAL_STAFF = 'HOSPITAL_STAFF',
+  BLOOD_CENTER_STAFF = 'BLOOD_CENTER_STAFF',
+  COURIER = 'COURIER',
+  ADMIN = 'ADMIN',
+}

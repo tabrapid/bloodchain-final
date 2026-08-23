@@ -49,8 +49,9 @@ The API is organized under `apps/api/src/modules/`:
 - `inventory` — blood unit inventory, storage locations, component management.
 - `shipments` — courier shipments for blood units.
 - `emergency` — emergency blood requests and donor matching.
-
-Future modules (gamification, advanced analytics, notifications) will follow the same structure.
+- `gamification` — XP, levels, achievements, badges, leaderboard, reputation.
+- `notifications` — centralized notification system with push, in-app, preferences, quiet hours.
+- `ai-health` — AI-powered health insights and trend summaries.
 
 ## Authentication flow
 

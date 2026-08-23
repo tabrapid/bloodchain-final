@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsBoolean, IsOptional } from 'class-validator';
+import { IsBoolean, IsOptional, IsString } from 'class-validator';
 
 export class UpdateNotificationPreferencesDto {
   @ApiPropertyOptional()
@@ -30,5 +30,50 @@ export class UpdateNotificationPreferencesDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsBoolean()
-  promotional?: boolean;
+  gamification?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  bloodRequests?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  shipments?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  inventory?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  security?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  quietHoursEnabled?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  quietHoursStart?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  quietHoursEnd?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  quietHoursTimezone?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  emergencyOverride?: boolean;
 }

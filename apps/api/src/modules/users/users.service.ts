@@ -102,7 +102,11 @@ export class UsersService {
               donationReminders: user.notificationPreference.donationReminders,
               healthResults: user.notificationPreference.healthResults,
               system: user.notificationPreference.system,
-              promotional: user.notificationPreference.promotional,
+              gamification: user.notificationPreference.gamification,
+              bloodRequests: user.notificationPreference.bloodRequests,
+              shipments: user.notificationPreference.shipments,
+              inventory: user.notificationPreference.inventory,
+              security: user.notificationPreference.security,
             }
           : null,
       },

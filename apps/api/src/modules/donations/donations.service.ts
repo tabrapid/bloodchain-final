@@ -5,6 +5,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   AppointmentStatus,
   AssessmentDecision,
@@ -28,12 +29,14 @@ import {
   GetMyDonationsDto,
   GetOrganizationDonationsDto,
 } from './dto/donation.dto';
+import { DONATION_COMPLETED_EVENT, DonationCompletedPayload } from '../gamification/events/gamification-event.handler';
 
 @Injectable()
 export class DonationsService {
   constructor(
     private readonly db: PrismaService,
     private readonly audit: AuditLogsService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   private generateDonationReference(): string {
@@ -469,6 +472,24 @@ export class DonationsService {
       },
       ipAddress,
     });
+
+    const isEmergency = await this.db.emergencyResponse.findFirst({
+      where: {
+        donorId: donation.donorId,
+        status: 'COMPLETED',
+        emergencyRequest: {
+          bloodType: dto.bloodType as BloodType,
+          rhFactor: dto.rhFactor as RhFactor,
+        },
+      },
+    }).then(r => !!r);
+
+    this.eventEmitter.emit(DONATION_COMPLETED_EVENT, {
+      donationId: result.id,
+      donorId: donation.donorId,
+      organizationId,
+      isEmergency,
+    } as DonationCompletedPayload);
 
     return {
       data: {

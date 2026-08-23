@@ -366,6 +366,7 @@ model User {
   emergencyMatches     EmergencyMatch[]   @relation("EmergencyDonor")
   emergencyResponses    EmergencyResponse[] @relation("EmergencyResponseDonor")
   laboratoryResults     LaboratoryResult[] @relation("LaboratoryResultDonor")
+  gamificationProfile   GamificationProfile?
 
   @@index([email])
   @@index([status])
@@ -501,16 +502,25 @@ model DonorProfile {
 }
 
 model NotificationPreference {
-  id                String   @id @default(cuid())
-  userId            String   @unique
-  emergencyRequests Boolean  @default(true)
-  appointments      Boolean  @default(true)
-  donationReminders Boolean  @default(true)
-  healthResults     Boolean  @default(false)
-  system            Boolean  @default(true)
-  promotional       Boolean  @default(false)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id                 String   @id @default(cuid())
+  userId             String   @unique
+  emergencyRequests  Boolean  @default(true)
+  appointments       Boolean  @default(true)
+  donationReminders  Boolean  @default(true)
+  healthResults      Boolean  @default(false)
+  gamification       Boolean  @default(true)
+  bloodRequests      Boolean  @default(true)
+  shipments          Boolean  @default(true)
+  inventory          Boolean  @default(true)
+  system             Boolean  @default(true)
+  security           Boolean  @default(true)
+  quietHoursEnabled  Boolean  @default(false)
+  quietHoursStart    String?
+  quietHoursEnd      String?
+  quietHoursTimezone String   @default("UTC")
+  emergencyOverride  Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -1320,4 +1330,283 @@ model LaboratoryResultVersion {
 
   @@unique([resultId, version])
   @@index([resultId])
+}
+
+enum AchievementType {
+  DONATION_COUNT
+  EMERGENCY_RESPONSE_COUNT
+  BLOOD_TEST_COUNT
+  APPOINTMENT_COMPLETION_COUNT
+  XP_MILESTONE
+  STREAK
+  CUSTOM_EVENT
+}
+
+enum AchievementRarity {
+  COMMON
+  RARE
+  EPIC
+  LEGENDARY
+}
+
+enum AchievementStatus {
+  LOCKED
+  IN_PROGRESS
+  UNLOCKED
+}
+
+enum XpTransactionType {
+  DONATION_COMPLETED
+  EMERGENCY_DONATION_COMPLETED
+  BLOOD_TEST_COMPLETED
+  APPOINTMENT_COMPLETED
+  PROFILE_COMPLETED
+  ACHIEVEMENT_UNLOCKED
+  ADMIN_ADJUSTMENT
+  EMERGENCY_RESPONSE_ACCEPTED
+  STREAK_BONUS
+}
+
+enum ReputationType {
+  VERIFIED_CONTRIBUTION
+  EMERGENCY_RESPONSE
+  APPOINTMENT_ATTENDANCE
+  COMMUNITY_ACTION
+  ADMIN_ADJUSTMENT
+}
+
+model GamificationProfile {
+  id                    String    @id @default(cuid())
+  userId                String    @unique
+  totalXp               Int       @default(0)
+  level                 Int       @default(1)
+  reputationScore       Int       @default(0)
+  leaderboardVisibility Boolean   @default(true)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  user                User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  xpTransactions      XpTransaction[]
+  achievements        AchievementUnlock[]
+  reputationTx        ReputationTransaction[]
+
+  @@index([userId])
+  @@index([totalXp])
+  @@index([level])
+}
+
+model XpTransaction {
+  id          String          @id @default(cuid())
+  userId      String
+  amount      Int
+  type        XpTransactionType
+  sourceType  String?
+  sourceId    String?
+  description String?
+  metadata    Json?
+  createdAt   DateTime        @default(now())
+
+  profile GamificationProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([sourceType, sourceId])
+  @@index([userId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+model Achievement {
+  id              String           @id @default(cuid())
+  code            String           @unique
+  type            AchievementType
+  name            String
+  description     String
+  icon            String
+  rarity          AchievementRarity @default(COMMON)
+  criteria        Json
+  xpReward        Int              @default(0)
+  displayOrder    Int              @default(0)
+  isActive        Boolean          @default(true)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  unlocks         AchievementUnlock[]
+  badges          Badge[]
+
+  @@index([type])
+  @@index([isActive])
+  @@index([displayOrder])
+}
+
+model AchievementUnlock {
+  id             String           @id @default(cuid())
+  userId         String
+  achievementId  String
+  unlockedAt     DateTime         @default(now())
+  progress       Int              @default(0)
+  target         Int              @default(1)
+
+  profile     GamificationProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement Achievement         @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, achievementId])
+  @@index([userId])
+  @@index([achievementId])
+}
+
+model Badge {
+  id             String           @id @default(cuid())
+  code           String           @unique
+  name           String
+  description    String
+  icon           String
+  rarity         AchievementRarity @default(COMMON)
+  achievementId  String?
+  displayOrder   Int              @default(0)
+  isActive       Boolean          @default(true)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  achievement    Achievement?      @relation(fields: [achievementId], references: [id], onDelete: SetNull)
+  userBadges     UserBadge[]
+
+  @@index([isActive])
+  @@index([displayOrder])
+}
+
+model UserBadge {
+  id        String   @id @default(cuid())
+  userId    String
+  badgeId   String
+  earnedAt  DateTime @default(now())
+
+  badge Badge @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, badgeId])
+  @@index([userId])
+  @@index([badgeId])
+}
+
+model ReputationTransaction {
+  id          String         @id @default(cuid())
+  userId      String
+  amount      Int
+  type        ReputationType
+  sourceType  String?
+  sourceId    String?
+  reason      String?
+  metadata    Json?
+  createdAt   DateTime      @default(now())
+
+  profile GamificationProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+enum NotificationType {
+  EMERGENCY
+  DONATION
+  APPOINTMENT
+  LABORATORY
+  AI
+  GAMIFICATION
+  BLOOD_REQUEST
+  SHIPMENT
+  INVENTORY
+  SECURITY
+  SYSTEM
+}
+
+enum NotificationPriority {
+  CRITICAL
+  HIGH
+  NORMAL
+  LOW
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  DELIVERED
+  READ
+  ARCHIVED
+  EXPIRED
+}
+
+enum DeliveryStatus {
+  PENDING
+  SENT
+  DELIVERED
+  FAILED
+  INVALID_TOKEN
+}
+
+model PushDevice {
+  id          String   @id @default(cuid())
+  userId      String
+  token       String   @unique
+  platform    String
+  deviceId    String?
+  appVersion  String?
+  locale      String   @default("en")
+  timezone    String?
+  isActive    Boolean  @default(true)
+  lastSeenAt  DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([isActive])
+  @@index([lastSeenAt])
+}
+
+model Notification {
+  id           String              @id @default(cuid())
+  recipientId  String
+  type         NotificationType
+  priority     NotificationPriority @default(NORMAL)
+  title        String
+  body         String
+  data         Json?
+  deepLink     String?
+  status       NotificationStatus @default(PENDING)
+  readAt       DateTime?
+  expiresAt    DateTime?
+  sourceType   String?
+  sourceId     String?
+  idempotencyKey String?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  deliveries   NotificationDelivery[]
+
+  @@index([recipientId])
+  @@index([type])
+  @@index([priority])
+  @@index([status])
+  @@index([createdAt])
+  @@index([idempotencyKey])
+  @@unique([recipientId, idempotencyKey])
+}
+
+model NotificationDelivery {
+  id               String         @id @default(cuid())
+  notificationId  String
+  channel          String
+  status           DeliveryStatus @default(PENDING)
+  providerId       String?
+  attempts         Int            @default(0)
+  lastAttemptAt    DateTime?
+  deliveredAt      DateTime?
+  failedAt         DateTime?
+  errorCode        String?
+  errorMessage     String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  notification Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+
+  @@index([notificationId])
+  @@index([status])
 }
