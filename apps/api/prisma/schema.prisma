@@ -367,6 +367,13 @@ model User {
   emergencyResponses    EmergencyResponse[] @relation("EmergencyResponseDonor")
   laboratoryResults     LaboratoryResult[] @relation("LaboratoryResultDonor")
   gamificationProfile   GamificationProfile?
+  communityPosts        CommunityPost[]    @relation("CommunityPostAuthor")
+  campaignParticipations CampaignParticipant[]
+  challengeParticipations ChallengeParticipant[]
+  educationProgress     EducationProgress[]
+  contentReports        ContentReport[]    @relation("ContentReportReporter")
+  reviewedReports       ContentReport[]    @relation("ContentReportReviewer")
+  createdChallenges     Challenge[]        @relation("ChallengeCreator")
 
   @@index([email])
   @@index([status])
@@ -438,6 +445,9 @@ model Organization {
   laboratoryProfile  LaboratoryProfile?
   laboratoryResults LaboratoryResult[] @relation("LaboratoryResultOrganization")
   testReferenceRanges TestReferenceRange[]
+  communityPosts    CommunityPost[]
+  campaigns         Campaign[]
+  challenges        Challenge[]
 
   @@index([type])
   @@index([status])
@@ -1340,6 +1350,9 @@ enum AchievementType {
   XP_MILESTONE
   STREAK
   CUSTOM_EVENT
+  CHALLENGE_COMPLETED
+  CAMPAIGN_PARTICIPATED
+  EDUCATION_COMPLETED
 }
 
 enum AchievementRarity {
@@ -1365,6 +1378,9 @@ enum XpTransactionType {
   ADMIN_ADJUSTMENT
   EMERGENCY_RESPONSE_ACCEPTED
   STREAK_BONUS
+  CHALLENGE_COMPLETED
+  CAMPAIGN_PARTICIPATED
+  EDUCATION_COMPLETED
 }
 
 enum ReputationType {
@@ -1431,6 +1447,7 @@ model Achievement {
 
   unlocks         AchievementUnlock[]
   badges          Badge[]
+  posts           CommunityPost[]
 
   @@index([type])
   @@index([isActive])
@@ -1468,6 +1485,7 @@ model Badge {
 
   achievement    Achievement?      @relation(fields: [achievementId], references: [id], onDelete: SetNull)
   userBadges     UserBadge[]
+  challenges     Challenge[]
 
   @@index([isActive])
   @@index([displayOrder])
@@ -1504,6 +1522,273 @@ model ReputationTransaction {
   @@index([createdAt])
 }
 
+// ============================================================================
+// COMMUNITY & GAMIFICATION EXPANSION (Phase 18)
+// ============================================================================
+
+enum CommunityPostType {
+  CAMPAIGN
+  EDUCATION
+  MILESTONE
+  ACHIEVEMENT
+  COMMUNITY_UPDATE
+  ANNOUNCEMENT
+  IMPACT
+}
+
+enum CommunityPostStatus {
+  DRAFT
+  PUBLISHED
+  HIDDEN
+  REMOVED
+}
+
+enum CampaignStatus {
+  DRAFT
+  PUBLISHED
+  ACTIVE
+  COMPLETED
+  CANCELLED
+  ARCHIVED
+}
+
+enum ChallengeType {
+  DONATION_MILESTONE
+  CAMPAIGN_PARTICIPATION
+  EDUCATION
+  COMMUNITY
+  APPOINTMENT_COMPLETION
+  CONSISTENCY
+}
+
+enum ChallengeStatus {
+  DRAFT
+  ACTIVE
+  COMPLETED
+  EXPIRED
+  CANCELLED
+}
+
+enum ChallengeVisibility {
+  PUBLIC
+  ORGANIZATION
+  PRIVATE
+}
+
+enum ContentReportStatus {
+  PENDING
+  REVIEWED
+  DISMISSED
+  ACTIONED
+}
+
+enum ContentReportReason {
+  SPAM
+  HARASSMENT
+  MISINFORMATION
+  INAPPROPRIATE
+  OTHER
+}
+
+enum EducationContentType {
+  ARTICLE
+  QUIZ
+  VIDEO
+}
+
+enum EducationProgressStatus {
+  STARTED
+  COMPLETED
+}
+
+model CommunityPost {
+  id              String              @id @default(cuid())
+  type            CommunityPostType
+  title           String
+  body            String
+  imageUrl        String?
+  authorId        String?
+  organizationId  String?
+  campaignId      String?
+  achievementId   String?
+  status          CommunityPostStatus @default(PUBLISHED)
+  metadata        Json?
+  publishedAt     DateTime            @default(now())
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  author          User?               @relation("CommunityPostAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  organization    Organization?       @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  campaign        Campaign?           @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  achievement     Achievement?        @relation(fields: [achievementId], references: [id], onDelete: SetNull)
+  reports         ContentReport[]
+
+  @@index([type])
+  @@index([status])
+  @@index([publishedAt])
+  @@index([organizationId])
+  @@index([campaignId])
+}
+
+model Campaign {
+  id                String          @id @default(cuid())
+  organizationId    String
+  title             String
+  description       String
+  imageUrl          String?
+  startDate         DateTime
+  endDate           DateTime
+  location          String?
+  latitude          Decimal?        @db.Decimal(9, 6)
+  longitude         Decimal?        @db.Decimal(9, 6)
+  bloodGroupsNeeded BloodType[]
+  targetParticipants Int?
+  status            CampaignStatus  @default(DRAFT)
+  metadata          Json?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  organization      Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  participants      CampaignParticipant[]
+  posts             CommunityPost[]
+
+  @@index([organizationId])
+  @@index([status])
+  @@index([startDate])
+  @@index([endDate])
+}
+
+model CampaignParticipant {
+  id          String   @id @default(cuid())
+  campaignId  String
+  userId      String
+  status      String   @default("JOINED")
+  joinedAt    DateTime @default(now())
+  completedAt DateTime?
+
+  campaign    Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, userId])
+  @@index([campaignId])
+  @@index([userId])
+}
+
+model Challenge {
+  id              String             @id @default(cuid())
+  title           String
+  description     String
+  type            ChallengeType
+  status          ChallengeStatus    @default(DRAFT)
+  visibility      ChallengeVisibility @default(PUBLIC)
+  organizationId  String?
+  startDate       DateTime?
+  endDate         DateTime?
+  goal            Int                @default(1)
+  xpReward        Int                @default(0)
+  badgeId         String?
+  metadata        Json?
+  createdBy       String?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  organization    Organization?      @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  badge           Badge?             @relation(fields: [badgeId], references: [id], onDelete: SetNull)
+  creator         User?              @relation("ChallengeCreator", fields: [createdBy], references: [id], onDelete: SetNull)
+  participants    ChallengeParticipant[]
+
+  @@index([type])
+  @@index([status])
+  @@index([visibility])
+  @@index([organizationId])
+  @@index([startDate])
+  @@index([endDate])
+}
+
+model ChallengeParticipant {
+  id            String   @id @default(cuid())
+  challengeId   String
+  userId        String
+  progress      Int      @default(0)
+  completedAt   DateTime?
+  joinedAt      DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  challenge     Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([challengeId, userId])
+  @@index([challengeId])
+  @@index([userId])
+  @@index([completedAt])
+}
+
+model EducationalContent {
+  id            String              @id @default(cuid())
+  type          EducationContentType
+  title         String
+  description   String
+  body          String
+  imageUrl      String?
+  category      String
+  difficulty    String              @default("BEGINNER")
+  xpReward      Int                 @default(0)
+  estimatedMinutes Int?
+  isActive      Boolean             @default(true)
+  displayOrder  Int                 @default(0)
+  metadata      Json?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  progress      EducationProgress[]
+
+  @@index([type])
+  @@index([category])
+  @@index([isActive])
+  @@index([displayOrder])
+}
+
+model EducationProgress {
+  id          String                  @id @default(cuid())
+  userId      String
+  contentId   String
+  status      EducationProgressStatus @default(STARTED)
+  startedAt   DateTime                @default(now())
+  completedAt DateTime?
+  xpAwarded   Int                     @default(0)
+
+  user        User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content     EducationalContent      @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, contentId])
+  @@index([userId])
+  @@index([contentId])
+  @@index([status])
+}
+
+model ContentReport {
+  id          String              @id @default(cuid())
+  postId      String
+  reporterId  String
+  reason      ContentReportReason
+  description String?
+  status      ContentReportStatus @default(PENDING)
+  reviewedBy  String?
+  reviewedAt  DateTime?
+  resolution  String?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  post        CommunityPost       @relation(fields: [postId], references: [id], onDelete: Cascade)
+  reporter    User                @relation("ContentReportReporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  reviewer    User?               @relation("ContentReportReviewer", fields: [reviewedBy], references: [id], onDelete: SetNull)
+
+  @@index([postId])
+  @@index([reporterId])
+  @@index([status])
+  @@index([createdAt])
+}
+
 enum NotificationType {
   EMERGENCY
   DONATION
@@ -1516,6 +1801,10 @@ enum NotificationType {
   INVENTORY
   SECURITY
   SYSTEM
+  COMMUNITY
+  CAMPAIGN
+  CHALLENGE
+  EDUCATION
 }
 
 enum NotificationPriority {

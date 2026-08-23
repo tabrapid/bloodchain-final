@@ -28,6 +28,10 @@ import { PermissionsModule } from './modules/permissions/permissions.module';
 import { ShipmentsModule } from './modules/shipments/shipments.module';
 import { UsersModule } from './modules/users/users.module';
 import { CourierModule } from './modules/courier/courier.module';
+import { CommunityModule } from './modules/community/community.module';
+import { CampaignsModule } from './modules/campaigns/campaigns.module';
+import { ChallengesModule } from './modules/challenges/challenges.module';
+import { EducationModule } from './modules/education/education.module';
 import { ShipmentGateway } from './gateways/shipment.gateway';
 
 @Module({
@@ -92,6 +96,10 @@ import { ShipmentGateway } from './gateways/shipment.gateway';
     AnalyticsModule,
     InventoryModule,
     CourierModule,
+    CommunityModule,
+    CampaignsModule,
+    ChallengesModule,
+    EducationModule,
   ],
   providers: [
     {

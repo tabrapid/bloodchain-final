@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { CalendarDays, Droplet, HeartPulse, Home, UserRound } from 'lucide-react-native';
+import { CalendarDays, Droplet, HeartPulse, Home, UserRound, Users } from 'lucide-react-native';
 import { colors } from '../../src/theme';
 
 export default function AppLayout() {
@@ -27,6 +27,10 @@ export default function AppLayout() {
       <Tabs.Screen
         name="donate"
         options={{ title: 'Donate', tabBarIcon: ({ color }) => <Droplet color={color} /> }}
+      />
+      <Tabs.Screen
+        name="community"
+        options={{ title: 'Community', tabBarIcon: ({ color }) => <Users color={color} /> }}
       />
       <Tabs.Screen
         name="calendar"
