@@ -7,6 +7,7 @@ import { LoggerModule } from 'nestjs-pino';
 import { envValidationSchema } from './config/env.validation';
 import { DatabaseModule } from './database/database.module';
 import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';
+import { AdminModule } from './modules/admin/admin.module';
 import { AppointmentsModule } from './modules/appointments/appointments.module';
 import { AppointmentSlotsModule } from './modules/appointment-slots/appointment-slots.module';
 import { AuthModule } from './modules/auth/auth.module';
@@ -69,6 +70,7 @@ import { ShipmentGateway } from './gateways/shipment.gateway';
     }),
     DatabaseModule,
     AuditLogsModule,
+    AdminModule,
     AuthModule,
     UsersModule,
     OrganizationsModule,

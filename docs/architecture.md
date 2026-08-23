@@ -20,10 +20,11 @@ apps/
   hospital-web/        # Next.js hospital dashboard
   blood-center-web/    # Next.js blood-center dashboard
   mobile/              # Expo React Native donor app
+  admin-web/           # Next.js super admin dashboard
 packages/
   ui/                  # Design tokens + reusable React components
   types/               # Shared domain/API types
-  validation/          # Zod schemas shared across client boundaries
+  validation/           # Zod schemas shared across client boundaries
   utils/               # Pagination, async helpers, etc.
   config/              # App config and environment helpers
 database/              # Reserved for future database tooling
@@ -52,6 +53,7 @@ The API is organized under `apps/api/src/modules/`:
 - `gamification` — XP, levels, achievements, badges, leaderboard, reputation.
 - `notifications` — centralized notification system with push, in-app, preferences, quiet hours.
 - `ai-health` — AI-powered health insights and trend summaries.
+- `admin` — super admin platform management, user/organization/courier management, system health monitoring.
 
 ## Authentication flow
 
