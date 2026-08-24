@@ -18,7 +18,10 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { RoleCode } from '@prisma/client';
 import { AIHealthService } from './ai-health.service';
 import { AIInsightType } from '@prisma/client';
 import {
@@ -28,6 +31,9 @@ import {
   SendChatMessageDto,
   AiInsightResponseDto,
   ChatResponseDto,
+  SubmitFeedbackDto,
+  FeedbackResponseDto,
+  AIFeedbackTypeDto,
 } from './dto';
 
 @ApiTags('AI Health')
@@ -121,6 +127,29 @@ export class AIHealthController {
     return { data: insight };
   }
 
+  @Post('feedback')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Submit feedback for an AI insight' })
+  @ApiResponse({ status: 200, type: FeedbackResponseDto })
+  @ApiResponse({ status: 404, description: 'Insight not found' })
+  @ApiResponse({ status: 409, description: 'Feedback already submitted' })
+  async submitFeedback(
+    @CurrentUser('sub') userId: string,
+    @Body() dto: SubmitFeedbackDto,
+  ): Promise<{ data: FeedbackResponseDto }> {
+    const feedback = await this.aiHealthService.submitFeedback(userId, dto);
+    return {
+      data: {
+        id: feedback.id,
+        userId: feedback.userId,
+        insightId: feedback.insightId,
+        type: feedback.type as unknown as AIFeedbackTypeDto,
+        reason: feedback.reason,
+        createdAt: feedback.createdAt.toISOString(),
+      },
+    };
+  }
+
   @Get('history')
   @ApiOperation({ summary: 'Get user insight history' })
   @ApiQuery({ name: 'type', required: false, enum: AIInsightType })
@@ -163,5 +192,73 @@ export class AIHealthController {
     @Param('id') id: string,
   ): Promise<void> {
     await this.aiHealthService.deleteInsight(userId, id);
+  }
+
+  @Get('conversations')
+  @ApiOperation({ summary: 'Get user AI conversations' })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiQuery({ name: 'offset', required: false, type: Number })
+  @ApiResponse({ status: 200 })
+  async getConversations(
+    @CurrentUser('sub') userId: string,
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
+  ) {
+    const result = await this.aiHealthService.getConversations(userId, {
+      limit: limit ? parseInt(limit, 10) : undefined,
+      offset: offset ? parseInt(offset, 10) : undefined,
+    });
+    return { data: result };
+  }
+
+  @Get('conversations/:id')
+  @ApiOperation({ summary: 'Get AI conversation detail' })
+  @ApiResponse({ status: 200 })
+  @ApiResponse({ status: 404, description: 'Conversation not found' })
+  async getConversationDetail(
+    @CurrentUser('sub') userId: string,
+    @Param('id') id: string,
+  ) {
+    const result = await this.aiHealthService.getConversationDetail(userId, id);
+    return { data: result };
+  }
+
+  @Delete('conversations/:id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Delete an AI conversation' })
+  @ApiResponse({ status: 204, description: 'Conversation deleted' })
+  @ApiResponse({ status: 404, description: 'Conversation not found' })
+  async deleteConversation(
+    @CurrentUser('sub') userId: string,
+    @Param('id') id: string,
+  ): Promise<void> {
+    await this.aiHealthService.deleteConversation(userId, id);
+  }
+}
+
+@ApiTags('AI Admin')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(RoleCode.SUPER_ADMIN)
+@Controller('api/v1/admin/ai')
+export class AIAdminController {
+  constructor(private readonly aiHealthService: AIHealthService) {}
+
+  @Get('analytics')
+  @ApiOperation({ summary: 'Get AI platform analytics' })
+  @ApiQuery({ name: 'days', required: false, type: Number })
+  @ApiResponse({ status: 200 })
+  async getAnalytics(@Query('days') days?: string) {
+    const result = await this.aiHealthService.getAnalytics(days ? parseInt(days, 10) : 30);
+    return { data: result };
+  }
+
+  @Get('insight-stats')
+  @ApiOperation({ summary: 'Get AI insight statistics' })
+  @ApiQuery({ name: 'days', required: false, type: Number })
+  @ApiResponse({ status: 200 })
+  async getInsightStats(@Query('days') days?: string) {
+    const result = await this.aiHealthService.getInsightStats(days ? parseInt(days, 10) : 30);
+    return { data: result };
   }
 }

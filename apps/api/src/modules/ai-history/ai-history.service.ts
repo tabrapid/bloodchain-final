@@ -41,6 +41,8 @@ export interface CreateInsightInput {
   dataReferences?: DataReferenceDto[];
   sourceType?: string;
   sourceId?: string;
+  promptVersion?: string;
+  model?: string;
   errorMessage?: string;
   generatedAt?: Date;
   expiresAt?: Date;
@@ -85,6 +87,8 @@ export class AIInsightHistoryService {
         dataReferences: (input.dataReferences || []) as any,
         sourceType: input.sourceType,
         sourceId: input.sourceId,
+        promptVersion: input.promptVersion,
+        model: input.model,
         errorMessage: input.errorMessage,
         generatedAt: input.generatedAt,
         expiresAt: input.expiresAt,

@@ -6,8 +6,10 @@ import {
   DATA_CHANGE_PROMPT,
   GENERAL_INFO_PROMPT,
   QUESTION_SUGGESTION_PROMPT,
+  CHAT_PROMPT,
 } from './system';
 import { InsightType } from '../dto';
+import { AI_PROMPT_VERSIONS, PromptVersionKey, PromptVersion } from './prompt-versions';
 
 export interface TrendContext {
   parameterCode: string;
@@ -145,15 +147,32 @@ Unit: ${context.unit || 'varies'}`;
   }
 
   buildChatPrompt(contextStr: string, userQuestion: string): string {
-    return `Based on the following health data context, answer the user's question.
+    return CHAT_PROMPT.replace('{context}', contextStr).replace('{question}', userQuestion);
+  }
 
-HEALTH DATA CONTEXT:
-${contextStr}
+  getPromptVersionForType(type: string): PromptVersion {
+    switch (type) {
+      case 'TREND_SUMMARY':
+      case 'DATA_CHANGE':
+        return AI_PROMPT_VERSIONS.healthTrendAnalysis;
+      case 'RESULT_EXPLANATION':
+        return AI_PROMPT_VERSIONS.healthTestAnalysis;
+      case 'GENERAL_HEALTH_INFORMATION':
+        return AI_PROMPT_VERSIONS.generalInfo;
+      case 'QUESTION_SUGGESTION':
+        return AI_PROMPT_VERSIONS.questionSuggestion;
+      case 'DONATION_INSIGHT':
+        return AI_PROMPT_VERSIONS.donationInsight;
+      case 'APPOINTMENT_INSIGHT':
+        return AI_PROMPT_VERSIONS.appointmentInsight;
+      case 'HEALTH_SUMMARY':
+        return AI_PROMPT_VERSIONS.healthSummary;
+      default:
+        return AI_PROMPT_VERSIONS.healthSummary;
+    }
+  }
 
-USER QUESTION:
-${userQuestion}
-
-If the question is outside your scope (asking for diagnosis, prescription, or treatment), respond with the OUT_OF_SCOPE JSON format.
-Otherwise, respond with a JSON insight formatted according to your system instructions.`;
+  getChatPromptVersion(): PromptVersion {
+    return AI_PROMPT_VERSIONS.healthChat;
   }
 }

@@ -1,7 +1,7 @@
 import { Injectable, Logger, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { v4 as uuidv4 } from 'uuid';
-import { AIInsightType, AIInsightStatus, AISafetyLevel } from '@prisma/client';
+import { AIInsightType, AIInsightStatus } from '@prisma/client';
 import { AIContextBuilder } from './ai-context-builder.service';
 import { AIContextBuilderService } from './ai-context-builder-enhanced.service';
 import { AIResponseService } from './ai-response.service';
@@ -10,6 +10,11 @@ import { AIPromptBuilder } from './prompts';
 import { AIInsightHistoryService } from '../ai-history/ai-history.service';
 import { AIRequestLogService } from '../ai-logging/ai-logging.service';
 import { AICacheService } from '../ai-cache/ai-cache.service';
+import { AIDeduplicationService } from './ai-deduplication.service';
+import { AIFeedbackService } from './ai-feedback.service';
+import { AIConversationService } from './ai-conversation.service';
+import { AIAnalyticsService } from './ai-analytics.service';
+import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import {
   GenerateInsightDto,
   ExplainResultDto,
@@ -20,6 +25,8 @@ import {
   ChatMessageResponseDto,
   ChatResponseDto,
   SafetyLevel,
+  SubmitFeedbackDto as FeedbackDto,
+  AIFeedbackTypeDto,
 } from './dto';
 
 interface CachedInsight {
@@ -44,6 +51,11 @@ export class AIHealthService {
     private readonly historyService: AIInsightHistoryService,
     private readonly loggingService: AIRequestLogService,
     private readonly cacheService: AICacheService,
+    private readonly dedupService: AIDeduplicationService,
+    private readonly feedbackService: AIFeedbackService,
+    private readonly conversationService: AIConversationService,
+    private readonly analyticsService: AIAnalyticsService,
+    private readonly auditLogService: AuditLogsService,
   ) {}
 
   async generateInsight(userId: string, dto: GenerateInsightDto): Promise<AiInsightResponseDto> {
@@ -72,6 +84,7 @@ export class AIHealthService {
     let systemPrompt: string;
     let userPrompt: string;
     let dataVersion: string;
+    let promptVersion: string;
 
     switch (dto.type) {
       case InsightType.TREND_SUMMARY:
@@ -95,6 +108,7 @@ export class AIHealthService {
           dataVersion,
           parameterCode: dto.parameterCode,
         };
+        promptVersion = this.promptBuilder.getPromptVersionForType(dto.type);
 
         systemPrompt = this.promptBuilder.buildSystemPrompt();
         userPrompt = this.promptBuilder.buildUserPrompt(
@@ -120,6 +134,7 @@ export class AIHealthService {
           dataVersion,
           resultId: dto.resultId,
         };
+        promptVersion = this.promptBuilder.getPromptVersionForType(dto.type);
 
         systemPrompt = this.promptBuilder.buildSystemPrompt();
         userPrompt = this.promptBuilder.buildUserPrompt(
@@ -145,6 +160,7 @@ export class AIHealthService {
           dataVersion,
           parameterCode: dto.parameterCode,
         };
+        promptVersion = this.promptBuilder.getPromptVersionForType(dto.type);
 
         systemPrompt = this.promptBuilder.buildSystemPrompt();
         userPrompt = this.promptBuilder.buildUserPrompt(
@@ -161,6 +177,7 @@ export class AIHealthService {
         contextData = {
           dataVersion,
         };
+        promptVersion = this.promptBuilder.getPromptVersionForType(dto.type);
 
         systemPrompt = this.promptBuilder.buildSystemPrompt();
         userPrompt = this.promptBuilder.buildUserPrompt(
@@ -178,41 +195,68 @@ export class AIHealthService {
       userPrompt += `\n\nUser's specific question: ${sanitizedQuestion}`;
     }
 
-    // Check cache first
+    // Check deduplication
+    const fingerprint = this.dedupService.generateFingerprint(userId, dto.type, contextData, promptVersion);
+    const dedupResult = await this.dedupService.checkDuplicate(fingerprint);
+
+    if (dedupResult.isDuplicate && dedupResult.cachedInsight) {
+      this.logger.debug(`Returning cached insight for duplicate request: ${fingerprint.slice(0, 8)}...`);
+      await this.logRequest(userId, dto.type, startTime, true, dedupResult.cachedInsight, promptVersion, fingerprint);
+      return this.historyService.insightToResponseDto(dedupResult.cachedInsight);
+    }
+
+    // Check cache
     const cached = await this.cacheService.get(userId, dto.type as any, dataVersion);
     if (cached) {
       this.logger.debug(`Cache hit for ${dto.type}`);
-      await this.logRequest(userId, dto.type, startTime, true, cached.insight);
+      await this.logRequest(userId, dto.type, startTime, true, cached.insight, promptVersion, fingerprint);
       return cached.insight;
     }
 
-    const insight = await this.responseService.generateStructuredInsight(systemPrompt, userPrompt, contextData);
+    const insightResult = await this.responseService.generateStructuredInsight(systemPrompt, userPrompt, contextData);
 
     // Store in cache
-    await this.cacheService.set(userId, dto.type as any, dataVersion, insight);
+    await this.cacheService.set(userId, dto.type as any, dataVersion, insightResult);
 
-    // Store in history
+    // Store in history with prompt version and model
     await this.historyService.createInsight({
       userId,
       type: dto.type as any,
       status: AIInsightStatus.COMPLETED,
-      title: insight.title,
-      summary: insight.summary,
-      observations: insight.observations,
-      dataPoints: insight.dataPoints,
-      caveats: insight.caveats,
-      questionsForProfessional: insight.questionsForProfessional,
-      safetyLevel: insight.safetyLevel as any,
+      title: insightResult.title,
+      summary: insightResult.summary,
+      observations: insightResult.observations,
+      dataPoints: insightResult.dataPoints,
+      caveats: insightResult.caveats,
+      questionsForProfessional: insightResult.questionsForProfessional,
+      safetyLevel: insightResult.safetyLevel as any,
       dataVersion,
-      dataReferences: insight.dataReferences,
+      dataReferences: insightResult.dataReferences,
       sourceType: dto.type === InsightType.RESULT_EXPLANATION ? 'BLOOD_TEST' : undefined,
       sourceId: dto.resultId,
+      promptVersion,
+      model: insightResult.model,
       generatedAt: new Date(),
     });
 
-    await this.logRequest(userId, dto.type, startTime, true, insight);
+    await this.logRequest(userId, dto.type, startTime, true, insightResult, promptVersion, fingerprint);
 
-    return insight;
+    // Audit log
+    await this.auditLogService.log({
+      actorId: userId,
+      action: 'AI_INSIGHT_GENERATED',
+      entityType: 'AIInsight',
+      metadata: {
+        insightType: dto.type,
+        promptVersion,
+        model: insightResult.model,
+        provider: insightResult.provider,
+        isFallback: insightResult.isFallback,
+        success: true,
+      },
+    });
+
+    return insightResult;
   }
 
   async generateDonationInsight(userId: string): Promise<AiInsightResponseDto> {
@@ -224,28 +268,30 @@ export class AIHealthService {
 
     const systemPrompt = this.promptBuilder.buildSystemPrompt();
     const userPrompt = this.buildDonationInsightPrompt(donationContext);
+    const promptVersion = this.promptBuilder.getPromptVersionForType("DONATION_INSIGHT");
 
-    const insight = await this.responseService.generateStructuredInsight(systemPrompt, userPrompt, {
+    const insightResult = await this.responseService.generateStructuredInsight(systemPrompt, userPrompt, {
       dataVersion: donationContext.lastDonationDate || new Date().toISOString(),
     });
 
-    // Store in history
     await this.historyService.createInsight({
       userId,
       type: AIInsightType.DONATION_INSIGHT,
       status: AIInsightStatus.COMPLETED,
-      title: insight.title,
-      summary: insight.summary,
-      observations: insight.observations,
-      caveats: insight.caveats,
-      questionsForProfessional: insight.questionsForProfessional,
-      safetyLevel: insight.safetyLevel as any,
+      title: insightResult.title,
+      summary: insightResult.summary,
+      observations: insightResult.observations,
+      caveats: insightResult.caveats,
+      questionsForProfessional: insightResult.questionsForProfessional,
+      safetyLevel: insightResult.safetyLevel as any,
+      promptVersion,
+      model: insightResult.model,
       generatedAt: new Date(),
     });
 
-    await this.logRequest(userId, AIInsightType.DONATION_INSIGHT, startTime, true, insight);
+    await this.logRequest(userId, AIInsightType.DONATION_INSIGHT, startTime, true, insightResult, promptVersion);
 
-    return insight;
+    return insightResult;
   }
 
   async generateAppointmentInsight(userId: string): Promise<AiInsightResponseDto> {
@@ -257,28 +303,30 @@ export class AIHealthService {
 
     const systemPrompt = this.promptBuilder.buildSystemPrompt();
     const userPrompt = this.buildAppointmentInsightPrompt(appointmentContext);
+    const promptVersion = this.promptBuilder.getPromptVersionForType("APPOINTMENT_INSIGHT");
 
-    const insight = await this.responseService.generateStructuredInsight(systemPrompt, userPrompt, {
+    const insightResult = await this.responseService.generateStructuredInsight(systemPrompt, userPrompt, {
       dataVersion: new Date().toISOString(),
     });
 
-    // Store in history
     await this.historyService.createInsight({
       userId,
       type: AIInsightType.APPOINTMENT_INSIGHT,
       status: AIInsightStatus.COMPLETED,
-      title: insight.title,
-      summary: insight.summary,
-      observations: insight.observations,
-      caveats: insight.caveats,
-      questionsForProfessional: insight.questionsForProfessional,
-      safetyLevel: insight.safetyLevel as any,
+      title: insightResult.title,
+      summary: insightResult.summary,
+      observations: insightResult.observations,
+      caveats: insightResult.caveats,
+      questionsForProfessional: insightResult.questionsForProfessional,
+      safetyLevel: insightResult.safetyLevel as any,
+      promptVersion,
+      model: insightResult.model,
       generatedAt: new Date(),
     });
 
-    await this.logRequest(userId, AIInsightType.APPOINTMENT_INSIGHT, startTime, true, insight);
+    await this.logRequest(userId, AIInsightType.APPOINTMENT_INSIGHT, startTime, true, insightResult, promptVersion);
 
-    return insight;
+    return insightResult;
   }
 
   async generateHealthSummary(userId: string): Promise<AiInsightResponseDto> {
@@ -289,28 +337,30 @@ export class AIHealthService {
 
     const systemPrompt = this.promptBuilder.buildSystemPrompt();
     const userPrompt = this.buildHealthSummaryPrompt(context);
+    const promptVersion = this.promptBuilder.getPromptVersionForType("HEALTH_SUMMARY");
 
-    const insight = await this.responseService.generateStructuredInsight(systemPrompt, userPrompt, {
+    const insightResult = await this.responseService.generateStructuredInsight(systemPrompt, userPrompt, {
       dataVersion: new Date().toISOString(),
     });
 
-    // Store in history
     await this.historyService.createInsight({
       userId,
       type: AIInsightType.HEALTH_SUMMARY,
       status: AIInsightStatus.COMPLETED,
-      title: insight.title,
-      summary: insight.summary,
-      observations: insight.observations,
-      caveats: insight.caveats,
-      questionsForProfessional: insight.questionsForProfessional,
-      safetyLevel: insight.safetyLevel as any,
+      title: insightResult.title,
+      summary: insightResult.summary,
+      observations: insightResult.observations,
+      caveats: insightResult.caveats,
+      questionsForProfessional: insightResult.questionsForProfessional,
+      safetyLevel: insightResult.safetyLevel as any,
+      promptVersion,
+      model: insightResult.model,
       generatedAt: new Date(),
     });
 
-    await this.logRequest(userId, AIInsightType.HEALTH_SUMMARY, startTime, true, insight);
+    await this.logRequest(userId, AIInsightType.HEALTH_SUMMARY, startTime, true, insightResult, promptVersion);
 
-    return insight;
+    return insightResult;
   }
 
   async explainResult(userId: string, dto: ExplainResultDto): Promise<AiInsightResponseDto> {
@@ -356,14 +406,86 @@ export class AIHealthService {
     const healthSummary = await this.contextBuilder.getUserHealthSummary(userId);
     const systemPrompt = this.promptBuilder.buildSystemPrompt();
     const userPrompt = this.promptBuilder.buildChatPrompt(healthSummary, sanitizedMessage);
+    const promptVersion = this.promptBuilder.getChatPromptVersion();
 
-    const insight = await this.responseService.generateStructuredInsight(systemPrompt, userPrompt, {
+    const insightResult = await this.responseService.generateStructuredInsight(systemPrompt, userPrompt, {
       dataVersion: new Date().toISOString(),
     });
 
-    await this.logRequest(userId, undefined, startTime, true, insight);
+    // Create or update conversation
+    let convId = dto.conversationId;
+    if (!convId) {
+      const conversation = await this.conversationService.createConversation(userId, {
+        contextType: 'GENERAL',
+        title: this.generateConversationTitle(insightResult),
+      });
+      convId = conversation.id;
+    }
 
-    return this.createChatResponse(userId, dto.conversationId, sanitizedMessage, insight);
+    await this.conversationService.recordMessages(userId, convId, sanitizedMessage, insightResult.summary, {
+      safetyLevel: insightResult.safetyLevel as any,
+      promptVersion,
+      model: insightResult.model,
+    });
+
+    await this.logRequest(userId, undefined, startTime, true, insightResult);
+
+    // Audit log
+    await this.auditLogService.log({
+      actorId: userId,
+      action: 'AI_CHAT_MESSAGE',
+      entityType: 'AIConversation',
+      entityId: convId,
+      metadata: {
+        promptVersion,
+        model: insightResult.model,
+        provider: insightResult.provider,
+        isFallback: insightResult.isFallback,
+        safetyLevel: insightResult.safetyLevel,
+        success: true,
+      },
+    });
+
+    return this.createChatResponse(userId, convId, sanitizedMessage, insightResult);
+  }
+
+  async submitFeedback(userId: string, dto: FeedbackDto) {
+    const feedbackType = dto.type === AIFeedbackTypeDto.HELPFUL
+      ? 'HELPFUL'
+      : dto.type === AIFeedbackTypeDto.NOT_HELPFUL
+        ? 'NOT_HELPFUL'
+        : 'REPORT_ISSUE';
+
+    const result = await this.feedbackService.submitFeedback(userId, {
+      insightId: dto.insightId,
+      type: feedbackType as any,
+      reason: dto.reason,
+    });
+
+    await this.auditLogService.log({
+      actorId: userId,
+      action: 'AI_FEEDBACK_SUBMITTED',
+      entityType: 'AIFeedback',
+      entityId: result.id,
+      metadata: {
+        feedbackType: result.type,
+        insightId: dto.insightId,
+      },
+    });
+
+    return result;
+  }
+
+  async getConversations(userId: string, options: { limit?: number; offset?: number } = {}) {
+    return this.conversationService.getUserConversations(userId, options);
+  }
+
+  async getConversationDetail(userId: string, conversationId: string) {
+    return this.conversationService.getConversationDetail(userId, conversationId);
+  }
+
+  async deleteConversation(userId: string, conversationId: string) {
+    await this.conversationService.deleteConversation(userId, conversationId);
   }
 
   async getInsightHistory(
@@ -386,13 +508,28 @@ export class AIHealthService {
     await this.historyService.deleteInsight(insightId, userId);
   }
 
+  async getAnalytics(days = 30) {
+    return this.analyticsService.getPlatformAnalytics(days);
+  }
+
+  async getInsightStats(days = 30) {
+    return this.analyticsService.getInsightStats(days);
+  }
+
   private async createChatResponse(
     userId: string,
     conversationId: string | undefined,
     userMessage: string,
-    insight: AiInsightResponseDto,
+    insight: AiInsightResponseDto & { provider?: string; model?: string; isFallback?: boolean },
   ): Promise<ChatResponseDto> {
-    const convId = conversationId || uuidv4();
+    let convId = conversationId || '';
+    if (!conversationId) {
+      const conversation = await this.conversationService.createConversation(userId, {
+        contextType: 'GENERAL',
+        title: this.generateConversationTitle(insight),
+      });
+      convId = conversation.id;
+    }
 
     const conversation: ChatConversationDto = {
       id: convId,
@@ -409,6 +546,7 @@ export class AIHealthService {
       content: userMessage,
       createdAt: new Date().toISOString(),
     };
+    void userMsg;
 
     const assistantMsg: ChatMessageResponseDto = {
       id: uuidv4(),
@@ -425,8 +563,8 @@ export class AIHealthService {
     };
   }
 
-  private generateConversationTitle(insight: AiInsightResponseDto): string {
-    if (insight.title && !insight.title.includes('scope')) {
+  private generateConversationTitle(insight: AiInsightResponseDto & { provider?: string; model?: string; isFallback?: boolean }): string {
+    if (insight.title && !insight.title.toLowerCase().includes('scope') && !insight.title.toLowerCase().includes('unavailable')) {
       const words = insight.title.split(' ').slice(0, 3);
       return words.join(' ');
     }
@@ -510,18 +648,26 @@ Provide a helpful overview of their health engagement, any patterns observed, an
     insightType: any,
     startTime: number,
     success: boolean,
-    insight?: AiInsightResponseDto,
+    insight?: AiInsightResponseDto & { provider?: string; model?: string; isFallback?: boolean; promptTokens?: number; completionTokens?: number; totalTokens?: number },
+    promptVersion?: string,
+    requestFingerprint?: string,
   ): Promise<void> {
     const latencyMs = Date.now() - startTime;
 
     await this.loggingService.logRequest({
       userId,
       insightType,
-      providerName: 'openai',
+      providerName: insight?.provider || 'openai',
+      modelUsed: insight?.model,
+      promptVersion,
+      promptTokens: insight?.promptTokens,
+      completionTokens: insight?.completionTokens,
+      totalTokens: insight?.totalTokens,
       latencyMs,
       success,
       safetyLevel: insight?.safetyLevel as any,
       dataVersion: insight?.dataVersion,
+      requestFingerprint,
     });
   }
 
@@ -531,5 +677,6 @@ Provide a helpful overview of their health engagement, any patterns observed, an
         this.insightCache.delete(key);
       }
     }
+    this.dedupService.clearInflightCache();
   }
 }

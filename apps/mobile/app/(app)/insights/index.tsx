@@ -1,5 +1,7 @@
+'use client';
+
 import { useCallback, useEffect, useState } from 'react';
-import { ScrollView, View, TouchableOpacity, TextInput, RefreshControl } from 'react-native';
+import { ScrollView, View, TouchableOpacity, TextInput, RefreshControl, Alert } from 'react-native';
 import { Stack } from 'expo-router';
 import {
   Brain,
@@ -10,6 +12,9 @@ import {
   Shield,
   TrendingUp,
   AlertTriangle,
+  ThumbsUp,
+  ThumbsDown,
+  History,
 } from 'lucide-react-native';
 import { AppText, Card, GlassCard, LoadingState, Screen, SectionHeader } from '../../../src/components';
 import { colors, spacing } from '../../../src/theme';
@@ -17,10 +22,13 @@ import {
   generateInsight,
   analyzeTrend,
   sendChatMessage,
+  submitFeedback,
+  getInsightHistory,
   InsightType,
   SafetyLevel,
   AiInsight,
   ChatResponse,
+  FeedbackType,
 } from '../../../src/api/ai-health';
 import { getAvailableParameters, getTrendSummary, AvailableParameter } from '../../../src/api/health-trends';
 
@@ -36,6 +44,9 @@ export default function InsightsScreen() {
   const [chatMessage, setChatMessage] = useState('');
   const [chatResponse, setChatResponse] = useState<ChatResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
+  const [insightHistory, setInsightHistory] = useState<AiInsight[]>([]);
+  const [feedbackGiven, setFeedbackGiven] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     try {
@@ -52,6 +63,15 @@ export default function InsightsScreen() {
     }
   }, []);
 
+  const loadHistory = useCallback(async () => {
+    try {
+      const result = await getInsightHistory({ limit: 10 });
+      setInsightHistory(result.insights);
+    } catch (err) {
+      console.error('Failed to load history:', err);
+    }
+  }, []);
+
   useEffect(() => {
     loadData();
   }, [loadData]);
@@ -59,13 +79,24 @@ export default function InsightsScreen() {
   const onRefresh = useCallback(() => {
     setIsRefreshing(true);
     setLatestInsight(null);
+    setFeedbackGiven(null);
     loadData();
   }, [loadData]);
+
+  const handleFeedback = useCallback(async (insightId: string, type: FeedbackType) => {
+    try {
+      await submitFeedback({ insightId, type });
+      setFeedbackGiven(insightId);
+    } catch (err) {
+      console.error('Failed to submit feedback:', err);
+    }
+  }, []);
 
   const handleGenerateTrendInsight = useCallback(async () => {
     if (!selectedParam) return;
     setIsGenerating(true);
     setError(null);
+    setFeedbackGiven(null);
     try {
       const insight = await analyzeTrend({ parameterCode: selectedParam });
       setLatestInsight(insight);
@@ -81,6 +112,7 @@ export default function InsightsScreen() {
     if (availableParams.length === 0) return;
     setIsGenerating(true);
     setError(null);
+    setFeedbackGiven(null);
     try {
       const insight = await generateInsight({
         type: InsightType.RESULT_EXPLANATION,
@@ -98,6 +130,7 @@ export default function InsightsScreen() {
   const handleGenerateQuestions = useCallback(async () => {
     setIsGenerating(true);
     setError(null);
+    setFeedbackGiven(null);
     try {
       const insight = await generateInsight({ type: InsightType.QUESTION_SUGGESTION });
       setLatestInsight(insight);
@@ -113,6 +146,7 @@ export default function InsightsScreen() {
     if (!chatMessage.trim()) return;
     setIsGenerating(true);
     setError(null);
+    setFeedbackGiven(null);
     try {
       const response = await sendChatMessage({ message: chatMessage });
       setChatResponse(response);
@@ -162,6 +196,70 @@ export default function InsightsScreen() {
     );
   }
 
+  if (showHistory) {
+    return (
+      <Screen>
+        <Stack.Screen options={{ title: 'AI Insight History' }} />
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{ padding: spacing.lg }}
+          refreshControl={
+            <RefreshControl refreshing={isRefreshing} onRefresh={() => { setIsRefreshing(true); loadHistory(); setIsRefreshing(false); }} tintColor={colors.primary} />
+          }
+        >
+          {insightHistory.length === 0 ? (
+            <Card>
+              <View style={{ alignItems: 'center', padding: spacing.xl }}>
+                <History size={48} color={colors.textMuted} />
+                <AppText variant="heading" style={{ marginTop: spacing.md, textAlign: 'center' }}>
+                  No history yet
+                </AppText>
+                <AppText muted style={{ marginTop: spacing.sm, textAlign: 'center' }}>
+                  Generate your first AI insight to see it here.
+                </AppText>
+              </View>
+            </Card>
+          ) : (
+            insightHistory.map((insight) => (
+              <TouchableOpacity
+                key={insight.id}
+                onPress={() => { setLatestInsight(insight); setShowHistory(false); }}
+              >
+                <Card style={{ marginBottom: spacing.md }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
+                    <View
+                      style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: 10,
+                        backgroundColor: colors.ai + '20',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <Brain size={20} color={colors.ai} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <AppText variant="heading" style={{ fontSize: 14 }}>{insight.title}</AppText>
+                      <AppText muted style={{ fontSize: 12 }}>{formatDate(insight.generatedAt)}</AppText>
+                    </View>
+                    <ChevronRight size={20} color={colors.textMuted} />
+                  </View>
+                </Card>
+              </TouchableOpacity>
+            ))
+          )}
+          <TouchableOpacity
+            onPress={() => setShowHistory(false)}
+            style={{ padding: spacing.md, alignItems: 'center' }}
+          >
+            <AppText style={{ color: colors.primary, fontWeight: '600' }}>Back to Insights</AppText>
+          </TouchableOpacity>
+        </ScrollView>
+      </Screen>
+    );
+  }
+
   return (
     <Screen>
       <Stack.Screen options={{ title: 'AI Health Insights' }} />
@@ -177,6 +275,16 @@ export default function InsightsScreen() {
           <AppText muted style={{ fontSize: 13 }}>
             Personalized information based on your recorded health data
           </AppText>
+        </View>
+
+        <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginBottom: spacing.md }}>
+          <TouchableOpacity
+            onPress={() => { setShowHistory(true); loadHistory(); }}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}
+          >
+            <History size={16} color={colors.primary} />
+            <AppText style={{ fontSize: 13, color: colors.primary, fontWeight: '600' }}>History</AppText>
+          </TouchableOpacity>
         </View>
 
         <GlassCard style={{ marginBottom: spacing.lg }}>
@@ -385,6 +493,34 @@ export default function InsightsScreen() {
                           {caveat}
                         </AppText>
                       ))}
+                    </View>
+                  )}
+
+                  {latestInsight.id && feedbackGiven !== latestInsight.id && (
+                    <View style={{ borderTopWidth: 1, borderTopColor: colors.border, paddingTop: spacing.md, marginTop: spacing.md }}>
+                      <AppText muted style={{ fontSize: 12, marginBottom: spacing.sm }}>Was this insight helpful?</AppText>
+                      <View style={{ flexDirection: 'row', gap: spacing.md }}>
+                        <TouchableOpacity
+                          onPress={() => handleFeedback(latestInsight.id, FeedbackType.HELPFUL)}
+                          style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}
+                        >
+                          <ThumbsUp size={18} color={colors.success} />
+                          <AppText style={{ fontSize: 13, color: colors.success }}>Helpful</AppText>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          onPress={() => handleFeedback(latestInsight.id, FeedbackType.NOT_HELPFUL)}
+                          style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}
+                        >
+                          <ThumbsDown size={18} color={colors.textMuted} />
+                          <AppText style={{ fontSize: 13, color: colors.textMuted }}>Not helpful</AppText>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  )}
+
+                  {feedbackGiven === latestInsight.id && (
+                    <View style={{ borderTopWidth: 1, borderTopColor: colors.border, paddingTop: spacing.md, marginTop: spacing.md }}>
+                      <AppText style={{ fontSize: 12, color: colors.success, fontWeight: '600' }}>Thank you for your feedback</AppText>
                     </View>
                   )}
                 </Card>

@@ -8,6 +8,7 @@ export interface AIRequestLogInput {
   insightType?: AIInsightType;
   providerName: string;
   modelUsed?: string;
+  promptVersion?: string;
   promptTokens?: number;
   completionTokens?: number;
   totalTokens?: number;
@@ -16,6 +17,7 @@ export interface AIRequestLogInput {
   errorMessage?: string;
   safetyLevel?: AISafetyLevel;
   dataVersion?: string;
+  requestFingerprint?: string;
 }
 
 @Injectable()
@@ -35,6 +37,7 @@ export class AIRequestLogService {
           insightType: input.insightType,
           providerName: input.providerName,
           modelUsed: input.modelUsed,
+          promptVersion: input.promptVersion,
           promptTokens: input.promptTokens,
           completionTokens: input.completionTokens,
           totalTokens: input.totalTokens,
@@ -43,6 +46,7 @@ export class AIRequestLogService {
           errorMessage: input.errorMessage,
           safetyLevel: input.safetyLevel,
           dataVersion: input.dataVersion,
+          requestFingerprint: input.requestFingerprint,
         },
       });
 

@@ -1,8 +1,8 @@
 import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { v4 as uuidv4 } from 'uuid';
-import { AIProvider, AIProviderMessage } from './providers/ai-provider.interface';
-import { OpenAIProvider } from './providers/openai.provider';
+import { AIProviderMessage } from './providers/ai-provider.interface';
+import { AIProviderFactory } from './providers/ai-provider.factory';
 import { AIPromptBuilder } from './prompts';
 import { AIHealthSafetyService, InsightType } from './ai-safety.service';
 import {
@@ -23,12 +23,22 @@ interface ParsedAIResponse {
   type?: string;
 }
 
+interface ProviderResult {
+  content: string;
+  provider: string;
+  model: string;
+  isFallback: boolean;
+  promptTokens?: number;
+  completionTokens?: number;
+  totalTokens?: number;
+}
+
 @Injectable()
 export class AIResponseService {
   private readonly logger = new Logger(AIResponseService.name);
 
   constructor(
-    private readonly provider: OpenAIProvider,
+    private readonly providerFactory: AIProviderFactory,
     private readonly promptBuilder: AIPromptBuilder,
     private readonly safetyService: AIHealthSafetyService,
     private readonly configService: ConfigService,
@@ -38,7 +48,7 @@ export class AIResponseService {
     systemPrompt: string,
     userPrompt: string,
     contextData?: Record<string, unknown>,
-  ): Promise<AiInsightResponseDto> {
+  ): Promise<AiInsightResponseDto & { provider: string; model: string; isFallback: boolean }> {
     const messages: AIProviderMessage[] = [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userPrompt },
@@ -48,29 +58,36 @@ export class AIResponseService {
     const timeout = this.configService.get<number>('AI_TIMEOUT_MS', 30000);
 
     try {
-      const response = await this.provider.generate(messages, {
+      const result = await this.providerFactory.generate(messages, {
         temperature: 0.3,
         maxTokens,
         timeout,
         responseFormat: 'json',
       });
 
-      const validation = this.safetyService.validateOutput(response.content);
+      const validation = this.safetyService.validateOutput(result.content);
       if (!validation.isValid) {
         this.logger.warn(`Unsafe AI output detected: ${validation.reason}`);
-        return this.createFallbackResponse(validation.safetyLevel);
+        const fallback = this.createFallbackResponse(validation.safetyLevel);
+        return { ...fallback, provider: result.provider, model: result.model, isFallback: result.isFallback };
       }
 
-      const parsed = this.parseAndValidateResponse(response.content);
+      const parsed = this.parseAndValidateResponse(result.content);
 
       if (!parsed) {
         this.logger.warn('Failed to parse AI response as valid JSON');
-        return this.createFallbackResponse(SafetyLevel.NEEDS_CONTEXT);
+        const fallback = this.createFallbackResponse(SafetyLevel.NEEDS_CONTEXT);
+        return { ...fallback, provider: result.provider, model: result.model, isFallback: result.isFallback };
       }
 
       const dataVersion = contextData?.dataVersion as string | undefined;
 
-      return this.buildResponseDto(parsed, dataVersion);
+      return {
+        ...this.buildResponseDto(parsed, dataVersion),
+        provider: result.provider,
+        model: result.model,
+        isFallback: result.isFallback,
+      };
     } catch (error) {
       this.logger.error(`AI provider error: ${error instanceof Error ? error.message : 'Unknown error'}`);
       throw new ServiceUnavailableException('AI insights are temporarily unavailable');

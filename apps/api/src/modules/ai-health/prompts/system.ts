@@ -124,3 +124,14 @@ Focus on:
 - Questions about lifestyle factors
 
 Do NOT suggest questions that assume a specific diagnosis. Keep questions neutral and informational.`;
+
+export const CHAT_PROMPT = `Based on the following health data context, answer the user's question.
+
+HEALTH DATA CONTEXT:
+{context}
+
+USER QUESTION:
+{question}
+
+If the question is outside your scope (asking for diagnosis, prescription, or treatment), respond with the OUT_OF_SCOPE JSON format.
+Otherwise, respond with a JSON insight formatted according to your system instructions.`;

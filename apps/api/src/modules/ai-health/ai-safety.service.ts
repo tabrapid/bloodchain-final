@@ -27,7 +27,7 @@ const UNSAFE_REQUEST_PATTERNS: UnsafePattern[] = [
     safetyLevel: SafetyLevel.OUT_OF_SCOPE,
   },
   {
-    pattern: /should i take (medication|medicine|drugs?|pills?)/i,
+    pattern: /should i take (medication|medicine|drugs?|pills?|supplements?)/i,
     safetyLevel: SafetyLevel.OUT_OF_SCOPE,
   },
   {
@@ -54,6 +54,30 @@ const UNSAFE_REQUEST_PATTERNS: UnsafePattern[] = [
     pattern: /you are (now |just |really )?(a |an )?(doctor|physician|medic|medical professional|nurse|clinician)/i,
     safetyLevel: SafetyLevel.OUT_OF_SCOPE,
   },
+  {
+    pattern: /can i donate blood (if|when|while) (i('m| am) (sick|ill|fever|unwell|nauseous|dizzy|tired|exhausted))/i,
+    safetyLevel: SafetyLevel.OUT_OF_SCOPE,
+  },
+  {
+    pattern: /should i donate blood (if|when|while) (i('m| am) (sick|ill|fever|unwell|nauseous|dizzy|tired|exhausted))/i,
+    safetyLevel: SafetyLevel.OUT_OF_SCOPE,
+  },
+  {
+    pattern: /can i ignore (this |my )?(result|symptom|test|doctor)/i,
+    safetyLevel: SafetyLevel.OUT_OF_SCOPE,
+  },
+  {
+    pattern: /what (pill|drug|medicine|medication|treatment) should i (take|use)/i,
+    safetyLevel: SafetyLevel.OUT_OF_SCOPE,
+  },
+  {
+    pattern: /is this (dangerous|serious|fatal|deadly|critical|life.?threatening)/i,
+    safetyLevel: SafetyLevel.PROFESSIONAL_REVIEW_SUGGESTED,
+  },
+  {
+    pattern: /am i (going to|gonna) (die|be okay|be fine)/i,
+    safetyLevel: SafetyLevel.PROFESSIONAL_REVIEW_SUGGESTED,
+  },
 ];
 
 const UNSAFE_OUTPUT_PATTERNS: UnsafePattern[] = [
@@ -66,7 +90,7 @@ const UNSAFE_OUTPUT_PATTERNS: UnsafePattern[] = [
     safetyLevel: SafetyLevel.OUT_OF_SCOPE,
   },
   {
-    pattern: /take (this |these |the following )?(medication|medicine|drugs?|pills?|prescription)/i,
+    pattern: /take (this |these |the following )?(medication|medicine|drugs?|pills?|prescription|supplement)/i,
     safetyLevel: SafetyLevel.OUT_OF_SCOPE,
   },
   {
@@ -83,6 +107,22 @@ const UNSAFE_OUTPUT_PATTERNS: UnsafePattern[] = [
   },
   {
     pattern: /this proves|this indicates|this means you have/i,
+    safetyLevel: SafetyLevel.NEEDS_CONTEXT,
+  },
+  {
+    pattern: /you should (donate|not donate) blood/i,
+    safetyLevel: SafetyLevel.OUT_OF_SCOPE,
+  },
+  {
+    pattern: /ignore (this|your) (doctor|physician|healthcare professional|medical)/i,
+    safetyLevel: SafetyLevel.OUT_OF_SCOPE,
+  },
+  {
+    pattern: /\b98%?\s*confiden/i,
+    safetyLevel: SafetyLevel.NEEDS_CONTEXT,
+  },
+  {
+    pattern: /\b\d+%?\s*confiden/i,
     safetyLevel: SafetyLevel.NEEDS_CONTEXT,
   },
 ];
@@ -102,6 +142,10 @@ const EMERGENCY_PATTERNS: UnsafePattern[] = [
   },
   {
     pattern: /i can't breathe|chest pain (so |very )?(severe|bad|intense)/i,
+    safetyLevel: SafetyLevel.EMERGENCY_REDIRECT,
+  },
+  {
+    pattern: /stroke|heart attack|losing consciousness|seizure/i,
     safetyLevel: SafetyLevel.EMERGENCY_REDIRECT,
   },
 ];

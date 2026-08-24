@@ -375,6 +375,8 @@ model User {
   reviewedReports       ContentReport[]    @relation("ContentReportReviewer")
   createdChallenges     Challenge[]        @relation("ChallengeCreator")
   aiInsights            AIInsight[]
+  aiConversations       AIConversation[]
+  aiFeedback            AIFeedback[]
 
   @@index([email])
   @@index([status])
@@ -1949,6 +1951,8 @@ model AIInsight {
   dataReferences    Json?           // DataReference[]
   sourceType        String?         // BLOOD_TEST, DONATION, APPOINTMENT, etc.
   sourceId          String?
+  promptVersion     String?         // e.g. health-test-analysis-v1
+  model             String?         // model that generated this insight
   errorMessage      String?
   generatedAt       DateTime?
   expiresAt         DateTime?
@@ -1956,12 +1960,15 @@ model AIInsight {
   updatedAt         DateTime        @updatedAt
 
   user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  feedback          AIFeedback?
 
   @@index([userId])
   @@index([type])
   @@index([status])
   @@index([createdAt])
   @@index([sourceType, sourceId])
+  @@index([promptVersion])
+  @@index([model])
 }
 
 model AIRequestLog {
@@ -1971,6 +1978,7 @@ model AIRequestLog {
   insightType       AIInsightType?
   providerName      String
   modelUsed         String?
+  promptVersion     String?
   promptTokens      Int?
   completionTokens  Int?
   totalTokens       Int?
@@ -1979,12 +1987,15 @@ model AIRequestLog {
   errorMessage      String?
   safetyLevel       AISafetyLevel?
   dataVersion       String?
+  requestFingerprint String?   // for deduplication
   createdAt         DateTime  @default(now())
 
   @@index([userId])
   @@index([insightType])
   @@index([createdAt])
   @@index([success])
+  @@index([requestFingerprint])
+  @@index([promptVersion])
 }
 
 model AIInsightCache {
@@ -1993,6 +2004,8 @@ model AIInsightCache {
   userId            String
   insightType       AIInsightType
   dataVersion       String
+  promptVersion     String?   // invalidate when prompt changes
+  model             String?   // invalidate when model changes
   response          Json
   expiresAt         DateTime
   createdAt         DateTime  @default(now())
@@ -2000,4 +2013,65 @@ model AIInsightCache {
   @@index([userId])
   @@index([cacheKey])
   @@index([expiresAt])
+  @@index([promptVersion])
+}
+
+model AIConversation {
+  id                String    @id @default(cuid())
+  userId            String
+  title             String?
+  contextType       String?   // GENERAL, TREND, RESULT, DONATION, etc.
+  contextId         String?   // ID of the referenced context (parameter code, result ID, etc.)
+  lastMessageAt     DateTime?
+  messageCount      Int       @default(0)
+  expiresAt         DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages          AIMessage[]
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([expiresAt])
+}
+
+model AIMessage {
+  id                String    @id @default(cuid())
+  conversationId    String
+  role              String    // user, assistant, system
+  content           String
+  safetyLevel       AISafetyLevel?
+  promptVersion     String?
+  model             String?
+  createdAt         DateTime  @default(now())
+
+  conversation      AIConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@index([createdAt])
+  @@index([role])
+}
+
+enum AIFeedbackType {
+  HELPFUL
+  NOT_HELPFUL
+  REPORT_ISSUE
+}
+
+model AIFeedback {
+  id                String        @id @default(cuid())
+  userId            String
+  insightId         String        @unique
+  type              AIFeedbackType
+  reason            String?       // optional reason for not helpful / report
+  createdAt         DateTime      @default(now())
+
+  user              User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  insight           AIInsight     @relation(fields: [insightId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([insightId])
+  @@index([type])
+  @@index([createdAt])
 }

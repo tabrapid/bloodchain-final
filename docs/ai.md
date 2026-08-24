@@ -1,168 +1,226 @@
-# AI Health Insights Architecture
+# AI Health Intelligence Platform
 
 ## Overview
 
-The AI Health module provides a safe, data-grounded AI assistant that analyzes laboratory results and health trends without providing medical diagnoses or treatment recommendations.
+The DONOR platform includes a production-grade AI Health Intelligence system that provides donors with informational insights about their health data. The AI helps donors understand blood test results, trends, donation patterns, and prepares questions for healthcare professionals.
+
+**Important:** The AI is an **INFORMATIONAL ASSISTANT ONLY**. It does not diagnose, prescribe, or replace healthcare professionals.
 
 ## Architecture
 
 ```
-Mobile App
-    ↓
-Backend API (authenticated)
-    ↓
-AI Health Controller
-    ↓
-AI Health Service (orchestration)
-    ↓
-├── AI Context Builder (data aggregation)
-├── AI Safety Service (validation)
-├── AI Response Service (LLM interaction)
-└── AI Prompt Builder (structured prompts)
-    ↓
-LLM Provider (OpenAI)
+┌─────────────────┐
+│  AI Controller   │  REST API endpoints
+└────────┬────────┘
+         │
+┌────────▼────────┐
+│  AI Health       │  Orchestration service
+│  Service         │  - Feature checks
+│                  │  - Input sanitization
+│                  │  - Safety classification
+│                  │  - Deduplication
+│                  │  - Audit logging
+└────────┬────────┘
+         │
+┌────────▼────────┐
+│  Context         │  Builds minimal health context
+│  Builder         │  - Blood tests
+│                  │  - Trends
+│                  │  - Donations
+│                  │  - Appointments
+└────────┬────────┘
+         │
+┌────────▼────────┐
+│  Prompt          │  Constructs versioned prompts
+│  Builder         │  - System instructions
+│                  │  - Safety instructions
+│                  │  - Context injection
+└────────┬────────┘
+         │
+┌────────▼────────┐
+│  AI Provider     │  Provider abstraction
+│  Factory         │  - Primary: OpenAI
+│                  │  - Fallback: Deterministic
+│                  │  - Model config
+└────────┬────────┘
+         │
+┌────────▼────────┐
+│  Response        │  Parses and validates output
+│  Service         │  - JSON validation
+│                  │  - Schema enforcement
+│                  │  - Safety output check
+└────────┬────────┘
+         │
+┌────────▼────────┐
+│  Safety          │  Output validation
+│  Layer           │  - Pattern matching
+│                  │  - Hallucination detection
+│                  │  - Safe fallback
+└────────┬────────┘
+         │
+┌────────▼────────┐
+│  Persistence     │  Stores results
+│  Layer           │  - AIInsight (history)
+│                  │  - AIRequestLog (analytics)
+│                  │  - AIInsightCache (dedup)
+│                  │  - AIConversation (chat)
+│                  │  - AIFeedback (user feedback)
+└─────────────────┘
 ```
 
-## Key Principles
+## Key Components
 
-1. **AI never accesses database directly** - All data access goes through controlled context builder
-2. **Structured output only** - AI responses are validated against strict JSON schemas
-3. **Safety layer** - Both requests and responses are validated for unsafe content
-4. **No medical claims** - System explicitly prohibits diagnosis, prescription, or treatment recommendations
-5. **User isolation** - All queries are scoped to authenticated user only
+### Provider Abstraction
 
-## Modules
+- **Interface:** `AIProvider` - defines `generate()` method
+- **Primary:** `OpenAIProvider` - connects to OpenAI API
+- **Fallback:** `AIFallbackProvider` - deterministic safe response
+- **Factory:** `AIProviderFactory` - handles primary + fallback with graceful degradation
 
-### AI Provider Abstraction (`providers/`)
+### Context Builder
 
-```typescript
-interface AIProvider {
-  name: string;
-  generate(messages: AIProviderMessage[], options?: AIProviderOptions): Promise<AIProviderResponse>;
-}
-```
+Two context builders:
 
-Currently implemented:
-- **OpenAIProvider** - Uses OpenAI Chat API with structured JSON output
+1. **AIContextBuilder** - builds context for specific analysis types:
+   - Trend context (parameter, values, dates, reference ranges)
+   - Result explanation context (test items, previous values)
+   - General info context (parameter metadata)
+   - User health summary
 
-### AI Safety Service
+2. **AIContextBuilderService (Enhanced)** - builds comprehensive context:
+   - Donation history and patterns
+   - Appointment history and upcoming
+   - Blood test overview
 
-- **Request classification** - Classifies incoming requests into safety levels
-- **Output validation** - Validates AI responses for prohibited content
-- **Safe fallbacks** - Returns safe responses when requests are out of scope
+### Prompt Versioning
 
-Safety Levels:
-- `SAFE_INFORMATIONAL` - General educational content
-- `NEEDS_CONTEXT` - Requires healthcare professional context
-- `PROFESSIONAL_REVIEW_SUGGESTED` - Recommend professional consultation
-- `EMERGENCY_REDIRECT` - Urgent safety redirect
-- `OUT_OF_SCOPE` - Cannot help with this request
+All prompts are versioned for auditability and safe updates:
 
-### AI Context Builder
+| Key | Version | Purpose |
+|-----|---------|---------|
+| `healthTestAnalysis` | `health-test-analysis-v1` | Individual blood test explanation |
+| `healthTrendAnalysis` | `health-trend-analysis-v1` | Trend analysis |
+| `healthSummary` | `health-summary-v1` | Comprehensive health summary |
+| `healthChat` | `health-chat-v1` | Chat assistant |
+| `donationInsight` | `donation-insight-v1` | Donation pattern insights |
+| `appointmentInsight` | `appointment-insight-v1` | Appointment summary |
+| `generalInfo` | `general-info-v1` | General educational info |
+| `questionSuggestion` | `question-suggestion-v1` | Questions for professionals |
 
-Constructs sanitized context for AI requests:
+Version is stored with every insight and request log for auditing.
 
-- Fetches only authorized user data
-- Removes PII (names, emails, addresses)
-- Validates unit compatibility
-- Groups compatible data points
-- Limits context window size
+### Deduplication
 
-### AI Response Service
+Two-level deduplication:
 
-- Calls LLM provider with structured prompts
-- Parses and validates JSON responses
-- Schema validation with fallback
-- Error handling and retry logic
+1. **Request fingerprint dedup:** SHA-256 hash of (userId + insightType + contextData + promptVersion). If identical request was successful recently, returns cached result.
 
-## Prompt Management
+2. **Inflight dedup:** Prevents concurrent identical requests from hitting the AI provider simultaneously.
 
-Centralized prompt templates in `prompts/`:
+### Caching
 
-- `system.ts` - System prompt defining AI role and safety rules
-- `prompt-builder.ts` - Context-specific prompt construction
+Database-backed cache (`AIInsightCache`) with:
+- 24-hour default TTL
+- Keyed by (userId + insightType + dataVersion)
+- Auto-cleanup of expired entries
 
-### System Prompt Rules
+### Safety Layer
 
-The AI is instructed to:
-- Never diagnose or prescribe
-- Use only provided data
-- State uncertainty when appropriate
-- Attribute reference ranges to laboratories
-- Encourage professional consultation
+Multi-layer safety system:
 
-## Structured Response Schema
+1. **Input Classification:** Pattern matching for unsafe requests (diagnosis, prescription, emergency)
+2. **Output Validation:** Pattern matching for unsafe AI output
+3. **Emergency Detection:** Self-harm, severe symptoms
+4. **Safe Fallbacks:** Pre-written safe responses for out-of-scope requests
+5. **Confidence Rejection:** Detects fabricated confidence percentages
 
-```typescript
-interface AiInsightResponse {
-  id: string;
-  type: InsightType;
-  title: string;
-  summary: string;
-  observations: string[];
-  dataPoints?: DataPoint[];
-  caveats: string[];
-  questionsForProfessional?: string[];
-  safetyLevel: SafetyLevel;
-  generatedAt: string;
-  dataVersion?: string;
-  dataReferences?: DataReference[];
-}
-```
+Safety levels:
+- `SAFE_INFORMATIONAL` - Safe educational content
+- `NEEDS_CONTEXT` - Needs healthcare professional context
+- `PROFESSIONAL_REVIEW_SUGGESTED` - Unusual patterns
+- `EMERGENCY_REDIRECT` - Immediate help needed
+- `OUT_OF_SCOPE` - Beyond AI assistant capabilities
 
-Insight Types:
-- `TREND_SUMMARY` - Trend analysis over time
-- `RESULT_EXPLANATION` - Explanation of specific result
-- `DATA_CHANGE` - Changes between measurements
-- `REFERENCE_RANGE_CONTEXT` - Reference range information
-- `GENERAL_HEALTH_INFORMATION` - Educational content
-- `QUESTION_SUGGESTION` - Questions for healthcare provider
-- `DATA_QUALITY_WARNING` - Data quality concerns
+### Feedback System
+
+Users can rate insights:
+- `HELPFUL` / `NOT_HELPFUL` / `REPORT_ISSUE`
+- One feedback per insight
+- Aggregate analytics available for admin
+
+### Conversations
+
+AI chat supports persistent conversations:
+- 90-day retention with auto-expiry
+- Max 50 messages per conversation
+- Context type tracking (GENERAL, TREND, RESULT, etc.)
 
 ## API Endpoints
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/v1/me/ai/insights` | Generate AI insight |
-| POST | `/api/v1/me/ai/explain-result` | Explain specific result |
-| POST | `/api/v1/me/ai/analyze-trend` | Analyze parameter trend |
-| POST | `/api/v1/me/ai/chat` | Chat with AI assistant |
+### User Endpoints (`/api/v1/me/ai`)
 
-## Environment Variables
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/insights` | Generate AI health insight |
+| POST | `/explain-result` | Explain specific lab result |
+| POST | `/analyze-trend` | Analyze parameter trend |
+| POST | `/chat` | AI health chat |
+| POST | `/donation-insight` | Donation history insight |
+| POST | `/appointment-insight` | Appointment summary |
+| POST | `/health-summary` | Comprehensive summary |
+| POST | `/feedback` | Submit feedback on insight |
+| GET | `/history` | Insight history |
+| GET | `/history/:id` | Specific insight |
+| DELETE | `/history/:id` | Delete insight |
+| GET | `/conversations` | Chat conversations |
+| GET | `/conversations/:id` | Conversation detail |
+| DELETE | `/conversations/:id` | Delete conversation |
 
-```env
-AI_ENABLED=true
-AI_PROVIDER=openai
-AI_MODEL=gpt-4o-mini
-AI_API_KEY=your-api-key
-AI_BASE_URL=https://api.openai.com/v1
-AI_TIMEOUT_MS=30000
-AI_MAX_TOKENS=1000
-AI_RATE_LIMIT=10
-```
+### Admin Endpoints (`/api/v1/admin/ai`) - SUPER_ADMIN only
 
-## Privacy & Security
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/analytics` | Platform AI analytics |
+| GET | `/insight-stats` | Insight statistics |
 
-- All AI endpoints require authentication
-- User identity derived from JWT, never from request parameters
-- PII minimized in AI context
-- No data shared between users
-- AI provider secrets stored server-side only
-- Rate limiting on AI requests
+## Database Models
 
-## Limitations
+| Model | Purpose |
+|-------|---------|
+| `AIInsight` | Stored AI-generated insights |
+| `AIRequestLog` | Request analytics and monitoring |
+| `AIInsightCache` | Response caching |
+| `AIConversation` | Chat conversations |
+| `AIMessage` | Chat messages |
+| `AIFeedback` | User feedback on insights |
 
-- Does not diagnose conditions
-- Does not prescribe or recommend medication
-- Does not provide treatment recommendations
-- Does not predict disease outcomes
-- Does not replace healthcare professionals
-- May not recognize all medical emergencies
+## Configuration
 
-## Future Enhancements
+Environment variables:
 
-- Consent management with audit trail
-- Conversation persistence with retention limits
-- Multi-language support
-- Additional AI providers (Anthropic, etc.)
-- Cost monitoring and budgeting
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `AI_ENABLED` | Enable/disable AI features | `false` |
+| `AI_API_KEY` | OpenAI API key (server only) | - |
+| `AI_MODEL` | Default model | `gpt-4o-mini` |
+| `AI_BASE_URL` | API base URL | OpenAI default |
+| `AI_MAX_TOKENS` | Max response tokens | `1000` |
+| `AI_TIMEOUT_MS` | Request timeout | `30000` |
+
+## Security
+
+- API keys never exposed to client
+- All endpoints require JWT authentication
+- Ownership verification on all data access
+- Donor A cannot access Donor B's insights
+- Audit logging for all AI operations
+- Rate limiting via existing throttler
+
+## Data Retention
+
+| Data Type | Retention |
+|-----------|-----------|
+| AI Insights | Until user deletes |
+| AI Request Logs | 90 days |
+| AI Conversations | 90 days (auto-expire) |
+| AI Cache | 24 hours (auto-expire) |
