@@ -2,35 +2,22 @@
 
 import { useEffect, useState } from 'react';
 import {
-  Activity,
   AlertTriangle,
-  Ambulance,
-  ArrowUpRight,
+  Shield,
+  TestTube,
+  UserCheck,
+  X,
+  Users,
   Building2,
   Droplet,
-  LogOut,
   Package,
-  Settings,
-  Shield,
   Ship,
-  TestTube,
-  Users,
-  UserCheck,
   Clock,
-  TrendingUp,
-  XCircle,
-  CheckCircle,
-  X,
-  Search,
-  ChevronRight,
-  LayoutDashboard,
-  FileText,
-  Bell,
-  Plus,
-  Minus,
+  Activity,
 } from 'lucide-react';
-import { DashboardShell, StatCard, StatusBadge, EmptyState, LoadingState } from '@donor/ui/components';
-import { login, logout as logoutApi, me, isAuthenticated } from '../lib/auth';
+import { DashboardShell, StatCard, EmptyState, LoadingState } from '@donor/ui/components';
+import { StatusBadgeWrapper } from '@lib/status';
+import { login, logout as logoutApi, me, isAuthenticated } from '@lib/auth';
 import {
   getDashboard,
   listOrganizations,
@@ -39,22 +26,8 @@ import {
   listAlerts,
   listShipments,
   getSystemHealth,
-} from '../lib/api';
-
-const navItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { id: 'users', label: 'Users', icon: Users },
-  { id: 'organizations', label: 'Organizations', icon: Building2 },
-  { id: 'couriers', label: 'Couriers', icon: Ship },
-  { id: 'shipments', label: 'Shipments', icon: Package },
-  { id: 'requests', label: 'Blood Requests', icon: Droplet },
-  { id: 'emergencies', label: 'Emergencies', icon: AlertTriangle },
-  { id: 'inventory', label: 'Inventory', icon: TestTube },
-  { id: 'alerts', label: 'Alerts', icon: Bell },
-  { id: 'audit', label: 'Audit Logs', icon: FileText },
-  { id: 'health', label: 'System Health', icon: Activity },
-  { id: 'settings', label: 'Settings', icon: Settings },
-];
+} from '@lib/api';
+import { navItems } from '@lib/navigation';
 
 interface PlatformStats {
   users: { total: number; active: number; verifiedDonors: number };
@@ -83,6 +56,9 @@ export default function AdminDashboard() {
   const [activeAlerts, setActiveAlerts] = useState<any[]>([]);
   const [health, setHealth] = useState<any>(null);
   const [activeNav, setActiveNav] = useState('dashboard');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     async function checkAuth() {
@@ -132,10 +108,12 @@ export default function AdminDashboard() {
     }
   }
 
-  const handleLogin = async () => {
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
     setError(null);
+    setIsSubmitting(true);
     try {
-      await login('superadmin@donor.local', 'DevelopmentOnly!123');
+      await login(email, password);
       const userData = await me();
       setUser({
         firstName: userData.firstName,
@@ -145,6 +123,8 @@ export default function AdminDashboard() {
       await loadDashboardData();
     } catch (err: any) {
       setError(err.message ?? 'Login failed');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -156,7 +136,7 @@ export default function AdminDashboard() {
 
   if (isLoading) {
     return (
-      <DashboardShell sidebarItems={[]} user={null} onLogout={handleLogout}>
+      <DashboardShell title="Admin Dashboard" sidebarItems={[]} userName={user ? `${user.firstName} ${user.lastName}` : undefined} onLogout={handleLogout}>
         <LoadingState />
       </DashboardShell>
     );
@@ -184,23 +164,50 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          <button
-            onClick={handleLogin}
-            className="w-full bg-red-600 text-white py-2.5 px-4 rounded-lg font-medium hover:bg-red-700 transition-colors"
-          >
-            Sign in as Super Admin
-          </button>
-
-          <p className="mt-4 text-xs text-gray-500 text-center">
-            Development mode only. Uses seeded credentials.
-          </p>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                Email
+              </label>
+              <input
+                id="email"
+                type="email"
+                required
+                autoComplete="username"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+              />
+            </div>
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                Password
+              </label>
+              <input
+                id="password"
+                type="password"
+                required
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full bg-red-600 text-white py-2.5 px-4 rounded-lg font-medium hover:bg-red-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {isSubmitting ? 'Signing in...' : 'Sign in'}
+            </button>
+          </form>
         </div>
       </div>
     );
   }
 
   return (
-    <DashboardShell sidebarItems={navItems} user={user} onLogout={handleLogout}>
+    <DashboardShell title="Admin Dashboard" sidebarItems={navItems} userName={user ? `${user.firstName} ${user.lastName}` : undefined} onLogout={handleLogout}>
       <div className="p-6">
         <div className="mb-8">
           <h1 className="text-2xl font-semibold text-gray-900">Platform Dashboard</h1>
@@ -219,87 +226,76 @@ export default function AdminDashboard() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <StatCard
-            title="Total Users"
-            value={stats?.users.total ?? '-'}
+            label="Total Users"
+            value={String(stats?.users.total ?? '-')}
             icon={Users}
-            trend={{ value: 0, direction: 'stable' as const }}
-            subtitle={`${stats?.users.active ?? 0} active`}
+            note={`${stats?.users.active ?? 0} active`}
           />
           <StatCard
-            title="Verified Donors"
-            value={stats?.users.verifiedDonors ?? '-'}
+            label="Verified Donors"
+            value={String(stats?.users.verifiedDonors ?? '-')}
             icon={UserCheck}
-            trend={{ value: 0, direction: 'stable' as const }}
-            subtitle="Active donors"
+            note="Active donors"
           />
           <StatCard
-            title="Hospitals"
-            value={stats?.organizations.hospitals ?? '-'}
+            label="Hospitals"
+            value={String(stats?.organizations.hospitals ?? '-')}
             icon={Building2}
-            trend={{ value: 0, direction: 'stable' as const }}
-            subtitle={`${stats?.organizations.pending ?? 0} pending`}
+            note={`${stats?.organizations.pending ?? 0} pending`}
           />
           <StatCard
-            title="Blood Centers"
-            value={stats?.organizations.bloodCenters ?? '-'}
+            label="Blood Centers"
+            value={String(stats?.organizations.bloodCenters ?? '-')}
             icon={Droplet}
-            trend={{ value: 0, direction: 'stable' as const }}
-            subtitle={`${stats?.organizations.suspended ?? 0} suspended`}
+            note={`${stats?.organizations.suspended ?? 0} suspended`}
           />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <StatCard
-            title="Active Shipments"
-            value={stats?.shipments.active ?? '-'}
+            label="Active Shipments"
+            value={String(stats?.shipments.active ?? '-')}
             icon={Package}
-            trend={{ value: 0, direction: 'stable' as const }}
-            subtitle="In transit"
+            note="In transit"
           />
           <StatCard
-            title="Active Emergencies"
-            value={stats?.emergencies.active ?? '-'}
+            label="Active Emergencies"
+            value={String(stats?.emergencies.active ?? '-')}
             icon={AlertTriangle}
-            trend={{ value: 0, direction: 'stable' as const }}
-            subtitle="SOS requests"
+            note="SOS requests"
           />
           <StatCard
-            title="Blood Requests"
-            value={stats?.bloodRequests.active ?? '-'}
+            label="Blood Requests"
+            value={String(stats?.bloodRequests.active ?? '-')}
             icon={Droplet}
-            trend={{ value: 0, direction: 'stable' as const }}
-            subtitle={`${stats?.bloodRequests.critical ?? 0} critical`}
+            note={`${stats?.bloodRequests.critical ?? 0} critical`}
           />
           <StatCard
-            title="Couriers"
-            value={stats?.couriers ?? '-'}
+            label="Couriers"
+            value={String(stats?.couriers ?? '-')}
             icon={Ship}
-            trend={{ value: 0, direction: 'stable' as const }}
-            subtitle="Registered"
+            note="Registered"
           />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           <StatCard
-            title="Donations Today"
-            value={stats?.todayActivity.donations ?? '-'}
+            label="Donations Today"
+            value={String(stats?.todayActivity.donations ?? '-')}
             icon={TestTube}
-            trend={{ value: 0, direction: 'stable' as const }}
-            subtitle="Completed"
+            note="Completed"
           />
           <StatCard
-            title="Appointments Today"
-            value={stats?.todayActivity.appointments ?? '-'}
+            label="Appointments Today"
+            value={String(stats?.todayActivity.appointments ?? '-')}
             icon={Clock}
-            trend={{ value: 0, direction: 'stable' as const }}
-            subtitle="Scheduled"
+            note="Scheduled"
           />
           <StatCard
-            title="Blood Tests Today"
-            value={stats?.todayActivity.bloodTests ?? '-'}
+            label="Blood Tests Today"
+            value={String(stats?.todayActivity.bloodTests ?? '-')}
             icon={Activity}
-            trend={{ value: 0, direction: 'stable' as const }}
-            subtitle="Processed"
+            note="Processed"
           />
         </div>
 
@@ -319,7 +315,7 @@ export default function AdminDashboard() {
                       <p className="font-medium text-gray-900">{org.name}</p>
                       <p className="text-sm text-gray-500">{org.type}</p>
                     </div>
-                    <StatusBadge status="PENDING_APPROVAL" />
+                    <StatusBadgeWrapper status="PENDING_APPROVAL" />
                   </div>
                 ))
               )}
@@ -343,7 +339,7 @@ export default function AdminDashboard() {
                       </p>
                       <p className="text-sm text-gray-500">{emergency.hospital?.name}</p>
                     </div>
-                    <StatusBadge status={emergency.status} />
+                    <StatusBadgeWrapper status={emergency.status} />
                   </div>
                 ))
               )}
@@ -365,7 +361,7 @@ export default function AdminDashboard() {
                       <p className="font-medium text-gray-900">{alert.message}</p>
                       <p className="text-sm text-gray-500">{alert.type}</p>
                     </div>
-                    <StatusBadge status={alert.type === 'LOW_STOCK' ? 'WARNING' : 'INFO'} />
+                    <StatusBadgeWrapper status={alert.type === 'LOW_STOCK' ? 'WARNING' : 'INFO'} />
                   </div>
                 ))
               )}

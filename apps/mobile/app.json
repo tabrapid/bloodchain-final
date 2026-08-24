@@ -6,7 +6,16 @@
     "version": "0.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
-    "plugins": ["expo-router", "expo-secure-store"],
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "DONOR uses your location during an active emergency response so the hospital can track your journey."
+        }
+      ]
+    ],
     "experiments": { "typedRoutes": true }
   }
 }

@@ -178,6 +178,17 @@ export async function confirmArrival(
   );
 }
 
+export async function completeEmergencyDonation(
+  organizationId: string,
+  responseId: string,
+  data?: { bloodType?: string; rhFactor?: string; volumeMl?: number }
+): Promise<unknown> {
+  return apiRequest(
+    `/organizations/${organizationId}/emergency-responses/${responseId}/complete`,
+    { method: 'POST', body: JSON.stringify(data ?? {}) }
+  );
+}
+
 export async function getEmergencyTracking(
   organizationId: string,
   emergencyId: string

@@ -58,7 +58,7 @@ export class ShipmentGateway
   private readonly logger = new Logger(ShipmentGateway.name);
   private readonly connectedClients = new Map<string, AuthenticatedSocket>();
   private readonly roomSubscriptions = new Map<string, Set<string>>();
-  private heartbeatInterval: NodeJS.Timeout | null = null;
+  private heartbeatInterval: ReturnType<typeof setInterval> | null = null;
 
   constructor(
     private readonly jwtService: JwtService,

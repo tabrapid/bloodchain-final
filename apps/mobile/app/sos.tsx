@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ScrollView, View, Alert } from 'react-native';
 import { Stack } from 'expo-router';
+import * as Location from 'expo-location';
 import {
   AlertTriangle,
   ArrowLeft,
@@ -21,8 +22,12 @@ import {
   EmergencyRequest,
   getDonorEmergencies,
   startJourney,
+  updateLocation,
   viewEmergencyMatch,
 } from '../src/api/emergency';
+
+const LOCATION_UPDATE_INTERVAL_MS = 15000;
+const LOCATION_UPDATE_DISTANCE_M = 50;
 
 type EmergencyStatus = 'idle' | 'loading' | 'viewing' | 'responding' | 'en_route' | 'arrived' | 'error';
 
@@ -49,6 +54,52 @@ export default function SosScreen() {
   useEffect(() => {
     loadEmergencies();
   }, [loadEmergencies]);
+
+  const locationSubscription = useRef<Location.LocationSubscription | null>(null);
+
+  useEffect(() => {
+    const responseId = selectedEmergency?.responseId;
+
+    async function startTracking() {
+      const { status: permissionStatus } = await Location.requestForegroundPermissionsAsync();
+      if (permissionStatus !== 'granted') {
+        Alert.alert(
+          'Location Permission Needed',
+          'DONOR needs your location while en route so the hospital can track your journey.',
+        );
+        return;
+      }
+
+      locationSubscription.current = await Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.Balanced,
+          timeInterval: LOCATION_UPDATE_INTERVAL_MS,
+          distanceInterval: LOCATION_UPDATE_DISTANCE_M,
+        },
+        (position) => {
+          if (!responseId) return;
+          updateLocation(responseId, {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            accuracy: position.coords.accuracy ?? undefined,
+            heading: position.coords.heading ?? undefined,
+            speed: position.coords.speed ?? undefined,
+          }).catch(() => {
+            // Best-effort: a single missed location update shouldn't interrupt the journey.
+          });
+        },
+      );
+    }
+
+    if (status === 'en_route' && responseId) {
+      startTracking();
+    }
+
+    return () => {
+      locationSubscription.current?.remove();
+      locationSubscription.current = null;
+    };
+  }, [status, selectedEmergency?.responseId]);
 
   const handleViewMatch = async (emergency: EmergencyRequest) => {
     if (!emergency.matchId) return;

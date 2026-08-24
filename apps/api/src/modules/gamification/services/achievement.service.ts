@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../database/prisma.service';
 import { ACHIEVEMENT_DEFINITIONS } from '../config/gamification.config';
-import { AchievementType, AchievementRarity } from '@prisma/client';
+import { AchievementType } from '@prisma/client';
 import { AchievementDto, AchievementListDto } from '../dto/gamification.dto';
 
 @Injectable()
@@ -14,12 +14,12 @@ export class AchievementService {
         where: { code: def.code },
         create: {
           code: def.code,
-          type: def.type as AchievementType,
+          type: def.type,
           name: def.name,
           description: def.description,
           icon: def.icon,
-          rarity: def.rarity as AchievementRarity,
-          criteria: def.criteria as any,
+          rarity: def.rarity,
+          criteria: def.criteria,
           xpReward: def.xpReward,
           displayOrder: def.displayOrder,
         },
@@ -27,8 +27,8 @@ export class AchievementService {
           name: def.name,
           description: def.description,
           icon: def.icon,
-          rarity: def.rarity as AchievementRarity,
-          criteria: def.criteria as any,
+          rarity: def.rarity,
+          criteria: def.criteria,
           xpReward: def.xpReward,
         },
       });

@@ -25,17 +25,7 @@ import {
   getIncomingShipments,
   Shipment,
 } from '../../lib/shipments';
-
-const sidebarItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: Activity },
-  { id: 'emergency', label: 'Emergency', icon: AlertTriangle },
-  { id: 'donors', label: 'Donors', icon: Package, disabled: true },
-  { id: 'appointments', label: 'Appointments', icon: Clock, disabled: true },
-  { id: 'inventory', label: 'Inventory', icon: Package, disabled: true },
-  { id: 'analytics', label: 'Analytics', icon: Activity },
-  { id: 'shipments', label: 'Shipments', icon: Truck },
-  { id: 'settings', label: 'Settings', icon: AlertCircle, disabled: true },
-];
+import { sidebarItems } from '../../lib/navigation';
 
 const STATUS_CONFIG: Record<string, { label: string; variant: 'success' | 'warning' | 'info' | 'default' | 'danger' }> = {
   CREATED: { label: 'Created', variant: 'default' },

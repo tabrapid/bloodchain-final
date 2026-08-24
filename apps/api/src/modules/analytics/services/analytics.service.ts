@@ -253,11 +253,12 @@ export class AnalyticsService {
         start = startOfDayFn(now);
         end = endOfDayFn(now);
         break;
-      case DateRangeType.YESTERDAY:
+      case DateRangeType.YESTERDAY: {
         const yesterday = subDaysFn(now, 1);
         start = startOfDayFn(yesterday);
         end = endOfDayFn(yesterday);
         break;
+      }
       case DateRangeType.LAST_7_DAYS:
         start = startOfDayFn(subDaysFn(now, 6));
         end = endOfDayFn(now);
@@ -274,11 +275,12 @@ export class AnalyticsService {
         start = startOfMonthFn(now);
         end = endOfDayFn(now);
         break;
-      case DateRangeType.LAST_MONTH:
+      case DateRangeType.LAST_MONTH: {
         const lastMonth = subDaysFn(now, now.getDate());
         start = startOfMonthFn(lastMonth);
         end = endOfMonthFn(lastMonth);
         break;
+      }
       case DateRangeType.THIS_YEAR:
         start = startOfYearFn(now);
         end = endOfDayFn(now);

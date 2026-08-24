@@ -20,7 +20,9 @@ async function bootstrap() {
   app.useLogger(logger);
 
   app.enableCors({
-    origin: (config.get<string>('WEB_URL') ?? 'http://localhost:3000').split(','),
+    origin: (config.get<string>('WEB_URL') ?? 'http://localhost:3000')
+      .split(',')
+      .map((origin) => origin.trim()),
     credentials: true,
     exposedHeaders: [REQUEST_ID_HEADER],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
@@ -58,13 +60,15 @@ async function bootstrap() {
   app.useGlobalFilters(new ApiExceptionFilter());
   app.useGlobalInterceptors(new RequestIdInterceptor(), new LoggingInterceptor());
 
-  const swagger = new DocumentBuilder()
-    .setTitle('DONOR API')
-    .setDescription('Foundation API for the DONOR healthcare platform')
-    .setVersion('1.0')
-    .addBearerAuth()
-    .build();
-  SwaggerModule.setup('docs', app, SwaggerModule.createDocument(app, swagger));
+  if (config.get<string>('NODE_ENV') !== 'production') {
+    const swagger = new DocumentBuilder()
+      .setTitle('DONOR API')
+      .setDescription('Foundation API for the DONOR healthcare platform')
+      .setVersion('1.0')
+      .addBearerAuth()
+      .build();
+    SwaggerModule.setup('docs', app, SwaggerModule.createDocument(app, swagger));
+  }
 
   const port = config.get<number>('PORT', 3001);
   await app.listen(port);

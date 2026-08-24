@@ -1,42 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Brain, TrendingUp, TrendingDown, CheckCircle, XCircle, AlertTriangle, BarChart3, Clock, MessageSquare, ThumbsUp, ThumbsDown, Flag, RefreshCw } from 'lucide-react';
+import { Brain, TrendingUp, TrendingDown, CheckCircle, XCircle, AlertTriangle, BarChart3, Clock, MessageSquare, ThumbsUp, ThumbsDown, Flag, RefreshCw, LayoutDashboard, Users, Building2, Ship, Package, Droplet, TestTube, Bell, FileText, Activity, Settings } from 'lucide-react';
 import { DashboardShell, LoadingState } from '@donor/ui/components';
-import { isAuthenticated, me } from '../lib/auth';
-import { getAIPatformAnalytics, getAIInsightStats } from '../lib/ai-api';
+import { isAuthenticated, me } from '@lib/auth';
+import { getAIPatformAnalytics, getAIInsightStats } from '@lib/ai-api';
+import { StatusBadgeWrapper } from '@lib/status';
 
-const navItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { id: 'users', label: 'Users', icon: Users },
-  { id: 'organizations', label: 'Organizations', icon: Building2 },
-  { id: 'couriers', label: 'Couriers', icon: Ship },
-  { id: 'shipments', label: 'Shipments', icon: Package },
-  { id: 'requests', label: 'Blood Requests', icon: Droplet },
-  { id: 'emergencies', label: 'Emergencies', icon: AlertTriangle },
-  { id: 'inventory', label: 'Inventory', icon: TestTube },
-  { id: 'alerts', label: 'Alerts', icon: Bell },
-  { id: 'ai-analytics', label: 'AI Analytics', icon: Brain },
-  { id: 'audit', label: 'Audit Logs', icon: FileText },
-  { id: 'health', label: 'System Health', icon: Activity },
-  { id: 'settings', label: 'Settings', icon: Settings },
-];
-
-import {
-  LayoutDashboard,
-  Users,
-  Building2,
-  Ship,
-  Package,
-  Droplet,
-  AlertTriangle,
-  TestTube,
-  Bell,
-  FileText,
-  Activity,
-  Settings,
-  Brain,
-} from 'lucide-react';
+import { navItems } from '@lib/navigation';
 
 interface AIAnalytics {
   totalRequests: number;
@@ -116,7 +87,7 @@ export default function AIAnalyticsPage() {
 
   if (isLoading) {
     return (
-      <DashboardShell sidebarItems={navItems} user={currentUser} onLogout={() => {}}>
+      <DashboardShell title="AI Analytics" sidebarItems={navItems} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined} onLogout={() => {}}>
         <LoadingState />
       </DashboardShell>
     );
@@ -124,7 +95,7 @@ export default function AIAnalyticsPage() {
 
   if (!analytics || !insightStats) {
     return (
-      <DashboardShell sidebarItems={navItems} user={currentUser} onLogout={() => {}}>
+      <DashboardShell title="AI Analytics" sidebarItems={navItems} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined} onLogout={() => {}}>
         <div className="p-6">
           <p className="text-gray-500">AI analytics data not available.</p>
         </div>
@@ -133,7 +104,7 @@ export default function AIAnalyticsPage() {
   }
 
   return (
-    <DashboardShell sidebarItems={navItems} user={currentUser} onLogout={() => {}}>
+    <DashboardShell title="AI Analytics" sidebarItems={navItems} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined} onLogout={() => {}}>
       <div className="p-6">
         <div className="flex items-center justify-between mb-6">
           <div>

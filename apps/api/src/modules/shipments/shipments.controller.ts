@@ -18,7 +18,6 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { ShipmentsService } from './shipments.service';
 import {
   ApproveRequestDto,
-  ConfirmDeliveryDto,
   CreateBloodRequestDto,
   CreateShipmentDto,
   DeclineShipmentDto,
@@ -246,19 +245,6 @@ export class ShipmentsController {
     return this.shipments.failShipment(userId, shipmentId, dto, req.headers['x-forwarded-for'] as string);
   }
 
-  @Post('organizations/:organizationId/shipments/:shipmentId/confirm-delivery')
-  @Roles(RoleCode.HOSPITAL_ADMIN, RoleCode.HOSPITAL_STAFF, RoleCode.SUPER_ADMIN)
-  @ApiOperation({ summary: 'Hospital confirms delivery' })
-  confirmDelivery(
-    @Param('organizationId') organizationId: string,
-    @Param('shipmentId') shipmentId: string,
-    @Body() dto: ConfirmDeliveryDto,
-    @CurrentUser('sub') userId: string,
-    @Req() req: Request,
-  ) {
-    return this.shipments.confirmDelivery(organizationId, userId, shipmentId, dto, req.headers['x-forwarded-for'] as string);
-  }
-
   @Get('shipments/:shipmentId/locations')
   @Roles(RoleCode.SUPER_ADMIN, RoleCode.HOSPITAL_ADMIN, RoleCode.HOSPITAL_STAFF, RoleCode.BLOOD_CENTER_ADMIN, RoleCode.BLOOD_CENTER_STAFF, RoleCode.COURIER)
   @ApiOperation({ summary: 'Get shipment location history' })
@@ -328,7 +314,7 @@ export class ShipmentsController {
   @Post('organizations/:organizationId/shipments/:shipmentId/confirm-delivery')
   @Roles(RoleCode.HOSPITAL_ADMIN, RoleCode.HOSPITAL_STAFF, RoleCode.SUPER_ADMIN)
   @ApiOperation({ summary: 'Hospital confirms delivery with details' })
-  confirmDeliveryFull(
+  confirmDelivery(
     @Param('organizationId') organizationId: string,
     @Param('shipmentId') shipmentId: string,
     @Body() dto: DeliveryConfirmationDto,

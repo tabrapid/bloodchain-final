@@ -121,16 +121,6 @@ export async function getDonorTracking(responseId: string): Promise<EmergencyRes
   return apiRequest<EmergencyResponse>(`/donor/emergency-responses/${responseId}/tracking`);
 }
 
-export async function completeEmergency(
-  responseId: string,
-  donationId?: string
-): Promise<EmergencyResponse> {
-  return apiRequest<EmergencyResponse>(`/donor/emergency-responses/${responseId}/complete`, {
-    method: 'POST',
-    body: JSON.stringify({ donationId }),
-  });
-}
-
 export async function cancelResponse(
   responseId: string,
   reason?: string

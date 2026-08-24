@@ -1,47 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Search, Building2, MapPin, Users as UsersIcon, X } from 'lucide-react';
-import { DashboardShell, StatCard, StatusBadge, LoadingState } from '@donor/ui/components';
-import {
-  listOrganizations,
-  verifyOrganization,
-  rejectOrganization,
-  suspendOrganization,
-  restoreOrganization,
-  type Organization,
-} from '../lib/api';
-import { me, isAuthenticated } from '../lib/auth';
+import { DashboardShell, StatCard, LoadingState } from '@donor/ui/components';
+import { listOrganizations, verifyOrganization, rejectOrganization, suspendOrganization, restoreOrganization, type Organization } from '@lib/api';
+import { me, isAuthenticated } from '@lib/auth';
+import { StatusBadgeWrapper } from '@lib/status';
+import { LayoutDashboard, Users, Building2, Ship, Package, Droplet, AlertTriangle, TestTube, Bell, FileText, Activity, Settings, Search, X } from 'lucide-react';
 
-const navItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { id: 'users', label: 'Users', icon: Users },
-  { id: 'organizations', label: 'Organizations', icon: Building2 },
-  { id: 'couriers', label: 'Couriers', icon: Ship },
-  { id: 'shipments', label: 'Shipments', icon: Package },
-  { id: 'requests', label: 'Blood Requests', icon: Droplet },
-  { id: 'emergencies', label: 'Emergencies', icon: AlertTriangle },
-  { id: 'inventory', label: 'Inventory', icon: TestTube },
-  { id: 'alerts', label: 'Alerts', icon: Bell },
-  { id: 'audit', label: 'Audit Logs', icon: FileText },
-  { id: 'health', label: 'System Health', icon: Activity },
-  { id: 'settings', label: 'Settings', icon: Settings },
-];
-
-import {
-  LayoutDashboard,
-  Users,
-  Building2,
-  Ship,
-  Package,
-  Droplet,
-  AlertTriangle,
-  TestTube,
-  Bell,
-  FileText,
-  Activity,
-  Settings,
-} from 'lucide-react';
+import { navItems } from '@lib/navigation';
 
 export default function OrganizationsPage() {
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -151,14 +117,14 @@ export default function OrganizationsPage() {
 
   if (isLoading) {
     return (
-      <DashboardShell sidebarItems={navItems} user={currentUser} onLogout={() => {}}>
+      <DashboardShell title="Organization Management" sidebarItems={navItems} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined} onLogout={() => {}}>
         <LoadingState />
       </DashboardShell>
     );
   }
 
   return (
-    <DashboardShell sidebarItems={navItems} user={currentUser} onLogout={() => {}}>
+    <DashboardShell title="Organization Management" sidebarItems={navItems} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined} onLogout={() => {}}>
       <div className="p-6">
         <div className="mb-6">
           <h1 className="text-2xl font-semibold text-gray-900">Organization Management</h1>
@@ -255,7 +221,7 @@ export default function OrganizationsPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <StatusBadge status={org.status} />
+                        <StatusBadgeWrapper status={org.status} />
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-600">
                         {org.staffCount}
@@ -266,7 +232,7 @@ export default function OrganizationsPage() {
                       <td className="px-4 py-3">
                         <button
                           onClick={async () => {
-                            const data = await import('../lib/api').then(m => m.getOrganization(org.id));
+                            const data = await import('@lib/api').then(m => m.getOrganization(org.id));
                             setSelectedOrg(data);
                           }}
                           className="text-red-600 hover:text-red-700 text-sm font-medium"
@@ -330,7 +296,7 @@ export default function OrganizationsPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-gray-500">Status</p>
-                  <StatusBadge status={selectedOrg.status} />
+                  <StatusBadgeWrapper status={selectedOrg.status} />
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Staff Count</p>

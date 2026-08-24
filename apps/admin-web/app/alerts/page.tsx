@@ -1,40 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Bell, AlertTriangle, CheckCircle, X } from 'lucide-react';
+import { Bell, AlertTriangle, CheckCircle, X, LayoutDashboard, Users, Building2, Ship, Package, Droplet, TestTube, FileText, Activity, Settings } from 'lucide-react';
 import { DashboardShell, LoadingState } from '@donor/ui/components';
-import { listAlerts, acknowledgeAlert } from '../lib/api';
-import { me, isAuthenticated } from '../lib/auth';
+import { listAlerts, acknowledgeAlert } from '@lib/api';
+import { me, isAuthenticated } from '@lib/auth';
+import { StatusBadgeWrapper } from '@lib/status';
 
-const navItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { id: 'users', label: 'Users', icon: Users },
-  { id: 'organizations', label: 'Organizations', icon: Building2 },
-  { id: 'couriers', label: 'Couriers', icon: Ship },
-  { id: 'shipments', label: 'Shipments', icon: Package },
-  { id: 'requests', label: 'Blood Requests', icon: Droplet },
-  { id: 'emergencies', label: 'Emergencies', icon: AlertTriangle },
-  { id: 'inventory', label: 'Inventory', icon: TestTube },
-  { id: 'alerts', label: 'Alerts', icon: Bell },
-  { id: 'audit', label: 'Audit Logs', icon: FileText },
-  { id: 'health', label: 'System Health', icon: Activity },
-  { id: 'settings', label: 'Settings', icon: Settings },
-];
-
-import {
-  LayoutDashboard,
-  Users,
-  Building2,
-  Ship,
-  Package,
-  Droplet,
-  AlertTriangle,
-  TestTube,
-  Bell,
-  FileText,
-  Activity,
-  Settings,
-} from 'lucide-react';
+import { navItems } from '@lib/navigation';
 
 export default function AlertsPage() {
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -89,14 +62,14 @@ export default function AlertsPage() {
 
   if (isLoading) {
     return (
-      <DashboardShell sidebarItems={navItems} user={currentUser} onLogout={() => {}}>
+      <DashboardShell title="Alert Center" sidebarItems={navItems} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined} onLogout={() => {}}>
         <LoadingState />
       </DashboardShell>
     );
   }
 
   return (
-    <DashboardShell sidebarItems={navItems} user={currentUser} onLogout={() => {}}>
+    <DashboardShell title="Alert Center" sidebarItems={navItems} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined} onLogout={() => {}}>
       <div className="p-6">
         <div className="mb-6">
           <h1 className="text-2xl font-semibold text-gray-900">Alert Center</h1>

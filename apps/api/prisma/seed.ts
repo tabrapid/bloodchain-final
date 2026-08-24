@@ -341,6 +341,127 @@ async function main() {
     },
   });
 
+  const todaySlot = await db.appointmentSlot.create({
+    data: {
+      organizationId: hospitalOrg.id,
+      appointmentType: AppointmentType.BLOOD_DONATION,
+      startAt: new Date(),
+      endAt: new Date(Date.now() + 30 * 60000),
+      capacity: 3,
+      bookedCount: 3,
+      status: SlotStatus.FULL,
+    },
+  });
+
+  const completedAppointment = await db.appointment.create({
+    data: {
+      referenceNumber: `DON-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 999999)).padStart(6, '0')}`,
+      donorId: donor.id,
+      organizationId: hospitalOrg.id,
+      slotId: todaySlot.id,
+      appointmentType: AppointmentType.BLOOD_DONATION,
+      status: AppointmentStatus.COMPLETED,
+      scheduledStart: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+      scheduledEnd: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000 + 30 * 60000),
+      completedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+    },
+  });
+
+  const completedDonation = await db.donation.create({
+    data: {
+      donationReference: `DONATION-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 999999)).padStart(6, '0')}`,
+      donorId: donor.id,
+      organizationId: hospitalOrg.id,
+      appointmentId: completedAppointment.id,
+      donationType: DonationType.WHOLE_BLOOD,
+      status: DonationStatus.COMPLETED,
+      bloodType: BloodType.O,
+      rhFactor: RhFactor.POSITIVE,
+      volumeMl: 450,
+      collectionStartedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000 + 5 * 60000),
+      collectionCompletedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000 + 35 * 60000),
+      completedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000 + 35 * 60000),
+      completedBy: hospitalStaffUser.id,
+      nextDonationDate: new Date(Date.now() + 56 * 24 * 60 * 60 * 1000),
+    },
+  });
+
+  await db.donationEvent.createMany({
+    data: [
+      {
+        donationId: completedDonation.id,
+        eventType: 'CREATED',
+        actorId: hospitalStaffUser.id,
+        organizationId: hospitalOrg.id,
+        createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+      },
+      {
+        donationId: completedDonation.id,
+        eventType: 'CHECKED_IN',
+        actorId: hospitalStaffUser.id,
+        organizationId: hospitalOrg.id,
+        createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+      },
+      {
+        donationId: completedDonation.id,
+        eventType: 'STARTED',
+        actorId: hospitalStaffUser.id,
+        organizationId: hospitalOrg.id,
+        createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000 + 5 * 60000),
+      },
+      {
+        donationId: completedDonation.id,
+        eventType: 'COMPLETED',
+        actorId: hospitalStaffUser.id,
+        organizationId: hospitalOrg.id,
+        createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000 + 35 * 60000),
+      },
+    ],
+  });
+
+  const cancelledAppointment = await db.appointment.create({
+    data: {
+      referenceNumber: `DON-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 999999)).padStart(6, '0')}`,
+      donorId: donor.id,
+      organizationId: hospitalOrg.id,
+      slotId: todaySlot.id,
+      appointmentType: AppointmentType.BLOOD_DONATION,
+      status: AppointmentStatus.CANCELLED,
+      scheduledStart: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
+      scheduledEnd: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000 + 30 * 60000),
+      cancelledAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000 - 60 * 60000),
+      cancellationReason: 'DONOR_CANCELLED',
+    },
+  });
+
+  await db.donation.create({
+    data: {
+      donationReference: `DONATION-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 999999)).padStart(6, '0')}`,
+      donorId: donor.id,
+      organizationId: hospitalOrg.id,
+      appointmentId: cancelledAppointment.id,
+      donationType: DonationType.WHOLE_BLOOD,
+      status: DonationStatus.CANCELLED,
+      bloodType: BloodType.O,
+      rhFactor: RhFactor.POSITIVE,
+      cancellationReason: 'DONOR_CANCELLED',
+      cancelledAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000 - 60 * 60000),
+    },
+  });
+
+  const todayAppointment = await db.appointment.create({
+    data: {
+      referenceNumber: `DON-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 999999)).padStart(6, '0')}`,
+      donorId: donor.id,
+      organizationId: hospitalOrg.id,
+      slotId: todaySlot.id,
+      appointmentType: AppointmentType.BLOOD_DONATION,
+      status: AppointmentStatus.CONFIRMED,
+      scheduledStart: new Date(),
+      scheduledEnd: new Date(Date.now() + 30 * 60000),
+    },
+  });
+
   const bloodUnitsData = [
     { bloodType: BloodType.A, rhFactor: RhFactor.POSITIVE, volumeMl: 450, daysAgo: 5 },
     { bloodType: BloodType.A, rhFactor: RhFactor.POSITIVE, volumeMl: 450, daysAgo: 10 },
@@ -355,11 +476,26 @@ async function main() {
   ];
 
   const bloodUnits = await Promise.all(
-    bloodUnitsData.map((unit, index) =>
-      db.bloodUnit.create({
+    bloodUnitsData.map(async (unit, index) => {
+      const seedDonation = await db.donation.create({
+        data: {
+          donationReference: `SEED-DONATION-${new Date().getFullYear()}-${String(index + 1).padStart(6, '0')}`,
+          donorId: donor.id,
+          organizationId: centerOrg.id,
+          donationType: DonationType.WHOLE_BLOOD,
+          status: DonationStatus.COMPLETED,
+          bloodType: unit.bloodType,
+          rhFactor: unit.rhFactor,
+          volumeMl: unit.volumeMl,
+          collectionStartedAt: new Date(Date.now() - unit.daysAgo * 24 * 60 * 60 * 1000),
+          collectionCompletedAt: new Date(Date.now() - unit.daysAgo * 24 * 60 * 60 * 1000 + 30 * 60000),
+          completedAt: new Date(Date.now() - unit.daysAgo * 24 * 60 * 60 * 1000 + 30 * 60000),
+        },
+      });
+      return db.bloodUnit.create({
         data: {
           unitReference: `BU-${new Date().getFullYear()}-${String(index + 1).padStart(6, '0')}`,
-          donationId: completedDonation.id,
+          donationId: seedDonation.id,
           organizationId: centerOrg.id,
           bloodType: unit.bloodType,
           rhFactor: unit.rhFactor,
@@ -370,8 +506,8 @@ async function main() {
           collectedAt: new Date(Date.now() - unit.daysAgo * 24 * 60 * 60 * 1000),
           expiresAt: new Date(Date.now() - unit.daysAgo * 24 * 60 * 60 * 1000 + 42 * 24 * 60 * 60 * 1000),
         },
-      }),
-    ),
+      });
+    }),
   );
 
   await db.organizationMembership.upsert({
@@ -589,84 +725,6 @@ async function main() {
     });
   }
 
-  const todaySlot = await db.appointmentSlot.create({
-    data: {
-      organizationId: hospitalOrg.id,
-      appointmentType: AppointmentType.BLOOD_DONATION,
-      startAt: new Date(),
-      endAt: new Date(Date.now() + 30 * 60000),
-      capacity: 3,
-      bookedCount: 1,
-      status: SlotStatus.FULL,
-    },
-  });
-
-  const completedAppointment = await db.appointment.create({
-    data: {
-      referenceNumber: `DON-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 999999)).padStart(6, '0')}`,
-      donorId: donor.id,
-      organizationId: hospitalOrg.id,
-      slotId: todaySlot.id,
-      appointmentType: AppointmentType.BLOOD_DONATION,
-      status: AppointmentStatus.COMPLETED,
-      scheduledStart: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-      scheduledEnd: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000 + 30 * 60000),
-      completedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-    },
-  });
-
-  const completedDonation = await db.donation.create({
-    data: {
-      donationReference: `DONATION-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 999999)).padStart(6, '0')}`,
-      donorId: donor.id,
-      organizationId: hospitalOrg.id,
-      appointmentId: completedAppointment.id,
-      donationType: DonationType.WHOLE_BLOOD,
-      status: DonationStatus.COMPLETED,
-      bloodType: BloodType.O,
-      rhFactor: RhFactor.POSITIVE,
-      volumeMl: 450,
-      collectionStartedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000 + 5 * 60000),
-      collectionCompletedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000 + 35 * 60000),
-      completedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000 + 35 * 60000),
-      completedBy: hospitalStaffUser.id,
-      nextDonationDate: new Date(Date.now() + 56 * 24 * 60 * 60 * 1000),
-    },
-  });
-
-  await db.donationEvent.createMany({
-    data: [
-      {
-        donationId: completedDonation.id,
-        eventType: 'CREATED',
-        actorId: hospitalStaffUser.id,
-        organizationId: hospitalOrg.id,
-        createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-      },
-      {
-        donationId: completedDonation.id,
-        eventType: 'CHECKED_IN',
-        actorId: hospitalStaffUser.id,
-        organizationId: hospitalOrg.id,
-        createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-      },
-      {
-        donationId: completedDonation.id,
-        eventType: 'STARTED',
-        actorId: hospitalStaffUser.id,
-        organizationId: hospitalOrg.id,
-        createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000 + 5 * 60000),
-      },
-      {
-        donationId: completedDonation.id,
-        eventType: 'COMPLETED',
-        actorId: hospitalStaffUser.id,
-        organizationId: hospitalOrg.id,
-        createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000 + 35 * 60000),
-      },
-    ],
-  });
-
   await db.bloodUnit.create({
     data: {
       unitReference: `BU-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 999999)).padStart(6, '0')}`,
@@ -677,49 +735,6 @@ async function main() {
       volumeMl: 450,
       status: 'COLLECTED',
       collectedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000 + 35 * 60000),
-    },
-  });
-
-  const cancelledAppointment = await db.appointment.create({
-    data: {
-      referenceNumber: `DON-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 999999)).padStart(6, '0')}`,
-      donorId: donor.id,
-      organizationId: hospitalOrg.id,
-      slotId: todaySlot.id,
-      appointmentType: AppointmentType.BLOOD_DONATION,
-      status: AppointmentStatus.CANCELLED,
-      scheduledStart: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
-      scheduledEnd: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000 + 30 * 60000),
-      cancelledAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000 - 60 * 60000),
-      cancellationReason: 'DONOR_CANCELLED',
-    },
-  });
-
-  await db.donation.create({
-    data: {
-      donationReference: `DONATION-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 999999)).padStart(6, '0')}`,
-      donorId: donor.id,
-      organizationId: hospitalOrg.id,
-      appointmentId: cancelledAppointment.id,
-      donationType: DonationType.WHOLE_BLOOD,
-      status: DonationStatus.CANCELLED,
-      bloodType: BloodType.O,
-      rhFactor: RhFactor.POSITIVE,
-      cancellationReason: 'DONOR_CANCELLED',
-      cancelledAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000 - 60 * 60000),
-    },
-  });
-
-  const todayAppointment = await db.appointment.create({
-    data: {
-      referenceNumber: `DON-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 999999)).padStart(6, '0')}`,
-      donorId: donor.id,
-      organizationId: hospitalOrg.id,
-      slotId: todaySlot.id,
-      appointmentType: AppointmentType.BLOOD_DONATION,
-      status: AppointmentStatus.CONFIRMED,
-      scheduledStart: new Date(),
-      scheduledEnd: new Date(Date.now() + 30 * 60000),
     },
   });
 

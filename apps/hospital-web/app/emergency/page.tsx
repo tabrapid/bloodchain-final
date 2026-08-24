@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   Clock,
   MapPin,
+  Navigation,
   Package,
   Plus,
   RefreshCw,
@@ -26,18 +27,12 @@ import {
   activateEmergency,
   cancelEmergency,
   confirmArrival,
+  completeEmergencyDonation,
   getEmergencies,
   EmergencyRequest,
 } from '../../lib/emergency';
-
-const sidebarItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: Activity },
-  { id: 'emergency', label: 'Emergency', icon: AlertTriangle },
-  { id: 'donors', label: 'Donors', icon: Package, disabled: true },
-  { id: 'appointments', label: 'Appointments', icon: Clock, disabled: true },
-  { id: 'inventory', label: 'Inventory', icon: Package, disabled: true },
-  { id: 'settings', label: 'Settings', icon: AlertCircle, disabled: true },
-];
+import { sidebarItems } from '../../lib/navigation';
+import { useEmergencyTracking } from '../../lib/useEmergencyTracking';
 
 const BLOOD_TYPES = ['A', 'B', 'AB', 'O'];
 const RH_FACTORS = ['POSITIVE', 'NEGATIVE'];
@@ -186,6 +181,22 @@ export default function EmergencyPage() {
     }
   };
 
+  const handleCompleteDonation = async (responseId: string) => {
+    if (!organizationId) return;
+    const volumeInput = prompt('Collected volume (mL)', '450');
+    if (volumeInput === null) return;
+    const volumeMl = parseInt(volumeInput, 10);
+    try {
+      await completeEmergencyDonation(organizationId, responseId, {
+        volumeMl: Number.isFinite(volumeMl) ? volumeMl : undefined,
+      });
+      await loadEmergencies();
+    } catch (err) {
+      console.error('Failed to complete donation:', err);
+      alert('Failed to complete donation');
+    }
+  };
+
   const activeCount = emergencies.filter(
     (e) => !['COMPLETED', 'CANCELLED', 'EXPIRED'].includes(e.status)
   ).length;
@@ -193,6 +204,11 @@ export default function EmergencyPage() {
     (e) => e.urgencyLevel === 'CRITICAL' && e.status !== 'COMPLETED' && e.status !== 'CANCELLED'
   ).length;
   const completedCount = emergencies.filter((e) => e.status === 'COMPLETED').length;
+
+  const trackedEmergencyIds = emergencies
+    .filter((e) => ['DONOR_EN_ROUTE', 'DONOR_ARRIVED'].includes(e.status))
+    .map((e) => e.id);
+  const { locations: liveLocations } = useEmergencyTracking(trackedEmergencyIds);
 
   if (isLoading) {
     return (
@@ -392,6 +408,27 @@ export default function EmergencyPage() {
                           {emergency.responses.length} responses
                         </span>
                       </div>
+                      {['DONOR_EN_ROUTE', 'DONOR_ARRIVED'].includes(emergency.status) && (() => {
+                        const liveLocation = liveLocations[emergency.id];
+                        return (
+                          <div className="mt-3 flex items-center gap-2 rounded-lg border border-donor-border bg-donor-background px-3 py-2">
+                            <Navigation size={14} className="text-donor-primary" />
+                            {liveLocation ? (
+                              <span className="text-xs text-donor-text">
+                                Live: {liveLocation.latitude.toFixed(5)},{' '}
+                                {liveLocation.longitude.toFixed(5)}
+                                <span className="ml-2 text-donor-muted">
+                                  updated {new Date(liveLocation.recordedAt).toLocaleTimeString()}
+                                </span>
+                              </span>
+                            ) : (
+                              <span className="text-xs text-donor-muted">
+                                Waiting for donor location update...
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -425,6 +462,20 @@ export default function EmergencyPage() {
                       >
                         <CheckCircle2 size={14} />
                         Confirm Arrival
+                      </button>
+                    )}
+                    {emergency.status === 'DONATION_STARTED' && (
+                      <button
+                        onClick={() => {
+                          const response = emergency.responses[0];
+                          if (response) {
+                            handleCompleteDonation(response.id);
+                          }
+                        }}
+                        className="flex items-center gap-1 rounded-lg bg-donor-primary px-3 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-donor-primary/80"
+                      >
+                        <CheckCircle2 size={14} />
+                        Complete Donation
                       </button>
                     )}
                     {![

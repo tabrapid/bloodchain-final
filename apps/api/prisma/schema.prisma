@@ -328,57 +328,61 @@ enum DonationEventType {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  email         String   @unique @db.VarChar(254)
-  phone         String?  @unique @db.VarChar(20)
-  passwordHash  String
-  firstName     String   @db.VarChar(80)
-  lastName      String   @db.VarChar(80)
-  displayName   String?  @db.VarChar(120)
-  avatarUrl     String?  @db.VarChar(500)
-  dateOfBirth   DateTime? @db.Date
-  status        UserStatus @default(PENDING_VERIFICATION)
-  emailVerified Boolean  @default(false)
-  phoneVerified Boolean  @default(false)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  lastLoginAt   DateTime?
-  failedLoginAttempts Int @default(0)
-  lockoutUntil  DateTime?
+  id                  String     @id @default(cuid())
+  email               String     @unique @db.VarChar(254)
+  phone               String?    @unique @db.VarChar(20)
+  passwordHash        String
+  firstName           String     @db.VarChar(80)
+  lastName            String     @db.VarChar(80)
+  displayName         String?    @db.VarChar(120)
+  avatarUrl           String?    @db.VarChar(500)
+  dateOfBirth         DateTime?  @db.Date
+  status              UserStatus @default(PENDING_VERIFICATION)
+  emailVerified       Boolean    @default(false)
+  phoneVerified       Boolean    @default(false)
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+  lastLoginAt         DateTime?
+  failedLoginAttempts Int        @default(0)
+  lockoutUntil        DateTime?
 
-  memberships            OrganizationMembership[]
-  donorProfile          DonorProfile?
-  notificationPreference NotificationPreference?
-  refreshTokens         RefreshToken[]
-  auditLogs             AuditLog[]
-  emailVerification     EmailVerificationToken?
-  sessions              Session[]
-  appointments          Appointment[]
-  appointmentHistory    AppointmentHistory[]
-  donations             Donation[]
-  donationEvents        DonationEvent[]
-  donationAssessments   DonationAssessment[]
-  verifiedBloodUnits    BloodUnit[]         @relation("BloodUnitVerifier")
-  inventoryMovements    InventoryMovement[]
-  reservations          BloodUnitReservation[]
-  courier               Courier?
-  bloodRequestEvents    BloodRequestEvent[]
-  shipmentEvents        ShipmentEvent[]
-  emergencyRequests     EmergencyRequest[] @relation("EmergencyCreator")
-  emergencyMatches     EmergencyMatch[]   @relation("EmergencyDonor")
-  emergencyResponses    EmergencyResponse[] @relation("EmergencyResponseDonor")
-  laboratoryResults     LaboratoryResult[] @relation("LaboratoryResultDonor")
-  gamificationProfile   GamificationProfile?
-  communityPosts        CommunityPost[]    @relation("CommunityPostAuthor")
-  campaignParticipations CampaignParticipant[]
+  memberships             OrganizationMembership[]
+  donorProfile            DonorProfile?
+  notificationPreference  NotificationPreference?
+  refreshTokens           RefreshToken[]
+  auditLogs               AuditLog[]
+  emailVerification       EmailVerificationToken?
+  sessions                Session[]
+  appointments            Appointment[]
+  appointmentHistory      AppointmentHistory[]
+  donations               Donation[]
+  donationEvents          DonationEvent[]
+  donationAssessments     DonationAssessment[]
+  verifiedBloodUnits      BloodUnit[]              @relation("BloodUnitVerifier")
+  inventoryMovements      InventoryMovement[]
+  reservations            BloodUnitReservation[]
+  courier                 Courier?
+  bloodRequestEvents      BloodRequestEvent[]
+  shipmentEvents          ShipmentEvent[]
+  emergencyRequests       EmergencyRequest[]       @relation("EmergencyCreator")
+  emergencyMatches        EmergencyMatch[]         @relation("EmergencyDonor")
+  emergencyResponses      EmergencyResponse[]      @relation("EmergencyResponseDonor")
+  laboratoryResults       LaboratoryResult[]       @relation("LaboratoryResultDonor")
+  gamificationProfile     GamificationProfile?
+  xpTransactions          XpTransaction[]
+  achievementUnlocks      AchievementUnlock[]
+  reputationTransactions  ReputationTransaction[]
+  communityPosts          CommunityPost[]          @relation("CommunityPostAuthor")
+  campaignParticipations  CampaignParticipant[]
   challengeParticipations ChallengeParticipant[]
-  educationProgress     EducationProgress[]
-  contentReports        ContentReport[]    @relation("ContentReportReporter")
-  reviewedReports       ContentReport[]    @relation("ContentReportReviewer")
-  createdChallenges     Challenge[]        @relation("ChallengeCreator")
-  aiInsights            AIInsight[]
-  aiConversations       AIConversation[]
-  aiFeedback            AIFeedback[]
+  educationProgress       EducationProgress[]
+  contentReports          ContentReport[]          @relation("ContentReportReporter")
+  reviewedReports         ContentReport[]          @relation("ContentReportReviewer")
+  createdChallenges       Challenge[]              @relation("ChallengeCreator")
+  aiInsights              AIInsight[]
+  aiConversations         AIConversation[]
+  aiFeedback              AIFeedback[]
+  userBadges              UserBadge[]
 
   @@index([email])
   @@index([status])
@@ -396,8 +400,8 @@ model Role {
 }
 
 model Permission {
-  id    String @id @default(cuid())
-  code  String @unique
+  id    String           @id @default(cuid())
+  code  String           @unique
   name  String
   roles RolePermission[]
 }
@@ -425,34 +429,34 @@ model Organization {
   createdAt DateTime           @default(now())
   updatedAt DateTime           @updatedAt
 
-  memberships   OrganizationMembership[]
-  auditLogs     AuditLog[]
-  hospital      Hospital?
-  bloodCenter   BloodCenter?
-  appointmentSlots AppointmentSlot[]
-  appointments  Appointment[]
-  donations     Donation[]
-  donationEvents DonationEvent[]
-  bloodUnits    BloodUnit[]
-  locations     InventoryLocation[]
-  movements     InventoryMovement[]
-  reservations  BloodUnitReservation[]
-  reservedFor  BloodUnitReservation[]  @relation("ReservationForOrganization")
-  alerts        InventoryAlert[]
-  bloodRequestsRequested BloodRequest[] @relation("RequestingOrganization")
-  bloodRequestsFulfilled BloodRequest[] @relation("FulfillingOrganization")
-  shipmentsSource Shipment[] @relation("ShipmentSource")
-  shipmentsDestination Shipment[] @relation("ShipmentDestination")
-  couriers     Courier[]
-  bloodRequestEvents BloodRequestEvent[]
-  shipmentEvents   ShipmentEvent[]
-  emergencyRequests EmergencyRequest[]
-  laboratoryProfile  LaboratoryProfile?
-  laboratoryResults LaboratoryResult[] @relation("LaboratoryResultOrganization")
-  testReferenceRanges TestReferenceRange[]
-  communityPosts    CommunityPost[]
-  campaigns         Campaign[]
-  challenges        Challenge[]
+  memberships            OrganizationMembership[]
+  auditLogs              AuditLog[]
+  hospital               Hospital?
+  bloodCenter            BloodCenter?
+  appointmentSlots       AppointmentSlot[]
+  appointments           Appointment[]
+  donations              Donation[]
+  donationEvents         DonationEvent[]
+  bloodUnits             BloodUnit[]
+  locations              InventoryLocation[]
+  movements              InventoryMovement[]
+  reservations           BloodUnitReservation[]
+  reservedFor            BloodUnitReservation[]   @relation("ReservationForOrganization")
+  alerts                 InventoryAlert[]
+  bloodRequestsRequested BloodRequest[]           @relation("RequestingOrganization")
+  bloodRequestsFulfilled BloodRequest[]           @relation("FulfillingOrganization")
+  shipmentsSource        Shipment[]               @relation("ShipmentSource")
+  shipmentsDestination   Shipment[]               @relation("ShipmentDestination")
+  couriers               Courier[]
+  bloodRequestEvents     BloodRequestEvent[]
+  shipmentEvents         ShipmentEvent[]
+  emergencyRequests      EmergencyRequest[]
+  laboratoryProfile      LaboratoryProfile?
+  laboratoryResults      LaboratoryResult[]       @relation("LaboratoryResultOrganization")
+  testReferenceRanges    TestReferenceRange[]
+  communityPosts         CommunityPost[]
+  campaigns              Campaign[]
+  challenges             Challenge[]
 
   @@index([type])
   @@index([status])
@@ -492,22 +496,22 @@ model OrganizationMembership {
 }
 
 model DonorProfile {
-  id                   String             @id @default(cuid())
-  userId               String             @unique
-  bloodType            BloodType?
-  rhFactor             RhFactor?
-  bloodTypeVerifiedAt   DateTime?
-  bloodTypeVerifiedBy   String?
-  bloodTypeSource       VerificationSource?
-  bloodTypeNote        String?
-  city                 String?            @db.VarChar(100)
-  district             String?            @db.VarChar(100)
-  donorStatus          DonorStatus        @default(ACTIVE)
-  verificationStatus   VerificationStatus @default(UNVERIFIED)
-  dateOfBirth          DateTime?          @db.Date
-  consentLocation      Boolean            @default(false)
-  createdAt            DateTime          @default(now())
-  updatedAt            DateTime          @updatedAt
+  id                  String              @id @default(cuid())
+  userId              String              @unique
+  bloodType           BloodType?
+  rhFactor            RhFactor?
+  bloodTypeVerifiedAt DateTime?
+  bloodTypeVerifiedBy String?
+  bloodTypeSource     VerificationSource?
+  bloodTypeNote       String?
+  city                String?             @db.VarChar(100)
+  district            String?             @db.VarChar(100)
+  donorStatus         DonorStatus         @default(ACTIVE)
+  verificationStatus  VerificationStatus  @default(UNVERIFIED)
+  dateOfBirth         DateTime?           @db.Date
+  consentLocation     Boolean             @default(false)
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -541,12 +545,12 @@ model NotificationPreference {
 }
 
 model RefreshToken {
-  id        String    @id @default(cuid())
-  userId    String
-  tokenHash String    @unique
-  expiresAt DateTime
-  revokedAt DateTime?
-  createdAt DateTime  @default(now())
+  id         String    @id @default(cuid())
+  userId     String
+  tokenHash  String    @unique
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
   lastUsedAt DateTime?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -557,17 +561,17 @@ model RefreshToken {
 }
 
 model Session {
-  id           String    @id @default(cuid())
-  userId       String
-  tokenHash    String    @unique
-  deviceName   String?
-  deviceType   String?
-  ipAddress    String?
-  userAgent    String?
-  expiresAt    DateTime
-  revokedAt    DateTime?
-  createdAt    DateTime  @default(now())
-  lastUsedAt   DateTime?
+  id         String    @id @default(cuid())
+  userId     String
+  tokenHash  String    @unique
+  deviceName String?
+  deviceType String?
+  ipAddress  String?
+  userAgent  String?
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -578,12 +582,12 @@ model Session {
 }
 
 model EmailVerificationToken {
-  id        String   @id @default(cuid())
-  userId    String   @unique
-  token     String   @unique @db.VarChar(64)
+  id        String    @id @default(cuid())
+  userId    String    @unique
+  token     String    @unique @db.VarChar(64)
   expiresAt DateTime
   usedAt    DateTime?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -592,7 +596,7 @@ model EmailVerificationToken {
 }
 
 model AuditLog {
-  id             String    @id @default(cuid())
+  id             String   @id @default(cuid())
   actorId        String?
   action         String
   entityType     String
@@ -600,7 +604,7 @@ model AuditLog {
   organizationId String?
   metadata       Json?
   ipAddress      String?
-  createdAt      DateTime  @default(now())
+  createdAt      DateTime @default(now())
 
   actor        User?         @relation(fields: [actorId], references: [id], onDelete: SetNull)
   organization Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
@@ -613,28 +617,28 @@ model AuditLog {
 }
 
 model IdempotencyRecord {
-  key        String   @id
-  result     Json
-  createdAt  DateTime @default(now())
-  expiresAt  DateTime
+  key       String   @id
+  result    Json
+  createdAt DateTime @default(now())
+  expiresAt DateTime
 
   @@index([expiresAt])
 }
 
 model AppointmentSlot {
-  id               String         @id @default(cuid())
-  organizationId   String
-  appointmentType  AppointmentType
-  startAt          DateTime
-  endAt            DateTime
-  capacity         Int            @default(1)
-  bookedCount     Int            @default(0)
-  status           SlotStatus     @default(AVAILABLE)
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  id              String          @id @default(cuid())
+  organizationId  String
+  appointmentType AppointmentType
+  startAt         DateTime
+  endAt           DateTime
+  capacity        Int             @default(1)
+  bookedCount     Int             @default(0)
+  status          SlotStatus      @default(AVAILABLE)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
 
-  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  appointments   Appointment[]
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  appointments Appointment[]
 
   @@index([organizationId])
   @@index([appointmentType])
@@ -645,28 +649,28 @@ model AppointmentSlot {
 }
 
 model Appointment {
-  id                  String            @id @default(cuid())
-  referenceNumber      String            @unique
-  donorId             String
-  organizationId      String
-  slotId              String
-  appointmentType     AppointmentType
-  status              AppointmentStatus @default(PENDING)
-  scheduledStart      DateTime
-  scheduledEnd        DateTime
-  notes               String?
-  cancellationReason  String?
-  cancelledAt         DateTime?
-  completedAt         DateTime?
-  createdAt           DateTime          @default(now())
-  updatedAt           DateTime          @updatedAt
+  id                 String            @id @default(cuid())
+  referenceNumber    String            @unique
+  donorId            String
+  organizationId     String
+  slotId             String
+  appointmentType    AppointmentType
+  status             AppointmentStatus @default(PENDING)
+  scheduledStart     DateTime
+  scheduledEnd       DateTime
+  notes              String?
+  cancellationReason String?
+  cancelledAt        DateTime?
+  completedAt        DateTime?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
 
-  donor              User              @relation(fields: [donorId], references: [id], onDelete: Cascade)
-  organization       Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  slot               AppointmentSlot   @relation(fields: [slotId], references: [id], onDelete: Cascade)
-  history            AppointmentHistory[]
-  donation          Donation?
-  laboratoryResult   LaboratoryResult?
+  donor            User                 @relation(fields: [donorId], references: [id], onDelete: Cascade)
+  organization     Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  slot             AppointmentSlot      @relation(fields: [slotId], references: [id], onDelete: Cascade)
+  history          AppointmentHistory[]
+  donation         Donation?
+  laboratoryResult LaboratoryResult?
 
   @@index([donorId])
   @@index([organizationId])
@@ -679,7 +683,7 @@ model Appointment {
 }
 
 model AppointmentHistory {
-  id             String            @id @default(cuid())
+  id             String             @id @default(cuid())
   appointmentId  String
   action         String
   previousStatus AppointmentStatus?
@@ -687,7 +691,7 @@ model AppointmentHistory {
   actorId        String?
   reason         String?
   metadata       Json?
-  createdAt     DateTime          @default(now())
+  createdAt      DateTime           @default(now())
 
   appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
   actor       User?       @relation(fields: [actorId], references: [id], onDelete: SetNull)
@@ -698,39 +702,39 @@ model AppointmentHistory {
 }
 
 model Donation {
-  id                 String            @id @default(cuid())
-  donationReference  String            @unique
-  donorId           String
-  organizationId     String
-  appointmentId      String?           @unique
-  donationType       DonationType      @default(WHOLE_BLOOD)
-  status             DonationStatus    @default(SCHEDULED)
-  bloodType          BloodType?
-  rhFactor           RhFactor?
-  volumeMl           Int?
-  collectionStartedAt DateTime?
+  id                    String              @id @default(cuid())
+  donationReference     String              @unique
+  donorId               String
+  organizationId        String
+  appointmentId         String?             @unique
+  donationType          DonationType        @default(WHOLE_BLOOD)
+  status                DonationStatus      @default(SCHEDULED)
+  bloodType             BloodType?
+  rhFactor              RhFactor?
+  volumeMl              Int?
+  collectionStartedAt   DateTime?
   collectionCompletedAt DateTime?
-  staffNotes         String?
-  nextDonationDate   DateTime?
-  cancellationReason CancellationReason?
-  cancelledAt        DateTime?
-  abortedAt          DateTime?
-  abortedReason      String?
-  rejectedAt         DateTime?
-  rejectedReason     String?
-  completedAt        DateTime?
-  completedBy        String?
-  verifiedAt         DateTime?
-  verifiedBy        String?
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
+  staffNotes            String?
+  nextDonationDate      DateTime?
+  cancellationReason    CancellationReason?
+  cancelledAt           DateTime?
+  abortedAt             DateTime?
+  abortedReason         String?
+  rejectedAt            DateTime?
+  rejectedReason        String?
+  completedAt           DateTime?
+  completedBy           String?
+  verifiedAt            DateTime?
+  verifiedBy            String?
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
 
-  donor         User                @relation(fields: [donorId], references: [id], onDelete: Cascade)
-  organization  Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  appointment   Appointment?         @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
-  events        DonationEvent[]
-  assessment    DonationAssessment?
-  bloodUnit     BloodUnit?
+  donor        User                @relation(fields: [donorId], references: [id], onDelete: Cascade)
+  organization Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  appointment  Appointment?        @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  events       DonationEvent[]
+  assessment   DonationAssessment?
+  bloodUnit    BloodUnit?
 
   @@index([donorId])
   @@index([organizationId])
@@ -743,16 +747,16 @@ model Donation {
 }
 
 model DonationEvent {
-  id             String           @id @default(cuid())
+  id             String            @id @default(cuid())
   donationId     String
   eventType      DonationEventType
   actorId        String?
   organizationId String?
   metadata       Json?
-  createdAt     DateTime         @default(now())
+  createdAt      DateTime          @default(now())
 
-  donation     Donation     @relation(fields: [donationId], references: [id], onDelete: Cascade)
-  actor        User?        @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  donation     Donation      @relation(fields: [donationId], references: [id], onDelete: Cascade)
+  actor        User?         @relation(fields: [actorId], references: [id], onDelete: SetNull)
   organization Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
 
   @@index([donationId])
@@ -762,27 +766,27 @@ model DonationEvent {
 }
 
 model DonationAssessment {
-  id           String            @id @default(cuid())
-  donationId   String            @unique
-  decision     AssessmentDecision
+  id             String             @id @default(cuid())
+  donationId     String             @unique
+  decision       AssessmentDecision
   reasonCategory String?
-  notes        String?
-  assessedBy   String?
-  assessedAt   DateTime         @default(now())
+  notes          String?
+  assessedBy     String?
+  assessedAt     DateTime           @default(now())
 
   donation Donation @relation(fields: [donationId], references: [id], onDelete: Cascade)
-  assessor  User?    @relation(fields: [assessedBy], references: [id], onDelete: SetNull)
+  assessor User?    @relation(fields: [assessedBy], references: [id], onDelete: SetNull)
 
   @@index([donationId])
   @@index([assessedBy])
 }
 
 model BloodUnit {
-  id             String         @id @default(cuid())
-  unitReference  String         @unique
-  donationId     String         @unique
+  id             String          @id @default(cuid())
+  unitReference  String          @unique
+  donationId     String          @unique
   organizationId String
-  componentType  ComponentType  @default(WHOLE_BLOOD)
+  componentType  ComponentType   @default(WHOLE_BLOOD)
   bloodType      BloodType
   rhFactor       RhFactor
   volumeMl       Int
@@ -792,13 +796,13 @@ model BloodUnit {
   expiresAt      DateTime?
   verifiedAt     DateTime?
   verifiedBy     String?
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
 
-  donation       Donation              @relation(fields: [donationId], references: [id], onDelete: Cascade)
-  organization   Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  location      InventoryLocation?    @relation(fields: [locationId], references: [id], onDelete: SetNull)
-  verifier      User?                @relation("BloodUnitVerifier", fields: [verifiedBy], references: [id], onDelete: SetNull)
+  donation      Donation               @relation(fields: [donationId], references: [id], onDelete: Cascade)
+  organization  Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  location      InventoryLocation?     @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  verifier      User?                  @relation("BloodUnitVerifier", fields: [verifiedBy], references: [id], onDelete: SetNull)
   movements     InventoryMovement[]
   reservations  BloodUnitReservation[]
   shipmentUnits ShipmentUnit[]
@@ -818,12 +822,12 @@ model InventoryLocation {
   name           String
   code           String
   type           LocationType @default(STORAGE)
-  active        Boolean      @default(true)
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  active         Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
-  organization Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  bloodUnits   BloodUnit[]
+  organization  Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  bloodUnits    BloodUnit[]
   movementsFrom InventoryMovement[] @relation("FromLocation")
   movementsTo   InventoryMovement[] @relation("ToLocation")
 
@@ -842,11 +846,11 @@ model InventoryMovement {
   reason         String?
   createdAt      DateTime     @default(now())
 
-  bloodUnit     BloodUnit         @relation(fields: [bloodUnitId], references: [id], onDelete: Cascade)
-  organization  Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  fromLocation  InventoryLocation? @relation("FromLocation", fields: [fromLocationId], references: [id], onDelete: SetNull)
-  toLocation    InventoryLocation? @relation("ToLocation", fields: [toLocationId], references: [id], onDelete: SetNull)
-  actor         User?            @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  bloodUnit    BloodUnit          @relation(fields: [bloodUnitId], references: [id], onDelete: Cascade)
+  organization Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  fromLocation InventoryLocation? @relation("FromLocation", fields: [fromLocationId], references: [id], onDelete: SetNull)
+  toLocation   InventoryLocation? @relation("ToLocation", fields: [toLocationId], references: [id], onDelete: SetNull)
+  actor        User?              @relation(fields: [actorId], references: [id], onDelete: SetNull)
 
   @@index([bloodUnitId])
   @@index([organizationId])
@@ -855,26 +859,26 @@ model InventoryMovement {
 }
 
 model BloodUnitReservation {
-  id                       String            @id @default(cuid())
+  id                        String            @id @default(cuid())
   bloodUnitId               String
   organizationId            String
   reservedForOrganizationId String?
-  status                   ReservationStatus @default(ACTIVE)
+  status                    ReservationStatus @default(ACTIVE)
   reservedBy                String
   reservedAt                DateTime          @default(now())
-  expiresAt                DateTime?
-  releasedAt               DateTime?
-  fulfilledAt              DateTime?
-  reason                   String?
-  createdAt                DateTime          @default(now())
-  updatedAt                DateTime          @updatedAt
+  expiresAt                 DateTime?
+  releasedAt                DateTime?
+  fulfilledAt               DateTime?
+  reason                    String?
+  createdAt                 DateTime          @default(now())
+  updatedAt                 DateTime          @updatedAt
 
-  bloodUnit                BloodUnit     @relation(fields: [bloodUnitId], references: [id], onDelete: Cascade)
-  organization             Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  reservedForOrganization   Organization? @relation("ReservationForOrganization", fields: [reservedForOrganizationId], references: [id], onDelete: SetNull)
-  reservedByUser           User         @relation(fields: [reservedBy], references: [id], onDelete: Cascade)
-  bloodRequestItems        BloodRequestItem[]
-  shipmentUnits            ShipmentUnit[]
+  bloodUnit               BloodUnit          @relation(fields: [bloodUnitId], references: [id], onDelete: Cascade)
+  organization            Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  reservedForOrganization Organization?      @relation("ReservationForOrganization", fields: [reservedForOrganizationId], references: [id], onDelete: SetNull)
+  reservedByUser          User               @relation(fields: [reservedBy], references: [id], onDelete: Cascade)
+  bloodRequestItems       BloodRequestItem[]
+  shipmentUnits           ShipmentUnit[]
 
   @@index([bloodUnitId])
   @@index([organizationId])
@@ -883,7 +887,7 @@ model BloodUnitReservation {
 }
 
 model InventoryAlert {
-  id             String      @id @default(cuid())
+  id             String     @id @default(cuid())
   organizationId String
   type           AlertType
   bloodType      BloodType?
@@ -891,10 +895,10 @@ model InventoryAlert {
   message        String
   threshold      Int?
   currentValue   Int?
-  acknowledged   Boolean     @default(false)
+  acknowledged   Boolean    @default(false)
   acknowledgedAt DateTime?
   acknowledgedBy String?
-  createdAt      DateTime    @default(now())
+  createdAt      DateTime   @default(now())
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
@@ -904,26 +908,26 @@ model InventoryAlert {
 }
 
 model BloodRequest {
-  id                       String             @id @default(cuid())
-  requestReference         String             @unique
+  id                       String               @id @default(cuid())
+  requestReference         String               @unique
   requestingOrganizationId String
-  fulfillingOrganizationId  String?
-  priority                  BloodRequestPriority @default(ROUTINE)
-  status                    BloodRequestStatus  @default(DRAFT)
-  notes                     String?
-  deliveryAddress           String?
-  deliveryLatitude          Decimal?           @db.Decimal(9, 6)
-  deliveryLongitude         Decimal?           @db.Decimal(9, 6)
-  deliveryPhone             String?
-  expectedDeliveryDate      DateTime?
-  deliveredAt               DateTime?
-  cancelledAt               DateTime?
-  cancellationReason        String?
-  createdAt                 DateTime           @default(now())
-  updatedAt                 DateTime           @updatedAt
+  fulfillingOrganizationId String?
+  priority                 BloodRequestPriority @default(ROUTINE)
+  status                   BloodRequestStatus   @default(DRAFT)
+  notes                    String?
+  deliveryAddress          String?
+  deliveryLatitude         Decimal?             @db.Decimal(9, 6)
+  deliveryLongitude        Decimal?             @db.Decimal(9, 6)
+  deliveryPhone            String?
+  expectedDeliveryDate     DateTime?
+  deliveredAt              DateTime?
+  cancelledAt              DateTime?
+  cancellationReason       String?
+  createdAt                DateTime             @default(now())
+  updatedAt                DateTime             @updatedAt
 
-  requestingOrganization  Organization          @relation("RequestingOrganization", fields: [requestingOrganizationId], references: [id], onDelete: Cascade)
-  fulfillingOrganization  Organization?         @relation("FulfillingOrganization", fields: [fulfillingOrganizationId], references: [id], onDelete: SetNull)
+  requestingOrganization Organization        @relation("RequestingOrganization", fields: [requestingOrganizationId], references: [id], onDelete: Cascade)
+  fulfillingOrganization Organization?       @relation("FulfillingOrganization", fields: [fulfillingOrganizationId], references: [id], onDelete: SetNull)
   items                  BloodRequestItem[]
   events                 BloodRequestEvent[]
   shipment               Shipment?
@@ -936,20 +940,20 @@ model BloodRequest {
 }
 
 model BloodRequestItem {
-  id              String   @id @default(cuid())
-  bloodRequestId  String
-  bloodType       BloodType
-  rhFactor        RhFactor
-  componentType   ComponentType @default(WHOLE_BLOOD)
-  unitsRequested  Int
-  unitsApproved   Int      @default(0)
-  unitsFulfilled  Int      @default(0)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id             String        @id @default(cuid())
+  bloodRequestId String
+  bloodType      BloodType
+  rhFactor       RhFactor
+  componentType  ComponentType @default(WHOLE_BLOOD)
+  unitsRequested Int
+  unitsApproved  Int           @default(0)
+  unitsFulfilled Int           @default(0)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 
-  bloodRequest   BloodRequest @relation(fields: [bloodRequestId], references: [id], onDelete: Cascade)
-  reservations    BloodUnitReservation[]
-  shipmentUnits   ShipmentUnit[]
+  bloodRequest  BloodRequest           @relation(fields: [bloodRequestId], references: [id], onDelete: Cascade)
+  reservations  BloodUnitReservation[]
+  shipmentUnits ShipmentUnit[]
 
   @@index([bloodRequestId])
   @@index([bloodType])
@@ -957,17 +961,17 @@ model BloodRequestItem {
 }
 
 model BloodRequestEvent {
-  id              String            @id @default(cuid())
-  bloodRequestId  String
-  eventType       String
-  actorId         String?
-  organizationId  String?
-  metadata        Json?
-  createdAt       DateTime          @default(now())
+  id             String   @id @default(cuid())
+  bloodRequestId String
+  eventType      String
+  actorId        String?
+  organizationId String?
+  metadata       Json?
+  createdAt      DateTime @default(now())
 
-  bloodRequest  BloodRequest @relation(fields: [bloodRequestId], references: [id], onDelete: Cascade)
-  actor         User?        @relation(fields: [actorId], references: [id], onDelete: SetNull)
-  organization  Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  bloodRequest BloodRequest  @relation(fields: [bloodRequestId], references: [id], onDelete: Cascade)
+  actor        User?         @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
 
   @@index([bloodRequestId])
   @@index([actorId])
@@ -975,20 +979,20 @@ model BloodRequestEvent {
 }
 
 model Courier {
-  id                 String        @id @default(cuid())
-  userId             String        @unique
-  organizationId     String
-  displayName        String
-  phone              String?
-  status             CourierStatus @default(OFFLINE)
-  currentShipmentId  String?
-  createdAt          DateTime      @default(now())
-  updatedAt          DateTime      @updatedAt
+  id                String        @id @default(cuid())
+  userId            String        @unique
+  organizationId    String
+  displayName       String
+  phone             String?
+  status            CourierStatus @default(OFFLINE)
+  currentShipmentId String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
 
-  user              User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  shipments         Shipment[]
-  locations         ShipmentLocation[]
+  user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  shipments    Shipment[]
+  locations    ShipmentLocation[]
 
   @@index([userId])
   @@index([organizationId])
@@ -996,19 +1000,19 @@ model Courier {
 }
 
 model Shipment {
-  id                        String        @id @default(cuid())
-  shipmentReference         String        @unique
-  bloodRequestId            String        @unique
+  id                        String                 @id @default(cuid())
+  shipmentReference         String                 @unique
+  bloodRequestId            String                 @unique
   sourceOrganizationId      String
-  destinationOrganizationId  String
+  destinationOrganizationId String
   courierId                 String?
-  status                    ShipmentStatus @default(CREATED)
+  status                    ShipmentStatus         @default(CREATED)
   pickupAddress             String?
-  pickupLatitude            Decimal?      @db.Decimal(9, 6)
-  pickupLongitude           Decimal?      @db.Decimal(9, 6)
+  pickupLatitude            Decimal?               @db.Decimal(9, 6)
+  pickupLongitude           Decimal?               @db.Decimal(9, 6)
   destinationAddress        String?
-  destinationLatitude       Decimal?      @db.Decimal(9, 6)
-  destinationLongitude      Decimal?      @db.Decimal(9, 6)
+  destinationLatitude       Decimal?               @db.Decimal(9, 6)
+  destinationLongitude      Decimal?               @db.Decimal(9, 6)
   assignedAt                DateTime?
   acceptedAt                DateTime?
   declinedAt                DateTime?
@@ -1024,16 +1028,16 @@ model Shipment {
   cancelledAt               DateTime?
   cancellationReason        String?
   estimatedArrivalAt        DateTime?
-  createdAt                 DateTime      @default(now())
-  updatedAt                 DateTime      @updatedAt
+  createdAt                 DateTime               @default(now())
+  updatedAt                 DateTime               @updatedAt
 
-  bloodRequest             BloodRequest   @relation(fields: [bloodRequestId], references: [id], onDelete: Cascade)
-  sourceOrganization       Organization   @relation("ShipmentSource", fields: [sourceOrganizationId], references: [id], onDelete: Cascade)
-  destinationOrganization  Organization   @relation("ShipmentDestination", fields: [destinationOrganizationId], references: [id], onDelete: Cascade)
-  courier                  Courier?       @relation(fields: [courierId], references: [id], onDelete: SetNull)
-  units                    ShipmentUnit[]
-  events                   ShipmentEvent[]
-  locations                ShipmentLocation[]
+  bloodRequest            BloodRequest       @relation(fields: [bloodRequestId], references: [id], onDelete: Cascade)
+  sourceOrganization      Organization       @relation("ShipmentSource", fields: [sourceOrganizationId], references: [id], onDelete: Cascade)
+  destinationOrganization Organization       @relation("ShipmentDestination", fields: [destinationOrganizationId], references: [id], onDelete: Cascade)
+  courier                 Courier?           @relation(fields: [courierId], references: [id], onDelete: SetNull)
+  units                   ShipmentUnit[]
+  events                  ShipmentEvent[]
+  locations               ShipmentLocation[]
 
   @@index([bloodRequestId])
   @@index([sourceOrganizationId])
@@ -1045,20 +1049,20 @@ model Shipment {
 }
 
 model ShipmentUnit {
-  id              String        @id @default(cuid())
-  shipmentId      String
-  bloodUnitId    String
-  reservationId   String
-  pickedUpAt      DateTime?
-  deliveredAt     DateTime?
-  status          String        @default("PENDING")
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  id            String    @id @default(cuid())
+  shipmentId    String
+  bloodUnitId   String
+  reservationId String
+  pickedUpAt    DateTime?
+  deliveredAt   DateTime?
+  status        String    @default("PENDING")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
-  shipment        Shipment      @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
-  bloodUnit       BloodUnit     @relation(fields: [bloodUnitId], references: [id], onDelete: Cascade)
-  reservation     BloodUnitReservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
-  bloodRequestItem BloodRequestItem? @relation(fields: [bloodRequestItemId], references: [id], onDelete: SetNull)
+  shipment           Shipment             @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  bloodUnit          BloodUnit            @relation(fields: [bloodUnitId], references: [id], onDelete: Cascade)
+  reservation        BloodUnitReservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  bloodRequestItem   BloodRequestItem?    @relation(fields: [bloodRequestItemId], references: [id], onDelete: SetNull)
   bloodRequestItemId String?
 
   @@unique([shipmentId, bloodUnitId])
@@ -1068,17 +1072,17 @@ model ShipmentUnit {
 }
 
 model ShipmentEvent {
-  id              String          @id @default(cuid())
-  shipmentId      String
-  eventType       ShipmentEventType
-  actorId         String?
-  organizationId  String?
-  metadata        Json?
-  createdAt       DateTime        @default(now())
+  id             String            @id @default(cuid())
+  shipmentId     String
+  eventType      ShipmentEventType
+  actorId        String?
+  organizationId String?
+  metadata       Json?
+  createdAt      DateTime          @default(now())
 
-  shipment       Shipment       @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
-  actor          User?          @relation(fields: [actorId], references: [id], onDelete: SetNull)
-  organization   Organization?  @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  shipment     Shipment      @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  actor        User?         @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
 
   @@index([shipmentId])
   @@index([actorId])
@@ -1086,18 +1090,18 @@ model ShipmentEvent {
 }
 
 model ShipmentLocation {
-  id           String   @id @default(cuid())
-  shipmentId   String
-  courierId    String
-  latitude     Decimal  @db.Decimal(9, 6)
-  longitude    Decimal  @db.Decimal(9, 6)
-  accuracy     Decimal? @db.Decimal(8, 2)
-  heading      Decimal? @db.Decimal(5, 2)
-  speed        Decimal? @db.Decimal(6, 2)
-  recordedAt   DateTime @default(now())
+  id         String   @id @default(cuid())
+  shipmentId String
+  courierId  String
+  latitude   Decimal  @db.Decimal(9, 6)
+  longitude  Decimal  @db.Decimal(9, 6)
+  accuracy   Decimal? @db.Decimal(8, 2)
+  heading    Decimal? @db.Decimal(5, 2)
+  speed      Decimal? @db.Decimal(6, 2)
+  recordedAt DateTime @default(now())
 
-  shipment     Shipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
-  courier      Courier  @relation(fields: [courierId], references: [id], onDelete: Cascade)
+  shipment Shipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  courier  Courier  @relation(fields: [courierId], references: [id], onDelete: Cascade)
 
   @@index([shipmentId])
   @@index([courierId])
@@ -1105,33 +1109,33 @@ model ShipmentLocation {
 }
 
 model EmergencyRequest {
-  id                   String          @id @default(cuid())
-  emergencyReference   String         @unique
-  hospitalId           String
-  bloodType           BloodType
-  rhFactor            RhFactor
-  unitsRequired       Int
-  urgencyLevel         String         @default("CRITICAL")
-  status              EmergencyStatus @default(DRAFT)
-  patientReference    String?
-  description         String?
-  requiredBefore      DateTime?
-  donationLocation    String?
-  latitude            Decimal?        @db.Decimal(9, 6)
-  longitude           Decimal?        @db.Decimal(9, 6)
+  id                 String          @id @default(cuid())
+  emergencyReference String          @unique
+  hospitalId         String
+  bloodType          BloodType
+  rhFactor           RhFactor
+  unitsRequired      Int
+  urgencyLevel       String          @default("CRITICAL")
+  status             EmergencyStatus @default(DRAFT)
+  patientReference   String?
+  description        String?
+  requiredBefore     DateTime?
+  donationLocation   String?
+  latitude           Decimal?        @db.Decimal(9, 6)
+  longitude          Decimal?        @db.Decimal(9, 6)
   unitsCommitted     Int             @default(0)
-  unitsArrived        Int             @default(0)
-  unitsCollected      Int             @default(0)
-  createdBy           String
+  unitsArrived       Int             @default(0)
+  unitsCollected     Int             @default(0)
+  createdBy          String
   createdAt          DateTime        @default(now())
   updatedAt          DateTime        @updatedAt
   closedAt           DateTime?
   cancelledAt        DateTime?
 
-  hospital           Organization        @relation(fields: [hospitalId], references: [id], onDelete: Cascade)
-  creator           User               @relation("EmergencyCreator", fields: [createdBy], references: [id], onDelete: Cascade)
-  matches           EmergencyMatch[]
-  responses         EmergencyResponse[]
+  hospital  Organization        @relation(fields: [hospitalId], references: [id], onDelete: Cascade)
+  creator   User                @relation("EmergencyCreator", fields: [createdBy], references: [id], onDelete: Cascade)
+  matches   EmergencyMatch[]
+  responses EmergencyResponse[]
 
   @@index([hospitalId])
   @@index([bloodType])
@@ -1142,21 +1146,21 @@ model EmergencyRequest {
 }
 
 model EmergencyMatch {
-  id                   String               @id @default(cuid())
-  emergencyRequestId   String
-  donorId             String
-  matchScore          Float?
-  distanceKm          Float?
-  status              EmergencyMatchStatus @default(MATCHED)
-  notifiedAt          DateTime?
-  viewedAt            DateTime?
-  respondedAt          DateTime?
-  expiredAt           DateTime?
-  createdAt          DateTime        @default(now())
+  id                 String               @id @default(cuid())
+  emergencyRequestId String
+  donorId            String
+  matchScore         Float?
+  distanceKm         Float?
+  status             EmergencyMatchStatus @default(MATCHED)
+  notifiedAt         DateTime?
+  viewedAt           DateTime?
+  respondedAt        DateTime?
+  expiredAt          DateTime?
+  createdAt          DateTime             @default(now())
 
-  emergencyRequest    EmergencyRequest @relation(fields: [emergencyRequestId], references: [id], onDelete: Cascade)
-  donor              User             @relation("EmergencyDonor", fields: [donorId], references: [id], onDelete: Cascade)
-  response          EmergencyResponse?
+  emergencyRequest EmergencyRequest   @relation(fields: [emergencyRequestId], references: [id], onDelete: Cascade)
+  donor            User               @relation("EmergencyDonor", fields: [donorId], references: [id], onDelete: Cascade)
+  response         EmergencyResponse?
 
   @@unique([emergencyRequestId, donorId])
   @@index([emergencyRequestId])
@@ -1166,25 +1170,25 @@ model EmergencyMatch {
 }
 
 model EmergencyResponse {
-  id                   String                   @id @default(cuid())
-  emergencyRequestId   String
-  matchId             String?              @unique
-  donorId             String
-  status              EmergencyResponseStatus @default(ACCEPTED)
-  acceptedAt          DateTime?
-  enRouteAt           DateTime?
-  arrivedAt           DateTime?
-  donationStartedAt    DateTime?
-  completedAt         DateTime?
-  cancelledAt         DateTime?
-  cancellationReason  String?
-  createdAt          DateTime        @default(now())
-  updatedAt          DateTime        @updatedAt
+  id                 String                  @id @default(cuid())
+  emergencyRequestId String
+  matchId            String?                 @unique
+  donorId            String
+  status             EmergencyResponseStatus @default(ACCEPTED)
+  acceptedAt         DateTime?
+  enRouteAt          DateTime?
+  arrivedAt          DateTime?
+  donationStartedAt  DateTime?
+  completedAt        DateTime?
+  cancelledAt        DateTime?
+  cancellationReason String?
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
 
-  emergencyRequest    EmergencyRequest @relation(fields: [emergencyRequestId], references: [id], onDelete: Cascade)
-  donor              User             @relation("EmergencyResponseDonor", fields: [donorId], references: [id], onDelete: Cascade)
-  match              EmergencyMatch?  @relation(fields: [matchId], references: [id], onDelete: SetNull)
-  locations         EmergencyLocation[]
+  emergencyRequest EmergencyRequest    @relation(fields: [emergencyRequestId], references: [id], onDelete: Cascade)
+  donor            User                @relation("EmergencyResponseDonor", fields: [donorId], references: [id], onDelete: Cascade)
+  match            EmergencyMatch?     @relation(fields: [matchId], references: [id], onDelete: SetNull)
+  locations        EmergencyLocation[]
 
   @@index([emergencyRequestId])
   @@index([donorId])
@@ -1193,31 +1197,31 @@ model EmergencyResponse {
 }
 
 model EmergencyLocation {
-  id                   String   @id @default(cuid())
-  emergencyResponseId  String
-  latitude             Decimal  @db.Decimal(9, 6)
-  longitude            Decimal  @db.Decimal(9, 6)
-  accuracy             Decimal? @db.Decimal(8, 2)
-  heading              Decimal? @db.Decimal(5, 2)
-  speed                Decimal? @db.Decimal(6, 2)
+  id                  String   @id @default(cuid())
+  emergencyResponseId String
+  latitude            Decimal  @db.Decimal(9, 6)
+  longitude           Decimal  @db.Decimal(9, 6)
+  accuracy            Decimal? @db.Decimal(8, 2)
+  heading             Decimal? @db.Decimal(5, 2)
+  speed               Decimal? @db.Decimal(6, 2)
   recordedAt          DateTime @default(now())
 
-  emergencyResponse    EmergencyResponse @relation(fields: [emergencyResponseId], references: [id], onDelete: Cascade)
+  emergencyResponse EmergencyResponse @relation(fields: [emergencyResponseId], references: [id], onDelete: Cascade)
 
   @@index([emergencyResponseId])
   @@index([recordedAt])
 }
 
 model TestType {
-  id            String       @id @default(cuid())
-  code          String       @unique
-  name          String
-  description   String?
-  category      TestCategory @default(GENERAL)
-  isActive      Boolean      @default(true)
-  displayOrder  Int         @default(0)
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  id           String       @id @default(cuid())
+  code         String       @unique
+  name         String
+  description  String?
+  category     TestCategory @default(GENERAL)
+  isActive     Boolean      @default(true)
+  displayOrder Int          @default(0)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
 
   parameters         TestParameter[]
   referenceRanges    TestReferenceRange[]
@@ -1229,42 +1233,42 @@ model TestType {
 }
 
 model TestParameter {
-  id                String   @id @default(cuid())
-  testTypeId       String
-  code             String
-  name             String
-  description       String?
-  unit              String?
-  dataType          String   @default("numeric")
-  required          Boolean  @default(true)
-  displayOrder      Int      @default(0)
-  isActive          Boolean  @default(true)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id           String   @id @default(cuid())
+  testTypeId   String
+  code         String
+  name         String
+  description  String?
+  unit         String?
+  dataType     String   @default("numeric")
+  required     Boolean  @default(true)
+  displayOrder Int      @default(0)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  testType           TestType               @relation(fields: [testTypeId], references: [id], onDelete: Cascade)
-  resultItems        LaboratoryResultItem[]
+  testType    TestType               @relation(fields: [testTypeId], references: [id], onDelete: Cascade)
+  resultItems LaboratoryResultItem[]
 
   @@unique([testTypeId, code])
   @@index([testTypeId])
 }
 
 model TestReferenceRange {
-  id             String    @id @default(cuid())
-  testTypeId     String
-  laboratoryId   String?
-  minValue       Decimal?  @db.Decimal(10, 3)
-  maxValue       Decimal?  @db.Decimal(10, 3)
-  unit           String?
-  notes          String?
-  effectiveFrom  DateTime?
+  id            String    @id @default(cuid())
+  testTypeId    String
+  laboratoryId  String?
+  minValue      Decimal?  @db.Decimal(10, 3)
+  maxValue      Decimal?  @db.Decimal(10, 3)
+  unit          String?
+  notes         String?
+  effectiveFrom DateTime?
   effectiveTo   DateTime?
-  isActive       Boolean   @default(true)
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
-  testType     TestType      @relation(fields: [testTypeId], references: [id], onDelete: Cascade)
-  laboratory   Organization? @relation(fields: [laboratoryId], references: [id], onDelete: SetNull)
+  testType   TestType      @relation(fields: [testTypeId], references: [id], onDelete: Cascade)
+  laboratory Organization? @relation(fields: [laboratoryId], references: [id], onDelete: SetNull)
 
   @@index([testTypeId])
   @@index([laboratoryId])
@@ -1283,34 +1287,34 @@ model LaboratoryProfile {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  testTypes      TestType[]
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  testTypes    TestType[]
 
   @@index([organizationId])
 }
 
 model LaboratoryResult {
-  id              String            @id @default(cuid())
-  appointmentId   String           @unique
-  donorId         String
-  laboratoryId    String
-  testTypeId      String
-  status          String           @default("PENDING")
-  performedAt     DateTime?
-  performedBy     String?
-  reviewedAt      DateTime?
-  reviewedBy      String?
-  publishedAt     DateTime?
-  publishedBy     String?
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  id            String    @id @default(cuid())
+  appointmentId String    @unique
+  donorId       String
+  laboratoryId  String
+  testTypeId    String
+  status        String    @default("PENDING")
+  performedAt   DateTime?
+  performedBy   String?
+  reviewedAt    DateTime?
+  reviewedBy    String?
+  publishedAt   DateTime?
+  publishedBy   String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
-  appointment     Appointment      @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
-  donor           User             @relation("LaboratoryResultDonor", fields: [donorId], references: [id], onDelete: Cascade)
-  laboratory      Organization     @relation("LaboratoryResultOrganization", fields: [laboratoryId], references: [id], onDelete: Cascade)
-  testType        TestType         @relation(fields: [testTypeId], references: [id], onDelete: Cascade)
-  items           LaboratoryResultItem[]
-  versions        LaboratoryResultVersion[]
+  appointment Appointment               @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  donor       User                      @relation("LaboratoryResultDonor", fields: [donorId], references: [id], onDelete: Cascade)
+  laboratory  Organization              @relation("LaboratoryResultOrganization", fields: [laboratoryId], references: [id], onDelete: Cascade)
+  testType    TestType                  @relation(fields: [testTypeId], references: [id], onDelete: Cascade)
+  items       LaboratoryResultItem[]
+  versions    LaboratoryResultVersion[]
 
   @@index([donorId])
   @@index([laboratoryId])
@@ -1321,36 +1325,36 @@ model LaboratoryResult {
 }
 
 model LaboratoryResultItem {
-  id              String    @id @default(cuid())
-  resultId        String
-  parameterId     String
-  value           String?
-  numericValue    Decimal?  @db.Decimal(15, 4)
-  unit            String?
-  referenceMin    Decimal?  @db.Decimal(10, 3)
-  referenceMax    Decimal?  @db.Decimal(10, 3)
-  flag            ResultFlag @default(NOT_AVAILABLE)
-  notes           String?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  id           String     @id @default(cuid())
+  resultId     String
+  parameterId  String
+  value        String?
+  numericValue Decimal?   @db.Decimal(15, 4)
+  unit         String?
+  referenceMin Decimal?   @db.Decimal(10, 3)
+  referenceMax Decimal?   @db.Decimal(10, 3)
+  flag         ResultFlag @default(NOT_AVAILABLE)
+  notes        String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 
-  result          LaboratoryResult @relation(fields: [resultId], references: [id], onDelete: Cascade)
-  parameter       TestParameter    @relation(fields: [parameterId], references: [id], onDelete: Cascade)
+  result    LaboratoryResult @relation(fields: [resultId], references: [id], onDelete: Cascade)
+  parameter TestParameter    @relation(fields: [parameterId], references: [id], onDelete: Cascade)
 
   @@index([resultId])
   @@index([parameterId])
 }
 
 model LaboratoryResultVersion {
-  id              String    @id @default(cuid())
-  resultId        String
-  version         Int
-  status          String
-  changeReason    String?
-  changedBy       String?
-  createdAt       DateTime  @default(now())
+  id           String   @id @default(cuid())
+  resultId     String
+  version      Int
+  status       String
+  changeReason String?
+  changedBy    String?
+  createdAt    DateTime @default(now())
 
-  result          LaboratoryResult @relation(fields: [resultId], references: [id], onDelete: Cascade)
+  result LaboratoryResult @relation(fields: [resultId], references: [id], onDelete: Cascade)
 
   @@unique([resultId, version])
   @@index([resultId])
@@ -1406,19 +1410,16 @@ enum ReputationType {
 }
 
 model GamificationProfile {
-  id                    String    @id @default(cuid())
-  userId                String    @unique
-  totalXp               Int       @default(0)
-  level                 Int       @default(1)
-  reputationScore       Int       @default(0)
-  leaderboardVisibility Boolean   @default(true)
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
+  id                    String   @id @default(cuid())
+  userId                String   @unique
+  totalXp               Int      @default(0)
+  level                 Int      @default(1)
+  reputationScore       Int      @default(0)
+  leaderboardVisibility Boolean  @default(true)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 
-  user                User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  xpTransactions      XpTransaction[]
-  achievements        AchievementUnlock[]
-  reputationTx        ReputationTransaction[]
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([totalXp])
@@ -1426,7 +1427,7 @@ model GamificationProfile {
 }
 
 model XpTransaction {
-  id          String          @id @default(cuid())
+  id          String            @id @default(cuid())
   userId      String
   amount      Int
   type        XpTransactionType
@@ -1434,9 +1435,9 @@ model XpTransaction {
   sourceId    String?
   description String?
   metadata    Json?
-  createdAt   DateTime        @default(now())
+  createdAt   DateTime          @default(now())
 
-  profile GamificationProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([sourceType, sourceId])
   @@index([userId])
@@ -1445,23 +1446,23 @@ model XpTransaction {
 }
 
 model Achievement {
-  id              String           @id @default(cuid())
-  code            String           @unique
-  type            AchievementType
-  name            String
-  description     String
-  icon            String
-  rarity          AchievementRarity @default(COMMON)
-  criteria        Json
-  xpReward        Int              @default(0)
-  displayOrder    Int              @default(0)
-  isActive        Boolean          @default(true)
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  id           String            @id @default(cuid())
+  code         String            @unique
+  type         AchievementType
+  name         String
+  description  String
+  icon         String
+  rarity       AchievementRarity @default(COMMON)
+  criteria     Json
+  xpReward     Int               @default(0)
+  displayOrder Int               @default(0)
+  isActive     Boolean           @default(true)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
 
-  unlocks         AchievementUnlock[]
-  badges          Badge[]
-  posts           CommunityPost[]
+  unlocks AchievementUnlock[]
+  badges  Badge[]
+  posts   CommunityPost[]
 
   @@index([type])
   @@index([isActive])
@@ -1469,15 +1470,15 @@ model Achievement {
 }
 
 model AchievementUnlock {
-  id             String           @id @default(cuid())
-  userId         String
-  achievementId  String
-  unlockedAt     DateTime         @default(now())
-  progress       Int              @default(0)
-  target         Int              @default(1)
+  id            String   @id @default(cuid())
+  userId        String
+  achievementId String
+  unlockedAt    DateTime @default(now())
+  progress      Int      @default(0)
+  target        Int      @default(1)
 
-  profile     GamificationProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
-  achievement Achievement         @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
 
   @@unique([userId, achievementId])
   @@index([userId])
@@ -1485,33 +1486,34 @@ model AchievementUnlock {
 }
 
 model Badge {
-  id             String           @id @default(cuid())
-  code           String           @unique
-  name           String
-  description    String
-  icon           String
-  rarity         AchievementRarity @default(COMMON)
-  achievementId  String?
-  displayOrder   Int              @default(0)
-  isActive       Boolean          @default(true)
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
+  id            String            @id @default(cuid())
+  code          String            @unique
+  name          String
+  description   String
+  icon          String
+  rarity        AchievementRarity @default(COMMON)
+  achievementId String?
+  displayOrder  Int               @default(0)
+  isActive      Boolean           @default(true)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
 
-  achievement    Achievement?      @relation(fields: [achievementId], references: [id], onDelete: SetNull)
-  userBadges     UserBadge[]
-  challenges     Challenge[]
+  achievement Achievement? @relation(fields: [achievementId], references: [id], onDelete: SetNull)
+  userBadges  UserBadge[]
+  challenges  Challenge[]
 
   @@index([isActive])
   @@index([displayOrder])
 }
 
 model UserBadge {
-  id        String   @id @default(cuid())
-  userId    String
-  badgeId   String
-  earnedAt  DateTime @default(now())
+  id       String   @id @default(cuid())
+  userId   String
+  badgeId  String
+  earnedAt DateTime @default(now())
 
   badge Badge @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, badgeId])
   @@index([userId])
@@ -1519,17 +1521,17 @@ model UserBadge {
 }
 
 model ReputationTransaction {
-  id          String         @id @default(cuid())
-  userId      String
-  amount      Int
-  type        ReputationType
-  sourceType  String?
-  sourceId    String?
-  reason      String?
-  metadata    Json?
-  createdAt   DateTime      @default(now())
+  id         String         @id @default(cuid())
+  userId     String
+  amount     Int
+  type       ReputationType
+  sourceType String?
+  sourceId   String?
+  reason     String?
+  metadata   Json?
+  createdAt  DateTime       @default(now())
 
-  profile GamificationProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([type])
@@ -1616,26 +1618,26 @@ enum EducationProgressStatus {
 }
 
 model CommunityPost {
-  id              String              @id @default(cuid())
-  type            CommunityPostType
-  title           String
-  body            String
-  imageUrl        String?
-  authorId        String?
-  organizationId  String?
-  campaignId      String?
-  achievementId   String?
-  status          CommunityPostStatus @default(PUBLISHED)
-  metadata        Json?
-  publishedAt     DateTime            @default(now())
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @updatedAt
+  id             String              @id @default(cuid())
+  type           CommunityPostType
+  title          String
+  body           String
+  imageUrl       String?
+  authorId       String?
+  organizationId String?
+  campaignId     String?
+  achievementId  String?
+  status         CommunityPostStatus @default(PUBLISHED)
+  metadata       Json?
+  publishedAt    DateTime            @default(now())
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
 
-  author          User?               @relation("CommunityPostAuthor", fields: [authorId], references: [id], onDelete: SetNull)
-  organization    Organization?       @relation(fields: [organizationId], references: [id], onDelete: SetNull)
-  campaign        Campaign?           @relation(fields: [campaignId], references: [id], onDelete: SetNull)
-  achievement     Achievement?        @relation(fields: [achievementId], references: [id], onDelete: SetNull)
-  reports         ContentReport[]
+  author       User?           @relation("CommunityPostAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  organization Organization?   @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  campaign     Campaign?       @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  achievement  Achievement?    @relation(fields: [achievementId], references: [id], onDelete: SetNull)
+  reports      ContentReport[]
 
   @@index([type])
   @@index([status])
@@ -1645,26 +1647,26 @@ model CommunityPost {
 }
 
 model Campaign {
-  id                String          @id @default(cuid())
-  organizationId    String
-  title             String
-  description       String
-  imageUrl          String?
-  startDate         DateTime
-  endDate           DateTime
-  location          String?
-  latitude          Decimal?        @db.Decimal(9, 6)
-  longitude         Decimal?        @db.Decimal(9, 6)
-  bloodGroupsNeeded BloodType[]
+  id                 String         @id @default(cuid())
+  organizationId     String
+  title              String
+  description        String
+  imageUrl           String?
+  startDate          DateTime
+  endDate            DateTime
+  location           String?
+  latitude           Decimal?       @db.Decimal(9, 6)
+  longitude          Decimal?       @db.Decimal(9, 6)
+  bloodGroupsNeeded  BloodType[]
   targetParticipants Int?
-  status            CampaignStatus  @default(DRAFT)
-  metadata          Json?
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
+  status             CampaignStatus @default(DRAFT)
+  metadata           Json?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
 
-  organization      Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  participants      CampaignParticipant[]
-  posts             CommunityPost[]
+  organization Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  participants CampaignParticipant[]
+  posts        CommunityPost[]
 
   @@index([organizationId])
   @@index([status])
@@ -1673,15 +1675,15 @@ model Campaign {
 }
 
 model CampaignParticipant {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   campaignId  String
   userId      String
-  status      String   @default("JOINED")
-  joinedAt    DateTime @default(now())
+  status      String    @default("JOINED")
+  joinedAt    DateTime  @default(now())
   completedAt DateTime?
 
-  campaign    Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([campaignId, userId])
   @@index([campaignId])
@@ -1689,27 +1691,27 @@ model CampaignParticipant {
 }
 
 model Challenge {
-  id              String             @id @default(cuid())
-  title           String
-  description     String
-  type            ChallengeType
-  status          ChallengeStatus    @default(DRAFT)
-  visibility      ChallengeVisibility @default(PUBLIC)
-  organizationId  String?
-  startDate       DateTime?
-  endDate         DateTime?
-  goal            Int                @default(1)
-  xpReward        Int                @default(0)
-  badgeId         String?
-  metadata        Json?
-  createdBy       String?
-  createdAt       DateTime           @default(now())
-  updatedAt       DateTime           @updatedAt
+  id             String              @id @default(cuid())
+  title          String
+  description    String
+  type           ChallengeType
+  status         ChallengeStatus     @default(DRAFT)
+  visibility     ChallengeVisibility @default(PUBLIC)
+  organizationId String?
+  startDate      DateTime?
+  endDate        DateTime?
+  goal           Int                 @default(1)
+  xpReward       Int                 @default(0)
+  badgeId        String?
+  metadata       Json?
+  createdBy      String?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
 
-  organization    Organization?      @relation(fields: [organizationId], references: [id], onDelete: SetNull)
-  badge           Badge?             @relation(fields: [badgeId], references: [id], onDelete: SetNull)
-  creator         User?              @relation("ChallengeCreator", fields: [createdBy], references: [id], onDelete: SetNull)
-  participants    ChallengeParticipant[]
+  organization Organization?          @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  badge        Badge?                 @relation(fields: [badgeId], references: [id], onDelete: SetNull)
+  creator      User?                  @relation("ChallengeCreator", fields: [createdBy], references: [id], onDelete: SetNull)
+  participants ChallengeParticipant[]
 
   @@index([type])
   @@index([status])
@@ -1720,16 +1722,16 @@ model Challenge {
 }
 
 model ChallengeParticipant {
-  id            String   @id @default(cuid())
-  challengeId   String
-  userId        String
-  progress      Int      @default(0)
-  completedAt   DateTime?
-  joinedAt      DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id          String    @id @default(cuid())
+  challengeId String
+  userId      String
+  progress    Int       @default(0)
+  completedAt DateTime?
+  joinedAt    DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
-  challenge     Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  challenge Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([challengeId, userId])
   @@index([challengeId])
@@ -1738,23 +1740,23 @@ model ChallengeParticipant {
 }
 
 model EducationalContent {
-  id            String              @id @default(cuid())
-  type          EducationContentType
-  title         String
-  description   String
-  body          String
-  imageUrl      String?
-  category      String
-  difficulty    String              @default("BEGINNER")
-  xpReward      Int                 @default(0)
+  id               String               @id @default(cuid())
+  type             EducationContentType
+  title            String
+  description      String
+  body             String
+  imageUrl         String?
+  category         String
+  difficulty       String               @default("BEGINNER")
+  xpReward         Int                  @default(0)
   estimatedMinutes Int?
-  isActive      Boolean             @default(true)
-  displayOrder  Int                 @default(0)
-  metadata      Json?
-  createdAt     DateTime            @default(now())
-  updatedAt     DateTime            @updatedAt
+  isActive         Boolean              @default(true)
+  displayOrder     Int                  @default(0)
+  metadata         Json?
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
 
-  progress      EducationProgress[]
+  progress EducationProgress[]
 
   @@index([type])
   @@index([category])
@@ -1771,8 +1773,8 @@ model EducationProgress {
   completedAt DateTime?
   xpAwarded   Int                     @default(0)
 
-  user        User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  content     EducationalContent      @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  user    User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content EducationalContent @relation(fields: [contentId], references: [id], onDelete: Cascade)
 
   @@unique([userId, contentId])
   @@index([userId])
@@ -1793,9 +1795,9 @@ model ContentReport {
   createdAt   DateTime            @default(now())
   updatedAt   DateTime            @updatedAt
 
-  post        CommunityPost       @relation(fields: [postId], references: [id], onDelete: Cascade)
-  reporter    User                @relation("ContentReportReporter", fields: [reporterId], references: [id], onDelete: Cascade)
-  reviewer    User?               @relation("ContentReportReviewer", fields: [reviewedBy], references: [id], onDelete: SetNull)
+  post     CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  reporter User          @relation("ContentReportReporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  reviewer User?         @relation("ContentReportReviewer", fields: [reviewedBy], references: [id], onDelete: SetNull)
 
   @@index([postId])
   @@index([reporterId])
@@ -1846,18 +1848,18 @@ enum DeliveryStatus {
 }
 
 model PushDevice {
-  id          String   @id @default(cuid())
-  userId      String
-  token       String   @unique
-  platform    String
-  deviceId    String?
-  appVersion  String?
-  locale      String   @default("en")
-  timezone    String?
-  isActive    Boolean  @default(true)
-  lastSeenAt  DateTime @default(now())
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         String   @id @default(cuid())
+  userId     String
+  token      String   @unique
+  platform   String
+  deviceId   String?
+  appVersion String?
+  locale     String   @default("en")
+  timezone   String?
+  isActive   Boolean  @default(true)
+  lastSeenAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   @@index([userId])
   @@index([isActive])
@@ -1865,48 +1867,48 @@ model PushDevice {
 }
 
 model Notification {
-  id           String              @id @default(cuid())
-  recipientId  String
-  type         NotificationType
-  priority     NotificationPriority @default(NORMAL)
-  title        String
-  body         String
-  data         Json?
-  deepLink     String?
-  status       NotificationStatus @default(PENDING)
-  readAt       DateTime?
-  expiresAt    DateTime?
-  sourceType   String?
-  sourceId     String?
+  id             String               @id @default(cuid())
+  recipientId    String
+  type           NotificationType
+  priority       NotificationPriority @default(NORMAL)
+  title          String
+  body           String
+  data           Json?
+  deepLink       String?
+  status         NotificationStatus   @default(PENDING)
+  readAt         DateTime?
+  expiresAt      DateTime?
+  sourceType     String?
+  sourceId       String?
   idempotencyKey String?
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
 
-  deliveries   NotificationDelivery[]
+  deliveries NotificationDelivery[]
 
+  @@unique([recipientId, idempotencyKey])
   @@index([recipientId])
   @@index([type])
   @@index([priority])
   @@index([status])
   @@index([createdAt])
   @@index([idempotencyKey])
-  @@unique([recipientId, idempotencyKey])
 }
 
 model NotificationDelivery {
-  id               String         @id @default(cuid())
-  notificationId  String
-  channel          String
-  status           DeliveryStatus @default(PENDING)
-  providerId       String?
-  attempts         Int            @default(0)
-  lastAttemptAt    DateTime?
-  deliveredAt      DateTime?
-  failedAt         DateTime?
-  errorCode        String?
-  errorMessage     String?
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
+  id             String         @id @default(cuid())
+  notificationId String
+  channel        String
+  status         DeliveryStatus @default(PENDING)
+  providerId     String?
+  attempts       Int            @default(0)
+  lastAttemptAt  DateTime?
+  deliveredAt    DateTime?
+  failedAt       DateTime?
+  errorCode      String?
+  errorMessage   String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
 
   notification Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
 
@@ -1947,31 +1949,31 @@ enum AISafetyLevel {
 }
 
 model AIInsight {
-  id                String          @id @default(cuid())
-  userId            String
-  type              AIInsightType
-  status            AIInsightStatus @default(PENDING)
-  title             String?
-  summary           String?
-  observations      Json?           // string[]
-  dataPoints        Json?           // DataPoint[]
-  caveats           Json?           // string[]
-  questionsForProfessional Json?    // string[]
-  safetyLevel       AISafetyLevel   @default(SAFE_INFORMATIONAL)
-  dataVersion       String?
-  dataReferences    Json?           // DataReference[]
-  sourceType        String?         // BLOOD_TEST, DONATION, APPOINTMENT, etc.
-  sourceId          String?
-  promptVersion     String?         // e.g. health-test-analysis-v1
-  model             String?         // model that generated this insight
-  errorMessage      String?
-  generatedAt       DateTime?
-  expiresAt         DateTime?
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
+  id                       String          @id @default(cuid())
+  userId                   String
+  type                     AIInsightType
+  status                   AIInsightStatus @default(PENDING)
+  title                    String?
+  summary                  String?
+  observations             Json? // string[]
+  dataPoints               Json? // DataPoint[]
+  caveats                  Json? // string[]
+  questionsForProfessional Json? // string[]
+  safetyLevel              AISafetyLevel   @default(SAFE_INFORMATIONAL)
+  dataVersion              String?
+  dataReferences           Json? // DataReference[]
+  sourceType               String? // BLOOD_TEST, DONATION, APPOINTMENT, etc.
+  sourceId                 String?
+  promptVersion            String? // e.g. health-test-analysis-v1
+  model                    String? // model that generated this insight
+  errorMessage             String?
+  generatedAt              DateTime?
+  expiresAt                DateTime?
+  createdAt                DateTime        @default(now())
+  updatedAt                DateTime        @updatedAt
 
-  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  feedback          AIFeedback?
+  user     User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  feedback AIFeedback?
 
   @@index([userId])
   @@index([type])
@@ -1983,23 +1985,23 @@ model AIInsight {
 }
 
 model AIRequestLog {
-  id                String    @id @default(cuid())
-  userId            String?
-  requestId         String    @unique
-  insightType       AIInsightType?
-  providerName      String
-  modelUsed         String?
-  promptVersion     String?
-  promptTokens      Int?
-  completionTokens  Int?
-  totalTokens       Int?
-  latencyMs         Int?
-  success           Boolean
-  errorMessage      String?
-  safetyLevel       AISafetyLevel?
-  dataVersion       String?
-  requestFingerprint String?   // for deduplication
-  createdAt         DateTime  @default(now())
+  id                 String         @id @default(cuid())
+  userId             String?
+  requestId          String         @unique
+  insightType        AIInsightType?
+  providerName       String
+  modelUsed          String?
+  promptVersion      String?
+  promptTokens       Int?
+  completionTokens   Int?
+  totalTokens        Int?
+  latencyMs          Int?
+  success            Boolean
+  errorMessage       String?
+  safetyLevel        AISafetyLevel?
+  dataVersion        String?
+  requestFingerprint String? // for deduplication
+  createdAt          DateTime       @default(now())
 
   @@index([userId])
   @@index([insightType])
@@ -2010,16 +2012,16 @@ model AIRequestLog {
 }
 
 model AIInsightCache {
-  id                String    @id @default(cuid())
-  cacheKey          String    @unique
-  userId            String
-  insightType       AIInsightType
-  dataVersion       String
-  promptVersion     String?   // invalidate when prompt changes
-  model             String?   // invalidate when model changes
-  response          Json
-  expiresAt         DateTime
-  createdAt         DateTime  @default(now())
+  id            String        @id @default(cuid())
+  cacheKey      String        @unique
+  userId        String
+  insightType   AIInsightType
+  dataVersion   String
+  promptVersion String? // invalidate when prompt changes
+  model         String? // invalidate when model changes
+  response      Json
+  expiresAt     DateTime
+  createdAt     DateTime      @default(now())
 
   @@index([userId])
   @@index([cacheKey])
@@ -2028,19 +2030,19 @@ model AIInsightCache {
 }
 
 model AIConversation {
-  id                String    @id @default(cuid())
-  userId            String
-  title             String?
-  contextType       String?   // GENERAL, TREND, RESULT, DONATION, etc.
-  contextId         String?   // ID of the referenced context (parameter code, result ID, etc.)
-  lastMessageAt     DateTime?
-  messageCount      Int       @default(0)
-  expiresAt         DateTime?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  id            String    @id @default(cuid())
+  userId        String
+  title         String?
+  contextType   String? // GENERAL, TREND, RESULT, DONATION, etc.
+  contextId     String? // ID of the referenced context (parameter code, result ID, etc.)
+  lastMessageAt DateTime?
+  messageCount  Int       @default(0)
+  expiresAt     DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
-  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  messages          AIMessage[]
+  user     User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages AIMessage[]
 
   @@index([userId])
   @@index([createdAt])
@@ -2048,16 +2050,16 @@ model AIConversation {
 }
 
 model AIMessage {
-  id                String    @id @default(cuid())
-  conversationId    String
-  role              String    // user, assistant, system
-  content           String
-  safetyLevel       AISafetyLevel?
-  promptVersion     String?
-  model             String?
-  createdAt         DateTime  @default(now())
+  id             String         @id @default(cuid())
+  conversationId String
+  role           String // user, assistant, system
+  content        String
+  safetyLevel    AISafetyLevel?
+  promptVersion  String?
+  model          String?
+  createdAt      DateTime       @default(now())
 
-  conversation      AIConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversation AIConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
   @@index([conversationId])
   @@index([createdAt])
@@ -2071,15 +2073,15 @@ enum AIFeedbackType {
 }
 
 model AIFeedback {
-  id                String        @id @default(cuid())
-  userId            String
-  insightId         String        @unique
-  type              AIFeedbackType
-  reason            String?       // optional reason for not helpful / report
-  createdAt         DateTime      @default(now())
+  id        String         @id @default(cuid())
+  userId    String
+  insightId String         @unique
+  type      AIFeedbackType
+  reason    String? // optional reason for not helpful / report
+  createdAt DateTime       @default(now())
 
-  user              User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  insight           AIInsight     @relation(fields: [insightId], references: [id], onDelete: Cascade)
+  user    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  insight AIInsight @relation(fields: [insightId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([insightId])

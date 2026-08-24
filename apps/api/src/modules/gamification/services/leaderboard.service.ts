@@ -15,24 +15,14 @@ export class LeaderboardService {
   ): Promise<{ entries: LeaderboardEntryDto[]; total: number }> {
     const skip = (page - 1) * limit;
 
-    const dateFilter = this.getDateFilter(timeRange);
-
-    const whereClause = dateFilter
-      ? {
-          xpTransactions: {
-            some: {
-              createdAt: dateFilter,
-            },
-          },
-        }
-      : {};
+    const activeUserIds = await this.getActiveUserIds(timeRange);
+    const whereClause = activeUserIds
+      ? { leaderboardVisibility: true, userId: { in: activeUserIds } }
+      : { leaderboardVisibility: true };
 
     const [entries, total] = await Promise.all([
       this.db.gamificationProfile.findMany({
-        where: {
-          leaderboardVisibility: true,
-          ...whereClause,
-        },
+        where: whereClause,
         include: {
           user: {
             select: {
@@ -41,20 +31,12 @@ export class LeaderboardService {
               avatarUrl: true,
             },
           },
-          xpTransactions: {
-            select: { amount: true, createdAt: true },
-          },
         },
         skip,
         take: limit,
-        orderBy: [{ totalXp: 'desc' }, { xpTransactions: { _count: 'desc' } }],
+        orderBy: [{ totalXp: 'desc' }],
       }),
-      this.db.gamificationProfile.count({
-        where: {
-          leaderboardVisibility: true,
-          ...whereClause,
-        },
-      }),
+      this.db.gamificationProfile.count({ where: whereClause }),
     ]);
 
     const donationCounts = await this.getDonationCounts(
@@ -86,16 +68,9 @@ export class LeaderboardService {
       return null;
     }
 
-    const dateFilter = this.getDateFilter(timeRange);
-    const whereClause = dateFilter
-      ? {
-          leaderboardVisibility: true,
-          xpTransactions: {
-            some: {
-              createdAt: dateFilter,
-            },
-          },
-        }
+    const activeUserIds = await this.getActiveUserIds(timeRange);
+    const whereClause = activeUserIds
+      ? { leaderboardVisibility: true, userId: { in: activeUserIds } }
       : { leaderboardVisibility: true };
 
     const higherRankedCount = await this.db.gamificationProfile.count({
@@ -164,6 +139,20 @@ export class LeaderboardService {
     });
 
     return new Map(donations.map((d) => [d.donorId, d._count.id]));
+  }
+
+  private async getActiveUserIds(
+    timeRange: LeaderboardTimeRange,
+  ): Promise<string[] | undefined> {
+    const dateFilter = this.getDateFilter(timeRange);
+    if (!dateFilter) return undefined;
+
+    const active = await this.db.xpTransaction.findMany({
+      where: { createdAt: dateFilter },
+      select: { userId: true },
+      distinct: ['userId'],
+    });
+    return active.map((a) => a.userId);
   }
 
   private getDateFilter(

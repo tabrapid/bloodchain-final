@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { RoleCode } from '@prisma/client';
+import { OrganizationType, RoleCode } from '@prisma/client';
 import * as argon2 from 'argon2';
 import { createHmac, randomBytes } from 'node:crypto';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
@@ -64,6 +64,31 @@ export class AuthService {
 
       await tx.donorProfile.create({
         data: { userId: newUser.id },
+      });
+
+      // Assign the DONOR role. If a dedicated donor organization exists, use it;
+      // otherwise create a fallback organization so the user has active permissions.
+      let donorOrg = await tx.organization.findFirst({
+        where: { name: 'DONOR Donors', status: 'ACTIVE' },
+      });
+      if (!donorOrg) {
+        donorOrg = await tx.organization.create({
+          data: {
+            type: OrganizationType.HOSPITAL,
+            name: 'DONOR Donors',
+            status: 'ACTIVE',
+            hospital: { create: {} },
+          },
+        });
+      }
+
+      await tx.organizationMembership.create({
+        data: {
+          userId: newUser.id,
+          organizationId: donorOrg.id,
+          roleId: donorRole.id,
+          status: 'ACTIVE',
+        },
       });
 
       return newUser;

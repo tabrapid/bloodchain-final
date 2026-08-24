@@ -414,10 +414,19 @@ export class InventoryService {
     }
 
     const result = await this.db.$transaction(async (tx) => {
-      const updated = await tx.bloodUnit.update({
-        where: { id: unitId },
+      // Atomic conditional update: only succeeds if the unit is still AVAILABLE
+      // at the moment Postgres acquires the row lock, closing the race window
+      // between the pre-check above and this transaction.
+      const { count } = await tx.bloodUnit.updateMany({
+        where: { id: unitId, status: BloodUnitStatus.AVAILABLE },
         data: { status: BloodUnitStatus.RESERVED },
       });
+
+      if (count === 0) {
+        throw new ConflictException('UNIT_NOT_AVAILABLE: Only AVAILABLE units can be reserved.');
+      }
+
+      const updated = await tx.bloodUnit.findUniqueOrThrow({ where: { id: unitId } });
 
       const reservation = await tx.bloodUnitReservation.create({
         data: {
@@ -730,27 +739,18 @@ export class InventoryService {
     requestingUserId: string,
     filters: { bloodType?: BloodType; rhFactor?: RhFactor; componentType?: ComponentType },
   ) {
-    const user = await this.db.user.findUnique({
-      where: { id: requestingUserId },
-      include: {
-        memberships: {
-          where: { status: 'ACTIVE' },
-          include: { organization: true },
-        },
-      },
-    });
-
+    const user = await this.db.user.findUnique({ where: { id: requestingUserId } });
     if (!user) {
       throw new ForbiddenException('Access denied.');
     }
 
-    const bloodCenters = user.memberships
-      .filter((m) => m.organization.type === 'BLOOD_CENTER')
-      .map((m) => m.organization.id);
-
+    // Availability is a cross-organization view: any authenticated hospital
+    // user may see aggregate stock at any active blood center, not just ones
+    // they belong to. Individual unit identifiers and storage locations are
+    // intentionally excluded - only type, component and quantity are exposed.
     const where: Prisma.BloodUnitWhereInput = {
-      organizationId: { in: bloodCenters },
       status: BloodUnitStatus.AVAILABLE,
+      organization: { type: 'BLOOD_CENTER', status: 'ACTIVE' },
     };
 
     if (filters.bloodType) where.bloodType = filters.bloodType;
@@ -759,45 +759,45 @@ export class InventoryService {
 
     const units = await this.db.bloodUnit.findMany({
       where,
-      include: {
-        organization: { select: { id: true, name: true, address: true } },
-        location: { select: { id: true, name: true, code: true } },
+      select: {
+        organizationId: true,
+        bloodType: true,
+        rhFactor: true,
+        componentType: true,
+        volumeMl: true,
+        organization: { select: { id: true, name: true } },
       },
     });
 
-    const grouped: Record<string, { organization: any; count: number; volume: number; units: any[] }> = {};
+    const grouped: Record<
+      string,
+      {
+        organization: { id: string; name: string };
+        bloodType: BloodType;
+        rhFactor: RhFactor;
+        componentType: ComponentType;
+        totalUnits: number;
+        totalVolumeMl: number;
+      }
+    > = {};
 
     for (const unit of units) {
-      const key = unit.organizationId;
+      const key = `${unit.organizationId}:${unit.bloodType}:${unit.rhFactor}:${unit.componentType}`;
       if (!grouped[key]) {
         grouped[key] = {
           organization: unit.organization,
-          count: 0,
-          volume: 0,
-          units: [],
+          bloodType: unit.bloodType,
+          rhFactor: unit.rhFactor,
+          componentType: unit.componentType,
+          totalUnits: 0,
+          totalVolumeMl: 0,
         };
       }
-      grouped[key].count++;
-      grouped[key].volume += unit.volumeMl;
-      grouped[key].units.push({
-        id: unit.id,
-        unitReference: unit.unitReference,
-        bloodType: unit.bloodType,
-        rhFactor: unit.rhFactor,
-        componentType: unit.componentType,
-        volumeMl: unit.volumeMl,
-        location: unit.location,
-      });
+      grouped[key].totalUnits++;
+      grouped[key].totalVolumeMl += unit.volumeMl;
     }
 
-    return {
-      data: Object.values(grouped).map((g) => ({
-        organization: g.organization,
-        totalUnits: g.count,
-        totalVolume: g.volume,
-        units: g.units,
-      })),
-    };
+    return { data: Object.values(grouped) };
   }
 
   private async getAuthorizedUser(userId: string, organizationId: string) {

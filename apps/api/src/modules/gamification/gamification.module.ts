@@ -1,5 +1,4 @@
 import { Module, forwardRef } from '@nestjs/common';
-import { EventEmitterModule } from '@nestjs/event-emitter';
 import { GamificationService } from './gamification.service';
 import { GamificationController, LeaderboardController } from './gamification.controller';
 import { XpService } from './services/xp.service';
@@ -12,7 +11,7 @@ import { AntiAbuseService } from './services/anti-abuse.service';
 import { GamificationEventHandler } from './events/gamification-event.handler';
 
 @Module({
-  imports: [EventEmitterModule.forRoot()],
+  imports: [],
   controllers: [GamificationController, LeaderboardController],
   providers: [
     GamificationService,

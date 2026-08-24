@@ -129,7 +129,7 @@ export const ACHIEVEMENT_DEFINITIONS = [
   },
   {
     code: 'PROFILE_COMPLETE',
-    type: 'PROFILE_COMPLETED' as const,
+    type: 'CUSTOM_EVENT' as const,
     name: 'Getting Started',
     description: 'Complete your donor profile',
     icon: 'user-check',

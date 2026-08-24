@@ -32,16 +32,7 @@ import {
   reassignShipment,
   Shipment,
 } from '../../../lib/shipments';
-
-const sidebarItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: Activity },
-  { id: 'appointments', label: 'Appointments', icon: Clock, disabled: true },
-  { id: 'donors', label: 'Donors', icon: Users, disabled: true },
-  { id: 'inventory', label: 'Inventory', icon: Package },
-  { id: 'shipments', label: 'Shipments', icon: Truck },
-  { id: 'analytics', label: 'Analytics', icon: Activity },
-  { id: 'settings', label: 'Settings', icon: Settings, disabled: true },
-];
+import { sidebarItems } from '../../../lib/navigation';
 
 const STATUS_CONFIG: Record<string, { label: string; variant: 'success' | 'warning' | 'info' | 'default' | 'danger' }> = {
   CREATED: { label: 'Created', variant: 'default' },

@@ -40,7 +40,7 @@ import {
 @ApiTags('AI Health')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
-@Controller('api/v1/me/ai')
+@Controller('me/ai')
 export class AIHealthController {
   constructor(private readonly aiHealthService: AIHealthService) {}
 
@@ -243,7 +243,7 @@ export class AIHealthController {
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(RoleCode.SUPER_ADMIN)
-@Controller('api/v1/admin/ai')
+@Controller('admin/ai')
 export class AIAdminController {
   constructor(private readonly aiHealthService: AIHealthService) {}
 

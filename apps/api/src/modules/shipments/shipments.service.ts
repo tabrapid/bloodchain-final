@@ -318,17 +318,20 @@ export class ShipmentsService {
           });
 
           for (const reservation of reservations) {
+            // Atomic conditional update: only claim the unit if it's still
+            // AVAILABLE at lock time, closing the race with concurrent approvals.
+            const { count } = await tx.bloodUnit.updateMany({
+              where: { id: reservation.bloodUnitId, status: 'AVAILABLE' },
+              data: { status: 'RESERVED' },
+            });
+            if (count === 0) continue;
+
             await tx.bloodUnitReservation.update({
               where: { id: reservation.id },
               data: {
                 reservedForOrganizationId: request.requestingOrganizationId,
                 reason: `Blood request ${request.requestReference}`,
               },
-            });
-
-            await tx.bloodUnit.update({
-              where: { id: reservation.bloodUnitId },
-              data: { status: 'RESERVED' },
             });
           }
         }
@@ -1495,24 +1498,23 @@ export class ShipmentsService {
   async getShipmentLocations(shipmentId: string, userId: string) {
     const shipment = await this.db.shipment.findUnique({
       where: { id: shipmentId },
-      include: {
-        bloodRequest: { select: { requestingOrganizationId: true } },
-        courier: { select: { userId: true } },
-      },
     });
 
     if (!shipment) {
       throw new NotFoundException('Shipment not found.');
     }
 
-    const courier = await this.db.courier.findUnique({
-      where: { userId },
+    const courier = await this.db.courier.findUnique({ where: { userId } });
+    const user = await this.db.user.findUnique({
+      where: { id: userId },
+      include: { memberships: true },
     });
 
+    const organizationIds = user?.memberships.map((m) => m.organizationId) || [];
     const isAuthorized =
-      shipment.sourceOrganizationId === courier?.organizationId ||
-      shipment.destinationOrganizationId === shipment.bloodRequest.requestingOrganizationId ||
-      courier?.userId === shipment.courier?.userId;
+      organizationIds.includes(shipment.sourceOrganizationId) ||
+      organizationIds.includes(shipment.destinationOrganizationId) ||
+      (courier && shipment.courierId === courier.id);
 
     if (!isAuthorized) {
       throw new ForbiddenException('You are not authorized to view this shipment location.');
@@ -1573,7 +1575,7 @@ export class ShipmentsService {
       shipment.destinationOrganizationId === courier?.organizationId ||
       organizationIds.includes(shipment.sourceOrganizationId) ||
       organizationIds.includes(shipment.destinationOrganizationId) ||
-      courier?.userId === userId;
+      (courier && shipment.courierId === courier.id);
 
     if (!isAuthorized) {
       throw new ForbiddenException('You are not authorized to view this shipment timeline.');
@@ -1649,7 +1651,7 @@ export class ShipmentsService {
       shipment.destinationOrganizationId === courier?.organizationId ||
       organizationIds.includes(shipment.sourceOrganizationId) ||
       organizationIds.includes(shipment.destinationOrganizationId) ||
-      courier?.userId === userId;
+      (courier && shipment.courierId === courier.id);
 
     if (!isAuthorized) {
       throw new ForbiddenException('You are not authorized to view this shipment tracking.');

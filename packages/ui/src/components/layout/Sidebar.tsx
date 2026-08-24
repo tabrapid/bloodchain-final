@@ -5,6 +5,7 @@ export interface SidebarItem {
   id: string;
   label: string;
   icon?: LucideIcon;
+  href?: string;
   disabled?: boolean;
   badge?: string;
 }
@@ -42,18 +43,16 @@ export function Sidebar({
         {items.map((item) => {
           const Icon = item.icon ?? Activity;
           const isActive = item.id === activeItem;
-          return (
-            <div
-              key={item.id}
-              className={cn(
-                'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors',
-                isActive && 'bg-[#172731] text-[#F2F5F7]',
-                !isActive &&
-                  !item.disabled &&
-                  'text-[#8495A3] hover:bg-[#111A24] hover:text-[#F2F5F7]',
-                item.disabled && 'cursor-not-allowed opacity-50',
-              )}
-            >
+          const className = cn(
+            'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors',
+            isActive && 'bg-[#172731] text-[#F2F5F7]',
+            !isActive &&
+              !item.disabled &&
+              'text-[#8495A3] hover:bg-[#111A24] hover:text-[#F2F5F7]',
+            item.disabled && 'cursor-not-allowed opacity-50',
+          );
+          const content = (
+            <>
               <Icon size={17} />
               <span className="flex-1">{item.label}</span>
               {item.disabled && (
@@ -64,7 +63,21 @@ export function Sidebar({
                   {item.badge}
                 </span>
               )}
-            </div>
+            </>
+          );
+
+          if (item.disabled || !item.href) {
+            return (
+              <div key={item.id} className={className}>
+                {content}
+              </div>
+            );
+          }
+
+          return (
+            <a key={item.id} href={item.href} className={className}>
+              {content}
+            </a>
           );
         })}
       </nav>

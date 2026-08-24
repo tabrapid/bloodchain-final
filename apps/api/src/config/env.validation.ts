@@ -9,7 +9,18 @@ export const envValidationSchema = Joi.object({
   JWT_ACCESS_EXPIRES_IN: Joi.string().default('15m'),
   JWT_REFRESH_EXPIRES_IN: Joi.string().default('30d'),
   REDIS_URL: Joi.string().uri().optional(),
-  WEB_URL: Joi.string().uri().default('http://localhost:3000'),
+  WEB_URL: Joi.string()
+    .custom((value: string, helpers) => {
+      const origins = value.split(',').map((origin) => origin.trim());
+      const isValid = origins.every(
+        (origin) => Joi.string().uri().validate(origin).error === undefined,
+      );
+      if (!isValid) {
+        return helpers.error('any.invalid');
+      }
+      return value;
+    }, 'comma-separated list of URIs')
+    .default('http://localhost:3000'),
   API_URL: Joi.string().uri().default('http://localhost:3001'),
   THROTTLER_TTL: Joi.number().default(60),
   THROTTLER_LIMIT: Joi.number().default(100),

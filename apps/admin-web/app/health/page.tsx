@@ -1,40 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Activity, Database, Server, Clock, AlertTriangle, CheckCircle, XCircle, RefreshCw } from 'lucide-react';
 import { DashboardShell, LoadingState } from '@donor/ui/components';
-import { getSystemHealth, getDashboard } from '../lib/api';
-import { me, isAuthenticated } from '../lib/auth';
+import { getSystemHealth, getDashboard } from '@lib/api';
+import { me, isAuthenticated } from '@lib/auth';
+import { StatusBadgeWrapper } from '@lib/status';
+import { LayoutDashboard, Users, Building2, Ship, Package, Droplet, AlertTriangle, TestTube, Bell, FileText, Activity, Settings, CheckCircle, XCircle, Server, RefreshCw, Database } from 'lucide-react';
 
-const navItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { id: 'users', label: 'Users', icon: Users },
-  { id: 'organizations', label: 'Organizations', icon: Building2 },
-  { id: 'couriers', label: 'Couriers', icon: Ship },
-  { id: 'shipments', label: 'Shipments', icon: Package },
-  { id: 'requests', label: 'Blood Requests', icon: Droplet },
-  { id: 'emergencies', label: 'Emergencies', icon: AlertTriangle },
-  { id: 'inventory', label: 'Inventory', icon: TestTube },
-  { id: 'alerts', label: 'Alerts', icon: Bell },
-  { id: 'audit', label: 'Audit Logs', icon: FileText },
-  { id: 'health', label: 'System Health', icon: Activity },
-  { id: 'settings', label: 'Settings', icon: Settings },
-];
-
-import {
-  LayoutDashboard,
-  Users,
-  Building2,
-  Ship,
-  Package,
-  Droplet,
-  AlertTriangle,
-  TestTube,
-  Bell,
-  FileText,
-  Activity,
-  Settings,
-} from 'lucide-react';
+import { navItems } from '@lib/navigation';
 
 export default function SystemHealthPage() {
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -81,14 +54,14 @@ export default function SystemHealthPage() {
 
   if (isLoading) {
     return (
-      <DashboardShell sidebarItems={navItems} user={currentUser} onLogout={() => {}}>
+      <DashboardShell title="System Health" sidebarItems={navItems} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined} onLogout={() => {}}>
         <LoadingState />
       </DashboardShell>
     );
   }
 
   return (
-    <DashboardShell sidebarItems={navItems} user={currentUser} onLogout={() => {}}>
+    <DashboardShell title="System Health" sidebarItems={navItems} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined} onLogout={() => {}}>
       <div className="p-6">
         <div className="flex items-center justify-between mb-6">
           <div>

@@ -1,40 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { TestTube, AlertTriangle, Droplet } from 'lucide-react';
 import { DashboardShell, LoadingState } from '@donor/ui/components';
-import { getInventoryOverview, listAlerts } from '../lib/api';
-import { me, isAuthenticated } from '../lib/auth';
+import { getInventoryOverview, listAlerts } from '@lib/api';
+import { me, isAuthenticated } from '@lib/auth';
+import { StatusBadgeWrapper } from '@lib/status';
+import { LayoutDashboard, Users, Building2, Ship, Package, Droplet, AlertTriangle, TestTube, Bell, FileText, Activity, Settings } from 'lucide-react';
 
-const navItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { id: 'users', label: 'Users', icon: Users },
-  { id: 'organizations', label: 'Organizations', icon: Building2 },
-  { id: 'couriers', label: 'Couriers', icon: Ship },
-  { id: 'shipments', label: 'Shipments', icon: Package },
-  { id: 'requests', label: 'Blood Requests', icon: Droplet },
-  { id: 'emergencies', label: 'Emergencies', icon: AlertTriangle },
-  { id: 'inventory', label: 'Inventory', icon: TestTube },
-  { id: 'alerts', label: 'Alerts', icon: Bell },
-  { id: 'audit', label: 'Audit Logs', icon: FileText },
-  { id: 'health', label: 'System Health', icon: Activity },
-  { id: 'settings', label: 'Settings', icon: Settings },
-];
-
-import {
-  LayoutDashboard,
-  Users,
-  Building2,
-  Ship,
-  Package,
-  Droplet,
-  AlertTriangle,
-  TestTube,
-  Bell,
-  FileText,
-  Activity,
-  Settings,
-} from 'lucide-react';
+import { navItems } from '@lib/navigation';
 
 export default function InventoryPage() {
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -74,7 +47,7 @@ export default function InventoryPage() {
 
   if (isLoading) {
     return (
-      <DashboardShell sidebarItems={navItems} user={currentUser} onLogout={() => {}}>
+      <DashboardShell title="Blood Inventory" sidebarItems={navItems} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined} onLogout={() => {}}>
         <LoadingState />
       </DashboardShell>
     );
@@ -84,7 +57,7 @@ export default function InventoryPage() {
   const rhFactors = ['POSITIVE', 'NEGATIVE'];
 
   return (
-    <DashboardShell sidebarItems={navItems} user={currentUser} onLogout={() => {}}>
+    <DashboardShell title="Blood Inventory" sidebarItems={navItems} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined} onLogout={() => {}}>
       <div className="p-6">
         <div className="mb-6">
           <h1 className="text-2xl font-semibold text-gray-900">Blood Inventory Overview</h1>

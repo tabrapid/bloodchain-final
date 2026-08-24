@@ -1,40 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Search, Ship, Phone, X, Package, CheckCircle, XCircle } from 'lucide-react';
-import { DashboardShell, StatusBadge, LoadingState } from '@donor/ui/components';
-import { listCouriers, suspendCourier, restoreCourier, type Courier } from '../lib/api';
-import { me, isAuthenticated } from '../lib/auth';
+import { Search, Ship, Phone, X, Package, CheckCircle, XCircle, LayoutDashboard, Users, Building2, Droplet, AlertTriangle, TestTube, Bell, FileText, Activity, Settings } from 'lucide-react';
+import { DashboardShell, LoadingState } from '@donor/ui/components';
+import { listCouriers, suspendCourier, restoreCourier, type Courier } from '@lib/api';
+import { me, isAuthenticated } from '@lib/auth';
+import { StatusBadgeWrapper } from '@lib/status';
 
-const navItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { id: 'users', label: 'Users', icon: Users },
-  { id: 'organizations', label: 'Organizations', icon: Building2 },
-  { id: 'couriers', label: 'Couriers', icon: Ship },
-  { id: 'shipments', label: 'Shipments', icon: Package },
-  { id: 'requests', label: 'Blood Requests', icon: Droplet },
-  { id: 'emergencies', label: 'Emergencies', icon: AlertTriangle },
-  { id: 'inventory', label: 'Inventory', icon: TestTube },
-  { id: 'alerts', label: 'Alerts', icon: Bell },
-  { id: 'audit', label: 'Audit Logs', icon: FileText },
-  { id: 'health', label: 'System Health', icon: Activity },
-  { id: 'settings', label: 'Settings', icon: Settings },
-];
-
-import {
-  LayoutDashboard,
-  Users,
-  Building2,
-  Ship,
-  Package,
-  Droplet,
-  AlertTriangle,
-  TestTube,
-  Bell,
-  FileText,
-  Activity,
-  Settings,
-} from 'lucide-react';
+import { navItems } from '@lib/navigation';
 
 export default function CouriersPage() {
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -113,14 +86,14 @@ export default function CouriersPage() {
 
   if (isLoading) {
     return (
-      <DashboardShell sidebarItems={navItems} user={currentUser} onLogout={() => {}}>
+      <DashboardShell title="Courier Management" sidebarItems={navItems} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined} onLogout={() => {}}>
         <LoadingState />
       </DashboardShell>
     );
   }
 
   return (
-    <DashboardShell sidebarItems={navItems} user={currentUser} onLogout={() => {}}>
+    <DashboardShell title="Courier Management" sidebarItems={navItems} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined} onLogout={() => {}}>
       <div className="p-6">
         <div className="mb-6">
           <h1 className="text-2xl font-semibold text-gray-900">Courier Management</h1>
@@ -203,7 +176,7 @@ export default function CouriersPage() {
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        <StatusBadge status={courier.status} />
+                        <StatusBadgeWrapper status={courier.status} />
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-600">
                         {courier.organization?.name || '-'}
@@ -217,7 +190,7 @@ export default function CouriersPage() {
                       <td className="px-4 py-3">
                         <button
                           onClick={async () => {
-                            const { getCourier } = await import('../lib/api');
+                            const { getCourier } = await import('@lib/api');
                             const data = await getCourier(courier.id);
                             setSelectedCourier(data);
                           }}
@@ -282,7 +255,7 @@ export default function CouriersPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-gray-500">Status</p>
-                  <StatusBadge status={selectedCourier.status} />
+                  <StatusBadgeWrapper status={selectedCourier.status} />
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Phone</p>

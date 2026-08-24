@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { RoleCode } from '@prisma/client';
+import { BloodType, RhFactor, RoleCode } from '@prisma/client';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -95,6 +95,17 @@ export class EmergencyController {
     return this.emergency.confirmArrival(organizationId, userId, responseId);
   }
 
+  @Post('organizations/:organizationId/emergency-responses/:responseId/complete')
+  @Roles(RoleCode.HOSPITAL_ADMIN, RoleCode.HOSPITAL_STAFF, RoleCode.SUPER_ADMIN)
+  completeEmergency(
+    @Param('organizationId') organizationId: string,
+    @Param('responseId') responseId: string,
+    @Body() body: { bloodType?: BloodType; rhFactor?: RhFactor; volumeMl?: number },
+    @CurrentUser('sub') userId: string,
+  ) {
+    return this.emergency.completeEmergency(organizationId, userId, responseId, body);
+  }
+
   @Get('donor/emergencies')
   @Roles(RoleCode.DONOR, RoleCode.SUPER_ADMIN)
   getDonorEmergencies(@CurrentUser('sub') userId: string) {
@@ -163,16 +174,6 @@ export class EmergencyController {
     @CurrentUser('sub') userId: string,
   ) {
     return this.emergency.getDonorTracking(userId, responseId);
-  }
-
-  @Post('donor/emergency-responses/:responseId/complete')
-  @Roles(RoleCode.DONOR, RoleCode.SUPER_ADMIN)
-  completeEmergency(
-    @Param('responseId') responseId: string,
-    @Body() body: { donationId?: string },
-    @CurrentUser('sub') userId: string,
-  ) {
-    return this.emergency.completeEmergency(userId, responseId, body.donationId);
   }
 
   @Post('donor/emergency-responses/:responseId/cancel')

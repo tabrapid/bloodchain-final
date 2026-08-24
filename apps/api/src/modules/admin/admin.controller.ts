@@ -7,6 +7,7 @@ import {
   Query,
   Body,
   UseGuards,
+  UseInterceptors,
   ParseIntPipe,
   DefaultValuePipe,
 } from '@nestjs/common';
@@ -18,6 +19,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Permissions } from '../../common/decorators/permissions.decorator';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
+import { WrapResponseInterceptor } from '../../common/interceptors/wrap-response.interceptor';
 import { AdminService } from './admin.service';
 import {
   AdminListUsersDto,
@@ -39,6 +41,7 @@ import {
 @ApiTags('Admin')
 @Controller('admin')
 @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
+@UseInterceptors(WrapResponseInterceptor)
 @ApiBearerAuth()
 export class AdminController {
   constructor(private readonly admin: AdminService) {}

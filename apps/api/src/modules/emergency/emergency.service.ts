@@ -5,6 +5,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   BloodType,
   DonorStatus,
@@ -18,6 +19,12 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
+import { EmergencyGateway } from '../../gateways/emergency.gateway';
+import { DONATION_COMPLETED_EVENT } from '../gamification/events/gamification-event.handler';
+
+const SOS_REQUEST_CREATED_EVENT = 'sos.request.created';
+const SOS_DONOR_ACCEPTED_EVENT = 'sos.donor.accepted';
+const DEFAULT_WHOLE_BLOOD_VOLUME_ML = 450;
 
 const BLOOD_COMPATIBILITY: Record<string, string[]> = {
   'O-NEGATIVE': ['O-NEGATIVE', 'O-POSITIVE', 'A-NEGATIVE', 'A-POSITIVE', 'B-NEGATIVE', 'B-POSITIVE', 'AB-NEGATIVE', 'AB-POSITIVE'],
@@ -37,12 +44,26 @@ export class EmergencyService {
   constructor(
     private readonly db: PrismaService,
     private readonly audit: AuditLogsService,
+    private readonly eventEmitter: EventEmitter2,
+    private readonly gateway: EmergencyGateway,
   ) {}
 
   private generateEmergencyReference(): string {
     const year = new Date().getFullYear();
     const random = Math.floor(Math.random() * 999999).toString().padStart(6, '0');
     return `SOS-${year}-${random}`;
+  }
+
+  private generateDonationReference(): string {
+    const year = new Date().getFullYear();
+    const random = Math.floor(Math.random() * 999999).toString().padStart(6, '0');
+    return `DONATION-${year}-${random}`;
+  }
+
+  private generateUnitReference(): string {
+    const year = new Date().getFullYear();
+    const random = Math.floor(Math.random() * 999999).toString().padStart(6, '0');
+    return `BU-${year}-${random}`;
   }
 
   async getAuthorizedUser(userId: string, organizationId: string) {
@@ -291,6 +312,7 @@ export class EmergencyService {
         );
       });
 
+      const matchedDonorIds: string[] = [];
       for (const donor of compatibleDonors.slice(0, 50)) {
         await tx.emergencyMatch.create({
           data: {
@@ -299,6 +321,7 @@ export class EmergencyService {
             status: EmergencyMatchStatus.MATCHED,
           },
         });
+        matchedDonorIds.push(donor.id);
       }
 
       await tx.emergencyRequest.update({
@@ -306,8 +329,24 @@ export class EmergencyService {
         data: { status: EmergencyStatus.MATCHING },
       });
 
-      return updated;
+      return { updated, matchedDonorIds };
     });
+
+    if (result.matchedDonorIds.length > 0) {
+      const expireAt = emergency.requiredBefore ?? new Date(Date.now() + 4 * 60 * 60 * 1000);
+      this.eventEmitter.emit(SOS_REQUEST_CREATED_EVENT, {
+        requestId: emergencyId,
+        bloodType: `${emergency.bloodType}${emergency.rhFactor === RhFactor.POSITIVE ? '+' : '-'}`,
+        urgency: emergency.urgencyLevel,
+        expireAt,
+        compatibleDonorIds: result.matchedDonorIds,
+      });
+
+      await this.db.emergencyMatch.updateMany({
+        where: { emergencyRequestId: emergencyId, donorId: { in: result.matchedDonorIds } },
+        data: { status: EmergencyMatchStatus.NOTIFIED, notifiedAt: new Date() },
+      });
+    }
 
     await this.audit.log({
       actorId: user.id,
@@ -315,10 +354,10 @@ export class EmergencyService {
       entityType: 'EmergencyRequest',
       entityId: emergencyId,
       organizationId,
-      metadata: { emergencyReference: emergency.emergencyReference },
+      metadata: { emergencyReference: emergency.emergencyReference, matchedDonors: result.matchedDonorIds.length },
     });
 
-    return result;
+    return result.updated;
   }
 
   async getEmergencies(organizationId: string, userId: string, filters?: { status?: string; urgencyLevel?: string }) {
@@ -561,6 +600,24 @@ export class EmergencyService {
       return response;
     });
 
+    const hospitalStaff = await this.db.organizationMembership.findMany({
+      where: {
+        organizationId: emergency.hospitalId,
+        status: 'ACTIVE',
+        role: { code: { in: [RoleCode.HOSPITAL_ADMIN, RoleCode.HOSPITAL_STAFF] } },
+      },
+      select: { userId: true },
+    });
+
+    if (hospitalStaff.length > 0) {
+      this.eventEmitter.emit(SOS_DONOR_ACCEPTED_EVENT, {
+        requestId: emergency.id,
+        donorId,
+        donorName: `${user.firstName} ${user.lastName}`,
+        hospitalRecipientIds: hospitalStaff.map((m) => m.userId),
+      });
+    }
+
     await this.audit.log({
       actorId: donorId,
       action: 'EMERGENCY_ACCEPTED',
@@ -626,6 +683,12 @@ export class EmergencyService {
       data: { status: EmergencyStatus.DONOR_EN_ROUTE },
     });
 
+    this.gateway.emitResponseStatusChanged(response.emergencyRequestId, {
+      responseId,
+      donorId,
+      status: EmergencyResponseStatus.EN_ROUTE,
+    });
+
     return result;
   }
 
@@ -668,6 +731,17 @@ export class EmergencyService {
       },
     });
 
+    this.gateway.emitDonorLocationUpdate(response.emergencyRequestId, {
+      responseId,
+      donorId,
+      latitude: dto.latitude,
+      longitude: dto.longitude,
+      accuracy: dto.accuracy ?? null,
+      heading: dto.heading ?? null,
+      speed: dto.speed ?? null,
+      recordedAt: location.recordedAt.toISOString(),
+    });
+
     return location;
   }
 
@@ -700,6 +774,12 @@ export class EmergencyService {
     await this.db.emergencyRequest.update({
       where: { id: response.emergencyRequestId },
       data: { status: EmergencyStatus.DONOR_ARRIVED },
+    });
+
+    this.gateway.emitResponseStatusChanged(response.emergencyRequestId, {
+      responseId,
+      donorId,
+      status: EmergencyResponseStatus.ARRIVED,
     });
 
     return result;
@@ -741,26 +821,89 @@ export class EmergencyService {
     return result;
   }
 
-  async completeEmergency(donorId: string, responseId: string, donationId?: string) {
+  /**
+   * Completes an emergency donation. This must be staff-verified, never
+   * donor-triggered: a donor confirming their own donation would let them
+   * fabricate a donation record and self-award gamification XP. Staff record
+   * the actual collected volume/blood type, which creates the same Donation +
+   * BloodUnit records (and fires the same donation.completed event) as the
+   * regular appointment-based donation flow, so history/XP/inventory stay
+   * consistent regardless of which path a donation came through.
+   */
+  async completeEmergency(
+    organizationId: string,
+    staffUserId: string,
+    responseId: string,
+    dto: { bloodType?: BloodType; rhFactor?: RhFactor; volumeMl?: number },
+  ) {
+    const { user: staff } = await this.checkHospitalAccess(staffUserId, organizationId);
+
     const response = await this.db.emergencyResponse.findUnique({
       where: { id: responseId },
-      include: { emergencyRequest: true },
+      include: {
+        emergencyRequest: true,
+        donor: { include: { donorProfile: true } },
+      },
     });
 
     if (!response) {
       throw new NotFoundException('Response not found.');
     }
 
-    if (response.donorId !== donorId) {
-      throw new ForbiddenException('This response does not belong to you.');
+    if (response.emergencyRequest.hospitalId !== organizationId) {
+      throw new ForbiddenException('This response does not belong to your organization.');
     }
 
     if (response.status !== EmergencyResponseStatus.DONATION_STARTED) {
       throw new BadRequestException('Response must be in DONATION_STARTED to complete.');
     }
 
+    const bloodType = dto.bloodType ?? response.donor.donorProfile?.bloodType ?? response.emergencyRequest.bloodType;
+    const rhFactor = dto.rhFactor ?? response.donor.donorProfile?.rhFactor ?? response.emergencyRequest.rhFactor;
+    const volumeMl = dto.volumeMl ?? DEFAULT_WHOLE_BLOOD_VOLUME_ML;
+
     const result = await this.db.$transaction(async (tx) => {
-      const updated = await tx.emergencyResponse.update({
+      const donation = await tx.donation.create({
+        data: {
+          donationReference: this.generateDonationReference(),
+          donorId: response.donorId,
+          organizationId,
+          donationType: 'WHOLE_BLOOD',
+          status: 'COMPLETED',
+          bloodType,
+          rhFactor,
+          volumeMl,
+          collectionStartedAt: response.donationStartedAt ?? new Date(),
+          collectionCompletedAt: new Date(),
+          completedAt: new Date(),
+          completedBy: staff.id,
+        },
+      });
+
+      await tx.donationEvent.create({
+        data: {
+          donationId: donation.id,
+          eventType: 'COMPLETED',
+          actorId: staff.id,
+          organizationId,
+          metadata: { source: 'EMERGENCY', emergencyResponseId: responseId, bloodType, rhFactor, volumeMl },
+        },
+      });
+
+      await tx.bloodUnit.create({
+        data: {
+          unitReference: this.generateUnitReference(),
+          donationId: donation.id,
+          organizationId,
+          bloodType,
+          rhFactor,
+          volumeMl,
+          status: 'COLLECTED',
+          collectedAt: new Date(),
+        },
+      });
+
+      const updatedResponse = await tx.emergencyResponse.update({
         where: { id: responseId },
         data: {
           status: EmergencyResponseStatus.COMPLETED,
@@ -770,24 +913,48 @@ export class EmergencyService {
 
       const emergency = await tx.emergencyRequest.update({
         where: { id: response.emergencyRequestId },
-        data: {
-          unitsCollected: { increment: 1 },
-          status: EmergencyStatus.COMPLETED,
-          closedAt: new Date(),
-        },
+        data: { unitsCollected: { increment: 1 } },
       });
 
-      if (donationId) {
-        await tx.bloodUnit.update({
-          where: { id: donationId },
-          data: { organizationId: response.emergencyRequest.hospitalId },
+      if (emergency.unitsCollected >= emergency.unitsRequired) {
+        await tx.emergencyRequest.update({
+          where: { id: response.emergencyRequestId },
+          data: { status: EmergencyStatus.COMPLETED, closedAt: new Date() },
         });
       }
 
-      return updated;
+      return { response: updatedResponse, donation };
     });
 
-    return result;
+    this.eventEmitter.emit(DONATION_COMPLETED_EVENT, {
+      donationId: result.donation.id,
+      donorId: response.donorId,
+      organizationId,
+      isEmergency: true,
+    });
+
+    this.gateway.emitResponseStatusChanged(response.emergencyRequestId, {
+      responseId,
+      donorId: response.donorId,
+      status: EmergencyResponseStatus.COMPLETED,
+    });
+
+    await this.audit.log({
+      actorId: staff.id,
+      action: 'EMERGENCY_DONATION_COMPLETED',
+      entityType: 'EmergencyResponse',
+      entityId: responseId,
+      organizationId,
+      metadata: {
+        emergencyReference: response.emergencyRequest.emergencyReference,
+        donationId: result.donation.id,
+        bloodType,
+        rhFactor,
+        volumeMl,
+      },
+    });
+
+    return result.response;
   }
 
   async cancelEmergency(organizationId: string, userId: string, emergencyId: string, reason?: string) {

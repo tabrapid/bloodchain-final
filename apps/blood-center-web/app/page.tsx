@@ -1,26 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import {
-  Activity,
-  CalendarDays,
-  LayoutDashboard,
-  Package,
-  Settings,
-  Truck,
-  Users,
-} from 'lucide-react';
+import { Activity } from 'lucide-react';
 import { DashboardShell, EmptyState, StatCard, StatusBadge } from '@donor/ui/components';
 import { login, logout as logoutApi, me, isAuthenticated } from '../lib/auth';
-
-const sidebarItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { id: 'appointments', label: 'Appointments', icon: CalendarDays, disabled: true },
-  { id: 'donors', label: 'Donors', icon: Users, disabled: true },
-  { id: 'inventory', label: 'Inventory', icon: Package, disabled: true },
-  { id: 'shipments', label: 'Shipments', icon: Truck, disabled: true },
-  { id: 'settings', label: 'Settings', icon: Settings, disabled: true },
-];
+import { sidebarItems } from '../lib/navigation';
 
 interface User {
   firstName: string;
@@ -32,6 +16,9 @@ export default function BloodCenterDashboard() {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     async function checkAuth() {
@@ -53,10 +40,12 @@ export default function BloodCenterDashboard() {
     checkAuth();
   }, []);
 
-  const handleLogin = async () => {
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
     setError(null);
+    setIsSubmitting(true);
     try {
-      await login('blood.center.admin@donor.local', 'DevelopmentOnly!123');
+      await login(email, password);
       const userData = await me();
       setUser({
         firstName: userData.firstName,
@@ -65,6 +54,8 @@ export default function BloodCenterDashboard() {
       });
     } catch (err: any) {
       setError(err.message ?? 'Login failed');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -115,15 +106,43 @@ export default function BloodCenterDashboard() {
             Sign in to access the blood center dashboard
           </p>
           {error && <p className="mb-4 text-sm text-red-400">{error}</p>}
-          <button
-            onClick={handleLogin}
-            className="rounded-lg bg-donor-secondary px-6 py-3 font-semibold text-white transition-colors hover:bg-donor-secondary/80"
-          >
-            Sign in as Blood Center Admin
-          </button>
-          <p className="mt-4 text-xs text-donor-muted">
-            Development only: blood.center.admin@donor.local
-          </p>
+          <form onSubmit={handleLogin} className="w-full max-w-xs space-y-3">
+            <div>
+              <label htmlFor="email" className="mb-1 block text-left text-xs font-medium text-donor-muted">
+                Email
+              </label>
+              <input
+                id="email"
+                type="email"
+                required
+                autoComplete="username"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full rounded-lg border border-donor-border bg-donor-background px-3 py-2.5 text-sm text-donor-text focus:outline-none focus:ring-2 focus:ring-donor-secondary"
+              />
+            </div>
+            <div>
+              <label htmlFor="password" className="mb-1 block text-left text-xs font-medium text-donor-muted">
+                Password
+              </label>
+              <input
+                id="password"
+                type="password"
+                required
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full rounded-lg border border-donor-border bg-donor-background px-3 py-2.5 text-sm text-donor-text focus:outline-none focus:ring-2 focus:ring-donor-secondary"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full rounded-lg bg-donor-secondary px-6 py-3 font-semibold text-white transition-colors hover:bg-donor-secondary/80 disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {isSubmitting ? 'Signing in...' : 'Sign in'}
+            </button>
+          </form>
         </div>
       </DashboardShell>
     );

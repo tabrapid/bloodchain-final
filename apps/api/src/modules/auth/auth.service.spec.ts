@@ -95,6 +95,11 @@ describe('AuthService', () => {
           }),
         },
         donorProfile: { create: jest.fn().mockResolvedValue({}) },
+        organization: {
+          findFirst: jest.fn().mockResolvedValue({ id: 'org1', name: 'DONOR Donors' }),
+          create: jest.fn().mockResolvedValue({ id: 'org1', name: 'DONOR Donors' }),
+        },
+        organizationMembership: { create: jest.fn().mockResolvedValue({}) },
       };
       return callback(tx);
     });

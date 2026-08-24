@@ -35,16 +35,7 @@ import {
   getAlerts,
   AlertItem,
 } from '../../lib/analytics';
-
-const sidebarItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: Activity },
-  { id: 'emergency', label: 'Emergency', icon: AlertTriangle },
-  { id: 'donors', label: 'Donors', icon: Package, disabled: true },
-  { id: 'appointments', label: 'Appointments', icon: Calendar, disabled: true },
-  { id: 'inventory', label: 'Inventory', icon: Package, disabled: true },
-  { id: 'analytics', label: 'Analytics', icon: BarChart3 },
-  { id: 'settings', label: 'Settings', icon: AlertCircle, disabled: true },
-];
+import { sidebarItems } from '../../lib/navigation';
 
 const DATE_RANGE_OPTIONS = [
   { value: DateRangeType.TODAY, label: 'Today' },

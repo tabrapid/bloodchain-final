@@ -43,15 +43,7 @@ import {
   InventoryLocation,
   GetInventoryParams,
 } from '../../lib/inventory';
-
-const sidebarItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { id: 'appointments', label: 'Appointments', icon: CalendarDays, disabled: true },
-  { id: 'donors', label: 'Donors', icon: Users, disabled: true },
-  { id: 'inventory', label: 'Inventory', icon: Package },
-  { id: 'shipments', label: 'Shipments', icon: Truck, disabled: true },
-  { id: 'settings', label: 'Settings', icon: Settings, disabled: true },
-];
+import { sidebarItems } from '../../lib/navigation';
 
 const BLOOD_TYPES = ['A', 'B', 'AB', 'O'] as const;
 const RH_FACTORS = ['POSITIVE', 'NEGATIVE'] as const;

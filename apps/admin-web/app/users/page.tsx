@@ -1,40 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Search, Filter, User, Mail, Phone, Calendar, Shield, ChevronRight, X } from 'lucide-react';
-import { DashboardShell, StatCard, StatusBadge, LoadingState, EmptyState } from '@donor/ui/components';
-import { listUsers, suspendUser, restoreUser, type User as UserType } from '../lib/api';
-import { me, isAuthenticated } from '../lib/auth';
+import { Search, Filter, User, Mail, Phone, Calendar, Shield, ChevronRight, X, LayoutDashboard, Users, Building2, Ship, Package, Droplet, AlertTriangle, TestTube, Bell, FileText, Activity, Settings } from 'lucide-react';
+import { DashboardShell, StatCard, LoadingState, EmptyState } from '@donor/ui/components';
+import { listUsers, suspendUser, restoreUser, type User as UserType } from '@lib/api';
+import { me, isAuthenticated } from '@lib/auth';
+import { StatusBadgeWrapper } from '@lib/status';
 
-const navItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { id: 'users', label: 'Users', icon: Users },
-  { id: 'organizations', label: 'Organizations', icon: Building2 },
-  { id: 'couriers', label: 'Couriers', icon: Ship },
-  { id: 'shipments', label: 'Shipments', icon: Package },
-  { id: 'requests', label: 'Blood Requests', icon: Droplet },
-  { id: 'emergencies', label: 'Emergencies', icon: AlertTriangle },
-  { id: 'inventory', label: 'Inventory', icon: TestTube },
-  { id: 'alerts', label: 'Alerts', icon: Bell },
-  { id: 'audit', label: 'Audit Logs', icon: FileText },
-  { id: 'health', label: 'System Health', icon: Activity },
-  { id: 'settings', label: 'Settings', icon: Settings },
-];
-
-import {
-  LayoutDashboard,
-  Users,
-  Building2,
-  Ship,
-  Package,
-  Droplet,
-  AlertTriangle,
-  TestTube,
-  Bell,
-  FileText,
-  Activity,
-  Settings,
-} from 'lucide-react';
+import { navItems } from '@lib/navigation';
 
 export default function UsersPage() {
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -115,14 +88,14 @@ export default function UsersPage() {
 
   if (isLoading) {
     return (
-      <DashboardShell sidebarItems={navItems} user={currentUser} onLogout={() => {}}>
+      <DashboardShell title="User Management" sidebarItems={navItems} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined} onLogout={() => {}}>
         <LoadingState />
       </DashboardShell>
     );
   }
 
   return (
-    <DashboardShell sidebarItems={navItems} user={currentUser} onLogout={() => {}}>
+    <DashboardShell title="User Management" sidebarItems={navItems} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined} onLogout={() => {}}>
       <div className="p-6">
         <div className="mb-6">
           <h1 className="text-2xl font-semibold text-gray-900">User Management</h1>
@@ -212,7 +185,7 @@ export default function UsersPage() {
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        <StatusBadge status={user.status} />
+                        <StatusBadgeWrapper status={user.status} />
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex flex-wrap gap-1">
@@ -296,7 +269,7 @@ export default function UsersPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-gray-500">Status</p>
-                  <StatusBadge status={selectedUser.status} />
+                  <StatusBadgeWrapper status={selectedUser.status} />
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Phone</p>

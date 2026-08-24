@@ -27,7 +27,7 @@ import {
 @ApiTags('Health Trends')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
-@Controller('api/v1/me/health-trends')
+@Controller('me/health-trends')
 export class HealthTrendsController {
   constructor(private readonly trendsService: HealthTrendsService) {}
 

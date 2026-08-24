@@ -43,16 +43,7 @@ import {
   markLaboratoryNoShow,
   LaboratoryAppointment,
 } from '../../lib/laboratory';
-
-const sidebarItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { id: 'appointments', label: 'Appointments', icon: CalendarDays, disabled: true },
-  { id: 'donors', label: 'Donors', icon: Users, disabled: true },
-  { id: 'inventory', label: 'Inventory', icon: Package },
-  { id: 'laboratory', label: 'Laboratory', icon: Beaker },
-  { id: 'shipments', label: 'Shipments', icon: Truck, disabled: true },
-  { id: 'settings', label: 'Settings', icon: Settings, disabled: true },
-];
+import { sidebarItems } from '../../lib/navigation';
 
 const statusConfig: Record<string, { label: string; variant: 'success' | 'warning' | 'danger' | 'info' | 'default' }> = {
   PENDING: { label: 'Pending', variant: 'warning' },

@@ -1,10 +1,14 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { JwtModule } from '@nestjs/jwt';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { LoggerModule } from 'nestjs-pino';
 import { envValidationSchema } from './config/env.validation';
+import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
+import { PermissionsGuard } from './common/guards/permissions.guard';
+import { RolesGuard } from './common/guards/roles.guard';
 import { DatabaseModule } from './database/database.module';
 import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';
 import { AdminModule } from './modules/admin/admin.module';
@@ -72,6 +76,7 @@ import { ShipmentGateway } from './gateways/shipment.gateway';
         ],
       }),
     }),
+    EventEmitterModule.forRoot(),
     JwtModule.register({
       global: true,
       secret: process.env.JWT_ACCESS_SECRET ?? 'development-only-secret',
@@ -101,7 +106,6 @@ import { ShipmentGateway } from './gateways/shipment.gateway';
     AICacheModule,
     GamificationModule,
     AnalyticsModule,
-    InventoryModule,
     IdempotencyModule,
     CourierModule,
     CommunityModule,
@@ -113,6 +117,18 @@ import { ShipmentGateway } from './gateways/shipment.gateway';
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: RolesGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: PermissionsGuard,
     },
     ShipmentGateway,
   ],

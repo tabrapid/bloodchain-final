@@ -9,6 +9,7 @@
     "dev:mobile": "pnpm --filter @donor/mobile start",
     "dev:hospital": "pnpm --filter @donor/hospital-web dev",
     "dev:blood-center": "pnpm --filter @donor/blood-center-web dev",
+    "dev:admin": "pnpm --filter @donor/admin-web dev",
     "build": "turbo build",
     "lint": "turbo lint",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
