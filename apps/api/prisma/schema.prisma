@@ -343,6 +343,8 @@ model User {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   lastLoginAt   DateTime?
+  failedLoginAttempts Int @default(0)
+  lockoutUntil  DateTime?
 
   memberships            OrganizationMembership[]
   donorProfile          DonorProfile?
@@ -608,6 +610,15 @@ model AuditLog {
   @@index([action])
   @@index([entityType])
   @@index([createdAt])
+}
+
+model IdempotencyRecord {
+  key        String   @id
+  result     Json
+  createdAt  DateTime @default(now())
+  expiresAt  DateTime
+
+  @@index([expiresAt])
 }
 
 model AppointmentSlot {

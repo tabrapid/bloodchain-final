@@ -9,7 +9,7 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { RoleCode } from '@prisma/client';
 import * as argon2 from 'argon2';
-import { createHash, randomBytes } from 'node:crypto';
+import { createHmac, randomBytes } from 'node:crypto';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { PrismaService } from '../../database/prisma.service';
 import { PermissionsService } from '../permissions/permissions.service';
@@ -91,14 +91,27 @@ export class AuthService {
       },
     });
 
-    if (!user || !(await argon2.verify(user.passwordHash, password))) {
+    if (!user) {
       await this.audit.log({
         action: 'LOGIN_FAILED',
         entityType: 'User',
-        metadata: { email, reason: 'invalid_credentials' },
+        metadata: { email, reason: 'user_not_found' },
         ipAddress,
       });
       throw new UnauthorizedException('Email or password is incorrect.');
+    }
+
+    if (user.lockoutUntil && user.lockoutUntil > new Date()) {
+      const remainingMinutes = Math.ceil((user.lockoutUntil.getTime() - Date.now()) / 60000);
+      await this.audit.log({
+        actorId: user.id,
+        action: 'LOGIN_FAILED',
+        entityType: 'User',
+        entityId: user.id,
+        metadata: { reason: 'account_locked', remainingMinutes },
+        ipAddress,
+      });
+      throw new ForbiddenException(`Account is locked. Try again in ${remainingMinutes} minute(s).`);
     }
 
     if (user.status === 'SUSPENDED') {
@@ -135,6 +148,48 @@ export class AuthService {
         ipAddress,
       });
       throw new ForbiddenException('Please verify your email before signing in.');
+    }
+
+    if (!(await argon2.verify(user.passwordHash, password))) {
+      const newFailedAttempts = user.failedLoginAttempts + 1;
+      const lockoutUntil = newFailedAttempts >= 5 ? new Date(Date.now() + 15 * 60 * 1000) : null;
+
+      await this.db.user.update({
+        where: { id: user.id },
+        data: {
+          failedLoginAttempts: newFailedAttempts,
+          lockoutUntil,
+        },
+      });
+
+      await this.audit.log({
+        actorId: user.id,
+        action: 'LOGIN_FAILED',
+        entityType: 'User',
+        entityId: user.id,
+        metadata: {
+          reason: 'invalid_password',
+          failedAttempts: newFailedAttempts,
+          locked: !!lockoutUntil,
+        },
+        ipAddress,
+      });
+
+      if (lockoutUntil) {
+        throw new ForbiddenException('Too many failed attempts. Account locked for 15 minutes.');
+      }
+
+      throw new UnauthorizedException('Email or password is incorrect.');
+    }
+
+    if (user.failedLoginAttempts > 0 || user.lockoutUntil) {
+      await this.db.user.update({
+        where: { id: user.id },
+        data: {
+          failedLoginAttempts: 0,
+          lockoutUntil: null,
+        },
+      });
     }
 
     const roles = user.memberships.map((m) => m.role.code) as RoleCode[];
@@ -441,7 +496,8 @@ export class AuthService {
   }
 
   private hashRefreshToken(token: string): string {
-    return createHash('sha256').update(token).digest('hex');
+    const secret = this.config.getOrThrow<string>('JWT_REFRESH_SECRET');
+    return createHmac('sha256', secret).update(token).digest('hex');
   }
 
   private parseDuration(value: string): number {

@@ -1371,3 +1371,43 @@ Verification
 - TypeScript: 0 errors
 - Tests: 59 passed, 7 suites
 - No regressions to existing functionality
+
+
+
+Phase 20 Complete
+Summary of Implemented Security Hardening
+1. Authentication Hardening
+- Brute-force protection: Account locks after 5 failed login attempts (15-minute lockout)
+- Password complexity: Requires uppercase, lowercase, number, and special character
+- Failed login attempts tracking with reset on success
+- Account status checks (SUSPENDED, DEACTIVATED, PENDING_VERIFICATION)
+2. Refresh Token Security
+- HMAC-SHA256 hashing with JWT_REFRESH_SECRET (was SHA-256 only)
+3. Per-Route Rate Limiting
+- Login: 5 requests/minute
+- Password change: 5 requests/minute  
+- Register: 10 requests/minute
+- AI insights: 20 requests/minute
+- AI chat: 30 requests/minute
+4. Audit Log Immutability
+- PostgreSQL trigger prevents UPDATE/DELETE on AuditLog table
+5. WebSocket Security
+- Heartbeat mechanism (30s interval, 90s timeout)
+- ping/pong message support
+- Automatic disconnect on timeout
+6. Enhanced Security Headers
+- Content-Security-Policy with strict directives
+- X-Content-Type-Options: nosniff
+- Cross-Origin resource policy configured
+7. Idempotency Support
+- IdempotencyRecord model for critical operations
+- IdempotencyService with 24-hour key expiration
+8. Security Documentation
+- docs/security.md - Complete security architecture
+- docs/privacy.md - Data classification and privacy practices
+9. Security Tests
+- 11 new security tests covering brute-force, account status, session security
+Verification
+- TypeScript: 0 errors
+- Tests: 70 passed (8 suites)
+- Lint: 0 warnings on changed files

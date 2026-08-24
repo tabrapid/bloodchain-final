@@ -1,52 +1,202 @@
-# Security
+# DONOR Platform Security Documentation
 
-Security is a first-class concern in DONOR. This document summarizes Phase 1 security controls.
+## Overview
+
+This document describes the security measures implemented in the DONOR healthcare platform.
 
 ## Authentication
 
-- Passwords are hashed with **argon2id**.
-- Access tokens are short-lived JWTs (default 15 minutes).
-- Refresh tokens are long-lived opaque tokens stored as SHA-256 hashes in PostgreSQL; they support rotation and revocation.
-- Mobile tokens are stored in `expo-secure-store`, never in plain AsyncStorage.
+### JWT-Based Authentication
+- Access tokens expire in 15 minutes (configurable)
+- Refresh tokens expire in 30 days (configurable)
+- Refresh token rotation on each use
+- Tokens are HMAC-signed with server secrets
+
+### Password Security
+- Argon2id hashing (memory-hard, resistant to GPU/ASIC attacks)
+- Minimum 12 characters required
+- Password complexity requirements enforced:
+  - At least one uppercase letter
+  - At least one lowercase letter
+  - At least one number
+  - At least one special character
+
+### Brute-Force Protection
+- Account lockout after 5 failed login attempts
+- Lockout duration: 15 minutes
+- Failed attempt counter resets on successful login
+- All failed attempts are logged for security monitoring
+
+### Session Management
+- Multiple sessions supported per user
+- Sessions track device name, type, and IP address
+- Users can view and revoke individual sessions
+- "Sign out all devices" functionality available
+- Sessions automatically expire
 
 ## Authorization
 
-- JWT validation via `JwtAuthGuard`.
-- Role checks via `RolesGuard` and `@Roles()` decorator.
-- Backend is the source of truth for authorization; frontend role checks are UX only.
+### Role-Based Access Control (RBAC)
 
-## Input validation
+| Role | Description |
+|------|-------------|
+| DONOR | Platform donor with health data access |
+| HOSPITAL_STAFF | Hospital staff member |
+| HOSPITAL_ADMIN | Hospital administrator |
+| BLOOD_CENTER_STAFF | Blood center staff member |
+| BLOOD_CENTER_ADMIN | Blood center administrator |
+| COURIER | Delivery courier |
+| LAB_TECHNICIAN | Laboratory technician |
+| LAB_REVIEWER | Laboratory result reviewer |
+| LAB_ADMIN | Laboratory administrator |
+| SUPER_ADMIN | Platform super administrator |
 
-- NestJS `ValidationPipe` with `whitelist: true` and `forbidNonWhitelisted: true`.
-- DTOs use `class-validator` decorators.
-- Shared Zod schemas in `@donor/validation` are used on client boundaries.
+### Permission System
+- Permissions are dynamically loaded from database
+- SUPER_ADMIN automatically gets `admin.manage` permission
+- Permission checks at endpoint level via guards
 
-## Transport security
+### Organization Isolation
+- Hospital users can only access data from their organization
+- Blood Center users can only access data from their organization
+- Cross-organization data access is explicitly blocked
 
-- Helmet security headers.
-- CORS configured from `WEB_URL` (never `*` in production).
-- Rate limiting via `@nestjs/throttler`.
-- Request IDs attached to every request.
+## API Security
 
-## Logging and audit
+### Rate Limiting
+- Global throttle: 100 requests per 60 seconds
+- Auth endpoints: 5 requests per 60 seconds (login)
+- Password change: 5 requests per 60 seconds
+- AI endpoints: 20 requests per 60 seconds
+- Register: 10 requests per 60 seconds
+- Refresh token: 20 requests per 60 seconds
 
-- Structured logs via `nestjs-pino`.
-- Passwords, tokens, cookies, and full sensitive payloads are redacted.
-- `AuditLog` model and service are ready for logging sensitive operations.
+### Input Validation
+- Global ValidationPipe with `whitelist: true`
+- Forbidden: `forbidNonWhitelisted: true`
+- Automatic type transformation enabled
 
-## Environment and secrets
+### Security Headers
+- Helmet.js enabled with CSP directives
+- Content-Security-Policy enforced
+- X-Content-Type-Options: nosniff
+- Referrer-Policy configured
 
-- Secrets live in `.env` files, which are gitignored.
-- `.env.example` contains placeholders only.
-- No API keys, passwords, or tokens are committed.
+### CORS
+- Configured origins only
+- Credentials supported
+- Explicit allowed headers
 
-## Privacy
+## Data Protection
 
-- Data access follows the principle of minimum necessary access.
-- Donor medical history, exact location, and unrelated appointments are not automatically exposed to hospitals.
-- Future consent flows will govern location sharing and data visibility.
+### Sensitive Data Redaction
+The following are automatically redacted from logs:
+- Passwords
+- Refresh tokens
+- Authorization headers
+- Current passwords
+- New passwords
 
-## Known limitations
+### Health Data Protection
+- Blood test results protected by ownership validation
+- AI insights only accessible by the generating user
+- Organization-based access control for institutional data
+- Data minimization: only necessary data sent to AI
 
-- Permission-based access control beyond roles is modeled but not enforced yet.
-- Email verification and password reset are architectural placeholders.
+### Database Security
+- All connections use PostgreSQL
+- Foreign keys enforce referential integrity
+- Indexes on frequently queried fields
+- AuditLog immutability via database triggers
+
+## WebSocket Security
+
+### Authentication
+- JWT token required for connection
+- Token validated on handshake
+- Invalid tokens result in immediate disconnect
+
+### Channel Authorization
+- Users can only join rooms they have access to
+- Shipment rooms checked against user permissions
+- SUPER_ADMIN can access all rooms
+
+### Heartbeat Mechanism
+- 30-second heartbeat interval
+- 90-second connection timeout
+- Automatic disconnect on timeout
+
+## Audit Logging
+
+### Events Logged
+- Authentication events (login, logout, refresh, password change)
+- Authorization failures
+- Health data access
+- Donation operations
+- Inventory movements
+- Shipment state changes
+- SOS events
+- Admin actions
+
+### Audit Log Immutability
+- Database trigger prevents UPDATE on AuditLog
+- Database trigger prevents DELETE on AuditLog
+- Application-level protection in place
+
+## Security Monitoring
+
+### Tracked Events
+- Failed login attempts
+- Account lockouts
+- Permission failures
+- Rate limit exceeded
+- Security-sensitive changes
+
+## Incident Response
+
+### Account Compromise
+1. User can revoke all sessions via "Sign out all devices"
+2. Admin can deactivate account
+3. All refresh tokens are invalidated on password change
+
+### Suspicious Activity
+1. Failed login attempts are logged
+2. Account lockout after 5 failed attempts
+3. Security team reviews audit logs
+
+### Data Breach Response
+1. Incident documented
+2. Affected users notified
+3. Logs preserved for investigation
+4. Remediation steps implemented
+
+## Environment Security
+
+### Required Environment Variables
+- `JWT_ACCESS_SECRET` - Minimum 32 characters
+- `JWT_REFRESH_SECRET` - Minimum 32 characters
+- `DATABASE_URL` - PostgreSQL connection string
+- `AI_API_KEY` - OpenAI API key (server-only)
+- `MAP_API_KEY` - Map service API key (server-only)
+
+### Never Commit
+- API keys
+- Database passwords
+- JWT secrets
+- Private keys
+- Access tokens
+
+## Dependencies
+
+### Security Updates
+- Dependencies audited regularly
+- Critical vulnerabilities patched promptly
+- Minimal dependency footprint
+
+## Reporting Security Issues
+
+To report security vulnerabilities, contact the security team with:
+1. Description of the issue
+2. Steps to reproduce
+3. Potential impact
+4. Suggested remediation (if any)

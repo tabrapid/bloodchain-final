@@ -35,6 +35,7 @@ import { CommunityModule } from './modules/community/community.module';
 import { CampaignsModule } from './modules/campaigns/campaigns.module';
 import { ChallengesModule } from './modules/challenges/challenges.module';
 import { EducationModule } from './modules/education/education.module';
+import { IdempotencyModule } from './modules/idempotency/idempotency.module';
 import { ShipmentGateway } from './gateways/shipment.gateway';
 
 @Module({
@@ -101,6 +102,7 @@ import { ShipmentGateway } from './gateways/shipment.gateway';
     GamificationModule,
     AnalyticsModule,
     InventoryModule,
+    IdempotencyModule,
     CourierModule,
     CommunityModule,
     CampaignsModule,

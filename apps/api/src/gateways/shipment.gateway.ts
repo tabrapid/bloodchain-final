@@ -17,6 +17,7 @@ interface AuthenticatedSocket extends Socket {
   userId?: string;
   organizationId?: string;
   roles?: string[];
+  lastHeartbeat?: number;
 }
 
 interface JoinRoomPayload {
@@ -38,6 +39,9 @@ interface ShipmentUpdatePayload {
   timestamp: string;
 }
 
+const HEARTBEAT_INTERVAL = 30000;
+const CONNECTION_TIMEOUT = 90000;
+
 @WebSocketGateway({
   namespace: '/shipments',
   cors: {
@@ -54,6 +58,7 @@ export class ShipmentGateway
   private readonly logger = new Logger(ShipmentGateway.name);
   private readonly connectedClients = new Map<string, AuthenticatedSocket>();
   private readonly roomSubscriptions = new Map<string, Set<string>>();
+  private heartbeatInterval: NodeJS.Timeout | null = null;
 
   constructor(
     private readonly jwtService: JwtService,
@@ -62,6 +67,20 @@ export class ShipmentGateway
 
   afterInit(server: Server) {
     this.logger.log('ShipmentGateway initialized');
+    this.startHeartbeat();
+  }
+
+  private startHeartbeat() {
+    this.heartbeatInterval = setInterval(() => {
+      const now = Date.now();
+      this.connectedClients.forEach((client, clientId) => {
+        if (client.lastHeartbeat && now - client.lastHeartbeat > CONNECTION_TIMEOUT) {
+          this.logger.warn(`Client ${clientId} heartbeat timeout, disconnecting`);
+          client.emit('timeout', { message: 'Connection timeout' });
+          client.disconnect();
+        }
+      });
+    }, HEARTBEAT_INTERVAL);
   }
 
   async handleConnection(client: AuthenticatedSocket) {
@@ -94,6 +113,7 @@ export class ShipmentGateway
 
       client.userId = user.id;
       client.roles = user.memberships.map((m: any) => m.role.code);
+      client.lastHeartbeat = Date.now();
 
       const bloodCenterMembership = user.memberships.find((m: any) => m.organization?.type === 'BLOOD_CENTER');
       const hospitalMembership = user.memberships.find((m: any) => m.organization?.type === 'HOSPITAL');
@@ -123,6 +143,12 @@ export class ShipmentGateway
     });
 
     this.logger.log(`Client ${client.id} (user: ${userId}) disconnected`);
+  }
+
+  @SubscribeMessage('ping')
+  handlePing(@ConnectedSocket() client: AuthenticatedSocket) {
+    client.lastHeartbeat = Date.now();
+    return { event: 'pong', data: { timestamp: Date.now() } };
   }
 
   @SubscribeMessage('join')

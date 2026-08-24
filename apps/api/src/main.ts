@@ -23,8 +23,28 @@ async function bootstrap() {
     origin: (config.get<string>('WEB_URL') ?? 'http://localhost:3000').split(','),
     credentials: true,
     exposedHeaders: [REQUEST_ID_HEADER],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', REQUEST_ID_HEADER],
   });
-  app.use(helmet());
+
+  app.use(helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", 'data:', 'https:'],
+        connectSrc: ["'self'"],
+        fontSrc: ["'self'"],
+        objectSrc: ["'none'"],
+        mediaSrc: ["'self'"],
+        frameSrc: ["'none'"],
+      },
+    },
+    crossOriginEmbedderPolicy: false,
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+  }));
+
   app.setGlobalPrefix('api/v1');
 
   app.useGlobalPipes(

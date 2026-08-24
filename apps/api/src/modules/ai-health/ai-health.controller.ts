@@ -17,6 +17,7 @@ import {
   ApiTags,
   ApiQuery,
 } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -45,6 +46,7 @@ export class AIHealthController {
 
   @Post('insights')
   @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
   @ApiOperation({ summary: 'Generate an AI health insight' })
   @ApiResponse({ status: 200, type: AiInsightResponseDto })
   @ApiResponse({ status: 400, description: 'Invalid request' })
@@ -84,6 +86,7 @@ export class AIHealthController {
 
   @Post('chat')
   @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   @ApiOperation({ summary: 'Send a chat message to the AI assistant' })
   @ApiResponse({ status: 200, type: ChatResponseDto })
   async chat(
