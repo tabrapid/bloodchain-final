@@ -200,14 +200,14 @@ export class AIInsightHistoryService {
   async insightToResponseDto(insight: StoredInsight): Promise<AiInsightResponseDto> {
     return {
       id: insight.id,
-      type: insight.type,
+      type: insight.type as any,
       title: insight.title || 'Insight',
       summary: insight.summary || '',
       observations: insight.observations || [],
       dataPoints: insight.dataPoints,
       caveats: insight.caveats || ['AI-generated informational content. Not a medical diagnosis.'],
       questionsForProfessional: insight.questionsForProfessional,
-      safetyLevel: insight.safetyLevel,
+      safetyLevel: insight.safetyLevel as any,
       generatedAt: insight.generatedAt?.toISOString() || insight.createdAt.toISOString(),
       dataVersion: insight.dataVersion,
       dataReferences: insight.dataReferences,

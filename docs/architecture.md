@@ -1,6 +1,6 @@
 # Architecture
 
-This document describes the high-level architecture of the DONOR platform after Phase 3.
+This document describes the high-level architecture of the DONOR platform after Phase 19.
 
 ## Design principles
 
@@ -45,6 +45,9 @@ The API is organized under `apps/api/src/modules/`:
 - `laboratory` — blood testing, test types, parameters, reference ranges, appointment booking, result entry, review, and publication workflow.
 - `health-trends` — personal health analytics, trend data aggregation, statistics, and chart data for donor health history.
 - `ai-health` — AI-powered health insights, trend summaries, result explanations, and health-data-grounded chat assistance.
+- `ai-history` — persistent storage and retrieval of AI-generated insights.
+- `ai-cache` — intelligent caching for AI insights with data versioning.
+- `ai-logging` — request tracking and metrics for AI operations.
 - `appointments` — appointment and slot management for donations and blood tests.
 - `donations` — donation session tracking, blood unit creation.
 - `inventory` — blood unit inventory, storage locations, component management.
@@ -52,8 +55,11 @@ The API is organized under `apps/api/src/modules/`:
 - `emergency` — emergency blood requests and donor matching.
 - `gamification` — XP, levels, achievements, badges, leaderboard, reputation.
 - `notifications` — centralized notification system with push, in-app, preferences, quiet hours.
-- `ai-health` — AI-powered health insights and trend summaries.
 - `admin` — super admin platform management, user/organization/courier management, system health monitoring.
+- `community` — donor community feed, posts, and engagement features.
+- `campaigns` — blood donation campaigns and awareness drives.
+- `challenges` — donor engagement challenges and progress tracking.
+- `education` — educational content and learning progress tracking.
 
 ## Authentication flow
 

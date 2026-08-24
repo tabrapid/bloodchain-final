@@ -14,19 +14,19 @@ import { EducationContentType } from '@prisma/client';
 export class CreateEducationalContentDto {
   @ApiProperty({ enum: EducationContentType })
   @IsEnum(EducationContentType)
-  type: EducationContentType;
+  type!: EducationContentType;
 
   @ApiProperty()
   @IsString()
-  title: string;
+  title!: string;
 
   @ApiProperty()
   @IsString()
-  description: string;
+  description!: string;
 
   @ApiProperty()
   @IsString()
-  body: string;
+  body!: string;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -35,7 +35,7 @@ export class CreateEducationalContentDto {
 
   @ApiProperty()
   @IsString()
-  category: string;
+  category!: string;
 
   @ApiPropertyOptional({ default: 'BEGINNER' })
   @IsOptional()
@@ -132,41 +132,41 @@ export class GetEducationalContentDto {
 }
 
 export class EducationalContentResponseDto {
-  id: string;
-  type: EducationContentType;
-  title: string;
-  description: string;
-  body: string;
+  id!: string;
+  type!: EducationContentType;
+  title!: string;
+  description!: string;
+  body!: string;
   imageUrl?: string;
-  category: string;
-  difficulty: string;
-  xpReward: number;
+  category!: string;
+  difficulty!: string;
+  xpReward!: number;
   estimatedMinutes?: number;
-  isActive: boolean;
-  createdAt: Date;
-  updatedAt: Date;
+  isActive!: boolean;
+  createdAt!: Date;
+  updatedAt!: Date;
 }
 
 export class EducationalContentListResponseDto {
-  items: EducationalContentResponseDto[];
-  total: number;
-  page: number;
-  limit: number;
+  items!: EducationalContentResponseDto[];
+  total!: number;
+  page!: number;
+  limit!: number;
 }
 
 export class EducationProgressResponseDto {
-  id: string;
-  userId: string;
-  contentId: string;
-  status: string;
-  startedAt: Date;
+  id!: string;
+  userId!: string;
+  contentId!: string;
+  status!: string;
+  startedAt!: Date;
   completedAt?: Date;
-  xpAwarded: number;
+  xpAwarded!: number;
   content?: EducationalContentResponseDto;
 }
 
 export class CompleteContentDto {
   @ApiProperty()
   @IsString()
-  contentId: string;
+  contentId!: string;
 }
