@@ -16,11 +16,11 @@ import { CampaignStatus, BloodType } from '@prisma/client';
 export class CreateCampaignDto {
   @ApiProperty()
   @IsString()
-  title: string;
+  title!: string;
 
   @ApiProperty()
   @IsString()
-  description: string;
+  description!: string;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -29,11 +29,11 @@ export class CreateCampaignDto {
 
   @ApiProperty()
   @IsDateString()
-  startDate: string;
+  startDate!: string;
 
   @ApiProperty()
   @IsDateString()
-  endDate: string;
+  endDate!: string;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -152,19 +152,19 @@ export class GetCampaignsDto {
 }
 
 export class CampaignResponseDto {
-  id: string;
-  organizationId: string;
-  title: string;
-  description: string;
+  id!: string;
+  organizationId!: string;
+  title!: string;
+  description!: string;
   imageUrl?: string;
-  startDate: Date;
-  endDate: Date;
+  startDate!: Date;
+  endDate!: Date;
   location?: string;
-  bloodGroupsNeeded: BloodType[];
+  bloodGroupsNeeded!: BloodType[];
   targetParticipants?: number;
-  status: CampaignStatus;
-  createdAt: Date;
-  updatedAt: Date;
+  status!: CampaignStatus;
+  createdAt!: Date;
+  updatedAt!: Date;
   organization?: {
     id: string;
     name: string;
@@ -173,8 +173,8 @@ export class CampaignResponseDto {
 }
 
 export class CampaignListResponseDto {
-  items: CampaignResponseDto[];
-  total: number;
-  page: number;
-  limit: number;
+  items!: CampaignResponseDto[];
+  total!: number;
+  page!: number;
+  limit!: number;
 }

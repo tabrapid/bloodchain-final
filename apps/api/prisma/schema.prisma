@@ -374,6 +374,7 @@ model User {
   contentReports        ContentReport[]    @relation("ContentReportReporter")
   reviewedReports       ContentReport[]    @relation("ContentReportReviewer")
   createdChallenges     Challenge[]        @relation("ChallengeCreator")
+  aiInsights            AIInsight[]
 
   @@index([email])
   @@index([status])
@@ -1898,4 +1899,105 @@ model NotificationDelivery {
 
   @@index([notificationId])
   @@index([status])
+}
+
+// ============================================================================
+// AI HEALTH INTELLIGENCE (Phase 19)
+// ============================================================================
+
+enum AIInsightType {
+  TREND_SUMMARY
+  RESULT_EXPLANATION
+  DATA_CHANGE
+  DONATION_INSIGHT
+  APPOINTMENT_INSIGHT
+  HEALTH_SUMMARY
+  WEEKLY_SUMMARY
+  QUESTION_SUGGESTION
+  GENERAL_HEALTH_INFORMATION
+}
+
+enum AIInsightStatus {
+  PENDING
+  GENERATING
+  COMPLETED
+  FAILED
+  EXPIRED
+}
+
+enum AISafetyLevel {
+  SAFE_INFORMATIONAL
+  NEEDS_CONTEXT
+  PROFESSIONAL_REVIEW_SUGGESTED
+  EMERGENCY_REDIRECT
+  OUT_OF_SCOPE
+}
+
+model AIInsight {
+  id                String          @id @default(cuid())
+  userId            String
+  type              AIInsightType
+  status            AIInsightStatus @default(PENDING)
+  title             String?
+  summary           String?
+  observations      Json?           // string[]
+  dataPoints        Json?           // DataPoint[]
+  caveats           Json?           // string[]
+  questionsForProfessional Json?    // string[]
+  safetyLevel       AISafetyLevel   @default(SAFE_INFORMATIONAL)
+  dataVersion       String?
+  dataReferences    Json?           // DataReference[]
+  sourceType        String?         // BLOOD_TEST, DONATION, APPOINTMENT, etc.
+  sourceId          String?
+  errorMessage      String?
+  generatedAt       DateTime?
+  expiresAt         DateTime?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([type])
+  @@index([status])
+  @@index([createdAt])
+  @@index([sourceType, sourceId])
+}
+
+model AIRequestLog {
+  id                String    @id @default(cuid())
+  userId            String?
+  requestId         String    @unique
+  insightType       AIInsightType?
+  providerName      String
+  modelUsed         String?
+  promptTokens      Int?
+  completionTokens  Int?
+  totalTokens       Int?
+  latencyMs         Int?
+  success           Boolean
+  errorMessage      String?
+  safetyLevel       AISafetyLevel?
+  dataVersion       String?
+  createdAt         DateTime  @default(now())
+
+  @@index([userId])
+  @@index([insightType])
+  @@index([createdAt])
+  @@index([success])
+}
+
+model AIInsightCache {
+  id                String    @id @default(cuid())
+  cacheKey          String    @unique
+  userId            String
+  insightType       AIInsightType
+  dataVersion       String
+  response          Json
+  expiresAt         DateTime
+  createdAt         DateTime  @default(now())
+
+  @@index([userId])
+  @@index([cacheKey])
+  @@index([expiresAt])
 }

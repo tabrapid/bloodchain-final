@@ -63,7 +63,7 @@ export class GetCommunityPostsDto {
 export class ReportContentDto {
   @ApiProperty({ enum: ['SPAM', 'HARASSMENT', 'MISINFORMATION', 'INAPPROPRIATE', 'OTHER'] })
   @IsString()
-  reason: string;
+  reason!: string;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -72,14 +72,14 @@ export class ReportContentDto {
 }
 
 export class CommunityPostResponseDto {
-  id: string;
-  type: CommunityPostType;
-  title: string;
-  body: string;
+  id!: string;
+  type!: CommunityPostType;
+  title!: string;
+  body!: string;
   imageUrl?: string;
-  status: CommunityPostStatus;
-  publishedAt: Date;
-  createdAt: Date;
+  status!: CommunityPostStatus;
+  publishedAt!: Date;
+  createdAt!: Date;
   author?: {
     id: string;
     displayName?: string;
@@ -104,19 +104,19 @@ export class CommunityPostResponseDto {
 }
 
 export class FeedResponseDto {
-  items: CommunityPostResponseDto[];
-  total: number;
-  page: number;
-  limit: number;
+  items!: CommunityPostResponseDto[];
+  total!: number;
+  page!: number;
+  limit!: number;
 }
 
 export class ContentReportResponseDto {
-  id: string;
-  postId: string;
-  reporterId: string;
-  reason: string;
+  id!: string;
+  postId!: string;
+  reporterId!: string;
+  reason!: string;
   description?: string;
-  status: string;
-  createdAt: Date;
+  status!: string;
+  createdAt!: Date;
   post?: CommunityPostResponseDto;
 }

@@ -17,6 +17,9 @@ import { EmergencyModule } from './modules/emergency/emergency.module';
 import { HealthModule } from './modules/health/health.module';
 import { HealthTrendsModule } from './modules/health-trends/health-trends.module';
 import { AIHealthModule } from './modules/ai-health/ai-health.module';
+import { AIHistoryModule } from './modules/ai-history/ai-history.module';
+import { AILoggingModule } from './modules/ai-logging/ai-logging.module';
+import { AICacheModule } from './modules/ai-cache/ai-cache.module';
 import { GamificationModule } from './modules/gamification/gamification.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
@@ -92,6 +95,9 @@ import { ShipmentGateway } from './gateways/shipment.gateway';
     LaboratoryModule,
     HealthTrendsModule,
     AIHealthModule,
+    AIHistoryModule,
+    AILoggingModule,
+    AICacheModule,
     GamificationModule,
     AnalyticsModule,
     InventoryModule,

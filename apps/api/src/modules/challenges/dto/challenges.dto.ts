@@ -14,15 +14,15 @@ import { ChallengeType, ChallengeStatus, ChallengeVisibility } from '@prisma/cli
 export class CreateChallengeDto {
   @ApiProperty()
   @IsString()
-  title: string;
+  title!: string;
 
   @ApiProperty()
   @IsString()
-  description: string;
+  description!: string;
 
   @ApiProperty({ enum: ChallengeType })
   @IsEnum(ChallengeType)
-  type: ChallengeType;
+  type!: ChallengeType;
 
   @ApiPropertyOptional({ enum: ChallengeVisibility, default: ChallengeVisibility.PUBLIC })
   @IsOptional()
@@ -139,20 +139,20 @@ export class GetChallengesDto {
 }
 
 export class ChallengeResponseDto {
-  id: string;
-  title: string;
-  description: string;
-  type: ChallengeType;
-  status: ChallengeStatus;
-  visibility: ChallengeVisibility;
+  id!: string;
+  title!: string;
+  description!: string;
+  type!: ChallengeType;
+  status!: ChallengeStatus;
+  visibility!: ChallengeVisibility;
   organizationId?: string;
   startDate?: Date;
   endDate?: Date;
-  goal: number;
-  xpReward: number;
+  goal!: number;
+  xpReward!: number;
   badgeId?: string;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt!: Date;
+  updatedAt!: Date;
   organization?: {
     id: string;
     name: string;
@@ -166,18 +166,18 @@ export class ChallengeResponseDto {
 }
 
 export class ChallengeListResponseDto {
-  items: ChallengeResponseDto[];
-  total: number;
-  page: number;
-  limit: number;
+  items!: ChallengeResponseDto[];
+  total!: number;
+  page!: number;
+  limit!: number;
 }
 
 export class ChallengeParticipantResponseDto {
-  id: string;
-  challengeId: string;
-  userId: string;
-  progress: number;
+  id!: string;
+  challengeId!: string;
+  userId!: string;
+  progress!: number;
   completedAt?: Date;
-  joinedAt: Date;
+  joinedAt!: Date;
   challenge?: ChallengeResponseDto;
 }
