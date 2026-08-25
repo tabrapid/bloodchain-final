@@ -243,6 +243,20 @@ export class LaboratoryService {
     const referenceNumber = `LAB-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 999999)).padStart(6, '0')}`;
 
     const result = await this.db.$transaction(async (tx) => {
+      // Atomic conditional update: only succeeds if the slot is still
+      // AVAILABLE and under capacity at the moment Postgres acquires the row
+      // lock, closing the race window between the pre-checks above and this
+      // transaction — mirrors the same fix in appointments.service.ts, since
+      // both booking paths share the AppointmentSlot table.
+      const claim = await tx.appointmentSlot.updateMany({
+        where: { id: slotId, status: 'AVAILABLE', bookedCount: { lt: slot.capacity } },
+        data: { bookedCount: { increment: 1 } },
+      });
+
+      if (claim.count === 0) {
+        throw new BadRequestException('Slot is fully booked.');
+      }
+
       const appointment = await tx.appointment.create({
         data: {
           referenceNumber,
@@ -257,10 +271,17 @@ export class LaboratoryService {
         },
       });
 
-      await tx.appointmentSlot.update({
+      const updatedSlot = await tx.appointmentSlot.findUniqueOrThrow({
         where: { id: slotId },
-        data: { bookedCount: { increment: 1 } },
+        select: { bookedCount: true, capacity: true },
       });
+
+      if (updatedSlot.bookedCount >= updatedSlot.capacity) {
+        await tx.appointmentSlot.update({
+          where: { id: slotId },
+          data: { status: 'FULL' },
+        });
+      }
 
       await tx.appointmentHistory.create({
         data: {

@@ -1,0 +1,215 @@
+import { Test, TestingModule } from '@nestjs/testing';
+import { ConflictException } from '@nestjs/common';
+import { AppointmentStatus, SlotStatus } from '@prisma/client';
+import { PrismaService } from '../../database/prisma.service';
+import { AuditLogsService } from '../audit-logs/audit-logs.service';
+import { AppointmentsService } from './appointments.service';
+
+function makeSlot(overrides: Record<string, any> = {}) {
+  return {
+    id: 'slot-1',
+    organizationId: 'org-1',
+    appointmentType: 'BLOOD_DONATION',
+    status: SlotStatus.AVAILABLE,
+    bookedCount: 0,
+    capacity: 1,
+    startAt: new Date(Date.now() + 60 * 60 * 1000),
+    endAt: new Date(Date.now() + 90 * 60 * 1000),
+    organization: { id: 'org-1', name: 'Test Hospital', type: 'HOSPITAL', address: '123 Main St' },
+    ...overrides,
+  };
+}
+
+function makeDonor(overrides: Record<string, any> = {}) {
+  return {
+    id: 'donor-1',
+    status: 'ACTIVE',
+    donorProfile: {},
+    memberships: [],
+    ...overrides,
+  };
+}
+
+describe('AppointmentsService', () => {
+  let service: AppointmentsService;
+  let prisma: any;
+  let tx: any;
+
+  beforeEach(async () => {
+    tx = {
+      appointmentSlot: {
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+        findUniqueOrThrow: jest.fn().mockResolvedValue({ bookedCount: 1, capacity: 1 }),
+        update: jest.fn().mockResolvedValue({}),
+      },
+      appointment: {
+        create: jest.fn().mockResolvedValue({
+          id: 'apt-1',
+          referenceNumber: 'DON-2026-000001',
+          appointmentType: 'BLOOD_DONATION',
+          status: AppointmentStatus.PENDING,
+          scheduledStart: new Date(),
+          scheduledEnd: new Date(),
+          notes: undefined,
+          organization: { id: 'org-1', name: 'Test Hospital', type: 'HOSPITAL', address: '123 Main St' },
+        }),
+      },
+      appointmentHistory: { create: jest.fn().mockResolvedValue({}) },
+    };
+
+    prisma = {
+      user: { findUnique: jest.fn() },
+      appointmentSlot: { findUnique: jest.fn() },
+      appointment: { findFirst: jest.fn() },
+      $transaction: jest.fn().mockImplementation(async (cb: any) => cb(tx)),
+    };
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        AppointmentsService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: AuditLogsService, useValue: { log: jest.fn().mockResolvedValue({}) } },
+      ],
+    }).compile();
+
+    service = module.get<AppointmentsService>(AppointmentsService);
+  });
+
+  describe('bookAppointment', () => {
+    it('books successfully when the slot has room', async () => {
+      prisma.user.findUnique.mockResolvedValue(makeDonor());
+      prisma.appointmentSlot.findUnique.mockResolvedValue(makeSlot());
+      prisma.appointment.findFirst.mockResolvedValue(null);
+
+      const result = await service.bookAppointment('donor-1', {
+        slotId: 'slot-1',
+        appointmentType: 'BLOOD_DONATION' as any,
+      });
+
+      expect(tx.appointmentSlot.updateMany).toHaveBeenCalledWith({
+        where: { id: 'slot-1', status: SlotStatus.AVAILABLE, bookedCount: { lt: 1 } },
+        data: { bookedCount: { increment: 1 } },
+      });
+      expect(tx.appointment.create).toHaveBeenCalled();
+      expect(result.data.id).toBe('apt-1');
+    });
+
+    it('rejects with a clean conflict when a concurrent booking already claimed the last seat', async () => {
+      prisma.user.findUnique.mockResolvedValue(makeDonor());
+      prisma.appointmentSlot.findUnique.mockResolvedValue(makeSlot());
+      prisma.appointment.findFirst.mockResolvedValue(null);
+      // Simulate the race: the pre-check saw room, but by the time the
+      // transaction's conditional update runs, another request already
+      // filled the slot.
+      tx.appointmentSlot.updateMany.mockResolvedValue({ count: 0 });
+
+      await expect(
+        service.bookAppointment('donor-1', { slotId: 'slot-1', appointmentType: 'BLOOD_DONATION' as any }),
+      ).rejects.toThrow(ConflictException);
+
+      expect(tx.appointment.create).not.toHaveBeenCalled();
+    });
+
+    it('flips the slot to FULL once the claim fills the last seat', async () => {
+      prisma.user.findUnique.mockResolvedValue(makeDonor());
+      prisma.appointmentSlot.findUnique.mockResolvedValue(makeSlot({ capacity: 1, bookedCount: 0 }));
+      prisma.appointment.findFirst.mockResolvedValue(null);
+      tx.appointmentSlot.findUniqueOrThrow.mockResolvedValue({ bookedCount: 1, capacity: 1 });
+
+      await service.bookAppointment('donor-1', { slotId: 'slot-1', appointmentType: 'BLOOD_DONATION' as any });
+
+      expect(tx.appointmentSlot.update).toHaveBeenCalledWith({
+        where: { id: 'slot-1' },
+        data: { status: SlotStatus.FULL },
+      });
+    });
+
+    it('does not flip the slot to FULL when seats remain', async () => {
+      prisma.user.findUnique.mockResolvedValue(makeDonor());
+      prisma.appointmentSlot.findUnique.mockResolvedValue(makeSlot({ capacity: 3, bookedCount: 0 }));
+      prisma.appointment.findFirst.mockResolvedValue(null);
+      tx.appointmentSlot.findUniqueOrThrow.mockResolvedValue({ bookedCount: 1, capacity: 3 });
+
+      await service.bookAppointment('donor-1', { slotId: 'slot-1', appointmentType: 'BLOOD_DONATION' as any });
+
+      expect(tx.appointmentSlot.update).not.toHaveBeenCalled();
+    });
+
+    it('rejects a pre-full slot before ever opening a transaction', async () => {
+      prisma.user.findUnique.mockResolvedValue(makeDonor());
+      prisma.appointmentSlot.findUnique.mockResolvedValue(makeSlot({ capacity: 1, bookedCount: 1 }));
+
+      await expect(
+        service.bookAppointment('donor-1', { slotId: 'slot-1', appointmentType: 'BLOOD_DONATION' as any }),
+      ).rejects.toThrow(ConflictException);
+
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('rescheduleAppointment', () => {
+    function makeAppointment(overrides: Record<string, any> = {}) {
+      return {
+        id: 'apt-1',
+        donorId: 'donor-1',
+        slotId: 'old-slot',
+        status: AppointmentStatus.PENDING,
+        referenceNumber: 'DON-2026-000001',
+        appointmentType: 'BLOOD_DONATION',
+        organizationId: 'org-1',
+        scheduledStart: new Date(),
+        scheduledEnd: new Date(),
+        ...overrides,
+      };
+    }
+
+    beforeEach(() => {
+      tx.appointment = {
+        ...tx.appointment,
+        update: jest.fn().mockResolvedValue({
+          id: 'apt-1',
+          referenceNumber: 'DON-2026-000001',
+          appointmentType: 'BLOOD_DONATION',
+          status: AppointmentStatus.RESCHEDULED,
+          scheduledStart: new Date(),
+          scheduledEnd: new Date(),
+          organization: { id: 'org-1', name: 'Test Hospital', type: 'HOSPITAL', address: '123 Main St' },
+        }),
+      };
+      tx.appointmentSlot.findUnique = jest.fn().mockResolvedValue({
+        id: 'old-slot',
+        status: SlotStatus.AVAILABLE,
+        bookedCount: 0,
+        capacity: 1,
+      });
+      tx.appointmentSlot.findUniqueOrThrow.mockResolvedValue({ bookedCount: 1, capacity: 1 });
+    });
+
+    it('rejects with a clean conflict when the new slot fills up mid-request', async () => {
+      prisma.appointment.findUnique = jest.fn().mockResolvedValue(makeAppointment());
+      prisma.appointmentSlot.findUnique.mockResolvedValue(makeSlot({ id: 'new-slot' }));
+      prisma.appointment.findFirst.mockResolvedValue(null);
+      tx.appointmentSlot.updateMany.mockResolvedValue({ count: 0 });
+
+      await expect(
+        service.rescheduleAppointment('apt-1', 'donor-1', { newSlotId: 'new-slot' }),
+      ).rejects.toThrow(ConflictException);
+
+      expect(tx.appointment.update).not.toHaveBeenCalled();
+    });
+
+    it('reschedules successfully when the new slot has room', async () => {
+      prisma.appointment.findUnique = jest.fn().mockResolvedValue(makeAppointment());
+      prisma.appointmentSlot.findUnique.mockResolvedValue(makeSlot({ id: 'new-slot' }));
+      prisma.appointment.findFirst.mockResolvedValue(null);
+
+      const result = await service.rescheduleAppointment('apt-1', 'donor-1', { newSlotId: 'new-slot' });
+
+      expect(tx.appointmentSlot.updateMany).toHaveBeenCalledWith({
+        where: { id: 'new-slot', status: SlotStatus.AVAILABLE, bookedCount: { lt: 1 } },
+        data: { bookedCount: { increment: 1 } },
+      });
+      expect(result.data.id).toBe('apt-1');
+    });
+  });
+});

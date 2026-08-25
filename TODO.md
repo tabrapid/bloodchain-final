@@ -151,15 +151,21 @@ These make the product unusable or unsafe for real users. Fix first, in order.
 
 ## 🟠 P1 — Major gaps (feature exists but disconnected, or missing entirely)
 
-- [ ] **P1-1. Booking race conditions (double-booking) in appointments and lab slots.**
-  Both `appointments.service.ts` and `laboratory.service.ts` check
-  `bookedCount >= capacity` *outside* the transaction, then increment with
-  no `WHERE bookedCount < capacity` guard inside it — two concurrent
-  requests for the last slot can both succeed (the exact bug the spec
-  calls out to prevent). Compare with `inventory.service.reserveUnit`,
-  which does this correctly via a conditional `updateMany`.
-  - Files: `apps/api/src/modules/appointments/appointments.service.ts:47-134`,
-    `apps/api/src/modules/laboratory/laboratory.service.ts:227-263`.
+- [x] **P1-1. Booking race conditions (double-booking) in appointments and lab slots.** — Fixed:
+  both `bookAppointment` and `bookLaboratoryAppointment` now claim the slot
+  via an atomic conditional `updateMany` (`WHERE status=AVAILABLE AND
+  bookedCount < capacity`) *inside* the transaction, throwing a clean
+  Conflict/BadRequest if a concurrent request already won the race — same
+  pattern as `inventory.service.reserveUnit`. Also fixed the identical bug
+  in `rescheduleAppointment`'s new-slot claim (same file, same bug class,
+  wasn't called out separately but was just as broken), and reordered it to
+  claim first so a lost race touches nothing else. Both booking paths now
+  also correctly flip the slot to `FULL` once the claiming update fills the
+  last seat (laboratory bookings never did this before at all). Covered by
+  new `appointments.service.spec.ts` (7 tests) and `laboratory.service.spec.ts`
+  (5 tests) — both files had zero coverage before.
+  - Files: `apps/api/src/modules/appointments/appointments.service.ts`,
+    `apps/api/src/modules/laboratory/laboratory.service.ts`.
 
 - [ ] **P1-2. Inventory unit-status TOCTOU races (release/quarantine/discard/move).**
   Every inventory status-changing operation except `reserveUnit`/
