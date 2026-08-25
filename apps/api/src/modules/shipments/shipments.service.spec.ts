@@ -467,4 +467,41 @@ describe('ShipmentsService status transitions', () => {
       expect(tx.courier.updateMany).not.toHaveBeenCalled();
     });
   });
+
+  describe('getCourierRoster', () => {
+    it('returns every courier for the org regardless of status', async () => {
+      prisma.courier.findMany = jest.fn().mockResolvedValue([
+        {
+          id: 'courier-1',
+          displayName: 'Alice',
+          phone: '+1000',
+          status: 'AVAILABLE',
+          createdAt: new Date('2026-01-01'),
+          user: { email: 'alice@example.com' },
+          shipments: [{ id: 'shp-1' }],
+          _count: { shipments: 4 },
+        },
+        {
+          id: 'courier-2',
+          displayName: 'Bob',
+          phone: '+2000',
+          status: 'OFFLINE',
+          createdAt: new Date('2026-01-02'),
+          user: { email: 'bob@example.com' },
+          shipments: [],
+          _count: { shipments: 0 },
+        },
+      ]);
+
+      const result = await service.getCourierRoster('org-source', 'bc-user-1');
+
+      expect(prisma.courier.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { organizationId: 'org-source' } }),
+      );
+      expect(result.data).toEqual([
+        expect.objectContaining({ id: 'courier-1', status: 'AVAILABLE', activeShipments: 1, completedShipments: 4 }),
+        expect.objectContaining({ id: 'courier-2', status: 'OFFLINE', activeShipments: 0, completedShipments: 0 }),
+      ]);
+    });
+  });
 });

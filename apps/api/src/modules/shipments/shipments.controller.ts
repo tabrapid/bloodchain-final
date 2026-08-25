@@ -146,6 +146,16 @@ export class ShipmentsController {
     return this.shipments.getAvailableCouriers(organizationId, userId);
   }
 
+  @Get('organizations/:organizationId/couriers/roster')
+  @Roles(RoleCode.BLOOD_CENTER_ADMIN, RoleCode.BLOOD_CENTER_STAFF, RoleCode.SUPER_ADMIN)
+  @ApiOperation({ summary: 'Get full courier roster regardless of status (management view)' })
+  getCourierRoster(
+    @Param('organizationId') organizationId: string,
+    @CurrentUser('sub') userId: string,
+  ) {
+    return this.shipments.getCourierRoster(organizationId, userId);
+  }
+
   @Post('organizations/:organizationId/shipments/:shipmentId/assign')
   @Roles(RoleCode.BLOOD_CENTER_ADMIN, RoleCode.BLOOD_CENTER_STAFF, RoleCode.SUPER_ADMIN)
   @ApiOperation({ summary: 'Assign courier to shipment' })

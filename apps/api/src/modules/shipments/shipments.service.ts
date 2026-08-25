@@ -688,6 +688,47 @@ export class ShipmentsService {
     }));
   }
 
+  // Unlike getAvailableCouriers above (used to populate an assignment
+  // dropdown, so intentionally AVAILABLE-only), this returns the full
+  // roster regardless of status for the courier management/roster view.
+  async getCourierRoster(organizationId: string, userId: string) {
+    await this.checkBloodCenterAccess(userId, organizationId);
+
+    const couriers = await this.db.courier.findMany({
+      where: { organizationId },
+      include: {
+        user: { select: { id: true, firstName: true, lastName: true, email: true } },
+        shipments: {
+          where: {
+            status: {
+              notIn: [ShipmentStatus.DELIVERED, ShipmentStatus.FAILED, ShipmentStatus.CANCELLED],
+            },
+          },
+          select: { id: true },
+        },
+        _count: {
+          select: {
+            shipments: { where: { status: ShipmentStatus.DELIVERED } },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return {
+      data: couriers.map((c) => ({
+        id: c.id,
+        displayName: c.displayName,
+        phone: c.phone,
+        email: c.user.email,
+        status: c.status,
+        activeShipments: c.shipments.length,
+        completedShipments: c._count.shipments,
+        createdAt: c.createdAt,
+      })),
+    };
+  }
+
   async assignCourier(
     organizationId: string,
     userId: string,

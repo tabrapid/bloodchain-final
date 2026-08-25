@@ -334,12 +334,41 @@ These make the product unusable or unsafe for real users. Fix first, in order.
     `apps/api/src/modules/ai-health/ai-context-builder-enhanced.service.ts`,
     `apps/api/src/modules/emergency/emergency.service.ts`.
 
-- [ ] **P1-9. Blood Center dashboard is missing core pages.**
-  No page to: review/approve incoming blood requests (see P0-7), create a
-  shipment from an approved request, configure appointment slots
-  (services/dates/times/capacity/holidays — full backend exists,
-  `apps/api/src/modules/appointment-slots`), or manage couriers.
-  - Dir: `apps/blood-center-web/app/`.
+- [x] **P1-9. Blood Center dashboard is missing core pages.** — Fixed:
+  review/approve-request and create-shipment were already built under
+  P0-7 (`/requests`, `/requests/[id]`) before this item was reached, so
+  this pass covered the two still-missing pages:
+  - **`/appointments`** (new) — full slot configuration UI against the
+    already-complete `appointment-slots` backend: create a slot (type,
+    start/end, capacity), see upcoming slots with booked/capacity and
+    status, block a slot. "Holidays" from the original ask is handled via
+    blocking the individual slots on that date — there's no separate
+    holiday-calendar concept in the backend to build a UI for.
+  - **`/couriers`** (new) — courier roster/status view: every courier for
+    the org regardless of status (not just AVAILABLE, which is what the
+    existing assignment-dropdown endpoint intentionally stays scoped to),
+    with contact info and active/completed shipment counts. Required a
+    new backend endpoint (`GET organizations/:organizationId/couriers/roster`
+    -> `ShipmentsService.getCourierRoster`) since no blood-center-scoped
+    "list all couriers" endpoint existed before (only a `SUPER_ADMIN`-only
+    admin-panel one). **View-only, not full CRUD** — there is still no
+    backend path to create a courier at all (confirmed zero `courier.create`
+    calls anywhere in the API; couriers only exist via the seed script),
+    which is the same root gap already tracked under P1-12/P1-13 (no org
+    signup/roles-management flows). The page says so explicitly rather than
+    implying a broken "invite courier" button.
+  Enabled both `Appointments` and `Couriers` in the sidebar (previously
+  `disabled: true`/missing). Verified with `next build` (both routes
+  compile and prerender) and a headless-browser screenshot of each page's
+  unauthenticated state (matches the existing `/requests` page's
+  auth-gate pattern exactly — no live backend/DB was available in this
+  session to screenshot the authenticated list/modal views).
+  Added a test for `getCourierRoster` in `shipments.service.spec.ts` (26
+  tests in that file now).
+  - Files: `apps/api/src/modules/shipments/{shipments.service.ts,shipments.controller.ts}`,
+    `apps/blood-center-web/app/{appointments,couriers}/page.tsx` (new),
+    `apps/blood-center-web/lib/{appointment-slots.ts,couriers.ts}` (new),
+    `apps/blood-center-web/lib/navigation.tsx`.
 
 - [ ] **P1-10. No map UI anywhere despite location tracking being core.**
   Neither hospital-web nor blood-center-web nor mobile renders an actual
@@ -538,9 +567,10 @@ dead code — nothing emitted the events their handlers listen for).~~ ✅
 cooldown).~~ ✅
 ~~**P1-8** (centralized the next-eligible-donation-date rule into
 `DonationEligibilityService`).~~ ✅
-Next up: **P1-9** (Blood Center dashboard missing core pages — note the
-review/approve-request and create-shipment pages it lists were already
-built under P0-7, so this needs a quick re-scoping pass to confirm what's
-actually still missing — likely just appointment-slot config and courier
-management — before implementing), then the rest of P1, then P2, folding in
-P3-1 tests as each area is touched.
+~~**P1-9** (Blood Center dashboard missing core pages — added `/appointments`
+slot config and `/couriers` roster; review/approve-request and
+create-shipment were already done under P0-7).~~ ✅
+Next up: **P1-10** (no map UI anywhere despite location tracking being
+core — add a map library and real map views to shipment tracking and SOS
+donor-location screens), then the rest of P1, then P2, folding in P3-1
+tests as each area is touched.
