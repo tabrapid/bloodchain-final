@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ScrollView, View, RefreshControl } from 'react-native';
-import { Stack } from 'expo-router';
+import { ScrollView, View, RefreshControl, TouchableOpacity } from 'react-native';
+import { router, Stack } from 'expo-router';
 import { Activity, Beaker, Calendar, ChevronRight, Clock, FlaskConical, TestTube2 } from 'lucide-react-native';
 import { AppText, Card, GlassCard, LoadingState, Screen, SectionHeader, StatCard } from '../../../src/components';
 import { colors, spacing } from '../../../src/theme';
@@ -111,35 +111,47 @@ export default function LaboratoryScreen() {
         </View>
 
         <SectionHeader>BOOK A TEST</SectionHeader>
-        <Card style={{ marginBottom: spacing.lg }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
-            <View
-              style={{
-                width: 48,
-                height: 48,
-                borderRadius: 12,
-                backgroundColor: colors.secondary + '20',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <FlaskConical size={24} color={colors.secondary} />
+        <TouchableOpacity
+          onPress={() =>
+            router.push({ pathname: '/(booking)/organizations', params: { type: 'BLOOD_TEST' } })
+          }
+          activeOpacity={0.8}
+        >
+          <Card style={{ marginBottom: spacing.lg }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
+              <View
+                style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 12,
+                  backgroundColor: colors.secondary + '20',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <FlaskConical size={24} color={colors.secondary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <AppText variant="heading">Book Blood Test</AppText>
+                <AppText muted style={{ fontSize: 13 }}>
+                  Schedule a laboratory appointment
+                </AppText>
+              </View>
+              <ChevronRight size={20} color={colors.textMuted} />
             </View>
-            <View style={{ flex: 1 }}>
-              <AppText variant="heading">Book Blood Test</AppText>
-              <AppText muted style={{ fontSize: 13 }}>
-                Schedule a laboratory appointment
-              </AppText>
-            </View>
-            <ChevronRight size={20} color={colors.textMuted} />
-          </View>
-        </Card>
+          </Card>
+        </TouchableOpacity>
 
         {upcomingAppointments.length > 0 && (
           <>
             <SectionHeader>UPCOMING APPOINTMENTS</SectionHeader>
             {upcomingAppointments.slice(0, 3).map((appointment) => (
-              <Card key={appointment.id} style={{ marginBottom: spacing.md }}>
+              <TouchableOpacity
+                key={appointment.id}
+                onPress={() => router.push(`/appointment/${appointment.id}`)}
+                activeOpacity={0.8}
+              >
+              <Card style={{ marginBottom: spacing.md }}>
                 <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md }}>
                   <View
                     style={{
@@ -190,6 +202,7 @@ export default function LaboratoryScreen() {
                   </View>
                 </View>
               </Card>
+              </TouchableOpacity>
             ))}
           </>
         )}

@@ -257,7 +257,7 @@ export default function Home() {
           SOS Blood Requests
         </AppText>
         <AppText muted style={styles.sosText}>
-          Emergency matching will be available in a future phase.
+          View active emergency requests that match your blood type.
         </AppText>
         <AppButton variant="danger" size="small" onPress={() => router.push('/sos')}>
           View SOS Area

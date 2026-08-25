@@ -34,26 +34,29 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   - Files: `apps/api/src/modules/auth/auth.service.ts:53-176`,
     `apps/api/prisma/schema.prisma:584`.
 
-- [ ] **P0-2. Donor mobile "Donate" tab is a hardcoded placeholder shell.**
-  The primary bottom-tab screen shows static "Coming soon" / "will become
-  available once your profile is connected" text instead of real booking,
-  history, or SOS actions — despite every backend endpoint it needs already
-  existing and working screens existing elsewhere in the app.
+- [x] **P0-2. Donor mobile "Donate" tab is a hardcoded placeholder shell.** — Fixed:
+  `donate.tsx` now shows real donation stats/next-eligible-date, a working
+  "Book now" action, a donation-history card linking to `/donations`, and a
+  working "Respond to SOS" card linking to `/sos` — all backed by existing
+  hooks/screens, no new backend needed.
   - File: `apps/mobile/app/(app)/donate.tsx`.
 
-- [ ] **P0-3. No reachable entry point to book an appointment.**
-  The fully-built multi-step booking flow at `apps/mobile/app/(booking)/`
-  is only ever pushed to from a *reschedule* action on an existing
-  appointment — there is no "Book new" button anywhere in nav (Home,
-  Calendar, Donate tab).
-  - Files: `apps/mobile/app/(booking)/index.tsx`,
-    `apps/mobile/app/(app)/appointment/[id].tsx:110`,
-    `apps/mobile/app/(app)/home.tsx`, `apps/mobile/app/(app)/calendar.tsx`.
+- [x] **P0-3. No reachable entry point to book an appointment.** — Fixed: Donate
+  tab's "Book now" goes straight to org selection with `type=BLOOD_DONATION`
+  preset; Calendar tab got a `+` header button to `/(booking)` (full type
+  picker); Laboratory tab's booking card (see P0-4) covers blood tests.
+  Confirmed the generic `(booking)/` flow and `laboratory` module's own
+  booking endpoint both write to the same `Appointment` table (just
+  filtered by `appointmentType`), so no new backend/booking-flow duplication
+  was needed — this really was a pure navigation gap.
+  - Files: `apps/mobile/app/(app)/donate.tsx`, `apps/mobile/app/(app)/calendar.tsx`.
 
-- [ ] **P0-4. Blood-test booking button is dead (no `onPress`).**
-  The "Book Blood Test" card on the laboratory screen has no tap handler
-  at all — booking is implemented server-side but unreachable client-side.
-  - File: `apps/mobile/app/(app)/laboratory/index.tsx:113-136`.
+- [x] **P0-4. Blood-test booking button is dead (no `onPress`).** — Fixed: wrapped
+  the card in a `TouchableOpacity` pushing to `/(booking)/organizations`
+  with `type=BLOOD_TEST` preset (reuses the existing, backend-correct
+  booking flow — see P0-3 note); also wired the upcoming-appointment list
+  items to the existing appointment detail screen.
+  - File: `apps/mobile/app/(app)/laboratory/index.tsx:113-143`.
 
 - [ ] **P0-5. Push notifications are entirely fake, end-to-end.**
   `sendPushNotification()` builds a well-formed Expo payload but never
