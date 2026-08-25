@@ -7,6 +7,7 @@ import { loginSchema, type LoginInput } from '@donor/validation';
 import { AppButton, AppText, Screen } from '../../src/components';
 import { useLogin, getAuthErrorMessage } from '../../src/hooks/useAuth';
 import { useAuthStore } from '../../src/stores/auth.store';
+import { getPostAuthRoute } from '../../src/utils/postAuthRoute';
 import { colors, spacing } from '../../src/theme';
 
 export default function Login() {
@@ -24,8 +25,8 @@ export default function Login() {
     setUnverifiedEmail(null);
     setLoading(true);
     try {
-      await login.mutateAsync(data);
-      router.replace('/(app)/home');
+      const result = await login.mutateAsync(data);
+      router.replace(getPostAuthRoute(result.user.roles));
     } catch (err: unknown) {
       const message = getAuthErrorMessage(err);
       setServerError(message);

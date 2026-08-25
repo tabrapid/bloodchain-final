@@ -4,6 +4,7 @@ import { ActivityIndicator, View } from 'react-native';
 import { CheckCircle, XCircle } from 'lucide-react-native';
 import { AppButton, AppText, Screen } from '../../src/components';
 import { useVerifyEmail, getAuthErrorMessage } from '../../src/hooks/useAuth';
+import { getPostAuthRoute } from '../../src/utils/postAuthRoute';
 import { colors, spacing } from '../../src/theme';
 
 export default function VerifyEmail() {
@@ -17,8 +18,8 @@ export default function VerifyEmail() {
     attempted.current = true;
 
     verifyEmail.mutate(params.token, {
-      onSuccess: () => {
-        router.replace('/(app)/home');
+      onSuccess: (data) => {
+        router.replace(getPostAuthRoute(data.user.roles));
       },
       onError: (err: unknown) => {
         setError(getAuthErrorMessage(err));

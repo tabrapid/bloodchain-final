@@ -344,7 +344,9 @@ export class ShipmentsService {
       const totalRequested = allItems.reduce((sum: number, i: { unitsRequested: number }) => sum + i.unitsRequested, 0);
 
       let status: BloodRequestStatus = BloodRequestStatus.APPROVED;
-      if (totalApproved < totalRequested && totalApproved > 0) {
+      if (totalApproved === 0) {
+        status = BloodRequestStatus.REJECTED;
+      } else if (totalApproved < totalRequested) {
         status = BloodRequestStatus.PARTIALLY_APPROVED;
       }
 
@@ -360,7 +362,12 @@ export class ShipmentsService {
       await tx.bloodRequestEvent.create({
         data: {
           bloodRequestId: requestId,
-          eventType: status === BloodRequestStatus.APPROVED ? 'APPROVED' : 'PARTIALLY_APPROVED',
+          eventType:
+            status === BloodRequestStatus.APPROVED
+              ? 'APPROVED'
+              : status === BloodRequestStatus.REJECTED
+                ? 'REJECTED'
+                : 'PARTIALLY_APPROVED',
           actorId: user.id,
           organizationId,
           metadata: { items: dto.items },

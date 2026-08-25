@@ -85,29 +85,45 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   - Add `expo-server-sdk` (or FCM/APNs), implement real send, request
     permissions + register token on app start / login.
 
-- [ ] **P0-6. Courier system has a complete backend and zero UI.**
-  Every courier action (accept/decline/pickup/transit/arrive/deliver/
-  location update) is fully implemented and role-guarded server-side, but
-  no mobile screen and no web dashboard ever calls any of it, and there is
-  no way to even create a `Courier` record outside the seed script. The
-  courier role is currently non-functional in production.
-  - Files: `apps/mobile/src/api/courier.ts` (unused client),
-    `apps/api/src/modules/courier/courier.controller.ts`,
-    `apps/api/src/modules/shipments/shipments.controller.ts:157-246`.
-  - Decide: dedicated courier mobile app/section, or web dashboard. Add an
-    admin/self-service courier-creation endpoint + UI.
+- [x] **P0-6. Courier system has a complete backend and zero UI.** — Fixed:
+  built a full courier workspace inside the mobile app, `(courier)/`, gated
+  by role. `active.tsx` — accept/decline an assignment, walk pickup → in
+  transit → arrived, live location tracking during transit (same
+  `expo-location watchPositionAsync` pattern as `sos.tsx`), report-a-problem
+  (fail shipment). `history.tsx` — past deliveries + stats. `profile.tsx` —
+  edit name/phone (added the missing `PATCH /courier/profile` client call),
+  toggle AVAILABLE/OFFLINE, logout. Post-login/verify routing is now
+  role-aware (`getPostAuthRoute`): a COURIER-role account lands in
+  `(courier)/active` instead of the donor home. Also fixed a real bug found
+  along the way: `AppButton` forced all children into one `AppText`, which
+  silently drops any icon passed alongside text (RN `Text` can't host a
+  `View`/SVG) — affected the pre-existing `sos.tsx` too, now fixed for both.
+  Deleted an orphaned dead placeholder screen (`(auth)/verification.tsx`,
+  superseded by the real P0-1 verification flow).
+  - **Not done, and intentionally out of scope here**: there is still no
+    way to *create* a `Courier` record (or any staff account) outside the
+    seed script — that's the same gap tracked under P1-12/P1-13 (no org
+    signup, no roles/permissions management), not a courier-specific issue,
+    and shouldn't be solved twice.
+  - Files: `apps/mobile/app/(courier)/*`, `apps/mobile/src/api/courier.ts`,
+    `apps/mobile/src/utils/postAuthRoute.ts`,
+    `apps/mobile/src/components/AppButton.tsx`,
+    `apps/mobile/app/(auth)/{login,verify-email}.tsx`.
 
-- [ ] **P0-7. Hospital ↔ Blood Center blood-request workflow has no UI on either side.**
-  Backend chain (create → approve → ready → shipment → assign) is real and
-  transactionally safe, but: hospital-web has **no page to create a blood
-  request** at all, and blood-center-web has **no page to review/approve
-  requests or create a shipment from one** (`getBloodRequests`,
-  `approveBloodRequest`, `createShipment` are defined but never called from
-  any component). The core hospital→blood-center supply chain is unusable
-  through the product today.
-  - Files: `apps/hospital-web/lib/shipments.ts`,
-    `apps/blood-center-web/lib/shipments.ts:166-212`,
-    `apps/blood-center-web/app/shipments/page.tsx:243-244`.
+- [x] **P0-7. Hospital ↔ Blood Center blood-request workflow has no UI on either side.** — Fixed:
+  hospital-web gets `/requests` (list + status), `/requests/new` (multi-line
+  blood-type/component/units form), and `/requests/[id]` (detail + linked
+  shipment). blood-center-web gets `/requests` (incoming, filterable) and
+  `/requests/[id]` with a review modal (per-item units-approved, Approve or
+  Reject), "Mark Ready for Pickup", and "Create Shipment" (hands off into
+  the already-working assign-courier flow on the shipment detail page).
+  Also fixed a real backend bug found while wiring Reject: approving a
+  request with 0 units on every line left it labeled `APPROVED` (the
+  `totalApproved > 0` guard was missing), which would have made "Reject"
+  lie about what happened — it now correctly resolves to `REJECTED`.
+  - Files: `apps/hospital-web/app/requests/**`, `apps/hospital-web/lib/shipments.ts`,
+    `apps/blood-center-web/app/requests/**`, `apps/blood-center-web/lib/shipments.ts`,
+    `apps/api/src/modules/shipments/shipments.service.ts` (approveRequest status fix).
 
 - [x] **P0-8. Donor location broadcast to other donors, not just the hospital.** — Fixed:
   split the single shared room into `emergency:{id}:hospital` (staff +
@@ -391,8 +407,13 @@ These make the product unusable or unsafe for real users. Fix first, in order.
 
 ## Suggested execution order
 
-1. **P0-1** (registration/login) unblocks real users entirely — do this first.
-2. **P0-2 → P0-4** (mobile navigation dead ends) — cheap, high-impact UI wiring, no new backend needed.
-3. **P0-8, P0-9** (security) — before any load/beta testing touches real location data.
-4. **P0-5** (push) and **P0-6/P0-7** (courier + hospital↔blood-center UI) — these three close the loop on the emergency and supply-chain flows end-to-end.
-5. Then P1 in listed order, then P2, folding in P3-1 tests as each area is touched.
+1. ~~**P0-1** (registration/login) unblocks real users entirely — do this first.~~ ✅
+2. ~~**P0-2 → P0-4** (mobile navigation dead ends) — cheap, high-impact UI wiring, no new backend needed.~~ ✅
+3. ~~**P0-8, P0-9** (security) — before any load/beta testing touches real location data.~~ ✅
+4. ~~**P0-5** (push) and **P0-6/P0-7** (courier + hospital↔blood-center UI) — these three close the loop on the emergency and supply-chain flows end-to-end.~~ ✅
+
+**All P0 items are done.** Next up, P1 in listed order — start with **P1-1/P1-2/P1-3**
+(the booking/inventory/shipment TOCTOU races, all the same fix pattern
+already used for P0-9) and **P1-4** (route shipments through the real
+`ShipmentStateMachine`), then the rest of P1, then P2, folding in P3-1
+tests as each area is touched.
