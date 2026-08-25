@@ -8,6 +8,7 @@ import { PrismaService } from '../../database/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { EmailService } from '../email/email.service';
 import { PermissionsService } from '../permissions/permissions.service';
+import { PlatformSettingsService } from '../platform-settings/platform-settings.service';
 import { RoleCode, UserStatus } from '@prisma/client';
 
 jest.mock('argon2');
@@ -93,6 +94,12 @@ describe('AuthService Security Tests', () => {
       sendVerificationEmail: jest.fn().mockResolvedValue(undefined),
     };
 
+    const mockPlatformSettingsService = {
+      getSessionTimeoutMinutes: jest.fn().mockResolvedValue(43200),
+      isEnabled: jest.fn().mockResolvedValue(true),
+      isMaintenanceMode: jest.fn().mockResolvedValue(false),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
@@ -102,6 +109,7 @@ describe('AuthService Security Tests', () => {
         { provide: ConfigService, useValue: mockConfigService },
         { provide: JwtService, useValue: mockJwtService },
         { provide: EmailService, useValue: mockEmailService },
+        { provide: PlatformSettingsService, useValue: mockPlatformSettingsService },
       ],
     }).compile();
 

@@ -616,6 +616,22 @@ model AuditLog {
   @@index([createdAt])
 }
 
+// Singleton row (fixed id "platform") holding platform-wide settings the
+// admin app can actually read and mutate — session length and feature
+// kill-switches read by AuthService, AiHealthService, EmergencyService,
+// GamificationEventHandler, and NotificationDeliveryService.
+model PlatformSettings {
+  id                        String   @id @default("platform")
+  sessionTimeoutMinutes     Int      @default(43200)
+  aiHealthInsightsEnabled   Boolean  @default(true)
+  sosEmergencyEnabled       Boolean  @default(true)
+  gamificationEnabled       Boolean  @default(true)
+  pushNotificationsEnabled  Boolean  @default(true)
+  maintenanceMode           Boolean  @default(false)
+  updatedAt                 DateTime @updatedAt
+  updatedById               String?
+}
+
 model IdempotencyRecord {
   key       String   @id
   result    Json

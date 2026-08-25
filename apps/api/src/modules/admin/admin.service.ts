@@ -1218,6 +1218,7 @@ export class AdminService {
     return {
       status: databaseStatus === 'up' ? 'healthy' : 'degraded',
       database: databaseStatus,
+      version: process.env.npm_package_version ?? '0.1.0',
       timestamp: new Date().toISOString(),
       pending: {
         organizations: pendingOrganizations,

@@ -594,10 +594,88 @@ These make the product unusable or unsafe for real users. Fix first, in order.
     `apps/admin-web/app/roles/page.tsx` (new),
     `apps/admin-web/app/users/page.tsx`.
 
-- [ ] **P1-14. Admin: platform "Settings" page is 100% fake.**
-  Entirely static JSX with hardcoded badges ("Session Timeout: 24 hours",
-  etc.) — no state, no fetch, no mutation, no backing model on the server.
-  - File: `apps/admin-web/app/settings/page.tsx`.
+- [x] **P1-14. Admin: platform "Settings" page is 100% fake.** — Fixed: added a
+  real backing model and made every setting on the page either genuinely
+  admin-editable or removed if it couldn't honestly be either.
+  New `PlatformSettings` Prisma model (singleton row, `id: "platform"`,
+  lazily created on first read) behind a new `@Global()`
+  `PlatformSettingsModule`/`PlatformSettingsService`, with
+  `GET`/`PATCH /admin/settings` on `AdminController`. Six real gate points
+  now actually read it, replacing what were previously either
+  hardcoded-on behaviors or (for two of them) settings that plain didn't
+  exist anywhere in the backend:
+  - **Session Timeout** — previously a hardcoded "24 hours" label that
+    didn't match the actual refresh-token lifetime (`JWT_REFRESH_EXPIRES_IN`,
+    default 30d) and wasn't configurable at all. `sessionTimeoutMinutes`
+    now *is* the refresh-token lifetime, read by `AuthService.createTokenPair`
+    on every login; the now-dead `parseDuration`/env-var path was removed
+    rather than left as unreachable code.
+  - **AI Health Insights / SOS Emergency / Gamification / Push
+    Notifications** feature flags — each now gates its real code path
+    (`AIHealthService.checkFeatureEnabled` — the existing `AI_ENABLED` env
+    check now additionally requires the DB flag;
+    `EmergencyService.createEmergency` throws before checking hospital
+    access; all four `GamificationEventHandler` `@OnEvent` handlers
+    short-circuit before touching a donor's profile; `NotificationDeliveryService.deliver`
+    returns a clean "disabled" result before creating a delivery row).
+  - **Maintenance Mode** — new, replaces the old "Courier Tracking"
+    toggle (toggling off live courier tracking mid-shipment made no
+    sense as a kill-switch and nothing else in the app would have
+    respected it). `AuthService.login` now blocks sign-in for everyone
+    except `SUPER_ADMIN` while enabled, so an admin can always fix a
+    misconfigured platform.
+  Two settings were removed rather than kept fake: **Two-Factor
+  Authentication** ("Configurable") — nothing in the codebase implements
+  2FA at all, there was no honest way to describe it as a toggle. **Email
+  / SMS Notifications** ("Enabled") — investigating
+  `NotificationDeliveryService` found only `PUSH` is a real delivery
+  channel; `EmailService` exists but is wired only to auth verification
+  emails, never the general notification pipeline, and no SMS provider
+  exists anywhere. Displaying them as "Enabled" toggles would have been
+  the exact bug this item exists to fix, just moved into the new code
+  instead of removed. Kept **Password Policy** but relabeled it "(fixed)"
+  — the 12-char/upper/lower/number/symbol rule is real (`RegisterDto`)
+  but is compile-time `class-validator` decorators, not admin-editable,
+  so the UI now says so instead of implying a control that isn't there.
+  **Platform Info** card now reads real values: added `version` to the
+  already-real `GET /admin/health` response (`process.env.npm_package_version`,
+  matching the pattern already used in `health.controller.ts`) — API/DB
+  status were already real, only the version was previously hardcoded.
+  Verified further than any other item this session: this sandbox turned
+  out to have PostgreSQL 16 installed locally (just not running) — started
+  it, created a dev database, ran the real migration
+  (`20260825153121_add_platform_settings`) and the seed script, and
+  booted the actual NestJS API against it. Confirmed live over HTTP: the
+  settings singleton lazily creates itself with sensible defaults on
+  first `GET`; `PATCH` persists and audit-logs
+  (`PLATFORM_SETTINGS_UPDATED`) with the acting admin's id; disabling
+  `sosEmergencyEnabled` makes a real hospital-admin's
+  `POST /organizations/:id/emergencies` call fail with 403 and
+  re-enabling it immediately lets the identical request through (201);
+  enabling `maintenanceMode` blocks a non-admin login with 403 while a
+  `SUPER_ADMIN` login still succeeds. Then drove the actual admin-web
+  `/settings` page in a headless browser through a real login, confirmed
+  it renders the live values (not mocked/hardcoded), clicked a real
+  toggle and Save button, and confirmed the resulting `PATCH` persisted
+  after a full page reload. Also: 232/232 backend tests passing (up from
+  219 — new coverage for every gate point touched: `admin.service.spec.ts`
+  already existed from P1-13, `gamification-event.handler.spec.ts` is
+  new since that handler had zero tests before this, plus additions to
+  `auth`, `emergency`, and `notification-delivery` specs), clean
+  `tsc --noEmit` on the API, clean `tsc --noEmit`/`next build` on
+  admin-web, 0 new lint errors.
+  - Files: `apps/api/prisma/schema.prisma`,
+    `apps/api/prisma/migrations/20260825153121_add_platform_settings/` (new),
+    `apps/api/src/modules/platform-settings/{platform-settings.module.ts,platform-settings.service.ts}` (new),
+    `apps/api/src/app.module.ts`,
+    `apps/api/src/modules/admin/{admin.controller.ts,admin.service.ts}`,
+    `apps/api/src/modules/admin/dto/admin.dto.ts`,
+    `apps/api/src/modules/auth/auth.service.ts` (+ both its spec files),
+    `apps/api/src/modules/ai-health/ai-health.service.ts`,
+    `apps/api/src/modules/emergency/emergency.service.ts` (+ spec),
+    `apps/api/src/modules/gamification/events/gamification-event.handler.ts` (+ new spec),
+    `apps/api/src/modules/notifications/services/notification-delivery.service.ts` (+ spec),
+    `apps/admin-web/lib/api.tsx`, `apps/admin-web/app/settings/page.tsx`.
 
 - [ ] **P1-15. Admin: content moderation is a write-only sink.**
   Users can report community content (`ContentReport` rows get created),
@@ -811,5 +889,10 @@ blood-center-web, and a pending-approval landing screen; split the deeper
 `GET/PATCH /admin/roles`, `GET /admin/permissions`, and
 `PATCH /admin/memberships/:id/role`, plus admin-web's new `/roles` page
 and a "change role" control on the Users page).~~ ✅
-Next up: **P1-14** (Admin platform "Settings" page is 100% fake), then the
-rest of P1, then P2, folding in P3-1 tests as each area is touched.
+~~**P1-14** (Admin platform "Settings" page was 100% fake — added a real
+`PlatformSettings` model with six live gate points: session timeout,
+AI/SOS/gamification/push feature flags, and a new maintenance-mode
+kill-switch; removed the two badges — 2FA, Email/SMS notifications — that
+had no honest backing at all instead of leaving them fake).~~ ✅
+Next up: **P1-15** (Admin: content moderation is a write-only sink), then
+the rest of P1, then P2, folding in P3-1 tests as each area is touched.

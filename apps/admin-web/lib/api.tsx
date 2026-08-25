@@ -366,6 +366,43 @@ export async function acknowledgeAlert(id: string, notes?: string): Promise<any>
   });
 }
 
-export async function getSystemHealth(): Promise<any> {
-  return apiRequest<any>('/admin/health');
+export interface SystemHealth {
+  status: string;
+  database: string;
+  version: string;
+  timestamp: string;
+  pending: { organizations: number; couriers: number };
+  alerts: number;
+  recentErrors: number;
+}
+
+export async function getSystemHealth(): Promise<SystemHealth> {
+  return apiRequest<SystemHealth>('/admin/health');
+}
+
+export interface PlatformSettings {
+  id: string;
+  sessionTimeoutMinutes: number;
+  aiHealthInsightsEnabled: boolean;
+  sosEmergencyEnabled: boolean;
+  gamificationEnabled: boolean;
+  pushNotificationsEnabled: boolean;
+  maintenanceMode: boolean;
+  updatedAt: string;
+  updatedById: string | null;
+}
+
+export type PlatformSettingsPatch = Partial<
+  Omit<PlatformSettings, 'id' | 'updatedAt' | 'updatedById'>
+>;
+
+export async function getPlatformSettings(): Promise<PlatformSettings> {
+  return apiRequest<PlatformSettings>('/admin/settings');
+}
+
+export async function updatePlatformSettings(patch: PlatformSettingsPatch): Promise<PlatformSettings> {
+  return apiRequest<PlatformSettings>('/admin/settings', {
+    method: 'PATCH',
+    body: JSON.stringify(patch),
+  });
 }

@@ -3,6 +3,7 @@ import {
   IsOptional,
   IsString,
   IsBoolean,
+  IsInt,
   IsNumber,
   IsDateString,
   IsArray,
@@ -25,6 +26,40 @@ export class AdminUpdateMembershipRoleDto {
   @IsString()
   @IsNotEmpty()
   roleId!: string;
+}
+
+export class AdminUpdatePlatformSettingsDto {
+  @ApiPropertyOptional({ minimum: 15, maximum: 43200, description: 'How long a session stays valid before requiring re-login' })
+  @IsOptional()
+  @IsInt()
+  @Min(15)
+  @Max(43200)
+  sessionTimeoutMinutes?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  aiHealthInsightsEnabled?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  sosEmergencyEnabled?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  gamificationEnabled?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  pushNotificationsEnabled?: boolean;
+
+  @ApiPropertyOptional({ description: 'When enabled, only SUPER_ADMIN accounts can sign in' })
+  @IsOptional()
+  @IsBoolean()
+  maintenanceMode?: boolean;
 }
 
 export class AdminListUsersDto {

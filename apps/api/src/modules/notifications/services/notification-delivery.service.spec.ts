@@ -4,6 +4,7 @@ import { NotificationDeliveryService } from './notification-delivery.service';
 import { PushDeviceService } from './push-device.service';
 import { PushProviderService } from './push-provider.service';
 import { NotificationPreferenceService } from './notification-preference.service';
+import { PlatformSettingsService } from '../../platform-settings/platform-settings.service';
 import { DeliveryStatus, NotificationPriority } from '../dto';
 
 type MockPrisma = {
@@ -17,6 +18,7 @@ describe('NotificationDeliveryService', () => {
   let pushDeviceService: { getActiveDevicesForUser: jest.Mock; markInvalidToken: jest.Mock };
   let pushProvider: { isValidToken: jest.Mock; send: jest.Mock };
   let preferenceService: { isInQuietHours: jest.Mock; shouldEmergencyOverride: jest.Mock };
+  let platformSettings: { isEnabled: jest.Mock };
 
   const baseNotification = {
     id: 'notif-1',
@@ -52,6 +54,8 @@ describe('NotificationDeliveryService', () => {
       shouldEmergencyOverride: jest.fn().mockResolvedValue(false),
     };
 
+    platformSettings = { isEnabled: jest.fn().mockResolvedValue(true) };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         NotificationDeliveryService,
@@ -59,6 +63,7 @@ describe('NotificationDeliveryService', () => {
         { provide: PushDeviceService, useValue: pushDeviceService },
         { provide: PushProviderService, useValue: pushProvider },
         { provide: NotificationPreferenceService, useValue: preferenceService },
+        { provide: PlatformSettingsService, useValue: platformSettings },
       ],
     }).compile();
 
@@ -76,6 +81,17 @@ describe('NotificationDeliveryService', () => {
     const result = await service.deliver('notif-1');
 
     expect(result).toEqual({ success: false, reason: 'Notification expired' });
+    expect(prisma.notificationDelivery.create).not.toHaveBeenCalled();
+  });
+
+  it('short-circuits without creating a delivery row when push notifications are disabled platform-wide', async () => {
+    platformSettings.isEnabled.mockResolvedValue(false);
+    prisma.notification.findUnique.mockResolvedValue({ ...baseNotification });
+
+    const result = await service.deliver('notif-1');
+
+    expect(result).toEqual({ success: false, reason: 'Push notifications disabled by platform admin' });
+    expect(platformSettings.isEnabled).toHaveBeenCalledWith('pushNotificationsEnabled');
     expect(prisma.notificationDelivery.create).not.toHaveBeenCalled();
   });
 

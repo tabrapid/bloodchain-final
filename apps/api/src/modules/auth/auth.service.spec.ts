@@ -8,6 +8,7 @@ import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { PrismaService } from '../../database/prisma.service';
 import { EmailService } from '../email/email.service';
 import { PermissionsService } from '../../modules/permissions/permissions.service';
+import { PlatformSettingsService } from '../platform-settings/platform-settings.service';
 import { AuthService } from './auth.service';
 
 type MockPrisma = {
@@ -34,6 +35,7 @@ describe('AuthService', () => {
   let jwt: Partial<JwtService>;
   let permissions: Partial<PermissionsService>;
   let email: Partial<EmailService>;
+  let platformSettings: Partial<PlatformSettingsService>;
 
   beforeEach(async () => {
     prisma = {
@@ -66,6 +68,12 @@ describe('AuthService', () => {
       sendVerificationEmail: jest.fn().mockResolvedValue(undefined),
     };
 
+    platformSettings = {
+      getSessionTimeoutMinutes: jest.fn().mockResolvedValue(43200),
+      isEnabled: jest.fn().mockResolvedValue(true),
+      isMaintenanceMode: jest.fn().mockResolvedValue(false),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
@@ -95,6 +103,10 @@ describe('AuthService', () => {
         {
           provide: EmailService,
           useValue: email,
+        },
+        {
+          provide: PlatformSettingsService,
+          useValue: platformSettings,
         },
       ],
     }).compile();
@@ -279,6 +291,44 @@ describe('AuthService', () => {
     await expect(service.login('test@donor.local', 'SecurePassword123!')).rejects.toThrow(
       ForbiddenException,
     );
+  });
+
+  it('rejects login for a non-admin while the platform is in maintenance mode', async () => {
+    (platformSettings.isMaintenanceMode as jest.Mock).mockResolvedValue(true);
+    const passwordHash = await argon2.hash('SecurePassword123!');
+    prisma.user.findUnique.mockResolvedValue({
+      id: 'u1',
+      email: 'test@donor.local',
+      firstName: 'Test',
+      lastName: 'User',
+      status: 'ACTIVE',
+      emailVerified: true,
+      passwordHash,
+      memberships: [{ role: { code: RoleCode.DONOR }, organization: { type: 'HOSPITAL' }, status: 'ACTIVE' }],
+    });
+
+    await expect(service.login('test@donor.local', 'SecurePassword123!')).rejects.toThrow(
+      ForbiddenException,
+    );
+  });
+
+  it('still allows a SUPER_ADMIN to log in during maintenance mode', async () => {
+    (platformSettings.isMaintenanceMode as jest.Mock).mockResolvedValue(true);
+    const passwordHash = await argon2.hash('SecurePassword123!');
+    prisma.user.findUnique.mockResolvedValue({
+      id: 'u1',
+      email: 'admin@donor.local',
+      firstName: 'Admin',
+      lastName: 'User',
+      status: 'ACTIVE',
+      emailVerified: true,
+      passwordHash,
+      failedLoginAttempts: 0,
+      memberships: [{ role: { code: RoleCode.SUPER_ADMIN }, organization: { type: 'HOSPITAL' }, status: 'ACTIVE' }],
+    });
+
+    const result = await service.login('admin@donor.local', 'SecurePassword123!');
+    expect(result.data.accessToken).toBe('access-token');
   });
 
   it('refreshes tokens with valid refresh token', async () => {

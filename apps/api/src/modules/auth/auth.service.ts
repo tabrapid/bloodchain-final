@@ -17,6 +17,7 @@ import { EmailService } from '../email/email.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import { RegisterDto } from './dto/register.dto';
 import { RegisterOrganizationDto } from './dto/register-organization.dto';
+import { PlatformSettingsService } from '../platform-settings/platform-settings.service';
 
 export interface TokenPair {
   accessToken: string;
@@ -34,6 +35,7 @@ export class AuthService {
     private readonly audit: AuditLogsService,
     private readonly permissions: PermissionsService,
     private readonly email: EmailService,
+    private readonly platformSettings: PlatformSettingsService,
   ) {}
 
   async register(input: RegisterDto, ipAddress?: string) {
@@ -313,6 +315,19 @@ export class AuthService {
         ipAddress,
       });
       throw new UnauthorizedException('Email or password is incorrect.');
+    }
+
+    const isSuperAdmin = user.memberships.some((m) => m.role.code === RoleCode.SUPER_ADMIN);
+    if (!isSuperAdmin && (await this.platformSettings.isMaintenanceMode())) {
+      await this.audit.log({
+        actorId: user.id,
+        action: 'LOGIN_FAILED',
+        entityType: 'User',
+        entityId: user.id,
+        metadata: { reason: 'maintenance_mode' },
+        ipAddress,
+      });
+      throw new ForbiddenException('The platform is temporarily down for maintenance. Please try again later.');
     }
 
     if (user.lockoutUntil && user.lockoutUntil > new Date()) {
@@ -758,8 +773,8 @@ export class AuthService {
     );
 
     const rawRefresh = randomBytes(48).toString('hex');
-    const expiresIn = this.config.get<string>('JWT_REFRESH_EXPIRES_IN', '30d');
-    const expiresAt = new Date(Date.now() + this.parseDuration(expiresIn as string));
+    const sessionTimeoutMinutes = await this.platformSettings.getSessionTimeoutMinutes();
+    const expiresAt = new Date(Date.now() + sessionTimeoutMinutes * 60 * 1000);
 
     await this.db.refreshToken.create({
       data: {
@@ -775,19 +790,5 @@ export class AuthService {
   private hashRefreshToken(token: string): string {
     const secret = this.config.getOrThrow<string>('JWT_REFRESH_SECRET');
     return createHmac('sha256', secret).update(token).digest('hex');
-  }
-
-  private parseDuration(value: string): number {
-    const match = value.match(/^(\d+)([dhm])$/i);
-    if (!match) return 30 * 24 * 60 * 60 * 1000;
-    const amount = Number(match[1]!);
-    const unit = match[2]!.toLowerCase();
-    const multipliers: Record<string, number> = {
-      m: 60 * 1000,
-      h: 60 * 60 * 1000,
-      d: 24 * 60 * 60 * 1000,
-    };
-    const multiplier = multipliers[unit] ?? multipliers['d']!;
-    return amount * multiplier;
   }
 }

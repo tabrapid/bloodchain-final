@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { GamificationService } from '../gamification.service';
+import { PlatformSettingsService } from '../../platform-settings/platform-settings.service';
 
 export const DONATION_COMPLETED_EVENT = 'donation.completed';
 export const BLOOD_TEST_COMPLETED_EVENT = 'blood-test.completed';
@@ -35,10 +36,16 @@ export class GamificationEventHandler {
 
   constructor(
     private readonly gamificationService: GamificationService,
+    private readonly platformSettings: PlatformSettingsService,
   ) {}
+
+  private async isGamificationEnabled(): Promise<boolean> {
+    return this.platformSettings.isEnabled('gamificationEnabled');
+  }
 
   @OnEvent(DONATION_COMPLETED_EVENT)
   async handleDonationCompleted(payload: DonationCompletedPayload): Promise<void> {
+    if (!(await this.isGamificationEnabled())) return;
     try {
       this.logger.log(`Processing gamification for donation ${payload.donationId}`);
 
@@ -64,6 +71,7 @@ export class GamificationEventHandler {
 
   @OnEvent(BLOOD_TEST_COMPLETED_EVENT)
   async handleBloodTestCompleted(payload: BloodTestCompletedPayload): Promise<void> {
+    if (!(await this.isGamificationEnabled())) return;
     try {
       this.logger.log(`Processing gamification for blood test ${payload.resultId}`);
 
@@ -88,6 +96,7 @@ export class GamificationEventHandler {
 
   @OnEvent(APPOINTMENT_COMPLETED_EVENT)
   async handleAppointmentCompleted(payload: AppointmentCompletedPayload): Promise<void> {
+    if (!(await this.isGamificationEnabled())) return;
     try {
       this.logger.log(`Processing gamification for appointment ${payload.appointmentId}`);
 
@@ -111,6 +120,7 @@ export class GamificationEventHandler {
 
   @OnEvent(EMERGENCY_RESPONSE_COMPLETED_EVENT)
   async handleEmergencyResponseCompleted(payload: EmergencyResponseCompletedPayload): Promise<void> {
+    if (!(await this.isGamificationEnabled())) return;
     try {
       this.logger.log(`Processing gamification for emergency response ${payload.responseId}`);
 

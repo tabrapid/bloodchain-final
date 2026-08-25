@@ -15,6 +15,7 @@ import { AIFeedbackService } from './ai-feedback.service';
 import { AIConversationService } from './ai-conversation.service';
 import { AIAnalyticsService } from './ai-analytics.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
+import { PlatformSettingsService } from '../platform-settings/platform-settings.service';
 import {
   GenerateInsightDto,
   ExplainResultDto,
@@ -56,10 +57,11 @@ export class AIHealthService {
     private readonly conversationService: AIConversationService,
     private readonly analyticsService: AIAnalyticsService,
     private readonly auditLogService: AuditLogsService,
+    private readonly platformSettings: PlatformSettingsService,
   ) {}
 
   async generateInsight(userId: string, dto: GenerateInsightDto): Promise<AiInsightResponseDto> {
-    this.checkFeatureEnabled();
+    await this.checkFeatureEnabled();
     const startTime = Date.now();
 
     const sanitizedQuestion = dto.question
@@ -260,7 +262,7 @@ export class AIHealthService {
   }
 
   async generateDonationInsight(userId: string): Promise<AiInsightResponseDto> {
-    this.checkFeatureEnabled();
+    await this.checkFeatureEnabled();
     const startTime = Date.now();
 
     const context = await this.enhancedContextBuilder.buildEnhancedContext(userId);
@@ -295,7 +297,7 @@ export class AIHealthService {
   }
 
   async generateAppointmentInsight(userId: string): Promise<AiInsightResponseDto> {
-    this.checkFeatureEnabled();
+    await this.checkFeatureEnabled();
     const startTime = Date.now();
 
     const context = await this.enhancedContextBuilder.buildEnhancedContext(userId);
@@ -330,7 +332,7 @@ export class AIHealthService {
   }
 
   async generateHealthSummary(userId: string): Promise<AiInsightResponseDto> {
-    this.checkFeatureEnabled();
+    await this.checkFeatureEnabled();
     const startTime = Date.now();
 
     const context = await this.enhancedContextBuilder.buildEnhancedContext(userId);
@@ -380,7 +382,7 @@ export class AIHealthService {
   }
 
   async chat(userId: string, dto: SendChatMessageDto): Promise<ChatResponseDto> {
-    this.checkFeatureEnabled();
+    await this.checkFeatureEnabled();
     const startTime = Date.now();
 
     const sanitizedMessage = this.safetyService.sanitizeInput(dto.message);
@@ -636,10 +638,13 @@ APPOINTMENTS:
 Provide a helpful overview of their health engagement, any patterns observed, and questions they might want to discuss with a healthcare professional. Remember to be informational only, not medical advice.`;
   }
 
-  private checkFeatureEnabled(): void {
+  private async checkFeatureEnabled(): Promise<void> {
     const enabled = this.configService.get<string>('AI_ENABLED', 'false');
     if (enabled !== 'true') {
       throw new ForbiddenException('AI insights are not enabled');
+    }
+    if (!(await this.platformSettings.isEnabled('aiHealthInsightsEnabled'))) {
+      throw new ForbiddenException('AI health insights are currently disabled by the platform admin.');
     }
   }
 

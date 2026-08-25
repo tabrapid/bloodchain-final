@@ -32,6 +32,7 @@ import { NotificationPreferencesModule } from './modules/notification-preference
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { OrganizationsModule } from './modules/organizations/organizations.module';
 import { PermissionsModule } from './modules/permissions/permissions.module';
+import { PlatformSettingsModule } from './modules/platform-settings/platform-settings.module';
 import { ShipmentsModule } from './modules/shipments/shipments.module';
 import { UsersModule } from './modules/users/users.module';
 import { CourierModule } from './modules/courier/courier.module';
@@ -82,6 +83,7 @@ import { IdempotencyModule } from './modules/idempotency/idempotency.module';
     }),
     DatabaseModule,
     AuditLogsModule,
+    PlatformSettingsModule,
     AdminModule,
     AuthModule,
     UsersModule,

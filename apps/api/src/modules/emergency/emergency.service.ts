@@ -25,6 +25,7 @@ import {
   EMERGENCY_RESPONSE_COMPLETED_EVENT,
 } from '../gamification/events/gamification-event.handler';
 import { DonationEligibilityService } from '../donation-eligibility/donation-eligibility.service';
+import { PlatformSettingsService } from '../platform-settings/platform-settings.service';
 
 const SOS_REQUEST_CREATED_EVENT = 'sos.request.created';
 const SOS_DONOR_ACCEPTED_EVENT = 'sos.donor.accepted';
@@ -51,6 +52,7 @@ export class EmergencyService {
     private readonly eventEmitter: EventEmitter2,
     private readonly gateway: EmergencyGateway,
     private readonly donationEligibility: DonationEligibilityService,
+    private readonly platformSettings: PlatformSettingsService,
   ) {}
 
   private generateEmergencyReference(): string {
@@ -194,6 +196,10 @@ export class EmergencyService {
       longitude?: number;
     },
   ) {
+    if (!(await this.platformSettings.isEnabled('sosEmergencyEnabled'))) {
+      throw new ForbiddenException('SOS emergency requests are currently disabled by the platform admin.');
+    }
+
     const { user } = await this.checkHospitalAccess(userId, organizationId);
 
     if (dto.unitsRequired < 1 || dto.unitsRequired > 20) {

@@ -21,6 +21,7 @@ import { Permissions } from '../../common/decorators/permissions.decorator';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { WrapResponseInterceptor } from '../../common/interceptors/wrap-response.interceptor';
 import { AdminService } from './admin.service';
+import { PlatformSettingsService } from '../platform-settings/platform-settings.service';
 import {
   AdminListUsersDto,
   AdminListOrganizationsDto,
@@ -38,6 +39,7 @@ import {
   AdminAcknowledgeAlertDto,
   AdminUpdateRolePermissionsDto,
   AdminUpdateMembershipRoleDto,
+  AdminUpdatePlatformSettingsDto,
 } from './dto/admin.dto';
 
 @ApiTags('Admin')
@@ -46,7 +48,10 @@ import {
 @UseInterceptors(WrapResponseInterceptor)
 @ApiBearerAuth()
 export class AdminController {
-  constructor(private readonly admin: AdminService) {}
+  constructor(
+    private readonly admin: AdminService,
+    private readonly platformSettings: PlatformSettingsService,
+  ) {}
 
   @Get('dashboard')
   @Roles(RoleCode.SUPER_ADMIN)
@@ -392,5 +397,24 @@ export class AdminController {
   @ApiOperation({ summary: 'Get system health status' })
   getSystemHealth() {
     return this.admin.getSystemHealth();
+  }
+
+  @Get('settings')
+  @Roles(RoleCode.SUPER_ADMIN)
+  @Permissions('admin.manage')
+  @ApiOperation({ summary: 'Get platform-wide settings and feature flags' })
+  getPlatformSettings() {
+    return this.platformSettings.get();
+  }
+
+  @Patch('settings')
+  @Roles(RoleCode.SUPER_ADMIN)
+  @Permissions('admin.manage')
+  @ApiOperation({ summary: 'Update platform-wide settings and feature flags' })
+  updatePlatformSettings(
+    @CurrentUser('sub') adminId: string,
+    @Body() body: AdminUpdatePlatformSettingsDto,
+  ) {
+    return this.platformSettings.update(adminId, body);
   }
 }

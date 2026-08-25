@@ -6,6 +6,7 @@ import { PrismaService } from '../../database/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { EmergencyGateway } from '../../gateways/emergency.gateway';
 import { DonationEligibilityService } from '../donation-eligibility/donation-eligibility.service';
+import { PlatformSettingsService } from '../platform-settings/platform-settings.service';
 import { EmergencyService } from './emergency.service';
 import {
   DONATION_COMPLETED_EVENT,
@@ -66,6 +67,7 @@ describe('EmergencyService.completeEmergency', () => {
         { provide: EventEmitter2, useValue: eventEmitter },
         { provide: EmergencyGateway, useValue: gateway },
         { provide: DonationEligibilityService, useValue: { getNextEligibleDonationDate: jest.fn() } },
+        { provide: PlatformSettingsService, useValue: { isEnabled: jest.fn().mockResolvedValue(true) } },
       ],
     }).compile();
 
@@ -143,6 +145,7 @@ describe('EmergencyService.checkDonorEligibility', () => {
         { provide: EventEmitter2, useValue: { emit: jest.fn() } },
         { provide: EmergencyGateway, useValue: {} },
         { provide: DonationEligibilityService, useValue: donationEligibility },
+        { provide: PlatformSettingsService, useValue: { isEnabled: jest.fn().mockResolvedValue(true) } },
       ],
     }).compile();
 
@@ -170,5 +173,56 @@ describe('EmergencyService.checkDonorEligibility', () => {
     );
 
     await expect(service.checkDonorEligibility('donor-1')).rejects.toThrow(ForbiddenException);
+  });
+});
+
+describe('EmergencyService.createEmergency', () => {
+  let service: EmergencyService;
+  let platformSettings: { isEnabled: jest.Mock };
+
+  beforeEach(async () => {
+    platformSettings = { isEnabled: jest.fn().mockResolvedValue(true) };
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        EmergencyService,
+        { provide: PrismaService, useValue: {} },
+        { provide: AuditLogsService, useValue: { log: jest.fn().mockResolvedValue({}) } },
+        { provide: EventEmitter2, useValue: { emit: jest.fn() } },
+        { provide: EmergencyGateway, useValue: {} },
+        { provide: DonationEligibilityService, useValue: {} },
+        { provide: PlatformSettingsService, useValue: platformSettings },
+      ],
+    }).compile();
+
+    service = module.get<EmergencyService>(EmergencyService);
+  });
+
+  it('rejects before checking hospital access when SOS emergency is disabled platform-wide', async () => {
+    platformSettings.isEnabled.mockResolvedValue(false);
+    const accessSpy = jest.spyOn(service, 'checkHospitalAccess');
+
+    await expect(
+      service.createEmergency('org-1', 'staff-1', {
+        bloodType: 'O',
+        rhFactor: 'NEGATIVE',
+        unitsRequired: 2,
+      }),
+    ).rejects.toThrow(ForbiddenException);
+    expect(platformSettings.isEnabled).toHaveBeenCalledWith('sosEmergencyEnabled');
+    expect(accessSpy).not.toHaveBeenCalled();
+  });
+
+  it('proceeds past the feature-flag check when SOS emergency is enabled', async () => {
+    const marker = new Error('reached checkHospitalAccess');
+    jest.spyOn(service, 'checkHospitalAccess').mockRejectedValue(marker);
+
+    await expect(
+      service.createEmergency('org-1', 'staff-1', {
+        bloodType: 'O',
+        rhFactor: 'NEGATIVE',
+        unitsRequired: 2,
+      }),
+    ).rejects.toBe(marker);
   });
 });
