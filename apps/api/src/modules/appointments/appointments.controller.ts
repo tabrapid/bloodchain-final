@@ -1,10 +1,12 @@
-import { Body, Controller, Get, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, Req, UseGuards, UseInterceptors } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
 import { RoleCode } from '@prisma/client';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { Idempotent } from '../idempotency/idempotent.decorator';
+import { IdempotencyInterceptor } from '../idempotency/idempotency.interceptor';
 import { AppointmentsService } from './appointments.service';
 import {
   CreateAppointmentDto,
@@ -21,6 +23,8 @@ export class AppointmentsController {
   constructor(private readonly appointments: AppointmentsService) {}
 
   @Post()
+  @Idempotent('appointment.book')
+  @UseInterceptors(IdempotencyInterceptor)
   @ApiOperation({ summary: 'Book an appointment' })
   @ApiResponse({ status: 201, description: 'Appointment booked' })
   @ApiResponse({ status: 409, description: 'Slot not available or conflict' })

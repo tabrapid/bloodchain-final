@@ -1,10 +1,12 @@
-import { Body, Controller, Get, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, Req, UseGuards, UseInterceptors } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
 import { RoleCode } from '@prisma/client';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { Idempotent } from '../idempotency/idempotent.decorator';
+import { IdempotencyInterceptor } from '../idempotency/idempotency.interceptor';
 import { DonationsService } from './donations.service';
 import {
   CheckInDonationDto,
@@ -156,6 +158,8 @@ export class OrganizationDonationsController {
 
   @Post(':id/complete')
   @Roles(RoleCode.SUPER_ADMIN, RoleCode.HOSPITAL_ADMIN, RoleCode.HOSPITAL_STAFF, RoleCode.BLOOD_CENTER_ADMIN, RoleCode.BLOOD_CENTER_STAFF)
+  @Idempotent('donation.complete')
+  @UseInterceptors(IdempotencyInterceptor)
   @ApiOperation({ summary: 'Complete donation (staff only)' })
   @ApiResponse({ status: 200, description: 'Donation completed' })
   @ApiResponse({ status: 400, description: 'Cannot complete donation' })

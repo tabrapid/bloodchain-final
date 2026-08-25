@@ -30,6 +30,7 @@ import {
   GetOrganizationDonationsDto,
 } from './dto/donation.dto';
 import { DONATION_COMPLETED_EVENT, DonationCompletedPayload } from '../gamification/events/gamification-event.handler';
+import { DonationEligibilityService } from '../donation-eligibility/donation-eligibility.service';
 
 @Injectable()
 export class DonationsService {
@@ -37,6 +38,7 @@ export class DonationsService {
     private readonly db: PrismaService,
     private readonly audit: AuditLogsService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly donationEligibility: DonationEligibilityService,
   ) {}
 
   private generateDonationReference(): string {
@@ -386,6 +388,15 @@ export class DonationsService {
       throw new BadRequestException('Collection completion time cannot be in the future.');
     }
 
+    const now = new Date();
+    // The donor eligibility window is measured from when this donation is
+    // marked complete, not from the free-text collection timestamp - that's
+    // also what DonationEligibilityService reads back later, so the two
+    // must agree on which timestamp is authoritative.
+    const nextDonationDate = dto.nextDonationDate
+      ? new Date(dto.nextDonationDate)
+      : this.donationEligibility.computeDefaultNextEligibleDate(now);
+
     const result = await this.db.$transaction(async (tx) => {
       const bloodTypeEnum = dto.bloodType as BloodType | undefined;
       const rhFactorEnum = dto.rhFactor as RhFactor | undefined;
@@ -399,8 +410,8 @@ export class DonationsService {
           bloodType: bloodTypeEnum,
           rhFactor: rhFactorEnum,
           staffNotes: dto.notes,
-          nextDonationDate: dto.nextDonationDate ? new Date(dto.nextDonationDate) : undefined,
-          completedAt: new Date(),
+          nextDonationDate,
+          completedAt: now,
           completedBy: staffId,
         },
       });

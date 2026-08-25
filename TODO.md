@@ -195,56 +195,180 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   method. `ShipmentStateMachine` still isn't wired in (that's P1-4).
   - File: `apps/api/src/modules/shipments/shipments.service.ts`.
 
-- [ ] **P1-4. A real `ShipmentStateMachine` exists but the service never uses it.**
-  `shipment-state.service.ts` has a proper transition table; `shipments.service.ts`
-  hand-rolls its own inline status checks instead, and they've already
-  drifted (`ARRIVED_AT_HOSPITAL → FAILED` is allowed in the table but
-  blocked in the actual `failShipment` code).
+- [x] **P1-4. A real `ShipmentStateMachine` exists but the service never uses it.** — Fixed:
+  every shipment status transition (`assignCourier`, `acceptShipment`,
+  `declineShipment`, `startPickup`, `confirmPickup`, `startDelivery`,
+  `arriveAtHospital`, `confirmDelivery`, `confirmDeliveryFull`, `failShipment`,
+  `cancelShipment`, `reassignCourier`) now calls
+  `ShipmentStateMachine.assertTransition` for its fast pre-check, and derives
+  the P1-3 atomic claim's "from status" guard from a new
+  `ShipmentStateMachine.getSourceStatuses(target)` helper (reverse-looks-up the
+  same transition table `assertTransition` uses) instead of a hand-maintained
+  array — so the allowed "from" set for a transition can no longer drift from
+  what the state machine actually permits. Fixed the drift the TODO called
+  out (`ARRIVED_AT_HOSPITAL → FAILED` was allowed in the table but blocked in
+  `failShipment`) by adding it to `failShipment`'s reachable set; also added
+  `COURIER_ACCEPTED → FAILED` to the transition table itself (a courier who's
+  accepted but hasn't started pickup could already report a failure in the
+  old hand-rolled code, so the table was extended to match rather than that
+  capability being silently removed).
+  While wiring this in, found and fixed two more instances of the exact same
+  pre-P1-3 TOCTOU bug in methods that mutate shipment status but weren't
+  covered by P1-3: `assignCourier` and `reassignCourier` both checked status
+  outside the transaction then updated unconditionally inside it, *and* both
+  had a second, independent race on the courier's own `AVAILABLE` status
+  (two concurrent assignments could both "win" the same courier). Both are
+  now atomic two-part claims inside the transaction (shipment status, then
+  courier status), each throwing `ConflictException` on a lost race.
+  Covered by a new `shipment-state.service.spec.ts` (9 tests, including a
+  property test asserting `getSourceStatuses` and `assertTransition` can
+  never disagree) and 5 new tests in `shipments.service.spec.ts` for
+  `assignCourier`/`reassignCourier` (25 tests total in that file now).
   - Files: `apps/api/src/modules/shipments/services/shipment-state.service.ts`,
-    `apps/api/src/modules/shipments/shipments.service.ts:1422-1427`.
-  - Fix: make every transition go through `ShipmentStateMachine.assertTransition`.
+    `apps/api/src/modules/shipments/shipments.service.ts`.
 
-- [ ] **P1-5. Idempotency module fully built, wired into nothing that matters.**
-  `IdempotencyService` (dedup keys, cleanup) is complete but only consumed
-  inside the notifications module. Donation completion, appointment
-  booking, shipment creation/delivery-confirmation, and inventory
-  operations — the endpoints most exposed to client-retry duplication —
-  have no idempotency-key handling at all.
-  - File: `apps/api/src/modules/idempotency/idempotency.service.ts`.
-  - Add an `IdempotencyKey` header + interceptor on the mutating endpoints above.
+- [x] **P1-5. Idempotency module fully built, wired into nothing that matters.** — Fixed:
+  on re-auditing, `IdempotencyService` (the `IdempotencyRecord`-table based
+  one) turned out to be consumed *nowhere at all*, not even notifications —
+  that module has its own separate, already-working dedup mechanism (a DB
+  unique constraint on `Notification.recipientId_idempotencyKey`), unrelated
+  to this service. Added a generic `@Idempotent(operation)` decorator +
+  `IdempotencyInterceptor` (`apps/api/src/modules/idempotency/`): a caller
+  that sends an `Idempotency-Key` header on a decorated endpoint gets the
+  stored result of an earlier identical (user, operation, key) request
+  replayed instead of the handler re-running; no header means the endpoint
+  behaves exactly as before; a same-key-different-outcome pair (user or
+  operation) can never collide, since the internal hash is scoped to both.
+  Purely additive and opt-in — no existing client sends this header yet, so
+  nothing changes until a client opts in.
+  Wired onto the 5 endpoints named above: `donations.completeDonation`,
+  `appointments.bookAppointment`, `shipments.createShipment`,
+  `shipments.confirmDeliveryFull` (routed from the `confirm-delivery` route),
+  and `inventory.reserveUnit`.
+  While implementing this, found and fixed a real, pre-existing bug in
+  `IdempotencyService.storeResult`: the TTL was interpolated *inside* a
+  quoted SQL literal (`` INTERVAL '${ttl} milliseconds' ``) — Postgres only
+  substitutes bind parameters in expression position, never inside a string
+  literal, so every call would have sent the literal text `"$3 milliseconds"`
+  and failed. Fixed by multiplying a 1ms interval instead
+  (`(${ttl} * INTERVAL '1 millisecond')`), keeping `ttl` in expression
+  position. This bug had never been caught because the service was never
+  actually called before now.
+  Covered by `idempotency.service.spec.ts` (7 tests, including one that
+  asserts the TTL fix), `idempotency.interceptor.spec.ts` (5 tests), and
+  `idempotency-wiring.spec.ts` (1 DI-graph smoke test — boots the module for
+  real via Nest's testing harness instead of only mocking classes, which is
+  the only thing that would have caught a missing module import).
+  - Files: `apps/api/src/modules/idempotency/*`,
+    `apps/api/src/modules/{donations,appointments,shipments,inventory}/*.module.ts`,
+    `apps/api/src/modules/{donations,appointments,shipments,inventory}/*.controller.ts`.
 
-- [ ] **P1-6. Gamification XP triggers for appointments & emergency-response are dead code.**
-  Handlers for `APPOINTMENT_COMPLETED_EVENT` and
-  `EMERGENCY_RESPONSE_COMPLETED_EVENT` exist and are wired to award XP, but
-  **nothing ever emits either event** — donation-completed and
-  blood-test-completed do work (they use a different, real event), but a
-  donor gets no XP for completing an appointment as such, or for an
-  emergency response completion path that isn't also a donation.
-  - File: `apps/api/src/modules/gamification/events/gamification-event.handler.ts:89-134`.
+- [x] **P1-6. Gamification XP triggers for appointments & emergency-response are dead code.** — Fixed:
+  both events are now emitted at their one real source of truth each.
+  `AppointmentsService.completeAppointment` (`apps/api/src/modules/appointments/appointments.service.ts`)
+  now injects `EventEmitter2` and emits `APPOINTMENT_COMPLETED_EVENT` with
+  `{appointmentId, donorId: appointment.donorId}` right after the status
+  transition. `EmergencyService.completeEmergency` (`apps/api/src/modules/emergency/emergency.service.ts`)
+  now emits `EMERGENCY_RESPONSE_COMPLETED_EVENT` with `{responseId, donorId}`
+  alongside its existing `DONATION_COMPLETED_EVENT` emit — the two events
+  award genuinely different rewards (regular donation XP vs. the
+  emergency-specific `EMERGENCY_RESPONSE_COUNT` achievement + emergency
+  reputation bonus in `processEmergencyResponseCompleted`), so both need to
+  fire on the one path that completes an emergency response, not just one.
+  `completeEmergency` was confirmed as the *only* place an `EmergencyResponse`
+  ever reaches `COMPLETED` status, so no other call site needed the emit.
+  Covered by 2 new tests in `appointments.service.spec.ts` (now 9 total) and
+  a new `emergency.service.spec.ts` (3 tests — the emergency module had zero
+  coverage before, so this is scoped to `completeEmergency` specifically,
+  not a full-service audit).
+  - Files: `apps/api/src/modules/appointments/appointments.service.ts`,
+    `apps/api/src/modules/emergency/emergency.service.ts`.
 
-- [ ] **P1-7. Emergency donor eligibility never checks the donation cooldown.**
-  `checkDonorEligibility` verifies active status + verified blood type +
-  email verified, but never checks `nextDonationDate` / the 56-day
-  recovery window — a donor who donated yesterday can still be matched to
-  and accept a new SOS. (Also currently unreachable in practice because of
-  P0-1, but must be fixed as part of that fix.)
-  - File: `apps/api/src/modules/emergency/emergency.service.ts:147-167`.
+- [x] **P1-7. Emergency donor eligibility never checks the donation cooldown.** — Fixed:
+  `checkDonorEligibility` (called from `acceptEmergency`, the only place a
+  donor accepts an SOS match) now looks up the donor's most recent
+  `COMPLETED` donation and rejects with `ForbiddenException` if it's still
+  inside the recovery window. Prefers the staff-entered `Donation.nextDonationDate`
+  when set (e.g. extended for a health reason), otherwise falls back to the
+  same 56-day-after-`completedAt` rule already used in
+  `ai-context-builder-enhanced.service.ts`, kept as a small private helper
+  (`getNextEligibleDonationDate`) rather than building the full shared
+  eligibility service — that consolidation is P1-8's separate, still-open
+  scope, so this stays a duplicate of the existing rule rather than a new
+  third source of truth.
+  Covered by 4 new tests in `emergency.service.spec.ts` (now 7 total):
+  never-donated passes, cooldown-elapsed passes, still-in-cooldown rejects,
+  and staff-extended `nextDonationDate` rejects even past the default window.
+  - File: `apps/api/src/modules/emergency/emergency.service.ts`.
 
-- [ ] **P1-8. Next-eligible-donation-date has two disconnected sources of truth.**
-  `Donation.nextDonationDate` is free-text staff input with no server-side
-  derivation from a real eligibility rule; separately,
-  `ai-context-builder-enhanced.service.ts` hardcodes its own "56 days"
-  calculation. Centralize this into one configurable eligibility service
-  both paths call.
-  - Files: `apps/api/src/modules/donations/donations.service.ts:402`,
-    `apps/api/src/modules/ai-health/ai-context-builder-enhanced.service.ts:94-100`.
+- [x] **P1-8. Next-eligible-donation-date now has three disconnected sources of truth.** — Fixed:
+  added `DonationEligibilityService` (`apps/api/src/modules/donation-eligibility/`),
+  the single source of truth all three now call. It looks up the donor's
+  most recent `COMPLETED` donation and prefers the staff-entered
+  `Donation.nextDonationDate` when set, otherwise computes it from a
+  configurable cooldown (`DONATION_COOLDOWN_DAYS` env var, default 56,
+  validated in `env.validation.ts` — genuinely configurable now, not just a
+  moved constant).
+  - `emergency.service.ts`'s P1-7 private helper (`getNextEligibleDonationDate`
+    + its hardcoded `DONATION_COOLDOWN_DAYS` constant) is deleted; `checkDonorEligibility`
+    now calls the shared service directly.
+  - `ai-context-builder-enhanced.service.ts`'s hardcoded 56-day inline calc
+    is replaced with a call to the shared service.
+  - `donations.service.ts#completeDonation` no longer silently leaves
+    `nextDonationDate` null when staff omits it — it now computes a real
+    default via `computeDefaultNextEligibleDate`, closing the "free-text
+    input with no server-side derivation" half of the original gap. Staff's
+    explicit value still wins when provided.
+  New `DonationEligibilityModule` is imported by `EmergencyModule`,
+  `AIHealthModule`, and `DonationsModule` (no circular dependency — none of
+  the three previously imported each other).
+  Covered by a new `donation-eligibility.service.spec.ts` (9 tests, the
+  core logic), plus updates/additions across the three call sites: rewrote
+  `emergency.service.spec.ts`'s eligibility tests to mock the shared service
+  instead of `db.donation` directly (6 tests), added `donations.service.spec.ts`
+  (2 tests, zero prior coverage) and `ai-context-builder-enhanced.service.spec.ts`
+  (2 tests, zero prior coverage) scoped to the touched behavior.
+  - Files: `apps/api/src/modules/donation-eligibility/*` (new),
+    `apps/api/src/config/env.validation.ts`, `.env.example`,
+    `apps/api/src/modules/donations/donations.service.ts`,
+    `apps/api/src/modules/ai-health/ai-context-builder-enhanced.service.ts`,
+    `apps/api/src/modules/emergency/emergency.service.ts`.
 
-- [ ] **P1-9. Blood Center dashboard is missing core pages.**
-  No page to: review/approve incoming blood requests (see P0-7), create a
-  shipment from an approved request, configure appointment slots
-  (services/dates/times/capacity/holidays — full backend exists,
-  `apps/api/src/modules/appointment-slots`), or manage couriers.
-  - Dir: `apps/blood-center-web/app/`.
+- [x] **P1-9. Blood Center dashboard is missing core pages.** — Fixed:
+  review/approve-request and create-shipment were already built under
+  P0-7 (`/requests`, `/requests/[id]`) before this item was reached, so
+  this pass covered the two still-missing pages:
+  - **`/appointments`** (new) — full slot configuration UI against the
+    already-complete `appointment-slots` backend: create a slot (type,
+    start/end, capacity), see upcoming slots with booked/capacity and
+    status, block a slot. "Holidays" from the original ask is handled via
+    blocking the individual slots on that date — there's no separate
+    holiday-calendar concept in the backend to build a UI for.
+  - **`/couriers`** (new) — courier roster/status view: every courier for
+    the org regardless of status (not just AVAILABLE, which is what the
+    existing assignment-dropdown endpoint intentionally stays scoped to),
+    with contact info and active/completed shipment counts. Required a
+    new backend endpoint (`GET organizations/:organizationId/couriers/roster`
+    -> `ShipmentsService.getCourierRoster`) since no blood-center-scoped
+    "list all couriers" endpoint existed before (only a `SUPER_ADMIN`-only
+    admin-panel one). **View-only, not full CRUD** — there is still no
+    backend path to create a courier at all (confirmed zero `courier.create`
+    calls anywhere in the API; couriers only exist via the seed script),
+    which is the same root gap already tracked under P1-12/P1-13 (no org
+    signup/roles-management flows). The page says so explicitly rather than
+    implying a broken "invite courier" button.
+  Enabled both `Appointments` and `Couriers` in the sidebar (previously
+  `disabled: true`/missing). Verified with `next build` (both routes
+  compile and prerender) and a headless-browser screenshot of each page's
+  unauthenticated state (matches the existing `/requests` page's
+  auth-gate pattern exactly — no live backend/DB was available in this
+  session to screenshot the authenticated list/modal views).
+  Added a test for `getCourierRoster` in `shipments.service.spec.ts` (26
+  tests in that file now).
+  - Files: `apps/api/src/modules/shipments/{shipments.service.ts,shipments.controller.ts}`,
+    `apps/blood-center-web/app/{appointments,couriers}/page.tsx` (new),
+    `apps/blood-center-web/lib/{appointment-slots.ts,couriers.ts}` (new),
+    `apps/blood-center-web/lib/navigation.tsx`.
 
 - [ ] **P1-10. No map UI anywhere despite location tracking being core.**
   Neither hospital-web nor blood-center-web nor mobile renders an actual
@@ -433,6 +557,20 @@ These make the product unusable or unsafe for real users. Fix first, in order.
 4. ~~**P0-5** (push) and **P0-6/P0-7** (courier + hospital↔blood-center UI) — these three close the loop on the emergency and supply-chain flows end-to-end.~~ ✅
 
 **All P0 items are done.** ~~**P1-1/P1-2/P1-3** (the booking/inventory/shipment
-TOCTOU races, all the same fix pattern already used for P0-9).~~ ✅ Next up:
-**P1-4** (route shipments through the real `ShipmentStateMachine`), then the
-rest of P1, then P2, folding in P3-1 tests as each area is touched.
+TOCTOU races, all the same fix pattern already used for P0-9).~~ ✅
+~~**P1-4** (route shipments through the real `ShipmentStateMachine`).~~ ✅
+~~**P1-5** (idempotency keys on the mutating endpoints most exposed to
+client-retry duplication).~~ ✅
+~~**P1-6** (gamification XP triggers for appointments/emergency-response were
+dead code — nothing emitted the events their handlers listen for).~~ ✅
+~~**P1-7** (emergency donor eligibility never checked the 56-day donation
+cooldown).~~ ✅
+~~**P1-8** (centralized the next-eligible-donation-date rule into
+`DonationEligibilityService`).~~ ✅
+~~**P1-9** (Blood Center dashboard missing core pages — added `/appointments`
+slot config and `/couriers` roster; review/approve-request and
+create-shipment were already done under P0-7).~~ ✅
+Next up: **P1-10** (no map UI anywhere despite location tracking being
+core — add a map library and real map views to shipment tracking and SOS
+donor-location screens), then the rest of P1, then P2, folding in P3-1
+tests as each area is touched.

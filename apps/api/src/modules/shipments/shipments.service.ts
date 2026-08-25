@@ -22,6 +22,7 @@ import { PrismaService } from '../../database/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { Courier, Organization, User } from '@prisma/client';
 import { LocationService } from './services/location.service';
+import { ShipmentStateMachine } from './services/shipment-state.service';
 
 const SHIPMENT_EVENT = 'shipment.event';
 
@@ -687,6 +688,47 @@ export class ShipmentsService {
     }));
   }
 
+  // Unlike getAvailableCouriers above (used to populate an assignment
+  // dropdown, so intentionally AVAILABLE-only), this returns the full
+  // roster regardless of status for the courier management/roster view.
+  async getCourierRoster(organizationId: string, userId: string) {
+    await this.checkBloodCenterAccess(userId, organizationId);
+
+    const couriers = await this.db.courier.findMany({
+      where: { organizationId },
+      include: {
+        user: { select: { id: true, firstName: true, lastName: true, email: true } },
+        shipments: {
+          where: {
+            status: {
+              notIn: [ShipmentStatus.DELIVERED, ShipmentStatus.FAILED, ShipmentStatus.CANCELLED],
+            },
+          },
+          select: { id: true },
+        },
+        _count: {
+          select: {
+            shipments: { where: { status: ShipmentStatus.DELIVERED } },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return {
+      data: couriers.map((c) => ({
+        id: c.id,
+        displayName: c.displayName,
+        phone: c.phone,
+        email: c.user.email,
+        status: c.status,
+        activeShipments: c.shipments.length,
+        completedShipments: c._count.shipments,
+        createdAt: c.createdAt,
+      })),
+    };
+  }
+
   async assignCourier(
     organizationId: string,
     userId: string,
@@ -713,9 +755,7 @@ export class ShipmentsService {
       throw new ForbiddenException('You cannot assign couriers to this shipment.');
     }
 
-    if (shipment.status !== ShipmentStatus.CREATED) {
-      throw new BadRequestException('Shipment is not in CREATED state.');
-    }
+    ShipmentStateMachine.assertTransition(shipment.status, ShipmentStatus.COURIER_ASSIGNED);
 
     if (courier.status !== CourierStatus.AVAILABLE) {
       throw new ConflictException('Courier is not available.');
@@ -726,8 +766,11 @@ export class ShipmentsService {
     }
 
     const result = await this.db.$transaction(async (tx) => {
-      const updated = await tx.shipment.update({
-        where: { id: shipmentId },
+      const shipmentClaim = await tx.shipment.updateMany({
+        where: {
+          id: shipmentId,
+          status: { in: ShipmentStateMachine.getSourceStatuses(ShipmentStatus.COURIER_ASSIGNED) },
+        },
         data: {
           courierId,
           status: ShipmentStatus.COURIER_ASSIGNED,
@@ -735,10 +778,20 @@ export class ShipmentsService {
         },
       });
 
-      await tx.courier.update({
-        where: { id: courierId },
+      if (shipmentClaim.count === 0) {
+        throw new ConflictException('Shipment can no longer be assigned from its current state.');
+      }
+
+      const courierClaim = await tx.courier.updateMany({
+        where: { id: courierId, status: CourierStatus.AVAILABLE },
         data: { status: CourierStatus.BUSY },
       });
+
+      if (courierClaim.count === 0) {
+        throw new ConflictException('Courier is no longer available.');
+      }
+
+      const updated = await tx.shipment.findUniqueOrThrow({ where: { id: shipmentId } });
 
       await tx.shipmentEvent.create({
         data: {
@@ -788,13 +841,14 @@ export class ShipmentsService {
       throw new ForbiddenException('This shipment is not assigned to you.');
     }
 
-    if (shipment.status !== ShipmentStatus.COURIER_ASSIGNED) {
-      throw new BadRequestException('Shipment is not in COURIER_ASSIGNED state.');
-    }
+    ShipmentStateMachine.assertTransition(shipment.status, ShipmentStatus.COURIER_ACCEPTED);
 
     const result = await this.db.$transaction(async (tx) => {
       const claim = await tx.shipment.updateMany({
-        where: { id: shipmentId, status: ShipmentStatus.COURIER_ASSIGNED },
+        where: {
+          id: shipmentId,
+          status: { in: ShipmentStateMachine.getSourceStatuses(ShipmentStatus.COURIER_ACCEPTED) },
+        },
         data: {
           status: ShipmentStatus.COURIER_ACCEPTED,
           acceptedAt: new Date(),
@@ -802,7 +856,7 @@ export class ShipmentsService {
       });
 
       if (claim.count === 0) {
-        throw new ConflictException('Shipment is not in COURIER_ASSIGNED state.');
+        throw new ConflictException('Shipment can no longer be accepted from its current state.');
       }
 
       const updated = await tx.shipment.findUniqueOrThrow({ where: { id: shipmentId } });
@@ -859,13 +913,14 @@ export class ShipmentsService {
       throw new ForbiddenException('This shipment is not assigned to you.');
     }
 
-    if (shipment.status !== ShipmentStatus.COURIER_ASSIGNED) {
-      throw new BadRequestException('Shipment is not in COURIER_ASSIGNED state.');
-    }
+    ShipmentStateMachine.assertTransition(shipment.status, ShipmentStatus.COURIER_DECLINED);
 
     const result = await this.db.$transaction(async (tx) => {
       const claim = await tx.shipment.updateMany({
-        where: { id: shipmentId, status: ShipmentStatus.COURIER_ASSIGNED },
+        where: {
+          id: shipmentId,
+          status: { in: ShipmentStateMachine.getSourceStatuses(ShipmentStatus.COURIER_DECLINED) },
+        },
         data: {
           status: ShipmentStatus.COURIER_DECLINED,
           courierId: null,
@@ -875,7 +930,7 @@ export class ShipmentsService {
       });
 
       if (claim.count === 0) {
-        throw new ConflictException('Shipment is not in COURIER_ASSIGNED state.');
+        throw new ConflictException('Shipment can no longer be declined from its current state.');
       }
 
       const updated = await tx.shipment.findUniqueOrThrow({ where: { id: shipmentId } });
@@ -927,13 +982,14 @@ export class ShipmentsService {
       throw new ForbiddenException('This shipment is not assigned to you.');
     }
 
-    if (shipment.status !== ShipmentStatus.COURIER_ACCEPTED) {
-      throw new BadRequestException('Shipment is not in COURIER_ACCEPTED state.');
-    }
+    ShipmentStateMachine.assertTransition(shipment.status, ShipmentStatus.PICKUP_STARTED);
 
     const result = await this.db.$transaction(async (tx) => {
       const claim = await tx.shipment.updateMany({
-        where: { id: shipmentId, status: ShipmentStatus.COURIER_ACCEPTED },
+        where: {
+          id: shipmentId,
+          status: { in: ShipmentStateMachine.getSourceStatuses(ShipmentStatus.PICKUP_STARTED) },
+        },
         data: {
           status: ShipmentStatus.PICKUP_STARTED,
           pickupStartedAt: new Date(),
@@ -941,7 +997,7 @@ export class ShipmentsService {
       });
 
       if (claim.count === 0) {
-        throw new ConflictException('Shipment is not in COURIER_ACCEPTED state.');
+        throw new ConflictException('Shipment can no longer start pickup from its current state.');
       }
 
       const updated = await tx.shipment.findUniqueOrThrow({ where: { id: shipmentId } });
@@ -995,15 +1051,16 @@ export class ShipmentsService {
       throw new ForbiddenException('This shipment is not assigned to you.');
     }
 
-    if (shipment.status !== ShipmentStatus.PICKUP_STARTED) {
-      throw new BadRequestException('Shipment is not in PICKUP_STARTED state.');
-    }
+    ShipmentStateMachine.assertTransition(shipment.status, ShipmentStatus.PICKED_UP);
 
     const result = await this.db.$transaction(async (tx) => {
       const now = new Date();
 
       const claim = await tx.shipment.updateMany({
-        where: { id: shipmentId, status: ShipmentStatus.PICKUP_STARTED },
+        where: {
+          id: shipmentId,
+          status: { in: ShipmentStateMachine.getSourceStatuses(ShipmentStatus.PICKED_UP) },
+        },
         data: {
           status: ShipmentStatus.PICKED_UP,
           pickedUpAt: now,
@@ -1011,7 +1068,7 @@ export class ShipmentsService {
       });
 
       if (claim.count === 0) {
-        throw new ConflictException('Shipment is not in PICKUP_STARTED state.');
+        throw new ConflictException('Shipment can no longer be confirmed as picked up from its current state.');
       }
 
       for (const unit of shipment.units) {
@@ -1090,13 +1147,14 @@ export class ShipmentsService {
       throw new ForbiddenException('This shipment is not assigned to you.');
     }
 
-    if (shipment.status !== ShipmentStatus.PICKED_UP) {
-      throw new BadRequestException('Shipment is not in PICKED_UP state.');
-    }
+    ShipmentStateMachine.assertTransition(shipment.status, ShipmentStatus.IN_TRANSIT);
 
     const result = await this.db.$transaction(async (tx) => {
       const claim = await tx.shipment.updateMany({
-        where: { id: shipmentId, status: ShipmentStatus.PICKED_UP },
+        where: {
+          id: shipmentId,
+          status: { in: ShipmentStateMachine.getSourceStatuses(ShipmentStatus.IN_TRANSIT) },
+        },
         data: {
           status: ShipmentStatus.IN_TRANSIT,
           inTransitAt: new Date(),
@@ -1104,7 +1162,7 @@ export class ShipmentsService {
       });
 
       if (claim.count === 0) {
-        throw new ConflictException('Shipment is not in PICKED_UP state.');
+        throw new ConflictException('Shipment can no longer start delivery from its current state.');
       }
 
       const updated = await tx.shipment.findUniqueOrThrow({ where: { id: shipmentId } });
@@ -1232,13 +1290,14 @@ export class ShipmentsService {
       throw new ForbiddenException('This shipment is not assigned to you.');
     }
 
-    if (shipment.status !== ShipmentStatus.IN_TRANSIT) {
-      throw new BadRequestException('Shipment is not in IN_TRANSIT state.');
-    }
+    ShipmentStateMachine.assertTransition(shipment.status, ShipmentStatus.ARRIVED_AT_HOSPITAL);
 
     const result = await this.db.$transaction(async (tx) => {
       const claim = await tx.shipment.updateMany({
-        where: { id: shipmentId, status: ShipmentStatus.IN_TRANSIT },
+        where: {
+          id: shipmentId,
+          status: { in: ShipmentStateMachine.getSourceStatuses(ShipmentStatus.ARRIVED_AT_HOSPITAL) },
+        },
         data: {
           status: ShipmentStatus.ARRIVED_AT_HOSPITAL,
           arrivedAt: new Date(),
@@ -1246,7 +1305,7 @@ export class ShipmentsService {
       });
 
       if (claim.count === 0) {
-        throw new ConflictException('Shipment is not in IN_TRANSIT state.');
+        throw new ConflictException('Shipment can no longer arrive at the hospital from its current state.');
       }
 
       const updated = await tx.shipment.findUniqueOrThrow({ where: { id: shipmentId } });
@@ -1317,15 +1376,16 @@ export class ShipmentsService {
       throw new ForbiddenException('This shipment is not destined for your organization.');
     }
 
-    if (shipment.status !== ShipmentStatus.ARRIVED_AT_HOSPITAL) {
-      throw new BadRequestException('Shipment has not arrived at the hospital.');
-    }
+    ShipmentStateMachine.assertTransition(shipment.status, ShipmentStatus.DELIVERED);
 
     const result = await this.db.$transaction(async (tx) => {
       const now = new Date();
 
       const claim = await tx.shipment.updateMany({
-        where: { id: shipmentId, status: ShipmentStatus.ARRIVED_AT_HOSPITAL },
+        where: {
+          id: shipmentId,
+          status: { in: ShipmentStateMachine.getSourceStatuses(ShipmentStatus.DELIVERED) },
+        },
         data: {
           status: ShipmentStatus.DELIVERED,
           deliveredAt: now,
@@ -1333,7 +1393,7 @@ export class ShipmentsService {
       });
 
       if (claim.count === 0) {
-        throw new ConflictException('Shipment has not arrived at the hospital.');
+        throw new ConflictException('Shipment can no longer be delivered from its current state.');
       }
 
       for (const unit of shipment.units) {
@@ -1471,20 +1531,14 @@ export class ShipmentsService {
       throw new ForbiddenException('This shipment is not assigned to you.');
     }
 
-    const failedStatuses: ShipmentStatus[] = [
-      ShipmentStatus.COURIER_ACCEPTED,
-      ShipmentStatus.PICKUP_STARTED,
-      ShipmentStatus.PICKED_UP,
-      ShipmentStatus.IN_TRANSIT,
-    ];
-
-    if (!failedStatuses.includes(shipment.status as ShipmentStatus)) {
-      throw new BadRequestException('Shipment cannot be failed in current state.');
-    }
+    ShipmentStateMachine.assertTransition(shipment.status, ShipmentStatus.FAILED);
 
     const result = await this.db.$transaction(async (tx) => {
       const claim = await tx.shipment.updateMany({
-        where: { id: shipmentId, status: { in: failedStatuses } },
+        where: {
+          id: shipmentId,
+          status: { in: ShipmentStateMachine.getSourceStatuses(ShipmentStatus.FAILED) },
+        },
         data: {
           status: ShipmentStatus.FAILED,
           failedAt: new Date(),
@@ -1817,15 +1871,13 @@ export class ShipmentsService {
       throw new ForbiddenException('You cannot cancel this shipment.');
     }
 
-    if (shipment.status === ShipmentStatus.DELIVERED || shipment.status === ShipmentStatus.CANCELLED) {
-      throw new BadRequestException('Cannot cancel a delivered or already cancelled shipment.');
-    }
+    ShipmentStateMachine.assertTransition(shipment.status, ShipmentStatus.CANCELLED);
 
     const result = await this.db.$transaction(async (tx) => {
       const claim = await tx.shipment.updateMany({
         where: {
           id: shipmentId,
-          status: { notIn: [ShipmentStatus.DELIVERED, ShipmentStatus.CANCELLED] },
+          status: { in: ShipmentStateMachine.getSourceStatuses(ShipmentStatus.CANCELLED) },
         },
         data: {
           status: ShipmentStatus.CANCELLED,
@@ -1906,9 +1958,7 @@ export class ShipmentsService {
       throw new ForbiddenException('You cannot reassign this shipment.');
     }
 
-    if (shipment.status !== ShipmentStatus.FAILED && shipment.status !== ShipmentStatus.COURIER_DECLINED && shipment.status !== ShipmentStatus.CREATED) {
-      throw new BadRequestException('Shipment can only be reassigned from CREATED, COURIER_DECLINED, or FAILED status.');
-    }
+    ShipmentStateMachine.assertTransition(shipment.status, ShipmentStatus.COURIER_ASSIGNED);
 
     if (newCourier.organizationId !== organizationId) {
       throw new ForbiddenException('Courier does not belong to your organization.');
@@ -1921,15 +1971,11 @@ export class ShipmentsService {
     const oldCourierId = shipment.courierId;
 
     const result = await this.db.$transaction(async (tx) => {
-      if (oldCourierId && oldCourierId !== newCourierId) {
-        await tx.courier.update({
-          where: { id: oldCourierId },
-          data: { status: CourierStatus.AVAILABLE },
-        });
-      }
-
-      const updated = await tx.shipment.update({
-        where: { id: shipmentId },
+      const shipmentClaim = await tx.shipment.updateMany({
+        where: {
+          id: shipmentId,
+          status: { in: ShipmentStateMachine.getSourceStatuses(ShipmentStatus.COURIER_ASSIGNED) },
+        },
         data: {
           courierId: newCourierId,
           status: ShipmentStatus.COURIER_ASSIGNED,
@@ -1937,10 +1983,27 @@ export class ShipmentsService {
         },
       });
 
-      await tx.courier.update({
-        where: { id: newCourierId },
+      if (shipmentClaim.count === 0) {
+        throw new ConflictException('Shipment can no longer be reassigned from its current state.');
+      }
+
+      const courierClaim = await tx.courier.updateMany({
+        where: { id: newCourierId, status: CourierStatus.AVAILABLE },
         data: { status: CourierStatus.BUSY },
       });
+
+      if (courierClaim.count === 0) {
+        throw new ConflictException('New courier is no longer available.');
+      }
+
+      if (oldCourierId && oldCourierId !== newCourierId) {
+        await tx.courier.update({
+          where: { id: oldCourierId },
+          data: { status: CourierStatus.AVAILABLE },
+        });
+      }
+
+      const updated = await tx.shipment.findUniqueOrThrow({ where: { id: shipmentId } });
 
       await tx.shipmentEvent.create({
         data: {
@@ -2007,9 +2070,7 @@ export class ShipmentsService {
       throw new ForbiddenException('This shipment is not destined for your organization.');
     }
 
-    if (shipment.status !== ShipmentStatus.ARRIVED_AT_HOSPITAL) {
-      throw new BadRequestException('Shipment has not arrived at the hospital.');
-    }
+    ShipmentStateMachine.assertTransition(shipment.status, ShipmentStatus.DELIVERED);
 
     const totalUnits = shipment.units.length;
     if (dto.unitsReceived > totalUnits) {
@@ -2025,7 +2086,10 @@ export class ShipmentsService {
       const now = new Date();
 
       const claim = await tx.shipment.updateMany({
-        where: { id: shipmentId, status: ShipmentStatus.ARRIVED_AT_HOSPITAL },
+        where: {
+          id: shipmentId,
+          status: { in: ShipmentStateMachine.getSourceStatuses(ShipmentStatus.DELIVERED) },
+        },
         data: {
           status: ShipmentStatus.DELIVERED,
           deliveredAt: now,
@@ -2033,7 +2097,7 @@ export class ShipmentsService {
       });
 
       if (claim.count === 0) {
-        throw new ConflictException('Shipment has not arrived at the hospital.');
+        throw new ConflictException('Shipment can no longer be delivered from its current state.');
       }
 
       const unitsToReceive = shipment.units.slice(0, dto.unitsReceived);

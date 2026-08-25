@@ -6,15 +6,18 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { AppointmentStatus, Prisma, RoleCode, SlotStatus } from '@prisma/client';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../database/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { CreateAppointmentDto, CancelAppointmentDto, RescheduleAppointmentDto, GetMyAppointmentsDto } from './dto/appointment.dto';
+import { APPOINTMENT_COMPLETED_EVENT } from '../gamification/events/gamification-event.handler';
 
 @Injectable()
 export class AppointmentsService {
   constructor(
     private readonly db: PrismaService,
     private readonly audit: AuditLogsService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   private generateReferenceNumber(): string {
@@ -686,6 +689,11 @@ export class AppointmentsService {
       entityId: appointmentId,
       organizationId: appointment.organizationId,
       ipAddress,
+    });
+
+    this.eventEmitter.emit(APPOINTMENT_COMPLETED_EVENT, {
+      appointmentId,
+      donorId: appointment.donorId,
     });
 
     return { data: { id: result.id, status: result.status } };

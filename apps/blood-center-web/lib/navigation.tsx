@@ -17,8 +17,9 @@ export const sidebarItems: SidebarItem[] = [
   { id: 'inventory', label: 'Inventory', icon: Package, href: '/inventory' },
   { id: 'laboratory', label: 'Laboratory', icon: Beaker, href: '/laboratory' },
   { id: 'shipments', label: 'Shipments', icon: Truck, href: '/shipments' },
+  { id: 'couriers', label: 'Couriers', icon: Users, href: '/couriers' },
+  { id: 'appointments', label: 'Appointments', icon: CalendarDays, href: '/appointments' },
   { id: 'analytics', label: 'Analytics', icon: BarChart3, href: '/analytics' },
-  { id: 'appointments', label: 'Appointments', icon: CalendarDays, disabled: true },
   { id: 'donors', label: 'Donors', icon: Users, disabled: true },
   { id: 'settings', label: 'Settings', icon: Settings, disabled: true },
 ];
