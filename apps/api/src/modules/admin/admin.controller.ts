@@ -40,6 +40,8 @@ import {
   AdminUpdateRolePermissionsDto,
   AdminUpdateMembershipRoleDto,
   AdminUpdatePlatformSettingsDto,
+  AdminListContentReportsDto,
+  AdminResolveContentReportDto,
 } from './dto/admin.dto';
 
 @ApiTags('Admin')
@@ -355,6 +357,39 @@ export class AdminController {
       status: query.status as any,
       bloodType: query.bloodType,
     });
+  }
+
+  @Get('content-reports')
+  @Roles(RoleCode.SUPER_ADMIN)
+  @Permissions('admin.manage')
+  @ApiOperation({ summary: 'List community content reports' })
+  listContentReports(@Query() query: AdminListContentReportsDto) {
+    return this.admin.listContentReports({
+      page: Number(query.page) || 1,
+      limit: Number(query.limit) || 20,
+      status: query.status,
+      reason: query.reason,
+    });
+  }
+
+  @Get('content-reports/:id')
+  @Roles(RoleCode.SUPER_ADMIN)
+  @Permissions('admin.manage')
+  @ApiOperation({ summary: 'Get content report details, including the reported post' })
+  getContentReport(@Param('id') id: string) {
+    return this.admin.getContentReport(id);
+  }
+
+  @Post('content-reports/:id/resolve')
+  @Roles(RoleCode.SUPER_ADMIN)
+  @Permissions('admin.manage')
+  @ApiOperation({ summary: 'Resolve a content report: dismiss it, or hide/remove the reported post' })
+  resolveContentReport(
+    @CurrentUser('sub') adminId: string,
+    @Param('id') reportId: string,
+    @Body() body: AdminResolveContentReportDto,
+  ) {
+    return this.admin.resolveContentReport(adminId, reportId, body.action, body.resolution);
   }
 
   @Get('inventory/overview')

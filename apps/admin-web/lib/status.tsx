@@ -19,6 +19,12 @@ export function StatusBadgeWrapper({ status }: { status: string }) {
     CRITICAL: 'danger',
     ROUTINE: 'default',
     URGENT: 'warning',
+    PENDING: 'warning',
+    REVIEWED: 'info',
+    DISMISSED: 'default',
+    ACTIONED: 'success',
+    HIDDEN: 'warning',
+    REMOVED: 'danger',
   };
 
   const variant = variantMap[status.toUpperCase()] || 'default';

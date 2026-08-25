@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
-import { RoleCode } from '@prisma/client';
+import { CommunityPostStatus, ContentReportStatus, RoleCode } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import { AdminService } from './admin.service';
 
@@ -224,6 +224,183 @@ describe('AdminService — roles & permissions', () => {
       await expect(service.updateMembershipRole('admin-1', 'mem-1', 'missing-role')).rejects.toThrow(
         NotFoundException,
       );
+    });
+  });
+});
+
+type ModerationMockPrisma = {
+  contentReport: {
+    findUnique: jest.Mock;
+    findMany: jest.Mock;
+    count: jest.Mock;
+    update: jest.Mock;
+    updateMany: jest.Mock;
+  };
+  communityPost: { update: jest.Mock };
+  auditLog: { create: jest.Mock };
+  $transaction: jest.Mock;
+};
+
+describe('AdminService — content moderation', () => {
+  let service: AdminService;
+  let prisma: ModerationMockPrisma;
+
+  beforeEach(async () => {
+    prisma = {
+      contentReport: {
+        findUnique: jest.fn(),
+        findMany: jest.fn(),
+        count: jest.fn(),
+        update: jest.fn(),
+        updateMany: jest.fn(),
+      },
+      communityPost: { update: jest.fn() },
+      auditLog: { create: jest.fn().mockResolvedValue({}) },
+      $transaction: jest.fn().mockImplementation((ops) => Promise.all(ops)),
+    };
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [AdminService, { provide: PrismaService, useValue: prisma }],
+    }).compile();
+
+    service = module.get<AdminService>(AdminService);
+  });
+
+  describe('resolveContentReport', () => {
+    it('dismisses a report without touching the post', async () => {
+      prisma.contentReport.findUnique.mockResolvedValue({
+        id: 'report-1',
+        postId: 'post-1',
+        status: ContentReportStatus.PENDING,
+      });
+      prisma.contentReport.update.mockResolvedValue({
+        id: 'report-1',
+        status: ContentReportStatus.DISMISSED,
+      });
+
+      const result = await service.resolveContentReport('admin-1', 'report-1', 'DISMISS', 'Not a violation');
+
+      expect(prisma.contentReport.update).toHaveBeenCalledWith({
+        where: { id: 'report-1' },
+        data: {
+          status: ContentReportStatus.DISMISSED,
+          reviewedBy: 'admin-1',
+          reviewedAt: expect.any(Date),
+          resolution: 'Not a violation',
+        },
+      });
+      expect(prisma.communityPost.update).not.toHaveBeenCalled();
+      expect(prisma.contentReport.updateMany).not.toHaveBeenCalled();
+      expect(result.status).toBe(ContentReportStatus.DISMISSED);
+    });
+
+    it('hides the post and auto-resolves every other open report on it', async () => {
+      prisma.contentReport.findUnique.mockResolvedValue({
+        id: 'report-1',
+        postId: 'post-1',
+        status: ContentReportStatus.PENDING,
+      });
+      prisma.contentReport.update.mockResolvedValue({
+        id: 'report-1',
+        status: ContentReportStatus.ACTIONED,
+      });
+      prisma.communityPost.update.mockResolvedValue({ id: 'post-1', status: CommunityPostStatus.HIDDEN });
+      prisma.contentReport.updateMany.mockResolvedValue({ count: 2 });
+
+      await service.resolveContentReport('admin-1', 'report-1', 'HIDE');
+
+      expect(prisma.communityPost.update).toHaveBeenCalledWith({
+        where: { id: 'post-1' },
+        data: { status: CommunityPostStatus.HIDDEN },
+      });
+      expect(prisma.contentReport.updateMany).toHaveBeenCalledWith({
+        where: {
+          postId: 'post-1',
+          id: { not: 'report-1' },
+          status: { in: [ContentReportStatus.PENDING, ContentReportStatus.REVIEWED] },
+        },
+        data: expect.objectContaining({
+          status: ContentReportStatus.ACTIONED,
+          reviewedBy: 'admin-1',
+        }),
+      });
+    });
+
+    it('removes the post when action is REMOVE', async () => {
+      prisma.contentReport.findUnique.mockResolvedValue({
+        id: 'report-1',
+        postId: 'post-1',
+        status: ContentReportStatus.REVIEWED,
+      });
+      prisma.contentReport.update.mockResolvedValue({ id: 'report-1', status: ContentReportStatus.ACTIONED });
+      prisma.communityPost.update.mockResolvedValue({ id: 'post-1', status: CommunityPostStatus.REMOVED });
+      prisma.contentReport.updateMany.mockResolvedValue({ count: 0 });
+
+      await service.resolveContentReport('admin-1', 'report-1', 'REMOVE');
+
+      expect(prisma.communityPost.update).toHaveBeenCalledWith({
+        where: { id: 'post-1' },
+        data: { status: CommunityPostStatus.REMOVED },
+      });
+    });
+
+    it('rejects resolving a report that is already dismissed', async () => {
+      prisma.contentReport.findUnique.mockResolvedValue({
+        id: 'report-1',
+        postId: 'post-1',
+        status: ContentReportStatus.DISMISSED,
+      });
+
+      await expect(service.resolveContentReport('admin-1', 'report-1', 'DISMISS')).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(prisma.contentReport.update).not.toHaveBeenCalled();
+    });
+
+    it('rejects resolving a report that has already been actioned', async () => {
+      prisma.contentReport.findUnique.mockResolvedValue({
+        id: 'report-1',
+        postId: 'post-1',
+        status: ContentReportStatus.ACTIONED,
+      });
+
+      await expect(service.resolveContentReport('admin-1', 'report-1', 'HIDE')).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('throws NotFoundException for an unknown report', async () => {
+      prisma.contentReport.findUnique.mockResolvedValue(null);
+
+      await expect(service.resolveContentReport('admin-1', 'missing', 'DISMISS')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
+
+  describe('getContentReport', () => {
+    it('includes other reports filed against the same post', async () => {
+      prisma.contentReport.findUnique.mockResolvedValue({
+        id: 'report-1',
+        postId: 'post-1',
+        status: ContentReportStatus.PENDING,
+        post: { id: 'post-1', title: 'Test post' },
+      });
+      prisma.contentReport.findMany.mockResolvedValue([
+        { id: 'report-2', reason: 'SPAM', status: ContentReportStatus.PENDING, createdAt: new Date() },
+      ]);
+
+      const result = await service.getContentReport('report-1');
+
+      expect(prisma.contentReport.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { postId: 'post-1', id: { not: 'report-1' } } }),
+      );
+      expect(result.otherReportsOnPost).toHaveLength(1);
+    });
+
+    it('throws NotFoundException for an unknown report', async () => {
+      prisma.contentReport.findUnique.mockResolvedValue(null);
+      await expect(service.getContentReport('missing')).rejects.toThrow(NotFoundException);
     });
   });
 });

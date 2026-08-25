@@ -12,7 +12,13 @@ import {
   Max,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { RoleCode, UserStatus, OrganizationStatus } from '@prisma/client';
+import {
+  RoleCode,
+  UserStatus,
+  OrganizationStatus,
+  ContentReportStatus,
+  ContentReportReason,
+} from '@prisma/client';
 
 export class AdminUpdateRolePermissionsDto {
   @ApiProperty({ type: [String], example: ['organization.read', 'shipment.manage'] })
@@ -381,6 +387,39 @@ export class AdminAcknowledgeAlertDto {
   @IsOptional()
   @IsString()
   notes?: string;
+}
+
+export class AdminListContentReportsDto {
+  @ApiPropertyOptional({ default: '1' })
+  @IsOptional()
+  @IsString()
+  page?: string;
+
+  @ApiPropertyOptional({ default: '20' })
+  @IsOptional()
+  @IsString()
+  limit?: string;
+
+  @ApiPropertyOptional({ enum: ContentReportStatus })
+  @IsOptional()
+  @IsEnum(ContentReportStatus)
+  status?: ContentReportStatus;
+
+  @ApiPropertyOptional({ enum: ContentReportReason })
+  @IsOptional()
+  @IsEnum(ContentReportReason)
+  reason?: ContentReportReason;
+}
+
+export class AdminResolveContentReportDto {
+  @ApiProperty({ enum: ['DISMISS', 'HIDE', 'REMOVE'] })
+  @IsEnum(['DISMISS', 'HIDE', 'REMOVE'])
+  action!: 'DISMISS' | 'HIDE' | 'REMOVE';
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  resolution?: string;
 }
 
 export class AdminListFeatureFlagsDto {

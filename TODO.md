@@ -677,10 +677,54 @@ These make the product unusable or unsafe for real users. Fix first, in order.
     `apps/api/src/modules/notifications/services/notification-delivery.service.ts` (+ spec),
     `apps/admin-web/lib/api.tsx`, `apps/admin-web/app/settings/page.tsx`.
 
-- [ ] **P1-15. Admin: content moderation is a write-only sink.**
-  Users can report community content (`ContentReport` rows get created),
-  but no admin endpoint or UI ever lists/reviews/resolves a report.
-  - File: `apps/api/src/modules/community/community.service.ts:127-165`.
+- [x] **P1-15. Admin: content moderation is a write-only sink.** — Fixed: the
+  `ContentReport` model already had everything a moderation queue needs
+  (`reviewedBy`/`reviewedAt`/`resolution`, and `CommunityPostStatus`
+  already had `HIDDEN`/`REMOVED`) — it just had no admin code path
+  touching it at all. Added three `AdminService` methods/endpoints:
+  - `GET /admin/content-reports` (filterable by status/reason) and
+    `GET /admin/content-reports/:id` (report + full post + every other
+    report filed against that same post, so an admin isn't resolving
+    five duplicate reports on the same post one at a time blind).
+  - `POST /admin/content-reports/:id/resolve` with one of three actions:
+    `DISMISS` (report only), `HIDE`/`REMOVE` (also flips the post's
+    `CommunityPostStatus`, which `CommunityService.getFeed`/`getPost`
+    already filter/404 on — so moderation takes effect immediately with
+    no changes needed on the read side). Resolving with `HIDE`/`REMOVE`
+    also auto-resolves every other still-open report on that same post
+    (with a note pointing at which report actually triggered it), so
+    duplicate reports don't pile up forever once the underlying content
+    is already gone. Rejects re-resolving an already-`DISMISSED`/`ACTIONED`
+    report. Audit-logs `CONTENT_REPORT_RESOLVED`.
+  admin-web gets a new `/moderation` page (added to the sidebar): a
+  filterable report queue plus a detail modal showing the reported post's
+  full content, the reporter, any other reports on the same post, and
+  Dismiss/Hide/Remove actions.
+  **Found but not fixed here, tracked separately as P3-7**: while adding
+  this, found the DTO file already had unused, never-wired scaffolding
+  for three *other* unbuilt admin features (feature flags, announcements,
+  support tickets) — no Prisma models, no controller, no service, just
+  leftover DTO classes. Left untouched since deleting or building out
+  dead code four features deep is a different task than fixing
+  moderation, but worth flagging rather than silently walking past.
+  Verified: 8 new tests in `admin.service.spec.ts` (dismiss/hide/remove,
+  the auto-resolve-siblings behavior, both already-resolved rejections,
+  the not-found case, and `getContentReport`'s sibling-reports list),
+  full suite 240/240 passing, clean `tsc --noEmit`/`next build` on both
+  the API and admin-web, 0 new lint errors. Exercised the entire flow
+  live end-to-end against the real local Postgres from P1-14: inserted a
+  test post + report directly, resolved it with `HIDE` through the raw
+  API and confirmed the post disappeared from `/community/feed` and
+  404'd on direct view; inserted a second post + report and resolved it
+  with `REMOVE` by actually clicking through the real admin-web
+  `/moderation` page in a headless browser (login → report queue → open
+  detail → Remove Post), confirmed the `CommunityPost.status` flip in the
+  database afterward.
+  - Files: `apps/api/src/modules/admin/{admin.service.ts,admin.controller.ts}`,
+    `apps/api/src/modules/admin/dto/admin.dto.ts`,
+    `apps/api/src/modules/admin/admin.service.spec.ts`,
+    `apps/admin-web/lib/{api.tsx,navigation.tsx,status.tsx}`,
+    `apps/admin-web/app/moderation/page.tsx` (new).
 
 - [ ] **P1-16. Inventory is missing issue/expire/adjust operations entirely.**
   No code path ever transitions a unit to `USED` (dispense), no cron ever
@@ -851,6 +895,20 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   anywhere. Purely cosmetic; flag to the user, no code action needed
   unless they want a rename.
 
+- [ ] **P3-7. Dead DTO scaffolding for three never-built admin features
+  (found while working P1-15).** `apps/api/src/modules/admin/dto/admin.dto.ts`
+  has `AdminListFeatureFlagsDto`/`AdminUpdateFeatureFlagDto`,
+  `AdminListAnnouncementsDto`/`AdminCreateAnnouncementDto`/`AdminUpdateAnnouncementDto`,
+  `AdminListSupportTicketsDto`/`AdminAssignTicketDto`/`AdminUpdateTicketDto`/`AdminCreateTicketDto`,
+  and `AdminUpdateSettingsDto` — none imported by the controller, none
+  backed by a Prisma model. Pure leftover scaffolding from admin features
+  that were apparently planned and never built past the DTO layer (P1-14
+  built real platform settings a different way; the others have no
+  model/service/UI at all). Either delete the dead classes or use them as
+  a starting spec if support tickets/announcements/generic feature-flag
+  CRUD ever get built for real.
+  - File: `apps/api/src/modules/admin/dto/admin.dto.ts`.
+
 ---
 
 ## Suggested execution order
@@ -894,5 +952,10 @@ and a "change role" control on the Users page).~~ ✅
 AI/SOS/gamification/push feature flags, and a new maintenance-mode
 kill-switch; removed the two badges — 2FA, Email/SMS notifications — that
 had no honest backing at all instead of leaving them fake).~~ ✅
-Next up: **P1-15** (Admin: content moderation is a write-only sink), then
-the rest of P1, then P2, folding in P3-1 tests as each area is touched.
+~~**P1-15** (content moderation was a write-only sink — added
+`GET/POST /admin/content-reports` and admin-web's `/moderation` queue;
+resolving hides/removes the post and auto-closes duplicate reports on it;
+split an unrelated dead-DTO-scaffolding finding out to P3-7).~~ ✅
+Next up: **P1-16** (Inventory is missing issue/expire/adjust operations
+entirely), then the rest of P1, then P2, folding in P3-1 tests as each
+area is touched.

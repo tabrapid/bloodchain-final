@@ -14,6 +14,9 @@ import {
   ShipmentStatus,
   BloodRequestStatus,
   EmergencyStatus,
+  ContentReportStatus,
+  ContentReportReason,
+  CommunityPostStatus,
   Prisma,
 } from '@prisma/client';
 
@@ -1188,6 +1191,140 @@ export class AdminService {
     });
 
     return updated;
+  }
+
+  async listContentReports(input: {
+    page: number;
+    limit: number;
+    status?: ContentReportStatus;
+    reason?: ContentReportReason;
+  }): Promise<PaginatedResult<any>> {
+    const { page, limit, status, reason } = input;
+
+    const where: Prisma.ContentReportWhereInput = {};
+    if (status) where.status = status;
+    if (reason) where.reason = reason;
+
+    const [total, reports] = await Promise.all([
+      this.db.contentReport.count({ where }),
+      this.db.contentReport.findMany({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          post: { select: { id: true, type: true, title: true, body: true, status: true } },
+          reporter: { select: { id: true, firstName: true, lastName: true, email: true } },
+          reviewer: { select: { id: true, firstName: true, lastName: true, email: true } },
+        },
+      }),
+    ]);
+
+    return {
+      data: reports.map((r) => ({
+        id: r.id,
+        reason: r.reason,
+        description: r.description,
+        status: r.status,
+        createdAt: r.createdAt,
+        reviewedAt: r.reviewedAt,
+        resolution: r.resolution,
+        post: r.post,
+        reporter: r.reporter,
+        reviewer: r.reviewer,
+      })),
+      meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
+    };
+  }
+
+  async getContentReport(reportId: string): Promise<any> {
+    const report = await this.db.contentReport.findUnique({
+      where: { id: reportId },
+      include: {
+        post: {
+          select: {
+            id: true,
+            type: true,
+            title: true,
+            body: true,
+            imageUrl: true,
+            status: true,
+            author: { select: { id: true, firstName: true, lastName: true, email: true } },
+          },
+        },
+        reporter: { select: { id: true, firstName: true, lastName: true, email: true } },
+        reviewer: { select: { id: true, firstName: true, lastName: true, email: true } },
+      },
+    });
+    if (!report) throw new NotFoundException('Content report not found');
+
+    const otherReports = await this.db.contentReport.findMany({
+      where: { postId: report.postId, id: { not: reportId } },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true, reason: true, status: true, createdAt: true },
+    });
+
+    return { ...report, otherReportsOnPost: otherReports };
+  }
+
+  async resolveContentReport(
+    adminId: string,
+    reportId: string,
+    action: 'DISMISS' | 'HIDE' | 'REMOVE',
+    resolution?: string,
+  ): Promise<any> {
+    const report = await this.db.contentReport.findUnique({ where: { id: reportId } });
+    if (!report) throw new NotFoundException('Content report not found');
+    if (report.status === ContentReportStatus.DISMISSED || report.status === ContentReportStatus.ACTIONED) {
+      throw new BadRequestException('This report has already been resolved.');
+    }
+
+    const now = new Date();
+    const newStatus =
+      action === 'DISMISS' ? ContentReportStatus.DISMISSED : ContentReportStatus.ACTIONED;
+
+    const [updatedReport] = await this.db.$transaction([
+      this.db.contentReport.update({
+        where: { id: reportId },
+        data: { status: newStatus, reviewedBy: adminId, reviewedAt: now, resolution },
+      }),
+      ...(action === 'HIDE' || action === 'REMOVE'
+        ? [
+            this.db.communityPost.update({
+              where: { id: report.postId },
+              data: { status: action === 'HIDE' ? CommunityPostStatus.HIDDEN : CommunityPostStatus.REMOVED },
+            }),
+            // Resolving the post also closes out every other still-open report
+            // against it, so actioning one doesn't leave duplicate reports
+            // sitting in the queue forever for a post that's already gone.
+            this.db.contentReport.updateMany({
+              where: {
+                postId: report.postId,
+                id: { not: reportId },
+                status: { in: [ContentReportStatus.PENDING, ContentReportStatus.REVIEWED] },
+              },
+              data: {
+                status: ContentReportStatus.ACTIONED,
+                reviewedBy: adminId,
+                reviewedAt: now,
+                resolution: `Auto-resolved: post ${action === 'HIDE' ? 'hidden' : 'removed'} via report ${reportId}.`,
+              },
+            }),
+          ]
+        : []),
+    ]);
+
+    await this.db.auditLog.create({
+      data: {
+        actorId: adminId,
+        action: 'CONTENT_REPORT_RESOLVED',
+        entityType: 'ContentReport',
+        entityId: reportId,
+        metadata: { action, resolution, postId: report.postId },
+      },
+    });
+
+    return updatedReport;
   }
 
   async getSystemHealth(): Promise<any> {

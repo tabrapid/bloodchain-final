@@ -119,6 +119,27 @@ export interface AuditLog {
   organization?: { id: string; name: string };
 }
 
+export interface ContentReport {
+  id: string;
+  reason: string;
+  description?: string;
+  status: string;
+  createdAt: string;
+  reviewedAt?: string;
+  resolution?: string;
+  post: { id: string; type: string; title: string; body: string; status: string };
+  reporter: { id: string; firstName: string; lastName: string; email: string };
+  reviewer?: { id: string; firstName: string; lastName: string; email: string };
+}
+
+export interface ContentReportDetail extends ContentReport {
+  post: ContentReport['post'] & {
+    imageUrl?: string;
+    author?: { id: string; firstName: string; lastName: string; email: string };
+  };
+  otherReportsOnPost: Array<{ id: string; reason: string; status: string; createdAt: string }>;
+}
+
 export interface PaginatedResponse<T> {
   data: T[];
   meta: { total: number; page: number; limit: number; totalPages: number };
@@ -340,6 +361,36 @@ export async function listEmergencies(params: {
   if (params.status) searchParams.set('status', params.status);
   const query = searchParams.toString();
   return apiRequest<PaginatedResponse<Emergency>>(`/admin/emergencies${query ? `?${query}` : ''}`);
+}
+
+export async function listContentReports(params: {
+  page?: number;
+  limit?: number;
+  status?: string;
+  reason?: string;
+}): Promise<PaginatedResponse<ContentReport>> {
+  const searchParams = new URLSearchParams();
+  if (params.page) searchParams.set('page', String(params.page));
+  if (params.limit) searchParams.set('limit', String(params.limit));
+  if (params.status) searchParams.set('status', params.status);
+  if (params.reason) searchParams.set('reason', params.reason);
+  const query = searchParams.toString();
+  return apiRequest<PaginatedResponse<ContentReport>>(`/admin/content-reports${query ? `?${query}` : ''}`);
+}
+
+export async function getContentReport(id: string): Promise<ContentReportDetail> {
+  return apiRequest<ContentReportDetail>(`/admin/content-reports/${id}`);
+}
+
+export async function resolveContentReport(
+  id: string,
+  action: 'DISMISS' | 'HIDE' | 'REMOVE',
+  resolution?: string,
+): Promise<ContentReport> {
+  return apiRequest<ContentReport>(`/admin/content-reports/${id}/resolve`, {
+    method: 'POST',
+    body: JSON.stringify({ action, resolution }),
+  });
 }
 
 export async function getInventoryOverview(): Promise<any> {
