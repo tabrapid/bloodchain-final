@@ -216,10 +216,22 @@ export class InventoryService {
     }
 
     const result = await this.db.$transaction(async (tx) => {
-      const updated = await tx.bloodUnit.update({
-        where: { id: unitId },
+      // Atomic conditional update: only succeeds if the unit is still in an
+      // allowed status at the moment Postgres acquires the row lock, closing
+      // the race window between the pre-check above and this transaction.
+      const claim = await tx.bloodUnit.updateMany({
+        where: { id: unitId, status: { in: [BloodUnitStatus.COLLECTED, BloodUnitStatus.QUARANTINED] } },
         data: { status: BloodUnitStatus.AVAILABLE },
       });
+
+      if (claim.count === 0) {
+        const current = await tx.bloodUnit.findUnique({ where: { id: unitId }, select: { status: true } });
+        throw new ConflictException(
+          `Cannot release unit with status ${current?.status ?? 'UNKNOWN'}. Only COLLECTED or QUARANTINED units can be released.`,
+        );
+      }
+
+      const updated = await tx.bloodUnit.findUniqueOrThrow({ where: { id: unitId } });
 
       await tx.inventoryMovement.create({
         data: {
@@ -261,10 +273,19 @@ export class InventoryService {
     }
 
     const result = await this.db.$transaction(async (tx) => {
-      const updated = await tx.bloodUnit.update({
-        where: { id: unitId },
+      // Atomic conditional update: closes the race window between the
+      // pre-check above and this transaction.
+      const claim = await tx.bloodUnit.updateMany({
+        where: { id: unitId, status: { in: [BloodUnitStatus.AVAILABLE, BloodUnitStatus.COLLECTED] } },
         data: { status: BloodUnitStatus.QUARANTINED },
       });
+
+      if (claim.count === 0) {
+        const current = await tx.bloodUnit.findUnique({ where: { id: unitId }, select: { status: true } });
+        throw new ConflictException(`Cannot quarantine unit with status ${current?.status ?? 'UNKNOWN'}.`);
+      }
+
+      const updated = await tx.bloodUnit.findUniqueOrThrow({ where: { id: unitId } });
 
       await tx.inventoryMovement.create({
         data: {
@@ -306,10 +327,18 @@ export class InventoryService {
     }
 
     const result = await this.db.$transaction(async (tx) => {
-      const updated = await tx.bloodUnit.update({
-        where: { id: unitId },
+      // Atomic conditional update: closes the race window between the
+      // pre-check above and this transaction.
+      const claim = await tx.bloodUnit.updateMany({
+        where: { id: unitId, status: { not: BloodUnitStatus.USED } },
         data: { status: BloodUnitStatus.DISCARDED },
       });
+
+      if (claim.count === 0) {
+        throw new ConflictException('Cannot discard a unit that has been used.');
+      }
+
+      const updated = await tx.bloodUnit.findUniqueOrThrow({ where: { id: unitId } });
 
       await tx.inventoryMovement.create({
         data: {
@@ -359,10 +388,23 @@ export class InventoryService {
     }
 
     const result = await this.db.$transaction(async (tx) => {
-      const updated = await tx.bloodUnit.update({
-        where: { id: unitId },
+      // Atomic conditional update: closes the race window between the
+      // pre-check above and this transaction (e.g. the unit was discarded
+      // or used by a concurrent request just before this move lands).
+      const claim = await tx.bloodUnit.updateMany({
+        where: {
+          id: unitId,
+          status: { notIn: [BloodUnitStatus.USED, BloodUnitStatus.DISCARDED, BloodUnitStatus.EXPIRED] },
+        },
         data: { locationId: dto.toLocationId },
       });
+
+      if (claim.count === 0) {
+        const current = await tx.bloodUnit.findUnique({ where: { id: unitId }, select: { status: true } });
+        throw new ConflictException(`Cannot move unit with status ${current?.status ?? 'UNKNOWN'}.`);
+      }
+
+      const updated = await tx.bloodUnit.findUniqueOrThrow({ where: { id: unitId } });
 
       await tx.inventoryMovement.create({
         data: {

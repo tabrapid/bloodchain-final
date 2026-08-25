@@ -167,19 +167,33 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   - Files: `apps/api/src/modules/appointments/appointments.service.ts`,
     `apps/api/src/modules/laboratory/laboratory.service.ts`.
 
-- [ ] **P1-2. Inventory unit-status TOCTOU races (release/quarantine/discard/move).**
-  Every inventory status-changing operation except `reserveUnit`/
-  `releaseReservation` checks status outside the transaction then does a
-  plain (non-conditional) update inside it — same race class as P1-1,
-  risking double-processing of a blood unit under concurrent calls.
-  - File: `apps/api/src/modules/inventory/inventory.service.ts:205-393`.
+- [x] **P1-2. Inventory unit-status TOCTOU races (release/quarantine/discard/move).** — Fixed:
+  `releaseUnit`, `quarantineUnit`, `discardUnit`, and `moveUnit` all now claim
+  the status change via an atomic conditional `updateMany` (guarded on the
+  set of allowed "from" statuses, e.g. `{in: [COLLECTED, QUARANTINED]}` for
+  release) *inside* the transaction, throwing `ConflictException` when
+  `claim.count === 0` — same pattern as `reserveUnit`, which was already
+  correct. On a lost claim, the error re-fetches the unit's current status so
+  the message stays accurate instead of repeating the stale pre-check text.
+  Covered by new `inventory.service.spec.ts` (8 tests, zero coverage before).
+  - File: `apps/api/src/modules/inventory/inventory.service.ts`.
 
-- [ ] **P1-3. Shipment status transitions have the same TOCTOU pattern, everywhere.**
-  `confirmPickup`, `startDelivery`, `arriveAtHospital`, `confirmDeliveryFull`,
-  `failShipment`, `cancelShipment` all fetch-then-check-then-update without
-  a conditional guard — concurrent duplicate requests (e.g. a retried
-  "confirm delivery" from a flaky connection) can double-credit inventory.
-  - File: `apps/api/src/modules/shipments/shipments.service.ts` (multiple methods, 947-2087).
+- [x] **P1-3. Shipment status transitions have the same TOCTOU pattern, everywhere.** — Fixed:
+  all 9 status-transition methods (`acceptShipment`, `declineShipment`,
+  `startPickup`, `confirmPickup`, `startDelivery`, `arriveAtHospital`,
+  `confirmDelivery`, `confirmDeliveryFull`, `cancelShipment` — `failShipment`
+  too, covering all methods sharing this bug, not just the 6 named above)
+  now claim their transition via an atomic conditional `updateMany` guarded
+  on the correct "from" status (or status set, e.g. `failShipment`'s
+  `{in: [COURIER_ACCEPTED, PICKUP_STARTED, PICKED_UP, IN_TRANSIT]}`, or
+  `cancelShipment`'s `{notIn: [DELIVERED, CANCELLED]}`) *before* any
+  side-effecting work (unit loops, inventory movements, courier/blood-request
+  updates), throwing `ConflictException` on `claim.count === 0` so a lost
+  race touches nothing else. `updateLocation` was already fixed under P0-9
+  and needed no change. Covered by new `shipments.service.spec.ts`
+  (20 tests, zero coverage before) — one happy-path + one race-lost case per
+  method. `ShipmentStateMachine` still isn't wired in (that's P1-4).
+  - File: `apps/api/src/modules/shipments/shipments.service.ts`.
 
 - [ ] **P1-4. A real `ShipmentStateMachine` exists but the service never uses it.**
   `shipment-state.service.ts` has a proper transition table; `shipments.service.ts`
@@ -418,8 +432,7 @@ These make the product unusable or unsafe for real users. Fix first, in order.
 3. ~~**P0-8, P0-9** (security) — before any load/beta testing touches real location data.~~ ✅
 4. ~~**P0-5** (push) and **P0-6/P0-7** (courier + hospital↔blood-center UI) — these three close the loop on the emergency and supply-chain flows end-to-end.~~ ✅
 
-**All P0 items are done.** Next up, P1 in listed order — start with **P1-1/P1-2/P1-3**
-(the booking/inventory/shipment TOCTOU races, all the same fix pattern
-already used for P0-9) and **P1-4** (route shipments through the real
-`ShipmentStateMachine`), then the rest of P1, then P2, folding in P3-1
-tests as each area is touched.
+**All P0 items are done.** ~~**P1-1/P1-2/P1-3** (the booking/inventory/shipment
+TOCTOU races, all the same fix pattern already used for P0-9).~~ ✅ Next up:
+**P1-4** (route shipments through the real `ShipmentStateMachine`), then the
+rest of P1, then P2, folding in P3-1 tests as each area is touched.
