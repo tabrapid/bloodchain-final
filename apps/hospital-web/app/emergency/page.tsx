@@ -14,6 +14,7 @@ import {
   RefreshCw,
   X,
 } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import {
   DashboardShell,
   EmptyState,
@@ -21,6 +22,11 @@ import {
   StatusBadge,
   StatCard,
 } from '@donor/ui/components';
+import type { MapMarker } from '@donor/ui/map';
+
+const LocationMap = dynamic(() => import('@donor/ui/map').then((mod) => mod.LocationMap), {
+  ssr: false,
+});
 import { logout as logoutApi, me, isAuthenticated, MeResponse } from '../../lib/auth';
 import {
   createEmergency,
@@ -410,22 +416,43 @@ export default function EmergencyPage() {
                       </div>
                       {['DONOR_EN_ROUTE', 'DONOR_ARRIVED'].includes(emergency.status) && (() => {
                         const liveLocation = liveLocations[emergency.id];
-                        return (
-                          <div className="mt-3 flex items-center gap-2 rounded-lg border border-donor-border bg-donor-background px-3 py-2">
-                            <Navigation size={14} className="text-donor-primary" />
-                            {liveLocation ? (
-                              <span className="text-xs text-donor-text">
-                                Live: {liveLocation.latitude.toFixed(5)},{' '}
-                                {liveLocation.longitude.toFixed(5)}
-                                <span className="ml-2 text-donor-muted">
-                                  updated {new Date(liveLocation.recordedAt).toLocaleTimeString()}
-                                </span>
-                              </span>
-                            ) : (
+                        if (!liveLocation) {
+                          return (
+                            <div className="mt-3 flex items-center gap-2 rounded-lg border border-donor-border bg-donor-background px-3 py-2">
+                              <Navigation size={14} className="text-donor-primary" />
                               <span className="text-xs text-donor-muted">
                                 Waiting for donor location update...
                               </span>
-                            )}
+                            </div>
+                          );
+                        }
+
+                        const hospitalLat = emergency.latitude ? parseFloat(emergency.latitude) : null;
+                        const hospitalLng = emergency.longitude ? parseFloat(emergency.longitude) : null;
+                        const markers: MapMarker[] = [
+                          {
+                            id: 'donor',
+                            variant: 'donor',
+                            label: 'Donor',
+                            sublabel: `Updated ${new Date(liveLocation.recordedAt).toLocaleTimeString()}`,
+                            latitude: liveLocation.latitude,
+                            longitude: liveLocation.longitude,
+                          },
+                          ...(hospitalLat !== null && hospitalLng !== null
+                            ? [{
+                                id: 'hospital',
+                                variant: 'hospital' as const,
+                                label: emergency.donationLocation || 'Hospital',
+                                sublabel: 'Donation location',
+                                latitude: hospitalLat,
+                                longitude: hospitalLng,
+                              }]
+                            : []),
+                        ];
+
+                        return (
+                          <div className="mt-3">
+                            <LocationMap markers={markers} showRoute height={220} />
                           </div>
                         );
                       })()}

@@ -40,7 +40,6 @@ import { CampaignsModule } from './modules/campaigns/campaigns.module';
 import { ChallengesModule } from './modules/challenges/challenges.module';
 import { EducationModule } from './modules/education/education.module';
 import { IdempotencyModule } from './modules/idempotency/idempotency.module';
-import { ShipmentGateway } from './gateways/shipment.gateway';
 
 @Module({
   imports: [
@@ -130,7 +129,6 @@ import { ShipmentGateway } from './gateways/shipment.gateway';
       provide: APP_GUARD,
       useClass: PermissionsGuard,
     },
-    ShipmentGateway,
   ],
 })
 export class AppModule {}

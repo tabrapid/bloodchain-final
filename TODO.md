@@ -370,19 +370,122 @@ These make the product unusable or unsafe for real users. Fix first, in order.
     `apps/blood-center-web/lib/{appointment-slots.ts,couriers.ts}` (new),
     `apps/blood-center-web/lib/navigation.tsx`.
 
-- [ ] **P1-10. No map UI anywhere despite location tracking being core.**
-  Neither hospital-web nor blood-center-web nor mobile renders an actual
-  map (no leaflet/mapbox/google-maps dependency anywhere) — shipment/SOS
-  "tracking" is raw coordinates/timeline text only.
-  - Add a map library and real map views to shipment tracking and SOS
-    donor-location screens.
+- [x] **P1-10. No map UI anywhere despite location tracking being core.** — Fixed for web
+  (mobile intentionally out of scope, see below). Added `leaflet` +
+  `react-leaflet` and a shared `LocationMap` component
+  (`packages/ui/src/components/map/LocationMap.tsx`, exported via its own
+  `@donor/ui/map` subpath — deliberately *not* re-exported through the main
+  `@donor/ui/components` barrel, because that barrel is imported by every
+  page including ones with no map, and Leaflet's `window` access at import
+  time broke SSR/prerendering for the *entire app* the first time it was
+  wired through the shared barrel; every consuming page now also uses
+  `next/dynamic(..., {ssr:false})`). Color-coded div-icon markers (origin/
+  destination/courier/donor/hospital), auto-fit-to-bounds, optional dashed
+  route line between markers, dark CARTO basemap tiles (free, no API key —
+  fine for development traffic; a production deployment should move to a
+  dedicated tile provider or self-hosted tiles before scaling up request
+  volume, per OSM/CARTO's tile usage policies).
+  Wired into the exact two raw-coordinate screens that prompted this item:
+  - `hospital-web/app/shipments/[id]/page.tsx` — replaced the raw
+    lat/lng text with a map showing pickup, live courier position, and
+    destination, connected by a route line.
+  - `hospital-web/app/emergency/page.tsx` (SOS donor-location) — replaced
+    `Live: {lat}, {lng}` text with a map showing the responding donor's
+    live position and the hospital's donation location.
+  Also added the same treatment to `blood-center-web/app/shipments/[id]/page.tsx`,
+  which — found while working this item — didn't fetch or show shipment
+  tracking data *at all* (not even as text), despite `getShipmentTracking`
+  already being defined and unused in its `lib/shipments.ts`.
+  **Mobile scoped out**: mobile doesn't actually consume/display anyone
+  else's location today — `sos.tsx` and `(courier)/active.tsx` only ever
+  *send* the device's own position in the background, they don't render a
+  map of anything. Adding a native map view there is a different-shaped
+  problem (a native map library needs a dev-client/EAS build, not just an
+  npm install, and isn't verifiable via a web browser screenshot the way
+  this session verified the two changes above) — left as a separate,
+  explicitly-named follow-up rather than silently declared "done" here.
+  Verified with `next build` on both apps (clean, no prerender errors) and
+  a temporary standalone preview page rendered via headless browser,
+  confirming the map container, colored markers, and route line all mount
+  and position correctly — this sandbox's own network policy blocks the
+  external tile CDN (confirmed via the proxy status log, not app-specific),
+  so the terrain tile *imagery* itself couldn't be screenshotted, but every
+  part of the map's own logic (mounting, bounds-fitting, marker placement)
+  was confirmed working. The temporary preview page was removed before
+  committing.
+  - Files: `packages/ui/src/components/map/LocationMap.tsx` (new),
+    `packages/ui/package.json`, `packages/ui/src/components/index.ts`,
+    `apps/hospital-web/app/{layout.tsx,shipments/[id]/page.tsx,emergency/page.tsx}`,
+    `apps/blood-center-web/app/{layout.tsx,shipments/[id]/page.tsx}`,
+    `apps/hospital-web/package.json`, `apps/blood-center-web/package.json`.
 
-- [ ] **P1-11. Neither web dashboard opens a live WebSocket for shipment tracking.**
-  The `/shipments` gateway is real and working, but hospital-web/
-  blood-center-web never connect to it — "realtime" tracking is a one-shot
-  REST fetch with a manual refresh button. (Emergency tracking *does* use
-  the socket correctly, in `useEmergencyTracking.ts` — copy that pattern.)
-  - File to model after: `apps/hospital-web/lib/useEmergencyTracking.ts`.
+- [x] **P1-11. Neither web dashboard opens a live WebSocket for shipment tracking.**
+  Fixed on both the backend (which turned out to be only half-wired despite
+  looking complete) and the frontend.
+  Backend findings, found while wiring this up:
+  - `ShipmentGateway` was registered as a bare top-level provider in
+    `AppModule` instead of inside `ShipmentsModule`, so it was never
+    injectable into `ShipmentsService` — moved it into
+    `ShipmentsModule`'s `providers` (mirroring the already-correct
+    `EmergencyGateway`/`EmergencyModule` pattern) and removed it from
+    `AppModule`.
+  - `ShipmentsService` never actually called any gateway emit method from
+    any of its 11 real status-transition handlers (`createShipment`,
+    `assignCourier`, `acceptShipment`, `declineShipment`, `startPickup`,
+    `confirmPickup`, `startDelivery`, `arriveAtHospital`, `failShipment`,
+    `cancelShipment`, `reassignCourier`) — the gateway had working emit
+    methods with nothing calling them. Added
+    `this.shipmentGateway.emitShipmentStatusChanged(...)` at each.
+  - The mobile courier app submits location updates over REST
+    (`POST .../update-location`), not the gateway's own `location_update`
+    socket event — `ShipmentsService.updateLocation` (the REST handler)
+    never broadcast the new position anywhere. Added a new
+    `ShipmentGateway.emitCourierLocation(...)` method and call it from
+    `updateLocation` after the DB write, so REST-submitted courier
+    positions now reach web clients watching that shipment's room live.
+  - Same "dead sibling method" pattern found repeatedly this session:
+    `confirmDelivery` (with a push-notification emit) is dead code —
+    `shipments.controller.ts`'s HTTP handler actually calls
+    `confirmDeliveryFull`, which had neither the push notification nor a
+    gateway emit. Added both to `confirmDeliveryFull` (the reachable
+    path); left the unreachable `confirmDelivery` untouched. This means
+    real deliveries never sent "delivered" push notifications before this
+    fix, in addition to never updating live tracking.
+  Frontend: added `useShipmentTracking(shipmentId)` hooks to both
+  hospital-web and blood-center-web (`lib/useShipmentTracking.ts` in each,
+  copied from the proven `useEmergencyTracking.ts` pattern — JWT-authed
+  `/shipments` namespace connection, `join`/`leave` room lifecycle on
+  mount/unmount), wired into each app's `shipments/[id]/page.tsx`:
+  - The `LocationMap`'s courier marker now prefers the live
+    `courier_location` socket payload over the stale REST snapshot,
+    falling back to the REST value only when no socket update has arrived
+    yet.
+  - A `shipment_status_changed` event now triggers a full `loadShipment()`
+    refetch (status badge, timeline, delivered/arrived timestamps, confirm-
+    delivery button visibility all update without a manual refresh).
+  - Added a small "Live"/"Offline" connection-status indicator next to the
+    Live Map heading on both pages, reusing already-imported icon/color
+    tokens.
+  - `blood-center-web` didn't have `socket.io-client` installed yet
+    (hospital-web already did) — added it.
+  Verified: 27/27 tests in `shipments.service.spec.ts` (updated with
+  `ShipmentGateway`/`LocationService` mocks and new assertions on every
+  happy-path transition + `updateLocation` broadcast test), 4/4 new tests
+  in `shipment.gateway.spec.ts` (first-ever coverage for this gateway),
+  full backend suite 207/207 passing across 25 suites, 0 new lint errors
+  (311 pre-existing warnings unchanged), clean `tsc --noEmit` and `next
+  build` on both hospital-web and blood-center-web.
+  - Files: `apps/api/src/gateways/shipment.gateway.ts`,
+    `apps/api/src/gateways/shipment.gateway.spec.ts` (new),
+    `apps/api/src/modules/shipments/shipments.module.ts`,
+    `apps/api/src/modules/shipments/shipments.service.ts`,
+    `apps/api/src/modules/shipments/shipments.service.spec.ts`,
+    `apps/api/src/app.module.ts`,
+    `apps/hospital-web/lib/useShipmentTracking.ts` (new),
+    `apps/blood-center-web/lib/useShipmentTracking.ts` (new),
+    `apps/hospital-web/app/shipments/[id]/page.tsx`,
+    `apps/blood-center-web/app/shipments/[id]/page.tsx`,
+    `apps/blood-center-web/package.json`.
 
 - [ ] **P1-12. Admin: no organization signup flow feeds the approval workflow.**
   Admin's verify/reject/suspend/restore organization endpoints are real,
@@ -427,6 +530,17 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   (no cron) ever actually transitions a stale `EmergencyRequest`/
   `EmergencyMatch` past its `requiredBefore` — it just sits active forever.
   - File: `apps/api/src/modules/emergency/emergency.service.ts`.
+
+- [ ] **P1-19. Mobile has no map view (split out of P1-10).**
+  P1-10 added real map views to hospital-web and blood-center-web, but
+  mobile's `sos.tsx` and `(courier)/active.tsx` only ever *send* the
+  device's own position in the background — neither renders a map of
+  anything (own position, destination, or anyone else's). A native map
+  view needs `react-native-maps` (or similar) plus a dev-client/EAS build
+  to test, which is a different-shaped task than the two web pages fixed
+  under P1-10 and wasn't verifiable the same way (headless browser
+  screenshot) in this session.
+  - Files: `apps/mobile/app/sos.tsx`, `apps/mobile/app/(courier)/active.tsx`.
 
 ---
 
@@ -570,7 +684,13 @@ cooldown).~~ ✅
 ~~**P1-9** (Blood Center dashboard missing core pages — added `/appointments`
 slot config and `/couriers` roster; review/approve-request and
 create-shipment were already done under P0-7).~~ ✅
-Next up: **P1-10** (no map UI anywhere despite location tracking being
-core — add a map library and real map views to shipment tracking and SOS
-donor-location screens), then the rest of P1, then P2, folding in P3-1
-tests as each area is touched.
+~~**P1-10** (no map UI anywhere — added `leaflet`/`react-leaflet` and a
+shared `LocationMap` to hospital-web's shipment tracking and SOS pages and
+blood-center-web's shipment tracking page; mobile split out to P1-19).~~ ✅
+~~**P1-11** (neither web dashboard opened a live WebSocket for shipment
+tracking — fixed `ShipmentGateway` DI wiring, added the missing emit calls
+at all 11 status transitions plus the REST location-update path, and
+connected both dashboards via a new `useShipmentTracking` hook).~~ ✅
+Next up: **P1-12** (Admin: no organization signup flow feeds the approval
+workflow), then the rest of P1, then P2, folding in P3-1 tests as each area
+is touched.

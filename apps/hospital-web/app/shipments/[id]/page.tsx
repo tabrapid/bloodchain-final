@@ -15,10 +15,16 @@ import {
   Truck,
   XCircle,
 } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import {
   DashboardShell,
   StatusBadge,
 } from '@donor/ui/components';
+import type { MapMarker } from '@donor/ui/map';
+
+const LocationMap = dynamic(() => import('@donor/ui/map').then((mod) => mod.LocationMap), {
+  ssr: false,
+});
 import { logout as logoutApi, me, isAuthenticated, MeResponse } from '../../../lib/auth';
 import {
   getShipment,
@@ -30,6 +36,7 @@ import {
   TimelineEvent,
 } from '../../../lib/shipments';
 import { sidebarItems } from '../../../lib/navigation';
+import { useShipmentTracking } from '../../../lib/useShipmentTracking';
 
 const STATUS_CONFIG: Record<string, { label: string; variant: 'success' | 'warning' | 'info' | 'default' | 'danger' }> = {
   CREATED: { label: 'Created', variant: 'default' },
@@ -62,6 +69,8 @@ export default function ShipmentDetailPage() {
   const [deliveryNotes, setDeliveryNotes] = useState('');
   const [discrepancyReason, setDiscrepancyReason] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
+
+  const { courierLocation, statusUpdate, connected } = useShipmentTracking(shipmentId || null);
 
   const loadShipment = useCallback(async () => {
     if (!organizationId || !shipmentId) return;
@@ -107,6 +116,12 @@ export default function ShipmentDetailPage() {
       loadShipment();
     }
   }, [organizationId, loadShipment]);
+
+  useEffect(() => {
+    if (statusUpdate) {
+      loadShipment();
+    }
+  }, [statusUpdate, loadShipment]);
 
   const handleConfirmDelivery = async () => {
     if (!organizationId || !shipmentId) return;
@@ -276,17 +291,61 @@ export default function ShipmentDetailPage() {
                   </p>
                 </div>
               </div>
-              {tracking.currentLocation && (
-                <div className="mt-4 rounded-lg bg-donor-border p-3">
-                  <p className="text-xs text-donor-muted">Current Location</p>
-                  <p className="text-sm text-donor-text">
-                    {tracking.currentLocation.latitude.toFixed(6)}, {tracking.currentLocation.longitude.toFixed(6)}
-                  </p>
-                  <p className="text-xs text-donor-muted">
-                    Updated {new Date(tracking.currentLocation.recordedAt).toLocaleString()}
-                  </p>
-                </div>
-              )}
+            </div>
+          )}
+
+          {tracking && (tracking.currentLocation || courierLocation || tracking.source.coordinates || tracking.destination.coordinates) && (
+            <div className="rounded-2xl border border-donor-border bg-donor-surface p-5">
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-donor-text">Live Map</h3>
+                <span className={`flex items-center gap-1.5 text-xs ${connected ? 'text-green-400' : 'text-donor-muted'}`}>
+                  <span className={`h-1.5 w-1.5 rounded-full ${connected ? 'bg-green-400' : 'bg-donor-muted'}`} />
+                  {connected ? 'Live' : 'Offline'}
+                </span>
+              </div>
+              <LocationMap
+                showRoute
+                markers={(
+                  [
+                    tracking.source.coordinates
+                      ? {
+                          id: 'source',
+                          variant: 'origin',
+                          label: tracking.source.name,
+                          sublabel: 'Pickup location',
+                          ...tracking.source.coordinates,
+                        }
+                      : null,
+                    courierLocation
+                      ? {
+                          id: 'courier',
+                          variant: 'courier',
+                          label: tracking.courier?.name ?? 'Courier',
+                          sublabel: `Updated ${new Date(courierLocation.recordedAt).toLocaleTimeString()}`,
+                          latitude: courierLocation.latitude,
+                          longitude: courierLocation.longitude,
+                        }
+                      : tracking.currentLocation
+                        ? {
+                            id: 'courier',
+                            variant: 'courier',
+                            label: tracking.courier?.name ?? 'Courier',
+                            sublabel: `Updated ${new Date(tracking.currentLocation.recordedAt).toLocaleTimeString()}`,
+                            ...tracking.currentLocation,
+                          }
+                        : null,
+                    tracking.destination.coordinates
+                      ? {
+                          id: 'destination',
+                          variant: 'destination',
+                          label: tracking.destination.name,
+                          sublabel: 'Delivery destination',
+                          ...tracking.destination.coordinates,
+                        }
+                      : null,
+                  ] as (MapMarker | null)[]
+                ).filter((m): m is MapMarker => m !== null)}
+              />
             </div>
           )}
 
