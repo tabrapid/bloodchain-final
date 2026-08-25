@@ -7,6 +7,7 @@ import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { LocationService } from './services/location.service';
 import { ShipmentStateMachine } from './services/shipment-state.service';
 import { ShipmentsService } from './shipments.service';
+import { ShipmentGateway } from '../../gateways/shipment.gateway';
 
 function makeShipment(overrides: Record<string, any> = {}) {
   return {
@@ -27,6 +28,8 @@ describe('ShipmentsService status transitions', () => {
   let service: ShipmentsService;
   let prisma: any;
   let tx: any;
+  let shipmentGateway: { emitShipmentStatusChanged: jest.Mock; emitCourierLocation: jest.Mock };
+  let locationService: { validateCourierShipmentAccess: jest.Mock; validateLocationUpdate: jest.Mock };
 
   const courier = { id: 'courier-1', userId: 'user-1', organizationId: 'org-source' };
 
@@ -56,13 +59,23 @@ describe('ShipmentsService status transitions', () => {
       $transaction: jest.fn().mockImplementation(async (cb: any) => cb(tx)),
     };
 
+    shipmentGateway = {
+      emitShipmentStatusChanged: jest.fn(),
+      emitCourierLocation: jest.fn(),
+    };
+    locationService = {
+      validateCourierShipmentAccess: jest.fn().mockResolvedValue({ valid: true }),
+      validateLocationUpdate: jest.fn().mockResolvedValue({ isValid: true, errors: [], warnings: [] }),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ShipmentsService,
         { provide: PrismaService, useValue: prisma },
         { provide: AuditLogsService, useValue: { log: jest.fn().mockResolvedValue({}) } },
         { provide: EventEmitter2, useValue: { emit: jest.fn() } },
-        { provide: LocationService, useValue: {} },
+        { provide: LocationService, useValue: locationService },
+        { provide: ShipmentGateway, useValue: shipmentGateway },
       ],
     }).compile();
 
@@ -87,6 +100,10 @@ describe('ShipmentsService status transitions', () => {
         data: expect.objectContaining({ status: ShipmentStatus.COURIER_ACCEPTED }),
       });
       expect(tx.shipmentEvent.create).toHaveBeenCalled();
+      expect(shipmentGateway.emitShipmentStatusChanged).toHaveBeenCalledWith(
+        'shp-1',
+        ShipmentStatus.COURIER_ACCEPTED,
+      );
     });
 
     it('throws ConflictException and skips side effects when the claim loses the race', async () => {
@@ -95,6 +112,7 @@ describe('ShipmentsService status transitions', () => {
 
       await expect(service.acceptShipment('user-1', 'shp-1')).rejects.toThrow(ConflictException);
       expect(tx.shipmentEvent.create).not.toHaveBeenCalled();
+      expect(shipmentGateway.emitShipmentStatusChanged).not.toHaveBeenCalled();
     });
   });
 
@@ -112,6 +130,11 @@ describe('ShipmentsService status transitions', () => {
         data: expect.objectContaining({ status: ShipmentStatus.COURIER_DECLINED, courierId: null }),
       });
       expect(tx.courier.update).toHaveBeenCalled();
+      expect(shipmentGateway.emitShipmentStatusChanged).toHaveBeenCalledWith(
+        'shp-1',
+        ShipmentStatus.COURIER_DECLINED,
+        { reason: 'traffic' },
+      );
     });
 
     it('throws ConflictException and skips side effects when the claim loses the race', async () => {
@@ -120,6 +143,7 @@ describe('ShipmentsService status transitions', () => {
 
       await expect(service.declineShipment('user-1', 'shp-1', 'traffic')).rejects.toThrow(ConflictException);
       expect(tx.courier.update).not.toHaveBeenCalled();
+      expect(shipmentGateway.emitShipmentStatusChanged).not.toHaveBeenCalled();
     });
   });
 
@@ -136,6 +160,10 @@ describe('ShipmentsService status transitions', () => {
         },
         data: expect.objectContaining({ status: ShipmentStatus.PICKUP_STARTED }),
       });
+      expect(shipmentGateway.emitShipmentStatusChanged).toHaveBeenCalledWith(
+        'shp-1',
+        ShipmentStatus.PICKUP_STARTED,
+      );
     });
 
     it('throws ConflictException when the claim loses the race', async () => {
@@ -144,6 +172,7 @@ describe('ShipmentsService status transitions', () => {
 
       await expect(service.startPickup('user-1', 'shp-1')).rejects.toThrow(ConflictException);
       expect(tx.shipmentEvent.create).not.toHaveBeenCalled();
+      expect(shipmentGateway.emitShipmentStatusChanged).not.toHaveBeenCalled();
     });
   });
 
@@ -168,6 +197,7 @@ describe('ShipmentsService status transitions', () => {
       });
       expect(tx.shipmentUnit.update).toHaveBeenCalledTimes(1);
       expect(tx.inventoryMovement.create).toHaveBeenCalledTimes(1);
+      expect(shipmentGateway.emitShipmentStatusChanged).toHaveBeenCalledWith('shp-1', ShipmentStatus.PICKED_UP);
     });
 
     it('throws ConflictException and never touches units when the claim loses the race', async () => {
@@ -195,6 +225,7 @@ describe('ShipmentsService status transitions', () => {
         },
         data: expect.objectContaining({ status: ShipmentStatus.IN_TRANSIT }),
       });
+      expect(shipmentGateway.emitShipmentStatusChanged).toHaveBeenCalledWith('shp-1', ShipmentStatus.IN_TRANSIT);
     });
 
     it('throws ConflictException when the claim loses the race', async () => {
@@ -219,6 +250,10 @@ describe('ShipmentsService status transitions', () => {
         },
         data: expect.objectContaining({ status: ShipmentStatus.ARRIVED_AT_HOSPITAL }),
       });
+      expect(shipmentGateway.emitShipmentStatusChanged).toHaveBeenCalledWith(
+        'shp-1',
+        ShipmentStatus.ARRIVED_AT_HOSPITAL,
+      );
     });
 
     it('throws ConflictException when the claim loses the race', async () => {
@@ -285,6 +320,7 @@ describe('ShipmentsService status transitions', () => {
         data: expect.objectContaining({ status: ShipmentStatus.FAILED }),
       });
       expect(tx.shipmentUnit.update).toHaveBeenCalledTimes(1);
+      expect(shipmentGateway.emitShipmentStatusChanged).toHaveBeenCalledWith('shp-1', ShipmentStatus.FAILED);
     });
 
     it('throws ConflictException and never touches units when the claim loses the race', async () => {
@@ -318,6 +354,11 @@ describe('ShipmentsService status transitions', () => {
         data: expect.objectContaining({ status: ShipmentStatus.CANCELLED }),
       });
       expect(tx.shipmentUnit.update).toHaveBeenCalledTimes(1);
+      expect(shipmentGateway.emitShipmentStatusChanged).toHaveBeenCalledWith(
+        'shp-1',
+        ShipmentStatus.CANCELLED,
+        { reason: 'no longer needed' },
+      );
     });
 
     it('throws ConflictException and never touches units when the claim loses the race', async () => {
@@ -353,6 +394,11 @@ describe('ShipmentsService status transitions', () => {
         data: expect.objectContaining({ status: ShipmentStatus.DELIVERED }),
       });
       expect(tx.bloodUnitReservation.update).toHaveBeenCalledTimes(1);
+      expect(shipmentGateway.emitShipmentStatusChanged).toHaveBeenCalledWith(
+        'shp-1',
+        ShipmentStatus.DELIVERED,
+        expect.objectContaining({ unitsDelivered: 1 }),
+      );
     });
 
     it('throws ConflictException and never touches units when the claim loses the race', async () => {
@@ -365,6 +411,7 @@ describe('ShipmentsService status transitions', () => {
         service.confirmDeliveryFull('org-dest', 'hosp-user-1', 'shp-1', { unitsReceived: 1 }),
       ).rejects.toThrow(ConflictException);
       expect(tx.bloodUnitReservation.update).not.toHaveBeenCalled();
+      expect(shipmentGateway.emitShipmentStatusChanged).not.toHaveBeenCalled();
     });
   });
 
@@ -394,6 +441,10 @@ describe('ShipmentsService status transitions', () => {
         where: { id: 'courier-2', status: 'AVAILABLE' },
         data: { status: 'BUSY' },
       });
+      expect(shipmentGateway.emitShipmentStatusChanged).toHaveBeenCalledWith(
+        'shp-1',
+        ShipmentStatus.COURIER_ASSIGNED,
+      );
     });
 
     it('throws ConflictException and skips the courier claim when the shipment claim loses the race', async () => {
@@ -405,6 +456,7 @@ describe('ShipmentsService status transitions', () => {
         service.assignCourier('org-source', 'bc-user-1', 'shp-1', 'courier-2'),
       ).rejects.toThrow(ConflictException);
       expect(tx.courier.updateMany).not.toHaveBeenCalled();
+      expect(shipmentGateway.emitShipmentStatusChanged).not.toHaveBeenCalled();
     });
 
     it('throws ConflictException and rolls back when the courier claim loses the race', async () => {
@@ -416,6 +468,7 @@ describe('ShipmentsService status transitions', () => {
         service.assignCourier('org-source', 'bc-user-1', 'shp-1', 'courier-2'),
       ).rejects.toThrow(ConflictException);
       expect(tx.shipmentEvent.create).not.toHaveBeenCalled();
+      expect(shipmentGateway.emitShipmentStatusChanged).not.toHaveBeenCalled();
     });
   });
 
@@ -451,6 +504,11 @@ describe('ShipmentsService status transitions', () => {
         where: { id: 'courier-1' },
         data: { status: 'AVAILABLE' },
       });
+      expect(shipmentGateway.emitShipmentStatusChanged).toHaveBeenCalledWith(
+        'shp-1',
+        ShipmentStatus.COURIER_ASSIGNED,
+        { courierId: 'courier-2' },
+      );
     });
 
     it('throws ConflictException and never frees the old courier when the shipment claim loses the race', async () => {
@@ -465,6 +523,7 @@ describe('ShipmentsService status transitions', () => {
       ).rejects.toThrow(ConflictException);
       expect(tx.courier.update).not.toHaveBeenCalled();
       expect(tx.courier.updateMany).not.toHaveBeenCalled();
+      expect(shipmentGateway.emitShipmentStatusChanged).not.toHaveBeenCalled();
     });
   });
 
@@ -502,6 +561,39 @@ describe('ShipmentsService status transitions', () => {
         expect.objectContaining({ id: 'courier-1', status: 'AVAILABLE', activeShipments: 1, completedShipments: 4 }),
         expect.objectContaining({ id: 'courier-2', status: 'OFFLINE', activeShipments: 0, completedShipments: 0 }),
       ]);
+    });
+  });
+
+  describe('updateLocation', () => {
+    // Mirrors the REST location-update path the mobile courier app actually
+    // uses (as opposed to the gateway's own `location_update` socket event)
+    // - without broadcasting here, live-tracking web clients would never
+    // see a courier's position move.
+    it('broadcasts the new position to the shipment room via the gateway', async () => {
+      const recordedAt = new Date('2026-01-01T00:00:00.000Z');
+      prisma.shipmentLocation = {
+        create: jest.fn().mockResolvedValue({
+          latitude: 40.7128,
+          longitude: -74.006,
+          accuracy: 5,
+          heading: null,
+          speed: null,
+          recordedAt,
+        }),
+      };
+      prisma.shipmentEvent = { create: jest.fn().mockResolvedValue({}) };
+
+      await service.updateLocation('user-1', 'shp-1', { latitude: 40.7128, longitude: -74.006, accuracy: 5 });
+
+      expect(shipmentGateway.emitCourierLocation).toHaveBeenCalledWith('shp-1', {
+        courierId: 'courier-1',
+        latitude: 40.7128,
+        longitude: -74.006,
+        accuracy: 5,
+        heading: null,
+        speed: null,
+        recordedAt: recordedAt.toISOString(),
+      });
     });
   });
 });

@@ -23,6 +23,7 @@ import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { Courier, Organization, User } from '@prisma/client';
 import { LocationService } from './services/location.service';
 import { ShipmentStateMachine } from './services/shipment-state.service';
+import { ShipmentGateway } from '../../gateways/shipment.gateway';
 
 const SHIPMENT_EVENT = 'shipment.event';
 
@@ -35,6 +36,7 @@ export class ShipmentsService {
     private readonly audit: AuditLogsService,
     private readonly eventEmitter: EventEmitter2,
     private readonly locationService: LocationService,
+    private readonly shipmentGateway: ShipmentGateway,
   ) {}
 
   private generateShipmentReference(): string {
@@ -573,6 +575,8 @@ export class ShipmentsService {
       recipientIds: bloodCenterUsers.map((u) => u.id),
     });
 
+    this.shipmentGateway.emitShipmentStatusChanged(result.id, ShipmentStatus.CREATED);
+
     return result;
   }
 
@@ -822,6 +826,8 @@ export class ShipmentsService {
       recipientIds: [courier.userId],
     });
 
+    this.shipmentGateway.emitShipmentStatusChanged(shipmentId, ShipmentStatus.COURIER_ASSIGNED);
+
     return result;
   }
 
@@ -894,6 +900,8 @@ export class ShipmentsService {
       recipientIds: bloodCenterUsers.map((u) => u.id),
     });
 
+    this.shipmentGateway.emitShipmentStatusChanged(shipmentId, ShipmentStatus.COURIER_ACCEPTED);
+
     return result;
   }
 
@@ -963,6 +971,8 @@ export class ShipmentsService {
       ipAddress,
     });
 
+    this.shipmentGateway.emitShipmentStatusChanged(shipmentId, ShipmentStatus.COURIER_DECLINED, { reason });
+
     return result;
   }
 
@@ -1023,6 +1033,8 @@ export class ShipmentsService {
       metadata: { shipmentReference: shipment.shipmentReference },
       ipAddress,
     });
+
+    this.shipmentGateway.emitShipmentStatusChanged(shipmentId, ShipmentStatus.PICKUP_STARTED);
 
     return result;
   }
@@ -1128,6 +1140,8 @@ export class ShipmentsService {
       recipientIds: bloodCenterUsers.map((u) => u.id),
     });
 
+    this.shipmentGateway.emitShipmentStatusChanged(shipmentId, ShipmentStatus.PICKED_UP);
+
     return result;
   }
 
@@ -1200,6 +1214,8 @@ export class ShipmentsService {
       recipientIds: hospitalUsers.map((u) => u.id),
     });
 
+    this.shipmentGateway.emitShipmentStatusChanged(shipmentId, ShipmentStatus.IN_TRANSIT);
+
     return result;
   }
 
@@ -1269,6 +1285,20 @@ export class ShipmentsService {
         organizationId: courier.organizationId,
         metadata: { latitude: dto.latitude, longitude: dto.longitude },
       },
+    });
+
+    // The mobile courier app submits location updates over REST, not the
+    // gateway's own `location_update` socket event, so this is the only
+    // place that broadcasts a REST-submitted position to live-tracking
+    // web clients watching this shipment's room.
+    this.shipmentGateway.emitCourierLocation(shipmentId, {
+      courierId: courier.id,
+      latitude: Number(location.latitude),
+      longitude: Number(location.longitude),
+      accuracy: location.accuracy ? Number(location.accuracy) : null,
+      heading: location.heading ? Number(location.heading) : null,
+      speed: location.speed ? Number(location.speed) : null,
+      recordedAt: location.recordedAt.toISOString(),
     });
 
     return location;
@@ -1342,6 +1372,8 @@ export class ShipmentsService {
       eventType: 'arrived',
       recipientIds: hospitalUsers.map((u) => u.id),
     });
+
+    this.shipmentGateway.emitShipmentStatusChanged(shipmentId, ShipmentStatus.ARRIVED_AT_HOSPITAL);
 
     return result;
   }
@@ -1603,6 +1635,8 @@ export class ShipmentsService {
       eventType: 'failed',
       recipientIds: bloodCenterUsers.map((u) => u.id),
     });
+
+    this.shipmentGateway.emitShipmentStatusChanged(shipmentId, ShipmentStatus.FAILED);
 
     return result;
   }
@@ -1929,6 +1963,8 @@ export class ShipmentsService {
       ipAddress,
     });
 
+    this.shipmentGateway.emitShipmentStatusChanged(shipmentId, ShipmentStatus.CANCELLED, { reason });
+
     return result;
   }
 
@@ -2030,6 +2066,10 @@ export class ShipmentsService {
       organizationId,
       metadata: { newCourierId, previousCourierId: oldCourierId },
       ipAddress,
+    });
+
+    this.shipmentGateway.emitShipmentStatusChanged(shipmentId, ShipmentStatus.COURIER_ASSIGNED, {
+      courierId: newCourierId,
     });
 
     return result;
@@ -2206,6 +2246,34 @@ export class ShipmentsService {
         discrepancy: hasDiscrepancy,
       },
       ipAddress,
+    });
+
+    // This is the route actually wired to POST .../confirm-delivery (see
+    // shipments.controller.ts) - confirmDelivery above is dead code that
+    // was never reachable, which is why "delivered" push notifications and
+    // live tracking updates never fired for real deliveries before this.
+    const bloodCenterUsers = await this.db.user.findMany({
+      where: { memberships: { some: { organizationId: shipment.sourceOrganizationId } } },
+      select: { id: true },
+    });
+
+    const courierUser = shipment.courierId
+      ? await this.db.courier.findUnique({
+          where: { id: shipment.courierId },
+          select: { userId: true },
+        })
+      : null;
+
+    this.eventEmitter.emit(SHIPMENT_EVENT, {
+      shipmentId,
+      eventType: 'delivered',
+      recipientIds: [...bloodCenterUsers.map((u) => u.id), ...(courierUser ? [courierUser.userId] : [])],
+    });
+
+    this.shipmentGateway.emitShipmentStatusChanged(shipmentId, ShipmentStatus.DELIVERED, {
+      unitsDelivered: dto.unitsReceived,
+      totalUnits,
+      discrepancy: hasDiscrepancy,
     });
 
     return {

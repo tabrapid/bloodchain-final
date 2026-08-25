@@ -301,9 +301,7 @@ export class ShipmentGateway
       },
     });
 
-    const roomName = `shipment:${shipmentId}`;
-    this.server.to(roomName).emit('courier_location', {
-      shipmentId,
+    this.emitCourierLocation(shipmentId, {
       courierId: courier.id,
       latitude: Number(location.latitude),
       longitude: Number(location.longitude),
@@ -314,6 +312,32 @@ export class ShipmentGateway
     });
 
     return { success: true };
+  }
+
+  /**
+   * Broadcasts a courier's location to a shipment's room. Called both from
+   * handleLocationUpdate above (the websocket path) and from
+   * ShipmentsService.updateLocation (the REST fallback the mobile courier
+   * app actually uses today) - without this, REST-submitted location
+   * updates would never reach live-tracking web clients.
+   */
+  emitCourierLocation(
+    shipmentId: string,
+    location: {
+      courierId: string;
+      latitude: number;
+      longitude: number;
+      accuracy?: number | null;
+      heading?: number | null;
+      speed?: number | null;
+      recordedAt: string;
+    },
+  ) {
+    const roomName = `shipment:${shipmentId}`;
+    this.server.to(roomName).emit('courier_location', {
+      shipmentId,
+      ...location,
+    });
   }
 
   emitShipmentStatusChanged(

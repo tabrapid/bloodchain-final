@@ -419,12 +419,73 @@ These make the product unusable or unsafe for real users. Fix first, in order.
     `apps/blood-center-web/app/{layout.tsx,shipments/[id]/page.tsx}`,
     `apps/hospital-web/package.json`, `apps/blood-center-web/package.json`.
 
-- [ ] **P1-11. Neither web dashboard opens a live WebSocket for shipment tracking.**
-  The `/shipments` gateway is real and working, but hospital-web/
-  blood-center-web never connect to it — "realtime" tracking is a one-shot
-  REST fetch with a manual refresh button. (Emergency tracking *does* use
-  the socket correctly, in `useEmergencyTracking.ts` — copy that pattern.)
-  - File to model after: `apps/hospital-web/lib/useEmergencyTracking.ts`.
+- [x] **P1-11. Neither web dashboard opens a live WebSocket for shipment tracking.**
+  Fixed on both the backend (which turned out to be only half-wired despite
+  looking complete) and the frontend.
+  Backend findings, found while wiring this up:
+  - `ShipmentGateway` was registered as a bare top-level provider in
+    `AppModule` instead of inside `ShipmentsModule`, so it was never
+    injectable into `ShipmentsService` — moved it into
+    `ShipmentsModule`'s `providers` (mirroring the already-correct
+    `EmergencyGateway`/`EmergencyModule` pattern) and removed it from
+    `AppModule`.
+  - `ShipmentsService` never actually called any gateway emit method from
+    any of its 11 real status-transition handlers (`createShipment`,
+    `assignCourier`, `acceptShipment`, `declineShipment`, `startPickup`,
+    `confirmPickup`, `startDelivery`, `arriveAtHospital`, `failShipment`,
+    `cancelShipment`, `reassignCourier`) — the gateway had working emit
+    methods with nothing calling them. Added
+    `this.shipmentGateway.emitShipmentStatusChanged(...)` at each.
+  - The mobile courier app submits location updates over REST
+    (`POST .../update-location`), not the gateway's own `location_update`
+    socket event — `ShipmentsService.updateLocation` (the REST handler)
+    never broadcast the new position anywhere. Added a new
+    `ShipmentGateway.emitCourierLocation(...)` method and call it from
+    `updateLocation` after the DB write, so REST-submitted courier
+    positions now reach web clients watching that shipment's room live.
+  - Same "dead sibling method" pattern found repeatedly this session:
+    `confirmDelivery` (with a push-notification emit) is dead code —
+    `shipments.controller.ts`'s HTTP handler actually calls
+    `confirmDeliveryFull`, which had neither the push notification nor a
+    gateway emit. Added both to `confirmDeliveryFull` (the reachable
+    path); left the unreachable `confirmDelivery` untouched. This means
+    real deliveries never sent "delivered" push notifications before this
+    fix, in addition to never updating live tracking.
+  Frontend: added `useShipmentTracking(shipmentId)` hooks to both
+  hospital-web and blood-center-web (`lib/useShipmentTracking.ts` in each,
+  copied from the proven `useEmergencyTracking.ts` pattern — JWT-authed
+  `/shipments` namespace connection, `join`/`leave` room lifecycle on
+  mount/unmount), wired into each app's `shipments/[id]/page.tsx`:
+  - The `LocationMap`'s courier marker now prefers the live
+    `courier_location` socket payload over the stale REST snapshot,
+    falling back to the REST value only when no socket update has arrived
+    yet.
+  - A `shipment_status_changed` event now triggers a full `loadShipment()`
+    refetch (status badge, timeline, delivered/arrived timestamps, confirm-
+    delivery button visibility all update without a manual refresh).
+  - Added a small "Live"/"Offline" connection-status indicator next to the
+    Live Map heading on both pages, reusing already-imported icon/color
+    tokens.
+  - `blood-center-web` didn't have `socket.io-client` installed yet
+    (hospital-web already did) — added it.
+  Verified: 27/27 tests in `shipments.service.spec.ts` (updated with
+  `ShipmentGateway`/`LocationService` mocks and new assertions on every
+  happy-path transition + `updateLocation` broadcast test), 4/4 new tests
+  in `shipment.gateway.spec.ts` (first-ever coverage for this gateway),
+  full backend suite 207/207 passing across 25 suites, 0 new lint errors
+  (311 pre-existing warnings unchanged), clean `tsc --noEmit` and `next
+  build` on both hospital-web and blood-center-web.
+  - Files: `apps/api/src/gateways/shipment.gateway.ts`,
+    `apps/api/src/gateways/shipment.gateway.spec.ts` (new),
+    `apps/api/src/modules/shipments/shipments.module.ts`,
+    `apps/api/src/modules/shipments/shipments.service.ts`,
+    `apps/api/src/modules/shipments/shipments.service.spec.ts`,
+    `apps/api/src/app.module.ts`,
+    `apps/hospital-web/lib/useShipmentTracking.ts` (new),
+    `apps/blood-center-web/lib/useShipmentTracking.ts` (new),
+    `apps/hospital-web/app/shipments/[id]/page.tsx`,
+    `apps/blood-center-web/app/shipments/[id]/page.tsx`,
+    `apps/blood-center-web/package.json`.
 
 - [ ] **P1-12. Admin: no organization signup flow feeds the approval workflow.**
   Admin's verify/reject/suspend/restore organization endpoints are real,
@@ -626,7 +687,10 @@ create-shipment were already done under P0-7).~~ ✅
 ~~**P1-10** (no map UI anywhere — added `leaflet`/`react-leaflet` and a
 shared `LocationMap` to hospital-web's shipment tracking and SOS pages and
 blood-center-web's shipment tracking page; mobile split out to P1-19).~~ ✅
-Next up: **P1-11** (neither web dashboard opens a live WebSocket for
-shipment tracking — they poll/refresh instead of subscribing to the
-`ShipmentGateway` the backend already has), then the rest of P1, then P2,
-folding in P3-1 tests as each area is touched.
+~~**P1-11** (neither web dashboard opened a live WebSocket for shipment
+tracking — fixed `ShipmentGateway` DI wiring, added the missing emit calls
+at all 11 status transitions plus the REST location-update path, and
+connected both dashboards via a new `useShipmentTracking` hook).~~ ✅
+Next up: **P1-12** (Admin: no organization signup flow feeds the approval
+workflow), then the rest of P1, then P2, folding in P3-1 tests as each area
+is touched.
