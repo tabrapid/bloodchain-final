@@ -263,14 +263,26 @@ These make the product unusable or unsafe for real users. Fix first, in order.
     `apps/api/src/modules/{donations,appointments,shipments,inventory}/*.module.ts`,
     `apps/api/src/modules/{donations,appointments,shipments,inventory}/*.controller.ts`.
 
-- [ ] **P1-6. Gamification XP triggers for appointments & emergency-response are dead code.**
-  Handlers for `APPOINTMENT_COMPLETED_EVENT` and
-  `EMERGENCY_RESPONSE_COMPLETED_EVENT` exist and are wired to award XP, but
-  **nothing ever emits either event** — donation-completed and
-  blood-test-completed do work (they use a different, real event), but a
-  donor gets no XP for completing an appointment as such, or for an
-  emergency response completion path that isn't also a donation.
-  - File: `apps/api/src/modules/gamification/events/gamification-event.handler.ts:89-134`.
+- [x] **P1-6. Gamification XP triggers for appointments & emergency-response are dead code.** — Fixed:
+  both events are now emitted at their one real source of truth each.
+  `AppointmentsService.completeAppointment` (`apps/api/src/modules/appointments/appointments.service.ts`)
+  now injects `EventEmitter2` and emits `APPOINTMENT_COMPLETED_EVENT` with
+  `{appointmentId, donorId: appointment.donorId}` right after the status
+  transition. `EmergencyService.completeEmergency` (`apps/api/src/modules/emergency/emergency.service.ts`)
+  now emits `EMERGENCY_RESPONSE_COMPLETED_EVENT` with `{responseId, donorId}`
+  alongside its existing `DONATION_COMPLETED_EVENT` emit — the two events
+  award genuinely different rewards (regular donation XP vs. the
+  emergency-specific `EMERGENCY_RESPONSE_COUNT` achievement + emergency
+  reputation bonus in `processEmergencyResponseCompleted`), so both need to
+  fire on the one path that completes an emergency response, not just one.
+  `completeEmergency` was confirmed as the *only* place an `EmergencyResponse`
+  ever reaches `COMPLETED` status, so no other call site needed the emit.
+  Covered by 2 new tests in `appointments.service.spec.ts` (now 9 total) and
+  a new `emergency.service.spec.ts` (3 tests — the emergency module had zero
+  coverage before, so this is scoped to `completeEmergency` specifically,
+  not a full-service audit).
+  - Files: `apps/api/src/modules/appointments/appointments.service.ts`,
+    `apps/api/src/modules/emergency/emergency.service.ts`.
 
 - [ ] **P1-7. Emergency donor eligibility never checks the donation cooldown.**
   `checkDonorEligibility` verifies active status + verified blood type +
@@ -486,7 +498,9 @@ These make the product unusable or unsafe for real users. Fix first, in order.
 TOCTOU races, all the same fix pattern already used for P0-9).~~ ✅
 ~~**P1-4** (route shipments through the real `ShipmentStateMachine`).~~ ✅
 ~~**P1-5** (idempotency keys on the mutating endpoints most exposed to
-client-retry duplication).~~ ✅ Next up: **P1-6** (gamification XP triggers
-for appointments/emergency-response are dead code — nothing emits the events
-their handlers listen for), then the rest of P1, then P2, folding in P3-1
-tests as each area is touched.
+client-retry duplication).~~ ✅
+~~**P1-6** (gamification XP triggers for appointments/emergency-response were
+dead code — nothing emitted the events their handlers listen for).~~ ✅
+Next up: **P1-7** (emergency donor eligibility never checks the 56-day
+donation cooldown), then the rest of P1, then P2, folding in P3-1 tests as
+each area is touched.

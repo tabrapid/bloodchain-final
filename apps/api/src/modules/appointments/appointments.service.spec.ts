@@ -1,8 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConflictException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { AppointmentStatus, SlotStatus } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
+import { APPOINTMENT_COMPLETED_EVENT } from '../gamification/events/gamification-event.handler';
 import { AppointmentsService } from './appointments.service';
 
 function makeSlot(overrides: Record<string, any> = {}) {
@@ -34,6 +36,7 @@ describe('AppointmentsService', () => {
   let service: AppointmentsService;
   let prisma: any;
   let tx: any;
+  let eventEmitter: { emit: jest.Mock };
 
   beforeEach(async () => {
     tx = {
@@ -64,11 +67,14 @@ describe('AppointmentsService', () => {
       $transaction: jest.fn().mockImplementation(async (cb: any) => cb(tx)),
     };
 
+    eventEmitter = { emit: jest.fn() };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AppointmentsService,
         { provide: PrismaService, useValue: prisma },
         { provide: AuditLogsService, useValue: { log: jest.fn().mockResolvedValue({}) } },
+        { provide: EventEmitter2, useValue: eventEmitter },
       ],
     }).compile();
 
@@ -210,6 +216,63 @@ describe('AppointmentsService', () => {
         data: { bookedCount: { increment: 1 } },
       });
       expect(result.data.id).toBe('apt-1');
+    });
+  });
+
+  describe('completeAppointment', () => {
+    function makeStaffUser(overrides: Record<string, any> = {}) {
+      return {
+        id: 'staff-1',
+        memberships: [
+          {
+            organizationId: 'org-1',
+            status: 'ACTIVE',
+            organization: { id: 'org-1' },
+            role: { code: 'HOSPITAL_STAFF' },
+          },
+        ],
+        ...overrides,
+      };
+    }
+
+    function makeConfirmedAppointment(overrides: Record<string, any> = {}) {
+      return {
+        id: 'apt-1',
+        donorId: 'donor-1',
+        organizationId: 'org-1',
+        status: AppointmentStatus.CONFIRMED,
+        ...overrides,
+      };
+    }
+
+    beforeEach(() => {
+      tx.appointment = {
+        ...tx.appointment,
+        update: jest.fn().mockResolvedValue({ id: 'apt-1', status: AppointmentStatus.COMPLETED }),
+      };
+      tx.appointmentHistory = { create: jest.fn().mockResolvedValue({}) };
+    });
+
+    it('emits APPOINTMENT_COMPLETED_EVENT with the donor id once completed', async () => {
+      prisma.appointment.findUnique = jest.fn().mockResolvedValue(makeConfirmedAppointment());
+      prisma.user.findUnique.mockResolvedValue(makeStaffUser());
+
+      await service.completeAppointment('apt-1', 'staff-1');
+
+      expect(eventEmitter.emit).toHaveBeenCalledWith(APPOINTMENT_COMPLETED_EVENT, {
+        appointmentId: 'apt-1',
+        donorId: 'donor-1',
+      });
+    });
+
+    it('does not emit when the appointment is not CONFIRMED', async () => {
+      prisma.appointment.findUnique = jest.fn().mockResolvedValue(
+        makeConfirmedAppointment({ status: AppointmentStatus.PENDING }),
+      );
+      prisma.user.findUnique.mockResolvedValue(makeStaffUser());
+
+      await expect(service.completeAppointment('apt-1', 'staff-1')).rejects.toThrow();
+      expect(eventEmitter.emit).not.toHaveBeenCalled();
     });
   });
 });

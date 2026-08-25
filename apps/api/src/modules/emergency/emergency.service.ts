@@ -20,7 +20,10 @@ import {
 import { PrismaService } from '../../database/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { EmergencyGateway } from '../../gateways/emergency.gateway';
-import { DONATION_COMPLETED_EVENT } from '../gamification/events/gamification-event.handler';
+import {
+  DONATION_COMPLETED_EVENT,
+  EMERGENCY_RESPONSE_COMPLETED_EVENT,
+} from '../gamification/events/gamification-event.handler';
 
 const SOS_REQUEST_CREATED_EVENT = 'sos.request.created';
 const SOS_DONOR_ACCEPTED_EVENT = 'sos.donor.accepted';
@@ -931,6 +934,16 @@ export class EmergencyService {
       donorId: response.donorId,
       organizationId,
       isEmergency: true,
+    });
+
+    // Separate from DONATION_COMPLETED_EVENT above: this awards the
+    // emergency-specific rewards (EMERGENCY_RESPONSE_COUNT achievement,
+    // emergency reputation bonus) that the generic donation-completed path
+    // doesn't grant, since responding to an SOS is a distinct accomplishment
+    // from the donation itself.
+    this.eventEmitter.emit(EMERGENCY_RESPONSE_COMPLETED_EVENT, {
+      responseId,
+      donorId: response.donorId,
     });
 
     this.gateway.emitResponseStatusChanged(response.emergencyRequestId, {
