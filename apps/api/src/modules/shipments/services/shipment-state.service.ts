@@ -9,7 +9,7 @@ const SHIPMENT_TRANSITIONS: TransitionMap = {
   [ShipmentStatus.CREATED]: [ShipmentStatus.COURIER_ASSIGNED, ShipmentStatus.CANCELLED],
   [ShipmentStatus.COURIER_ASSIGNED]: [ShipmentStatus.COURIER_ACCEPTED, ShipmentStatus.COURIER_DECLINED, ShipmentStatus.CANCELLED],
   [ShipmentStatus.COURIER_DECLINED]: [ShipmentStatus.COURIER_ASSIGNED, ShipmentStatus.CANCELLED],
-  [ShipmentStatus.COURIER_ACCEPTED]: [ShipmentStatus.PICKUP_STARTED, ShipmentStatus.CANCELLED],
+  [ShipmentStatus.COURIER_ACCEPTED]: [ShipmentStatus.PICKUP_STARTED, ShipmentStatus.FAILED, ShipmentStatus.CANCELLED],
   [ShipmentStatus.PICKUP_STARTED]: [ShipmentStatus.PICKED_UP, ShipmentStatus.FAILED, ShipmentStatus.CANCELLED],
   [ShipmentStatus.PICKED_UP]: [ShipmentStatus.IN_TRANSIT, ShipmentStatus.FAILED, ShipmentStatus.CANCELLED],
   [ShipmentStatus.IN_TRANSIT]: [ShipmentStatus.ARRIVED_AT_HOSPITAL, ShipmentStatus.FAILED, ShipmentStatus.CANCELLED],
@@ -93,6 +93,19 @@ export class ShipmentStateMachine {
 
   static getAllowedTransitions(status: ShipmentStatus): ShipmentStatus[] {
     return SHIPMENT_TRANSITIONS[status] || [];
+  }
+
+  /**
+   * All statuses that are allowed to transition into `targetStatus`, derived
+   * from the same transition table `assertTransition` checks against. Used
+   * to build the atomic claim guard for a status update, so the set of
+   * acceptable "from" statuses can never drift from what `assertTransition`
+   * itself allows.
+   */
+  static getSourceStatuses(targetStatus: ShipmentStatus): ShipmentStatus[] {
+    return (Object.keys(SHIPMENT_TRANSITIONS) as ShipmentStatus[]).filter((status) =>
+      (SHIPMENT_TRANSITIONS[status] || []).includes(targetStatus),
+    );
   }
 
   static isTerminalStatus(status: ShipmentStatus): boolean {

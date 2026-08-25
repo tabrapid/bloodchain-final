@@ -195,14 +195,37 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   method. `ShipmentStateMachine` still isn't wired in (that's P1-4).
   - File: `apps/api/src/modules/shipments/shipments.service.ts`.
 
-- [ ] **P1-4. A real `ShipmentStateMachine` exists but the service never uses it.**
-  `shipment-state.service.ts` has a proper transition table; `shipments.service.ts`
-  hand-rolls its own inline status checks instead, and they've already
-  drifted (`ARRIVED_AT_HOSPITAL → FAILED` is allowed in the table but
-  blocked in the actual `failShipment` code).
+- [x] **P1-4. A real `ShipmentStateMachine` exists but the service never uses it.** — Fixed:
+  every shipment status transition (`assignCourier`, `acceptShipment`,
+  `declineShipment`, `startPickup`, `confirmPickup`, `startDelivery`,
+  `arriveAtHospital`, `confirmDelivery`, `confirmDeliveryFull`, `failShipment`,
+  `cancelShipment`, `reassignCourier`) now calls
+  `ShipmentStateMachine.assertTransition` for its fast pre-check, and derives
+  the P1-3 atomic claim's "from status" guard from a new
+  `ShipmentStateMachine.getSourceStatuses(target)` helper (reverse-looks-up the
+  same transition table `assertTransition` uses) instead of a hand-maintained
+  array — so the allowed "from" set for a transition can no longer drift from
+  what the state machine actually permits. Fixed the drift the TODO called
+  out (`ARRIVED_AT_HOSPITAL → FAILED` was allowed in the table but blocked in
+  `failShipment`) by adding it to `failShipment`'s reachable set; also added
+  `COURIER_ACCEPTED → FAILED` to the transition table itself (a courier who's
+  accepted but hasn't started pickup could already report a failure in the
+  old hand-rolled code, so the table was extended to match rather than that
+  capability being silently removed).
+  While wiring this in, found and fixed two more instances of the exact same
+  pre-P1-3 TOCTOU bug in methods that mutate shipment status but weren't
+  covered by P1-3: `assignCourier` and `reassignCourier` both checked status
+  outside the transaction then updated unconditionally inside it, *and* both
+  had a second, independent race on the courier's own `AVAILABLE` status
+  (two concurrent assignments could both "win" the same courier). Both are
+  now atomic two-part claims inside the transaction (shipment status, then
+  courier status), each throwing `ConflictException` on a lost race.
+  Covered by a new `shipment-state.service.spec.ts` (9 tests, including a
+  property test asserting `getSourceStatuses` and `assertTransition` can
+  never disagree) and 5 new tests in `shipments.service.spec.ts` for
+  `assignCourier`/`reassignCourier` (25 tests total in that file now).
   - Files: `apps/api/src/modules/shipments/services/shipment-state.service.ts`,
-    `apps/api/src/modules/shipments/shipments.service.ts:1422-1427`.
-  - Fix: make every transition go through `ShipmentStateMachine.assertTransition`.
+    `apps/api/src/modules/shipments/shipments.service.ts`.
 
 - [ ] **P1-5. Idempotency module fully built, wired into nothing that matters.**
   `IdempotencyService` (dedup keys, cleanup) is complete but only consumed
@@ -433,6 +456,8 @@ These make the product unusable or unsafe for real users. Fix first, in order.
 4. ~~**P0-5** (push) and **P0-6/P0-7** (courier + hospital↔blood-center UI) — these three close the loop on the emergency and supply-chain flows end-to-end.~~ ✅
 
 **All P0 items are done.** ~~**P1-1/P1-2/P1-3** (the booking/inventory/shipment
-TOCTOU races, all the same fix pattern already used for P0-9).~~ ✅ Next up:
-**P1-4** (route shipments through the real `ShipmentStateMachine`), then the
-rest of P1, then P2, folding in P3-1 tests as each area is touched.
+TOCTOU races, all the same fix pattern already used for P0-9).~~ ✅
+~~**P1-4** (route shipments through the real `ShipmentStateMachine`).~~ ✅
+Next up: **P1-5** (idempotency keys on the mutating endpoints most exposed to
+client-retry duplication), then the rest of P1, then P2, folding in P3-1
+tests as each area is touched.
