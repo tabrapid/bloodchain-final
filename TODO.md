@@ -58,17 +58,30 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   items to the existing appointment detail screen.
   - File: `apps/mobile/app/(app)/laboratory/index.tsx:113-143`.
 
-- [ ] **P0-5. Push notifications are entirely fake, end-to-end.**
-  `sendPushNotification()` builds a well-formed Expo payload but never
-  makes a network call to Expo/FCM/APNs — it just logs and marks the
-  notification `DELIVERED`. No push SDK (`expo-notifications`,
-  `firebase-admin`, `expo-server-sdk`) is even a dependency. The mobile app
-  never requests push permission or registers a device token
-  (`useRegisterPushDevice` exists but is called from nowhere). This means
-  **emergency SOS pushes never reach a donor's phone** — the single most
-  important notification in the product.
-  - Files: `apps/api/src/modules/notifications/services/notification-delivery.service.ts:105-119`,
-    `apps/mobile/src/hooks/useNotifications.ts:141`, `apps/mobile/package.json`.
+- [x] **P0-5. Push notifications are entirely fake, end-to-end.** — Fixed, both ends:
+  - Backend: added `expo-server-sdk` + `PushProviderService` (real Expo push
+    API calls, chunked, `EXPO_ACCESS_TOKEN`-aware), rewired
+    `NotificationDeliveryService.deliver()` to send for real, filter/mark
+    invalid tokens (`Expo.isExpoPushToken`, `DeviceNotRegistered` tickets),
+    and record per-attempt ticket IDs — instead of just logging and
+    self-reporting `DELIVERED`. Added class-validator to the push-device
+    DTOs. Covered by `push-provider.service.spec.ts` and
+    `notification-delivery.service.spec.ts` (10 + 5 tests; this module had
+    zero coverage before).
+  - Mobile: added `expo-notifications`, a `registerForPushNotificationsAsync()`
+    helper (permission request → Expo token → `registerPushDevice`, never
+    throws — degrades gracefully with no EAS project configured) and a
+    `usePushNotifications()` hook wired into the root layout that registers
+    on auth and navigates via a notification's `deepLink` on tap, including
+    cold-start taps.
+  - Files: `apps/api/src/modules/notifications/services/{notification-delivery,push-provider}.service.ts`,
+    `apps/api/src/modules/notifications/dto/push-device.dto.ts`,
+    `apps/mobile/src/notifications/push.ts`,
+    `apps/mobile/src/hooks/usePushNotifications.ts`, `apps/mobile/app/_layout.tsx`.
+  - Note: this repo has no EAS project configured (no `projectId` in
+    `app.json`), so `getExpoPushTokenAsync()` will fail gracefully (logged,
+    not fatal) until a real EAS project is linked — that's an account/infra
+    step outside what code can fix.
   - Add `expo-server-sdk` (or FCM/APNs), implement real send, request
     permissions + register token on app start / login.
 

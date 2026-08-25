@@ -1,18 +1,20 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ExpoPushMessage } from 'expo-server-sdk';
 import { PrismaService } from '../../../database/prisma.service';
 import { PushDeviceService } from './push-device.service';
+import { PushProviderService } from './push-provider.service';
 import { NotificationPreferenceService } from './notification-preference.service';
 import { DeliveryStatus, NotificationPriority } from '../dto';
 
-interface ExpoPushMessage {
-  to: string;
+interface DeliverableNotification {
+  id: string;
   title: string;
   body: string;
-  data?: Record<string, unknown>;
-  sound?: string;
-  priority?: string;
-  ttl?: number;
-  expiration?: number;
+  type: string;
+  priority: string;
+  deepLink?: string | null;
+  data?: unknown;
+  expiresAt?: Date | null;
 }
 
 @Injectable()
@@ -22,6 +24,7 @@ export class NotificationDeliveryService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly pushDeviceService: PushDeviceService,
+    private readonly pushProvider: PushProviderService,
     private readonly preferenceService: NotificationPreferenceService,
   ) {}
 
@@ -56,24 +59,68 @@ export class NotificationDeliveryService {
 
       const isInQuietHours = await this.preferenceService.isInQuietHours(notification.recipientId);
       const isEmergency = notification.priority === NotificationPriority.CRITICAL;
-      const emergencyOverride = isEmergency && await this.preferenceService.shouldEmergencyOverride(notification.recipientId);
+      const emergencyOverride =
+        isEmergency && (await this.preferenceService.shouldEmergencyOverride(notification.recipientId));
 
       if (isInQuietHours && !emergencyOverride) {
         await this.updateDeliveryStatus(delivery.id, DeliveryStatus.PENDING, 'QUEUED_FOR_QUIET_HOURS');
         return { success: false, reason: 'Queued for quiet hours', queued: true };
       }
 
-      const results = await Promise.allSettled(
-        devices.map((device: { token: string; platform: string }) =>
-          this.sendPushNotification(device.token, notification, device.platform),
+      const validDevices = devices.filter((d) => this.pushProvider.isValidToken(d.token));
+      const invalidDevices = devices.filter((d) => !this.pushProvider.isValidToken(d.token));
+
+      await Promise.all(
+        invalidDevices.map((d) =>
+          this.pushDeviceService.markInvalidToken(d.token).catch(() => undefined),
         ),
       );
 
-      const successes = results.filter((r: PromiseSettledResult<unknown>) => r.status === 'fulfilled').length;
-      const failures = results.filter((r: PromiseSettledResult<unknown>) => r.status === 'rejected').length;
+      if (validDevices.length === 0) {
+        await this.updateDeliveryStatus(delivery.id, DeliveryStatus.INVALID_TOKEN, 'NO_VALID_DEVICES');
+        return { success: false, reason: 'No valid devices' };
+      }
+
+      const messages = validDevices.map((device) => this.buildPushMessage(device.token, notification));
+
+      this.logger.debug(`Sending ${messages.length} push message(s) for notification ${notificationId}`);
+      const tickets = await this.pushProvider.send(messages);
+
+      let successes = 0;
+      let failures = 0;
+      let firstErrorCode: string | undefined;
+      const successTicketIds: string[] = [];
+
+      tickets.forEach((ticket, index) => {
+        if (ticket.status === 'ok') {
+          successes++;
+          successTicketIds.push(ticket.id);
+        } else {
+          failures++;
+          const errorCode = ticket.details?.error ?? 'UNKNOWN_ERROR';
+          firstErrorCode = firstErrorCode ?? errorCode;
+
+          if (errorCode === 'DeviceNotRegistered') {
+            const device = validDevices[index];
+            if (device) {
+              this.pushDeviceService.markInvalidToken(device.token).catch(() => undefined);
+            }
+          }
+        }
+      });
+
+      const now = new Date();
+      const baseUpdate = {
+        attempts: { increment: 1 },
+        lastAttemptAt: now,
+        ...(successTicketIds.length > 0 ? { providerId: successTicketIds.slice(0, 5).join(',') } : {}),
+      };
 
       if (successes > 0) {
-        await this.updateDeliveryStatus(delivery.id, DeliveryStatus.DELIVERED);
+        await this.prisma.notificationDelivery.update({
+          where: { id: delivery.id },
+          data: { ...baseUpdate, status: DeliveryStatus.DELIVERED, deliveredAt: now },
+        });
 
         await this.prisma.notification.update({
           where: { id: notificationId },
@@ -81,19 +128,17 @@ export class NotificationDeliveryService {
         });
 
         return { success: true, sent: successes, failed: failures };
-      } else {
-        const errorResult = results[0] as PromiseRejectedResult;
-        const errorCode = errorResult?.reason?.code || 'UNKNOWN_ERROR';
-
-        if (['INVALID_TOKEN', 'DEVICE_NOT_REGISTERED'].includes(errorCode) && devices[0]) {
-          await this.pushDeviceService.markInvalidToken(devices[0].token);
-          await this.updateDeliveryStatus(delivery.id, DeliveryStatus.INVALID_TOKEN, errorCode);
-        } else {
-          await this.updateDeliveryStatus(delivery.id, DeliveryStatus.FAILED, errorCode);
-        }
-
-        return { success: false, reason: errorCode };
       }
+
+      const status =
+        firstErrorCode === 'DeviceNotRegistered' ? DeliveryStatus.INVALID_TOKEN : DeliveryStatus.FAILED;
+
+      await this.prisma.notificationDelivery.update({
+        where: { id: delivery.id },
+        data: { ...baseUpdate, status, failedAt: now, errorCode: firstErrorCode },
+      });
+
+      return { success: false, reason: firstErrorCode };
     } catch (error) {
       this.logger.error(`Failed to deliver notification ${notificationId}:`, error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -102,25 +147,11 @@ export class NotificationDeliveryService {
     }
   }
 
-  private async sendPushNotification(token: string, notification: any, platform: string): Promise<void> {
-    const message = this.buildPushMessage(token, notification, platform);
-
-    this.logger.debug(`Sending push notification to ${token.substring(0, 20)}...`);
-
-    await this.prisma.notificationDelivery.update({
-      where: { id: (await this.getLatestDeliveryId(notification.id)) || undefined },
-      data: {
-        attempts: { increment: 1 },
-        lastAttemptAt: new Date(),
-      },
-    });
-
-    this.logger.log(`Push notification sent: ${notification.title}`);
-  }
-
-  private buildPushMessage(token: string, notification: any, platform: string): ExpoPushMessage {
-    const priority = notification.priority === NotificationPriority.CRITICAL ? 'high' :
-                     notification.priority === NotificationPriority.HIGH ? 'high' : 'default';
+  private buildPushMessage(token: string, notification: DeliverableNotification): ExpoPushMessage {
+    const priority: ExpoPushMessage['priority'] =
+      notification.priority === NotificationPriority.CRITICAL || notification.priority === NotificationPriority.HIGH
+        ? 'high'
+        : 'default';
 
     const ttl = notification.expiresAt
       ? Math.max(0, Math.floor((new Date(notification.expiresAt).getTime() - Date.now()) / 1000))
@@ -134,17 +165,17 @@ export class NotificationDeliveryService {
         notificationId: notification.id,
         type: notification.type,
         deepLink: notification.deepLink,
-        ...notification.data,
+        ...(typeof notification.data === 'object' && notification.data ? notification.data : {}),
       },
-      sound: notification.priority === NotificationPriority.CRITICAL ? 'emergency' : 'default',
+      sound: 'default',
       priority,
       ttl,
-      expiration: notification.expiresAt ? new Date(notification.expiresAt).getTime() : undefined,
+      expiration: notification.expiresAt ? Math.floor(new Date(notification.expiresAt).getTime() / 1000) : undefined,
     };
   }
 
   private async updateDeliveryStatus(id: string, status: DeliveryStatus, errorCode?: string) {
-    const data: any = { status };
+    const data: Record<string, unknown> = { status };
 
     if (status === DeliveryStatus.DELIVERED) {
       data.deliveredAt = new Date();
@@ -157,14 +188,6 @@ export class NotificationDeliveryService {
       where: { id },
       data,
     });
-  }
-
-  private async getLatestDeliveryId(notificationId: string): Promise<string | null> {
-    const delivery = await this.prisma.notificationDelivery.findFirst({
-      where: { notificationId },
-      orderBy: { createdAt: 'desc' },
-    });
-    return delivery?.id || null;
   }
 
   async processPendingDeliveries(batchSize: number = 100) {
