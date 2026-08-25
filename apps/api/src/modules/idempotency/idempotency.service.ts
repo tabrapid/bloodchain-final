@@ -1,4 +1,4 @@
-import { Injectable, Logger, ConflictException } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { createHash } from 'node:crypto';
 
@@ -50,9 +50,14 @@ export class IdempotencyService {
     const key = this.generateKey(userId, operation, idempotencyKey);
     const resultJson = JSON.stringify(result);
 
+    // ttl must stay outside any quoted SQL literal: Postgres only substitutes
+    // bind parameters ($n) in expression position, never inside a string
+    // literal, so `INTERVAL '${ttl} milliseconds'` would send the literal
+    // text "$n milliseconds" and fail. Multiplying a 1ms interval keeps ttl
+    // in expression position instead.
     await this.db.$executeRaw`
       INSERT INTO "IdempotencyRecord" (key, result, "createdAt", "expiresAt")
-      VALUES (${key}, ${resultJson}::jsonb, NOW(), NOW() + INTERVAL '${ttl} milliseconds')
+      VALUES (${key}, ${resultJson}::jsonb, NOW(), NOW() + (${ttl} * INTERVAL '1 millisecond'))
       ON CONFLICT (key) DO NOTHING
     `;
   }

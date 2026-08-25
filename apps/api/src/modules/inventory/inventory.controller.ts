@@ -1,10 +1,12 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query, Req, UseGuards, UseInterceptors } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
 import { RoleCode } from '@prisma/client';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { Idempotent } from '../idempotency/idempotent.decorator';
+import { IdempotencyInterceptor } from '../idempotency/idempotency.interceptor';
 import { InventoryService } from './inventory.service';
 import {
   CreateLocationDto,
@@ -113,6 +115,8 @@ export class InventoryController {
 
   @Post('units/:unitId/reserve')
   @Roles(RoleCode.SUPER_ADMIN, RoleCode.BLOOD_CENTER_ADMIN, RoleCode.BLOOD_CENTER_STAFF, RoleCode.HOSPITAL_ADMIN, RoleCode.HOSPITAL_STAFF)
+  @Idempotent('inventory.reserve-unit')
+  @UseInterceptors(IdempotencyInterceptor)
   @ApiOperation({ summary: 'Reserve unit' })
   reserveUnit(
     @Param('organizationId') organizationId: string,

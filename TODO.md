@@ -227,14 +227,41 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   - Files: `apps/api/src/modules/shipments/services/shipment-state.service.ts`,
     `apps/api/src/modules/shipments/shipments.service.ts`.
 
-- [ ] **P1-5. Idempotency module fully built, wired into nothing that matters.**
-  `IdempotencyService` (dedup keys, cleanup) is complete but only consumed
-  inside the notifications module. Donation completion, appointment
-  booking, shipment creation/delivery-confirmation, and inventory
-  operations — the endpoints most exposed to client-retry duplication —
-  have no idempotency-key handling at all.
-  - File: `apps/api/src/modules/idempotency/idempotency.service.ts`.
-  - Add an `IdempotencyKey` header + interceptor on the mutating endpoints above.
+- [x] **P1-5. Idempotency module fully built, wired into nothing that matters.** — Fixed:
+  on re-auditing, `IdempotencyService` (the `IdempotencyRecord`-table based
+  one) turned out to be consumed *nowhere at all*, not even notifications —
+  that module has its own separate, already-working dedup mechanism (a DB
+  unique constraint on `Notification.recipientId_idempotencyKey`), unrelated
+  to this service. Added a generic `@Idempotent(operation)` decorator +
+  `IdempotencyInterceptor` (`apps/api/src/modules/idempotency/`): a caller
+  that sends an `Idempotency-Key` header on a decorated endpoint gets the
+  stored result of an earlier identical (user, operation, key) request
+  replayed instead of the handler re-running; no header means the endpoint
+  behaves exactly as before; a same-key-different-outcome pair (user or
+  operation) can never collide, since the internal hash is scoped to both.
+  Purely additive and opt-in — no existing client sends this header yet, so
+  nothing changes until a client opts in.
+  Wired onto the 5 endpoints named above: `donations.completeDonation`,
+  `appointments.bookAppointment`, `shipments.createShipment`,
+  `shipments.confirmDeliveryFull` (routed from the `confirm-delivery` route),
+  and `inventory.reserveUnit`.
+  While implementing this, found and fixed a real, pre-existing bug in
+  `IdempotencyService.storeResult`: the TTL was interpolated *inside* a
+  quoted SQL literal (`` INTERVAL '${ttl} milliseconds' ``) — Postgres only
+  substitutes bind parameters in expression position, never inside a string
+  literal, so every call would have sent the literal text `"$3 milliseconds"`
+  and failed. Fixed by multiplying a 1ms interval instead
+  (`(${ttl} * INTERVAL '1 millisecond')`), keeping `ttl` in expression
+  position. This bug had never been caught because the service was never
+  actually called before now.
+  Covered by `idempotency.service.spec.ts` (7 tests, including one that
+  asserts the TTL fix), `idempotency.interceptor.spec.ts` (5 tests), and
+  `idempotency-wiring.spec.ts` (1 DI-graph smoke test — boots the module for
+  real via Nest's testing harness instead of only mocking classes, which is
+  the only thing that would have caught a missing module import).
+  - Files: `apps/api/src/modules/idempotency/*`,
+    `apps/api/src/modules/{donations,appointments,shipments,inventory}/*.module.ts`,
+    `apps/api/src/modules/{donations,appointments,shipments,inventory}/*.controller.ts`.
 
 - [ ] **P1-6. Gamification XP triggers for appointments & emergency-response are dead code.**
   Handlers for `APPOINTMENT_COMPLETED_EVENT` and
@@ -458,6 +485,8 @@ These make the product unusable or unsafe for real users. Fix first, in order.
 **All P0 items are done.** ~~**P1-1/P1-2/P1-3** (the booking/inventory/shipment
 TOCTOU races, all the same fix pattern already used for P0-9).~~ ✅
 ~~**P1-4** (route shipments through the real `ShipmentStateMachine`).~~ ✅
-Next up: **P1-5** (idempotency keys on the mutating endpoints most exposed to
-client-retry duplication), then the rest of P1, then P2, folding in P3-1
+~~**P1-5** (idempotency keys on the mutating endpoints most exposed to
+client-retry duplication).~~ ✅ Next up: **P1-6** (gamification XP triggers
+for appointments/emergency-response are dead code — nothing emits the events
+their handlers listen for), then the rest of P1, then P2, folding in P3-1
 tests as each area is touched.
