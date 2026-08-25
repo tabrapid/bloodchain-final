@@ -96,28 +96,27 @@ These make the product unusable or unsafe for real users. Fix first, in order.
     `apps/blood-center-web/lib/shipments.ts:166-212`,
     `apps/blood-center-web/app/shipments/page.tsx:243-244`.
 
-- [ ] **P0-8. Donor location broadcast to other donors, not just the hospital.**
-  🔒 Security. `checkEmergencyAccess` in the emergency WebSocket gateway
-  grants room access to *any* donor with a response on that emergency, so
-  when multiple donors accept the same multi-unit SOS, one donor's live
-  GPS location is broadcast to the other responding donors, not only to
-  authorized hospital staff.
-  - File: `apps/api/src/gateways/emergency.gateway.ts:178-235`.
-  - Fix: split the room so donors only receive their own status updates;
-    only hospital-staff sockets join the location-broadcast room.
+- [x] **P0-8. Donor location broadcast to other donors, not just the hospital.** — Fixed:
+  split the single shared room into `emergency:{id}:hospital` (staff +
+  SUPER_ADMIN, receives every donor's location and status) and a private
+  `emergency:{id}:donor:{donorId}` per responding donor (receives only
+  their own status changes, never location or other donors' data).
+  `emitDonorLocationUpdate` now targets the hospital room exclusively;
+  `emitResponseStatusChanged` targets the hospital room plus the affected
+  donor's own room. Covered by `emergency.gateway.spec.ts`.
+  - File: `apps/api/src/gateways/emergency.gateway.ts`.
 
-- [ ] **P0-9. Shipment WebSocket `location_update` accepts unvalidated coordinates.**
-  🔒 Security / spoofing. Unlike the REST endpoint, the gateway's
-  `location_update` handler writes raw client-supplied lat/lng/speed/
-  heading straight to the DB and broadcasts it with zero bounds/jump/speed
-  checks — any authenticated courier socket can spoof arbitrary locations.
-  Worse: a real validator (`LocationService.validateLocationUpdate`, with
-  bounds/max-speed/max-jump/max-age checks) already exists but is **never
-  injected anywhere** — dead code.
-  - Files: `apps/api/src/gateways/shipment.gateway.ts:226-280`,
-    `apps/api/src/modules/shipments/services/location.service.ts:39-110`.
-  - Fix: inject `LocationService` into the gateway handler and the REST
-    `updateLocation` path; reuse one validator, not two half-implementations.
+- [x] **P0-9. Shipment WebSocket `location_update` accepts unvalidated coordinates.** — Fixed:
+  `LocationService` was missing `@Injectable()` (silently broken for DI —
+  a latent bug beyond just "unused"), added it and injected the service
+  into both `ShipmentGateway.handleLocationUpdate` and
+  `ShipmentsService.updateLocation` (REST), replacing the two divergent
+  half-implementations with one shared validator covering bounds,
+  impossible-jump, stale/future-timestamp, and shipment-trackable-state
+  checks. Covered by `location.service.spec.ts`.
+  - Files: `apps/api/src/gateways/shipment.gateway.ts`,
+    `apps/api/src/modules/shipments/services/location.service.ts`,
+    `apps/api/src/modules/shipments/shipments.service.ts`.
 
 ---
 

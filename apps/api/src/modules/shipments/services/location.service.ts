@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ShipmentStatus } from '@prisma/client';
 import { PrismaService } from '../../../database/prisma.service';
 import { ShipmentStateMachine } from './shipment-state.service';
@@ -31,6 +31,7 @@ const MAX_ACCURACY_METERS = 1000;
 const MAX_LOCATION_AGE_HOURS = 24;
 const MAX_IMPOSSIBLE_JUMP_KM = 100;
 
+@Injectable()
 export class LocationService {
   private readonly logger = new Logger(LocationService.name);
 
