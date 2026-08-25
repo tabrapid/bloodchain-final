@@ -20,6 +20,7 @@ import { AILoggingModule } from '../ai-logging/ai-logging.module';
 import { AICacheModule } from '../ai-cache/ai-cache.module';
 import { AuditLogsModule } from '../audit-logs/audit-logs.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { DonationEligibilityModule } from '../donation-eligibility/donation-eligibility.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     AICacheModule,
     AuditLogsModule,
     NotificationsModule,
+    DonationEligibilityModule,
   ],
   controllers: [AIHealthController, AIAdminController],
   providers: [

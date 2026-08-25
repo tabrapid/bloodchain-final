@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { HealthTrendsService } from '../health-trends/health-trends.service';
+import { DonationEligibilityService } from '../donation-eligibility/donation-eligibility.service';
 
 export interface DonationContext {
   totalDonations: number;
@@ -53,6 +54,7 @@ export class AIContextBuilderService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly healthTrendsService: HealthTrendsService,
+    private readonly donationEligibility: DonationEligibilityService,
   ) {}
 
   async buildEnhancedContext(userId: string): Promise<EnhancedHealthContext> {
@@ -91,14 +93,8 @@ export class AIContextBuilderService {
     const completedDonations = donations.filter((d) => d.status === 'COMPLETED');
     const lastDonation = completedDonations[0];
 
-    // Calculate next eligible date (56 days after last donation for whole blood)
-    let nextEligibleDate: string | undefined;
-    if (lastDonation?.completedAt) {
-      const lastDate = new Date(lastDonation.completedAt);
-      const nextDate = new Date(lastDate);
-      nextDate.setDate(nextDate.getDate() + 56);
-      nextEligibleDate = nextDate.toISOString();
-    }
+    const nextEligibleDateValue = await this.donationEligibility.getNextEligibleDonationDate(userId);
+    const nextEligibleDate = nextEligibleDateValue?.toISOString();
 
     // Calculate donation frequency
     let donationFrequency = 'Insufficient data';

@@ -1,10 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ForbiddenException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { DonationStatus, DonorStatus, EmergencyResponseStatus, EmergencyStatus, RoleCode } from '@prisma/client';
+import { DonorStatus, EmergencyResponseStatus, EmergencyStatus, RoleCode } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { EmergencyGateway } from '../../gateways/emergency.gateway';
+import { DonationEligibilityService } from '../donation-eligibility/donation-eligibility.service';
 import { EmergencyService } from './emergency.service';
 import {
   DONATION_COMPLETED_EVENT,
@@ -64,6 +65,7 @@ describe('EmergencyService.completeEmergency', () => {
         { provide: AuditLogsService, useValue: { log: jest.fn().mockResolvedValue({}) } },
         { provide: EventEmitter2, useValue: eventEmitter },
         { provide: EmergencyGateway, useValue: gateway },
+        { provide: DonationEligibilityService, useValue: { getNextEligibleDonationDate: jest.fn() } },
       ],
     }).compile();
 
@@ -111,6 +113,7 @@ describe('EmergencyService.completeEmergency', () => {
 describe('EmergencyService.checkDonorEligibility', () => {
   let service: EmergencyService;
   let prisma: any;
+  let donationEligibility: { getNextEligibleDonationDate: jest.Mock };
 
   function makeUser(overrides: Record<string, any> = {}) {
     return {
@@ -129,8 +132,8 @@ describe('EmergencyService.checkDonorEligibility', () => {
   beforeEach(async () => {
     prisma = {
       user: { findUnique: jest.fn().mockResolvedValue(makeUser()) },
-      donation: { findFirst: jest.fn().mockResolvedValue(null) },
     };
+    donationEligibility = { getNextEligibleDonationDate: jest.fn().mockResolvedValue(null) };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -139,6 +142,7 @@ describe('EmergencyService.checkDonorEligibility', () => {
         { provide: AuditLogsService, useValue: { log: jest.fn().mockResolvedValue({}) } },
         { provide: EventEmitter2, useValue: { emit: jest.fn() } },
         { provide: EmergencyGateway, useValue: {} },
+        { provide: DonationEligibilityService, useValue: donationEligibility },
       ],
     }).compile();
 
@@ -146,34 +150,24 @@ describe('EmergencyService.checkDonorEligibility', () => {
   });
 
   it('passes when the donor has never donated before', async () => {
-    prisma.donation.findFirst.mockResolvedValue(null);
+    donationEligibility.getNextEligibleDonationDate.mockResolvedValue(null);
+
+    await expect(service.checkDonorEligibility('donor-1')).resolves.toBeDefined();
+    expect(donationEligibility.getNextEligibleDonationDate).toHaveBeenCalledWith('donor-1');
+  });
+
+  it('passes once the eligible date from the shared service has already elapsed', async () => {
+    donationEligibility.getNextEligibleDonationDate.mockResolvedValue(
+      new Date(Date.now() - 24 * 60 * 60 * 1000),
+    );
 
     await expect(service.checkDonorEligibility('donor-1')).resolves.toBeDefined();
   });
 
-  it('passes once the 56-day cooldown from the last completed donation has elapsed', async () => {
-    const completedAt = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
-    prisma.donation.findFirst.mockResolvedValue({ completedAt, nextDonationDate: null });
-
-    await expect(service.checkDonorEligibility('donor-1')).resolves.toBeDefined();
-    expect(prisma.donation.findFirst).toHaveBeenCalledWith({
-      where: { donorId: 'donor-1', status: DonationStatus.COMPLETED },
-      orderBy: { completedAt: 'desc' },
-      select: { completedAt: true, nextDonationDate: true },
-    });
-  });
-
-  it('rejects a donor still inside the default 56-day cooldown window', async () => {
-    const completedAt = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000);
-    prisma.donation.findFirst.mockResolvedValue({ completedAt, nextDonationDate: null });
-
-    await expect(service.checkDonorEligibility('donor-1')).rejects.toThrow(ForbiddenException);
-  });
-
-  it('rejects using the staff-set nextDonationDate when it extends past the default cooldown', async () => {
-    const completedAt = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000); // past default 56 days
-    const nextDonationDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // staff extended it
-    prisma.donation.findFirst.mockResolvedValue({ completedAt, nextDonationDate });
+  it('rejects when the shared service reports a future eligible date', async () => {
+    donationEligibility.getNextEligibleDonationDate.mockResolvedValue(
+      new Date(Date.now() + 24 * 60 * 60 * 1000),
+    );
 
     await expect(service.checkDonorEligibility('donor-1')).rejects.toThrow(ForbiddenException);
   });

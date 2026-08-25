@@ -33,4 +33,5 @@ export const envValidationSchema = Joi.object({
   SMTP_FROM: Joi.string().default('DONOR <no-reply@donor.local>'),
   EMAIL_VERIFICATION_TTL_HOURS: Joi.number().default(24),
   EXPO_ACCESS_TOKEN: Joi.string().optional(),
+  DONATION_COOLDOWN_DAYS: Joi.number().min(1).default(56),
 });

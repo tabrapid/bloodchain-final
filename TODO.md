@@ -301,17 +301,38 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   and staff-extended `nextDonationDate` rejects even past the default window.
   - File: `apps/api/src/modules/emergency/emergency.service.ts`.
 
-- [ ] **P1-8. Next-eligible-donation-date now has three disconnected sources of truth.**
-  `Donation.nextDonationDate` is free-text staff input with no server-side
-  derivation from a real eligibility rule; `ai-context-builder-enhanced.service.ts`
-  hardcodes its own "56 days" calculation; and P1-7 added a third copy of the
-  same 56-day rule (`EmergencyService.getNextEligibleDonationDate`), by
-  design deferred to this item rather than silently building the shared
-  service as a side effect of a smaller fix. Centralize all three into one
-  configurable eligibility service every caller uses.
-  - Files: `apps/api/src/modules/donations/donations.service.ts:402`,
-    `apps/api/src/modules/ai-health/ai-context-builder-enhanced.service.ts:94-100`,
-    `apps/api/src/modules/emergency/emergency.service.ts` (`getNextEligibleDonationDate`).
+- [x] **P1-8. Next-eligible-donation-date now has three disconnected sources of truth.** — Fixed:
+  added `DonationEligibilityService` (`apps/api/src/modules/donation-eligibility/`),
+  the single source of truth all three now call. It looks up the donor's
+  most recent `COMPLETED` donation and prefers the staff-entered
+  `Donation.nextDonationDate` when set, otherwise computes it from a
+  configurable cooldown (`DONATION_COOLDOWN_DAYS` env var, default 56,
+  validated in `env.validation.ts` — genuinely configurable now, not just a
+  moved constant).
+  - `emergency.service.ts`'s P1-7 private helper (`getNextEligibleDonationDate`
+    + its hardcoded `DONATION_COOLDOWN_DAYS` constant) is deleted; `checkDonorEligibility`
+    now calls the shared service directly.
+  - `ai-context-builder-enhanced.service.ts`'s hardcoded 56-day inline calc
+    is replaced with a call to the shared service.
+  - `donations.service.ts#completeDonation` no longer silently leaves
+    `nextDonationDate` null when staff omits it — it now computes a real
+    default via `computeDefaultNextEligibleDate`, closing the "free-text
+    input with no server-side derivation" half of the original gap. Staff's
+    explicit value still wins when provided.
+  New `DonationEligibilityModule` is imported by `EmergencyModule`,
+  `AIHealthModule`, and `DonationsModule` (no circular dependency — none of
+  the three previously imported each other).
+  Covered by a new `donation-eligibility.service.spec.ts` (9 tests, the
+  core logic), plus updates/additions across the three call sites: rewrote
+  `emergency.service.spec.ts`'s eligibility tests to mock the shared service
+  instead of `db.donation` directly (6 tests), added `donations.service.spec.ts`
+  (2 tests, zero prior coverage) and `ai-context-builder-enhanced.service.spec.ts`
+  (2 tests, zero prior coverage) scoped to the touched behavior.
+  - Files: `apps/api/src/modules/donation-eligibility/*` (new),
+    `apps/api/src/config/env.validation.ts`, `.env.example`,
+    `apps/api/src/modules/donations/donations.service.ts`,
+    `apps/api/src/modules/ai-health/ai-context-builder-enhanced.service.ts`,
+    `apps/api/src/modules/emergency/emergency.service.ts`.
 
 - [ ] **P1-9. Blood Center dashboard is missing core pages.**
   No page to: review/approve incoming blood requests (see P0-7), create a
@@ -515,9 +536,11 @@ client-retry duplication).~~ ✅
 dead code — nothing emitted the events their handlers listen for).~~ ✅
 ~~**P1-7** (emergency donor eligibility never checked the 56-day donation
 cooldown).~~ ✅
-Next up: **P1-8** (centralize the next-eligible-donation-date rule — now
-duplicated in three places: `donations.service.ts`'s free-text staff input,
-`ai-context-builder-enhanced.service.ts`'s hardcoded calc, and P1-7's new
-`getNextEligibleDonationDate` helper — into one shared eligibility service
-all three call), then the rest of P1, then P2, folding in P3-1 tests as each
-area is touched.
+~~**P1-8** (centralized the next-eligible-donation-date rule into
+`DonationEligibilityService`).~~ ✅
+Next up: **P1-9** (Blood Center dashboard missing core pages — note the
+review/approve-request and create-shipment pages it lists were already
+built under P0-7, so this needs a quick re-scoping pass to confirm what's
+actually still missing — likely just appointment-slot config and courier
+management — before implementing), then the rest of P1, then P2, folding in
+P3-1 tests as each area is touched.
