@@ -47,8 +47,8 @@ import { sidebarItems } from '../../lib/navigation';
 
 const BLOOD_TYPES = ['A', 'B', 'AB', 'O'] as const;
 const RH_FACTORS = ['POSITIVE', 'NEGATIVE'] as const;
-const COMPONENT_TYPES = ['WHOLE_BLOOD', 'RBC', 'PLASMA', 'PLATELETS', 'CRYO'] as const;
-const STATUSES = ['COLLECTED', 'VERIFIED', 'QUARANTINED', 'AVAILABLE', 'RESERVED', 'ISSUED', 'EXPIRED', 'DISCARDED'] as const;
+const COMPONENT_TYPES = ['WHOLE_BLOOD', 'RED_CELLS', 'PLASMA', 'PLATELETS', 'OTHER'] as const;
+const STATUSES = ['COLLECTED', 'AVAILABLE', 'RESERVED', 'QUARANTINED', 'USED', 'EXPIRED', 'DISCARDED'] as const;
 
 type StatusVariant = 'default' | 'success' | 'warning' | 'danger' | 'info';
 
@@ -73,6 +73,7 @@ export default function InventoryPage() {
   const [selectedUnit, setSelectedUnit] = useState<InventoryUnit | null>(null);
   const [showMovementModal, setShowMovementModal] = useState(false);
   const [showLocationModal, setShowLocationModal] = useState(false);
+  const [showAdjustModal, setShowAdjustModal] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
 
   const [newLocation, setNewLocation] = useState({ name: '', code: '', type: 'STORAGE' });
@@ -256,12 +257,49 @@ export default function InventoryPage() {
     }
   };
 
+  const handleIssueUnit = async (unitId: string, reason: string) => {
+    if (!organizationId) return;
+    setActionLoading(true);
+    try {
+      const { issueUnit: issue } = await import('../../lib/inventory');
+      await issue(organizationId, unitId, reason);
+      setShowUnitModal(false);
+      setSelectedUnit(null);
+      loadUnits();
+      loadData();
+    } catch (err: unknown) {
+      setError((err as Error).message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleAdjustUnit = async (
+    unitId: string,
+    params: { reason: string; volumeMl?: number; componentType?: string; expiresAt?: string },
+  ) => {
+    if (!organizationId) return;
+    setActionLoading(true);
+    try {
+      const { adjustUnit: adjust } = await import('../../lib/inventory');
+      await adjust(organizationId, unitId, params);
+      setShowAdjustModal(false);
+      setSelectedUnit(null);
+      loadUnits();
+      loadData();
+    } catch (err: unknown) {
+      setError((err as Error).message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const getStatusVariant = (status: string): StatusVariant => {
     switch (status) {
       case 'AVAILABLE': return 'success';
       case 'QUARANTINED': return 'warning';
       case 'RESERVED': return 'info';
-      case 'ISSUED': return 'success';
+      case 'USED': return 'success';
       case 'EXPIRED': return 'danger';
       case 'DISCARDED': return 'danger';
       default: return 'default';
@@ -551,7 +589,7 @@ export default function InventoryPage() {
             </div>
 
             {selectedUnit.status === 'QUARANTINED' && (
-              <div className="flex gap-2 pt-4 border-t border-donor-border">
+              <div className="flex flex-wrap gap-2 pt-4 border-t border-donor-border">
                 <button
                   onClick={() => {
                     setShowUnitModal(false);
@@ -561,6 +599,16 @@ export default function InventoryPage() {
                 >
                   <ArrowRightLeft size={16} />
                   Move
+                </button>
+                <button
+                  onClick={() => {
+                    setShowUnitModal(false);
+                    setShowAdjustModal(true);
+                  }}
+                  className="flex items-center gap-2 rounded-lg border border-donor-border bg-donor-surface px-4 py-2 text-sm text-donor-text transition-colors hover:bg-donor-border"
+                >
+                  <Settings size={16} />
+                  Adjust
                 </button>
                 <button
                   onClick={() => {
@@ -576,7 +624,17 @@ export default function InventoryPage() {
             )}
 
             {selectedUnit.status === 'AVAILABLE' && (
-              <div className="flex gap-2 pt-4 border-t border-donor-border">
+              <div className="flex flex-wrap gap-2 pt-4 border-t border-donor-border">
+                <button
+                  onClick={() => {
+                    const reason = prompt('Enter issue reason (include patient/recipient reference if applicable):');
+                    if (reason) handleIssueUnit(selectedUnit.id, reason);
+                  }}
+                  className="flex items-center gap-2 rounded-lg border border-green-900/50 bg-green-950/20 px-4 py-2 text-sm text-green-400 transition-colors hover:bg-green-950/40"
+                >
+                  <CheckCircle size={16} />
+                  Issue
+                </button>
                 <button
                   onClick={() => {
                     setShowUnitModal(false);
@@ -589,6 +647,16 @@ export default function InventoryPage() {
                 </button>
                 <button
                   onClick={() => {
+                    setShowUnitModal(false);
+                    setShowAdjustModal(true);
+                  }}
+                  className="flex items-center gap-2 rounded-lg border border-donor-border bg-donor-surface px-4 py-2 text-sm text-donor-text transition-colors hover:bg-donor-border"
+                >
+                  <Settings size={16} />
+                  Adjust
+                </button>
+                <button
+                  onClick={() => {
                     const reason = prompt('Enter quarantine reason:');
                     if (reason) handleQuarantineUnit(selectedUnit.id, reason);
                   }}
@@ -596,6 +664,31 @@ export default function InventoryPage() {
                 >
                   <AlertTriangle size={16} />
                   Quarantine
+                </button>
+              </div>
+            )}
+
+            {selectedUnit.status === 'RESERVED' && (
+              <div className="flex flex-wrap gap-2 pt-4 border-t border-donor-border">
+                <button
+                  onClick={() => {
+                    const reason = prompt('Enter issue reason (include patient/recipient reference if applicable):');
+                    if (reason) handleIssueUnit(selectedUnit.id, reason);
+                  }}
+                  className="flex items-center gap-2 rounded-lg border border-green-900/50 bg-green-950/20 px-4 py-2 text-sm text-green-400 transition-colors hover:bg-green-950/40"
+                >
+                  <CheckCircle size={16} />
+                  Issue
+                </button>
+                <button
+                  onClick={() => {
+                    setShowUnitModal(false);
+                    setShowAdjustModal(true);
+                  }}
+                  className="flex items-center gap-2 rounded-lg border border-donor-border bg-donor-surface px-4 py-2 text-sm text-donor-text transition-colors hover:bg-donor-border"
+                >
+                  <Settings size={16} />
+                  Adjust
                 </button>
               </div>
             )}
@@ -648,6 +741,99 @@ export default function InventoryPage() {
               </button>
               <button
                 onClick={() => { setShowMovementModal(false); setSelectedUnit(null); }}
+                className="rounded-lg border border-donor-border bg-donor-surface px-4 py-2 text-sm text-donor-text transition-colors hover:bg-donor-border"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      <Modal
+        open={showAdjustModal}
+        onClose={() => { setShowAdjustModal(false); setSelectedUnit(null); }}
+        title="Adjust Unit"
+      >
+        {selectedUnit && (
+          <div className="space-y-4">
+            <div>
+              <p className="mb-2 text-sm">
+                Correcting unit: <span className="font-mono">{selectedUnit.unitReference}</span>
+              </p>
+              <p className="text-xs text-donor-muted">
+                Leave a field blank to keep its current value. A reason is required.
+              </p>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-donor-muted">
+                Volume (ml) — current: {selectedUnit.volumeMl}
+              </label>
+              <input
+                type="number"
+                id="adjust-volume"
+                min={1}
+                placeholder={String(selectedUnit.volumeMl)}
+                className="w-full rounded-lg border border-donor-border bg-donor-bg px-3 py-2 text-sm text-donor-text placeholder:text-donor-muted"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-donor-muted">
+                Component — current: {selectedUnit.componentType?.replace('_', ' ') ?? 'Whole Blood'}
+              </label>
+              <select
+                id="adjust-component"
+                defaultValue=""
+                className="w-full rounded-lg border border-donor-border bg-donor-bg px-3 py-2 text-sm text-donor-text"
+              >
+                <option value="">Keep current</option>
+                {COMPONENT_TYPES.map((ct) => (
+                  <option key={ct} value={ct}>{ct.replace('_', ' ')}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-donor-muted">
+                Expires — current: {selectedUnit.expiresAt ? new Date(selectedUnit.expiresAt).toLocaleDateString() : '—'}
+              </label>
+              <input
+                type="date"
+                id="adjust-expires"
+                className="w-full rounded-lg border border-donor-border bg-donor-bg px-3 py-2 text-sm text-donor-text"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-donor-muted">Reason (required)</label>
+              <input
+                type="text"
+                id="adjust-reason"
+                placeholder="e.g., Correcting clerical volume entry error"
+                className="w-full rounded-lg border border-donor-border bg-donor-bg px-3 py-2 text-sm text-donor-text placeholder:text-donor-muted"
+              />
+            </div>
+            <div className="flex gap-2 pt-4">
+              <button
+                onClick={() => {
+                  const volumeMlRaw = (document.getElementById('adjust-volume') as HTMLInputElement).value;
+                  const componentType = (document.getElementById('adjust-component') as HTMLSelectElement).value;
+                  const expiresAt = (document.getElementById('adjust-expires') as HTMLInputElement).value;
+                  const reason = (document.getElementById('adjust-reason') as HTMLInputElement).value;
+                  if (!reason) return;
+                  if (!volumeMlRaw && !componentType && !expiresAt) return;
+                  handleAdjustUnit(selectedUnit.id, {
+                    reason,
+                    volumeMl: volumeMlRaw ? Number(volumeMlRaw) : undefined,
+                    componentType: componentType || undefined,
+                    expiresAt: expiresAt || undefined,
+                  });
+                }}
+                disabled={actionLoading}
+                className="rounded-lg bg-donor-secondary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-donor-secondary/80 disabled:opacity-50"
+              >
+                {actionLoading ? 'Saving...' : 'Save Adjustment'}
+              </button>
+              <button
+                onClick={() => { setShowAdjustModal(false); setSelectedUnit(null); }}
                 className="rounded-lg border border-donor-border bg-donor-surface px-4 py-2 text-sm text-donor-text transition-colors hover:bg-donor-border"
               >
                 Cancel

@@ -190,6 +190,7 @@ enum MovementType {
   RELEASED_FROM_QUARANTINE
   TRANSFER_OUT
   TRANSFER_IN
+  ADJUSTED
 }
 
 enum ReservationStatus {

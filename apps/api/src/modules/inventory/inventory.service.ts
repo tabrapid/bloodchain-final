@@ -20,12 +20,14 @@ import {
 import { PrismaService } from '../../database/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import {
+  AdjustUnitDto,
   CreateLocationDto,
   UpdateLocationDto,
   DiscardUnitDto,
   GetInventoryDto,
   GetMovementsDto,
   GetReservationsDto,
+  IssueUnitDto,
   MoveUnitDto,
   QuarantineUnitDto,
   ReleaseReservationDto,
@@ -310,6 +312,18 @@ export class InventoryService {
       ipAddress,
     });
 
+    const quarantinedCount = await this.db.bloodUnit.count({
+      where: { organizationId, bloodType: unit.bloodType, rhFactor: unit.rhFactor, status: BloodUnitStatus.QUARANTINED },
+    });
+    await this.ensureAlert(
+      organizationId,
+      AlertType.QUARANTINED,
+      `${quarantinedCount} unit(s) of ${unit.bloodType}${unit.rhFactor === 'POSITIVE' ? '+' : '-'} in quarantine.`,
+      unit.bloodType,
+      unit.rhFactor,
+      quarantinedCount,
+    );
+
     return { data: { id: result.id, status: result.status, unitReference: result.unitReference } };
   }
 
@@ -364,6 +378,155 @@ export class InventoryService {
     });
 
     return { data: { id: result.id, status: result.status, unitReference: result.unitReference } };
+  }
+
+  async issueUnit(
+    organizationId: string,
+    unitId: string,
+    requestingUserId: string,
+    dto: IssueUnitDto,
+    ipAddress?: string,
+  ) {
+    const unit = await this.getAuthorizedUnit(unitId, organizationId);
+
+    if (unit.status !== BloodUnitStatus.AVAILABLE && unit.status !== BloodUnitStatus.RESERVED) {
+      throw new BadRequestException(`Cannot issue unit with status ${unit.status}. Only AVAILABLE or RESERVED units can be issued.`);
+    }
+
+    const result = await this.db.$transaction(async (tx) => {
+      // Atomic conditional update: closes the race window between the
+      // pre-check above and this transaction.
+      const claim = await tx.bloodUnit.updateMany({
+        where: { id: unitId, status: { in: [BloodUnitStatus.AVAILABLE, BloodUnitStatus.RESERVED] } },
+        data: { status: BloodUnitStatus.USED },
+      });
+
+      if (claim.count === 0) {
+        const current = await tx.bloodUnit.findUnique({ where: { id: unitId }, select: { status: true } });
+        throw new ConflictException(
+          `Cannot issue unit with status ${current?.status ?? 'UNKNOWN'}. Only AVAILABLE or RESERVED units can be issued.`,
+        );
+      }
+
+      const updated = await tx.bloodUnit.findUniqueOrThrow({ where: { id: unitId } });
+
+      await tx.inventoryMovement.create({
+        data: {
+          bloodUnitId: unitId,
+          organizationId,
+          type: MovementType.USED,
+          actorId: requestingUserId,
+          reason: dto.reason,
+        },
+      });
+
+      // Issuing a reserved unit fulfills whatever reservation was holding it.
+      await tx.bloodUnitReservation.updateMany({
+        where: { bloodUnitId: unitId, status: ReservationStatus.ACTIVE },
+        data: { status: ReservationStatus.FULFILLED, fulfilledAt: new Date() },
+      });
+
+      return updated;
+    });
+
+    await this.audit.log({
+      actorId: requestingUserId,
+      action: 'BLOOD_UNIT_ISSUED',
+      entityType: 'BloodUnit',
+      entityId: unitId,
+      organizationId,
+      metadata: { unitReference: unit.unitReference, reason: dto.reason },
+      ipAddress,
+    });
+
+    return { data: { id: result.id, status: result.status, unitReference: result.unitReference } };
+  }
+
+  async adjustUnit(
+    organizationId: string,
+    unitId: string,
+    requestingUserId: string,
+    dto: AdjustUnitDto,
+    ipAddress?: string,
+  ) {
+    const unit = await this.getAuthorizedUnit(unitId, organizationId);
+
+    const terminalStatuses: BloodUnitStatus[] = [
+      BloodUnitStatus.USED,
+      BloodUnitStatus.DISCARDED,
+      BloodUnitStatus.EXPIRED,
+    ];
+    if (terminalStatuses.includes(unit.status)) {
+      throw new BadRequestException(`Cannot adjust a unit with status ${unit.status}.`);
+    }
+
+    if (dto.volumeMl === undefined && dto.componentType === undefined && dto.expiresAt === undefined) {
+      throw new BadRequestException('At least one field (volumeMl, componentType, expiresAt) must be provided.');
+    }
+
+    const data: Prisma.BloodUnitUpdateInput = {};
+    if (dto.volumeMl !== undefined) data.volumeMl = dto.volumeMl;
+    if (dto.componentType !== undefined) data.componentType = dto.componentType;
+    if (dto.expiresAt !== undefined) data.expiresAt = new Date(dto.expiresAt);
+
+    const result = await this.db.$transaction(async (tx) => {
+      // Atomic conditional update: closes the race window between the
+      // pre-check above and this transaction - a unit that left the
+      // adjustable state (e.g. got issued) between the check and now
+      // should not have its data silently rewritten.
+      const claim = await tx.bloodUnit.updateMany({
+        where: { id: unitId, status: { notIn: terminalStatuses } },
+        data,
+      });
+
+      if (claim.count === 0) {
+        const current = await tx.bloodUnit.findUnique({ where: { id: unitId }, select: { status: true } });
+        throw new ConflictException(`Cannot adjust a unit with status ${current?.status ?? 'UNKNOWN'}.`);
+      }
+
+      const updated = await tx.bloodUnit.findUniqueOrThrow({ where: { id: unitId } });
+
+      await tx.inventoryMovement.create({
+        data: {
+          bloodUnitId: unitId,
+          organizationId,
+          type: MovementType.ADJUSTED,
+          actorId: requestingUserId,
+          reason: dto.reason,
+        },
+      });
+
+      return updated;
+    });
+
+    await this.audit.log({
+      actorId: requestingUserId,
+      action: 'BLOOD_UNIT_ADJUSTED',
+      entityType: 'BloodUnit',
+      entityId: unitId,
+      organizationId,
+      metadata: {
+        unitReference: unit.unitReference,
+        reason: dto.reason,
+        changes: {
+          volumeMl: dto.volumeMl !== undefined ? { from: unit.volumeMl, to: dto.volumeMl } : undefined,
+          componentType: dto.componentType !== undefined ? { from: unit.componentType, to: dto.componentType } : undefined,
+          expiresAt: dto.expiresAt !== undefined ? { from: unit.expiresAt, to: dto.expiresAt } : undefined,
+        },
+      },
+      ipAddress,
+    });
+
+    return {
+      data: {
+        id: result.id,
+        status: result.status,
+        unitReference: result.unitReference,
+        volumeMl: result.volumeMl,
+        componentType: result.componentType,
+        expiresAt: result.expiresAt,
+      },
+    };
   }
 
   async moveUnit(
@@ -840,6 +1003,38 @@ export class InventoryService {
     }
 
     return { data: Object.values(grouped) };
+  }
+
+  /**
+   * Creates an inventory alert, or refreshes the existing unacknowledged one
+   * for the same organization/type/bloodType/rhFactor combination instead of
+   * creating a duplicate every time this condition is re-checked. Called both
+   * from unit-mutating endpoints (e.g. quarantine) and from InventoryCronService's
+   * scheduled sweeps.
+   */
+  async ensureAlert(
+    organizationId: string,
+    type: AlertType,
+    message: string,
+    bloodType: BloodType | null,
+    rhFactor: RhFactor | null,
+    currentValue?: number,
+    threshold?: number,
+  ) {
+    const existing = await this.db.inventoryAlert.findFirst({
+      where: { organizationId, type, bloodType, rhFactor, acknowledged: false },
+    });
+
+    if (existing) {
+      return this.db.inventoryAlert.update({
+        where: { id: existing.id },
+        data: { message, currentValue, threshold },
+      });
+    }
+
+    return this.db.inventoryAlert.create({
+      data: { organizationId, type, bloodType, rhFactor, message, currentValue, threshold },
+    });
   }
 
   private async getAuthorizedUser(userId: string, organizationId: string) {

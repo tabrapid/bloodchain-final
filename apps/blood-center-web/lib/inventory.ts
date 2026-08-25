@@ -226,6 +226,35 @@ export function releaseUnit(
   });
 }
 
+export function issueUnit(
+  organizationId: string,
+  unitId: string,
+  reason: string,
+): Promise<InventoryUnit> {
+  return apiRequest(`/organizations/${organizationId}/inventory/units/${unitId}/issue`, {
+    method: 'POST',
+    body: JSON.stringify({ reason }),
+  });
+}
+
+export interface AdjustUnitParams {
+  reason: string;
+  volumeMl?: number;
+  componentType?: string;
+  expiresAt?: string;
+}
+
+export function adjustUnit(
+  organizationId: string,
+  unitId: string,
+  params: AdjustUnitParams,
+): Promise<InventoryUnit> {
+  return apiRequest(`/organizations/${organizationId}/inventory/units/${unitId}/adjust`, {
+    method: 'PATCH',
+    body: JSON.stringify(params),
+  });
+}
+
 export function getLocations(organizationId: string): Promise<InventoryLocation[]> {
   return apiRequest(`/organizations/${organizationId}/inventory/locations`);
 }

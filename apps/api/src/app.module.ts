@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { JwtModule } from '@nestjs/jwt';
+import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { LoggerModule } from 'nestjs-pino';
 import { envValidationSchema } from './config/env.validation';
@@ -77,6 +78,7 @@ import { IdempotencyModule } from './modules/idempotency/idempotency.module';
       }),
     }),
     EventEmitterModule.forRoot(),
+    ScheduleModule.forRoot(),
     JwtModule.register({
       global: true,
       secret: process.env.JWT_ACCESS_SECRET ?? 'development-only-secret',

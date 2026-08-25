@@ -726,13 +726,74 @@ These make the product unusable or unsafe for real users. Fix first, in order.
     `apps/admin-web/lib/{api.tsx,navigation.tsx,status.tsx}`,
     `apps/admin-web/app/moderation/page.tsx` (new).
 
-- [ ] **P1-16. Inventory is missing issue/expire/adjust operations entirely.**
-  No code path ever transitions a unit to `USED` (dispense), no cron ever
-  marks units `EXPIRED` past `expiresAt`, and there's no manual
-  adjustment/correction endpoint. Inventory alerts are also never
-  generated (the read/acknowledge endpoints exist over a permanently-empty
-  table), and expired reservations are never auto-released.
-  - File: `apps/api/src/modules/inventory/inventory.service.ts`.
+- [x] **P1-16. Inventory is missing issue/expire/adjust operations entirely.** — Fixed
+  all five sub-gaps this item named:
+  - **Issue (dispense)**: `POST .../units/:unitId/issue` — transitions
+    AVAILABLE or RESERVED → `USED` with the same atomic-conditional-update
+    TOCTOU pattern as release/quarantine/discard (established under P1-2).
+    Fulfills whatever active reservation was holding the unit. Open to
+    both blood-center *and* hospital staff roles — confirmed by reading
+    `confirmDeliveryFull` in shipments.service.ts that `BloodUnit.organizationId`
+    actually transfers to the destination hospital on delivery (`TRANSFER_IN`),
+    so hospitals hold real inventory and are the ones who administer units
+    to patients, not blood centers.
+  - **Adjust (manual correction)**: `PATCH .../units/:unitId/adjust` —
+    corrects `volumeMl`/`componentType`/`expiresAt` with a required reason,
+    blocked on terminal statuses (USED/DISCARDED/EXPIRED), same
+    TOCTOU-safe pattern. Needed one migration: added `MovementType.ADJUSTED`
+    rather than force-fitting the correction into an existing, wrong type.
+  - **Expiration cron**: new `InventoryCronService`, hourly
+    (`@nestjs/schedule` — not previously a dependency of this app at all;
+    added `ScheduleModule.forRoot()` to `AppModule`, which is also the
+    infrastructure P1-18's SOS-expiration job will reuse). Sweeps units
+    past `expiresAt` to `EXPIRED`, using the same atomic-claim pattern per
+    unit so a unit that changed status between the query and the claim
+    isn't silently overwritten.
+  - **Expired reservations auto-released**: same cron run also sweeps
+    `BloodUnitReservation` rows past `expiresAt`, releasing the unit back
+    to `AVAILABLE` (unless it already expired first) and marking the
+    reservation `EXPIRED`.
+  - **Alerts actually generated**: added `InventoryService.ensureAlert(...)`
+    (updates the existing unacknowledged alert for the same
+    org/type/bloodType/rhFactor instead of creating a duplicate every
+    time the condition re-fires) called from three places: the cron's
+    stock-level sweep (`LOW_STOCK` <5 available units, `EXPIRING_SOON`
+    within 72h, both grouped per org/bloodType/rhFactor), the cron's
+    expiry sweep (`EXPIRED`, one alert per org per run), and
+    `quarantineUnit` itself (`QUARANTINED`, at the natural trigger point
+    rather than waiting for a scan).
+  Also fixed, found while touching this page: blood-center-web's
+  inventory page had a `STATUSES` filter list with two statuses
+  (`VERIFIED`, `ISSUED`) that don't exist in `BloodUnitStatus` and was
+  missing `USED` entirely — the newly-issuable status wouldn't have even
+  been filterable. Same for `COMPONENT_TYPES` (`RBC`/`CRYO` instead of
+  the real `RED_CELLS`/`OTHER`) — silently broken before since nothing
+  sent it anywhere that validated it; now it's the source for the new
+  Adjust modal's component dropdown, so it had to be right.
+  Verified: 25 new tests (`inventory.service.spec.ts` +8 for
+  issue/adjust/quarantine-alerting, new `inventory-cron.service.spec.ts`
+  with 8 for the three sweep methods + the audit-summary behavior), full
+  suite 257/257 passing, clean `tsc --noEmit` on the API and
+  `tsc --noEmit`/`next build` on blood-center-web, 0 new lint errors.
+  Exercised the entire thing live against the real Postgres from
+  P1-14/15: issued a real unit and confirmed re-issuing it 400s; adjusted
+  a unit's volume and confirmed the new value persisted; force-expired a
+  unit and a reservation by backdating their `expiresAt` directly in the
+  database, then ran the actual `InventoryCronService` methods (via a
+  throwaway `tsx` script instantiating the real classes against the live
+  DB, deleted after) and confirmed in Postgres afterward: the unit
+  flipped to `EXPIRED` with a movement row, the reservation flipped to
+  `EXPIRED` and its unit bounced back to `AVAILABLE` with a movement row,
+  and `LOW_STOCK`/`EXPIRED`/`QUARANTINED` alerts appeared with correct
+  counts — 9 real alerts where the table was permanently empty before.
+  - Files: `apps/api/prisma/schema.prisma` (+ migration),
+    `apps/api/src/app.module.ts`, `apps/api/package.json` (+`@nestjs/schedule`),
+    `apps/api/src/modules/inventory/{inventory.service.ts,inventory.controller.ts,inventory.module.ts}`,
+    `apps/api/src/modules/inventory/dto/inventory.dto.ts`,
+    `apps/api/src/modules/inventory/inventory-cron.service.ts` (new),
+    `apps/api/src/modules/inventory/{inventory.service.spec.ts,inventory-cron.service.spec.ts (new)}`,
+    `apps/blood-center-web/lib/inventory.ts`,
+    `apps/blood-center-web/app/inventory/page.tsx`.
 
 - [ ] **P1-17. Challenge progress is donor self-reported — instantly exploitable.**
   `PUT /challenges/:id/progress` takes a raw number from the requesting
@@ -956,6 +1017,11 @@ had no honest backing at all instead of leaving them fake).~~ ✅
 `GET/POST /admin/content-reports` and admin-web's `/moderation` queue;
 resolving hides/removes the post and auto-closes duplicate reports on it;
 split an unrelated dead-DTO-scaffolding finding out to P3-7).~~ ✅
-Next up: **P1-16** (Inventory is missing issue/expire/adjust operations
-entirely), then the rest of P1, then P2, folding in P3-1 tests as each
-area is touched.
+~~**P1-16** (Inventory had no issue/adjust/expiry/alerts — added
+issue/adjust endpoints, an hourly `InventoryCronService` expiring units
+and auto-releasing expired reservations, and real `LOW_STOCK`/`EXPIRED`/
+`EXPIRING_SOON`/`QUARANTINED` alerts; first use of `@nestjs/schedule` in
+this app, which P1-18 will reuse).~~ ✅
+Next up: **P1-17** (Challenge progress is donor self-reported —
+instantly exploitable), then the rest of P1, then P2, folding in P3-1
+tests as each area is touched.
