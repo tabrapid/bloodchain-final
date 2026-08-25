@@ -14,10 +14,12 @@
     "@donor/types": "workspace:*",
     "@donor/ui": "workspace:*",
     "@donor/utils": "workspace:*",
+    "leaflet": "^1.9.4",
     "lucide-react": "^0.468.0",
     "next": "^14.2.21",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "react-leaflet": "^4.2.1"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

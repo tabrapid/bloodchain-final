@@ -370,12 +370,54 @@ These make the product unusable or unsafe for real users. Fix first, in order.
     `apps/blood-center-web/lib/{appointment-slots.ts,couriers.ts}` (new),
     `apps/blood-center-web/lib/navigation.tsx`.
 
-- [ ] **P1-10. No map UI anywhere despite location tracking being core.**
-  Neither hospital-web nor blood-center-web nor mobile renders an actual
-  map (no leaflet/mapbox/google-maps dependency anywhere) — shipment/SOS
-  "tracking" is raw coordinates/timeline text only.
-  - Add a map library and real map views to shipment tracking and SOS
-    donor-location screens.
+- [x] **P1-10. No map UI anywhere despite location tracking being core.** — Fixed for web
+  (mobile intentionally out of scope, see below). Added `leaflet` +
+  `react-leaflet` and a shared `LocationMap` component
+  (`packages/ui/src/components/map/LocationMap.tsx`, exported via its own
+  `@donor/ui/map` subpath — deliberately *not* re-exported through the main
+  `@donor/ui/components` barrel, because that barrel is imported by every
+  page including ones with no map, and Leaflet's `window` access at import
+  time broke SSR/prerendering for the *entire app* the first time it was
+  wired through the shared barrel; every consuming page now also uses
+  `next/dynamic(..., {ssr:false})`). Color-coded div-icon markers (origin/
+  destination/courier/donor/hospital), auto-fit-to-bounds, optional dashed
+  route line between markers, dark CARTO basemap tiles (free, no API key —
+  fine for development traffic; a production deployment should move to a
+  dedicated tile provider or self-hosted tiles before scaling up request
+  volume, per OSM/CARTO's tile usage policies).
+  Wired into the exact two raw-coordinate screens that prompted this item:
+  - `hospital-web/app/shipments/[id]/page.tsx` — replaced the raw
+    lat/lng text with a map showing pickup, live courier position, and
+    destination, connected by a route line.
+  - `hospital-web/app/emergency/page.tsx` (SOS donor-location) — replaced
+    `Live: {lat}, {lng}` text with a map showing the responding donor's
+    live position and the hospital's donation location.
+  Also added the same treatment to `blood-center-web/app/shipments/[id]/page.tsx`,
+  which — found while working this item — didn't fetch or show shipment
+  tracking data *at all* (not even as text), despite `getShipmentTracking`
+  already being defined and unused in its `lib/shipments.ts`.
+  **Mobile scoped out**: mobile doesn't actually consume/display anyone
+  else's location today — `sos.tsx` and `(courier)/active.tsx` only ever
+  *send* the device's own position in the background, they don't render a
+  map of anything. Adding a native map view there is a different-shaped
+  problem (a native map library needs a dev-client/EAS build, not just an
+  npm install, and isn't verifiable via a web browser screenshot the way
+  this session verified the two changes above) — left as a separate,
+  explicitly-named follow-up rather than silently declared "done" here.
+  Verified with `next build` on both apps (clean, no prerender errors) and
+  a temporary standalone preview page rendered via headless browser,
+  confirming the map container, colored markers, and route line all mount
+  and position correctly — this sandbox's own network policy blocks the
+  external tile CDN (confirmed via the proxy status log, not app-specific),
+  so the terrain tile *imagery* itself couldn't be screenshotted, but every
+  part of the map's own logic (mounting, bounds-fitting, marker placement)
+  was confirmed working. The temporary preview page was removed before
+  committing.
+  - Files: `packages/ui/src/components/map/LocationMap.tsx` (new),
+    `packages/ui/package.json`, `packages/ui/src/components/index.ts`,
+    `apps/hospital-web/app/{layout.tsx,shipments/[id]/page.tsx,emergency/page.tsx}`,
+    `apps/blood-center-web/app/{layout.tsx,shipments/[id]/page.tsx}`,
+    `apps/hospital-web/package.json`, `apps/blood-center-web/package.json`.
 
 - [ ] **P1-11. Neither web dashboard opens a live WebSocket for shipment tracking.**
   The `/shipments` gateway is real and working, but hospital-web/
@@ -427,6 +469,17 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   (no cron) ever actually transitions a stale `EmergencyRequest`/
   `EmergencyMatch` past its `requiredBefore` — it just sits active forever.
   - File: `apps/api/src/modules/emergency/emergency.service.ts`.
+
+- [ ] **P1-19. Mobile has no map view (split out of P1-10).**
+  P1-10 added real map views to hospital-web and blood-center-web, but
+  mobile's `sos.tsx` and `(courier)/active.tsx` only ever *send* the
+  device's own position in the background — neither renders a map of
+  anything (own position, destination, or anyone else's). A native map
+  view needs `react-native-maps` (or similar) plus a dev-client/EAS build
+  to test, which is a different-shaped task than the two web pages fixed
+  under P1-10 and wasn't verifiable the same way (headless browser
+  screenshot) in this session.
+  - Files: `apps/mobile/app/sos.tsx`, `apps/mobile/app/(courier)/active.tsx`.
 
 ---
 
@@ -570,7 +623,10 @@ cooldown).~~ ✅
 ~~**P1-9** (Blood Center dashboard missing core pages — added `/appointments`
 slot config and `/couriers` roster; review/approve-request and
 create-shipment were already done under P0-7).~~ ✅
-Next up: **P1-10** (no map UI anywhere despite location tracking being
-core — add a map library and real map views to shipment tracking and SOS
-donor-location screens), then the rest of P1, then P2, folding in P3-1
-tests as each area is touched.
+~~**P1-10** (no map UI anywhere — added `leaflet`/`react-leaflet` and a
+shared `LocationMap` to hospital-web's shipment tracking and SOS pages and
+blood-center-web's shipment tracking page; mobile split out to P1-19).~~ ✅
+Next up: **P1-11** (neither web dashboard opens a live WebSocket for
+shipment tracking — they poll/refresh instead of subscribing to the
+`ShipmentGateway` the backend already has), then the rest of P1, then P2,
+folding in P3-1 tests as each area is touched.

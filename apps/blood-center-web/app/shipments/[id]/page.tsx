@@ -16,22 +16,31 @@ import {
   Users,
   XCircle,
 } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import {
   DashboardShell,
   EmptyState,
   StatCard,
   StatusBadge,
 } from '@donor/ui/components';
+import type { MapMarker } from '@donor/ui/map';
 import { logout as logoutApi, me, isAuthenticated, MeResponse } from '../../../lib/auth';
 import {
   getShipment,
   getShipmentTimeline,
+  getShipmentTracking,
   getAvailableCouriers,
   assignCourier,
   cancelShipment,
   reassignShipment,
   Shipment,
 } from '../../../lib/shipments';
+
+const LocationMap = dynamic(() => import('@donor/ui/map').then((mod) => mod.LocationMap), {
+  ssr: false,
+});
+
+type TrackingInfo = Awaited<ReturnType<typeof getShipmentTracking>>;
 import { sidebarItems } from '../../../lib/navigation';
 
 const STATUS_CONFIG: Record<string, { label: string; variant: 'success' | 'warning' | 'info' | 'default' | 'danger' }> = {
@@ -67,6 +76,7 @@ export default function ShipmentDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [shipment, setShipment] = useState<Shipment | null>(null);
   const [timeline, setTimeline] = useState<TimelineEvent[]>([]);
+  const [tracking, setTracking] = useState<TrackingInfo | null>(null);
   const [availableCouriers, setAvailableCouriers] = useState<any[]>([]);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
@@ -77,12 +87,14 @@ export default function ShipmentDetailPage() {
   const loadShipment = useCallback(async () => {
     if (!organizationId || !shipmentId) return;
     try {
-      const [shipmentData, timelineData] = await Promise.all([
+      const [shipmentData, timelineData, trackingData] = await Promise.all([
         getShipment(organizationId, shipmentId),
         getShipmentTimeline(shipmentId),
+        getShipmentTracking(shipmentId).catch(() => null),
       ]);
       setShipment(shipmentData);
       setTimeline(timelineData.timeline);
+      setTracking(trackingData);
     } catch (err) {
       console.error('Failed to load shipment:', err);
     }
@@ -306,6 +318,58 @@ export default function ShipmentDetailPage() {
               )}
             </div>
           </div>
+
+          {tracking && (tracking.currentLocation || tracking.source.coordinates || tracking.destination.coordinates) && (
+            <div className="rounded-2xl border border-donor-border bg-donor-surface p-5">
+              <h3 className="mb-4 text-sm font-semibold text-donor-text">Live Map</h3>
+              {tracking.eta && (
+                <p className="mb-4 text-sm text-donor-muted">
+                  ETA{' '}
+                  <span className="font-semibold text-donor-text">
+                    {tracking.eta.etaMinutes < 60
+                      ? `${tracking.eta.etaMinutes} min`
+                      : `${Math.round(tracking.eta.etaMinutes / 60)} hr ${tracking.eta.etaMinutes % 60} min`}
+                  </span>
+                  {' · '}
+                  {tracking.eta.distanceKm} km away
+                </p>
+              )}
+              <LocationMap
+                showRoute
+                markers={(
+                  [
+                    tracking.source.coordinates
+                      ? {
+                          id: 'source',
+                          variant: 'origin',
+                          label: tracking.source.name,
+                          sublabel: 'Pickup location',
+                          ...tracking.source.coordinates,
+                        }
+                      : null,
+                    tracking.currentLocation
+                      ? {
+                          id: 'courier',
+                          variant: 'courier',
+                          label: tracking.courier?.name ?? 'Courier',
+                          sublabel: `Updated ${new Date(tracking.currentLocation.recordedAt).toLocaleTimeString()}`,
+                          ...tracking.currentLocation,
+                        }
+                      : null,
+                    tracking.destination.coordinates
+                      ? {
+                          id: 'destination',
+                          variant: 'destination',
+                          label: tracking.destination.name,
+                          sublabel: 'Delivery destination',
+                          ...tracking.destination.coordinates,
+                        }
+                      : null,
+                  ] as (MapMarker | null)[]
+                ).filter((m): m is MapMarker => m !== null)}
+              />
+            </div>
+          )}
 
           <div className="rounded-2xl border border-donor-border bg-donor-surface p-5">
             <h3 className="mb-4 text-sm font-semibold text-donor-text">Timeline</h3>
