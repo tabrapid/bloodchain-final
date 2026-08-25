@@ -132,6 +132,20 @@ export async function updateCourierStatus(status: string): Promise<{ id: string;
   return response;
 }
 
+export async function updateCourierProfile(data: {
+  displayName?: string;
+  phone?: string;
+}): Promise<{ id: string; displayName: string; phone: string | null }> {
+  const response = await apiRequest<{ id: string; displayName: string; phone: string | null }>(
+    '/courier/profile',
+    {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }
+  );
+  return response;
+}
+
 export async function getCourierShipments(filters?: {
   status?: string;
   limit?: number;

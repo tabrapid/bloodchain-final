@@ -21,6 +21,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../database/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { Courier, Organization, User } from '@prisma/client';
+import { LocationService } from './services/location.service';
 
 const SHIPMENT_EVENT = 'shipment.event';
 
@@ -32,6 +33,7 @@ export class ShipmentsService {
     private readonly db: PrismaService,
     private readonly audit: AuditLogsService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly locationService: LocationService,
   ) {}
 
   private generateShipmentReference(): string {
@@ -342,7 +344,9 @@ export class ShipmentsService {
       const totalRequested = allItems.reduce((sum: number, i: { unitsRequested: number }) => sum + i.unitsRequested, 0);
 
       let status: BloodRequestStatus = BloodRequestStatus.APPROVED;
-      if (totalApproved < totalRequested && totalApproved > 0) {
+      if (totalApproved === 0) {
+        status = BloodRequestStatus.REJECTED;
+      } else if (totalApproved < totalRequested) {
         status = BloodRequestStatus.PARTIALLY_APPROVED;
       }
 
@@ -358,7 +362,12 @@ export class ShipmentsService {
       await tx.bloodRequestEvent.create({
         data: {
           bloodRequestId: requestId,
-          eventType: status === BloodRequestStatus.APPROVED ? 'APPROVED' : 'PARTIALLY_APPROVED',
+          eventType:
+            status === BloodRequestStatus.APPROVED
+              ? 'APPROVED'
+              : status === BloodRequestStatus.REJECTED
+                ? 'REJECTED'
+                : 'PARTIALLY_APPROVED',
           actorId: user.id,
           organizationId,
           metadata: { items: dto.items },
@@ -784,13 +793,19 @@ export class ShipmentsService {
     }
 
     const result = await this.db.$transaction(async (tx) => {
-      const updated = await tx.shipment.update({
-        where: { id: shipmentId },
+      const claim = await tx.shipment.updateMany({
+        where: { id: shipmentId, status: ShipmentStatus.COURIER_ASSIGNED },
         data: {
           status: ShipmentStatus.COURIER_ACCEPTED,
           acceptedAt: new Date(),
         },
       });
+
+      if (claim.count === 0) {
+        throw new ConflictException('Shipment is not in COURIER_ASSIGNED state.');
+      }
+
+      const updated = await tx.shipment.findUniqueOrThrow({ where: { id: shipmentId } });
 
       await tx.shipmentEvent.create({
         data: {
@@ -849,8 +864,8 @@ export class ShipmentsService {
     }
 
     const result = await this.db.$transaction(async (tx) => {
-      const updated = await tx.shipment.update({
-        where: { id: shipmentId },
+      const claim = await tx.shipment.updateMany({
+        where: { id: shipmentId, status: ShipmentStatus.COURIER_ASSIGNED },
         data: {
           status: ShipmentStatus.COURIER_DECLINED,
           courierId: null,
@@ -858,6 +873,12 @@ export class ShipmentsService {
           declineReason: reason,
         },
       });
+
+      if (claim.count === 0) {
+        throw new ConflictException('Shipment is not in COURIER_ASSIGNED state.');
+      }
+
+      const updated = await tx.shipment.findUniqueOrThrow({ where: { id: shipmentId } });
 
       await tx.courier.update({
         where: { id: courier.id },
@@ -911,13 +932,19 @@ export class ShipmentsService {
     }
 
     const result = await this.db.$transaction(async (tx) => {
-      const updated = await tx.shipment.update({
-        where: { id: shipmentId },
+      const claim = await tx.shipment.updateMany({
+        where: { id: shipmentId, status: ShipmentStatus.COURIER_ACCEPTED },
         data: {
           status: ShipmentStatus.PICKUP_STARTED,
           pickupStartedAt: new Date(),
         },
       });
+
+      if (claim.count === 0) {
+        throw new ConflictException('Shipment is not in COURIER_ACCEPTED state.');
+      }
+
+      const updated = await tx.shipment.findUniqueOrThrow({ where: { id: shipmentId } });
 
       await tx.shipmentEvent.create({
         data: {
@@ -975,6 +1002,18 @@ export class ShipmentsService {
     const result = await this.db.$transaction(async (tx) => {
       const now = new Date();
 
+      const claim = await tx.shipment.updateMany({
+        where: { id: shipmentId, status: ShipmentStatus.PICKUP_STARTED },
+        data: {
+          status: ShipmentStatus.PICKED_UP,
+          pickedUpAt: now,
+        },
+      });
+
+      if (claim.count === 0) {
+        throw new ConflictException('Shipment is not in PICKUP_STARTED state.');
+      }
+
       for (const unit of shipment.units) {
         await tx.shipmentUnit.update({
           where: { id: unit.id },
@@ -996,13 +1035,7 @@ export class ShipmentsService {
         });
       }
 
-      const updated = await tx.shipment.update({
-        where: { id: shipmentId },
-        data: {
-          status: ShipmentStatus.PICKED_UP,
-          pickedUpAt: now,
-        },
-      });
+      const updated = await tx.shipment.findUniqueOrThrow({ where: { id: shipmentId } });
 
       await tx.shipmentEvent.create({
         data: {
@@ -1062,13 +1095,19 @@ export class ShipmentsService {
     }
 
     const result = await this.db.$transaction(async (tx) => {
-      const updated = await tx.shipment.update({
-        where: { id: shipmentId },
+      const claim = await tx.shipment.updateMany({
+        where: { id: shipmentId, status: ShipmentStatus.PICKED_UP },
         data: {
           status: ShipmentStatus.IN_TRANSIT,
           inTransitAt: new Date(),
         },
       });
+
+      if (claim.count === 0) {
+        throw new ConflictException('Shipment is not in PICKED_UP state.');
+      }
+
+      const updated = await tx.shipment.findUniqueOrThrow({ where: { id: shipmentId } });
 
       await tx.shipmentEvent.create({
         data: {
@@ -1120,35 +1159,36 @@ export class ShipmentsService {
   ) {
     const courier = await this.checkCourierAccess(courierId);
 
-    if (dto.latitude < -90 || dto.latitude > 90) {
-      throw new BadRequestException('Invalid latitude.');
-    }
-    if (dto.longitude < -180 || dto.longitude > 180) {
-      throw new BadRequestException('Invalid longitude.');
+    const access = await this.locationService.validateCourierShipmentAccess(
+      courier.id,
+      shipmentId,
+    );
+
+    if (!access.valid) {
+      if (access.error === 'Shipment not found') {
+        throw new NotFoundException(access.error);
+      }
+      if (access.error === 'Shipment is not assigned to this courier') {
+        throw new ForbiddenException(access.error);
+      }
+      throw new BadRequestException(access.error ?? 'Cannot update location for this shipment.');
     }
 
-    const shipment = await this.db.shipment.findUnique({
-      where: { id: shipmentId },
+    // Reject spoofed/corrupted GPS: out-of-range coordinates, physically
+    // impossible jumps since the last known point, and stale/future
+    // timestamps. Speed/accuracy issues are logged but don't block the
+    // update, since GPS noise alone shouldn't drop a legitimate ping.
+    const sanityCheck = await this.locationService.validateLocationUpdate(courier.id, shipmentId, {
+      latitude: dto.latitude,
+      longitude: dto.longitude,
+      accuracy: dto.accuracy,
+      heading: dto.heading,
+      speed: dto.speed,
+      timestamp: new Date(),
     });
 
-    if (!shipment) {
-      throw new NotFoundException('Shipment not found.');
-    }
-
-    if (shipment.courierId !== courier.id) {
-      throw new ForbiddenException('This shipment is not assigned to you.');
-    }
-
-    const activeStatuses: ShipmentStatus[] = [
-      ShipmentStatus.COURIER_ACCEPTED,
-      ShipmentStatus.PICKUP_STARTED,
-      ShipmentStatus.PICKED_UP,
-      ShipmentStatus.IN_TRANSIT,
-      ShipmentStatus.ARRIVED_AT_HOSPITAL,
-    ];
-
-    if (!activeStatuses.includes(shipment.status as ShipmentStatus)) {
-      throw new BadRequestException('Cannot update location for shipment in current state.');
+    if (!sanityCheck.isValid) {
+      throw new BadRequestException(sanityCheck.errors.join(' '));
     }
 
     const location = await this.db.shipmentLocation.create({
@@ -1197,13 +1237,19 @@ export class ShipmentsService {
     }
 
     const result = await this.db.$transaction(async (tx) => {
-      const updated = await tx.shipment.update({
-        where: { id: shipmentId },
+      const claim = await tx.shipment.updateMany({
+        where: { id: shipmentId, status: ShipmentStatus.IN_TRANSIT },
         data: {
           status: ShipmentStatus.ARRIVED_AT_HOSPITAL,
           arrivedAt: new Date(),
         },
       });
+
+      if (claim.count === 0) {
+        throw new ConflictException('Shipment is not in IN_TRANSIT state.');
+      }
+
+      const updated = await tx.shipment.findUniqueOrThrow({ where: { id: shipmentId } });
 
       await tx.shipmentEvent.create({
         data: {
@@ -1278,6 +1324,18 @@ export class ShipmentsService {
     const result = await this.db.$transaction(async (tx) => {
       const now = new Date();
 
+      const claim = await tx.shipment.updateMany({
+        where: { id: shipmentId, status: ShipmentStatus.ARRIVED_AT_HOSPITAL },
+        data: {
+          status: ShipmentStatus.DELIVERED,
+          deliveredAt: now,
+        },
+      });
+
+      if (claim.count === 0) {
+        throw new ConflictException('Shipment has not arrived at the hospital.');
+      }
+
       for (const unit of shipment.units) {
         await tx.shipmentUnit.update({
           where: { id: unit.id },
@@ -1314,13 +1372,7 @@ export class ShipmentsService {
         });
       }
 
-      const updated = await tx.shipment.update({
-        where: { id: shipmentId },
-        data: {
-          status: ShipmentStatus.DELIVERED,
-          deliveredAt: now,
-        },
-      });
+      const updated = await tx.shipment.findUniqueOrThrow({ where: { id: shipmentId } });
 
       await tx.bloodRequest.update({
         where: { id: shipment.bloodRequestId },
@@ -1431,8 +1483,8 @@ export class ShipmentsService {
     }
 
     const result = await this.db.$transaction(async (tx) => {
-      const updated = await tx.shipment.update({
-        where: { id: shipmentId },
+      const claim = await tx.shipment.updateMany({
+        where: { id: shipmentId, status: { in: failedStatuses } },
         data: {
           status: ShipmentStatus.FAILED,
           failedAt: new Date(),
@@ -1440,6 +1492,12 @@ export class ShipmentsService {
           failureNotes: dto.notes,
         },
       });
+
+      if (claim.count === 0) {
+        throw new ConflictException('Shipment cannot be failed in current state.');
+      }
+
+      const updated = await tx.shipment.findUniqueOrThrow({ where: { id: shipmentId } });
 
       for (const unit of shipment.units) {
         await tx.shipmentUnit.update({
@@ -1764,6 +1822,22 @@ export class ShipmentsService {
     }
 
     const result = await this.db.$transaction(async (tx) => {
+      const claim = await tx.shipment.updateMany({
+        where: {
+          id: shipmentId,
+          status: { notIn: [ShipmentStatus.DELIVERED, ShipmentStatus.CANCELLED] },
+        },
+        data: {
+          status: ShipmentStatus.CANCELLED,
+          cancelledAt: new Date(),
+          cancellationReason: reason,
+        },
+      });
+
+      if (claim.count === 0) {
+        throw new ConflictException('Cannot cancel a delivered or already cancelled shipment.');
+      }
+
       if (shipment.courierId) {
         await tx.courier.update({
           where: { id: shipment.courierId },
@@ -1778,14 +1852,7 @@ export class ShipmentsService {
         });
       }
 
-      const updated = await tx.shipment.update({
-        where: { id: shipmentId },
-        data: {
-          status: ShipmentStatus.CANCELLED,
-          cancelledAt: new Date(),
-          cancellationReason: reason,
-        },
-      });
+      const updated = await tx.shipment.findUniqueOrThrow({ where: { id: shipmentId } });
 
       await tx.shipmentEvent.create({
         data: {
@@ -1957,6 +2024,18 @@ export class ShipmentsService {
     const result = await this.db.$transaction(async (tx) => {
       const now = new Date();
 
+      const claim = await tx.shipment.updateMany({
+        where: { id: shipmentId, status: ShipmentStatus.ARRIVED_AT_HOSPITAL },
+        data: {
+          status: ShipmentStatus.DELIVERED,
+          deliveredAt: now,
+        },
+      });
+
+      if (claim.count === 0) {
+        throw new ConflictException('Shipment has not arrived at the hospital.');
+      }
+
       const unitsToReceive = shipment.units.slice(0, dto.unitsReceived);
 
       for (const unit of unitsToReceive) {
@@ -2011,13 +2090,7 @@ export class ShipmentsService {
         });
       }
 
-      const updated = await tx.shipment.update({
-        where: { id: shipmentId },
-        data: {
-          status: ShipmentStatus.DELIVERED,
-          deliveredAt: now,
-        },
-      });
+      const updated = await tx.shipment.findUniqueOrThrow({ where: { id: shipmentId } });
 
       await tx.bloodRequest.update({
         where: { id: shipment.bloodRequestId },

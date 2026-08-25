@@ -133,18 +133,18 @@ export class EmergencyGateway
     }
 
     const { emergencyRequestId } = payload;
-    const hasAccess = await this.checkEmergencyAccess(
+    const access = await this.resolveEmergencyAccess(
       client.userId,
       client.roles || [],
       emergencyRequestId,
     );
 
-    if (!hasAccess) {
+    if (!access) {
       client.emit('error', { message: 'Access denied to this emergency' });
       return { success: false, error: 'Access denied' };
     }
 
-    const roomName = `emergency:${emergencyRequestId}`;
+    const roomName = access.room;
     client.join(roomName);
 
     if (!this.roomSubscriptions.has(roomName)) {
@@ -152,7 +152,7 @@ export class EmergencyGateway
     }
     this.roomSubscriptions.get(roomName)!.add(client.id);
 
-    this.logger.log(`Client ${client.id} joined room ${roomName}`);
+    this.logger.log(`Client ${client.id} joined room ${roomName} (${access.kind})`);
     return { success: true, room: roomName };
   }
 
@@ -161,20 +161,34 @@ export class EmergencyGateway
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() payload: JoinRoomPayload,
   ) {
-    const roomName = `emergency:${payload.emergencyRequestId}`;
-    client.leave(roomName);
+    const { emergencyRequestId } = payload;
+    // A client only ever holds one of these rooms (hospital or its own donor
+    // room, never both), but leaving a room it isn't in is a harmless no-op —
+    // so it's simplest and safest to clear both without re-resolving access.
+    const candidateRooms = [this.hospitalRoom(emergencyRequestId)];
+    if (client.userId) {
+      candidateRooms.push(this.donorRoom(emergencyRequestId, client.userId));
+    }
 
-    const roomClients = this.roomSubscriptions.get(roomName);
-    if (roomClients) {
-      roomClients.delete(client.id);
-      if (roomClients.size === 0) {
-        this.roomSubscriptions.delete(roomName);
+    for (const roomName of candidateRooms) {
+      client.leave(roomName);
+      const roomClients = this.roomSubscriptions.get(roomName);
+      if (roomClients) {
+        roomClients.delete(client.id);
+        if (roomClients.size === 0) {
+          this.roomSubscriptions.delete(roomName);
+        }
       }
     }
 
     return { success: true };
   }
 
+  /**
+   * Broadcasts a donor's live location. This must only ever reach the
+   * requesting hospital's staff — never other donors responding to the same
+   * emergency — so it is scoped to the hospital-only room.
+   */
   emitDonorLocationUpdate(
     emergencyRequestId: string,
     data: {
@@ -188,30 +202,54 @@ export class EmergencyGateway
       recordedAt: string;
     },
   ) {
-    this.server.to(`emergency:${emergencyRequestId}`).emit('donor_location', {
+    this.server.to(this.hospitalRoom(emergencyRequestId)).emit('donor_location', {
       emergencyRequestId,
       ...data,
     });
   }
 
+  /**
+   * Broadcasts a response status change to the hospital, plus the specific
+   * donor whose response changed (so they see their own status live) —
+   * never to other donors responding to the same emergency.
+   */
   emitResponseStatusChanged(
     emergencyRequestId: string,
     data: { responseId: string; donorId: string; status: string },
   ) {
-    this.server.to(`emergency:${emergencyRequestId}`).emit('response_status_changed', {
+    const payload = {
       emergencyRequestId,
       ...data,
       timestamp: new Date().toISOString(),
-    });
+    };
+    this.server.to(this.hospitalRoom(emergencyRequestId)).emit('response_status_changed', payload);
+    this.server
+      .to(this.donorRoom(emergencyRequestId, data.donorId))
+      .emit('response_status_changed', payload);
   }
 
-  private async checkEmergencyAccess(
+  private hospitalRoom(emergencyRequestId: string): string {
+    return `emergency:${emergencyRequestId}:hospital`;
+  }
+
+  private donorRoom(emergencyRequestId: string, donorId: string): string {
+    return `emergency:${emergencyRequestId}:donor:${donorId}`;
+  }
+
+  /**
+   * Determines which room (if any) a user may join for this emergency.
+   * Hospital staff (and SUPER_ADMIN) get the shared hospital room, which
+   * receives every donor's location and status. A responding donor only
+   * ever gets their own private room, which receives their own status
+   * changes and never another donor's location or status.
+   */
+  private async resolveEmergencyAccess(
     userId: string,
     roles: string[],
     emergencyRequestId: string,
-  ): Promise<boolean> {
+  ): Promise<{ room: string; kind: 'hospital' | 'donor' } | null> {
     if (roles.includes('SUPER_ADMIN')) {
-      return true;
+      return { room: this.hospitalRoom(emergencyRequestId), kind: 'hospital' };
     }
 
     const emergency = await this.db.emergencyRequest.findUnique({
@@ -220,18 +258,22 @@ export class EmergencyGateway
     });
 
     if (!emergency) {
-      return false;
-    }
-
-    if (emergency.responses.some((r) => r.donorId === userId)) {
-      return true;
+      return null;
     }
 
     const membership = await this.db.organizationMembership.findFirst({
       where: { userId, organizationId: emergency.hospitalId, status: 'ACTIVE' },
     });
 
-    return !!membership;
+    if (membership) {
+      return { room: this.hospitalRoom(emergencyRequestId), kind: 'hospital' };
+    }
+
+    if (emergency.responses.some((r) => r.donorId === userId)) {
+      return { room: this.donorRoom(emergencyRequestId, userId), kind: 'donor' };
+    }
+
+    return null;
   }
 
   getConnectionState() {

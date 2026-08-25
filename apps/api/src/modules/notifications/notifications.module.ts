@@ -4,6 +4,7 @@ import { NotificationsService } from './services/notifications.service';
 import { PushDeviceService } from './services/push-device.service';
 import { NotificationPreferenceService } from './services/notification-preference.service';
 import { NotificationDeliveryService } from './services/notification-delivery.service';
+import { PushProviderService } from './services/push-provider.service';
 import { NotificationRouterService } from './services/notification-router.service';
 import { NotificationEventHandler } from './handlers/notification-event.handler';
 
@@ -15,6 +16,7 @@ import { NotificationEventHandler } from './handlers/notification-event.handler'
     PushDeviceService,
     NotificationPreferenceService,
     NotificationDeliveryService,
+    PushProviderService,
     NotificationRouterService,
     NotificationEventHandler,
   ],

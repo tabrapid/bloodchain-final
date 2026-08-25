@@ -5,11 +5,13 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryProvider } from '../src/providers/QueryProvider';
 import { colors } from '../src/theme';
 import { useAuthBootstrap } from '../src/hooks/useAuth';
+import { usePushNotifications } from '../src/hooks/usePushNotifications';
 import { useAuthStore } from '../src/stores/auth.store';
 import { ActivityIndicator, View } from 'react-native';
 
 function AuthBootstrap() {
   useAuthBootstrap();
+  usePushNotifications();
   const isLoading = useAuthStore((s) => s.isLoading);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 

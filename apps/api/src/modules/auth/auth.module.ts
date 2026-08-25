@@ -1,13 +1,14 @@
 import { Module } from '@nestjs/common';
 import { PassportModule } from '@nestjs/passport';
 import { AuditLogsModule } from '../audit-logs/audit-logs.module';
+import { EmailModule } from '../email/email.module';
 import { PermissionsModule } from '../permissions/permissions.module';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './jwt.strategy';
 
 @Module({
-  imports: [PassportModule, AuditLogsModule, PermissionsModule],
+  imports: [PassportModule, AuditLogsModule, PermissionsModule, EmailModule],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy],
   exports: [AuthService],

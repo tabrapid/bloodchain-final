@@ -1,4 +1,4 @@
-import { PropsWithChildren, useState } from 'react';
+import { Children, PropsWithChildren } from 'react';
 import { Pressable, PressableProps, StyleSheet, View, ViewStyle } from 'react-native';
 import { colors, radius, spacing, typography } from '../theme';
 import { AppText } from './AppText';
@@ -31,6 +31,8 @@ export function AppButton({
 }: PropsWithChildren<AppButtonProps>) {
   const flattenedStyle = StyleSheet.flatten(style);
   const isDisabled = disabled || loading;
+  const textColor = variant === 'secondary' || variant === 'ghost' ? colors.text : colors.white;
+  const textStyle = { ...typography.button, color: textColor };
 
   return (
     <Pressable
@@ -47,18 +49,21 @@ export function AppButton({
       disabled={isDisabled}
       {...props}
     >
-      {loading ? (
-        <AppText>Loading...</AppText>
-      ) : (
-        <AppText
-          style={{
-            ...typography.button,
-            color: variant === 'secondary' || variant === 'ghost' ? colors.text : colors.white,
-          }}
-        >
-          {children}
-        </AppText>
-      )}
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xs }}>
+        {loading ? (
+          <AppText style={textStyle}>Loading...</AppText>
+        ) : (
+          // Icons (or any non-text element) are rendered as siblings instead of
+          // nesting inside AppText — React Native's Text can't host a View/SVG.
+          Children.map(children, (child) =>
+            typeof child === 'string' || typeof child === 'number' ? (
+              <AppText style={textStyle}>{child}</AppText>
+            ) : (
+              child
+            ),
+          )
+        )}
+      </View>
     </Pressable>
   );
 }

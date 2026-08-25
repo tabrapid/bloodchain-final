@@ -50,6 +50,13 @@ async function apiRequest<T>(
   return json.data as T;
 }
 
+export interface BloodRequestEvent {
+  id: string;
+  eventType: string;
+  createdAt: string;
+  metadata?: Record<string, unknown>;
+}
+
 export interface BloodRequest {
   id: string;
   requestReference: string;
@@ -72,6 +79,7 @@ export interface BloodRequest {
   shipment?: Shipment;
   requestingOrganization: { id: string; name: string };
   fulfillingOrganization?: { id: string; name: string };
+  events?: BloodRequestEvent[];
 }
 
 export interface BloodRequestItem {

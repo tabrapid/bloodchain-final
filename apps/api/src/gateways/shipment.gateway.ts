@@ -12,6 +12,7 @@ import { Logger, UseGuards } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../database/prisma.service';
+import { LocationService } from '../modules/shipments/services/location.service';
 
 interface AuthenticatedSocket extends Socket {
   userId?: string;
@@ -63,6 +64,7 @@ export class ShipmentGateway
   constructor(
     private readonly jwtService: JwtService,
     private readonly db: PrismaService,
+    private readonly locationService: LocationService,
   ) {}
 
   afterInit(server: Server) {
@@ -235,6 +237,15 @@ export class ShipmentGateway
 
     const { shipmentId, latitude, longitude, accuracy, heading, speed } = payload;
 
+    if (
+      typeof latitude !== 'number' ||
+      typeof longitude !== 'number' ||
+      !Number.isFinite(latitude) ||
+      !Number.isFinite(longitude)
+    ) {
+      return { success: false, error: 'Invalid coordinates' };
+    }
+
     const courier = await this.db.courier.findUnique({
       where: { userId: client.userId },
     });
@@ -243,13 +254,39 @@ export class ShipmentGateway
       return { success: false, error: 'Courier profile not found' };
     }
 
-    const shipment = await this.db.shipment.findUnique({
-      where: { id: shipmentId },
-      select: { courierId: true, status: true },
+    const access = await this.locationService.validateCourierShipmentAccess(
+      courier.id,
+      shipmentId,
+    );
+
+    if (!access.valid) {
+      return { success: false, error: access.error };
+    }
+
+    // Reject spoofed/corrupted GPS: out-of-range coordinates, physically
+    // impossible jumps since the last known point, and stale/future
+    // timestamps. Speed/accuracy issues are logged but don't block the
+    // update, since GPS noise alone shouldn't drop a legitimate ping.
+    const sanityCheck = await this.locationService.validateLocationUpdate(courier.id, shipmentId, {
+      latitude,
+      longitude,
+      accuracy,
+      heading,
+      speed,
+      timestamp: new Date(),
     });
 
-    if (!shipment || shipment.courierId !== courier.id) {
-      return { success: false, error: 'Not authorized to update location for this shipment' };
+    if (!sanityCheck.isValid) {
+      this.logger.warn(
+        `Rejected location update for shipment ${shipmentId} from courier ${courier.id}: ${sanityCheck.errors.join('; ')}`,
+      );
+      return { success: false, error: sanityCheck.errors.join('; ') };
+    }
+
+    if (sanityCheck.warnings.length > 0) {
+      this.logger.warn(
+        `Location update warnings for shipment ${shipmentId} from courier ${courier.id}: ${sanityCheck.warnings.join('; ')}`,
+      );
     }
 
     const location = await this.db.shipmentLocation.create({

@@ -6,6 +6,7 @@ import * as argon2 from 'argon2';
 import { AuthService } from './auth.service';
 import { PrismaService } from '../../database/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
+import { EmailService } from '../email/email.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import { RoleCode, UserStatus } from '@prisma/client';
 
@@ -88,6 +89,10 @@ describe('AuthService Security Tests', () => {
       signAsync: jest.fn().mockResolvedValue('test-access-token'),
     };
 
+    const mockEmailService = {
+      sendVerificationEmail: jest.fn().mockResolvedValue(undefined),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
@@ -96,6 +101,7 @@ describe('AuthService Security Tests', () => {
         { provide: PermissionsService, useValue: mockPermissionsService },
         { provide: ConfigService, useValue: mockConfigService },
         { provide: JwtService, useValue: mockJwtService },
+        { provide: EmailService, useValue: mockEmailService },
       ],
     }).compile();
 

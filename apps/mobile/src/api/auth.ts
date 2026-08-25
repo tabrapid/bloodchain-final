@@ -76,6 +76,24 @@ export async function register(
   });
 }
 
+export async function verifyEmail(token: string): Promise<AuthResponse> {
+  const data = await apiRequest<AuthResponse>(`${apiBasePath}/auth/verify-email`, {
+    method: 'POST',
+    body: JSON.stringify({ token }),
+    skipAuth: true,
+  });
+  await setTokens(data);
+  return data;
+}
+
+export async function resendVerification(email: string): Promise<void> {
+  await apiRequest(`${apiBasePath}/auth/resend-verification`, {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+    skipAuth: true,
+  });
+}
+
 export async function me(): Promise<MeResponse> {
   return apiRequest<MeResponse>(`${apiBasePath}/auth/me`);
 }

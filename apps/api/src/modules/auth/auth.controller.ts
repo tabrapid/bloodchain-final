@@ -1,7 +1,7 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
-import { Request } from 'express';
+import { Request, Response } from 'express';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -11,6 +11,8 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 import { LoginDto } from './dto/login.dto';
 import { RefreshDto } from './dto/refresh.dto';
 import { RegisterDto } from './dto/register.dto';
+import { ResendVerificationDto } from './dto/resend-verification.dto';
+import { VerifyEmailDto } from './dto/verify-email.dto';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -26,6 +28,42 @@ export class AuthController {
   @ApiResponse({ status: 400, description: 'Validation error' })
   register(@Body() dto: RegisterDto, @Req() req: Request) {
     return this.auth.register(dto, this.getIp(req));
+  }
+
+  @Post('verify-email')
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  @ApiOperation({ summary: 'Verify an email address and receive an authenticated session' })
+  @ApiResponse({ status: 200, type: AuthResponseDto, description: 'Email verified' })
+  @ApiResponse({ status: 400, description: 'Invalid or expired token' })
+  verifyEmail(@Body() dto: VerifyEmailDto, @Req() req: Request) {
+    return this.auth.verifyEmail(dto.token, this.getIp(req));
+  }
+
+  @Get('verify-email')
+  @Public()
+  @ApiOperation({ summary: 'Verify an email address from a browser link (returns an HTML page)' })
+  async verifyEmailLink(@Query('token') token: string, @Req() req: Request, @Res() res: Response) {
+    try {
+      if (!token) {
+        throw new Error('Missing token');
+      }
+      await this.auth.verifyEmail(token, this.getIp(req));
+      res.status(HttpStatus.OK).type('html').send(this.renderVerificationPage(true));
+    } catch {
+      res.status(HttpStatus.BAD_REQUEST).type('html').send(this.renderVerificationPage(false));
+    }
+  }
+
+  @Post('resend-verification')
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @ApiOperation({ summary: 'Resend the email verification link' })
+  @ApiResponse({ status: 200, description: 'If the account exists and is unverified, an email was sent' })
+  resendVerification(@Body() dto: ResendVerificationDto, @Req() req: Request) {
+    return this.auth.resendVerification(dto.email, this.getIp(req));
   }
 
   @Post('login')
@@ -124,5 +162,32 @@ export class AuthController {
     const forwarded = req.headers['x-forwarded-for'] as string | string[] | undefined;
     if (typeof forwarded === 'string') return forwarded.split(',')[0]?.trim();
     return req.ip ?? undefined;
+  }
+
+  private renderVerificationPage(success: boolean): string {
+    const title = success ? 'Email verified' : 'Verification failed';
+    const message = success
+      ? 'Your email address has been verified. You can now sign in from the DONOR app.'
+      : 'This verification link is invalid or has expired. Request a new one from the app.';
+    return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>${title} — DONOR</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #0b0e14; color: #f5f6f7; display: flex; min-height: 100vh; align-items: center; justify-content: center; margin: 0; padding: 24px; }
+  .card { max-width: 420px; text-align: center; }
+  h1 { color: ${success ? '#22c55e' : '#ef4444'}; margin-bottom: 12px; }
+  p { color: #a1a8b3; line-height: 1.5; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>${title}</h1>
+    <p>${message}</p>
+  </div>
+</body>
+</html>`;
   }
 }

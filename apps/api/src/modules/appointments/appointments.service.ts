@@ -97,6 +97,20 @@ export class AppointmentsService {
     const referenceNumber = this.generateReferenceNumber();
 
     const result = await this.db.$transaction(async (tx) => {
+      // Atomic conditional update: only succeeds if the slot is still AVAILABLE
+      // and under capacity at the moment Postgres acquires the row lock,
+      // closing the race window between the pre-checks above and this
+      // transaction — two concurrent bookings for the last seat can no longer
+      // both win.
+      const claim = await tx.appointmentSlot.updateMany({
+        where: { id: slot.id, status: SlotStatus.AVAILABLE, bookedCount: { lt: slot.capacity } },
+        data: { bookedCount: { increment: 1 } },
+      });
+
+      if (claim.count === 0) {
+        throw new ConflictException('This slot is no longer available.');
+      }
+
       const appointment = await tx.appointment.create({
         data: {
           referenceNumber,
@@ -121,12 +135,12 @@ export class AppointmentsService {
         },
       });
 
-      await tx.appointmentSlot.update({
+      const updatedSlot = await tx.appointmentSlot.findUniqueOrThrow({
         where: { id: slot.id },
-        data: { bookedCount: { increment: 1 } },
+        select: { bookedCount: true, capacity: true },
       });
 
-      if (slot.bookedCount + 1 >= slot.capacity) {
+      if (updatedSlot.bookedCount >= updatedSlot.capacity) {
         await tx.appointmentSlot.update({
           where: { id: slot.id },
           data: { status: SlotStatus.FULL },
@@ -437,6 +451,19 @@ export class AppointmentsService {
     }
 
     const result = await this.db.$transaction(async (tx) => {
+      // Same atomic conditional claim as bookAppointment, done first so a
+      // lost race fails fast without touching the appointment or old slot:
+      // closes the window between the pre-checks above and this transaction
+      // for the new slot.
+      const claim = await tx.appointmentSlot.updateMany({
+        where: { id: newSlot.id, status: SlotStatus.AVAILABLE, bookedCount: { lt: newSlot.capacity } },
+        data: { bookedCount: { increment: 1 } },
+      });
+
+      if (claim.count === 0) {
+        throw new ConflictException('The new slot is no longer available.');
+      }
+
       const updated = await tx.appointment.update({
         where: { id: appointmentId },
         data: {
@@ -462,11 +489,6 @@ export class AppointmentsService {
         data: { bookedCount: { decrement: 1 } },
       });
 
-      await tx.appointmentSlot.update({
-        where: { id: newSlot.id },
-        data: { bookedCount: { increment: 1 } },
-      });
-
       const oldSlot = await tx.appointmentSlot.findUnique({
         where: { id: appointment.slotId },
       });
@@ -478,7 +500,12 @@ export class AppointmentsService {
         });
       }
 
-      if (newSlot.bookedCount + 1 >= newSlot.capacity) {
+      const updatedNewSlot = await tx.appointmentSlot.findUniqueOrThrow({
+        where: { id: newSlot.id },
+        select: { bookedCount: true, capacity: true },
+      });
+
+      if (updatedNewSlot.bookedCount >= updatedNewSlot.capacity) {
         await tx.appointmentSlot.update({
           where: { id: newSlot.id },
           data: { status: SlotStatus.FULL },

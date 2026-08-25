@@ -241,7 +241,15 @@ export default function ShipmentsPage() {
       {shipments.length === 0 ? (
         <EmptyState
           title="No shipments"
-          description="No shipments found. Create a shipment from an approved blood request."
+          description="Create a shipment from an approved, ready-for-pickup blood request."
+          action={
+            <a
+              href="/requests"
+              className="rounded-lg bg-donor-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-donor-primary/80"
+            >
+              View Blood Requests
+            </a>
+          }
         />
       ) : (
         <div className="space-y-4">

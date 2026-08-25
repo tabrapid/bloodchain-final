@@ -2,6 +2,7 @@ import {
   BarChart3,
   Beaker,
   CalendarDays,
+  Droplet,
   LayoutDashboard,
   Package,
   Settings,
@@ -12,6 +13,7 @@ import type { SidebarItem } from '@donor/ui/components';
 
 export const sidebarItems: SidebarItem[] = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, href: '/' },
+  { id: 'requests', label: 'Blood Requests', icon: Droplet, href: '/requests' },
   { id: 'inventory', label: 'Inventory', icon: Package, href: '/inventory' },
   { id: 'laboratory', label: 'Laboratory', icon: Beaker, href: '/laboratory' },
   { id: 'shipments', label: 'Shipments', icon: Truck, href: '/shipments' },

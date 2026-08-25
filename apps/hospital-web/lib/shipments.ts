@@ -50,6 +50,13 @@ async function apiRequest<T>(
   return json.data as T;
 }
 
+export interface BloodRequestEvent {
+  id: string;
+  eventType: string;
+  createdAt: string;
+  metadata?: Record<string, unknown>;
+}
+
 export interface BloodRequest {
   id: string;
   requestReference: string;
@@ -67,6 +74,9 @@ export interface BloodRequest {
   createdAt: string;
   items: BloodRequestItem[];
   shipment?: Shipment;
+  requestingOrganization?: { id: string; name: string };
+  fulfillingOrganization?: { id: string; name: string };
+  events?: BloodRequestEvent[];
 }
 
 export interface BloodRequestItem {
@@ -177,6 +187,46 @@ export interface TimelineResponse {
   reference: string;
   status: string;
   timeline: TimelineEvent[];
+}
+
+export interface CreateBloodRequestParams {
+  items: Array<{
+    bloodType: string;
+    rhFactor: string;
+    componentType?: string;
+    unitsRequested: number;
+  }>;
+  priority?: string;
+  notes?: string;
+  deliveryAddress?: string;
+  deliveryLatitude?: number;
+  deliveryLongitude?: number;
+  deliveryPhone?: string;
+  expectedDeliveryDate?: string;
+}
+
+export function getBloodRequests(
+  organizationId: string,
+  filters?: { status?: string },
+): Promise<{ data: BloodRequest[] }> {
+  const searchParams = new URLSearchParams();
+  searchParams.set('type', 'requesting');
+  if (filters?.status) searchParams.set('status', filters.status);
+  return apiRequest(`/organizations/${organizationId}/blood-requests?${searchParams.toString()}`);
+}
+
+export function getBloodRequest(organizationId: string, requestId: string): Promise<BloodRequest> {
+  return apiRequest(`/organizations/${organizationId}/blood-requests/${requestId}`);
+}
+
+export function createBloodRequest(
+  organizationId: string,
+  params: CreateBloodRequestParams,
+): Promise<BloodRequest> {
+  return apiRequest(`/organizations/${organizationId}/blood-requests`, {
+    method: 'POST',
+    body: JSON.stringify(params),
+  });
 }
 
 export function getIncomingShipments(organizationId: string, filters?: { status?: string }): Promise<{ data: Shipment[] }> {

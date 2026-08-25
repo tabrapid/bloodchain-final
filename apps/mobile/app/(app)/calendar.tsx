@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { View, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
-import { ChevronLeft, ChevronRight } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight, Plus } from 'lucide-react-native';
 import { AppText, Card, EmptyState, GlassCard, Screen } from '../../src/components';
 import { useMyAppointments } from '../../src/hooks/useAppointments';
 import { colors, spacing, radius } from '../../src/theme';
@@ -132,9 +132,14 @@ export default function Calendar() {
     <Screen>
       <View style={styles.header}>
         <AppText variant="title">Calendar</AppText>
-        <TouchableOpacity onPress={goToToday} style={styles.todayButton}>
-          <AppText style={styles.todayText}>Today</AppText>
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity onPress={goToToday} style={styles.todayButton}>
+            <AppText style={styles.todayText}>Today</AppText>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push('/(booking)')} style={styles.bookButton}>
+            <Plus size={18} color={colors.white} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <GlassCard style={styles.calendarCard}>
@@ -261,6 +266,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: spacing.lg,
   },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
   todayButton: {
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
@@ -270,6 +280,14 @@ const styles = StyleSheet.create({
   todayText: {
     color: colors.primary,
     fontWeight: '600',
+  },
+  bookButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   calendarCard: {
     padding: spacing.md,
