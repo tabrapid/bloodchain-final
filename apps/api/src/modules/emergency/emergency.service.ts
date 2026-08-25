@@ -8,6 +8,7 @@ import {
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   BloodType,
+  DonationStatus,
   DonorStatus,
   EmergencyMatchStatus,
   EmergencyResponseStatus,
@@ -147,6 +148,35 @@ export class EmergencyService {
     return compatibleGroups.includes(requiredKey);
   }
 
+  // Matches the 56-day whole-blood recovery window used elsewhere (e.g.
+  // ai-context-builder-enhanced.service.ts). Tracked as a hardcoded
+  // duplicate under P1-8, which centralizes this into one shared
+  // eligibility service both paths call - not done here to keep this fix
+  // scoped to closing the missing-check gap.
+  private static readonly DONATION_COOLDOWN_DAYS = 56;
+
+  private async getNextEligibleDonationDate(donorId: string): Promise<Date | null> {
+    const lastDonation = await this.db.donation.findFirst({
+      where: { donorId, status: DonationStatus.COMPLETED },
+      orderBy: { completedAt: 'desc' },
+      select: { completedAt: true, nextDonationDate: true },
+    });
+
+    if (!lastDonation?.completedAt) {
+      return null;
+    }
+
+    // Prefer staff's explicit next-donation-date (e.g. extended for a
+    // health reason) over the default cooldown window.
+    if (lastDonation.nextDonationDate) {
+      return lastDonation.nextDonationDate;
+    }
+
+    const computed = new Date(lastDonation.completedAt);
+    computed.setDate(computed.getDate() + EmergencyService.DONATION_COOLDOWN_DAYS);
+    return computed;
+  }
+
   async checkDonorEligibility(userId: string) {
     const user = await this.checkDonorAccess(userId);
 
@@ -164,6 +194,13 @@ export class EmergencyService {
 
     if (!user.emailVerified) {
       throw new ForbiddenException('Email not verified.');
+    }
+
+    const nextEligibleDate = await this.getNextEligibleDonationDate(user.id);
+    if (nextEligibleDate && nextEligibleDate.getTime() > Date.now()) {
+      throw new ForbiddenException(
+        `Donor is in the post-donation recovery window until ${nextEligibleDate.toISOString().split('T')[0]}.`,
+      );
     }
 
     return user;

@@ -284,22 +284,34 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   - Files: `apps/api/src/modules/appointments/appointments.service.ts`,
     `apps/api/src/modules/emergency/emergency.service.ts`.
 
-- [ ] **P1-7. Emergency donor eligibility never checks the donation cooldown.**
-  `checkDonorEligibility` verifies active status + verified blood type +
-  email verified, but never checks `nextDonationDate` / the 56-day
-  recovery window — a donor who donated yesterday can still be matched to
-  and accept a new SOS. (Also currently unreachable in practice because of
-  P0-1, but must be fixed as part of that fix.)
-  - File: `apps/api/src/modules/emergency/emergency.service.ts:147-167`.
+- [x] **P1-7. Emergency donor eligibility never checks the donation cooldown.** — Fixed:
+  `checkDonorEligibility` (called from `acceptEmergency`, the only place a
+  donor accepts an SOS match) now looks up the donor's most recent
+  `COMPLETED` donation and rejects with `ForbiddenException` if it's still
+  inside the recovery window. Prefers the staff-entered `Donation.nextDonationDate`
+  when set (e.g. extended for a health reason), otherwise falls back to the
+  same 56-day-after-`completedAt` rule already used in
+  `ai-context-builder-enhanced.service.ts`, kept as a small private helper
+  (`getNextEligibleDonationDate`) rather than building the full shared
+  eligibility service — that consolidation is P1-8's separate, still-open
+  scope, so this stays a duplicate of the existing rule rather than a new
+  third source of truth.
+  Covered by 4 new tests in `emergency.service.spec.ts` (now 7 total):
+  never-donated passes, cooldown-elapsed passes, still-in-cooldown rejects,
+  and staff-extended `nextDonationDate` rejects even past the default window.
+  - File: `apps/api/src/modules/emergency/emergency.service.ts`.
 
-- [ ] **P1-8. Next-eligible-donation-date has two disconnected sources of truth.**
+- [ ] **P1-8. Next-eligible-donation-date now has three disconnected sources of truth.**
   `Donation.nextDonationDate` is free-text staff input with no server-side
-  derivation from a real eligibility rule; separately,
-  `ai-context-builder-enhanced.service.ts` hardcodes its own "56 days"
-  calculation. Centralize this into one configurable eligibility service
-  both paths call.
+  derivation from a real eligibility rule; `ai-context-builder-enhanced.service.ts`
+  hardcodes its own "56 days" calculation; and P1-7 added a third copy of the
+  same 56-day rule (`EmergencyService.getNextEligibleDonationDate`), by
+  design deferred to this item rather than silently building the shared
+  service as a side effect of a smaller fix. Centralize all three into one
+  configurable eligibility service every caller uses.
   - Files: `apps/api/src/modules/donations/donations.service.ts:402`,
-    `apps/api/src/modules/ai-health/ai-context-builder-enhanced.service.ts:94-100`.
+    `apps/api/src/modules/ai-health/ai-context-builder-enhanced.service.ts:94-100`,
+    `apps/api/src/modules/emergency/emergency.service.ts` (`getNextEligibleDonationDate`).
 
 - [ ] **P1-9. Blood Center dashboard is missing core pages.**
   No page to: review/approve incoming blood requests (see P0-7), create a
@@ -501,6 +513,11 @@ TOCTOU races, all the same fix pattern already used for P0-9).~~ ✅
 client-retry duplication).~~ ✅
 ~~**P1-6** (gamification XP triggers for appointments/emergency-response were
 dead code — nothing emitted the events their handlers listen for).~~ ✅
-Next up: **P1-7** (emergency donor eligibility never checks the 56-day
-donation cooldown), then the rest of P1, then P2, folding in P3-1 tests as
-each area is touched.
+~~**P1-7** (emergency donor eligibility never checked the 56-day donation
+cooldown).~~ ✅
+Next up: **P1-8** (centralize the next-eligible-donation-date rule — now
+duplicated in three places: `donations.service.ts`'s free-text staff input,
+`ai-context-builder-enhanced.service.ts`'s hardcoded calc, and P1-7's new
+`getNextEligibleDonationDate` helper — into one shared eligibility service
+all three call), then the rest of P1, then P2, folding in P3-1 tests as each
+area is touched.
