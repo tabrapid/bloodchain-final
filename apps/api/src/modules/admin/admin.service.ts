@@ -214,7 +214,11 @@ export class AdminService {
         emailVerified: u.emailVerified,
         createdAt: u.createdAt,
         lastLoginAt: u.lastLoginAt,
-        roles: u.memberships.map((m) => ({ role: m.role.code, organization: m.organization })),
+        roles: u.memberships.map((m) => ({
+          membershipId: m.id,
+          role: m.role.code,
+          organization: m.organization,
+        })),
         bloodType: u.donorProfile?.bloodType,
         rhFactor: u.donorProfile?.rhFactor,
         donorStatus: u.donorProfile?.donorStatus,
@@ -263,6 +267,7 @@ export class AdminService {
       createdAt: user.createdAt,
       lastLoginAt: user.lastLoginAt,
       roles: user.memberships.map((m) => ({
+        membershipId: m.id,
         role: m.role.code,
         organization: m.organization,
         status: m.status,
@@ -318,6 +323,116 @@ export class AdminService {
     });
 
     return { id: updated.id, status: updated.status };
+  }
+
+  async listRoles(): Promise<any[]> {
+    const roles = await this.db.role.findMany({
+      orderBy: { code: 'asc' },
+      include: { permissions: { include: { permission: true } } },
+    });
+
+    return roles.map((role) => ({
+      id: role.id,
+      code: role.code,
+      name: role.name,
+      permissions: role.permissions.map((rp) => rp.permission.code).sort(),
+    }));
+  }
+
+  async listPermissions(): Promise<any[]> {
+    const permissions = await this.db.permission.findMany({ orderBy: { code: 'asc' } });
+    return permissions.map((p) => ({ id: p.id, code: p.code, name: p.name }));
+  }
+
+  async updateRolePermissions(
+    adminId: string,
+    roleId: string,
+    permissionCodes: string[],
+  ): Promise<any> {
+    const role = await this.db.role.findUnique({ where: { id: roleId } });
+    if (!role) throw new NotFoundException('Role not found');
+
+    if (role.code === RoleCode.SUPER_ADMIN) {
+      throw new BadRequestException(
+        'SUPER_ADMIN permissions cannot be edited — its platform access is enforced by role, not the permission matrix.',
+      );
+    }
+
+    const uniqueCodes = Array.from(new Set(permissionCodes));
+    const permissions = await this.db.permission.findMany({
+      where: { code: { in: uniqueCodes } },
+    });
+    const foundCodes = new Set(permissions.map((p) => p.code));
+    const unknownCodes = uniqueCodes.filter((code) => !foundCodes.has(code));
+    if (unknownCodes.length > 0) {
+      throw new BadRequestException(`Unknown permission code(s): ${unknownCodes.join(', ')}`);
+    }
+
+    await this.db.$transaction([
+      this.db.rolePermission.deleteMany({ where: { roleId } }),
+      this.db.rolePermission.createMany({
+        data: permissions.map((p) => ({ roleId, permissionId: p.id })),
+      }),
+    ]);
+
+    await this.db.auditLog.create({
+      data: {
+        actorId: adminId,
+        action: 'ROLE_PERMISSIONS_UPDATED',
+        entityType: 'Role',
+        entityId: roleId,
+        metadata: { roleCode: role.code, permissionCodes: uniqueCodes },
+      },
+    });
+
+    return { id: role.id, code: role.code, permissions: uniqueCodes.sort() };
+  }
+
+  async updateMembershipRole(adminId: string, membershipId: string, roleId: string): Promise<any> {
+    const membership = await this.db.organizationMembership.findUnique({
+      where: { id: membershipId },
+      include: { role: true, organization: { select: { id: true, name: true } } },
+    });
+    if (!membership) throw new NotFoundException('Membership not found');
+
+    const newRole = await this.db.role.findUnique({ where: { id: roleId } });
+    if (!newRole) throw new NotFoundException('Role not found');
+
+    if (membership.roleId === roleId) {
+      return {
+        id: membership.id,
+        userId: membership.userId,
+        organizationId: membership.organizationId,
+        role: newRole.code,
+      };
+    }
+
+    const updated = await this.db.organizationMembership.update({
+      where: { id: membershipId },
+      data: { roleId },
+    });
+
+    await this.db.auditLog.create({
+      data: {
+        actorId: adminId,
+        action: 'MEMBERSHIP_ROLE_CHANGED',
+        entityType: 'OrganizationMembership',
+        entityId: membershipId,
+        organizationId: membership.organizationId,
+        metadata: {
+          userId: membership.userId,
+          fromRole: membership.role.code,
+          toRole: newRole.code,
+        },
+      },
+    });
+
+    return {
+      id: updated.id,
+      userId: updated.userId,
+      organizationId: updated.organizationId,
+      role: newRole.code,
+    };
   }
 
   async listOrganizations(input: {

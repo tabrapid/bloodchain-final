@@ -6,11 +6,26 @@ import {
   IsNumber,
   IsDateString,
   IsArray,
+  IsNotEmpty,
   Min,
   Max,
 } from 'class-validator';
-import { ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { RoleCode, UserStatus, OrganizationStatus } from '@prisma/client';
+
+export class AdminUpdateRolePermissionsDto {
+  @ApiProperty({ type: [String], example: ['organization.read', 'shipment.manage'] })
+  @IsArray()
+  @IsString({ each: true })
+  permissionCodes!: string[];
+}
+
+export class AdminUpdateMembershipRoleDto {
+  @ApiProperty({ description: 'The Role id to move this membership to' })
+  @IsString()
+  @IsNotEmpty()
+  roleId!: string;
+}
 
 export class AdminListUsersDto {
   @ApiPropertyOptional({ default: '1' })

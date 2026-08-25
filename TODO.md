@@ -540,10 +540,59 @@ These make the product unusable or unsafe for real users. Fix first, in order.
     `apps/blood-center-web/lib/auth.ts`, `apps/blood-center-web/app/page.tsx`,
     `apps/blood-center-web/app/register/page.tsx` (new).
 
-- [ ] **P1-13. Admin: roles/permissions management doesn't exist.**
-  No controller exposes CRUD for roles/permissions, and admin-web has no
-  route for it — admin can suspend/restore users but can't change a
-  user's role or manage the permission matrix.
+- [x] **P1-13. Admin: roles/permissions management doesn't exist.** — Fixed:
+  the Role/Permission/RolePermission tables and seed data were already
+  complete (`PermissionsService.getUserPermissions` reads them on every
+  request) — nothing exposed them for editing. Added four endpoints under
+  `AdminController`, all `SUPER_ADMIN` + `admin.manage`-gated like the
+  rest of the admin surface:
+  - `GET /admin/roles` — every role with its current permission codes.
+  - `GET /admin/permissions` — the full permission catalog.
+  - `PATCH /admin/roles/:id/permissions` — replace a role's permission
+    set (validates every code exists first, rejects unknown codes by
+    name, one transaction to swap the `RolePermission` rows). Refuses to
+    edit `SUPER_ADMIN`: its access is enforced by role code directly
+    (`RolesGuard`/`@Roles(SUPER_ADMIN)`) and `PermissionsService`
+    unconditionally grants it `admin.manage` regardless of what's in the
+    table, so editing that row would change nothing real while looking
+    like it does — same "don't let the UI lie about what it controls"
+    principle as P0-7's request-status fix.
+  - `PATCH /admin/memberships/:id/role` — move one
+    `OrganizationMembership` to a different role (used for "change this
+    user's role", not the role catalog itself). No-ops (no DB write, no
+    audit log) if the membership is already on the target role. Both
+    mutations audit-log (`ROLE_PERMISSIONS_UPDATED`,
+    `MEMBERSHIP_ROLE_CHANGED`) alongside the existing
+    suspend/restore/verify/reject actions.
+  Also added `membershipId` to the `roles[]` entries `listUsers`/`getUser`
+  already returned (needed to target a specific membership; wasn't
+  exposed before since nothing consumed it).
+  admin-web: new `/roles` page (added to the sidebar) listing every role
+  with its permissions and an edit modal — a checkbox grid grouped by
+  permission prefix (`hospital.*`, `blood_center.*`, etc.), pre-checked
+  to the role's current set, Save calls the PATCH and reloads.
+  `SUPER_ADMIN`'s row shows "Fixed" instead of an edit link, matching the
+  backend's refusal. Users page: each membership badge in the user detail
+  modal now has a "change role to..." select + Update button next to it,
+  wired to the new membership-role endpoint.
+  Verified: 10 new tests in `admin.service.spec.ts` (first tests this
+  service has ever had — happy path, unknown-permission-code rejection,
+  SUPER_ADMIN-edit rejection, unknown-role/membership 404s, and the
+  already-on-target-role no-op, for both new mutations), full backend
+  suite 219/219 passing, clean `tsc --noEmit` on the API. admin-web
+  needed a `pnpm install` in this session (its `node_modules` had never
+  been installed) before it would typecheck at all — after that, clean
+  `tsc --noEmit` and `next build` (new `/roles` route prerenders), 0 lint
+  errors. Verified the new page and sidebar entry render via a
+  headless-browser screenshot (unauthenticated-state only, no live DB in
+  this sandbox — same limitation as every other UI-only verification this
+  session).
+  - Files: `apps/api/src/modules/admin/{admin.service.ts,admin.controller.ts}`,
+    `apps/api/src/modules/admin/dto/admin.dto.ts`,
+    `apps/api/src/modules/admin/admin.service.spec.ts` (new),
+    `apps/admin-web/lib/{api.tsx,navigation.tsx}`,
+    `apps/admin-web/app/roles/page.tsx` (new),
+    `apps/admin-web/app/users/page.tsx`.
 
 - [ ] **P1-14. Admin: platform "Settings" page is 100% fake.**
   Entirely static JSX with hardcoded badges ("Session Timeout: 24 hours",
@@ -758,6 +807,9 @@ connected both dashboards via a new `useShipmentTracking` hook).~~ ✅
 `POST /auth/register-organization`, `/register` pages on hospital-web and
 blood-center-web, and a pending-approval landing screen; split the deeper
 "nothing actually enforces org.status" gap out to P1-20).~~ ✅
-Next up: **P1-13** (Admin: roles/permissions management doesn't exist),
-then the rest of P1, then P2, folding in P3-1 tests as each area is
-touched.
+~~**P1-13** (Admin: roles/permissions management didn't exist — added
+`GET/PATCH /admin/roles`, `GET /admin/permissions`, and
+`PATCH /admin/memberships/:id/role`, plus admin-web's new `/roles` page
+and a "change role" control on the Users page).~~ ✅
+Next up: **P1-14** (Admin platform "Settings" page is 100% fake), then the
+rest of P1, then P2, folding in P3-1 tests as each area is touched.

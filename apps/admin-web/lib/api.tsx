@@ -22,10 +22,27 @@ export interface User {
   emailVerified: boolean;
   createdAt: string;
   lastLoginAt?: string;
-  roles: Array<{ role: string; organization: { id: string; name: string; type: string } }>;
+  roles: Array<{
+    membershipId: string;
+    role: string;
+    organization: { id: string; name: string; type: string };
+  }>;
   bloodType?: string;
   rhFactor?: string;
   donorStatus?: string;
+}
+
+export interface Role {
+  id: string;
+  code: string;
+  name: string;
+  permissions: string[];
+}
+
+export interface Permission {
+  id: string;
+  code: string;
+  name: string;
 }
 
 export interface Organization {
@@ -150,6 +167,31 @@ export async function suspendUser(id: string, reason?: string): Promise<{ id: st
 export async function restoreUser(id: string): Promise<{ id: string; status: string }> {
   return apiRequest<{ id: string; status: string }>(`/admin/users/${id}/restore`, {
     method: 'POST',
+  });
+}
+
+export async function listRoles(): Promise<Role[]> {
+  return apiRequest<Role[]>('/admin/roles');
+}
+
+export async function listPermissions(): Promise<Permission[]> {
+  return apiRequest<Permission[]>('/admin/permissions');
+}
+
+export async function updateRolePermissions(roleId: string, permissionCodes: string[]): Promise<Role> {
+  return apiRequest<Role>(`/admin/roles/${roleId}/permissions`, {
+    method: 'PATCH',
+    body: JSON.stringify({ permissionCodes }),
+  });
+}
+
+export async function updateMembershipRole(
+  membershipId: string,
+  roleId: string,
+): Promise<{ id: string; userId: string; organizationId: string; role: string }> {
+  return apiRequest(`/admin/memberships/${membershipId}/role`, {
+    method: 'PATCH',
+    body: JSON.stringify({ roleId }),
   });
 }
 

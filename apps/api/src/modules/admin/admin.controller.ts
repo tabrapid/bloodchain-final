@@ -36,6 +36,8 @@ import {
   AdminListEmergenciesDto,
   AdminListAlertsDto,
   AdminAcknowledgeAlertDto,
+  AdminUpdateRolePermissionsDto,
+  AdminUpdateMembershipRoleDto,
 } from './dto/admin.dto';
 
 @ApiTags('Admin')
@@ -119,6 +121,46 @@ export class AdminController {
   @ApiOperation({ summary: 'Restore a suspended user' })
   restoreUser(@CurrentUser('sub') adminId: string, @Param('id') userId: string) {
     return this.admin.restoreUser(adminId, userId);
+  }
+
+  @Get('roles')
+  @Roles(RoleCode.SUPER_ADMIN)
+  @Permissions('admin.manage')
+  @ApiOperation({ summary: 'List all roles with their assigned permissions' })
+  listRoles() {
+    return this.admin.listRoles();
+  }
+
+  @Get('permissions')
+  @Roles(RoleCode.SUPER_ADMIN)
+  @Permissions('admin.manage')
+  @ApiOperation({ summary: 'List the full permission catalog' })
+  listPermissions() {
+    return this.admin.listPermissions();
+  }
+
+  @Patch('roles/:id/permissions')
+  @Roles(RoleCode.SUPER_ADMIN)
+  @Permissions('admin.manage')
+  @ApiOperation({ summary: "Replace a role's permission set" })
+  updateRolePermissions(
+    @CurrentUser('sub') adminId: string,
+    @Param('id') roleId: string,
+    @Body() body: AdminUpdateRolePermissionsDto,
+  ) {
+    return this.admin.updateRolePermissions(adminId, roleId, body.permissionCodes);
+  }
+
+  @Patch('memberships/:id/role')
+  @Roles(RoleCode.SUPER_ADMIN)
+  @Permissions('admin.manage')
+  @ApiOperation({ summary: "Change a user's role within an organization" })
+  updateMembershipRole(
+    @CurrentUser('sub') adminId: string,
+    @Param('id') membershipId: string,
+    @Body() body: AdminUpdateMembershipRoleDto,
+  ) {
+    return this.admin.updateMembershipRole(adminId, membershipId, body.roleId);
   }
 
   @Get('organizations')
