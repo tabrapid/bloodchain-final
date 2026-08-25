@@ -153,6 +153,74 @@ describe('AuthService', () => {
     ).rejects.toThrow();
   });
 
+  it('registers a new organization pending approval, with an admin membership', async () => {
+    prisma.user.findUnique.mockResolvedValue(null);
+    prisma.role.findUnique.mockResolvedValue({ id: 'role-hospital-admin', code: RoleCode.HOSPITAL_ADMIN });
+    const txOrganizationCreate = jest.fn().mockResolvedValue({
+      id: 'org1',
+      name: 'Northstar Hospital',
+      type: 'HOSPITAL',
+      status: 'PENDING_APPROVAL',
+    });
+    const txUserCreate = jest.fn().mockResolvedValue({
+      id: 'u1',
+      email: 'admin@northstar.example',
+      firstName: 'Alex',
+      lastName: 'Rivera',
+      status: 'PENDING_VERIFICATION',
+    });
+    const txMembershipCreate = jest.fn().mockResolvedValue({});
+    prisma.$transaction.mockImplementation(async (callback) => {
+      const tx = {
+        organization: { create: txOrganizationCreate },
+        user: { create: txUserCreate },
+        organizationMembership: { create: txMembershipCreate },
+      };
+      return callback(tx);
+    });
+
+    const result = await service.registerOrganization({
+      organizationType: 'HOSPITAL',
+      organizationName: 'Northstar Hospital',
+      adminEmail: 'admin@northstar.example',
+      adminPassword: 'SecurePassword123!',
+      adminFirstName: 'Alex',
+      adminLastName: 'Rivera',
+    } as any);
+
+    expect(result.data.organization.status).toBe('PENDING_APPROVAL');
+    expect(result.data.user.email).toBe('admin@northstar.example');
+    expect(txOrganizationCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          type: 'HOSPITAL',
+          status: 'PENDING_APPROVAL',
+          hospital: { create: {} },
+        }),
+      }),
+    );
+    expect(txMembershipCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ roleId: 'role-hospital-admin', status: 'ACTIVE' }),
+      }),
+    );
+  });
+
+  it('rejects organization registration with an already-registered admin email', async () => {
+    prisma.user.findUnique.mockResolvedValue({ id: 'existing', email: 'admin@northstar.example' });
+
+    await expect(
+      service.registerOrganization({
+        organizationType: 'HOSPITAL',
+        organizationName: 'Northstar Hospital',
+        adminEmail: 'admin@northstar.example',
+        adminPassword: 'SecurePassword123!',
+        adminFirstName: 'Alex',
+        adminLastName: 'Rivera',
+      } as any),
+    ).rejects.toThrow(BadRequestException);
+  });
+
   it('logs in with valid credentials', async () => {
     const passwordHash = await argon2.hash('SecurePassword123!');
     prisma.user.findUnique.mockResolvedValue({

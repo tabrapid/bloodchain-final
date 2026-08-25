@@ -487,13 +487,58 @@ These make the product unusable or unsafe for real users. Fix first, in order.
     `apps/blood-center-web/app/shipments/[id]/page.tsx`,
     `apps/blood-center-web/package.json`.
 
-- [ ] **P1-12. Admin: no organization signup flow feeds the approval workflow.**
-  Admin's verify/reject/suspend/restore organization endpoints are real,
-  but nothing ever creates a `PENDING_APPROVAL` organization — the only
-  `organization.create` call in the whole backend is auth's internal fake
-  donor-org workaround (see P2-9), which is `ACTIVE` on creation. There is
-  no hospital/blood-center self-registration endpoint at all.
-  - File: `apps/api/src/modules/admin/admin.service.ts:423-514`.
+- [x] **P1-12. Admin: no organization signup flow feeds the approval workflow.** — Fixed:
+  added `POST /auth/register-organization` (public, throttled 5/min), the
+  first and only code path that creates a real self-service
+  `PENDING_APPROVAL` organization. In one transaction it creates the
+  `Organization` (type HOSPITAL or BLOOD_CENTER, with its `hospital`/
+  `bloodCenter` sub-record, `status: PENDING_APPROVAL`), a new admin
+  `User` (`PENDING_VERIFICATION`, mirroring the existing donor `register`
+  flow), and an `OrganizationMembership` with the matching admin role
+  (`HOSPITAL_ADMIN`/`BLOOD_CENTER_ADMIN`, membership `status: ACTIVE` —
+  it's the *organization* that's gated on approval, not the membership,
+  same distinction the existing verify/reject endpoints already draw).
+  Sends the same verification email as donor registration and audit-logs
+  `ORGANIZATION_REGISTERED`. The already-working admin-web
+  verify/reject/suspend/restore UI (`app/organizations/page.tsx`) now has
+  something real to act on instead of only ever showing orgs seeded by
+  hand.
+  Also closed the loop on the other end: `/auth/me` didn't expose the
+  organization's own approval status at all (only membership status,
+  which stays `ACTIVE` regardless of the org's state) — added
+  `organizationStatus` to each entry in `me().organizations`. Both
+  hospital-web and blood-center-web now check it: if a hospital/blood-
+  center admin logs in (which requires email verification, so this can
+  only happen after they've verified) before their org is approved, they
+  see a "pending approval" screen instead of the full dashboard, rather
+  than silently landing on an empty workspace with no indication why.
+  Added `/register` pages to both apps (organization details + admin
+  account form, fixed to that app's org type) linked from each app's
+  login screen ("New hospital? Register your organization").
+  **Known scope boundary, not fixed here**: this only gates the initial
+  dashboard landing screen — no backend service (shipments, requests,
+  appointments, inventory, etc.) actually checks `organization.status`
+  before allowing an action, so a determined PENDING_APPROVAL admin who
+  discovers a direct API/deep-link route could still act before approval.
+  Enforcing that at the API layer touches every org-scoped service, not
+  just auth/admin, so it's tracked separately as P1-20 rather than
+  expanded into here silently.
+  Verified: 2 new tests in `auth.service.spec.ts` (happy path creates a
+  PENDING_APPROVAL org + ACTIVE HOSPITAL_ADMIN membership; duplicate
+  admin email rejected), full suite 209/209 passing, clean `tsc --noEmit`
+  and `next build` on both hospital-web and blood-center-web (new
+  `/register` route prerenders on both), 0 new lint errors. Verified the
+  login screen's new link and the register form render correctly via a
+  headless-browser screenshot (no live DB in this sandbox to exercise the
+  full submit → pending-approval → admin-approve loop end-to-end, same
+  limitation noted on earlier UI-only verifications this session).
+  - Files: `apps/api/src/modules/auth/{auth.service.ts,auth.controller.ts}`,
+    `apps/api/src/modules/auth/dto/register-organization.dto.ts` (new),
+    `apps/api/src/modules/auth/auth.service.spec.ts`,
+    `apps/hospital-web/lib/auth.ts`, `apps/hospital-web/app/page.tsx`,
+    `apps/hospital-web/app/register/page.tsx` (new),
+    `apps/blood-center-web/lib/auth.ts`, `apps/blood-center-web/app/page.tsx`,
+    `apps/blood-center-web/app/register/page.tsx` (new).
 
 - [ ] **P1-13. Admin: roles/permissions management doesn't exist.**
   No controller exposes CRUD for roles/permissions, and admin-web has no
@@ -541,6 +586,24 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   under P1-10 and wasn't verifiable the same way (headless browser
   screenshot) in this session.
   - Files: `apps/mobile/app/sos.tsx`, `apps/mobile/app/(courier)/active.tsx`.
+
+- [ ] **P1-20. `organization.status` is never checked outside admin/auth (split out of P1-12).**
+  Now that P1-12 makes `PENDING_APPROVAL` organizations a real, reachable
+  state (self-registration) instead of a theoretical enum value, nothing
+  stops a not-yet-approved (or suspended/deactivated) organization's admin
+  from calling shipments/requests/appointments/inventory endpoints
+  directly — those services only ever check role/membership (and
+  `OrganizationGuard`, see P2-1, only checks *which* org a user belongs
+  to, not whether that org is `ACTIVE`). P1-12 only gates the dashboard's
+  own landing screen client-side, which a direct API call bypasses
+  entirely. Needs either a shared guard/interceptor checking
+  `organization.status === ACTIVE` on every org-scoped mutation, or the
+  check added at the top of each service method — the former is safer
+  (one place to get right) but touches how every org-scoped controller is
+  decorated, so it's its own task rather than folded into P1-12.
+  - Files: everywhere `OrganizationGuard`/org-scoped services live, e.g.
+    `apps/api/src/common/guards/organization.guard.ts`,
+    `apps/api/src/modules/{shipments,requests,appointments,inventory}/*.service.ts`.
 
 ---
 
@@ -691,6 +754,10 @@ blood-center-web's shipment tracking page; mobile split out to P1-19).~~ ✅
 tracking — fixed `ShipmentGateway` DI wiring, added the missing emit calls
 at all 11 status transitions plus the REST location-update path, and
 connected both dashboards via a new `useShipmentTracking` hook).~~ ✅
-Next up: **P1-12** (Admin: no organization signup flow feeds the approval
-workflow), then the rest of P1, then P2, folding in P3-1 tests as each area
-is touched.
+~~**P1-12** (no organization signup flow fed the approval workflow — added
+`POST /auth/register-organization`, `/register` pages on hospital-web and
+blood-center-web, and a pending-approval landing screen; split the deeper
+"nothing actually enforces org.status" gap out to P1-20).~~ ✅
+Next up: **P1-13** (Admin: roles/permissions management doesn't exist),
+then the rest of P1, then P2, folding in P3-1 tests as each area is
+touched.

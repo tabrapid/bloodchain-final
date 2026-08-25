@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { OrganizationType, RoleCode } from '@prisma/client';
+import { OrganizationStatus, OrganizationType, RoleCode } from '@prisma/client';
 import * as argon2 from 'argon2';
 import { createHmac, randomBytes } from 'node:crypto';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
@@ -16,6 +16,7 @@ import { PrismaService } from '../../database/prisma.service';
 import { EmailService } from '../email/email.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import { RegisterDto } from './dto/register.dto';
+import { RegisterOrganizationDto } from './dto/register-organization.dto';
 
 export interface TokenPair {
   accessToken: string;
@@ -120,6 +121,99 @@ export class AuthService {
     }
 
     return { data: user };
+  }
+
+  async registerOrganization(input: RegisterOrganizationDto, ipAddress?: string) {
+    const email = input.adminEmail.toLowerCase().trim();
+    const existing = await this.db.user.findUnique({ where: { email } });
+    if (existing) {
+      throw new BadRequestException('Email is already registered.');
+    }
+
+    const adminRoleCode =
+      input.organizationType === OrganizationType.HOSPITAL
+        ? RoleCode.HOSPITAL_ADMIN
+        : RoleCode.BLOOD_CENTER_ADMIN;
+    const adminRole = await this.db.role.findUnique({ where: { code: adminRoleCode } });
+    if (!adminRole) {
+      throw new NotFoundException(`${adminRoleCode} role not found. Run seed script.`);
+    }
+
+    const { user, organization } = await this.db.$transaction(async (tx) => {
+      const organization = await tx.organization.create({
+        data: {
+          type: input.organizationType,
+          name: input.organizationName.trim(),
+          legalName: input.legalName?.trim(),
+          email: input.organizationEmail?.toLowerCase().trim(),
+          phone: input.organizationPhone?.trim(),
+          address: input.address?.trim(),
+          latitude: input.latitude,
+          longitude: input.longitude,
+          status: OrganizationStatus.PENDING_APPROVAL,
+          ...(input.organizationType === OrganizationType.HOSPITAL
+            ? { hospital: { create: {} } }
+            : { bloodCenter: { create: {} } }),
+        },
+      });
+
+      const newUser = await tx.user.create({
+        data: {
+          email,
+          passwordHash: await argon2.hash(input.adminPassword),
+          firstName: input.adminFirstName.trim(),
+          lastName: input.adminLastName.trim(),
+          phone: input.adminPhone?.trim(),
+          status: 'PENDING_VERIFICATION',
+          emailVerified: false,
+        },
+        select: {
+          id: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+          status: true,
+        },
+      });
+
+      await tx.organizationMembership.create({
+        data: {
+          userId: newUser.id,
+          organizationId: organization.id,
+          roleId: adminRole.id,
+          status: 'ACTIVE',
+        },
+      });
+
+      return { user: newUser, organization };
+    });
+
+    await this.audit.log({
+      actorId: user.id,
+      action: 'ORGANIZATION_REGISTERED',
+      entityType: 'Organization',
+      entityId: organization.id,
+      organizationId: organization.id,
+      metadata: { organizationType: organization.type, organizationName: organization.name },
+      ipAddress,
+    });
+
+    try {
+      const rawToken = await this.createEmailVerificationToken(user.id);
+      const { verifyUrl, deepLink } = this.buildVerificationLinks(rawToken);
+      await this.email.sendVerificationEmail(user.email, user.firstName, verifyUrl, deepLink);
+    } catch (error) {
+      this.logger.error(
+        `Failed to send verification email to ${user.email}: ${(error as Error).message}`,
+      );
+    }
+
+    return {
+      data: {
+        user,
+        organization: { id: organization.id, name: organization.name, status: organization.status },
+      },
+    };
   }
 
   async verifyEmail(token: string, ipAddress?: string) {
@@ -427,7 +521,10 @@ export class AuthService {
       include: {
         memberships: {
           where: { status: 'ACTIVE' },
-          include: { role: true, organization: { select: { id: true, name: true, type: true } } },
+          include: {
+            role: true,
+            organization: { select: { id: true, name: true, type: true, status: true } },
+          },
         },
         donorProfile: true,
       },
@@ -459,6 +556,7 @@ export class AuthService {
           type: m.organization.type,
           role: m.role.code,
           status: m.status,
+          organizationStatus: m.organization.status,
         })),
         donorProfile: user.donorProfile
           ? {

@@ -11,6 +11,7 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 import { LoginDto } from './dto/login.dto';
 import { RefreshDto } from './dto/refresh.dto';
 import { RegisterDto } from './dto/register.dto';
+import { RegisterOrganizationDto } from './dto/register-organization.dto';
 import { ResendVerificationDto } from './dto/resend-verification.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
 
@@ -28,6 +29,17 @@ export class AuthController {
   @ApiResponse({ status: 400, description: 'Validation error' })
   register(@Body() dto: RegisterDto, @Req() req: Request) {
     return this.auth.register(dto, this.getIp(req));
+  }
+
+  @Post('register-organization')
+  @Public()
+  @HttpCode(HttpStatus.CREATED)
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @ApiOperation({ summary: 'Register a new hospital or blood center, pending admin approval' })
+  @ApiResponse({ status: 201, description: 'Organization and admin account created, pending approval' })
+  @ApiResponse({ status: 400, description: 'Validation error' })
+  registerOrganization(@Body() dto: RegisterOrganizationDto, @Req() req: Request) {
+    return this.auth.registerOrganization(dto, this.getIp(req));
   }
 
   @Post('verify-email')
