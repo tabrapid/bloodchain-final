@@ -20,7 +20,7 @@ export default function Register() {
     setServerError(null);
     try {
       await registerUser.mutateAsync(data);
-      router.replace('/(auth)/login');
+      router.replace({ pathname: '/(auth)/check-email', params: { email: data.email } });
     } catch (err: unknown) {
       setServerError(getAuthErrorMessage(err));
     }

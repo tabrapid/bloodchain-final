@@ -22,6 +22,14 @@ export const envValidationSchema = Joi.object({
     }, 'comma-separated list of URIs')
     .default('http://localhost:3000'),
   API_URL: Joi.string().uri().default('http://localhost:3001'),
+  MOBILE_DEEP_LINK: Joi.string().default('donor://'),
   THROTTLER_TTL: Joi.number().default(60),
   THROTTLER_LIMIT: Joi.number().default(100),
+  SMTP_HOST: Joi.string().optional(),
+  SMTP_PORT: Joi.number().port().default(587),
+  SMTP_SECURE: Joi.boolean().default(false),
+  SMTP_USER: Joi.string().optional(),
+  SMTP_PASSWORD: Joi.string().optional(),
+  SMTP_FROM: Joi.string().default('DONOR <no-reply@donor.local>'),
+  EMAIL_VERIFICATION_TTL_HOURS: Joi.number().default(24),
 });

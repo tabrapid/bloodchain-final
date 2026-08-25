@@ -13,6 +13,7 @@ export default function Login() {
   const login = useLogin();
   const setLoading = useAuthStore((s) => s.setLoading);
   const [serverError, setServerError] = useState<string | null>(null);
+  const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
   const { control, handleSubmit, formState } = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: '', password: '' },
@@ -20,12 +21,17 @@ export default function Login() {
 
   const onSubmit = handleSubmit(async (data) => {
     setServerError(null);
+    setUnverifiedEmail(null);
     setLoading(true);
     try {
       await login.mutateAsync(data);
       router.replace('/(app)/home');
     } catch (err: unknown) {
-      setServerError(getAuthErrorMessage(err));
+      const message = getAuthErrorMessage(err);
+      setServerError(message);
+      if (message.toLowerCase().includes('verify your email')) {
+        setUnverifiedEmail(data.email);
+      }
       setLoading(false);
     }
   });
@@ -84,6 +90,18 @@ export default function Login() {
         <AppButton onPress={onSubmit} disabled={login.isPending || formState.isSubmitting}>
           {login.isPending ? 'Signing in...' : 'Sign in'}
         </AppButton>
+
+        {unverifiedEmail && (
+          <AppButton
+            variant="ghost"
+            style={{ marginTop: spacing.md }}
+            onPress={() =>
+              router.push({ pathname: '/(auth)/check-email', params: { email: unverifiedEmail } })
+            }
+          >
+            Resend verification email
+          </AppButton>
+        )}
       </View>
     </Screen>
   );

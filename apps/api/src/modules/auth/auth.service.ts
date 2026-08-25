@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -12,6 +13,7 @@ import * as argon2 from 'argon2';
 import { createHmac, randomBytes } from 'node:crypto';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { PrismaService } from '../../database/prisma.service';
+import { EmailService } from '../email/email.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import { RegisterDto } from './dto/register.dto';
 
@@ -22,12 +24,15 @@ export interface TokenPair {
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly db: PrismaService,
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
     private readonly audit: AuditLogsService,
     private readonly permissions: PermissionsService,
+    private readonly email: EmailService,
   ) {}
 
   async register(input: RegisterDto, ipAddress?: string) {
@@ -102,7 +107,97 @@ export class AuthService {
       ipAddress,
     });
 
+    try {
+      const rawToken = await this.createEmailVerificationToken(user.id);
+      const { verifyUrl, deepLink } = this.buildVerificationLinks(rawToken);
+      await this.email.sendVerificationEmail(user.email, user.firstName, verifyUrl, deepLink);
+    } catch (error) {
+      // Registration must still succeed even if the verification email fails
+      // to send — the user can always request a new one via resend-verification.
+      this.logger.error(
+        `Failed to send verification email to ${user.email}: ${(error as Error).message}`,
+      );
+    }
+
     return { data: user };
+  }
+
+  async verifyEmail(token: string, ipAddress?: string) {
+    const record = await this.db.emailVerificationToken.findUnique({
+      where: { token },
+      include: { user: true },
+    });
+
+    if (!record) {
+      throw new BadRequestException('Invalid or expired verification link.');
+    }
+
+    if (record.usedAt) {
+      // Idempotent: a link that was already consumed (e.g. an email client's
+      // link-scanner pre-fetching it) still succeeds for the real user as
+      // long as the account ended up verified.
+      if (record.user.emailVerified) {
+        return this.buildAuthResponse(record.userId);
+      }
+      throw new BadRequestException('This verification link has already been used.');
+    }
+
+    if (record.expiresAt < new Date()) {
+      throw new BadRequestException('This verification link has expired. Request a new one.');
+    }
+
+    const nextStatus = record.user.status === 'PENDING_VERIFICATION' ? 'ACTIVE' : record.user.status;
+
+    await this.db.$transaction([
+      this.db.user.update({
+        where: { id: record.userId },
+        data: { emailVerified: true, status: nextStatus },
+      }),
+      this.db.emailVerificationToken.update({
+        where: { userId: record.userId },
+        data: { usedAt: new Date() },
+      }),
+    ]);
+
+    await this.audit.log({
+      actorId: record.userId,
+      action: 'EMAIL_VERIFIED',
+      entityType: 'User',
+      entityId: record.userId,
+      ipAddress,
+    });
+
+    return this.buildAuthResponse(record.userId);
+  }
+
+  async resendVerification(email: string, ipAddress?: string) {
+    const normalized = email.toLowerCase().trim();
+    const user = await this.db.user.findUnique({ where: { email: normalized } });
+
+    // Do not reveal whether an account exists for this email.
+    if (!user || user.emailVerified) {
+      return { data: { success: true } };
+    }
+
+    try {
+      const rawToken = await this.createEmailVerificationToken(user.id);
+      const { verifyUrl, deepLink } = this.buildVerificationLinks(rawToken);
+      await this.email.sendVerificationEmail(user.email, user.firstName, verifyUrl, deepLink);
+    } catch (error) {
+      this.logger.error(
+        `Failed to resend verification email to ${user.email}: ${(error as Error).message}`,
+      );
+    }
+
+    await this.audit.log({
+      actorId: user.id,
+      action: 'EMAIL_VERIFICATION_RESENT',
+      entityType: 'User',
+      entityId: user.id,
+      ipAddress,
+    });
+
+    return { data: { success: true } };
   }
 
   async login(email: string, password: string, ipAddress?: string) {
@@ -489,6 +584,65 @@ export class AuthService {
     });
 
     return { data: { success: true } };
+  }
+
+  private async createEmailVerificationToken(userId: string): Promise<string> {
+    const rawToken = randomBytes(32).toString('hex');
+    const ttlHours = this.config.get<number>('EMAIL_VERIFICATION_TTL_HOURS', 24);
+    const expiresAt = new Date(Date.now() + ttlHours * 60 * 60 * 1000);
+
+    await this.db.emailVerificationToken.upsert({
+      where: { userId },
+      create: { userId, token: rawToken, expiresAt },
+      update: { token: rawToken, expiresAt, usedAt: null },
+    });
+
+    return rawToken;
+  }
+
+  private buildVerificationLinks(token: string): { verifyUrl: string; deepLink: string } {
+    const apiUrl = this.config.get<string>('API_URL', 'http://localhost:3001');
+    const deepLinkBase = this.config.get<string>('MOBILE_DEEP_LINK', 'donor://');
+    return {
+      verifyUrl: `${apiUrl}/api/v1/auth/verify-email?token=${token}`,
+      deepLink: `${deepLinkBase}verify-email?token=${token}`,
+    };
+  }
+
+  private async buildAuthResponse(userId: string) {
+    const user = await this.db.user.findUnique({
+      where: { id: userId },
+      include: { memberships: { where: { status: 'ACTIVE' }, include: { role: true } } },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found.');
+    }
+
+    const roles = user.memberships.map((m) => m.role.code) as RoleCode[];
+    const permissions = await this.permissions.getUserPermissions(user.id);
+    const tokens = await this.createTokenPair(user.id, roles, permissions);
+
+    await this.db.user.update({
+      where: { id: user.id },
+      data: { lastLoginAt: new Date() },
+    });
+
+    return {
+      data: {
+        ...tokens,
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          displayName: user.displayName,
+          status: user.status,
+          roles,
+          permissions,
+        },
+      },
+    };
   }
 
   private async createTokenPair(

@@ -14,7 +14,13 @@ Legend: 🔴 P0 blocker · 🟠 P1 major gap · 🟡 P2 correctness/safety · �
 
 These make the product unusable or unsafe for real users. Fix first, in order.
 
-- [ ] **P0-1. Registration → login deadlock (nobody can sign up).**
+- [x] **P0-1. Registration → login deadlock (nobody can sign up).** — Fixed: added
+  `EmailService` (nodemailer, SMTP-configurable, dev-mode log fallback),
+  `POST/GET /auth/verify-email` + `POST /auth/resend-verification`, wired
+  `register()` to send a verification email (deep link + browser link),
+  auto-login on successful verification. Mobile: added `check-email.tsx`
+  (post-register) and `verify-email.tsx` (deep-link handler) screens, and a
+  "Resend verification email" link on the login error state.
   `auth.service.ts` creates every new user as `PENDING_VERIFICATION` /
   `emailVerified:false`, but `login()` refuses to authenticate anyone in
   that state, and **no email-verification endpoint exists anywhere** in the
