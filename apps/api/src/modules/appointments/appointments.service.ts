@@ -11,6 +11,7 @@ import { PrismaService } from '../../database/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { CreateAppointmentDto, CancelAppointmentDto, RescheduleAppointmentDto, GetMyAppointmentsDto } from './dto/appointment.dto';
 import { APPOINTMENT_COMPLETED_EVENT } from '../gamification/events/gamification-event.handler';
+import { assertOrganizationActive } from '../../common/utils/organization-status.util';
 
 @Injectable()
 export class AppointmentsService {
@@ -55,6 +56,8 @@ export class AppointmentsService {
     if (!slot) {
       throw new NotFoundException('Appointment slot not found.');
     }
+
+    assertOrganizationActive(slot.organization);
 
     if (slot.status !== SlotStatus.AVAILABLE) {
       throw new ConflictException('This slot is no longer available.');
@@ -588,15 +591,17 @@ export class AppointmentsService {
       throw new NotFoundException('User not found.');
     }
 
-    const isStaff = user.memberships.some(
+    const membership = user.memberships.find(
       (m) =>
         m.organization.id === appointment.organizationId &&
         ['HOSPITAL_ADMIN', 'HOSPITAL_STAFF', 'BLOOD_CENTER_ADMIN', 'BLOOD_CENTER_STAFF'].includes(m.role.code),
     );
 
-    if (!isStaff) {
+    if (!membership) {
       throw new ForbiddenException('Only staff can confirm appointments.');
     }
+
+    assertOrganizationActive(membership.organization);
 
     if (appointment.status !== AppointmentStatus.PENDING) {
       throw new BadRequestException('Only pending appointments can be confirmed.');
@@ -646,15 +651,17 @@ export class AppointmentsService {
       throw new NotFoundException('User not found.');
     }
 
-    const isStaff = user.memberships.some(
+    const membership = user.memberships.find(
       (m) =>
         m.organization.id === appointment.organizationId &&
         ['HOSPITAL_ADMIN', 'HOSPITAL_STAFF', 'BLOOD_CENTER_ADMIN', 'BLOOD_CENTER_STAFF'].includes(m.role.code),
     );
 
-    if (!isStaff) {
+    if (!membership) {
       throw new ForbiddenException('Only staff can complete appointments.');
     }
+
+    assertOrganizationActive(membership.organization);
 
     if (appointment.status !== AppointmentStatus.CONFIRMED) {
       throw new BadRequestException('Only confirmed appointments can be completed.');

@@ -1,7 +1,14 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ForbiddenException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { DonorStatus, EmergencyResponseStatus, EmergencyStatus, RoleCode } from '@prisma/client';
+import {
+  DonorStatus,
+  EmergencyResponseStatus,
+  EmergencyStatus,
+  OrganizationStatus,
+  OrganizationType,
+  RoleCode,
+} from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { EmergencyGateway } from '../../gateways/emergency.gateway';
@@ -225,4 +232,57 @@ describe('EmergencyService.createEmergency', () => {
       }),
     ).rejects.toBe(marker);
   });
+});
+
+describe('EmergencyService.checkHospitalAccess', () => {
+  let service: EmergencyService;
+  let prisma: any;
+
+  beforeEach(async () => {
+    prisma = {
+      user: { findUnique: jest.fn() },
+      organization: { findUnique: jest.fn() },
+    };
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        EmergencyService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: AuditLogsService, useValue: { log: jest.fn().mockResolvedValue({}) } },
+        { provide: EventEmitter2, useValue: { emit: jest.fn() } },
+        { provide: EmergencyGateway, useValue: {} },
+        { provide: DonationEligibilityService, useValue: {} },
+        { provide: PlatformSettingsService, useValue: { isEnabled: jest.fn().mockResolvedValue(true) } },
+      ],
+    }).compile();
+
+    service = module.get<EmergencyService>(EmergencyService);
+  });
+
+  it('allows hospital staff when the hospital is ACTIVE', async () => {
+    prisma.user.findUnique.mockResolvedValue({
+      id: 'staff-1',
+      memberships: [{ organizationId: 'org-1', status: 'ACTIVE', role: { code: RoleCode.HOSPITAL_ADMIN } }],
+    });
+    prisma.organization.findUnique.mockResolvedValue({
+      id: 'org-1',
+      type: OrganizationType.HOSPITAL,
+      status: OrganizationStatus.ACTIVE,
+    });
+
+    await expect(service.checkHospitalAccess('staff-1', 'org-1')).resolves.toBeDefined();
+  });
+
+  it.each([OrganizationStatus.PENDING_APPROVAL, OrganizationStatus.SUSPENDED, OrganizationStatus.DEACTIVATED])(
+    'rejects hospital staff from triggering an SOS when the hospital is %s',
+    async (status) => {
+      prisma.user.findUnique.mockResolvedValue({
+        id: 'staff-1',
+        memberships: [{ organizationId: 'org-1', status: 'ACTIVE', role: { code: RoleCode.HOSPITAL_ADMIN } }],
+      });
+      prisma.organization.findUnique.mockResolvedValue({ id: 'org-1', type: OrganizationType.HOSPITAL, status });
+
+      await expect(service.checkHospitalAccess('staff-1', 'org-1')).rejects.toThrow(ForbiddenException);
+    },
+  );
 });

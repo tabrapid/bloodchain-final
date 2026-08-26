@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ConflictException } from '@nestjs/common';
+import { ConflictException, ForbiddenException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { ShipmentStatus } from '@prisma/client';
+import { OrganizationStatus, OrganizationType, RoleCode, ShipmentStatus } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { LocationService } from './services/location.service';
@@ -594,6 +594,119 @@ describe('ShipmentsService status transitions', () => {
         speed: null,
         recordedAt: recordedAt.toISOString(),
       });
+    });
+  });
+});
+
+describe('ShipmentsService organization-status access checks', () => {
+  let service: ShipmentsService;
+  let prisma: any;
+
+  const makeMembership = (organizationId: string, roleCode: string) => ({
+    organizationId,
+    status: 'ACTIVE',
+    role: { code: roleCode },
+  });
+
+  beforeEach(async () => {
+    prisma = {
+      user: { findUnique: jest.fn() },
+      organization: { findUnique: jest.fn() },
+      courier: { findUnique: jest.fn() },
+    };
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        ShipmentsService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: AuditLogsService, useValue: { log: jest.fn().mockResolvedValue({}) } },
+        { provide: EventEmitter2, useValue: { emit: jest.fn() } },
+        { provide: LocationService, useValue: {} },
+        { provide: ShipmentGateway, useValue: {} },
+      ],
+    }).compile();
+
+    service = module.get<ShipmentsService>(ShipmentsService);
+  });
+
+  describe('checkHospitalAccess', () => {
+    it('allows a hospital staff member when the hospital is ACTIVE', async () => {
+      prisma.user.findUnique.mockResolvedValue({
+        id: 'user-1',
+        memberships: [makeMembership('hosp-1', RoleCode.HOSPITAL_ADMIN)],
+      });
+      prisma.organization.findUnique.mockResolvedValue({
+        id: 'hosp-1',
+        type: OrganizationType.HOSPITAL,
+        status: OrganizationStatus.ACTIVE,
+      });
+
+      await expect(service.checkHospitalAccess('user-1', 'hosp-1')).resolves.toBeDefined();
+    });
+
+    it.each([OrganizationStatus.PENDING_APPROVAL, OrganizationStatus.SUSPENDED, OrganizationStatus.DEACTIVATED])(
+      'rejects a hospital staff member when the hospital is %s',
+      async (status) => {
+        prisma.user.findUnique.mockResolvedValue({
+          id: 'user-1',
+          memberships: [makeMembership('hosp-1', RoleCode.HOSPITAL_ADMIN)],
+        });
+        prisma.organization.findUnique.mockResolvedValue({ id: 'hosp-1', type: OrganizationType.HOSPITAL, status });
+
+        await expect(service.checkHospitalAccess('user-1', 'hosp-1')).rejects.toThrow(ForbiddenException);
+      },
+    );
+  });
+
+  describe('checkBloodCenterAccess', () => {
+    it('allows blood center staff when the blood center is ACTIVE', async () => {
+      prisma.user.findUnique.mockResolvedValue({
+        id: 'user-1',
+        memberships: [makeMembership('bc-1', RoleCode.BLOOD_CENTER_STAFF)],
+      });
+      prisma.organization.findUnique.mockResolvedValue({
+        id: 'bc-1',
+        type: OrganizationType.BLOOD_CENTER,
+        status: OrganizationStatus.ACTIVE,
+      });
+
+      await expect(service.checkBloodCenterAccess('user-1', 'bc-1')).resolves.toBeDefined();
+    });
+
+    it('rejects blood center staff when the blood center is SUSPENDED', async () => {
+      prisma.user.findUnique.mockResolvedValue({
+        id: 'user-1',
+        memberships: [makeMembership('bc-1', RoleCode.BLOOD_CENTER_STAFF)],
+      });
+      prisma.organization.findUnique.mockResolvedValue({
+        id: 'bc-1',
+        type: OrganizationType.BLOOD_CENTER,
+        status: OrganizationStatus.SUSPENDED,
+      });
+
+      await expect(service.checkBloodCenterAccess('user-1', 'bc-1')).rejects.toThrow(ForbiddenException);
+    });
+  });
+
+  describe('checkCourierAccess', () => {
+    it('allows a courier whose organization is ACTIVE', async () => {
+      prisma.courier.findUnique.mockResolvedValue({
+        id: 'courier-1',
+        userId: 'user-1',
+        organization: { id: 'bc-1', status: OrganizationStatus.ACTIVE },
+      });
+
+      await expect(service.checkCourierAccess('user-1')).resolves.toBeDefined();
+    });
+
+    it('rejects a courier whose organization is no longer ACTIVE', async () => {
+      prisma.courier.findUnique.mockResolvedValue({
+        id: 'courier-1',
+        userId: 'user-1',
+        organization: { id: 'bc-1', status: OrganizationStatus.SUSPENDED },
+      });
+
+      await expect(service.checkCourierAccess('user-1')).rejects.toThrow(ForbiddenException);
     });
   });
 });

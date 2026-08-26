@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ConflictException } from '@nestjs/common';
+import { ConflictException, ForbiddenException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { AppointmentStatus, SlotStatus } from '@prisma/client';
+import { AppointmentStatus, OrganizationStatus, SlotStatus } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { APPOINTMENT_COMPLETED_EVENT } from '../gamification/events/gamification-event.handler';
@@ -17,7 +17,7 @@ function makeSlot(overrides: Record<string, any> = {}) {
     capacity: 1,
     startAt: new Date(Date.now() + 60 * 60 * 1000),
     endAt: new Date(Date.now() + 90 * 60 * 1000),
-    organization: { id: 'org-1', name: 'Test Hospital', type: 'HOSPITAL', address: '123 Main St' },
+    organization: { id: 'org-1', name: 'Test Hospital', type: 'HOSPITAL', address: '123 Main St', status: OrganizationStatus.ACTIVE },
     ...overrides,
   };
 }
@@ -151,6 +151,22 @@ describe('AppointmentsService', () => {
 
       expect(prisma.$transaction).not.toHaveBeenCalled();
     });
+
+    it.each([OrganizationStatus.PENDING_APPROVAL, OrganizationStatus.SUSPENDED, OrganizationStatus.DEACTIVATED])(
+      'rejects booking a slot hosted by a %s organization',
+      async (status) => {
+        prisma.user.findUnique.mockResolvedValue(makeDonor());
+        prisma.appointmentSlot.findUnique.mockResolvedValue(
+          makeSlot({ organization: { id: 'org-1', name: 'Test Hospital', type: 'HOSPITAL', status } }),
+        );
+
+        await expect(
+          service.bookAppointment('donor-1', { slotId: 'slot-1', appointmentType: 'BLOOD_DONATION' as any }),
+        ).rejects.toThrow(ForbiddenException);
+
+        expect(prisma.$transaction).not.toHaveBeenCalled();
+      },
+    );
   });
 
   describe('rescheduleAppointment', () => {
@@ -227,7 +243,7 @@ describe('AppointmentsService', () => {
           {
             organizationId: 'org-1',
             status: 'ACTIVE',
-            organization: { id: 'org-1' },
+            organization: { id: 'org-1', status: OrganizationStatus.ACTIVE },
             role: { code: 'HOSPITAL_STAFF' },
           },
         ],
@@ -273,6 +289,80 @@ describe('AppointmentsService', () => {
 
       await expect(service.completeAppointment('apt-1', 'staff-1')).rejects.toThrow();
       expect(eventEmitter.emit).not.toHaveBeenCalled();
+    });
+
+    it('rejects staff of a no-longer-active organization from completing an appointment', async () => {
+      prisma.appointment.findUnique = jest.fn().mockResolvedValue(makeConfirmedAppointment());
+      prisma.user.findUnique.mockResolvedValue(
+        makeStaffUser({
+          memberships: [
+            {
+              organizationId: 'org-1',
+              status: 'ACTIVE',
+              organization: { id: 'org-1', status: OrganizationStatus.SUSPENDED },
+              role: { code: 'HOSPITAL_STAFF' },
+            },
+          ],
+        }),
+      );
+
+      await expect(service.completeAppointment('apt-1', 'staff-1')).rejects.toThrow(ForbiddenException);
+      expect(eventEmitter.emit).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('confirmAppointment', () => {
+    function makeStaffUser(overrides: Record<string, any> = {}) {
+      return {
+        id: 'staff-1',
+        memberships: [
+          {
+            organizationId: 'org-1',
+            status: 'ACTIVE',
+            organization: { id: 'org-1', status: OrganizationStatus.ACTIVE },
+            role: { code: 'HOSPITAL_STAFF' },
+          },
+        ],
+        ...overrides,
+      };
+    }
+
+    function makePendingAppointment(overrides: Record<string, any> = {}) {
+      return {
+        id: 'apt-1',
+        donorId: 'donor-1',
+        organizationId: 'org-1',
+        status: AppointmentStatus.PENDING,
+        ...overrides,
+      };
+    }
+
+    it('confirms a pending appointment for active staff', async () => {
+      prisma.appointment.findUnique = jest.fn().mockResolvedValue(makePendingAppointment());
+      prisma.appointment.update = jest.fn().mockResolvedValue({ id: 'apt-1', status: AppointmentStatus.CONFIRMED });
+      prisma.user.findUnique.mockResolvedValue(makeStaffUser());
+
+      const result = await service.confirmAppointment('apt-1', 'staff-1');
+
+      expect(result.data.status).toBe(AppointmentStatus.CONFIRMED);
+    });
+
+    it('rejects staff of a no-longer-active organization from confirming an appointment', async () => {
+      prisma.appointment.findUnique = jest.fn().mockResolvedValue(makePendingAppointment());
+      prisma.user.findUnique.mockResolvedValue(
+        makeStaffUser({
+          memberships: [
+            {
+              organizationId: 'org-1',
+              status: 'ACTIVE',
+              organization: { id: 'org-1', status: OrganizationStatus.PENDING_APPROVAL },
+              role: { code: 'HOSPITAL_STAFF' },
+            },
+          ],
+        }),
+      );
+
+      await expect(service.confirmAppointment('apt-1', 'staff-1')).rejects.toThrow(ForbiddenException);
     });
   });
 });

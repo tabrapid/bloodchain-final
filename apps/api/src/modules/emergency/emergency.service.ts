@@ -26,6 +26,7 @@ import {
 } from '../gamification/events/gamification-event.handler';
 import { DonationEligibilityService } from '../donation-eligibility/donation-eligibility.service';
 import { PlatformSettingsService } from '../platform-settings/platform-settings.service';
+import { assertOrganizationActive } from '../../common/utils/organization-status.util';
 
 const SOS_REQUEST_CREATED_EVENT = 'sos.request.created';
 const SOS_DONOR_ACCEPTED_EVENT = 'sos.donor.accepted';
@@ -106,6 +107,7 @@ export class EmergencyService {
     if (!org || org.type !== OrganizationType.HOSPITAL) {
       throw new ForbiddenException('Only hospitals can perform this action.');
     }
+    assertOrganizationActive(org);
     const hasPermission = user.memberships.some(
       (m: { role: { code: string } }) =>
         ['HOSPITAL_ADMIN', 'HOSPITAL_STAFF', 'SUPER_ADMIN'].includes(m.role.code),

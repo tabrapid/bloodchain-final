@@ -19,6 +19,7 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
+import { assertOrganizationActive } from '../../common/utils/organization-status.util';
 import {
   AdjustUnitDto,
   CreateLocationDto,
@@ -679,12 +680,14 @@ export class InventoryService {
   ) {
     const reservation = await this.db.bloodUnitReservation.findFirst({
       where: { id: reservationId, organizationId, status: ReservationStatus.ACTIVE },
-      include: { bloodUnit: true },
+      include: { bloodUnit: true, organization: true },
     });
 
     if (!reservation) {
       throw new NotFoundException('Active reservation not found.');
     }
+
+    assertOrganizationActive(reservation.organization);
 
     const result = await this.db.$transaction(async (tx) => {
       const updated = await tx.bloodUnit.update({
@@ -1043,7 +1046,7 @@ export class InventoryService {
       include: {
         memberships: {
           where: { status: 'ACTIVE' },
-          include: { role: true },
+          include: { role: true, organization: true },
         },
       },
     });
@@ -1063,17 +1066,27 @@ export class InventoryService {
       throw new ForbiddenException('You do not have permission to access inventory.');
     }
 
+    // Super admins manage organizations regardless of status; staff of the
+    // organization itself are blocked once it's no longer ACTIVE.
+    if (!isSuperAdmin) {
+      const membership = user.memberships.find((m) => m.organizationId === organizationId);
+      assertOrganizationActive(membership?.organization);
+    }
+
     return user;
   }
 
   private async getAuthorizedUnit(unitId: string, organizationId: string) {
     const unit = await this.db.bloodUnit.findFirst({
       where: { id: unitId, organizationId },
+      include: { organization: true },
     });
 
     if (!unit) {
       throw new NotFoundException('Blood unit not found.');
     }
+
+    assertOrganizationActive(unit.organization);
 
     return unit;
   }

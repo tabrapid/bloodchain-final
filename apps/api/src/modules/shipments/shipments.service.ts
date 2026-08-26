@@ -24,6 +24,7 @@ import { Courier, Organization, User } from '@prisma/client';
 import { LocationService } from './services/location.service';
 import { ShipmentStateMachine } from './services/shipment-state.service';
 import { ShipmentGateway } from '../../gateways/shipment.gateway';
+import { assertOrganizationActive } from '../../common/utils/organization-status.util';
 
 const SHIPMENT_EVENT = 'shipment.event';
 
@@ -85,6 +86,7 @@ export class ShipmentsService {
     if (!org || org.type !== OrganizationType.BLOOD_CENTER) {
       throw new ForbiddenException('Only blood centers can perform this action.');
     }
+    assertOrganizationActive(org);
     const hasPermission = user.memberships.some(
       (m: { role: { code: string } }) =>
         ['BLOOD_CENTER_ADMIN', 'BLOOD_CENTER_STAFF', 'SUPER_ADMIN'].includes(m.role.code),
@@ -101,6 +103,7 @@ export class ShipmentsService {
     if (!org || org.type !== OrganizationType.HOSPITAL) {
       throw new ForbiddenException('Only hospitals can perform this action.');
     }
+    assertOrganizationActive(org);
     const hasPermission = user.memberships.some(
       (m: { role: { code: string } }) =>
         ['HOSPITAL_ADMIN', 'HOSPITAL_STAFF', 'SUPER_ADMIN'].includes(m.role.code),
@@ -119,6 +122,7 @@ export class ShipmentsService {
     if (!courier) {
       throw new ForbiddenException('Courier profile not found.');
     }
+    assertOrganizationActive(courier.organization);
     return courier;
   }
 

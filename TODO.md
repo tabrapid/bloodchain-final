@@ -980,23 +980,73 @@ These make the product unusable or unsafe for real users. Fix first, in order.
     `apps/mobile/src/api/emergency.ts`, `apps/mobile/app/sos.tsx`,
     `apps/mobile/app/(courier)/active.tsx`.
 
-- [ ] **P1-20. `organization.status` is never checked outside admin/auth (split out of P1-12).**
-  Now that P1-12 makes `PENDING_APPROVAL` organizations a real, reachable
-  state (self-registration) instead of a theoretical enum value, nothing
-  stops a not-yet-approved (or suspended/deactivated) organization's admin
-  from calling shipments/requests/appointments/inventory endpoints
-  directly — those services only ever check role/membership (and
-  `OrganizationGuard`, see P2-1, only checks *which* org a user belongs
-  to, not whether that org is `ACTIVE`). P1-12 only gates the dashboard's
-  own landing screen client-side, which a direct API call bypasses
-  entirely. Needs either a shared guard/interceptor checking
-  `organization.status === ACTIVE` on every org-scoped mutation, or the
-  check added at the top of each service method — the former is safer
-  (one place to get right) but touches how every org-scoped controller is
-  decorated, so it's its own task rather than folded into P1-12.
-  - Files: everywhere `OrganizationGuard`/org-scoped services live, e.g.
-    `apps/api/src/common/guards/organization.guard.ts`,
-    `apps/api/src/modules/{shipments,requests,appointments,inventory}/*.service.ts`.
+- [x] **P1-20. `organization.status` is never checked outside admin/auth (split out of P1-12).** — Fixed:
+  chose the "check added at each existing access-control chokepoint"
+  option over a new global guard — `OrganizationGuard` (P2-1) is written
+  but applied nowhere, and retrofitting every org-scoped controller with
+  it to gate on status too would have meant taking on P2-1's whole
+  "apply it everywhere for the first time" risk inside what should be a
+  narrowly-scoped fix. Instead added one small shared helper,
+  `assertOrganizationActive(organization)` (new
+  `apps/api/src/common/utils/organization-status.util.ts`), and called it
+  from the access-check method every org-scoped mutation this session
+  found already funnels through — no new decorators, no controller
+  changes:
+  - `shipments.service.ts` — `checkHospitalAccess`, `checkBloodCenterAccess`
+    (both gate blood-request/shipment creation and every shipment-lifecycle
+    transition), and `checkCourierAccess` (gates every courier action —
+    a courier belongs to a blood center, so a suspended blood center's
+    courier can no longer accept/progress deliveries either).
+  - `emergency.service.ts` — `checkHospitalAccess`, which gates
+    `createEmergency`/`activateEmergency` and everything else on the
+    hospital side of the SOS flow — a not-yet-approved or suspended
+    hospital can no longer trigger a real SOS emergency.
+  - `inventory.service.ts` — `getAuthorizedUser` (gates the read
+    endpoints: summary/list/unit/locations/movements/reservations/alerts)
+    and `getAuthorizedUnit` (gates every unit mutation: issue, adjust,
+    release, quarantine, discard, move, reserve) and `releaseReservation`
+    (the one mutation that doesn't go through `getAuthorizedUnit`).
+    `SUPER_ADMIN` deliberately bypasses this check in both places (matching
+    the pre-existing, separately-scoped `isSuperAdmin` bypass already in
+    `getAuthorizedUser`) — platform admins need to be able to act on a
+    suspended org to actually process it, not get locked out of it too.
+  - `appointments.service.ts` — no shared access-check helper existed here
+    (each method inlines its own membership check), so added the same
+    call at the three places that needed it: `bookAppointment` (checks the
+    slot's hosting organization — a donor can no longer book into a
+    not-yet-approved or suspended org's slot), and the staff-side
+    `confirmAppointment`/`completeAppointment`. Deliberately did **not**
+    add it to donor-initiated `cancelAppointment`/`rescheduleAppointment`
+    — a donor should still be able to extract themselves from an
+    appointment at an org that got suspended after they booked it, not get
+    stuck unable to cancel.
+  Every insertion point was chosen to be where the org-scoped access
+  control for that flow already lived, so the fix's blast radius is
+  exactly "the same set of requests that were already being
+  role/membership-checked, now also status-checked" — nothing new is
+  reachable that wasn't already gated by something.
+  Verified: 26 new tests across all four service spec files (status
+  ACTIVE/PENDING_APPROVAL/SUSPENDED/DEACTIVATED cases for every
+  access-check method touched, plus a super-admin-bypass case for
+  inventory), full suite 310/310 passing (up from 284), clean
+  `tsc --noEmit`, 0 new lint errors. Live end-to-end against the real
+  Postgres + running API: confirmed SOS activation, new-emergency
+  creation, appointment slot booking, and inventory read/issue-unit all
+  succeed normally while the organization is `ACTIVE`; flipped the
+  seeded hospital to `SUSPENDED` and the seeded blood center to
+  `PENDING_APPROVAL` via `psql` and confirmed all four were rejected with
+  a clean `403 "This organization is not active."`; confirmed the seeded
+  `SUPER_ADMIN` (who holds real memberships in both seeded orgs) could
+  still read the suspended blood center's inventory while its own staff
+  could not; restored both organizations to `ACTIVE` and confirmed every
+  endpoint worked normally again. Cleaned up all test data (the draft
+  emergency, the booked appointment and its slot's `bookedCount`, the
+  issued unit's status and movement record) afterward.
+  - Files: `apps/api/src/common/utils/organization-status.util.ts` (new),
+    `apps/api/src/modules/shipments/shipments.service.ts` (+ spec),
+    `apps/api/src/modules/emergency/emergency.service.ts` (+ spec),
+    `apps/api/src/modules/inventory/inventory.service.ts` (+ spec),
+    `apps/api/src/modules/appointments/appointments.service.ts` (+ spec).
 
 ---
 
@@ -1198,6 +1248,12 @@ native `LocationMap` mirroring P1-10's web component, wired into two
 already-existing-but-dead tracking API calls in `sos.tsx` and
 `(courier)/active.tsx`; verified via a clean Metro `expo export` for both
 platforms since no device/simulator is available in this sandbox).~~ ✅
-Next up: **P1-20** (`organization.status` never checked outside
-admin/auth), then the rest of P1, then P2, folding in P3-1 tests as each
-area is touched.
+~~**P1-20** (`organization.status` was never checked outside admin/auth —
+added a small shared `assertOrganizationActive` helper and called it from
+every org-scoped access-check chokepoint across shipments, emergency,
+inventory, and appointments, instead of taking on P2-1's broader
+apply-`OrganizationGuard`-everywhere risk inside this fix).~~ ✅
+
+**All P1 items are done.** Next up: P2, starting with **P2-1**
+(`OrganizationGuard` is written but never applied anywhere), then the
+rest of P2, folding in P3-1 tests as each area is touched.
