@@ -2448,6 +2448,63 @@ These make the product unusable or unsafe for real users. Fix first, in order.
       (new), `apps/api/src/modules/campaigns/campaigns.service.spec.ts`
       (new), `apps/api/src/modules/courier/courier.service.spec.ts`
       (new).
+  - **Fifth installment**: covered `appointment-slots` (358 lines —
+    availability search, staff-only slot CRUD, capacity/booking-count
+    guards, org-membership + role permission checks). Gets 22 new
+    tests: `getAvailability`'s AVAILABLE-and-not-full filtering plus its
+    date/date-range query construction, `getSlotsByOrganization`'s
+    staff-or-SUPER_ADMIN gate, and `createSlot`/`updateSlot`/
+    `blockSlot`'s shared permission-check chain (not-a-member →
+    wrong-role → org-not-found/inactive), `createSlot`'s
+    start-before-end and no-past-slots validation and capacity default,
+    and `updateSlot`'s "can't reduce capacity below current bookings"
+    guard. Full suite went from 567 to 589 passing (589/589 green), `tsc
+    --noEmit` clean, lint 0 errors (452 warnings, up from 434, same
+    `any`-mock pattern). Live-verifying this module's real HTTP surface
+    surfaced a serious, unrelated, already-in-production bug: **`GET
+    /api/v1/appointments/availability` — the endpoint donors use to find
+    open slots — returned `404 "Appointment not found"` on every real
+    call.** Root cause: `AppointmentsController` and
+    `AppointmentSlotsController` both declare `@Controller('appointments')`,
+    and `AppointmentsModule` was registered in `app.module.ts` *before*
+    `AppointmentSlotsModule`. NestJS/Express registers routes in
+    module-import order and resolves overlapping patterns
+    first-registered-wins, so `AppointmentsController`'s `@Get(':id')`
+    (a single-path-segment wildcard) was matching `/appointments/availability`
+    before `AppointmentSlotsController`'s literal `@Get('availability')`
+    ever got a chance — every real request for available slots was being
+    swallowed into "look up the appointment with id `availability`" and
+    404ing. This is the same root bug class as P2-16's
+    `notification-preferences` route-shadowing discovery (a more
+    specific literal route losing to an earlier-registered wildcard), and
+    it directly blocked completing this item's own live verification of
+    the very method (`getAvailability`) just covered — so, consistent
+    with the P2-16 precedent of fixing a verification-blocking discovery
+    within the same item rather than only logging it, fixed it here
+    rather than deferring: swapped the two modules' order in
+    `app.module.ts` (`AppointmentSlotsModule` now registers first).
+    `createSlot`/`updateSlot`/`blockSlot` were never affected — their
+    routes (`organizations/:organizationId/slots...`) have more path
+    segments than `:id` can match, so only the single-segment
+    `availability` route collided. Full suite re-run after the fix:
+    589/589 still green (no regressions from the reorder). Live-verified
+    the complete real flow end-to-end against the real dev DB, in this
+    order: created a real slot as `HOSPITAL_ADMIN` (confirmed initial
+    404 on `GET /appointments/availability` before the fix, then a real
+    match after), confirmed a `donor` token gets a real `403` on the
+    staff-only `GET .../slots` listing route, updated the slot's
+    capacity, blocked it and confirmed it disappeared from availability,
+    and confirmed all three real `APPOINTMENT_SLOT_CREATED`/`_UPDATED`/
+    `_BLOCKED` audit rows were written with the correct `entityId`.
+    Deleted the test-generated slot and its audit rows afterward. Only
+    **`analytics`** (896 lines) remains at zero coverage — its own
+    dedicated future installment given its size, nearly as large as
+    every other module covered across this item's five installments
+    combined.
+    - Files:
+      `apps/api/src/modules/appointment-slots/appointment-slots.service.spec.ts`
+      (new), `apps/api/src/app.module.ts` (swapped `AppointmentSlotsModule`
+      ahead of `AppointmentsModule` to fix the route-shadowing bug above).
 
 - [ ] **P3-2. No frontend tests at all** (Next.js apps or mobile) — no
   Jest/RTL/Playwright/Detox setup found.
@@ -2762,8 +2819,21 @@ overwrites a campaign's real status with the caller's own participation
 status. 2 modules remain at zero coverage: `appointment-slots`,
 `analytics` — `analytics` (896 lines) will likely need its own
 installment).~~ ✅ (partial)
-Next up: the remainder of **P3-1** (`appointment-slots` and `analytics`
-— the latter likely warranting its own installment given its size) or
-**P3-2** (no frontend tests at all), plus newly-logged **P3-8**
-(campaigns status-clobbering bug) whenever P3 hygiene work is picked up
-again.
+~~**P3-1 fifth installment** (`appointment-slots` — 22 new tests, full
+suite 589/589. Live verification surfaced and this installment fixed a
+serious production bug it happened to be blocked by: `GET
+/appointments/availability` (donor slot search) 404ing on every real
+call because `AppointmentsController` and `AppointmentSlotsController`
+share `@Controller('appointments')` and Nest's module-import-order route
+resolution let `AppointmentsController`'s `@Get(':id')` swallow the
+literal `availability` path — same root bug class as P2-16's
+notification-preferences discovery. Fixed by reordering
+`AppointmentSlotsModule` ahead of `AppointmentsModule` in
+`app.module.ts`; re-ran the full suite after (589/589, no regressions)
+and live-verified the complete real flow end-to-end, including all
+three audit rows. Only `analytics` (896 lines) remains at zero
+coverage).~~ ✅ (partial)
+Next up: **analytics** to close out the remainder of **P3-1** (896
+lines — likely its own dedicated installment given its size) or **P3-2**
+(no frontend tests at all), plus newly-logged **P3-8** (campaigns
+status-clobbering bug) whenever P3 hygiene work is picked up again.
