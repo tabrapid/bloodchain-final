@@ -46,7 +46,15 @@ export class NotificationsService {
 
     if (filter.type) where.type = filter.type;
     if (filter.priority) where.priority = filter.priority;
-    if (filter.status) where.status = filter.status;
+    if (filter.status) {
+      where.status = filter.status;
+    } else {
+      // Archiving is meant to move a notification out of the default
+      // inbox view (the only way to dismiss one whose sourceType blocks
+      // hard delete, e.g. LAB_RESULT/DONATION/APPOINTMENT) — so it stays
+      // out unless the caller explicitly asks for it via ?status=ARCHIVED.
+      where.status = { not: NotificationStatus.ARCHIVED };
+    }
     if (filter.isRead !== undefined) {
       where.readAt = filter.isRead ? { not: null } : null;
     }
@@ -116,19 +124,49 @@ export class NotificationsService {
     });
   }
 
+  async archive(id: string, userId: string) {
+    const notification = await this.findOne(id, userId);
+
+    if (notification.status !== NotificationStatus.ARCHIVED) {
+      return this.prisma.notification.update({
+        where: { id },
+        data: { status: NotificationStatus.ARCHIVED },
+      });
+    }
+
+    return notification;
+  }
+
+  async unarchive(id: string, userId: string) {
+    const notification = await this.findOne(id, userId);
+
+    if (notification.status !== NotificationStatus.ARCHIVED) {
+      return notification;
+    }
+
+    return this.prisma.notification.update({
+      where: { id },
+      data: { status: notification.readAt ? NotificationStatus.READ : NotificationStatus.SENT },
+    });
+  }
+
   async getUnreadCount(userId: string) {
     return this.prisma.notification.count({
-      where: { recipientId: userId, readAt: null },
+      where: { recipientId: userId, readAt: null, status: { not: NotificationStatus.ARCHIVED } },
     });
   }
 
   async getStats(userId: string) {
     const [total, unread, byTypeResult] = await Promise.all([
-      this.prisma.notification.count({ where: { recipientId: userId } }),
-      this.prisma.notification.count({ where: { recipientId: userId, readAt: null } }),
+      this.prisma.notification.count({
+        where: { recipientId: userId, status: { not: NotificationStatus.ARCHIVED } },
+      }),
+      this.prisma.notification.count({
+        where: { recipientId: userId, readAt: null, status: { not: NotificationStatus.ARCHIVED } },
+      }),
       this.prisma.notification.groupBy({
         by: ['type'],
-        where: { recipientId: userId },
+        where: { recipientId: userId, status: { not: NotificationStatus.ARCHIVED } },
         _count: { id: true },
       }),
     ]);

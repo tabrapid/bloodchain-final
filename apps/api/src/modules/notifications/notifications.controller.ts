@@ -77,6 +77,16 @@ export class NotificationsController {
     return this.notificationsService.markAllAsRead(userId);
   }
 
+  @Patch(':id/archive')
+  async archive(@Param('id') id: string, @CurrentUser('sub') userId: string) {
+    return this.notificationsService.archive(id, userId);
+  }
+
+  @Patch(':id/unarchive')
+  async unarchive(@Param('id') id: string, @CurrentUser('sub') userId: string) {
+    return this.notificationsService.unarchive(id, userId);
+  }
+
   @Delete(':id')
   async delete(@Param('id') id: string, @CurrentUser('sub') userId: string) {
     return this.notificationsService.delete(id, userId);

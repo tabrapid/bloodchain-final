@@ -1749,9 +1749,62 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   - Files: `apps/api/src/modules/laboratory/laboratory.service.ts`
     (+ spec).
 
-- [ ] **P2-13. Notification "archive" is unreachable** — the
+- [x] **P2-13. Notification "archive" is unreachable** — the
   `NotificationStatus.ARCHIVED` enum value exists but no service method or
-  endpoint ever sets it; only hard delete exists.
+  endpoint ever sets it; only hard delete exists. — Fixed: this was a
+  real, concrete gap, not just an unused enum value. `NotificationsService
+  .delete` already explicitly refuses to hard-delete any notification
+  whose `sourceType` is `LAB_RESULT`, `DONATION`, or `APPOINTMENT`
+  ("Cannot delete notifications linked to medical records") — and
+  confirmed live that a donor's own real `DONATION`-sourced notification
+  hits exactly that block. With no archive capability, those
+  notification types had *no way out* of a user's active inbox at all,
+  forever.
+  Added `archive`/`unarchive` service methods and matching
+  `PATCH :id/archive` / `PATCH :id/unarchive` endpoints, mirroring the
+  existing `markAsRead`/`markAsUnread` pair's shape and idempotency
+  (`archive` no-ops if already `ARCHIVED`; `unarchive` no-ops if not
+  currently `ARCHIVED`, and otherwise reverts to `READ` or `SENT`
+  depending on whether `readAt` was already set — there's no status
+  history to restore to, so this mirrors `markAsUnread`'s existing
+  "revert to SENT" convention for the read/unread pair). Made
+  `findAll` exclude `ARCHIVED` notifications by default — otherwise
+  archiving would have set a flag nothing ever looked at, since the
+  existing filter logic showed every status unless the caller asked
+  otherwise — while still showing them when the caller explicitly
+  filters `?status=ARCHIVED` (the archive should be reachable, not
+  hidden entirely). Also excluded `ARCHIVED` from `getUnreadCount` and
+  all three of `getStats`' metrics, since a badge/summary still counting
+  notifications the user explicitly archived would undermine the whole
+  point of archiving. Added the client wrapper functions
+  (`archiveNotification`/`unarchiveNotification`) to the mobile API
+  layer so the endpoints are actually callable from the app, though no
+  UI currently calls them — there's no existing archive button/swipe
+  action anywhere in the app to wire up (unlike some earlier items, this
+  wasn't reconnecting dead frontend scaffolding; the mobile-web UI
+  layer for this is new product surface outside this fix's scope).
+  Verified: 12 new tests in a new `notifications.service.spec.ts` (this
+  service had zero prior coverage) covering the default exclusion, the
+  explicit-filter-shows-it case, a real non-archive status filter still
+  works, `getUnreadCount`/`getStats` exclusion, `archive`'s idempotency
+  and ownership check, and `unarchive`'s read-vs-unread revert logic and
+  its own idempotency, full suite 394/394 passing (up from 382), clean
+  `tsc --noEmit` on both the API and mobile (160 pre-existing, unrelated
+  mobile errors, same as always), 0 new lint errors. Live end-to-end
+  against the real Postgres + running API: confirmed a real existing
+  `DONATION`-sourced notification for the seeded donor really is
+  delete-blocked (`403 Cannot delete notifications linked to medical
+  records`), archived it through the real endpoint, confirmed it
+  disappeared from the default `GET /notifications` list, `stats`
+  (1/1 → 0/0), and `unread-count` (1 → 0), reappeared under
+  `?status=ARCHIVED`, and correctly came back via unarchive with stats
+  restored to 1/1. Restored the notification's exact original state
+  (`status: PENDING`, original `updatedAt`) afterward via direct SQL
+  since it was pre-existing seed data, not something created for this
+  test.
+  - Files: `apps/api/src/modules/notifications/services/notifications.service.ts`
+    (+ new spec), `apps/api/src/modules/notifications/notifications.controller.ts`,
+    `apps/mobile/src/api/notifications.ts`.
 
 - [ ] **P2-14. Duplicate, unreachable `confirmDelivery` method** sitting
   alongside the real `confirmDeliveryFull` — dead code with an unchecked
@@ -2014,6 +2067,13 @@ slot back to `AVAILABLE` — mirrored the fix the donation-appointment
 flow already had; live-verified a real slot flip to FULL, back to
 AVAILABLE on cancel, and a real second booking succeeding on it
 afterward).~~ ✅
-Next up: **P2-13** (Notification "archive" is unreachable — the
-`ARCHIVED` enum value exists but nothing ever sets it), then the rest of
-P2, folding in P3-1 tests as each area is touched.
+~~**P2-13** (Notification "archive" was unreachable — real value, since
+`delete` already refuses to hard-delete medical-record-linked
+notifications, leaving them permanently stuck with no archive; added
+archive/unarchive endpoints, excluded ARCHIVED from the default list and
+unread counts, and wired a mobile API client; live-verified a real
+delete-blocked donation notification archiving, disappearing from
+stats/counts, and correctly unarchiving).~~ ✅
+Next up: **P2-14** (duplicate, unreachable `confirmDelivery` method
+sitting alongside the real `confirmDeliveryFull`), then the rest of P2,
+folding in P3-1 tests as each area is touched.
