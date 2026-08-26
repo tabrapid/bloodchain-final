@@ -17,6 +17,10 @@ enum UserStatus {
 enum OrganizationType {
   HOSPITAL
   BLOOD_CENTER
+  // Internal placeholder org used solely as the required OrganizationMembership
+  // FK target for donor accounts, which have no real affiliated organization.
+  // Never a real hospital/blood center — excluded from admin/discovery listings.
+  SYSTEM
 }
 
 enum OrganizationStatus {

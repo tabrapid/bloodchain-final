@@ -1503,11 +1503,63 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   - Files: `apps/api/src/modules/shipments/shipments.service.ts` (+ spec),
     `apps/mobile/app/sos.tsx`, `apps/mobile/app/(courier)/active.tsx`.
 
-- [ ] **P2-9. Donor registration fabricates a fake HOSPITAL-type org**
+- [x] **P2-9. Donor registration fabricates a fake HOSPITAL-type org**
   ("DONOR Donors") purely to satisfy a required FK — a data-model smell
-  that can confuse any org-scoped analytics/listing logic.
-  `apps/api/src/modules/auth/auth.service.ts:69-92`. (Proper fix: make
-  donor `OrganizationMembership` optional, or model donors without an org.)
+  that can confuse any org-scoped analytics/listing logic. — Fixed:
+  confirmed the impact live before fixing, and it was real, not just
+  cosmetic. Every role grant in this codebase runs through an
+  `OrganizationMembership`, and every donor got one pointing at a
+  lazily-created org typed `HOSPITAL` and named "DONOR Donors" — so this
+  fake org showed up as a real hospital everywhere organizations are
+  listed or counted by type: the admin "Manage Organizations" screen
+  (with a `staffCount` that would grow to match the total donor count),
+  the donor-facing `/organizations/discover?type=HOSPITAL` endpoint used
+  to pick a hospital when booking a donation appointment, and the plain
+  `/organizations` listing — none of these filtered it out, so a donor
+  booking an appointment could see "DONOR Donors" offered as a real
+  hospital choice.
+  Making `OrganizationMembership.organizationId` nullable (the TODO's
+  first suggested option) would have meant a schema migration plus
+  auditing every consumer of `membership.organization.*` across the
+  codebase for a now-possibly-null relation — high blast radius for a P2
+  item. Instead added a third `OrganizationType.SYSTEM` value: a
+  singleton placeholder org donor accounts point at, structurally
+  identical to before (so every existing "every role needs a membership"
+  invariant still holds), but a real, filterable type of its own — so it
+  never satisfies a `type: HOSPITAL` or `type: BLOOD_CENTER` check
+  anywhere in the codebase without any of those call sites needing to
+  change. Also dropped the empty `hospital: { create: {} }` scaffolding
+  row this fake org used to create (it was never a real hospital, so
+  nothing should ever have modeled it as one). Additionally hardened the
+  three listing/search paths that had no type filter at all by default
+  (so a `SYSTEM` org would otherwise still leak through unfiltered) to
+  always exclude `SYSTEM`, including against an explicit
+  `?type=SYSTEM` override: `OrganizationsService.findMany` /
+  `.getActiveOrganizations` (the admin listing and donor discovery
+  endpoints) and `AdminService.listOrganizations` / its global search.
+  Verified: 11 new tests (2 in `auth.service.spec.ts` confirming the
+  `SYSTEM` org is looked up/created correctly and never duplicated on a
+  second registration; a new `organizations.service.spec.ts` — this
+  module previously had zero test coverage — with 6 tests covering the
+  default exclusion, the explicit-override-is-ignored case, and that a
+  real type filter still works, for both listing methods; 3 more of the
+  same shape for `AdminService.listOrganizations`), full suite 353/353
+  passing (up from 342), clean `tsc --noEmit`, 0 new lint warnings. Live
+  end-to-end against the real Postgres + running API: registered a real
+  new donor through the real `POST /auth/register` endpoint and confirmed
+  in the database that its membership org was created as
+  `type: SYSTEM, name: 'Donor Accounts (System)'` rather than a fake
+  `HOSPITAL`; then confirmed as a real super-admin that it was invisible
+  in `GET /organizations` (2 real orgs, not 3), `GET
+  /organizations/discover?type=HOSPITAL` (1 real hospital, not 2), `GET
+  /admin/organizations` (both real orgs shown with correct, un-inflated
+  `staffCount`s), and that the admin dashboard's hospital count stayed at
+  the correct `1` instead of being inflated. Cleaned up the test donor
+  account and the `SYSTEM` org it created afterward.
+  - Files: `apps/api/prisma/schema.prisma` (+ migration),
+    `apps/api/src/modules/auth/auth.service.ts` (+ spec),
+    `apps/api/src/modules/organizations/organizations.service.ts` (+ new
+    spec), `apps/api/src/modules/admin/admin.service.ts` (+ spec).
 
 - [ ] **P2-10. AI safety filtering is naive hardcoded regex** — trivially
   bypassed by rephrasing; the "no fabricated diagnosis" guarantee rests
@@ -1765,6 +1817,13 @@ an honest fallback note when it isn't available yet), replaced the
 placeholder with a real blood-unit summary, and fixed an adjacent m/s vs.
 km/h unit-mismatch bug in the mobile speed-reporting code; live-verified
 a real "1 B+, 1 A+" summary and a correctly speed-derived ETA).~~ ✅
-Next up: **P2-9** (donor registration fabricates a fake HOSPITAL-type org
-— "DONOR Donors" — purely to satisfy a required FK), then the rest of
-P2, folding in P3-1 tests as each area is touched.
+~~**P2-9** (donor registration fabricated a fake `HOSPITAL`-type org
+— "DONOR Donors" — purely to satisfy a required FK, and it really did
+leak into admin/discovery listings as a bogus hospital — added a proper
+`OrganizationType.SYSTEM` placeholder type instead, and hardened the
+listing/search paths that had no default type filter; live-verified it
+no longer appears in `GET /organizations`, `/organizations/discover`, or
+the admin org list).~~ ✅
+Next up: **P2-10** (AI safety filtering is naive hardcoded regex,
+trivially bypassed by rephrasing), then the rest of P2, folding in P3-1
+tests as each area is touched.

@@ -15,9 +15,11 @@ export class OrganizationsService {
       status?: OrganizationStatus;
     },
   ) {
-    const where: Prisma.OrganizationWhereInput = {};
+    // SYSTEM is an internal placeholder org (donor accounts' required FK
+    // target) and is never a real, listable organization.
+    const where: Prisma.OrganizationWhereInput = { type: { not: OrganizationType.SYSTEM } };
 
-    if (filters?.type) {
+    if (filters?.type && filters.type !== OrganizationType.SYSTEM) {
       where.type = filters.type;
     }
 
@@ -83,9 +85,10 @@ export class OrganizationsService {
   ) {
     const where: Prisma.OrganizationWhereInput = {
       status: OrganizationStatus.ACTIVE,
+      type: { not: OrganizationType.SYSTEM },
     };
 
-    if (filters?.type) {
+    if (filters?.type && filters.type !== OrganizationType.SYSTEM) {
       where.type = filters.type;
     }
 

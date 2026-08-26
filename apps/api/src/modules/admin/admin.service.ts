@@ -447,8 +447,10 @@ export class AdminService {
   }): Promise<PaginatedResult<any>> {
     const { page, limit, type, status, search } = input;
 
-    const where: Prisma.OrganizationWhereInput = {};
-    if (type) where.type = type;
+    // SYSTEM is an internal placeholder org (donor accounts' required FK
+    // target), not a real organization to manage — exclude it here.
+    const where: Prisma.OrganizationWhereInput = { type: { not: OrganizationType.SYSTEM } };
+    if (type && type !== OrganizationType.SYSTEM) where.type = type;
     if (status) where.status = status;
     if (search) {
       where.OR = [
@@ -804,6 +806,7 @@ export class AdminService {
     if (!type || type === 'organizations') {
       const orgs = await this.db.organization.findMany({
         where: {
+          type: { not: OrganizationType.SYSTEM },
           OR: [
             { name: { contains: searchQuery, mode: 'insensitive' } },
             { email: { contains: searchQuery, mode: 'insensitive' } },

@@ -152,6 +152,81 @@ describe('AuthService', () => {
     expect(result.data.email).toBe('test@donor.local');
   });
 
+  it('creates a SYSTEM-type placeholder org for a donor, never a fake HOSPITAL', async () => {
+    prisma.user.findUnique.mockResolvedValue(null);
+    prisma.role.findUnique.mockResolvedValue({ id: 'r1', code: RoleCode.DONOR });
+    const findFirst = jest.fn().mockResolvedValue(null);
+    const orgCreate = jest.fn().mockResolvedValue({ id: 'sys-org', type: 'SYSTEM' });
+    prisma.$transaction.mockImplementation(async (callback) => {
+      const tx = {
+        user: {
+          create: jest.fn().mockResolvedValue({
+            id: 'u1',
+            email: 'test@donor.local',
+            firstName: 'Test',
+            lastName: 'User',
+            status: 'PENDING_VERIFICATION',
+          }),
+        },
+        donorProfile: { create: jest.fn().mockResolvedValue({}) },
+        organization: { findFirst, create: orgCreate },
+        organizationMembership: { create: jest.fn().mockResolvedValue({}) },
+      };
+      return callback(tx);
+    });
+
+    await service.register({
+      email: 'test@donor.local',
+      password: 'SecurePassword123!',
+      firstName: 'Test',
+      lastName: 'User',
+    });
+
+    expect(findFirst).toHaveBeenCalledWith({ where: { type: 'SYSTEM' } });
+    expect(orgCreate).toHaveBeenCalledWith({
+      data: {
+        type: 'SYSTEM',
+        name: 'Donor Accounts (System)',
+        status: 'ACTIVE',
+      },
+    });
+  });
+
+  it('reuses an existing SYSTEM org instead of creating a duplicate', async () => {
+    prisma.user.findUnique.mockResolvedValue(null);
+    prisma.role.findUnique.mockResolvedValue({ id: 'r1', code: RoleCode.DONOR });
+    const orgCreate = jest.fn();
+    prisma.$transaction.mockImplementation(async (callback) => {
+      const tx = {
+        user: {
+          create: jest.fn().mockResolvedValue({
+            id: 'u1',
+            email: 'test2@donor.local',
+            firstName: 'Test',
+            lastName: 'User',
+            status: 'PENDING_VERIFICATION',
+          }),
+        },
+        donorProfile: { create: jest.fn().mockResolvedValue({}) },
+        organization: {
+          findFirst: jest.fn().mockResolvedValue({ id: 'sys-org', type: 'SYSTEM' }),
+          create: orgCreate,
+        },
+        organizationMembership: { create: jest.fn().mockResolvedValue({}) },
+      };
+      return callback(tx);
+    });
+
+    await service.register({
+      email: 'test2@donor.local',
+      password: 'SecurePassword123!',
+      firstName: 'Test',
+      lastName: 'User',
+    });
+
+    expect(orgCreate).not.toHaveBeenCalled();
+  });
+
   it('rejects registration with existing email', async () => {
     prisma.user.findUnique.mockResolvedValue({ id: 'existing', email: 'test@donor.local' });
 

@@ -74,18 +74,20 @@ export class AuthService {
         data: { userId: newUser.id },
       });
 
-      // Assign the DONOR role. If a dedicated donor organization exists, use it;
-      // otherwise create a fallback organization so the user has active permissions.
+      // Every role grant runs through an OrganizationMembership, so donors —
+      // who have no real affiliated hospital/blood center — need somewhere
+      // to point that required FK. Use a singleton SYSTEM-type org rather
+      // than a fake HOSPITAL, so donor accounts never show up as a bogus
+      // "hospital" in admin/discovery listings that filter or count by type.
       let donorOrg = await tx.organization.findFirst({
-        where: { name: 'DONOR Donors', status: 'ACTIVE' },
+        where: { type: OrganizationType.SYSTEM },
       });
       if (!donorOrg) {
         donorOrg = await tx.organization.create({
           data: {
-            type: OrganizationType.HOSPITAL,
-            name: 'DONOR Donors',
+            type: OrganizationType.SYSTEM,
+            name: 'Donor Accounts (System)',
             status: 'ACTIVE',
-            hospital: { create: {} },
           },
         });
       }

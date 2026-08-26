@@ -404,3 +404,50 @@ describe('AdminService — content moderation', () => {
     });
   });
 });
+
+describe('AdminService — organizations', () => {
+  let service: AdminService;
+  let prisma: { organization: { count: jest.Mock; findMany: jest.Mock } };
+
+  beforeEach(async () => {
+    prisma = {
+      organization: {
+        count: jest.fn().mockResolvedValue(0),
+        findMany: jest.fn().mockResolvedValue([]),
+      },
+    };
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [AdminService, { provide: PrismaService, useValue: prisma }],
+    }).compile();
+
+    service = module.get<AdminService>(AdminService);
+  });
+
+  describe('listOrganizations', () => {
+    it('always excludes the internal SYSTEM placeholder org', async () => {
+      await service.listOrganizations({ page: 1, limit: 20 });
+
+      expect(prisma.organization.count).toHaveBeenCalledWith({
+        where: { type: { not: 'SYSTEM' } },
+      });
+      expect(prisma.organization.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { type: { not: 'SYSTEM' } } }),
+      );
+    });
+
+    it('ignores an explicit request to filter by SYSTEM type', async () => {
+      await service.listOrganizations({ page: 1, limit: 20, type: 'SYSTEM' as never });
+
+      expect(prisma.organization.count).toHaveBeenCalledWith({
+        where: { type: { not: 'SYSTEM' } },
+      });
+    });
+
+    it('still applies a real type filter', async () => {
+      await service.listOrganizations({ page: 1, limit: 20, type: 'HOSPITAL' as never });
+
+      expect(prisma.organization.count).toHaveBeenCalledWith({ where: { type: 'HOSPITAL' } });
+    });
+  });
+});
