@@ -131,20 +131,25 @@ async function renderScreen(Screen: React.ComponentType) {
     defaultOptions: { queries: { retry: false, gcTime: 0 } },
   });
 
+  const element = (
+    <SafeAreaProvider
+      initialMetrics={{
+        frame: { x: 0, y: 0, width: 390, height: 844 },
+        insets: { top: 47, left: 0, right: 0, bottom: 34 },
+      }}
+    >
+      <QueryClientProvider client={queryClient}>
+        <Screen />
+      </QueryClientProvider>
+    </SafeAreaProvider>
+  );
+
+  // Mount inside a synchronous act, then flush in a separate async one. Doing the
+  // mount inside an *async* act nests an act scope inside the renderer's own,
+  // which React reports as "overlapping act() calls".
   let tree!: renderer.ReactTestRenderer;
-  await act(async () => {
-    tree = renderer.create(
-      <SafeAreaProvider
-        initialMetrics={{
-          frame: { x: 0, y: 0, width: 390, height: 844 },
-          insets: { top: 47, left: 0, right: 0, bottom: 34 },
-        }}
-      >
-        <QueryClientProvider client={queryClient}>
-          <Screen />
-        </QueryClientProvider>
-      </SafeAreaProvider>,
-    );
+  act(() => {
+    tree = renderer.create(element);
   });
 
   // React Query flushes subscriber notifications on a macrotask, so the first
