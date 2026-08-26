@@ -1052,9 +1052,67 @@ These make the product unusable or unsafe for real users. Fix first, in order.
 
 ## 🟡 P2 — Correctness, safety, and RBAC gaps
 
-- [ ] **P2-1. `OrganizationGuard` is written but never applied anywhere** —
-  org-scoped access control is entirely ad-hoc per-service instead of
-  centrally enforced. `apps/api/src/common/guards/organization.guard.ts`.
+- [x] **P2-1. `OrganizationGuard` is written but never applied anywhere** — Fixed,
+  and the investigation turned up a real, live cross-org vulnerability, not
+  just a hygiene gap. Auditing every controller with an `:organizationId`
+  route param (every one of them, with zero exceptions, literally names it
+  that) found the per-service checks were inconsistent: `shipments`,
+  `emergency`, `inventory`, `appointments`, and `appointment-slots` all
+  verify the caller actually belongs to `:organizationId`, but
+  `donations.service.ts`'s `checkInDonation`/`recordAssessment`/
+  `startDonation`/`completeDonation`/`cancelDonation`/`abortDonation` only
+  ever verified the *resource* (appointment/donation) belonged to
+  `:organizationId` — never that the *caller* did. Since `@Roles(...)`
+  only checks role codes present anywhere on the user's JWT, not which
+  organization granted them, any `HOSPITAL_STAFF` at *any* hospital could
+  check in, assess, start, complete, cancel, or abort a donation at a
+  *different* hospital by simply passing that hospital's id in the URL —
+  confirmed live (see below) before fixing it. `laboratory.service.ts` and
+  `analytics/*.service.ts` had no per-caller membership check at all
+  either, relying entirely on the same org-blind role check.
+  Rewrote the guard rather than finally decorating routes with its old
+  design: it previously required per-route reflector metadata
+  (`ORGANIZATION_ID_KEY`) that nothing ever set, so wiring it in would
+  have meant adding a decorator to every one of ~40 routes across 7
+  controllers — exactly the kind of "easy to forget on the next new route"
+  process this item exists to eliminate. Since every org-scoped route
+  already names the param `:organizationId` with no exceptions, the guard
+  now just reads `request.params.organizationId` directly: a no-op (zero
+  DB cost) for any route without it, and for one that has it, requires an
+  `ACTIVE` membership in that specific organization whose own `status` is
+  also `ACTIVE` — folding in P1-20's status check too, so every remaining
+  org-scoped route not already covered by a P1-20 per-service check gets
+  it for free from this one place. `SUPER_ADMIN` bypasses both checks
+  globally (matching the bypass convention already used throughout
+  P1-20's fixes), consistent with platform admins needing to act on a
+  suspended org to actually process it. Registered as a fifth global
+  `APP_GUARD` alongside `JwtAuthGuard`/`RolesGuard`/`PermissionsGuard` in
+  `app.module.ts`, so it applies automatically to every current and future
+  route — no per-controller opt-in to remember. The P1-20 per-service
+  checks were left in place as harmless defense-in-depth (most of them sit
+  on routes with no `:organizationId` URL param at all — courier and
+  donor-facing routes resolve their organization from a resource id, not
+  the URL — so they remain the *only* protection there, not redundant).
+  Verified: 9 new tests for the guard (no-op without the param, no user,
+  member of a different org, no membership at all, each non-ACTIVE org
+  status, super-admin bypass), full suite 319/319 passing (up from 310),
+  clean `tsc --noEmit`, 0 new lint errors/warnings. Live end-to-end
+  against the real Postgres + running API: confirmed the hospital
+  admin's token could reach the blood center's donations/analytics and
+  the blood center admin's token could reach the hospital's appointment
+  slots *before* this fix would have succeeded, and specifically
+  reproduced and then confirmed the fix on the exact vulnerability found
+  above — `POST /organizations/:bloodCenterId/donations/check-in/:appointmentId`
+  with the hospital admin's token, blocked with `403 "You do not have
+  access to this organization."` before ever reaching the vulnerable
+  service code. Confirmed every legitimate same-org flow across
+  emergencies/inventory/appointment-slots/analytics/donations still
+  returns `200`, confirmed `SUPER_ADMIN` and a courier acting within their
+  own organization were unaffected, and confirmed a suspended organization
+  is now blocked on routes P1-20 never touched (`donations`) too, then
+  restored both organizations to `ACTIVE`.
+  - Files: `apps/api/src/common/guards/organization.guard.ts` (+ new spec),
+    `apps/api/src/app.module.ts`.
 
 - [ ] **P2-2. `LAB_TECHNICIAN`/`LAB_REVIEWER`/`LAB_ADMIN` roles have zero
   seeded permissions** and are excluded from the actual lab-workflow
@@ -1254,6 +1312,14 @@ every org-scoped access-check chokepoint across shipments, emergency,
 inventory, and appointments, instead of taking on P2-1's broader
 apply-`OrganizationGuard`-everywhere risk inside this fix).~~ ✅
 
-**All P1 items are done.** Next up: P2, starting with **P2-1**
-(`OrganizationGuard` is written but never applied anywhere), then the
-rest of P2, folding in P3-1 tests as each area is touched.
+**All P1 items are done.**
+~~**P2-1** (`OrganizationGuard` was written but never applied anywhere —
+rewrote it to read `:organizationId` directly instead of unused reflector
+metadata, registered it as a fifth global guard, and along the way found
+and closed a real live cross-org vulnerability in `donations.service.ts`
+that had nothing to do with the guard itself: several donation-workflow
+methods checked the *resource* belonged to the org but never the
+*caller*).~~ ✅
+Next up: **P2-2** (`LAB_TECHNICIAN`/`LAB_REVIEWER`/`LAB_ADMIN` roles have
+zero seeded permissions), then the rest of P2, folding in P3-1 tests as
+each area is touched.
