@@ -1403,11 +1403,48 @@ These make the product unusable or unsafe for real users. Fix first, in order.
     `apps/mobile/src/api/donors.ts`,
     `apps/mobile/app/(onboarding)/index.tsx`.
 
-- [ ] **P2-7. Courier-assigned/accepted notifications show the wrong text**
-  (silently fall back to the "shipment created" template because those two
-  event keys aren't in the template map), and **courier decline never
-  notifies the blood center at all** (no event emitted, unlike every other
-  transition). `apps/api/src/modules/shipments/shipments.service.ts:757-891`.
+- [x] **P2-7. Courier-assigned/accepted notifications show the wrong text
+  (and courier decline never notified anyone at all).** — Fixed: confirmed
+  live before fixing — `assignCourier` emits event key `courier_assigned`
+  and `acceptShipment` emits `accepted`, but `routeShipmentNotification`'s
+  template map only had `created`/`picked_up`/`in_transit`/`arrived`/
+  `delivered`/`failed`, so both silently fell back to
+  `templates.created` ("Shipment Created" / "A new blood shipment has
+  been created") — a courier being assigned a delivery, or a blood
+  center learning their courier accepted, both got the same generic
+  "shipment was created" text as everyone else, with no way to tell
+  which event actually happened. Separately, `declineShipment` never
+  called `this.eventEmitter.emit(SHIPMENT_EVENT, ...)` at all — unlike
+  every other shipment transition — so a decline updated the DB and the
+  live WebSocket feed (for anyone with the page open right now) but
+  created zero `Notification` rows; a blood center not actively watching
+  the shipment page would never learn a courier declined and the
+  delivery needed reassigning.
+  Added real `courier_assigned`/`accepted`/`declined` template entries
+  (courier-facing text for the first, blood-center-facing for the other
+  two, matching each event's actual `recipientIds`), and added the
+  missing `declineShipment` emit call — reusing the exact
+  `bloodCenterUsers` membership-lookup pattern `acceptShipment` already
+  uses for its own recipients, so a decline now reaches the same
+  audience an accept does. Bumped `declined` to `HIGH` priority alongside
+  `failed`, since both mean "this delivery needs attention now."
+  Verified: 10 new tests for `routeShipmentNotification` (every real
+  event key produces its own distinct template and never the `created`
+  fallback, an actually-unknown key still correctly falls back, `failed`/
+  `declined` are both `HIGH` priority) plus 1 new test confirming
+  `declineShipment` emits `SHIPMENT_EVENT` with the right recipients,
+  full suite 338/338 passing (up from 327), clean `tsc --noEmit`, 0 new
+  lint warnings. Live end-to-end against the real Postgres + running
+  API: drove a real blood request through approval → shipment creation →
+  courier assignment → courier decline, and confirmed the courier
+  actually received "New Delivery Assignment" (not "Shipment Created")
+  on assignment, and that declining produced seven real `HIGH`-priority
+  "Courier Declined Delivery" notifications to blood-center staff — where
+  before this fix the decline step would have produced zero. Cleaned up
+  all test data (shipment, blood request, notifications, courier status)
+  afterward.
+  - Files: `apps/api/src/modules/notifications/services/notification-router.service.ts` (+ new spec),
+    `apps/api/src/modules/shipments/shipments.service.ts` (+ spec).
 
 - [ ] **P2-8. ETA is a hardcoded-speed straight-line estimate** (40km/h
   constant, no routing/traffic) and `getShipmentTracking` returns a
@@ -1665,6 +1702,11 @@ needed), a shared Haversine util, nearest-first ranking in
 donors profile endpoint, and a mobile onboarding toggle to capture them;
 live-verified a real ~0.87km match with the correct `matchScore`; found
 and logged an unrelated `verificationStatus` reset bug as new P2-17).~~ ✅
-Next up: **P2-7** (Courier-assigned/accepted notifications show the
-wrong text), then the rest of P2, folding in P3-1 tests as each area is
-touched.
+~~**P2-7** (courier-assigned/accepted notifications silently fell back to
+the generic "Shipment Created" template, and courier decline never
+notified anyone at all — added the missing templates and the missing
+`declineShipment` emit call; live-verified a real decline producing
+seven real HIGH-priority notifications where before it produced zero).~~ ✅
+Next up: **P2-8** (ETA is a hardcoded-speed straight-line estimate and
+`getShipmentTracking` returns a literal hardcoded placeholder string),
+then the rest of P2, folding in P3-1 tests as each area is touched.

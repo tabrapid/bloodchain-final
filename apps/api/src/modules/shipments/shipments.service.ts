@@ -975,6 +975,17 @@ export class ShipmentsService {
       ipAddress,
     });
 
+    const bloodCenterUsers = await this.db.user.findMany({
+      where: { memberships: { some: { organizationId: shipment.sourceOrganizationId } } },
+      select: { id: true },
+    });
+
+    this.eventEmitter.emit(SHIPMENT_EVENT, {
+      shipmentId,
+      eventType: 'declined',
+      recipientIds: bloodCenterUsers.map((u) => u.id),
+    });
+
     this.shipmentGateway.emitShipmentStatusChanged(shipmentId, ShipmentStatus.COURIER_DECLINED, { reason });
 
     return result;

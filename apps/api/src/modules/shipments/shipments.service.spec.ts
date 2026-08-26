@@ -30,6 +30,7 @@ describe('ShipmentsService status transitions', () => {
   let tx: any;
   let shipmentGateway: { emitShipmentStatusChanged: jest.Mock; emitCourierLocation: jest.Mock };
   let locationService: { validateCourierShipmentAccess: jest.Mock; validateLocationUpdate: jest.Mock };
+  let eventEmitter: { emit: jest.Mock };
 
   const courier = { id: 'courier-1', userId: 'user-1', organizationId: 'org-source' };
 
@@ -67,13 +68,14 @@ describe('ShipmentsService status transitions', () => {
       validateCourierShipmentAccess: jest.fn().mockResolvedValue({ valid: true }),
       validateLocationUpdate: jest.fn().mockResolvedValue({ isValid: true, errors: [], warnings: [] }),
     };
+    eventEmitter = { emit: jest.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ShipmentsService,
         { provide: PrismaService, useValue: prisma },
         { provide: AuditLogsService, useValue: { log: jest.fn().mockResolvedValue({}) } },
-        { provide: EventEmitter2, useValue: { emit: jest.fn() } },
+        { provide: EventEmitter2, useValue: eventEmitter },
         { provide: LocationService, useValue: locationService },
         { provide: ShipmentGateway, useValue: shipmentGateway },
       ],
@@ -144,6 +146,19 @@ describe('ShipmentsService status transitions', () => {
       await expect(service.declineShipment('user-1', 'shp-1', 'traffic')).rejects.toThrow(ConflictException);
       expect(tx.courier.update).not.toHaveBeenCalled();
       expect(shipmentGateway.emitShipmentStatusChanged).not.toHaveBeenCalled();
+    });
+
+    it('notifies the blood center that the courier declined, unlike every other transition this used to skip', async () => {
+      prisma.shipment.findUnique.mockResolvedValue(makeShipment({ status: ShipmentStatus.COURIER_ASSIGNED }));
+      prisma.user.findMany.mockResolvedValue([{ id: 'bc-staff-1' }, { id: 'bc-staff-2' }]);
+
+      await service.declineShipment('user-1', 'shp-1', 'traffic');
+
+      expect(eventEmitter.emit).toHaveBeenCalledWith('shipment.event', {
+        shipmentId: 'shp-1',
+        eventType: 'declined',
+        recipientIds: ['bc-staff-1', 'bc-staff-2'],
+      });
     });
   });
 
