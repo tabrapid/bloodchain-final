@@ -3057,6 +3057,27 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   mobile tests, which now actually run in CI instead of echoing a
   placeholder), and `pnpm build` 4/4 — i.e. all four CI jobs' commands
   green locally before pushing.
+  **One more real bug surfaced once the new suite met CI**, and it's
+  worth recording because it's a class this repo will hit again: the
+  suite passed locally but failed its first CI run on **exactly one**
+  test — the first one, `community renders without crashing`, timing
+  out at 8429ms against Jest's default 5s per-test budget, while the
+  other 15 passed in ~10ms each. Rather than re-run it as a flake,
+  reproduced the mechanism locally by clearing the jest cache to match
+  a fresh runner: the first test to mount a screen pays a one-off cost
+  for Babel-transforming the entire React Native module graph (~2.9s
+  locally, ~8.4s on CI's slower shared runner), and everything after it
+  runs in single digits. That is real one-time setup cost landing on
+  whichever test happens to sort first — not a slow test, and *not* a
+  flake, since it would fail again on every cold cache. Fixed with an
+  explicit `testTimeout` covering a cold start, so run order no longer
+  decides which test absorbs the transform. Also cleared the
+  "overlapping act() calls" warnings the same run emitted (mounting
+  inside an *async* `act()` nests an act scope inside the renderer's
+  own; mount in a synchronous `act()` and keep the async one for the
+  React Query flush). Re-verified from a cleared cache: 16/16, zero
+  warnings. **CI run #8 is fully green across all four jobs** — the
+  first time this pipeline has been green end to end.
   Left deliberately unfixed and logged separately as **P3-10**: the
   education screen's `onStart`/`isStarting` props are wired to a real
   `startContent` mutation but no control in the card ever triggers them.
