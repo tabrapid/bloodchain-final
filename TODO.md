@@ -2199,8 +2199,9 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   shipments, emergency, laboratory, admin. Only auth, health,
   health-trends, and part of ai-health have specs. Prioritize tests for
   the P0/P1 areas above as you fix them (write the regression test with
-  the fix, not after). — Fixed (partial installment, 3 of 14 remaining
-  zero-coverage modules; see below for what's still outstanding):
+  the fix, not after). — Fixed across six installments (see below for
+  the full breakdown; the sixth and final installment closes out every
+  previously zero-coverage backend module):
   Re-measured actual coverage before touching anything, since the
   original "26 of 30" diagnosis was stale — nearly every P0/P1/P2 fix
   this session added `.spec.ts` coverage for the module it touched as a
@@ -2505,6 +2506,90 @@ These make the product unusable or unsafe for real users. Fix first, in order.
       `apps/api/src/modules/appointment-slots/appointment-slots.service.spec.ts`
       (new), `apps/api/src/app.module.ts` (swapped `AppointmentSlotsModule`
       ahead of `AppointmentsModule` to fix the route-shadowing bug above).
+  - **Sixth and final installment**: covered `analytics` (896 lines —
+    by far the largest single backend service file, and the last
+    zero-coverage module). This service is one big fan-out: 9 public
+    methods (`getOverview` plus 7 domain-specific `getXAnalytics`
+    methods, `getActivityFeed`, `getAlerts`) that each call a shared
+    `validateOrganizationAccess` gate and then `Promise.all` a handful
+    of private per-domain helpers, and roughly 25 of those private
+    helpers, most of which are structurally identical
+    count/groupBy/percent-rounding Prisma wrappers with no distinct
+    branching logic of their own (`getDonationsByStatus`,
+    `getEmergenciesByStatus`, `getRequestsByStatus`,
+    `getAppointmentsByStatus`, `getLaboratoryByStatus`,
+    `getShipmentsByStatus` are all the same shape repeated per domain,
+    likewise the six near-identical `get*Trends` day-bucketing helpers).
+    Given that shape, this installment deliberately did not write one
+    near-duplicate test per repeated helper; instead it wrote 32 tests
+    concentrated on the genuinely distinct logic: the shared
+    `validateOrganizationAccess` gate (2 tests); the private
+    `getDateRange` helper — by far the most complex, branchiest pure
+    logic in the file, covering all 9 `DateRangeType` values including
+    `LAST_MONTH`'s "subtract days-in-month, then take that month's
+    start/end" trick and the `CUSTOM`/unrecognized-range fallbacks,
+    exercised through `getOverview` with `jest.useFakeTimers()` pinning
+    a fixed "now" and `jest.spyOn` isolating the KPI helpers so only the
+    date-math is under test (12 tests, including one genuine
+    off-by-one self-correction — this diff span is inclusive of both
+    endpoints via `startOfDay`..`endOfDay`, so `LAST_7_DAYS` truly spans
+    7 calendar days, not 6, and the first draft of these assertions
+    had that backwards before being caught by the tests actually
+    failing against the real implementation); `getOverview` and
+    `getInventoryAnalytics`'s orchestration shape via `jest.spyOn` on
+    their private collaborators (2 tests); `getActivityFeed`'s
+    donation+emergency merge/sort/cap-at-50/per-query-`limit` behavior
+    and its two independent try/catch-swallow paths, each verified to
+    still surface the other domain's activity when one query fails (5
+    tests); `getAlerts`'s CRITICAL-vs-HIGH priority derivation including
+    the null-currentValue edge case, and its unacknowledged-only filter
+    (3 tests); the private `getInventorySummary`'s low/critical stock
+    threshold logic per blood group (0 units → critical, 1-4 → low,
+    5+ → neither) (4 tests); `getInventoryByBloodGroup`'s
+    OUT_OF_STOCK/LOW/HEALTHY status derivation (1 test);
+    `getAlertCounts`'s four-way bucketing by alert type and
+    currentValue (1 test); and the shared percent-rounding pattern,
+    tested once via `getDonationsByStatus` as a representative of the
+    ~6 identical-shaped `get*ByStatus`/`get*ByPriority` helpers (2
+    tests). Full suite went from 589 to 621 passing (621/621 green),
+    `tsc --noEmit` clean, lint 0 errors (484 warnings, up from 452, same
+    `any`-mock pattern, all in this one new file). Live-verified
+    `analytics`'s real HTTP surface (`GET
+    /organizations/:organizationId/analytics/{overview,inventory,alerts,activity}`)
+    against the real dev DB as `HOSPITAL_ADMIN`: confirmed `overview`
+    returned real inventory/donation/emergency/appointment/request/
+    shipment/alert sections built from the org's actual seeded data
+    (correctly flagging all 8 blood groups as `criticalGroups` since the
+    dev org has zero available units of any group), confirmed `alerts`/
+    `activity`/`inventory` all returned real, correctly-shaped data,
+    confirmed a `donor` token gets a real `403` on the staff-only
+    routes, and confirmed `HOSPITAL_ADMIN` gets a real `403` when
+    requesting a *different* organization's analytics — this rejection
+    came from the global `OrganizationGuard` (established in P2-1)
+    firing before the service's own `validateOrganizationAccess` check
+    ever runs, confirming the two layers are genuinely defense-in-depth
+    rather than one being dead code. Every call in this verification was
+    a read (`GET`), so no test data was created and no cleanup was
+    required.
+
+    **P3-1 is now fully closed: all 32 backend modules that had zero
+    test coverage at the start of this item now have real spec files.**
+    Total across all six installments: 8 modules given dedicated
+    installments individually or in small batches
+    (`audit-logs`/`permissions`/`platform-settings`,
+    `email`/`ai-cache`/`users`, `ai-logging`/`education`/`ai-history`,
+    `community`/`campaigns`/`courier`, `appointment-slots`, `analytics`)
+    plus the ~13 modules that gained coverage organically as a side
+    effect of P0/P1/P2 fixes earlier in the session. Along the way this
+    item also surfaced and fixed one live-breaking bug outside its own
+    scope (P3-1 fifth installment: the `/appointments/availability`
+    route-shadowing 404) and logged one new, unrelated bug for a future
+    fix (**P3-8**: the campaigns status-clobbering bug from the fourth
+    installment). Full backend suite is now 621/621 passing, up from 424
+    at the start of this item — a net addition of 197 tests across 8 new
+    spec files this item, on top of the organic growth from P0-P2.
+    - Files: `apps/api/src/modules/analytics/services/analytics.service.spec.ts`
+      (new).
 
 - [ ] **P3-2. No frontend tests at all** (Next.js apps or mobile) — no
   Jest/RTL/Playwright/Detox setup found.
@@ -2833,7 +2918,22 @@ notification-preferences discovery. Fixed by reordering
 and live-verified the complete real flow end-to-end, including all
 three audit rows. Only `analytics` (896 lines) remains at zero
 coverage).~~ ✅ (partial)
-Next up: **analytics** to close out the remainder of **P3-1** (896
-lines — likely its own dedicated installment given its size) or **P3-2**
-(no frontend tests at all), plus newly-logged **P3-8** (campaigns
-status-clobbering bug) whenever P3 hygiene work is picked up again.
+~~**P3-1 sixth and final installment** (`analytics` — the last
+zero-coverage module, 896 lines, 32 new tests concentrated on the
+genuinely distinct logic rather than one test per structurally-repeated
+helper: the shared org-access gate, the branchy `getDateRange` date-math
+(including catching and fixing a self-authored off-by-one before
+landing), `getActivityFeed`'s merge/sort/cap/independent-failure-
+swallowing, `getAlerts`'/`getInventorySummary`'s/`getAlertCounts`'
+threshold and bucketing logic, and the shared percent-rounding pattern.
+Full suite 621/621. Live-verified the real HTTP surface end-to-end as
+`HOSPITAL_ADMIN` — overview/inventory/alerts/activity all returning real
+data, a donor blocked with a real 403, and cross-organization access
+blocked by the global `OrganizationGuard` before the service's own
+check even runs, confirming genuine defense-in-depth. All GETs, so no
+cleanup needed. **P3-1 is now fully closed — all 32 backend modules
+that had zero coverage at the start of this item now have real spec
+files**, 621/621 passing overall, up from 424 when P3-1 began).~~ ✅
+Next up: **P3-2** (no frontend tests at all) or **P3-3** (no
+Docker/CI), plus newly-logged **P3-8** (campaigns status-clobbering
+bug) whenever picked up.
