@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
 import { PrismaService } from '../../database/prisma.service';
 import { AIInsightType, AISafetyLevel } from '@prisma/client';
-import { v4 as uuidv4 } from 'uuid';
 
 export interface AIRequestLogInput {
   userId?: string;
@@ -27,7 +27,7 @@ export class AIRequestLogService {
   constructor(private readonly prisma: PrismaService) {}
 
   async logRequest(input: AIRequestLogInput): Promise<string> {
-    const requestId = uuidv4();
+    const requestId = randomUUID();
 
     try {
       await this.prisma.aIRequestLog.create({

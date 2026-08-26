@@ -2,8 +2,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaService } from '../../database/prisma.service';
 import { AIRequestLogService } from './ai-logging.service';
 
-jest.mock('uuid', () => ({ v4: () => '11111111-1111-4111-8111-111111111111' }));
-
 describe('AIRequestLogService', () => {
   let service: AIRequestLogService;
   let prisma: any;

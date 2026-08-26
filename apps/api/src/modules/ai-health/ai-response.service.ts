@@ -1,6 +1,6 @@
 import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'node:crypto';
 import { AIProviderMessage } from './providers/ai-provider.interface';
 import { AIProviderFactory } from './providers/ai-provider.factory';
 import { AIPromptBuilder } from './prompts';
@@ -156,7 +156,7 @@ export class AIResponseService {
     }
 
     return {
-      id: uuidv4(),
+      id: randomUUID(),
       type: (parsed.type as InsightType) || InsightType.GENERAL_HEALTH_INFORMATION,
       title: parsed.title || 'Insight',
       summary: parsed.summary || 'No summary available.',
@@ -175,7 +175,7 @@ export class AIResponseService {
     const fallback = this.safetyService.getSafeFallback(safetyLevel) as Record<string, unknown>;
 
     return {
-      id: uuidv4(),
+      id: randomUUID(),
       type: (fallback.type as InsightType) || InsightType.GENERAL_HEALTH_INFORMATION,
       title: String(fallback.title),
       summary: String(fallback.summary),
