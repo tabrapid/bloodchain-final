@@ -78,13 +78,10 @@ export async function joinChallenge(challengeId: string): Promise<ChallengeParti
   });
 }
 
-export async function updateChallengeProgress(
-  challengeId: string,
-  progress: number
-): Promise<ChallengeParticipant> {
+/** Progress is derived server-side from the donor's real activity - there is nothing for the client to submit. */
+export async function recalculateChallengeProgress(challengeId: string): Promise<ChallengeParticipant> {
   return apiRequest<ChallengeParticipant>(`/challenges/${challengeId}/progress`, {
     method: 'PUT',
-    body: JSON.stringify({ progress }),
   });
 }
 

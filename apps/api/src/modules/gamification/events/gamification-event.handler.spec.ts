@@ -11,6 +11,7 @@ describe('GamificationEventHandler', () => {
     processBloodTestCompleted: jest.Mock;
     processAppointmentCompleted: jest.Mock;
     processEmergencyResponseCompleted: jest.Mock;
+    processChallengeCompleted: jest.Mock;
   };
   let platformSettings: { isEnabled: jest.Mock };
 
@@ -21,6 +22,7 @@ describe('GamificationEventHandler', () => {
       processBloodTestCompleted: jest.fn().mockResolvedValue({ xpAwarded: true, xpAmount: 5, achievementsUnlocked: [] }),
       processAppointmentCompleted: jest.fn().mockResolvedValue({ xpAwarded: true, xpAmount: 5 }),
       processEmergencyResponseCompleted: jest.fn().mockResolvedValue({ xpAwarded: true, xpAmount: 20, achievementsUnlocked: [] }),
+      processChallengeCompleted: jest.fn().mockResolvedValue({ xpAwarded: true, xpAmount: 50, newTotalXp: 150 }),
     };
     platformSettings = { isEnabled: jest.fn().mockResolvedValue(true) };
 
@@ -62,6 +64,16 @@ describe('GamificationEventHandler', () => {
       await handler.handleEmergencyResponseCompleted({ responseId: 'resp-1', donorId: 'donor-1' });
       expect(gamificationService.processEmergencyResponseCompleted).toHaveBeenCalledWith('donor-1', 'resp-1');
     });
+
+    it('processes a completed challenge', async () => {
+      await handler.handleChallengeCompleted({
+        challengeId: 'chal-1',
+        userId: 'donor-1',
+        xpAmount: 50,
+        challengeTitle: 'Donate 5 times',
+      });
+      expect(gamificationService.processChallengeCompleted).toHaveBeenCalledWith('donor-1', 'chal-1', 50, 'Donate 5 times');
+    });
   });
 
   describe('when gamification is disabled platform-wide', () => {
@@ -93,6 +105,16 @@ describe('GamificationEventHandler', () => {
     it('skips a completed emergency response without awarding XP', async () => {
       await handler.handleEmergencyResponseCompleted({ responseId: 'resp-1', donorId: 'donor-1' });
       expect(gamificationService.processEmergencyResponseCompleted).not.toHaveBeenCalled();
+    });
+
+    it('skips a completed challenge without awarding XP', async () => {
+      await handler.handleChallengeCompleted({
+        challengeId: 'chal-1',
+        userId: 'donor-1',
+        xpAmount: 50,
+        challengeTitle: 'Donate 5 times',
+      });
+      expect(gamificationService.processChallengeCompleted).not.toHaveBeenCalled();
     });
   });
 });

@@ -795,12 +795,72 @@ These make the product unusable or unsafe for real users. Fix first, in order.
     `apps/blood-center-web/lib/inventory.ts`,
     `apps/blood-center-web/app/inventory/page.tsx`.
 
-- [ ] **P1-17. Challenge progress is donor self-reported — instantly exploitable.**
-  `PUT /challenges/:id/progress` takes a raw number from the requesting
-  donor and writes it directly, auto-completing the challenge (and its XP
-  reward) once it crosses the goal — with zero server-side derivation from
-  real activity. Any donor can max any challenge instantly.
-  - File: `apps/api/src/modules/challenges/challenges.service.ts:233-271`.
+- [x] **P1-17. Challenge progress is donor self-reported — instantly exploitable.** — Fixed:
+  `ChallengesService.updateProgress` took a raw client-supplied number and
+  wrote it straight into `ChallengeParticipant.progress`, auto-completing
+  the challenge once it crossed the goal — confirmed exploitable via a
+  single unauthenticated-by-anything-but-a-JWT `PUT` call. Renamed to
+  `recalculateProgress` and rewrote it to derive the number itself from
+  the donor's real activity records, one query per `ChallengeType`:
+  `DONATION_MILESTONE`/`APPOINTMENT_COMPLETION` count real completed
+  `Donation`/`Appointment` rows, `CAMPAIGN_PARTICIPATION` counts
+  `CampaignParticipant` rows, `EDUCATION` counts completed
+  `EducationProgress` rows, `COMMUNITY` counts published `CommunityPost`
+  rows, and `CONSISTENCY` counts distinct calendar months with a
+  completed donation (deliberately not a raw donation count — that's
+  already what `DONATION_MILESTONE` measures). All six respect the
+  challenge's own `startDate`/`endDate` window when set. The client's
+  request body is now ignored entirely — verified live by sending
+  `{"progress": 999}` for a two-donation-goal challenge and getting back
+  the donor's real count (11, from seed data), not 999.
+  The mobile API client's `updateChallengeProgress(challengeId, progress)`
+  turned out to be dead code — no screen anywhere calls it (the challenges
+  screen only ever displays progress, never submits it), which is exactly
+  how the exploit could only ever be reached by a direct API call, not
+  through the app. Renamed to `recalculateChallengeProgress(challengeId)`
+  or with no `progress` param, matching the new contract.
+  XP reward on completion was previously entirely unwired despite
+  `XpTransactionType.CHALLENGE_COMPLETED` already existing unused in the
+  schema — same "scaffolding exists, nothing connects it" pattern found
+  repeatedly this session. Wired it the same event-driven way as every
+  other XP source: emits `CHALLENGE_COMPLETED_EVENT` (new,
+  `gamification-event.handler.ts`) the moment progress first crosses the
+  goal, handled by a new `GamificationService.processChallengeCompleted`
+  which reuses `XpService.awardXp`'s existing idempotency
+  (`sourceType`/`sourceId` uniqueness prevents a re-recalculation from
+  double-awarding) — verified live: one real `XpTransaction` row after
+  completing, still exactly one after calling recalculate again.
+  Also wired automatic recomputation (not just on-demand) for the two
+  challenge types with an existing, already-firing completion event: a
+  new `ChallengeProgressEventHandler` listens for the same
+  `DONATION_COMPLETED_EVENT`/`APPOINTMENT_COMPLETED_EVENT` the donation
+  and appointment services already emit, and recalculates every
+  matching-type challenge the donor has joined. The other four types
+  (`CAMPAIGN_PARTICIPATION`/`EDUCATION`/`COMMUNITY`/`CONSISTENCY`) compute
+  correctly when recalculated but have no automatic push trigger yet —
+  their owning modules don't currently emit a matching completion event
+  to hook into, and adding one to each was judged out of scope for a
+  fix whose job was closing the exploit, not building out gamification
+  event coverage for every feature; noted here rather than silently
+  implied as automatic.
+  Verified: 30 new tests across four spec files (18 for
+  `ChallengesService` covering every challenge type, the window filter,
+  and the completed-once/no-double-award/no-reward-no-event edge cases;
+  3 for the new `ChallengeProgressEventHandler`; 3 for
+  `GamificationService.processChallengeCompleted`; 6 added to the
+  existing `gamification-event.handler.spec.ts`), full suite 279/279
+  passing, clean `tsc --noEmit` on the API, 0 new lint errors. Live end-
+  to-end against the real Postgres: created a real `DONATION_MILESTONE`
+  challenge, joined it as the seeded donor, confirmed the exploit attempt
+  was ignored and real progress/completion/XP were used instead, and
+  confirmed idempotency on a second call.
+  - Files: `apps/api/src/modules/challenges/challenges.service.ts` (+ new spec),
+    `apps/api/src/modules/challenges/challenges.controller.ts`,
+    `apps/api/src/modules/challenges/challenges.module.ts`,
+    `apps/api/src/modules/challenges/events/challenge-progress-event.handler.ts` (new, + spec),
+    `apps/api/src/modules/gamification/gamification.service.ts` (+ new spec),
+    `apps/api/src/modules/gamification/events/gamification-event.handler.ts` (+ spec additions),
+    `apps/mobile/src/api/challenges.ts`.
 
 - [ ] **P1-18. No SOS / emergency-match expiration job.**
   `EXPIRED` statuses and a full notification handler exist, but nothing
@@ -1022,6 +1082,10 @@ issue/adjust endpoints, an hourly `InventoryCronService` expiring units
 and auto-releasing expired reservations, and real `LOW_STOCK`/`EXPIRED`/
 `EXPIRING_SOON`/`QUARANTINED` alerts; first use of `@nestjs/schedule` in
 this app, which P1-18 will reuse).~~ ✅
-Next up: **P1-17** (Challenge progress is donor self-reported —
-instantly exploitable), then the rest of P1, then P2, folding in P3-1
-tests as each area is touched.
+~~**P1-17** (challenge progress was donor self-reported and instantly
+exploitable — now derived server-side per challenge type from real
+donation/appointment/campaign/education/community records, with XP
+awarding wired through the existing `CHALLENGE_COMPLETED` scaffolding
+for the first time).~~ ✅
+Next up: **P1-18** (No SOS / emergency-match expiration job), then the
+rest of P1, then P2, folding in P3-1 tests as each area is touched.

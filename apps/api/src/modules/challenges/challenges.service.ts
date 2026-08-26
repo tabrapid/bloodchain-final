@@ -1,11 +1,25 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import {
+  ChallengeType,
+  ChallengeStatus,
+  ChallengeVisibility,
+  DonationStatus,
+  AppointmentStatus,
+  EducationProgressStatus,
+  CommunityPostStatus,
+  Challenge,
+} from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
-import { ChallengeType, ChallengeStatus, ChallengeVisibility } from '@prisma/client';
+import { CHALLENGE_COMPLETED_EVENT } from '../gamification/events/gamification-event.handler';
 import { CreateChallengeDto, UpdateChallengeDto } from './dto/challenges.dto';
 
 @Injectable()
 export class ChallengesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly eventEmitter: EventEmitter2,
+  ) {}
 
   async createChallenge(dto: CreateChallengeDto, createdBy: string) {
     const challenge = await this.prisma.challenge.create({
@@ -230,7 +244,12 @@ export class ChallengesService {
     return participant;
   }
 
-  async updateProgress(challengeId: string, userId: string, progress: number) {
+  /**
+   * Recomputes a participant's progress from their real activity records -
+   * the client never supplies a progress number (it used to accept one
+   * directly, which let any donor max any challenge instantly).
+   */
+  async recalculateProgress(challengeId: string, userId: string) {
     const participant = await this.prisma.challengeParticipant.findUnique({
       where: {
         challengeId_userId: {
@@ -252,7 +271,9 @@ export class ChallengesService {
       throw new NotFoundException('Challenge not found');
     }
 
-    const completedAt = progress >= challenge.goal ? new Date() : null;
+    const progress = await this.computeProgress(challenge, userId);
+    const alreadyCompleted = !!participant.completedAt;
+    const nowCompletes = !alreadyCompleted && progress >= challenge.goal;
 
     const updated = await this.prisma.challengeParticipant.update({
       where: {
@@ -263,11 +284,115 @@ export class ChallengesService {
       },
       data: {
         progress,
-        completedAt,
+        completedAt: alreadyCompleted ? participant.completedAt : nowCompletes ? new Date() : null,
       },
     });
 
+    if (nowCompletes && challenge.xpReward > 0) {
+      this.eventEmitter.emit(CHALLENGE_COMPLETED_EVENT, {
+        challengeId,
+        userId,
+        xpAmount: challenge.xpReward,
+        challengeTitle: challenge.title,
+      });
+    }
+
     return updated;
+  }
+
+  /** Recalculates progress for every ACTIVE, not-yet-completed challenge of the given type(s) this user has joined. */
+  async recalculateProgressForTypes(userId: string, types: ChallengeType[]): Promise<void> {
+    const participants = await this.prisma.challengeParticipant.findMany({
+      where: {
+        userId,
+        completedAt: null,
+        challenge: { type: { in: types }, status: ChallengeStatus.ACTIVE },
+      },
+      select: { challengeId: true },
+    });
+
+    for (const participant of participants) {
+      await this.recalculateProgress(participant.challengeId, userId);
+    }
+  }
+
+  private async computeProgress(
+    challenge: Pick<Challenge, 'type' | 'startDate' | 'endDate'>,
+    userId: string,
+  ): Promise<number> {
+    const dateFilter: { gte?: Date; lte?: Date } = {};
+    if (challenge.startDate) dateFilter.gte = challenge.startDate;
+    if (challenge.endDate) dateFilter.lte = challenge.endDate;
+    const window = Object.keys(dateFilter).length > 0 ? dateFilter : undefined;
+
+    switch (challenge.type) {
+      case ChallengeType.DONATION_MILESTONE:
+        return this.prisma.donation.count({
+          where: {
+            donorId: userId,
+            status: DonationStatus.COMPLETED,
+            ...(window ? { completedAt: window } : {}),
+          },
+        });
+
+      case ChallengeType.APPOINTMENT_COMPLETION:
+        return this.prisma.appointment.count({
+          where: {
+            donorId: userId,
+            status: AppointmentStatus.COMPLETED,
+            ...(window ? { completedAt: window } : {}),
+          },
+        });
+
+      case ChallengeType.CAMPAIGN_PARTICIPATION:
+        return this.prisma.campaignParticipant.count({
+          where: {
+            userId,
+            ...(window ? { joinedAt: window } : {}),
+          },
+        });
+
+      case ChallengeType.EDUCATION:
+        return this.prisma.educationProgress.count({
+          where: {
+            userId,
+            status: EducationProgressStatus.COMPLETED,
+            ...(window ? { completedAt: window } : {}),
+          },
+        });
+
+      case ChallengeType.COMMUNITY:
+        return this.prisma.communityPost.count({
+          where: {
+            authorId: userId,
+            status: CommunityPostStatus.PUBLISHED,
+            ...(window ? { publishedAt: window } : {}),
+          },
+        });
+
+      case ChallengeType.CONSISTENCY: {
+        // "Consistency" counts distinct calendar months with at least one
+        // completed donation, not a raw donation count - that's what
+        // DONATION_MILESTONE already measures.
+        const donations = await this.prisma.donation.findMany({
+          where: {
+            donorId: userId,
+            status: DonationStatus.COMPLETED,
+            ...(window ? { completedAt: window } : {}),
+          },
+          select: { completedAt: true },
+        });
+        const months = new Set(
+          donations
+            .filter((d): d is { completedAt: Date } => d.completedAt !== null)
+            .map((d) => `${d.completedAt.getFullYear()}-${d.completedAt.getMonth()}`),
+        );
+        return months.size;
+      }
+
+      default:
+        return 0;
+    }
   }
 
   async getUserChallenges(userId: string, page: number = 1, limit: number = 20) {

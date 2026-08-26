@@ -7,6 +7,7 @@ export const DONATION_COMPLETED_EVENT = 'donation.completed';
 export const BLOOD_TEST_COMPLETED_EVENT = 'blood-test.completed';
 export const APPOINTMENT_COMPLETED_EVENT = 'appointment.completed';
 export const EMERGENCY_RESPONSE_COMPLETED_EVENT = 'emergency-response.completed';
+export const CHALLENGE_COMPLETED_EVENT = 'challenge.completed';
 
 export interface DonationCompletedPayload {
   donationId: string;
@@ -28,6 +29,13 @@ export interface AppointmentCompletedPayload {
 export interface EmergencyResponseCompletedPayload {
   responseId: string;
   donorId: string;
+}
+
+export interface ChallengeCompletedPayload {
+  challengeId: string;
+  userId: string;
+  xpAmount: number;
+  challengeTitle: string;
 }
 
 @Injectable()
@@ -140,6 +148,30 @@ export class GamificationEventHandler {
     } catch (error) {
       const err = error as Error;
       this.logger.error(`Failed to process emergency response completed event: ${err.message}`, err.stack);
+    }
+  }
+
+  @OnEvent(CHALLENGE_COMPLETED_EVENT)
+  async handleChallengeCompleted(payload: ChallengeCompletedPayload): Promise<void> {
+    if (!(await this.isGamificationEnabled())) return;
+    try {
+      this.logger.log(`Processing gamification for challenge ${payload.challengeId}`);
+
+      await this.gamificationService.ensureGamificationProfile(payload.userId);
+
+      const result = await this.gamificationService.processChallengeCompleted(
+        payload.userId,
+        payload.challengeId,
+        payload.xpAmount,
+        payload.challengeTitle,
+      );
+
+      if (result.xpAwarded) {
+        this.logger.log(`Challenge ${payload.challengeId}: +${result.xpAmount} XP`);
+      }
+    } catch (error) {
+      const err = error as Error;
+      this.logger.error(`Failed to process challenge completed event: ${err.message}`, err.stack);
     }
   }
 }
