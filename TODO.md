@@ -1806,10 +1806,52 @@ These make the product unusable or unsafe for real users. Fix first, in order.
     (+ new spec), `apps/api/src/modules/notifications/notifications.controller.ts`,
     `apps/mobile/src/api/notifications.ts`.
 
-- [ ] **P2-14. Duplicate, unreachable `confirmDelivery` method** sitting
+- [x] **P2-14. Duplicate, unreachable `confirmDelivery` method** sitting
   alongside the real `confirmDeliveryFull` — dead code with an unchecked
   `verificationCode` parameter that looks like a half-finished feature.
-  `apps/api/src/modules/shipments/shipments.service.ts:1244-1393`.
+  `apps/api/src/modules/shipments/shipments.service.ts:1244-1393`. —
+  Fixed: confirmed dead before removing — the controller's
+  `POST .../confirm-delivery` route calls `confirmDeliveryFull`
+  directly, and grepping the whole `apps/api/src` tree for
+  `.confirmDelivery(` turned up only the method's own now-removed unit
+  tests, nothing in any controller, gateway, or cron. `confirmDelivery`
+  was also strictly inferior to `confirmDeliveryFull`, missing the
+  partial-delivery/discrepancy handling, the `RESERVED`/`DISCREPANCY`
+  unit-status split, and the `PARTIALLY_DELIVERED` request status — an
+  older, abandoned implementation left behind rather than a real
+  alternative code path. Deleted it outright (157 lines) along with its
+  two dead tests, and removed a stale comment on `confirmDeliveryFull`
+  that referenced it by name (the comment was documenting a previous fix
+  to this exact code — the "delivered" notifications not firing — whose
+  point was already made moot by this removal).
+  While here, noticed `confirmDeliveryFull`'s own discrepancy/partial-
+  delivery branches (the actual reason it supersedes the deleted method)
+  had zero test coverage — only the full-delivery and race-condition
+  cases were tested. Added 3 tests: rejects `unitsReceived` greater than
+  what shipped, requires a `discrepancyReason` when units fall short,
+  and correctly marks the shortfall units `DISCREPANCY` /
+  `bloodRequest.status: PARTIALLY_DELIVERED` when a reason is given.
+  Verified: full suite 395/395 passing (net +1: −2 dead tests, +3 new),
+  clean `tsc --noEmit`, 0 new lint warnings. Live end-to-end against the
+  real Postgres + running API: drove a real blood request through
+  approve → ready-for-pickup → create-shipment → assign → accept →
+  pickup → in-transit → arrive → `confirm-delivery`, confirming the
+  surviving `confirmDeliveryFull` still resolves and executes correctly
+  after the dead sibling's removal — the real blood unit transferred to
+  the hospital's inventory (`AVAILABLE`, reassigned `organizationId`)
+  and the blood request reached `DELIVERED`. (The discrepancy branch
+  itself isn't independently live-testable with the seed data as-is —
+  the blood center only has one `AVAILABLE` unit per blood type, not
+  enough for a real 2-unit partial-delivery scenario — so that logic's
+  live-fidelity rests on the 3 new precise unit tests instead, which is
+  the legitimate way to verify a conditional branch deterministically.)
+  While assembling this end-to-end flow, discovered a real, separate,
+  system-critical bug in `approveRequest`/`createShipment` (every real
+  shipment ships with zero recorded units) — logged as new **P2-18**
+  rather than folded into this fix, and worked around it for this
+  verification the same way P2-8 did (attaching a `ShipmentUnit` row
+  directly).
+  - Files: `apps/api/src/modules/shipments/shipments.service.ts` (+ spec).
 
 - [ ] **P2-15. `POST .../laboratory-results` can never succeed for anyone
   (found while verifying P2-2)** — the route
@@ -1870,6 +1912,34 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   part of the update (and arguably only when they *change*, not just
   appear in the payload with the same value).
   `apps/api/src/modules/donors/donors.service.ts:90-96`.
+
+- [ ] **P2-18. `ShipmentsService.approveRequest` claims a `BloodUnit`
+  and its reservation but never links the reservation to the
+  `BloodRequestItem` it was approved for (found while live-verifying
+  P2-14)** — `createShipment` later reads exactly that link
+  (`item.reservations`, via the implicit `BloodRequestItem` ↔
+  `BloodUnitReservation` many-to-many) to decide which reservations to
+  turn into `ShipmentUnit` rows. Since `approveRequest` never populates
+  that relation, every shipment created through the real
+  approve → ready-for-pickup → create-shipment flow gets **zero**
+  `ShipmentUnit` rows attached, regardless of how many units were
+  approved and reserved. Confirmed live: a real blood request approved
+  for 1 real available unit, then shipped, produced a shipment whose
+  `units` array was empty — `confirm-delivery` then failed outright
+  ("Cannot receive more units than shipped (0)"), and (per P2-8's
+  write-up) `getShipmentTracking`'s `bloodGroup` field would show "No
+  units assigned yet" for the exact same reason. This is a live,
+  system-critical gap in the blood-center → hospital fulfillment
+  pipeline, not a cosmetic one — every real shipment following this path
+  today ships with no recorded contents and can't be delivered without
+  first being patched up out-of-band. Likely fix: have `approveRequest`
+  connect each claimed reservation to `approval.itemId` (e.g.
+  `tx.bloodRequestItem.update({ where: { id: approval.itemId }, data: {
+  reservations: { connect: { id: reservation.id } } } })`) inside the
+  same loop that already claims the unit.
+  `apps/api/src/modules/shipments/shipments.service.ts:282-354` (the
+  claim loop), `apps/api/src/modules/shipments/shipments.service.ts:463-530`
+  (`createShipment`'s `item.reservations` read).
 
 ---
 
@@ -2074,6 +2144,12 @@ archive/unarchive endpoints, excluded ARCHIVED from the default list and
 unread counts, and wired a mobile API client; live-verified a real
 delete-blocked donation notification archiving, disappearing from
 stats/counts, and correctly unarchiving).~~ ✅
-Next up: **P2-14** (duplicate, unreachable `confirmDelivery` method
-sitting alongside the real `confirmDeliveryFull`), then the rest of P2,
-folding in P3-1 tests as each area is touched.
+~~**P2-14** (deleted the dead, unreachable `confirmDelivery` sibling of
+the real `confirmDeliveryFull`; added the discrepancy/partial-delivery
+test coverage that method itself was missing; live-verified the real
+`confirm-delivery` route still resolves and works correctly after the
+removal — and found a real, separate, system-critical bug along the way
+in how approved requests get shipped, logged as new P2-18).~~ ✅
+Next up: **P2-15** (`POST .../laboratory-results` can never succeed for
+anyone — a route/param mismatch), then the rest of P2, folding in P3-1
+tests as each area is touched.

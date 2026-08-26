@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ConflictException, ForbiddenException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { OrganizationStatus, OrganizationType, Prisma, RoleCode, ShipmentStatus } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
@@ -280,43 +280,6 @@ describe('ShipmentsService status transitions', () => {
     });
   });
 
-  describe('confirmDelivery', () => {
-    const units = [
-      { id: 'su-1', bloodUnitId: 'bu-1', reservationId: 'res-1', bloodUnit: {}, reservation: {} },
-    ];
-
-    it('claims the transition first, then fulfils each unit', async () => {
-      prisma.shipment.findUnique.mockResolvedValue(
-        makeShipment({ status: ShipmentStatus.ARRIVED_AT_HOSPITAL, units, courierId: 'courier-1' }),
-      );
-
-      await service.confirmDelivery('org-dest', 'hosp-user-1', 'shp-1', {});
-
-      expect(tx.shipment.updateMany).toHaveBeenCalledWith({
-        where: {
-          id: 'shp-1',
-          status: { in: ShipmentStateMachine.getSourceStatuses(ShipmentStatus.DELIVERED) },
-        },
-        data: expect.objectContaining({ status: ShipmentStatus.DELIVERED }),
-      });
-      expect(tx.bloodUnitReservation.update).toHaveBeenCalledTimes(1);
-      expect(tx.bloodRequest.update).toHaveBeenCalled();
-    });
-
-    it('throws ConflictException and never touches units when the claim loses the race', async () => {
-      prisma.shipment.findUnique.mockResolvedValue(
-        makeShipment({ status: ShipmentStatus.ARRIVED_AT_HOSPITAL, units, courierId: 'courier-1' }),
-      );
-      tx.shipment.updateMany.mockResolvedValue({ count: 0 });
-
-      await expect(service.confirmDelivery('org-dest', 'hosp-user-1', 'shp-1', {})).rejects.toThrow(
-        ConflictException,
-      );
-      expect(tx.bloodUnitReservation.update).not.toHaveBeenCalled();
-      expect(tx.bloodRequest.update).not.toHaveBeenCalled();
-    });
-  });
-
   describe('failShipment', () => {
     const units = [{ id: 'su-1', bloodUnitId: 'bu-1', bloodUnit: {}, reservation: {} }];
 
@@ -427,6 +390,61 @@ describe('ShipmentsService status transitions', () => {
       ).rejects.toThrow(ConflictException);
       expect(tx.bloodUnitReservation.update).not.toHaveBeenCalled();
       expect(shipmentGateway.emitShipmentStatusChanged).not.toHaveBeenCalled();
+    });
+
+    const twoUnits = [
+      { id: 'su-1', bloodUnitId: 'bu-1', reservationId: 'res-1', bloodUnit: {}, reservation: {} },
+      { id: 'su-2', bloodUnitId: 'bu-2', reservationId: 'res-2', bloodUnit: {}, reservation: {} },
+    ];
+
+    it('rejects receiving more units than were shipped', async () => {
+      prisma.shipment.findUnique.mockResolvedValue(
+        makeShipment({ status: ShipmentStatus.ARRIVED_AT_HOSPITAL, units, courierId: 'courier-1' }),
+      );
+
+      await expect(
+        service.confirmDeliveryFull('org-dest', 'hosp-user-1', 'shp-1', { unitsReceived: 2 }),
+      ).rejects.toThrow(BadRequestException);
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('requires a discrepancy reason when fewer units are received than shipped', async () => {
+      prisma.shipment.findUnique.mockResolvedValue(
+        makeShipment({ status: ShipmentStatus.ARRIVED_AT_HOSPITAL, units: twoUnits, courierId: 'courier-1' }),
+      );
+
+      await expect(
+        service.confirmDeliveryFull('org-dest', 'hosp-user-1', 'shp-1', { unitsReceived: 1 }),
+      ).rejects.toThrow(BadRequestException);
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('marks the shortfall units DISCREPANCY and the request PARTIALLY_DELIVERED', async () => {
+      prisma.shipment.findUnique.mockResolvedValue(
+        makeShipment({ status: ShipmentStatus.ARRIVED_AT_HOSPITAL, units: twoUnits, courierId: 'courier-1' }),
+      );
+
+      await service.confirmDeliveryFull('org-dest', 'hosp-user-1', 'shp-1', {
+        unitsReceived: 1,
+        discrepancyReason: 'One unit damaged in transit',
+      });
+
+      expect(tx.shipmentUnit.update).toHaveBeenCalledWith({
+        where: { id: 'su-1' },
+        data: expect.objectContaining({ status: 'DELIVERED' }),
+      });
+      expect(tx.shipmentUnit.update).toHaveBeenCalledWith({
+        where: { id: 'su-2' },
+        data: { status: 'DISCREPANCY' },
+      });
+      expect(tx.bloodUnit.update).toHaveBeenCalledWith({
+        where: { id: 'bu-2' },
+        data: { status: 'RESERVED' },
+      });
+      expect(tx.bloodUnitReservation.update).toHaveBeenCalledTimes(1);
+      expect(tx.bloodRequest.update).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ status: 'PARTIALLY_DELIVERED' }) }),
+      );
     });
   });
 
