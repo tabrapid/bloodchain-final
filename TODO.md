@@ -2677,9 +2677,9 @@ These make the product unusable or unsafe for real users. Fix first, in order.
 - [x] **P3-3. No Docker / docker-compose, no CI pipeline**
   (`.github/workflows`), despite `IMPLEMENTATION_SUMMARY.md` and
   `docs/roadmap.md` describing the platform as "production-ready." —
-  Fixed (Docker half only; CI pipeline — `.github/workflows` — is still
-  outstanding and intentionally out of scope for this installment):
-  Added a real multi-stage production `Dockerfile` for `apps/api`
+  Fixed (both halves — Docker infrastructure, then the CI pipeline;
+  done as two separate installments, written up in that order below):
+  **Docker half.** Added a real multi-stage production `Dockerfile` for `apps/api`
   (`node:22-slim` base — chosen over `alpine` specifically because the
   API's one native dependency, `argon2`, and Prisma's query engine both
   have better-tested glibc support than musl, and using the same base
@@ -2756,9 +2756,104 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   .env.example .env` (setting real JWT secrets) then `docker compose up
   --build` and confirm the API becomes healthy and reachable before
   trusting this in a real deployment.
+  **CI half.** Added `.github/workflows/ci.yml` with four parallel jobs
+  on every push/PR to `main` (plus `workflow_dispatch`), all on Node 22
+  with pnpm caching and a `prisma generate` step: `lint-and-typecheck`
+  (`pnpm typecheck` + `pnpm lint` across every workspace package),
+  `test` (the full 621-test backend unit suite — needs no database,
+  since every existing spec mocks `PrismaService`), `test-e2e` (a real
+  `postgres:16-alpine` **service container**, `prisma migrate deploy`,
+  `prisma:seed`, then `apps/api/test/app.e2e-spec.ts` booting the real
+  unmocked `AppModule` against that live database), and `build` (`pnpm
+  build` across all apps). Added a `concurrency` group with
+  `cancel-in-progress` so superseded runs don't pile up.
+  **Unlike the Docker half, this was genuinely verified end-to-end on
+  GitHub's own infrastructure** — across two real PRs (#4 and #5) and
+  five real workflow runs — and that verification was the entire point,
+  because it found **six real, previously-invisible bugs** that no
+  amount of local checking had surfaced. The root reason so much was
+  hiding: `apps/api/test/app.e2e-spec.ts` had existed in this repo since
+  before this session but had **never once successfully run** — it boots
+  the real, unmocked application graph, a path none of the 621 mocked
+  unit specs ever touch. The six:
+  (1) `import { v4 as uuidv4 } from 'uuid'` in three AI-module services
+  crashed Jest's CJS transform the moment the real `AppModule` loaded
+  them (uuid v14 is ESM-only) — fixed at the root by replacing all of
+  them with Node's built-in `crypto.randomUUID()` and dropping the
+  `uuid`/`@types/uuid` dependency entirely (which also made an existing
+  `jest.mock('uuid', ...)` workaround in a unit spec unnecessary).
+  (2) The same ESM-vs-CJS class of failure then surfaced for
+  `expo-server-sdk`, which unlike `uuid` is a genuine dependency with no
+  built-in replacement — fixed properly with a **pnpm-aware**
+  `transformIgnorePatterns` in `test/jest-e2e.json`
+  (`node_modules/\.pnpm/(?!(expo-server-sdk)@)`; the naive
+  `node_modules/(?!(expo-server-sdk)/)` pattern silently does nothing
+  under pnpm's nested `.pnpm/<pkg>@<version>/node_modules/<pkg>` layout).
+  (3) The spec imported supertest as `import * as request` — a
+  namespace import that isn't callable under this project's
+  `esModuleInterop`/ts-jest combination; fixed to the standard default
+  import.
+  (4) Once requests actually reached the app, **every route 404'd**: the
+  harness only did `createNestApplication()` + `app.init()`, so none of
+  `main.ts`'s CORS/helmet/`setGlobalPrefix('api/v1')`/`ValidationPipe`/
+  filter/interceptor setup ever ran and nothing existed under `/api/v1`.
+  Rather than duplicate that config into the test (guaranteeing future
+  drift), extracted it into a new `configureApp(app, config)` in
+  `apps/api/src/bootstrap.ts` that both `main.ts` and the e2e test now
+  call — so the tests exercise the same bootstrap production does.
+  (5) With those fixed the tests passed in CI (14/14) but the job then
+  **sat `in_progress` for 6+ minutes** instead of the ~4s the suite
+  takes — Jest's familiar "did not exit one second after the test run
+  has completed" condition (real `@nestjs/schedule` cron registrations
+  and a live Prisma pool that don't tear down on `app.close()`), benign
+  locally but an indefinite hang on a CI runner. Fixed with `--forceExit`
+  on the `test:e2e` script, which is NestJS's own documented
+  recommendation for exactly this case (real-app e2e, as opposed to
+  fully-mocked unit tests) rather than a workaround masking a defect.
+  (6) `POST /auth/register` then returned **404 in CI while passing
+  locally**. Treated it as a possible flake exactly once per protocol —
+  a `rerun_failed_jobs` reproduced it identically, so it was real. The
+  response's `x-ratelimit-limit: 10` header exactly matched
+  `@Post('register')`'s own `@Throttle` decorator, proving the route
+  *was* matched and its guards *did* run, which ruled out the
+  "route-not-registered" reading and pointed inside the handler:
+  `AuthService.register()` looks up the `DONOR` role and throws
+  `NotFoundException('DONOR role not found. Run seed script.')` when
+  it's missing. The CI job ran migrations but **never seeded**, so every
+  fresh CI database had zero `Role` rows; local runs had been passing
+  only because this session's dev database had been seeded repeatedly
+  for weeks of work. Rather than guess, reproduced CI's exact conditions
+  locally: created a genuinely fresh database, ran `migrate deploy`
+  only, and got the **identical** "7 failed, 7 passed, 14 total"
+  signature; then ran `prisma:seed` against that same database and
+  re-ran the suite for 14/14 passing — proving both the diagnosis and
+  the fix before pushing it. Added the missing `prisma:seed` step to the
+  workflow between migrations and the tests.
+  **Final state, verified on run #5 (commit `e9dccef`, PR #5):** `Unit
+  tests` ✓, `API e2e tests (real database)` ✓ (all 14 against a real
+  Postgres service container, ~6s), `Build all apps` ✓ — and `Lint &
+  typecheck` ✗, failing **only** on `@donor/mobile#typecheck` (8 of 10
+  turbo tasks pass; the backend's own `tsc --noEmit` is clean). That one
+  failure is **P3-9**, the NativeWind `className` defect logged
+  separately below — it is CI correctly surfacing a real, pre-existing
+  bug on its first run, not a pipeline misconfiguration, and it stays
+  red on purpose until P3-9 is actually fixed.
   - Files: `apps/api/Dockerfile` (new), `apps/api/docker-entrypoint.sh`
     (new), `docker-compose.yml` (new), `.dockerignore` (new),
-    `README.md` (new "Docker" section).
+    `README.md` (new "Docker" section), `.github/workflows/ci.yml`
+    (new), `apps/api/src/bootstrap.ts` (new — `configureApp` shared by
+    `main.ts` and the e2e test), `apps/api/src/main.ts` (now calls
+    `configureApp`), `apps/api/test/app.e2e-spec.ts` (supertest import,
+    real bootstrap config, account-activation step, login-once token
+    reuse), `apps/api/test/jest-e2e.json`
+    (pnpm-aware `transformIgnorePatterns`), `apps/api/package.json`
+    (`uuid`/`@types/uuid` removed, `--forceExit` on `test:e2e`),
+    `apps/api/src/modules/ai-health/ai-health.service.ts`,
+    `apps/api/src/modules/ai-health/ai-response.service.ts`,
+    `apps/api/src/modules/ai-logging/ai-logging.service.ts` (all three
+    `uuid` → `crypto.randomUUID()`),
+    `apps/api/src/modules/ai-logging/ai-logging.service.spec.ts`
+    (obsolete `jest.mock('uuid')` removed).
 
 - [ ] **P3-4. `.env.example` gaps**: `AI_BASE_URL`/`AI_ENABLED`/
   `AI_MAX_TOKENS`/`AI_MODEL`/`AI_TIMEOUT_MS` are read by code but
@@ -2878,11 +2973,16 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   than introducing NativeWind app-wide just for 4 files. Directly
   relevant to **P3-3**: the new `.github/workflows/ci.yml`'s
   `lint-and-typecheck` job runs `pnpm typecheck`/`pnpm lint` across
-  every workspace package including `@donor/mobile`, so it will
-  correctly show this job failing on the very first CI run — that is
-  CI doing its job (surfacing a real, previously undiagnosed defect),
-  not a CI misconfiguration, and is called out explicitly in P3-3's own
-  write-up so it isn't mistaken for one.
+  every workspace package including `@donor/mobile`, so this is now the
+  one red job on an otherwise fully green pipeline — **confirmed on the
+  real CI run**, which failed on exactly one of its ten turbo tasks
+  (`@donor/mobile#typecheck`) with these same `className` errors while
+  the backend's own `tsc --noEmit`, the 621 unit tests, the 14 API e2e
+  tests, and the full build all passed. That is CI doing its job
+  (surfacing a real, previously undiagnosed defect), not a CI
+  misconfiguration, and is called out explicitly in P3-3's own write-up
+  so it isn't mistaken for one. Fixing these 4 screens turns the
+  pipeline fully green.
   - Files: `apps/mobile/app/(app)/community/index.tsx`,
     `apps/mobile/app/(app)/education/index.tsx`,
     `apps/mobile/app/(app)/challenges/index.tsx`,
@@ -3203,6 +3303,26 @@ but someone with real registry access should run the actual build
 before trusting this in a deployment. CI pipeline
 (`.github/workflows`) is a separate, still-outstanding half of this
 item).~~ ✅ (partial)
-Next up: **P3-3**'s CI-pipeline half (`.github/workflows`), or the
-remainder of **P3-2** (Next.js app pages, more `packages/ui`
-components, mobile/Expo test setup).
+~~**P3-3 second installment** (CI-pipeline half — `.github/workflows/ci.yml`
+with 4 jobs: lint+typecheck, 621 unit tests, API e2e against a real
+`postgres:16-alpine` service container, and a full build. Unlike the
+Docker half this was **genuinely verified end-to-end on GitHub's own
+infrastructure**, across 2 real PRs and 5 real workflow runs — and that
+verification earned its keep, finding 6 real bugs that had been
+invisible because `app.e2e-spec.ts` had never once successfully run in
+this repo's history: two ESM-only packages breaking Jest's CJS
+transform (`uuid` → replaced with `crypto.randomUUID()`;
+`expo-server-sdk` → pnpm-aware `transformIgnorePatterns`), a
+non-callable supertest namespace import, every route 404ing because the
+e2e harness never ran `main.ts`'s bootstrap config (fixed by extracting
+a shared `configureApp()` into `src/bootstrap.ts`), the e2e job hanging
+6+ minutes on a runner (`--forceExit`), and finally `POST /auth/register`
+404ing in CI only — root-caused via a rigorous fresh-database local
+reproduction to the workflow running migrations but never seeding, so
+the `DONOR` role `register()` requires didn't exist. Final run: unit
+tests ✓, e2e 14/14 ✓, build ✓; lint+typecheck ✗ **on purpose**, failing
+only on `@donor/mobile` — that's P3-9, a real pre-existing defect CI
+correctly surfaced, not a pipeline problem).~~ ✅
+Next up: the remainder of **P3-2** (Next.js app pages, more
+`packages/ui` components, mobile/Expo test setup), or **P3-9** (the 4
+unstyled mobile screens now holding the CI lint job red).
