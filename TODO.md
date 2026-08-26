@@ -1924,7 +1924,7 @@ These make the product unusable or unsafe for real users. Fix first, in order.
     `apps/api/src/modules/laboratory/laboratory.service.ts` (+ spec).
   `apps/api/src/modules/laboratory/laboratory.controller.ts:249-273`.
 
-- [ ] **P2-16. Two complete, independent modules both implement
+- [x] **P2-16. Two complete, independent modules both implement
   notification preferences (found while verifying P2-4)** —
   `apps/api/src/modules/notification-preferences/` (small, standalone)
   and `apps/api/src/modules/notifications/` (the larger combined
@@ -1953,7 +1953,70 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   validation (already fixed in P2-4) merged in if not already equivalent.
   `apps/api/src/modules/notification-preferences/`,
   `apps/api/src/modules/notifications/notifications.controller.ts:105-116`,
-  `apps/api/src/app.module.ts`.
+  `apps/api/src/app.module.ts`. — Fixed: went with `notifications` as
+  the canonical survivor per the TODO's own analysis (its service is the
+  one with load-bearing quiet-hours/channel logic used by the real
+  delivery pipeline). Deleted `notification-preferences/` entirely
+  (controller, service, module, DTO — confirmed via grep it was
+  referenced nowhere outside its own files except `app.module.ts`'s
+  registration) and removed its `app.module.ts` import/registration.
+  Its DTO validation was already byte-for-byte identical to the
+  survivor's (same fields, same decorators, same regex — P2-4's fix had
+  already brought them to parity), so no merge was needed there.
+  Two real behavioral gaps would have opened up if I'd stopped at
+  deletion, both closed before calling this done:
+  (1) **Lost audit logging.** The dead module's `updatePreferences`
+  audit-logged every change (`NOTIFICATION_PREFERENCES_UPDATED`); the
+  survivor's never did. Since the dead module was the one actually
+  answering live traffic, deleting it would have silently *removed* an
+  existing audit trail rather than just relocating it. Added the same
+  audit call (and the `ipAddress` plumbing to carry it) to the survivor.
+  (2) **Response-shape mismatch nothing had caught.** The dead module
+  wrapped its response in `{ data: {...} }` (matching this API's
+  near-universal envelope convention and exactly what the mobile
+  client's `apiRequest` helper unwraps via `json.data`); the survivor
+  returned the preferences object flat, with no wrapper. Confirmed the
+  mobile client's own `NotificationPreferences` TypeScript interface and
+  `useNotificationPreferences()` hook were already written expecting the
+  wrapped, full-field (`userId`/`createdAt`/`updatedAt` included) shape —
+  i.e. the mobile code was written for the survivor's fields but the
+  dead module's wrapping, and neither matched what was actually live.
+  Nothing renders this today (no screen calls the hook yet), so it
+  wasn't a visible bug, but consolidating onto a shape the client
+  couldn't actually consume would have been trading a reachability bug
+  for a silent-`undefined` one. Wrapped the survivor's two controller
+  responses in `{ data: ... }` to match.
+  While live-verifying, found and fixed a *third*, newly-surfaced
+  problem: `notifications.controller.ts`'s own `@Get(':id')` was
+  registered before its `@Get('preferences')`, so — now that this
+  controller's routes were finally reachable instead of being shadowed
+  by the whole other module — `GET /notifications/preferences` matched
+  `findOne('preferences')` first and 404'd. This exact bug had been
+  sitting latent and untested in the file the entire time the dead
+  module was winning; deleting the dead module is what finally exposed
+  it. Moved `@Get('preferences')` above `@Get(':id')`.
+  Verified: 11 new tests in a new `notification-preference.service.spec.ts`
+  (this service had zero prior coverage) covering `getPreferences`
+  create-on-first-access, `updatePreferences` create-vs-update branches
+  and its new audit log call, `isChannelEnabled`'s category mapping and
+  unknown-category default, and `isInQuietHours`'s overnight/same-day
+  window math at fixed, mocked UTC timestamps. Full suite 412/412
+  passing (up from 401), clean `tsc --noEmit`, 0 new lint errors, and a
+  clean app boot with no module-resolution errors after the deletion.
+  Live end-to-end against the real Postgres + running API: confirmed
+  `GET /notifications/preferences` first hit the exact 404 the stale
+  route ordering predicted, fixed it, then confirmed the endpoint
+  returns the correct `{ data: {...} }` shape (with the previously
+  dead-module-only fields `userId`/`createdAt`/`updatedAt` now present),
+  that `PATCH /notifications/preferences` updates a real preference and
+  produces a real `NOTIFICATION_PREFERENCES_UPDATED` audit log row where
+  before this fix's audit-logging addition it would have produced none.
+  Reverted the test preference change and deleted the test-generated
+  audit row afterward.
+  - Files: `apps/api/src/app.module.ts`,
+    `apps/api/src/modules/notifications/notifications.controller.ts`,
+    `apps/api/src/modules/notifications/services/notification-preference.service.ts`
+    (+ new spec); deleted `apps/api/src/modules/notification-preferences/`.
 
 - [ ] **P2-17. Any donor profile update resets `verificationStatus` to
   `REQUIRES_REVIEW` (found while verifying P2-6)** — `DonorsService.
@@ -2214,6 +2277,15 @@ explicit guard against the underlying Prisma pitfall, and swept all 24
 controllers confirming this was an isolated bug, not a pattern;
 live-verified the 400 now fires correctly and a real result attaches to
 the exact right appointment).~~ ✅
-Next up: **P2-16** (two complete, independent modules both implement
-notification preferences), then the rest of P2, folding in P3-1 tests
-as each area is touched.
+~~**P2-16** (two independent modules both implemented notification
+preferences at the same route, one permanently shadowing the other;
+consolidated on the `notifications` module per the TODO's own analysis,
+restored the audit logging and `{data}` response-wrapping the dead
+module had that the survivor lacked, and fixed a third bug the deletion
+itself exposed — the survivor's own `@Get(':id')` was shadowing its
+`@Get('preferences')`, latent the whole time the dead module was
+winning; live-verified the 404 it caused, the fix, and the restored
+audit trail).~~ ✅
+Next up: **P2-17** (any donor profile update resets `verificationStatus`
+to `REQUIRES_REVIEW`, regardless of which fields changed), then the
+rest of P2, folding in P3-1 tests as each area is touched.

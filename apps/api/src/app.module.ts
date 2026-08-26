@@ -30,7 +30,6 @@ import { GamificationModule } from './modules/gamification/gamification.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
 import { LaboratoryModule } from './modules/laboratory/laboratory.module';
-import { NotificationPreferencesModule } from './modules/notification-preferences/notification-preferences.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { OrganizationsModule } from './modules/organizations/organizations.module';
 import { PermissionsModule } from './modules/permissions/permissions.module';
@@ -94,7 +93,6 @@ import { IdempotencyModule } from './modules/idempotency/idempotency.module';
     DonorsModule,
     HealthModule,
     PermissionsModule,
-    NotificationPreferencesModule,
     NotificationsModule,
     AppointmentsModule,
     AppointmentSlotsModule,

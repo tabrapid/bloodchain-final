@@ -1,10 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../database/prisma.service';
+import { AuditLogsService } from '../../audit-logs/audit-logs.service';
 import { UpdateNotificationPreferencesDto, NotificationPreferenceResponseDto } from '../dto';
 
 @Injectable()
 export class NotificationPreferenceService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly audit: AuditLogsService,
+  ) {}
 
   async getPreferences(userId: string) {
     let prefs = await this.prisma.notificationPreference.findUnique({
@@ -20,7 +24,7 @@ export class NotificationPreferenceService {
     return this.toResponseDto(prefs);
   }
 
-  async updatePreferences(userId: string, dto: UpdateNotificationPreferencesDto) {
+  async updatePreferences(userId: string, dto: UpdateNotificationPreferencesDto, ipAddress?: string) {
     let prefs = await this.prisma.notificationPreference.findUnique({
       where: { userId },
     });
@@ -35,6 +39,14 @@ export class NotificationPreferenceService {
         data: dto,
       });
     }
+
+    await this.audit.log({
+      actorId: userId,
+      action: 'NOTIFICATION_PREFERENCES_UPDATED',
+      entityType: 'NotificationPreference',
+      entityId: prefs.id,
+      ipAddress,
+    });
 
     return this.toResponseDto(prefs);
   }
