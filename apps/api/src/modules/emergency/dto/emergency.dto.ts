@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { BloodType, RhFactor } from '@prisma/client';
+import { BloodType, ComponentType, RhFactor } from '@prisma/client';
 import {
   IsDateString,
   IsEnum,
@@ -22,6 +22,11 @@ export class CreateEmergencyDto {
   @ApiProperty({ enum: RhFactor })
   @IsEnum(RhFactor)
   rhFactor!: RhFactor;
+
+  @ApiPropertyOptional({ enum: ComponentType, description: 'Defaults to WHOLE_BLOOD when omitted.' })
+  @IsOptional()
+  @IsEnum(ComponentType)
+  componentType?: ComponentType;
 
   @ApiProperty()
   @IsInt()
@@ -92,6 +97,11 @@ export class CompleteEmergencyResponseDto {
   @IsOptional()
   @IsEnum(RhFactor)
   rhFactor?: RhFactor;
+
+  @ApiPropertyOptional({ enum: ComponentType })
+  @IsOptional()
+  @IsEnum(ComponentType)
+  componentType?: ComponentType;
 
   @ApiPropertyOptional()
   @IsOptional()

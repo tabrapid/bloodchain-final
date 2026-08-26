@@ -1281,12 +1281,61 @@ These make the product unusable or unsafe for real users. Fix first, in order.
     `apps/api/src/modules/notifications/dto/notification-preference.dto.ts`,
     `apps/api/src/modules/notification-preferences/dto/update-notification-preferences.dto.ts`.
 
-- [ ] **P2-5. `EmergencyRequest` has no blood-component field** — only
-  blood type, unlike the parallel `BloodRequestItem` model — so an
-  emergency can't specify whole blood vs. plasma vs. platelets. Completion
-  also hardcodes `donationType: 'WHOLE_BLOOD'` regardless of what was
-  requested. `apps/api/prisma/schema.prisma:1111-1146`,
-  `apps/api/src/modules/emergency/emergency.service.ts:871`.
+- [x] **P2-5. `EmergencyRequest` has no blood-component field** — Fixed:
+  added `componentType ComponentType @default(WHOLE_BLOOD)` to
+  `EmergencyRequest` (migration `20260826065126_add_emergency_component_type`,
+  default backfills existing rows safely, matches `BloodRequestItem`'s own
+  `componentType` field/default). Wired end-to-end rather than just adding
+  a column nobody could set: `CreateEmergencyDto` accepts an optional
+  `componentType` (validated against the real enum, defaults to
+  `WHOLE_BLOOD` server-side when omitted); `completeEmergency` derives the
+  donation's `donationType` from it via a new
+  `COMPONENT_TO_DONATION_TYPE` map instead of the previous hardcoded
+  `'WHOLE_BLOOD'` literal, and passes the real `componentType` through to
+  the `BloodUnit` record it creates (previously silently defaulting to
+  `WHOLE_BLOOD` via the column's own Prisma default, regardless of what
+  was actually collected). `DonationType` has no packed-red-cells value
+  the way `ComponentType` does, so `RED_CELLS` maps to `DonationType.OTHER`
+  for the donation record specifically — documented inline — while the
+  `BloodUnit`'s own `componentType` keeps the precise value throughout.
+  Added the same staff-facing override `CompleteEmergencyResponseDto`
+  already supports for `bloodType`/`rhFactor` (in case what's actually
+  collected differs from what was originally requested), matching that
+  existing pattern rather than inventing a new one.
+  Also wired the one real consumer of this field: hospital-web's
+  create-emergency form had no component-type selector at all despite
+  already having one for blood type/Rh/urgency — added a
+  `COMPONENT_TYPES` select next to Urgency Level, defaulting to
+  `WHOLE_BLOOD`, and surfaced it in the emergency list's summary line
+  (`O-POSITIVE • PLATELETS • 1 unit required`, previously omitting
+  component entirely). Left the completion `prompt()`-based UI as-is —
+  it doesn't expose the pre-existing `bloodType`/`rhFactor` overrides
+  either, so adding a `componentType` override there would be new UI
+  scope beyond what this item's own file pointers covered, not a
+  regression this fix introduced.
+  Verified: 4 new tests (`createEmergency` defaulting/persisting
+  `componentType`, `completeEmergency` deriving `donationType` from it,
+  and the `RED_CELLS`→`OTHER` override mapping), full suite 323/323
+  passing (up from 319), clean `tsc --noEmit` on both the API and
+  hospital-web, clean `next build` on hospital-web, 0 new lint warnings.
+  Live end-to-end against the real Postgres + running API: created a real
+  emergency with no `componentType` (persisted `WHOLE_BLOOD`), created one
+  with `componentType: PLATELETS` (persisted correctly), confirmed an
+  invalid value `400`s with the real enum list in the error message,
+  drove that PLATELETS emergency through a synthetic
+  `DONATION_STARTED` response to a real completion and confirmed the
+  resulting `Donation.donationType` and `BloodUnit.componentType` rows
+  both correctly show `PLATELETS` — not the old hardcoded `WHOLE_BLOOD`.
+  Cleaned up all test data afterward, including the real XP/achievement
+  side effects the completion correctly triggered (confirms P1-6's
+  gamification wiring still fires through this less-common code path
+  too) — reverted the test donor's XP/level and deleted the achievement
+  unlocks.
+  - Files: `apps/api/prisma/schema.prisma` (+ migration),
+    `apps/api/src/modules/emergency/dto/emergency.dto.ts`,
+    `apps/api/src/modules/emergency/emergency.service.ts` (+ spec),
+    `apps/hospital-web/lib/emergency.ts`,
+    `apps/hospital-web/app/emergency/page.tsx`.
 
 - [ ] **P2-6. Emergency matching ignores real geo distance** —
   `distanceKm`/`matchScore` fields exist on `EmergencyMatch` but are never
@@ -1532,5 +1581,10 @@ validation entirely — added real classes with enum/range/format checks;
 found and fixed a genuine live 500-on-bad-input in `mark-read`, and
 discovered a whole duplicate notification-preferences module silently
 shadowing the one this item was fixing, split out to new P2-16).~~ ✅
-Next up: **P2-5** (`EmergencyRequest` has no blood-component field), then
+~~**P2-5** (`EmergencyRequest` had no blood-component field — added
+`componentType` with a migration, wired it through creation, completion's
+donation/blood-unit records (replacing the hardcoded `WHOLE_BLOOD`), and
+hospital-web's create-emergency form; live-verified a real PLATELETS
+emergency completing into a real PLATELETS `Donation`/`BloodUnit`).~~ ✅
+Next up: **P2-6** (Emergency matching ignores real geo distance), then
 the rest of P2, folding in P3-1 tests as each area is touched.

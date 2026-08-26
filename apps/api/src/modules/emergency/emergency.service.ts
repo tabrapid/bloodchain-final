@@ -8,6 +8,8 @@ import {
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   BloodType,
+  ComponentType,
+  DonationType,
   DonorStatus,
   EmergencyMatchStatus,
   EmergencyResponseStatus,
@@ -31,6 +33,17 @@ import { assertOrganizationActive } from '../../common/utils/organization-status
 const SOS_REQUEST_CREATED_EVENT = 'sos.request.created';
 const SOS_DONOR_ACCEPTED_EVENT = 'sos.donor.accepted';
 const DEFAULT_WHOLE_BLOOD_VOLUME_ML = 450;
+
+// DonationType has no packed-red-cells value; RED_CELLS emergencies still
+// record as an OTHER-type donation, matching the inventory's own BloodUnit
+// (which keeps the precise ComponentType regardless of the donation record).
+const COMPONENT_TO_DONATION_TYPE: Record<ComponentType, DonationType> = {
+  [ComponentType.WHOLE_BLOOD]: DonationType.WHOLE_BLOOD,
+  [ComponentType.PLASMA]: DonationType.PLASMA,
+  [ComponentType.PLATELETS]: DonationType.PLATELETS,
+  [ComponentType.RED_CELLS]: DonationType.OTHER,
+  [ComponentType.OTHER]: DonationType.OTHER,
+};
 
 const BLOOD_COMPATIBILITY: Record<string, string[]> = {
   'O-NEGATIVE': ['O-NEGATIVE', 'O-POSITIVE', 'A-NEGATIVE', 'A-POSITIVE', 'B-NEGATIVE', 'B-POSITIVE', 'AB-NEGATIVE', 'AB-POSITIVE'],
@@ -188,6 +201,7 @@ export class EmergencyService {
     dto: {
       bloodType: string;
       rhFactor: string;
+      componentType?: ComponentType;
       unitsRequired: number;
       urgencyLevel?: string;
       patientReference?: string;
@@ -215,6 +229,7 @@ export class EmergencyService {
           hospitalId: organizationId,
           bloodType: dto.bloodType as BloodType,
           rhFactor: dto.rhFactor as RhFactor,
+          componentType: dto.componentType ?? ComponentType.WHOLE_BLOOD,
           unitsRequired: dto.unitsRequired,
           urgencyLevel: dto.urgencyLevel || 'CRITICAL',
           status: EmergencyStatus.DRAFT,
@@ -855,7 +870,7 @@ export class EmergencyService {
     organizationId: string,
     staffUserId: string,
     responseId: string,
-    dto: { bloodType?: BloodType; rhFactor?: RhFactor; volumeMl?: number },
+    dto: { bloodType?: BloodType; rhFactor?: RhFactor; componentType?: ComponentType; volumeMl?: number },
   ) {
     const { user: staff } = await this.checkHospitalAccess(staffUserId, organizationId);
 
@@ -881,6 +896,7 @@ export class EmergencyService {
 
     const bloodType = dto.bloodType ?? response.donor.donorProfile?.bloodType ?? response.emergencyRequest.bloodType;
     const rhFactor = dto.rhFactor ?? response.donor.donorProfile?.rhFactor ?? response.emergencyRequest.rhFactor;
+    const componentType = dto.componentType ?? response.emergencyRequest.componentType;
     const volumeMl = dto.volumeMl ?? DEFAULT_WHOLE_BLOOD_VOLUME_ML;
 
     const result = await this.db.$transaction(async (tx) => {
@@ -889,7 +905,7 @@ export class EmergencyService {
           donationReference: this.generateDonationReference(),
           donorId: response.donorId,
           organizationId,
-          donationType: 'WHOLE_BLOOD',
+          donationType: COMPONENT_TO_DONATION_TYPE[componentType],
           status: 'COMPLETED',
           bloodType,
           rhFactor,
@@ -907,7 +923,7 @@ export class EmergencyService {
           eventType: 'COMPLETED',
           actorId: staff.id,
           organizationId,
-          metadata: { source: 'EMERGENCY', emergencyResponseId: responseId, bloodType, rhFactor, volumeMl },
+          metadata: { source: 'EMERGENCY', emergencyResponseId: responseId, bloodType, rhFactor, componentType, volumeMl },
         },
       });
 
@@ -916,6 +932,7 @@ export class EmergencyService {
           unitReference: this.generateUnitReference(),
           donationId: donation.id,
           organizationId,
+          componentType,
           bloodType,
           rhFactor,
           volumeMl,

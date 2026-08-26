@@ -43,6 +43,7 @@ import { useEmergencyTracking } from '../../lib/useEmergencyTracking';
 const BLOOD_TYPES = ['A', 'B', 'AB', 'O'];
 const RH_FACTORS = ['POSITIVE', 'NEGATIVE'];
 const URGENCY_LEVELS = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'];
+const COMPONENT_TYPES = ['WHOLE_BLOOD', 'RED_CELLS', 'PLASMA', 'PLATELETS', 'OTHER'];
 
 const statusConfig: Record<string, { label: string; variant: 'success' | 'warning' | 'info' | 'default' | 'danger' }> = {
   DRAFT: { label: 'Draft', variant: 'default' },
@@ -60,6 +61,7 @@ const statusConfig: Record<string, { label: string; variant: 'success' | 'warnin
 interface NewEmergencyForm {
   bloodType: string;
   rhFactor: string;
+  componentType: string;
   unitsRequired: number;
   urgencyLevel: string;
   patientReference: string;
@@ -80,6 +82,7 @@ export default function EmergencyPage() {
   const [newEmergency, setNewEmergency] = useState<NewEmergencyForm>({
     bloodType: 'O',
     rhFactor: 'NEGATIVE',
+    componentType: 'WHOLE_BLOOD',
     unitsRequired: 1,
     urgencyLevel: 'CRITICAL',
     patientReference: '',
@@ -137,6 +140,7 @@ export default function EmergencyPage() {
       setNewEmergency({
         bloodType: 'O',
         rhFactor: 'NEGATIVE',
+        componentType: 'WHOLE_BLOOD',
         unitsRequired: 1,
         urgencyLevel: 'CRITICAL',
         patientReference: '',
@@ -388,6 +392,7 @@ export default function EmergencyPage() {
                       </div>
                       <p className="mt-1 text-sm text-donor-muted">
                         {emergency.bloodType}-{emergency.rhFactor} •{' '}
+                        {emergency.componentType.replace('_', ' ')} •{' '}
                         {emergency.unitsRequired} unit
                         {emergency.unitsRequired !== 1 ? 's' : ''} required
                         {emergency.patientReference &&
@@ -611,6 +616,27 @@ export default function EmergencyPage() {
                 {URGENCY_LEVELS.map((level) => (
                   <option key={level} value={level}>
                     {level}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-donor-muted">
+                Component Needed
+              </label>
+              <select
+                value={newEmergency.componentType}
+                onChange={(e) =>
+                  setNewEmergency({
+                    ...newEmergency,
+                    componentType: e.target.value,
+                  })
+                }
+                className="w-full rounded-lg border border-donor-border bg-donor-surface px-3 py-2 text-sm text-donor-text"
+              >
+                {COMPONENT_TYPES.map((type) => (
+                  <option key={type} value={type}>
+                    {type.replace('_', ' ')}
                   </option>
                 ))}
               </select>

@@ -31,6 +31,7 @@ function makeResponse(overrides: Record<string, any> = {}) {
       hospitalId: 'org-1',
       bloodType: 'O',
       rhFactor: 'NEGATIVE',
+      componentType: 'WHOLE_BLOOD',
       emergencyReference: 'SOS-2026-000001',
     },
     donor: { donorProfile: { bloodType: 'O', rhFactor: 'NEGATIVE' } },
@@ -116,6 +117,32 @@ describe('EmergencyService.completeEmergency', () => {
       where: { id: 'req-1' },
       data: { status: EmergencyStatus.COMPLETED, closedAt: expect.any(Date) },
     });
+  });
+
+  it("derives the donation's componentType and donationType from the emergency request when not overridden", async () => {
+    await service.completeEmergency('org-1', 'staff-1', 'resp-1', {});
+
+    expect(tx.donation.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ donationType: 'WHOLE_BLOOD' }) }),
+    );
+    expect(tx.bloodUnit.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ componentType: 'WHOLE_BLOOD' }) }),
+    );
+  });
+
+  it('lets staff override the componentType at completion, mapping RED_CELLS to DonationType.OTHER', async () => {
+    prisma.emergencyResponse.findUnique.mockResolvedValue(
+      makeResponse({ emergencyRequest: { hospitalId: 'org-1', bloodType: 'O', rhFactor: 'NEGATIVE', componentType: 'WHOLE_BLOOD', emergencyReference: 'SOS-2026-000001' } }),
+    );
+
+    await service.completeEmergency('org-1', 'staff-1', 'resp-1', { componentType: 'RED_CELLS' as any });
+
+    expect(tx.donation.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ donationType: 'OTHER' }) }),
+    );
+    expect(tx.bloodUnit.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ componentType: 'RED_CELLS' }) }),
+    );
   });
 });
 
@@ -231,6 +258,63 @@ describe('EmergencyService.createEmergency', () => {
         unitsRequired: 2,
       }),
     ).rejects.toBe(marker);
+  });
+
+  it('defaults componentType to WHOLE_BLOOD when not provided', async () => {
+    const prisma: any = {
+      emergencyRequest: { create: jest.fn().mockResolvedValue({ id: 'req-1', emergencyReference: 'SOS-2026-000001' }) },
+      $transaction: jest.fn().mockImplementation(async (cb: any) => cb(prisma)),
+    };
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        EmergencyService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: AuditLogsService, useValue: { log: jest.fn().mockResolvedValue({}) } },
+        { provide: EventEmitter2, useValue: { emit: jest.fn() } },
+        { provide: EmergencyGateway, useValue: {} },
+        { provide: DonationEligibilityService, useValue: {} },
+        { provide: PlatformSettingsService, useValue: platformSettings },
+      ],
+    }).compile();
+    const svc = module.get<EmergencyService>(EmergencyService);
+    jest.spyOn(svc, 'checkHospitalAccess').mockResolvedValue({ user: { id: 'staff-1' } } as any);
+
+    await svc.createEmergency('org-1', 'staff-1', { bloodType: 'O', rhFactor: 'NEGATIVE', unitsRequired: 2 });
+
+    expect(prisma.emergencyRequest.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ componentType: 'WHOLE_BLOOD' }) }),
+    );
+  });
+
+  it('persists an explicit componentType when provided', async () => {
+    const prisma: any = {
+      emergencyRequest: { create: jest.fn().mockResolvedValue({ id: 'req-1', emergencyReference: 'SOS-2026-000001' }) },
+      $transaction: jest.fn().mockImplementation(async (cb: any) => cb(prisma)),
+    };
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        EmergencyService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: AuditLogsService, useValue: { log: jest.fn().mockResolvedValue({}) } },
+        { provide: EventEmitter2, useValue: { emit: jest.fn() } },
+        { provide: EmergencyGateway, useValue: {} },
+        { provide: DonationEligibilityService, useValue: {} },
+        { provide: PlatformSettingsService, useValue: platformSettings },
+      ],
+    }).compile();
+    const svc = module.get<EmergencyService>(EmergencyService);
+    jest.spyOn(svc, 'checkHospitalAccess').mockResolvedValue({ user: { id: 'staff-1' } } as any);
+
+    await svc.createEmergency('org-1', 'staff-1', {
+      bloodType: 'O',
+      rhFactor: 'NEGATIVE',
+      componentType: 'PLATELETS' as any,
+      unitsRequired: 2,
+    });
+
+    expect(prisma.emergencyRequest.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ componentType: 'PLATELETS' }) }),
+    );
   });
 });
 

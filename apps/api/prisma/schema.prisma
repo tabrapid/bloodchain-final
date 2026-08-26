@@ -1131,6 +1131,7 @@ model EmergencyRequest {
   hospitalId         String
   bloodType          BloodType
   rhFactor           RhFactor
+  componentType      ComponentType   @default(WHOLE_BLOOD)
   unitsRequired      Int
   urgencyLevel       String          @default("CRITICAL")
   status             EmergencyStatus @default(DRAFT)
