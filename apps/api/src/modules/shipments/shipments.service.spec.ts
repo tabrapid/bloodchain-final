@@ -957,3 +957,107 @@ describe('ShipmentsService reference-number collision retry', () => {
     expect(result.id).toBe('shp-1');
   });
 });
+
+describe('ShipmentsService.approveRequest', () => {
+  let service: ShipmentsService;
+  let prisma: any;
+  let tx: any;
+
+  const item = { id: 'item-1', bloodType: 'O', rhFactor: 'POSITIVE', unitsRequested: 1, unitsApproved: 0 };
+  const reservation = {
+    id: 'res-1',
+    bloodUnitId: 'bu-1',
+    reservedAt: new Date('2026-01-01'),
+    bloodUnit: { id: 'bu-1', status: 'AVAILABLE' },
+  };
+
+  beforeEach(async () => {
+    tx = {
+      bloodRequestItem: {
+        update: jest.fn().mockResolvedValue({}),
+        findMany: jest.fn().mockResolvedValue([{ ...item, unitsApproved: 1 }]),
+      },
+      bloodUnitReservation: {
+        findMany: jest.fn().mockResolvedValue([reservation]),
+        update: jest.fn().mockResolvedValue({}),
+      },
+      bloodUnit: { updateMany: jest.fn().mockResolvedValue({ count: 1 }) },
+      bloodRequest: { update: jest.fn().mockResolvedValue({ id: 'req-1', status: 'APPROVED' }) },
+      bloodRequestEvent: { create: jest.fn().mockResolvedValue({}) },
+    };
+
+    prisma = {
+      bloodRequest: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'req-1',
+          status: 'SUBMITTED',
+          requestReference: 'REQ-2026-000001',
+          requestingOrganizationId: 'org-dest',
+          items: [item],
+        }),
+      },
+      $transaction: jest.fn().mockImplementation(async (cb: any) => cb(tx)),
+    };
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        ShipmentsService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: AuditLogsService, useValue: { log: jest.fn().mockResolvedValue({}) } },
+        { provide: EventEmitter2, useValue: { emit: jest.fn() } },
+        { provide: LocationService, useValue: {} },
+        { provide: ShipmentGateway, useValue: {} },
+      ],
+    }).compile();
+
+    service = module.get<ShipmentsService>(ShipmentsService);
+    jest.spyOn(service, 'checkBloodCenterAccess').mockResolvedValue({ user: { id: 'bc-user-1' } } as any);
+  });
+
+  it("links each claimed reservation to the BloodRequestItem it was approved for, so createShipment's item.reservations read finds it", async () => {
+    await service.approveRequest('org-1', 'bc-user-1', 'req-1', {
+      items: [{ itemId: 'item-1', unitsApproved: 1 }],
+    });
+
+    expect(tx.bloodUnitReservation.update).toHaveBeenCalledWith({
+      where: { id: 'res-1' },
+      data: expect.objectContaining({
+        bloodRequestItems: { connect: { id: 'item-1' } },
+      }),
+    });
+  });
+
+  it('claims the underlying unit as RESERVED', async () => {
+    await service.approveRequest('org-1', 'bc-user-1', 'req-1', {
+      items: [{ itemId: 'item-1', unitsApproved: 1 }],
+    });
+
+    expect(tx.bloodUnit.updateMany).toHaveBeenCalledWith({
+      where: { id: 'bu-1', status: 'AVAILABLE' },
+      data: { status: 'RESERVED' },
+    });
+  });
+
+  it('does not link a reservation whose unit claim lost the race', async () => {
+    tx.bloodUnit.updateMany.mockResolvedValue({ count: 0 });
+
+    await service.approveRequest('org-1', 'bc-user-1', 'req-1', {
+      items: [{ itemId: 'item-1', unitsApproved: 1 }],
+    });
+
+    expect(tx.bloodUnitReservation.update).not.toHaveBeenCalled();
+  });
+
+  it('rejects approving a request that is not SUBMITTED or UNDER_REVIEW', async () => {
+    prisma.bloodRequest.findUnique.mockResolvedValue({
+      id: 'req-1',
+      status: 'APPROVED',
+      items: [item],
+    });
+
+    await expect(
+      service.approveRequest('org-1', 'bc-user-1', 'req-1', { items: [{ itemId: 'item-1', unitsApproved: 1 }] }),
+    ).rejects.toThrow(BadRequestException);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+});

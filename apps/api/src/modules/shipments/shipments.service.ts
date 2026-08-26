@@ -347,6 +347,11 @@ export class ShipmentsService {
               data: {
                 reservedForOrganizationId: request.requestingOrganizationId,
                 reason: `Blood request ${request.requestReference}`,
+                // createShipment later reads item.reservations to decide which
+                // reservations become ShipmentUnit rows for this request's
+                // items -- without this link every shipment created from an
+                // approved request would ship with zero recorded units.
+                bloodRequestItems: { connect: { id: approval.itemId } },
               },
             });
           }

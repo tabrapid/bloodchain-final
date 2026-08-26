@@ -2057,7 +2057,7 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   afterward.
   - Files: `apps/api/src/modules/donors/donors.service.ts` (+ new spec).
 
-- [ ] **P2-18. `ShipmentsService.approveRequest` claims a `BloodUnit`
+- [x] **P2-18. `ShipmentsService.approveRequest` claims a `BloodUnit`
   and its reservation but never links the reservation to the
   `BloodRequestItem` it was approved for (found while live-verifying
   P2-14)** — `createShipment` later reads exactly that link
@@ -2083,7 +2083,76 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   same loop that already claims the unit.
   `apps/api/src/modules/shipments/shipments.service.ts:282-354` (the
   claim loop), `apps/api/src/modules/shipments/shipments.service.ts:463-530`
-  (`createShipment`'s `item.reservations` read).
+  (`createShipment`'s `item.reservations` read). — Fixed exactly as
+  suggested: added `bloodRequestItems: { connect: { id: approval.itemId } }`
+  to the existing `tx.bloodUnitReservation.update` call inside the claim
+  loop (merged into the same update that already sets
+  `reservedForOrganizationId`/`reason`, rather than a separate call).
+  Only runs when the atomic unit-claim actually succeeded (the existing
+  `if (count === 0) continue;` guard already skips a reservation whose
+  unit lost the race, so a lost race correctly never gets linked either).
+  While live-verifying, went one level deeper and found the fix's own
+  precondition — an `ACTIVE` `BloodUnitReservation` whose `BloodUnit` is
+  still `AVAILABLE` — **never actually occurs through any real code
+  path**: the only place a `BloodUnitReservation` gets created at all
+  (`InventoryService.reserveUnit`) atomically flips the unit to
+  `RESERVED` in the same transaction, and `releaseReservation` moves
+  both back to `AVAILABLE`/`RELEASED` together — so `approveRequest`'s
+  `bloodUnit: { status: 'AVAILABLE' }` filter can never match a real
+  reservation; the seed script doesn't create any reservations either.
+  This means today's fix is verified-correct for the exact scenario
+  it's designed for, but `approveRequest` still can't select real
+  inventory completely unassisted until that upstream selection gap is
+  closed too — logged as new **P2-19** rather than folding a larger
+  unit-selection redesign into this link-only fix.
+  Verified: 4 new tests in a new `ShipmentsService.approveRequest`
+  describe block (this method had zero prior coverage) — links a
+  successfully-claimed reservation to its request item; claims the
+  underlying unit as `RESERVED`; does *not* link a reservation whose
+  unit claim lost the race; rejects approving a request that isn't
+  `SUBMITTED`/`UNDER_REVIEW` — full suite 423/423 passing (up from 419),
+  clean `tsc --noEmit`, 0 new lint errors. Live end-to-end against the
+  real Postgres + running API (necessarily seeding one reservation
+  directly, per the P2-19 finding above, since no real endpoint produces
+  one): approved a real blood request for a real available B+ unit,
+  confirmed the many-to-many join row was created linking the exact
+  request item to the exact reservation, then created a real shipment
+  and confirmed — with **zero manual intervention this time**, unlike
+  P2-14's workaround — a real `ShipmentUnit` row was attached
+  automatically, and `GET /shipments/:id/tracking` correctly reported
+  `"bloodGroup": "1 B+"` instead of "No units assigned yet." Cleaned up
+  the shipment, its unit/events, the blood request and its item/events,
+  the reservation and its join-table row, generated notifications, and
+  audit log rows afterward, and restored the blood unit to `AVAILABLE`.
+  - Files: `apps/api/src/modules/shipments/shipments.service.ts` (+ spec).
+
+- [ ] **P2-19. `approveRequest` can never actually find a real reservation
+  to claim (found while live-verifying P2-18)** — its query requires an
+  `ACTIVE` `BloodUnitReservation` whose linked `BloodUnit` is still
+  `AVAILABLE`, but that combination never arises from any real code
+  path: `InventoryService.reserveUnit` (the only place a
+  `BloodUnitReservation` is ever created) atomically sets the unit to
+  `RESERVED` in the same transaction it creates the reservation, and
+  `releaseReservation` moves the unit back to `AVAILABLE` and the
+  reservation to `RELEASED` together. So a unit is either
+  `AVAILABLE`-with-no-reservation or `RESERVED`-with-an-`ACTIVE`-
+  reservation — never the `AVAILABLE`-with-`ACTIVE`-reservation state
+  `approveRequest` searches for. P2-18's fix (linking a found
+  reservation to its request item) is correct but can't help if nothing
+  is ever found: as things stand, `approveRequest`'s reservation-search
+  branch returns empty for every real submitted request, so no request
+  ever gets real units attached without someone manually seeding a
+  reservation via direct DB access first. Likely fix: stop searching for
+  a pre-existing "active reservation on an available unit" and instead
+  have `approveRequest` select `AVAILABLE` `BloodUnit`s of the matching
+  type directly, atomically claim each one (`AVAILABLE` → `RESERVED`,
+  as it already does), and *create* a new `BloodUnitReservation` for it
+  right there (linked to the request item), rather than updating one
+  that was supposed to already exist.
+  `apps/api/src/modules/shipments/shipments.service.ts:319-334`
+  (the query), `apps/api/src/modules/inventory/inventory.service.ts:601-660`
+  (`reserveUnit`, the only reservation-creation path, showing why the
+  precondition never holds).
 
 ---
 
@@ -2319,7 +2388,14 @@ real stored profile rather than just checking payload presence;
 live-verified against the real seeded donor's VERIFIED profile: an
 unrelated-field update and a same-value resubmission both correctly
 leave it untouched, a real blood-type change correctly resets it).~~ ✅
-Next up: **P2-18** (`approveRequest` claims a reservation but never
-links it to the `BloodRequestItem`, so every real shipment ships with
-zero recorded units — found while verifying P2-14), then the rest of
-P2, folding in P3-1 tests as each area is touched.
+~~**P2-18** (`approveRequest` claimed a reservation but never linked it
+to the `BloodRequestItem`, so every real shipment shipped with zero
+recorded units — added the missing link; live-verified a real shipment
+now auto-attaching a real unit end-to-end with zero manual intervention,
+unlike P2-14's workaround; found and logged an even deeper issue as new
+P2-19 — the reservation state the fix's precondition needs never
+actually arises from any real code path).~~ ✅
+Next up: **P2-19** (`approveRequest`'s reservation search can never
+match anything real — the last known gap in the fulfillment pipeline),
+then the rest of P2/P3 as it comes up. **All originally-planned P2 and
+P3-discovered-along-the-way items are now done except P2-19.**
