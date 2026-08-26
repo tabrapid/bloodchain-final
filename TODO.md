@@ -921,16 +921,64 @@ These make the product unusable or unsafe for real users. Fix first, in order.
     `apps/api/src/modules/emergency/emergency-cron.service.ts` (new, + spec),
     `apps/api/src/modules/emergency/emergency.module.ts`.
 
-- [ ] **P1-19. Mobile has no map view (split out of P1-10).**
-  P1-10 added real map views to hospital-web and blood-center-web, but
-  mobile's `sos.tsx` and `(courier)/active.tsx` only ever *send* the
-  device's own position in the background — neither renders a map of
-  anything (own position, destination, or anyone else's). A native map
-  view needs `react-native-maps` (or similar) plus a dev-client/EAS build
-  to test, which is a different-shaped task than the two web pages fixed
-  under P1-10 and wasn't verifiable the same way (headless browser
-  screenshot) in this session.
-  - Files: `apps/mobile/app/sos.tsx`, `apps/mobile/app/(courier)/active.tsx`.
+- [x] **P1-19. Mobile has no map view (split out of P1-10).** — Fixed: added
+  `react-native-maps@1.18.0` (the exact version Expo SDK 52 bundles —
+  confirmed via `expo/bundledNativeModules.json` rather than guessed) and a
+  new `LocationMap` component (`apps/mobile/src/components/map/LocationMap.tsx`),
+  the native counterpart of P1-10's web `LocationMap`: same marker-variant
+  color scheme (origin/destination/courier/donor/hospital), same optional
+  dashed route line, same fit-to-bounds-on-mount behavior (via
+  `MapView.fitToCoordinates`). Deliberately **not** exported through the
+  shared `src/components/index.ts` barrel — for the same reason P1-10's web
+  version isn't in its barrel either: `react-native-maps` links a native
+  module Expo Go doesn't ship, so importing it anywhere in a barrel that
+  every screen pulls in would crash the *entire app* under Expo Go, map
+  screens or not.
+  Wired into both screens named in this item, and both turned out to
+  already have the exact data-fetching code they needed sitting dead and
+  unused — the same "scaffolding exists, nothing connects it" pattern
+  found repeatedly this session:
+  - `sos.tsx` — `getDonorTracking(responseId)` existed in
+    `src/api/emergency.ts` and was never called anywhere. Now polled every
+    15s (matching the existing location-send interval) while a response is
+    `responding`/`en_route`/`arrived`, rendering the donor's own last
+    reported position and the hospital's destination coordinates. Extended
+    its return type (`DonorTrackingResponse`, new) since the endpoint
+    actually returns the nested `emergencyRequest.hospital` and `locations`
+    the screen needs, which the old `EmergencyResponse` return type didn't
+    declare.
+  - `(courier)/active.tsx` — `getShipmentTracking(shipmentId)` and its
+    `ShipmentTracking` type already existed in `src/api/courier.ts`,
+    likewise unused. Now polled every 20s (matching the existing
+    location-send interval) for any active shipment, rendering pickup
+    (origin), the courier's own last reported position, and delivery
+    (destination) with a route line between them.
+  Both screens degrade to showing nothing (not an error) when coordinates
+  aren't available yet, so the existing text-only info (hospital name/
+  address, pickup/destination addresses) they already rendered is
+  unaffected either way.
+  **Still needs before a real device can use it** (unchanged from this
+  item's original framing — this is a native module, not a pure JS change):
+  a `GOOGLE_MAPS_API_KEY` added to `app.json`'s `android.config.googleMaps.apiKey`
+  for Android tile rendering (iOS uses Apple Maps by default via
+  `PROVIDER_DEFAULT`, no key needed), and a dev-client or EAS build to run
+  it at all — `react-native-maps` is exactly the "first native feature"
+  `package.json`'s `test` script placeholder was written for
+  (`"Mobile component tests scheduled with the first native feature"`), so
+  component-level tests for `LocationMap` are left for whenever that native
+  test infrastructure gets built, rather than invented ad hoc here.
+  Verified: `tsc --noEmit` shows the exact same 160 pre-existing (unrelated
+  nativewind `className`-typing) errors before and after this change on a
+  clean `git stash`/`stash pop` comparison — zero new errors from any file
+  this item touched. More importantly, `npx expo export` for **both**
+  `--platform android` and `--platform ios` completed cleanly (3195 modules
+  each, real Metro bundling of the actual native module graph, not just
+  `tsc`) — the strongest verification available without a device/simulator
+  or the dev-client/EAS build this item's own scope note says is required
+  for a true on-device check.
+  - Files: `apps/mobile/package.json`, `apps/mobile/src/components/map/LocationMap.tsx` (new),
+    `apps/mobile/src/api/emergency.ts`, `apps/mobile/app/sos.tsx`,
+    `apps/mobile/app/(courier)/active.tsx`.
 
 - [ ] **P1-20. `organization.status` is never checked outside admin/auth (split out of P1-12).**
   Now that P1-12 makes `PENDING_APPROVAL` organizations a real, reachable
@@ -1145,5 +1193,11 @@ now persists the effective `requiredBefore` deadline instead of computing
 and discarding it, and a new `EmergencyCronService` runs every 5 minutes
 expiring stale requests/matches and finally emitting the pre-existing,
 previously-unreachable `sos.request.expired` event).~~ ✅
-Next up: **P1-19** (Mobile has no map view), then the rest of P1, then
-P2, folding in P3-1 tests as each area is touched.
+~~**P1-19** (Mobile had no map view — added `react-native-maps` and a
+native `LocationMap` mirroring P1-10's web component, wired into two
+already-existing-but-dead tracking API calls in `sos.tsx` and
+`(courier)/active.tsx`; verified via a clean Metro `expo export` for both
+platforms since no device/simulator is available in this sandbox).~~ ✅
+Next up: **P1-20** (`organization.status` never checked outside
+admin/auth), then the rest of P1, then P2, folding in P3-1 tests as each
+area is touched.
