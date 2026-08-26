@@ -1709,11 +1709,45 @@ These make the product unusable or unsafe for real users. Fix first, in order.
     `apps/api/src/modules/emergency/emergency.service.ts` (+ spec),
     `apps/api/src/modules/shipments/shipments.service.ts` (+ spec).
 
-- [ ] **P2-12. Cancelled/no-show lab appointments never reset slot status**
+- [x] **P2-12. Cancelled/no-show lab appointments never reset slot status**
   back to `AVAILABLE` (only `bookedCount` is decremented) — unlike the
   donation-appointment flow, which does this correctly. A `FULL` lab slot
   stays permanently unbookable after a cancellation.
-  `apps/api/src/modules/laboratory/laboratory.service.ts:1037-1116`.
+  `apps/api/src/modules/laboratory/laboratory.service.ts:1037-1116`. —
+  Fixed: confirmed live before fixing (see below) — both
+  `cancelAppointment` and `markNoShow` decremented `AppointmentSlot.
+  bookedCount` but never re-checked `status`, so a slot that had
+  flipped to `FULL` stayed `FULL` forever after the cancellation/no-show
+  that freed the seat, even though `bookedCount` correctly showed room
+  again. Mirrored the exact fix `appointments.service.ts`'s
+  `cancelAppointment` already uses for the donation-appointment flow: in
+  the same transaction, after decrementing, re-fetch the slot and flip
+  it back to `AVAILABLE` if it's `FULL` and now has room
+  (`bookedCount < capacity`). Applied to both `cancelAppointment` and
+  `markNoShow` (the donation-appointment flow has no no-show equivalent
+  to compare against, but it's the identical `AppointmentSlot` bug either
+  way). Checked for a lab-appointment reschedule flow that might have the
+  same gap — there isn't one; lab appointments can't be rescheduled at
+  all in this codebase, only cancelled.
+  Verified: 8 new tests (`cancelAppointment`: resets a `FULL` slot with
+  room, leaves a non-`FULL` slot untouched, rejects an already-cancelled
+  appointment, rejects cancelling within the 2-hour window;
+  `markNoShow`: same FULL-reset and untouched-when-not-FULL cases, rejects
+  a `COMPLETED` appointment), full suite 382/382 passing (up from 375),
+  clean `tsc --noEmit`, 0 new lint errors. Live end-to-end against the
+  real Postgres + running API: temporarily set a real, empty slot's
+  capacity to 1, booked it as a real donor through the real
+  `POST /laboratory-appointments` endpoint and confirmed it flipped to a
+  real `FULL` status, cancelled it through the real
+  `POST /me/laboratory-appointments/:id/cancel` endpoint and confirmed
+  the slot flipped back to `AVAILABLE` (not just that `bookedCount` hit
+  0) — then proved the fix wasn't cosmetic by successfully booking a
+  second real appointment on that same slot, which would have failed
+  with "Slot is not available" before this fix. Cleaned up both test
+  appointments, their audit log rows, and restored the slot's original
+  capacity/status afterward.
+  - Files: `apps/api/src/modules/laboratory/laboratory.service.ts`
+    (+ spec).
 
 - [ ] **P2-13. Notification "archive" is unreachable** — the
   `NotificationStatus.ARCHIVED` enum value exists but no service method or
@@ -1975,6 +2009,11 @@ that both bypasses are now caught).~~ ✅
 donations, laboratory, shipments, emergency, appointments — rather than
 leaving the same known bug in 6 of 8 places; live-verified the
 zero-collision happy path still works unchanged).~~ ✅
-Next up: **P2-12** (cancelled/no-show lab appointments never reset slot
-status back to `AVAILABLE`), then the rest of P2, folding in P3-1 tests
-as each area is touched.
+~~**P2-12** (cancelled/no-show lab appointments never reset a `FULL`
+slot back to `AVAILABLE` — mirrored the fix the donation-appointment
+flow already had; live-verified a real slot flip to FULL, back to
+AVAILABLE on cancel, and a real second booking succeeding on it
+afterward).~~ ✅
+Next up: **P2-13** (Notification "archive" is unreachable — the
+`ARCHIVED` enum value exists but nothing ever sets it), then the rest of
+P2, folding in P3-1 tests as each area is touched.

@@ -146,3 +146,151 @@ describe('LaboratoryService.bookLaboratoryAppointment', () => {
     expect(result.id).toBe('apt-1');
   });
 });
+
+function makeLabAppointment(overrides: Record<string, any> = {}) {
+  return {
+    id: 'apt-1',
+    donorId: 'donor-1',
+    organizationId: 'lab-1',
+    slotId: 'slot-1',
+    appointmentType: 'BLOOD_TEST',
+    status: 'PENDING',
+    scheduledStart: new Date(Date.now() + 24 * 60 * 60 * 1000),
+    ...overrides,
+  };
+}
+
+describe('LaboratoryService.cancelAppointment', () => {
+  let service: LaboratoryService;
+  let prisma: any;
+  let tx: any;
+
+  beforeEach(async () => {
+    tx = {
+      appointment: { update: jest.fn().mockResolvedValue({ id: 'apt-1', status: 'CANCELLED' }) },
+      appointmentSlot: {
+        update: jest.fn().mockResolvedValue({}),
+        findUnique: jest.fn().mockResolvedValue(makeSlot({ status: 'AVAILABLE', bookedCount: 2, capacity: 3 })),
+      },
+      appointmentHistory: { create: jest.fn().mockResolvedValue({}) },
+    };
+
+    prisma = {
+      appointment: { findFirst: jest.fn().mockResolvedValue(makeLabAppointment()) },
+      $transaction: jest.fn().mockImplementation(async (cb: any) => cb(tx)),
+    };
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        LaboratoryService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: AuditLogsService, useValue: { log: jest.fn().mockResolvedValue({}) } },
+        { provide: EventEmitter2, useValue: { emit: jest.fn() } },
+      ],
+    }).compile();
+
+    service = module.get<LaboratoryService>(LaboratoryService);
+  });
+
+  it('resets a FULL slot back to AVAILABLE once cancelling frees a seat', async () => {
+    tx.appointmentSlot.findUnique.mockResolvedValue(makeSlot({ status: 'FULL', bookedCount: 2, capacity: 3 }));
+
+    await service.cancelAppointment('donor-1', 'apt-1');
+
+    expect(tx.appointmentSlot.update).toHaveBeenCalledWith({
+      where: { id: 'slot-1' },
+      data: { bookedCount: { decrement: 1 } },
+    });
+    expect(tx.appointmentSlot.update).toHaveBeenCalledWith({
+      where: { id: 'slot-1' },
+      data: { status: 'AVAILABLE' },
+    });
+  });
+
+  it('does not touch slot status when the slot was not FULL', async () => {
+    tx.appointmentSlot.findUnique.mockResolvedValue(makeSlot({ status: 'AVAILABLE', bookedCount: 1, capacity: 3 }));
+
+    await service.cancelAppointment('donor-1', 'apt-1');
+
+    expect(tx.appointmentSlot.update).toHaveBeenCalledTimes(1);
+    expect(tx.appointmentSlot.update).toHaveBeenCalledWith({
+      where: { id: 'slot-1' },
+      data: { bookedCount: { decrement: 1 } },
+    });
+  });
+
+  it('rejects cancelling an already-cancelled appointment', async () => {
+    prisma.appointment.findFirst.mockResolvedValue(makeLabAppointment({ status: 'CANCELLED' }));
+
+    await expect(service.cancelAppointment('donor-1', 'apt-1')).rejects.toThrow(BadRequestException);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('rejects cancelling within 2 hours of the appointment', async () => {
+    prisma.appointment.findFirst.mockResolvedValue(
+      makeLabAppointment({ scheduledStart: new Date(Date.now() + 30 * 60 * 1000) }),
+    );
+
+    await expect(service.cancelAppointment('donor-1', 'apt-1')).rejects.toThrow(BadRequestException);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+});
+
+describe('LaboratoryService.markNoShow', () => {
+  let service: LaboratoryService;
+  let prisma: any;
+  let tx: any;
+
+  beforeEach(async () => {
+    tx = {
+      appointment: { update: jest.fn().mockResolvedValue({ id: 'apt-1', status: 'NO_SHOW' }) },
+      appointmentSlot: {
+        update: jest.fn().mockResolvedValue({}),
+        findUnique: jest.fn().mockResolvedValue(makeSlot({ status: 'AVAILABLE', bookedCount: 2, capacity: 3 })),
+      },
+      appointmentHistory: { create: jest.fn().mockResolvedValue({}) },
+    };
+
+    prisma = {
+      appointment: { findFirst: jest.fn().mockResolvedValue(makeLabAppointment({ status: 'CONFIRMED' })) },
+      $transaction: jest.fn().mockImplementation(async (cb: any) => cb(tx)),
+    };
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        LaboratoryService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: AuditLogsService, useValue: { log: jest.fn().mockResolvedValue({}) } },
+        { provide: EventEmitter2, useValue: { emit: jest.fn() } },
+      ],
+    }).compile();
+
+    service = module.get<LaboratoryService>(LaboratoryService);
+  });
+
+  it('resets a FULL slot back to AVAILABLE once a no-show frees a seat', async () => {
+    tx.appointmentSlot.findUnique.mockResolvedValue(makeSlot({ status: 'FULL', bookedCount: 2, capacity: 3 }));
+
+    await service.markNoShow('lab-1', 'staff-1', 'apt-1');
+
+    expect(tx.appointmentSlot.update).toHaveBeenCalledWith({
+      where: { id: 'slot-1' },
+      data: { status: 'AVAILABLE' },
+    });
+  });
+
+  it('does not touch slot status when the slot was not FULL', async () => {
+    tx.appointmentSlot.findUnique.mockResolvedValue(makeSlot({ status: 'AVAILABLE', bookedCount: 1, capacity: 3 }));
+
+    await service.markNoShow('lab-1', 'staff-1', 'apt-1');
+
+    expect(tx.appointmentSlot.update).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects marking a COMPLETED appointment as no-show', async () => {
+    prisma.appointment.findFirst.mockResolvedValue(makeLabAppointment({ status: 'COMPLETED' }));
+
+    await expect(service.markNoShow('lab-1', 'staff-1', 'apt-1')).rejects.toThrow(BadRequestException);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+});

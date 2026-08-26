@@ -1086,6 +1086,20 @@ export class LaboratoryService {
         },
       });
 
+      // A cancellation frees a seat, so a slot that was FULL may have room
+      // again — mirrors the equivalent fix in appointments.service.ts,
+      // since both booking paths share the AppointmentSlot table.
+      const slot = await tx.appointmentSlot.findUnique({
+        where: { id: appointment.slotId },
+      });
+
+      if (slot && slot.status === 'FULL' && slot.bookedCount < slot.capacity) {
+        await tx.appointmentSlot.update({
+          where: { id: appointment.slotId },
+          data: { status: 'AVAILABLE' },
+        });
+      }
+
       return updated;
     });
 
@@ -1137,6 +1151,19 @@ export class LaboratoryService {
           actorId: userId,
         },
       });
+
+      // A no-show frees a seat too — same FULL-to-AVAILABLE reset as
+      // cancelAppointment above.
+      const slot = await tx.appointmentSlot.findUnique({
+        where: { id: appointment.slotId },
+      });
+
+      if (slot && slot.status === 'FULL' && slot.bookedCount < slot.capacity) {
+        await tx.appointmentSlot.update({
+          where: { id: appointment.slotId },
+          data: { status: 'AVAILABLE' },
+        });
+      }
 
       return updated;
     });
