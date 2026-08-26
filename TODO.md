@@ -862,11 +862,64 @@ These make the product unusable or unsafe for real users. Fix first, in order.
     `apps/api/src/modules/gamification/events/gamification-event.handler.ts` (+ spec additions),
     `apps/mobile/src/api/challenges.ts`.
 
-- [ ] **P1-18. No SOS / emergency-match expiration job.**
-  `EXPIRED` statuses and a full notification handler exist, but nothing
-  (no cron) ever actually transitions a stale `EmergencyRequest`/
-  `EmergencyMatch` past its `requiredBefore` — it just sits active forever.
-  - File: `apps/api/src/modules/emergency/emergency.service.ts`.
+- [x] **P1-18. No SOS / emergency-match expiration job.** — Fixed:
+  `EmergencyStatus.EXPIRED`, `EmergencyMatch.expiredAt`, and a fully-built
+  `notification-event.handler.ts` `SOS_REQUEST_EXPIRED_EVENT` handler all
+  existed, but nothing anywhere ever emitted that event or set those
+  fields — a stale emergency just sat in `ACTIVE`/`MATCHING`/
+  `RESPONSES_RECEIVED` forever, and its donor notifications never expired.
+  The blocker was that `EmergencyRequest` has no persisted activation
+  timestamp, so the implicit "4 hours after activation" default deadline
+  (previously computed fresh in `activateEmergency` only to label the
+  donor-facing notification, then thrown away) couldn't be reconstructed
+  later by a cron. Fixed at the source: `activateEmergency` now persists
+  `requiredBefore = emergency.requiredBefore ?? now+4h` onto the row
+  itself at the moment of activation, so `requiredBefore` becomes the one
+  real, durable deadline for every emergency going forward — no schema
+  change needed, since the column already existed and was just never
+  written when absent.
+  Added `EmergencyCronService` (new, mirrors `InventoryCronService`'s
+  structure from P1-16 exactly), registered on the same `@nestjs/schedule`
+  infrastructure, running every 5 minutes (`EVERY_5_MINUTES` — an SOS
+  deadline is far more time-sensitive than inventory housekeeping's
+  hourly cadence). `expireStaleEmergencies()` finds every
+  `EmergencyRequest` still in an open status (`ACTIVE`/`MATCHING`/
+  `RESPONSES_RECEIVED`) with a `requiredBefore` in the past, and per row,
+  atomically claims it (`updateMany` conditioned on still being in an open
+  status, closing the same pre-check/mutation race window as every other
+  cron this session) to `EXPIRED` with `closedAt` set. Once claimed, it
+  reads the still-pending `EmergencyMatch` rows (`MATCHED`/`NOTIFIED`/
+  `VIEWED` — deliberately not `ACCEPTED`/`DECLINED`/`CANCELLED`, which are
+  already resolved and untouched) and expires them with `expiredAt` set,
+  then emits `sos.request.expired` once per affected donor so the
+  pre-existing `handleSosRequestExpired` handler finally fires and expires
+  that donor's SOS push notification. A request that progresses past an
+  open status (e.g. a donor gets confirmed) between the query and the
+  claim is correctly left alone — the same atomic-claim pattern used
+  throughout this session. `runMaintenance()` audit-logs a
+  `EMERGENCY_EXPIRATION_RUN` summary only when at least one request
+  actually expired.
+  Verified: 4 new tests for `EmergencyCronService` (claims and expires a
+  stale request + its pending matches + emits one event per notified
+  donor; a request that already progressed before the claim landed is
+  left untouched; matches that already resolved are never touched; the
+  audit-log-only-when-something-happened behavior), full suite 284/284
+  passing (up from 279), clean `tsc --noEmit`, 0 new lint errors. Live
+  end-to-end against the real Postgres + running API: created a real
+  emergency via the API, activated it (confirmed `requiredBefore`
+  persisted at `+4h`), backdated it to the past, attached a real
+  `EmergencyMatch` and a real `Notification` row for a seeded donor, ran
+  `expireStaleEmergencies()` directly against the live DB (bypassing
+  NestJS DI the same way as P1-16's throwaway script), and confirmed all
+  three rows flipped correctly in one pass (`EmergencyRequest` →
+  `EXPIRED`/`closedAt` set, `EmergencyMatch` → `EXPIRED`/`expiredAt` set,
+  `Notification` → `EXPIRED` via the real, unmodified
+  `handleSosRequestExpired` code path) and that a second run was a no-op
+  (idempotent, 0 processed). Test data and the throwaway script were
+  deleted afterward.
+  - Files: `apps/api/src/modules/emergency/emergency.service.ts`,
+    `apps/api/src/modules/emergency/emergency-cron.service.ts` (new, + spec),
+    `apps/api/src/modules/emergency/emergency.module.ts`.
 
 - [ ] **P1-19. Mobile has no map view (split out of P1-10).**
   P1-10 added real map views to hospital-web and blood-center-web, but
@@ -1087,5 +1140,10 @@ exploitable — now derived server-side per challenge type from real
 donation/appointment/campaign/education/community records, with XP
 awarding wired through the existing `CHALLENGE_COMPLETED` scaffolding
 for the first time).~~ ✅
-Next up: **P1-18** (No SOS / emergency-match expiration job), then the
-rest of P1, then P2, folding in P3-1 tests as each area is touched.
+~~**P1-18** (No SOS / emergency-match expiration job — `activateEmergency`
+now persists the effective `requiredBefore` deadline instead of computing
+and discarding it, and a new `EmergencyCronService` runs every 5 minutes
+expiring stale requests/matches and finally emitting the pre-existing,
+previously-unreachable `sos.request.expired` event).~~ ✅
+Next up: **P1-19** (Mobile has no map view), then the rest of P1, then
+P2, folding in P3-1 tests as each area is touched.

@@ -267,10 +267,12 @@ export class EmergencyService {
       throw new BadRequestException('Emergency can only be activated from DRAFT status.');
     }
 
+    const effectiveRequiredBefore = emergency.requiredBefore ?? new Date(Date.now() + 4 * 60 * 60 * 1000);
+
     const result = await this.db.$transaction(async (tx) => {
       const updated = await tx.emergencyRequest.update({
         where: { id: emergencyId },
-        data: { status: EmergencyStatus.ACTIVE },
+        data: { status: EmergencyStatus.ACTIVE, requiredBefore: effectiveRequiredBefore },
       });
 
       await tx.emergencyRequest.update({
@@ -351,12 +353,11 @@ export class EmergencyService {
     });
 
     if (result.matchedDonorIds.length > 0) {
-      const expireAt = emergency.requiredBefore ?? new Date(Date.now() + 4 * 60 * 60 * 1000);
       this.eventEmitter.emit(SOS_REQUEST_CREATED_EVENT, {
         requestId: emergencyId,
         bloodType: `${emergency.bloodType}${emergency.rhFactor === RhFactor.POSITIVE ? '+' : '-'}`,
         urgency: emergency.urgencyLevel,
-        expireAt,
+        expireAt: effectiveRequiredBefore,
         compatibleDonorIds: result.matchedDonorIds,
       });
 
