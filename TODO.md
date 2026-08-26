@@ -2315,6 +2315,74 @@ These make the product unusable or unsafe for real users. Fix first, in order.
     - Files: `apps/api/src/modules/email/email.service.spec.ts` (new),
       `apps/api/src/modules/ai-cache/ai-cache.service.spec.ts` (new),
       `apps/api/src/modules/users/users.service.spec.ts` (new).
+  - **Third installment**: covered the next 3 smallest remaining
+    zero-coverage modules — `ai-logging` (168 lines), `education` (236
+    lines), `ai-history` (245 lines). `ai-logging` (`AIRequestLogService`,
+    which records every AI provider call for cost/latency observability)
+    gets 9 new tests: `logRequest` writing through with a generated
+    `requestId` and returning that id even when the write fails (logging
+    failures must never break the calling AI request), and both
+    `getUserRequestStats`/`getPlatformRequestStats`'s aggregation math
+    (success/failure counts, token sums, average-latency-over-successful-
+    requests-only, and the platform stat's per-type bucketing) plus
+    `cleanupOldLogs`'s retention-window deletion. Discovered along the
+    way that this file imports the `uuid` package, which ships ESM-only
+    in the version installed here and crashes Jest's default (non-ESM)
+    transform with a bare `import`/`export` syntax error — worked around
+    by mocking `uuid` in the spec (`jest.mock('uuid', ...)`) rather than
+    touching the shared `jest.config` transform, since no other module
+    imports `uuid` today. `education` (content CRUD, progress tracking,
+    XP awarding) gets 19 new tests: `createContent`'s difficulty/xpReward
+    defaults, `updateContent`'s `NotFoundException`, `getContent`'s
+    `isActive`-always-filtered query plus optional type/category filters
+    and pagination math, `startContent`'s inactive-content rejection and
+    idempotent re-start (returns the existing progress row instead of
+    creating a duplicate — the DB's `userId_contentId` unique constraint
+    backs this), `completeContent`'s "must start before completing"
+    guard, its own idempotency (a second complete call doesn't re-award
+    XP), and its XP-awarding write; `getUserStats`'s null-sum-to-zero
+    coalescing. `ai-history` (`AIInsightHistoryService`, the read/write
+    layer behind every AI health insight) gets 13 new tests: `createInsight`'s
+    array-field defaults (`[] ` for observations/dataPoints/caveats/etc.
+    when omitted) and status/safetyLevel defaults, `getInsight`'s
+    id+userId-scoped lookup (a wrong-user `NotFoundException`, not
+    silently returning someone else's insight — same ownership-check
+    pattern as elsewhere in this session), `deleteInsight`'s equivalent
+    ownership check, `getUserInsights`'s pagination defaults and optional
+    filters, `deleteExpiredInsights`'s `expiresAt IS NOT NULL AND <
+    now` window, and `insightToResponseDto`'s title/summary/caveats
+    fallback + generatedAt-vs-createdAt precedence (initially wrote this
+    test to go through `createInsight`'s own array-coercion, which turns
+    `[]` back into `[]` rather than triggering the `||` fallback —
+    corrected to construct the bare `StoredInsight` input directly so the
+    fallback path is actually exercised). Full suite went from 478 to 519
+    passing (519/519 green), `tsc --noEmit` clean, lint 0 errors (423
+    warnings, up from 408, same `any`-mock pattern). Live-verified
+    `education`'s full HTTP surface against the real dev DB: `POST
+    /api/v1/education` as `SUPER_ADMIN` created real content (confirmed
+    the `BEGINNER`/`isActive:true` defaults), a `donor` token got a real
+    `403` on the same route (`RolesGuard` enforcement), then as the donor:
+    `GET /education/:id`, `POST /education/:id/start` (called twice,
+    confirmed idempotent — same progress row both times), `POST
+    /education/:id/complete` (confirmed `xpAwarded` matched the content's
+    `xpReward` and `status` flipped to `COMPLETED`), and `GET
+    /education/my/stats` (confirmed `totalStarted`/`totalCompleted`/
+    `totalXpEarned` all reflected the one real completion) — all working
+    end-to-end with zero manual DB seeding. Deleted the test-generated
+    `EducationProgress` and `EducationalContent` rows afterward and
+    re-checked `/education/my/stats` returned to all-zero, confirming no
+    residue. `ai-logging` and `ai-history` have no controller of their
+    own (internal services consumed by the `ai-health` module), so —
+    consistent with the reasoning already applied to
+    `audit-logs`/`permissions`/`email`/`ai-cache` — no contrived direct
+    live test was added; both have already been exercised indirectly by
+    every prior live `ai-health` verification this session. 5 modules
+    now remain at zero coverage: `analytics`, `campaigns`, `community`,
+    `courier`, `appointment-slots`.
+    - Files: `apps/api/src/modules/ai-logging/ai-logging.service.spec.ts`
+      (new), `apps/api/src/modules/education/education.service.spec.ts`
+      (new), `apps/api/src/modules/ai-history/ai-history.service.spec.ts`
+      (new).
 
 - [ ] **P3-2. No frontend tests at all** (Next.js apps or mobile) — no
   Jest/RTL/Playwright/Detox setup found.
@@ -2582,5 +2650,20 @@ fallback can't null out a field via explicit `null` — not a live bug
 since no route needs that, just documented. 8 modules remain at zero
 coverage: `analytics`, `campaigns`, `community`, `courier`, `education`,
 `appointment-slots`, `ai-history`, `ai-logging`).~~ ✅ (partial)
-Next up: the remainder of **P3-1** (8 modules still at zero coverage,
-listed above) or **P3-2** (no frontend tests at all).
+~~**P3-1 third installment** (`ai-logging`, `education`, `ai-history` —
+41 new tests, full suite 519/519; along the way found and worked around
+a pre-existing Jest/ESM incompatibility with the `uuid` package (mocked
+in-spec, not a shared-config change) and a test-authoring mistake where
+array-field defaulting made an intended fallback-path test pass for the
+wrong reason, corrected before landing. Live-verified `education`'s full
+HTTP surface end-to-end against the real dev DB — admin-only content
+creation with RBAC enforcement, idempotent start, XP-awarding complete,
+and stats aggregation — then deleted the test-generated rows and
+confirmed stats returned to zero. `ai-logging`/`ai-history` have no
+controller of their own, so rely on the same indirect
+session-wide-verification reasoning as `audit-logs`/`permissions`/
+`email`/`ai-cache`. 5 modules remain at zero coverage: `analytics`,
+`campaigns`, `community`, `courier`, `appointment-slots`).~~ ✅ (partial)
+Next up: the remainder of **P3-1** (5 modules still at zero coverage,
+listed above; `analytics` at 896 lines is by far the largest and may
+warrant its own installment) or **P3-2** (no frontend tests at all).
