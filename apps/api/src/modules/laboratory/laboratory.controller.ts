@@ -144,6 +144,9 @@ export class LaboratoryController {
     RoleCode.BLOOD_CENTER_STAFF,
     RoleCode.HOSPITAL_ADMIN,
     RoleCode.HOSPITAL_STAFF,
+    RoleCode.LAB_TECHNICIAN,
+    RoleCode.LAB_REVIEWER,
+    RoleCode.LAB_ADMIN,
     RoleCode.SUPER_ADMIN,
   )
   getLaboratoryAppointments(
@@ -160,6 +163,8 @@ export class LaboratoryController {
     RoleCode.BLOOD_CENTER_STAFF,
     RoleCode.HOSPITAL_ADMIN,
     RoleCode.HOSPITAL_STAFF,
+    RoleCode.LAB_TECHNICIAN,
+    RoleCode.LAB_ADMIN,
     RoleCode.SUPER_ADMIN,
   )
   confirmAppointment(
@@ -176,6 +181,8 @@ export class LaboratoryController {
     RoleCode.BLOOD_CENTER_STAFF,
     RoleCode.HOSPITAL_ADMIN,
     RoleCode.HOSPITAL_STAFF,
+    RoleCode.LAB_TECHNICIAN,
+    RoleCode.LAB_ADMIN,
     RoleCode.SUPER_ADMIN,
   )
   checkInAppointment(
@@ -192,6 +199,8 @@ export class LaboratoryController {
     RoleCode.BLOOD_CENTER_STAFF,
     RoleCode.HOSPITAL_ADMIN,
     RoleCode.HOSPITAL_STAFF,
+    RoleCode.LAB_TECHNICIAN,
+    RoleCode.LAB_ADMIN,
     RoleCode.SUPER_ADMIN,
   )
   startTest(
@@ -208,6 +217,8 @@ export class LaboratoryController {
     RoleCode.BLOOD_CENTER_STAFF,
     RoleCode.HOSPITAL_ADMIN,
     RoleCode.HOSPITAL_STAFF,
+    RoleCode.LAB_TECHNICIAN,
+    RoleCode.LAB_ADMIN,
     RoleCode.SUPER_ADMIN,
   )
   completeAppointment(
@@ -224,6 +235,8 @@ export class LaboratoryController {
     RoleCode.BLOOD_CENTER_STAFF,
     RoleCode.HOSPITAL_ADMIN,
     RoleCode.HOSPITAL_STAFF,
+    RoleCode.LAB_TECHNICIAN,
+    RoleCode.LAB_ADMIN,
     RoleCode.SUPER_ADMIN,
   )
   markNoShow(
@@ -240,6 +253,8 @@ export class LaboratoryController {
     RoleCode.BLOOD_CENTER_STAFF,
     RoleCode.HOSPITAL_ADMIN,
     RoleCode.HOSPITAL_STAFF,
+    RoleCode.LAB_TECHNICIAN,
+    RoleCode.LAB_ADMIN,
     RoleCode.SUPER_ADMIN,
   )
   createResult(
@@ -278,6 +293,9 @@ export class LaboratoryController {
     RoleCode.BLOOD_CENTER_STAFF,
     RoleCode.HOSPITAL_ADMIN,
     RoleCode.HOSPITAL_STAFF,
+    RoleCode.LAB_TECHNICIAN,
+    RoleCode.LAB_REVIEWER,
+    RoleCode.LAB_ADMIN,
     RoleCode.SUPER_ADMIN,
   )
   getResult(

@@ -1114,11 +1114,70 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   - Files: `apps/api/src/common/guards/organization.guard.ts` (+ new spec),
     `apps/api/src/app.module.ts`.
 
-- [ ] **P2-2. `LAB_TECHNICIAN`/`LAB_REVIEWER`/`LAB_ADMIN` roles have zero
-  seeded permissions** and are excluded from the actual lab-workflow
-  routes (confirm/start/complete/create-result) — only from the read-only
-  list endpoint. `apps/api/prisma/seed.ts:64-152`,
-  `apps/api/src/modules/laboratory/laboratory.controller.ts:157-273`.
+- [x] **P2-2. `LAB_TECHNICIAN`/`LAB_REVIEWER`/`LAB_ADMIN` roles have zero
+  seeded permissions and are excluded from the actual lab-workflow
+  routes.** — Fixed. The three lab roles genuinely had zero permissions
+  seeded and were locked out of every real lab-workflow route
+  (confirm/check-in/start/complete/no-show/create-result/review/publish) —
+  `LAB_TECHNICIAN` couldn't reach a single one. The one exception,
+  `getLaboratoryAppointments`, revealed the bug's real shape: the
+  *service* method already had its own internal check allowing all three
+  lab roles, but the *controller*'s `@Roles(...)` decorator for that same
+  route never did — so the service was ready and willing, but the
+  request never got past the guard to reach it. Every other lab-workflow
+  route just relies on `@Roles(...)` directly (no redundant service-level
+  check), so the fix there was adding the three roles to each route's
+  decorator, not touching the service.
+  Split the three roles by real-world responsibility rather than adding
+  all three everywhere: `LAB_TECHNICIAN` gets the hands-on routes
+  (confirm/check-in/start/complete/no-show/create-result) plus reading
+  results; `LAB_REVIEWER` gets review/publish plus reading results, but
+  deliberately **not** the hands-on routes; `LAB_ADMIN` gets everything.
+  `LAB_TECHNICIAN` is deliberately excluded from review/publish — a
+  technician shouldn't be able to approve their own result, mirroring the
+  create-vs-publish separation this codebase already uses for
+  `BLOOD_CENTER_STAFF` (`blood_test.create`/`update`) vs
+  `BLOOD_CENTER_ADMIN` (also gets `blood_test.publish`) — which is also
+  where the new permission grants came from: reused the existing
+  `blood_test.create`/`update`/`publish` codes (seeded but referenced
+  nowhere in the app, since no controller anywhere uses `@Permissions()`
+  for lab routes — only `@Roles()` — so this seeds them for parity/
+  future use rather than newly enforcing anything) instead of inventing
+  parallel `laboratory.*` codes for the same concept.
+  Added three seed accounts (`lab.technician@donor.local`,
+  `lab.reviewer@donor.local`, `lab.admin@donor.local`, one per role,
+  matching this file's one-account-per-role convention), each a real
+  `OrganizationMembership` at the seeded blood center — necessary since
+  P2-1's now-global `OrganizationGuard` requires real membership at
+  `:organizationId` regardless of role.
+  Verified: full suite still 319/319 (this is a pure `@Roles()` metadata +
+  seed-data change, nothing to unit-test beyond what `roles.guard.spec.ts`
+  already covers generically), clean `tsc --noEmit`, 0 new lint
+  warnings. Live end-to-end against the real Postgres + running API:
+  logged in as all three seeded lab accounts and drove a real appointment
+  through `LAB_TECHNICIAN`'s full chain (check-in → start → complete,
+  each `200`), confirmed `LAB_TECHNICIAN` is correctly blocked from
+  `reviewResult` (`403`, role-based), confirmed `LAB_REVIEWER` correctly
+  passes that same route's role check (got a `400` business-logic
+  rejection instead — proof the *access control* layer now passes, since
+  a role rejection and a business-rule rejection are distinguishable by
+  status code), and confirmed `LAB_ADMIN` has full read access everywhere.
+  Restored the test appointment's status and history afterward.
+  Running the full `prisma:seed` script against the already-seeded dev
+  DB (to pick up these changes) hit a **pre-existing, unrelated**
+  idempotency bug partway through (`db.donation.create()` isn't
+  upsert-safe, and neither is `db.organization.create()` — a re-run
+  duplicates both orgs before crashing on the donation step) — not
+  something this item touches or caused, but it did leave two duplicate
+  orgs in the dev DB from the partial run, cleaned up via `psql` (cascade
+  delete), with the three lab accounts' memberships then inserted
+  directly against the real seeded org to finish what the crashed run
+  didn't reach.
+  Also found, while driving the live verification, a genuine unrelated
+  bug that blocks `createResult` for every role, not just lab ones — see
+  new **P2-15** below.
+  - Files: `apps/api/prisma/seed.ts`,
+    `apps/api/src/modules/laboratory/laboratory.controller.ts`.
 
 - [ ] **P2-3. Appointment booking has no `@Roles(DONOR)` guard** — any
   authenticated staff/courier/admin account can book a donation
@@ -1189,6 +1248,22 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   alongside the real `confirmDeliveryFull` — dead code with an unchecked
   `verificationCode` parameter that looks like a half-finished feature.
   `apps/api/src/modules/shipments/shipments.service.ts:1244-1393`.
+
+- [ ] **P2-15. `POST .../laboratory-results` can never succeed for anyone
+  (found while verifying P2-2)** — the route
+  `organizations/:organizationId/laboratory-results` has no
+  `:appointmentId` segment, but the handler reads
+  `@Param('appointmentId')`, which is therefore always `undefined`
+  regardless of what's sent; `LaboratoryService.createResult` then
+  always fails to find a matching appointment. Not a role/permission
+  issue — every role that can reach this route hits the same bug.
+  Needs either an `:appointmentId` path segment added to the route (to
+  match every other lab-appointment-scoped route's shape) or the DTO
+  changed to carry `appointmentId` in the body instead, whichever this
+  module's convention should be for a *result*, which isn't itself
+  keyed by appointment the way `confirm`/`check-in`/`start`/`complete`
+  are.
+  `apps/api/src/modules/laboratory/laboratory.controller.ts:249-273`.
 
 ---
 
@@ -1320,6 +1395,11 @@ and closed a real live cross-org vulnerability in `donations.service.ts`
 that had nothing to do with the guard itself: several donation-workflow
 methods checked the *resource* belonged to the org but never the
 *caller*).~~ ✅
-Next up: **P2-2** (`LAB_TECHNICIAN`/`LAB_REVIEWER`/`LAB_ADMIN` roles have
-zero seeded permissions), then the rest of P2, folding in P3-1 tests as
-each area is touched.
+~~**P2-2** (`LAB_TECHNICIAN`/`LAB_REVIEWER`/`LAB_ADMIN` had zero seeded
+permissions and were locked out of every real lab-workflow route — seeded
+permissions split by responsibility, added the missing roles to each
+route's `@Roles(...)`, and seeded one test account per role; found an
+unrelated routing bug blocking `createResult` for everyone, split out to
+new P2-15).~~ ✅
+Next up: **P2-3** (Appointment booking has no `@Roles(DONOR)` guard),
+then the rest of P2, folding in P3-1 tests as each area is touched.
