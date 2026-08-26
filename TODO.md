@@ -1561,10 +1561,81 @@ These make the product unusable or unsafe for real users. Fix first, in order.
     `apps/api/src/modules/organizations/organizations.service.ts` (+ new
     spec), `apps/api/src/modules/admin/admin.service.ts` (+ spec).
 
-- [ ] **P2-10. AI safety filtering is naive hardcoded regex** — trivially
+- [x] **P2-10. AI safety filtering is naive hardcoded regex** — trivially
   bypassed by rephrasing; the "no fabricated diagnosis" guarantee rests
   almost entirely on prompt engineering.
-  `apps/api/src/modules/ai-health/ai-safety.service.ts:12-151`.
+  `apps/api/src/modules/ai-health/ai-safety.service.ts:12-151`. — Fixed:
+  confirmed two concrete, trivial bypasses before fixing, both structural
+  rather than "just needs a few more keywords." (1) Every single pattern
+  in the file was written with a literal single space between words
+  (`/do i have (cancer|...)/i`), and a regex space only ever matches
+  exactly one space character — so `"do  i   have cancer"` (extra
+  spaces) or `"diagnose\nme"` (a newline instead of a space) silently
+  defeated every pattern in the file, both on the way in and on the way
+  out. (2) The disease-name matching — on both the input classifier and
+  the output validator — was a fixed list of 9 named conditions
+  (cancer/diabetes/anemia/HPV/hepatitis/HIV/STD/STI/chlamydia/
+  syphilis/gonorrhea). Since that list can never be complete, "Do I have
+  lupus?" or an AI response saying "you likely have COPD" matched
+  nothing at all — not a rephrasing trick, just any disease name outside
+  those 9.
+  Fixed (1) by collapsing whitespace runs to a single space before
+  matching, in a new `normalizeForMatching` helper applied to both
+  `classifyRequest` and `validateOutput`, rather than rewriting every
+  pattern to use `\s+`. Fixed (2) by replacing the fixed disease list
+  with a `DIAGNOSIS_TERM` pattern that keeps the short list of
+  conditions common enough to name explicitly, but adds two structural
+  catches that don't depend on naming every condition individually:
+  common medical-term suffixes (`-emia`, `-itis`, `-osis`, `-oma`,
+  `-pathy`, `-algia` — covers anemia, hepatitis, thrombosis, carcinoma,
+  neuropathy, neuralgia, and most other real condition names) and
+  generic diagnosis nouns (disease, disorder, deficiency, infection,
+  syndrome — covers "kidney disease", "iron deficiency", "autoimmune
+  disorder", etc.). Also added a broad, list-independent output pattern
+  for hedged diagnostic phrasing ("is/are consistent with", "indicative
+  of", "suggestive of", "characteristic of") — that phrasing is textbook
+  clinical diagnosis-speak regardless of what condition follows it, so
+  an informational insight has no legitimate reason to ever use it.
+  This does not make the filter unbeatable — a sufficiently creative
+  rephrasing can still get past a regex, which is exactly why this
+  service is one layer among several (the system prompt already
+  instructs the model not to diagnose, and the structured-JSON output is
+  still validated against this same filter after generation) — but it
+  closes the two concrete, mechanical bypasses that existed, rather than
+  just adding more words to a list that was always going to be
+  incomplete.
+  Verified: 6 new tests (the exact whitespace-bypass strings above,
+  confirmed classified `SAFE_INFORMATIONAL` before the fix's git history
+  and `OUT_OF_SCOPE`/rejected after; six conditions outside the old
+  9-item list — lupus, COPD, kidney disease, an unnamed "autoimmune
+  disorder", leukemia, hepatitis-via-"positive for" — now all correctly
+  caught on both input and output; the new hedged-phrasing pattern
+  tested independent of any specific condition name), full suite
+  359/359 passing (up from 353), clean `tsc --noEmit`, 0 new lint
+  warnings. Live end-to-end against the real running API (temporarily
+  flipping the sandbox's `AI_ENABLED` flag on for this since it defaults
+  off, then reverting it — the platform-settings toggle for this feature
+  was already on): this sandbox has no configured OpenAI key, so the
+  actual AI provider call always fails over to a deterministic fallback
+  provider that returns the same canned text regardless of what prompt
+  it's given — meaning the HTTP response body alone can't distinguish
+  "the safety filter correctly blocked this" from "it didn't." Instead
+  verified the real, distinguishing signal in the actual controller →
+  service call chain: `GenerateInsightDto` requests classified
+  `OUT_OF_SCOPE` take an early-return short-circuit path with no further
+  validation, while `SAFE_INFORMATIONAL` requests fall through to
+  type-specific business logic that has its own requirements (e.g.
+  `GENERAL_HEALTH_INFORMATION` requires a `parameterCode`). Confirmed a
+  real, safe control question ("What does hemoglobin measure?", no
+  `parameterCode`) correctly reached that deeper validation and got
+  `403 Parameter code is required for general information`, while both
+  real bypass-attempt questions ("do  i   have cancer" and "Do I have
+  lupus?") correctly short-circuited to a clean `200` with no such
+  error — proving `classifyRequest` is wired into the real request path
+  and now catches what it previously missed. Cleaned up the 3
+  `AIRequestLog` rows the live verification calls generated afterward.
+  - Files: `apps/api/src/modules/ai-health/ai-safety.service.ts` (+
+    spec).
 
 - [ ] **P2-11. Donation & lab reference numbers use unguarded `Math.random()`**
   with no uniqueness retry loop — low-probability but real collision →
@@ -1824,6 +1895,14 @@ leak into admin/discovery listings as a bogus hospital — added a proper
 listing/search paths that had no default type filter; live-verified it
 no longer appears in `GET /organizations`, `/organizations/discover`, or
 the admin org list).~~ ✅
-Next up: **P2-10** (AI safety filtering is naive hardcoded regex,
-trivially bypassed by rephrasing), then the rest of P2, folding in P3-1
-tests as each area is touched.
+~~**P2-10** (AI safety regex had two concrete, mechanical bypasses: every
+pattern used a literal single space so extra whitespace defeated all of
+them, and disease-name matching was a fixed 9-item list so any other
+condition — lupus, COPD, anything — matched nothing; fixed whitespace
+via a normalization pass and replaced the fixed list with a
+suffix/generic-noun pattern that covers real condition names without
+enumerating them; live-verified through the real controller call chain
+that both bypasses are now caught).~~ ✅
+Next up: **P2-11** (donation & lab reference numbers use unguarded
+`Math.random()` with no uniqueness retry loop), then the rest of P2,
+folding in P3-1 tests as each area is touched.
