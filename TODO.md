@@ -2018,7 +2018,7 @@ These make the product unusable or unsafe for real users. Fix first, in order.
     `apps/api/src/modules/notifications/services/notification-preference.service.ts`
     (+ new spec); deleted `apps/api/src/modules/notification-preferences/`.
 
-- [ ] **P2-17. Any donor profile update resets `verificationStatus` to
+- [x] **P2-17. Any donor profile update resets `verificationStatus` to
   `REQUIRES_REVIEW` (found while verifying P2-6)** — `DonorsService.
   updateProfile` unconditionally sets `verificationStatus:
   VerificationStatus.REQUIRES_REVIEW` on every `PUT /donors/profile`
@@ -2029,7 +2029,33 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   Should only reset verification when `bloodType`/`rhFactor` are actually
   part of the update (and arguably only when they *change*, not just
   appear in the payload with the same value).
-  `apps/api/src/modules/donors/donors.service.ts:90-96`.
+  `apps/api/src/modules/donors/donors.service.ts:90-96`. — Fixed exactly
+  as scoped: `updateProfile` now only resets `verificationStatus` to
+  `REQUIRES_REVIEW` when `bloodType` or `rhFactor` is present in the
+  update *and* actually differs from the profile's current stored value
+  — comparing against the real `DonorProfile` row fetched at the top of
+  the method, not just checking whether the field was included in the
+  payload. Left `bloodTypeVerifiedAt`/`bloodTypeVerifiedBy`/
+  `bloodTypeSource`/`bloodTypeNote` untouched either way: those are a
+  historical record of who verified the value being replaced, written
+  by the separate staff-facing `verifyBloodType` method, and clearing
+  them wasn't part of what this item asked for.
+  Verified: 7 new tests in a new `donors.service.spec.ts` (this module
+  had zero prior coverage) — unrelated-field updates (city, location)
+  leave verification untouched; resubmitting the same `bloodType`/
+  `rhFactor` value leaves it untouched; a real change to either field
+  resets it; a blood-type change bundled with an unrelated field change
+  in the same request still resets it; a missing profile still 404s —
+  full suite 419/419 passing (up from 412), clean `tsc --noEmit`, 0 new
+  lint errors. Live end-to-end against the real Postgres + running API,
+  using the real seeded donor's genuinely `VERIFIED` O+ profile: updating
+  only `city` left `verificationStatus: VERIFIED`; resubmitting the same
+  `bloodType`/`rhFactor` left it `VERIFIED`; changing `bloodType` to a
+  different real value correctly flipped it to `REQUIRES_REVIEW`.
+  Restored the donor's original blood type, city, verification status,
+  and `updatedAt`, and deleted the 3 test-generated audit log rows
+  afterward.
+  - Files: `apps/api/src/modules/donors/donors.service.ts` (+ new spec).
 
 - [ ] **P2-18. `ShipmentsService.approveRequest` claims a `BloodUnit`
   and its reservation but never links the reservation to the
@@ -2286,6 +2312,14 @@ itself exposed — the survivor's own `@Get(':id')` was shadowing its
 `@Get('preferences')`, latent the whole time the dead module was
 winning; live-verified the 404 it caused, the fix, and the restored
 audit trail).~~ ✅
-Next up: **P2-17** (any donor profile update resets `verificationStatus`
-to `REQUIRES_REVIEW`, regardless of which fields changed), then the
-rest of P2, folding in P3-1 tests as each area is touched.
+~~**P2-17** (any donor profile update reset `verificationStatus`
+regardless of which fields changed; now only resets when `bloodType`/
+`rhFactor` actually change to a different value, comparing against the
+real stored profile rather than just checking payload presence;
+live-verified against the real seeded donor's VERIFIED profile: an
+unrelated-field update and a same-value resubmission both correctly
+leave it untouched, a real blood-type change correctly resets it).~~ ✅
+Next up: **P2-18** (`approveRequest` claims a reservation but never
+links it to the `BloodRequestItem`, so every real shipment ships with
+zero recorded units — found while verifying P2-14), then the rest of
+P2, folding in P3-1 tests as each area is touched.

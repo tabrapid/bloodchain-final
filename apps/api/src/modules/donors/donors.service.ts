@@ -89,11 +89,19 @@ export class DonorsService {
       throw new NotFoundException('Donor profile not found.');
     }
 
+    // Only the fields verifyBloodType actually vouches for should knock
+    // verification back to REQUIRES_REVIEW, and only when they're actually
+    // changing -- resubmitting the same value (or updating unrelated fields
+    // like city/dateOfBirth/location) shouldn't undo a staff verification.
+    const bloodTypeChanged =
+      (data.bloodType !== undefined && data.bloodType !== profile.bloodType) ||
+      (data.rhFactor !== undefined && data.rhFactor !== profile.rhFactor);
+
     const updated = await this.db.donorProfile.update({
       where: { userId },
       data: {
         ...data,
-        verificationStatus: VerificationStatus.REQUIRES_REVIEW,
+        ...(bloodTypeChanged ? { verificationStatus: VerificationStatus.REQUIRES_REVIEW } : {}),
       },
     });
 
