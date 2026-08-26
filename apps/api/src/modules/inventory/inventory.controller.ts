@@ -9,11 +9,13 @@ import { Idempotent } from '../idempotency/idempotent.decorator';
 import { IdempotencyInterceptor } from '../idempotency/idempotency.interceptor';
 import { InventoryService } from './inventory.service';
 import {
+  AdjustUnitDto,
   CreateLocationDto,
   DiscardUnitDto,
   GetInventoryDto,
   GetMovementsDto,
   GetReservationsDto,
+  IssueUnitDto,
   MoveUnitDto,
   QuarantineUnitDto,
   ReleaseReservationDto,
@@ -98,6 +100,34 @@ export class InventoryController {
     @Req() req: Request,
   ) {
     return this.inventory.discardUnit(organizationId, unitId, userId, dto, req.headers['x-forwarded-for'] as string);
+  }
+
+  @Post('units/:unitId/issue')
+  @Roles(RoleCode.SUPER_ADMIN, RoleCode.BLOOD_CENTER_ADMIN, RoleCode.BLOOD_CENTER_STAFF, RoleCode.HOSPITAL_ADMIN, RoleCode.HOSPITAL_STAFF)
+  @Idempotent('inventory.issue-unit')
+  @UseInterceptors(IdempotencyInterceptor)
+  @ApiOperation({ summary: 'Issue (dispense) a unit for clinical use' })
+  issueUnit(
+    @Param('organizationId') organizationId: string,
+    @Param('unitId') unitId: string,
+    @Body() dto: IssueUnitDto,
+    @CurrentUser('sub') userId: string,
+    @Req() req: Request,
+  ) {
+    return this.inventory.issueUnit(organizationId, unitId, userId, dto, req.headers['x-forwarded-for'] as string);
+  }
+
+  @Patch('units/:unitId/adjust')
+  @Roles(RoleCode.SUPER_ADMIN, RoleCode.BLOOD_CENTER_ADMIN, RoleCode.BLOOD_CENTER_STAFF)
+  @ApiOperation({ summary: 'Manually correct a unit\'s volume, component type, or expiry date' })
+  adjustUnit(
+    @Param('organizationId') organizationId: string,
+    @Param('unitId') unitId: string,
+    @Body() dto: AdjustUnitDto,
+    @CurrentUser('sub') userId: string,
+    @Req() req: Request,
+  ) {
+    return this.inventory.adjustUnit(organizationId, unitId, userId, dto, req.headers['x-forwarded-for'] as string);
   }
 
   @Post('units/:unitId/move')

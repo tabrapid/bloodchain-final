@@ -10,6 +10,8 @@ export interface DonorProfile {
   bloodTypeSource?: string;
   city?: string;
   district?: string;
+  latitude?: number;
+  longitude?: number;
   donorStatus: string;
   verificationStatus: string;
   dateOfBirth?: string;
@@ -41,6 +43,8 @@ export interface UpdateDonorProfileInput {
   donorStatus?: string;
   dateOfBirth?: string;
   consentLocation?: boolean;
+  latitude?: number;
+  longitude?: number;
 }
 
 export async function getDonorProfile(): Promise<{ data: DonorProfile }> {

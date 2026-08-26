@@ -1,3 +1,5 @@
+import { ApiProperty } from '@nestjs/swagger';
+import { ArrayNotEmpty, IsArray, IsString } from 'class-validator';
 import { NotificationType, NotificationPriority, NotificationStatus } from './notification.enums';
 
 export interface CreateNotificationDto {
@@ -31,8 +33,12 @@ export interface UpdateNotificationDto {
   readAt?: Date;
 }
 
-export interface MarkReadDto {
-  notificationIds: string[];
+export class MarkReadDto {
+  @ApiProperty({ type: [String] })
+  @IsArray()
+  @ArrayNotEmpty()
+  @IsString({ each: true })
+  notificationIds!: string[];
 }
 
 export interface NotificationStatsDto {

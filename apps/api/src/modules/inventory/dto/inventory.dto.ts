@@ -1,6 +1,6 @@
-import { ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { AlertType, BloodType, BloodUnitStatus, ComponentType, LocationType, MovementType, ReservationStatus, RhFactor } from '@prisma/client';
-import { IsBoolean, IsDateString, IsEnum, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsDateString, IsEnum, IsInt, IsNotEmpty, IsOptional, IsString, Min } from 'class-validator';
 
 export class GetInventoryDto {
   @ApiPropertyOptional({ enum: BloodType })
@@ -129,6 +129,36 @@ export class DiscardUnitDto {
   @IsOptional()
   @IsString()
   reason?: string;
+}
+
+export class IssueUnitDto {
+  @ApiPropertyOptional({ description: 'Why this unit was issued - include a patient/recipient reference here if applicable' })
+  @IsOptional()
+  @IsString()
+  reason?: string;
+}
+
+export class AdjustUnitDto {
+  @ApiProperty({ description: 'Reason for this manual correction (required for the audit trail)' })
+  @IsString()
+  @IsNotEmpty()
+  reason!: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  volumeMl?: number;
+
+  @ApiPropertyOptional({ enum: ComponentType })
+  @IsOptional()
+  @IsEnum(ComponentType)
+  componentType?: ComponentType;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsDateString()
+  expiresAt?: string;
 }
 
 export class MoveUnitDto {

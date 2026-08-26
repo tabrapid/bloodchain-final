@@ -42,6 +42,31 @@ describe('AIHealthSafetyService', () => {
       expect(service.classifyRequest('Explain my test results')).toBe(SafetyLevel.SAFE_INFORMATIONAL);
       expect(service.classifyRequest('What changed in my recent tests?')).toBe(SafetyLevel.SAFE_INFORMATIONAL);
     });
+
+    it('should not be bypassed by extra whitespace between words', () => {
+      // A regex written with literal single spaces never matches text with
+      // extra spacing between the same words -- this was a real, trivial
+      // bypass for every single pattern before normalizeForMatching.
+      expect(service.classifyRequest('do  i   have cancer')).toBe(SafetyLevel.OUT_OF_SCOPE);
+      expect(service.classifyRequest('diagnose\nme')).toBe(SafetyLevel.OUT_OF_SCOPE);
+      expect(service.classifyRequest('should  i take   medication')).toBe(SafetyLevel.OUT_OF_SCOPE);
+    });
+
+    it('should classify diagnostic questions about conditions outside the old fixed disease list', () => {
+      // The old patterns only recognized 9 named diseases; anything else
+      // (lupus, COPD, a generic "disease"/"disorder"/"syndrome" noun, or a
+      // word with a common medical suffix) sailed straight through.
+      expect(service.classifyRequest('Do I have lupus?')).toBe(SafetyLevel.OUT_OF_SCOPE);
+      expect(service.classifyRequest('Do I have COPD?')).toBe(SafetyLevel.OUT_OF_SCOPE);
+      expect(service.classifyRequest('Do I have kidney disease?')).toBe(SafetyLevel.OUT_OF_SCOPE);
+      expect(service.classifyRequest('Do I have an autoimmune disorder?')).toBe(SafetyLevel.OUT_OF_SCOPE);
+      expect(service.classifyRequest('Could I have leukemia?')).toBe(SafetyLevel.OUT_OF_SCOPE);
+      expect(service.classifyRequest('Am I positive for hepatitis?')).toBe(SafetyLevel.OUT_OF_SCOPE);
+    });
+
+    it('should classify generic "what is wrong with me" phrasing as OUT_OF_SCOPE', () => {
+      expect(service.classifyRequest("What's wrong with me?")).toBe(SafetyLevel.OUT_OF_SCOPE);
+    });
   });
 
   describe('validateOutput', () => {
@@ -58,6 +83,24 @@ describe('AIHealthSafetyService', () => {
     it('should accept safe informational output', () => {
       const result = service.validateOutput('Your hemoglobin values show an increasing trend over time.');
       expect(result.isValid).toBe(true);
+    });
+
+    it('should reject diagnosis claims about conditions outside the old fixed disease list', () => {
+      expect(service.validateOutput('You likely have lupus based on these markers.').isValid).toBe(false);
+      expect(service.validateOutput('You have an autoimmune disorder.').isValid).toBe(false);
+      expect(service.validateOutput('You are diagnosed with COPD.').isValid).toBe(false);
+    });
+
+    it('should reject hedged diagnostic phrasing regardless of the named condition', () => {
+      expect(
+        service.validateOutput('These results are consistent with a diagnosis of iron-deficiency anemia.').isValid,
+      ).toBe(false);
+      expect(service.validateOutput('This pattern is indicative of early kidney disease.').isValid).toBe(false);
+    });
+
+    it('should not be bypassed by extra whitespace between words', () => {
+      const result = service.validateOutput('You  definitely  have   cancer.');
+      expect(result.isValid).toBe(false);
     });
   });
 

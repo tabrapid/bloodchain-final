@@ -21,6 +21,7 @@ import { Permissions } from '../../common/decorators/permissions.decorator';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { WrapResponseInterceptor } from '../../common/interceptors/wrap-response.interceptor';
 import { AdminService } from './admin.service';
+import { PlatformSettingsService } from '../platform-settings/platform-settings.service';
 import {
   AdminListUsersDto,
   AdminListOrganizationsDto,
@@ -36,6 +37,11 @@ import {
   AdminListEmergenciesDto,
   AdminListAlertsDto,
   AdminAcknowledgeAlertDto,
+  AdminUpdateRolePermissionsDto,
+  AdminUpdateMembershipRoleDto,
+  AdminUpdatePlatformSettingsDto,
+  AdminListContentReportsDto,
+  AdminResolveContentReportDto,
 } from './dto/admin.dto';
 
 @ApiTags('Admin')
@@ -44,7 +50,10 @@ import {
 @UseInterceptors(WrapResponseInterceptor)
 @ApiBearerAuth()
 export class AdminController {
-  constructor(private readonly admin: AdminService) {}
+  constructor(
+    private readonly admin: AdminService,
+    private readonly platformSettings: PlatformSettingsService,
+  ) {}
 
   @Get('dashboard')
   @Roles(RoleCode.SUPER_ADMIN)
@@ -119,6 +128,46 @@ export class AdminController {
   @ApiOperation({ summary: 'Restore a suspended user' })
   restoreUser(@CurrentUser('sub') adminId: string, @Param('id') userId: string) {
     return this.admin.restoreUser(adminId, userId);
+  }
+
+  @Get('roles')
+  @Roles(RoleCode.SUPER_ADMIN)
+  @Permissions('admin.manage')
+  @ApiOperation({ summary: 'List all roles with their assigned permissions' })
+  listRoles() {
+    return this.admin.listRoles();
+  }
+
+  @Get('permissions')
+  @Roles(RoleCode.SUPER_ADMIN)
+  @Permissions('admin.manage')
+  @ApiOperation({ summary: 'List the full permission catalog' })
+  listPermissions() {
+    return this.admin.listPermissions();
+  }
+
+  @Patch('roles/:id/permissions')
+  @Roles(RoleCode.SUPER_ADMIN)
+  @Permissions('admin.manage')
+  @ApiOperation({ summary: "Replace a role's permission set" })
+  updateRolePermissions(
+    @CurrentUser('sub') adminId: string,
+    @Param('id') roleId: string,
+    @Body() body: AdminUpdateRolePermissionsDto,
+  ) {
+    return this.admin.updateRolePermissions(adminId, roleId, body.permissionCodes);
+  }
+
+  @Patch('memberships/:id/role')
+  @Roles(RoleCode.SUPER_ADMIN)
+  @Permissions('admin.manage')
+  @ApiOperation({ summary: "Change a user's role within an organization" })
+  updateMembershipRole(
+    @CurrentUser('sub') adminId: string,
+    @Param('id') membershipId: string,
+    @Body() body: AdminUpdateMembershipRoleDto,
+  ) {
+    return this.admin.updateMembershipRole(adminId, membershipId, body.roleId);
   }
 
   @Get('organizations')
@@ -310,6 +359,39 @@ export class AdminController {
     });
   }
 
+  @Get('content-reports')
+  @Roles(RoleCode.SUPER_ADMIN)
+  @Permissions('admin.manage')
+  @ApiOperation({ summary: 'List community content reports' })
+  listContentReports(@Query() query: AdminListContentReportsDto) {
+    return this.admin.listContentReports({
+      page: Number(query.page) || 1,
+      limit: Number(query.limit) || 20,
+      status: query.status,
+      reason: query.reason,
+    });
+  }
+
+  @Get('content-reports/:id')
+  @Roles(RoleCode.SUPER_ADMIN)
+  @Permissions('admin.manage')
+  @ApiOperation({ summary: 'Get content report details, including the reported post' })
+  getContentReport(@Param('id') id: string) {
+    return this.admin.getContentReport(id);
+  }
+
+  @Post('content-reports/:id/resolve')
+  @Roles(RoleCode.SUPER_ADMIN)
+  @Permissions('admin.manage')
+  @ApiOperation({ summary: 'Resolve a content report: dismiss it, or hide/remove the reported post' })
+  resolveContentReport(
+    @CurrentUser('sub') adminId: string,
+    @Param('id') reportId: string,
+    @Body() body: AdminResolveContentReportDto,
+  ) {
+    return this.admin.resolveContentReport(adminId, reportId, body.action, body.resolution);
+  }
+
   @Get('inventory/overview')
   @Roles(RoleCode.SUPER_ADMIN)
   @Permissions('admin.manage')
@@ -350,5 +432,24 @@ export class AdminController {
   @ApiOperation({ summary: 'Get system health status' })
   getSystemHealth() {
     return this.admin.getSystemHealth();
+  }
+
+  @Get('settings')
+  @Roles(RoleCode.SUPER_ADMIN)
+  @Permissions('admin.manage')
+  @ApiOperation({ summary: 'Get platform-wide settings and feature flags' })
+  getPlatformSettings() {
+    return this.platformSettings.get();
+  }
+
+  @Patch('settings')
+  @Roles(RoleCode.SUPER_ADMIN)
+  @Permissions('admin.manage')
+  @ApiOperation({ summary: 'Update platform-wide settings and feature flags' })
+  updatePlatformSettings(
+    @CurrentUser('sub') adminId: string,
+    @Body() body: AdminUpdatePlatformSettingsDto,
+  ) {
+    return this.platformSettings.update(adminId, body);
   }
 }

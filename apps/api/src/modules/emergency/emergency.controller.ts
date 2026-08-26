@@ -1,10 +1,17 @@
 import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { BloodType, RhFactor, RoleCode } from '@prisma/client';
+import { RoleCode } from '@prisma/client';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { EmergencyService } from './emergency.service';
+import {
+  CancelEmergencyDto,
+  CancelEmergencyResponseDto,
+  CompleteEmergencyResponseDto,
+  CreateEmergencyDto,
+  UpdateEmergencyLocationDto,
+} from './dto/emergency.dto';
 
 @ApiTags('Emergency')
 @Controller()
@@ -17,18 +24,7 @@ export class EmergencyController {
   @Roles(RoleCode.HOSPITAL_ADMIN, RoleCode.HOSPITAL_STAFF, RoleCode.SUPER_ADMIN)
   createEmergency(
     @Param('organizationId') organizationId: string,
-    @Body() dto: {
-      bloodType: string;
-      rhFactor: string;
-      unitsRequired: number;
-      urgencyLevel?: string;
-      patientReference?: string;
-      description?: string;
-      requiredBefore?: string;
-      donationLocation?: string;
-      latitude?: number;
-      longitude?: number;
-    },
+    @Body() dto: CreateEmergencyDto,
     @CurrentUser('sub') userId: string,
   ) {
     return this.emergency.createEmergency(organizationId, userId, dto);
@@ -79,7 +75,7 @@ export class EmergencyController {
   cancelEmergency(
     @Param('organizationId') organizationId: string,
     @Param('emergencyId') emergencyId: string,
-    @Body() body: { reason?: string },
+    @Body() body: CancelEmergencyDto,
     @CurrentUser('sub') userId: string,
   ) {
     return this.emergency.cancelEmergency(organizationId, userId, emergencyId, body.reason);
@@ -100,7 +96,7 @@ export class EmergencyController {
   completeEmergency(
     @Param('organizationId') organizationId: string,
     @Param('responseId') responseId: string,
-    @Body() body: { bloodType?: BloodType; rhFactor?: RhFactor; volumeMl?: number },
+    @Body() body: CompleteEmergencyResponseDto,
     @CurrentUser('sub') userId: string,
   ) {
     return this.emergency.completeEmergency(organizationId, userId, responseId, body);
@@ -152,7 +148,7 @@ export class EmergencyController {
   @Roles(RoleCode.DONOR, RoleCode.SUPER_ADMIN)
   updateLocation(
     @Param('responseId') responseId: string,
-    @Body() dto: { latitude: number; longitude: number; accuracy?: number; heading?: number; speed?: number },
+    @Body() dto: UpdateEmergencyLocationDto,
     @CurrentUser('sub') userId: string,
   ) {
     return this.emergency.updateLocation(userId, responseId, dto);
@@ -180,7 +176,7 @@ export class EmergencyController {
   @Roles(RoleCode.DONOR, RoleCode.SUPER_ADMIN)
   cancelResponse(
     @Param('responseId') responseId: string,
-    @Body() body: { reason?: string },
+    @Body() body: CancelEmergencyResponseDto,
     @CurrentUser('sub') userId: string,
   ) {
     return this.emergency.cancelResponse(userId, responseId, body.reason);

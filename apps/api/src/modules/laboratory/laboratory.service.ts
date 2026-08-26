@@ -14,6 +14,7 @@ import {
   RoleCode,
 } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
+import { withUniqueRetry } from '../../common/utils/unique-retry.util';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { BLOOD_TEST_COMPLETED_EVENT, BloodTestCompletedPayload } from '../gamification/events/gamification-event.handler';
 
@@ -240,60 +241,64 @@ export class LaboratoryService {
       throw new BadRequestException('You already have an appointment for this slot.');
     }
 
-    const referenceNumber = `LAB-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 999999)).padStart(6, '0')}`;
+    const result = await withUniqueRetry(
+      () =>
+        this.db.$transaction(async (tx) => {
+          // Atomic conditional update: only succeeds if the slot is still
+          // AVAILABLE and under capacity at the moment Postgres acquires the row
+          // lock, closing the race window between the pre-checks above and this
+          // transaction — mirrors the same fix in appointments.service.ts, since
+          // both booking paths share the AppointmentSlot table.
+          const claim = await tx.appointmentSlot.updateMany({
+            where: { id: slotId, status: 'AVAILABLE', bookedCount: { lt: slot.capacity } },
+            data: { bookedCount: { increment: 1 } },
+          });
 
-    const result = await this.db.$transaction(async (tx) => {
-      // Atomic conditional update: only succeeds if the slot is still
-      // AVAILABLE and under capacity at the moment Postgres acquires the row
-      // lock, closing the race window between the pre-checks above and this
-      // transaction — mirrors the same fix in appointments.service.ts, since
-      // both booking paths share the AppointmentSlot table.
-      const claim = await tx.appointmentSlot.updateMany({
-        where: { id: slotId, status: 'AVAILABLE', bookedCount: { lt: slot.capacity } },
-        data: { bookedCount: { increment: 1 } },
-      });
+          if (claim.count === 0) {
+            throw new BadRequestException('Slot is fully booked.');
+          }
 
-      if (claim.count === 0) {
-        throw new BadRequestException('Slot is fully booked.');
-      }
+          const referenceNumber = `LAB-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 999999)).padStart(6, '0')}`;
 
-      const appointment = await tx.appointment.create({
-        data: {
-          referenceNumber,
-          donorId: userId,
-          organizationId: laboratoryId,
-          slotId: slotId,
-          appointmentType: AppointmentType.BLOOD_TEST,
-          status: AppointmentStatus.PENDING,
-          scheduledStart: slot.startAt,
-          scheduledEnd: slot.endAt,
-          notes,
-        },
-      });
+          const appointment = await tx.appointment.create({
+            data: {
+              referenceNumber,
+              donorId: userId,
+              organizationId: laboratoryId,
+              slotId: slotId,
+              appointmentType: AppointmentType.BLOOD_TEST,
+              status: AppointmentStatus.PENDING,
+              scheduledStart: slot.startAt,
+              scheduledEnd: slot.endAt,
+              notes,
+            },
+          });
 
-      const updatedSlot = await tx.appointmentSlot.findUniqueOrThrow({
-        where: { id: slotId },
-        select: { bookedCount: true, capacity: true },
-      });
+          const updatedSlot = await tx.appointmentSlot.findUniqueOrThrow({
+            where: { id: slotId },
+            select: { bookedCount: true, capacity: true },
+          });
 
-      if (updatedSlot.bookedCount >= updatedSlot.capacity) {
-        await tx.appointmentSlot.update({
-          where: { id: slotId },
-          data: { status: 'FULL' },
-        });
-      }
+          if (updatedSlot.bookedCount >= updatedSlot.capacity) {
+            await tx.appointmentSlot.update({
+              where: { id: slotId },
+              data: { status: 'FULL' },
+            });
+          }
 
-      await tx.appointmentHistory.create({
-        data: {
-          appointmentId: appointment.id,
-          action: 'BOOKED',
-          newStatus: AppointmentStatus.PENDING,
-          actorId: userId,
-        },
-      });
+          await tx.appointmentHistory.create({
+            data: {
+              appointmentId: appointment.id,
+              action: 'BOOKED',
+              newStatus: AppointmentStatus.PENDING,
+              actorId: userId,
+            },
+          });
 
-      return appointment;
-    });
+          return appointment;
+        }),
+      { uniqueFields: ['referenceNumber'] },
+    );
 
     await this.audit.log({
       actorId: userId,
@@ -700,6 +705,15 @@ export class LaboratoryService {
     },
     testTypeId: string,
   ) {
+    // Prisma silently omits an undefined filter field rather than matching
+    // nothing, so a missing appointmentId here wouldn't 404 -- it would
+    // match an arbitrary BLOOD_TEST appointment for this organization and
+    // silently attach the result to the wrong donor. Guard explicitly
+    // rather than rely on the id filter alone.
+    if (!appointmentId) {
+      throw new BadRequestException('appointmentId is required.');
+    }
+
     const appointment = await this.db.appointment.findFirst({
       where: {
         id: appointmentId,
@@ -1081,6 +1095,20 @@ export class LaboratoryService {
         },
       });
 
+      // A cancellation frees a seat, so a slot that was FULL may have room
+      // again — mirrors the equivalent fix in appointments.service.ts,
+      // since both booking paths share the AppointmentSlot table.
+      const slot = await tx.appointmentSlot.findUnique({
+        where: { id: appointment.slotId },
+      });
+
+      if (slot && slot.status === 'FULL' && slot.bookedCount < slot.capacity) {
+        await tx.appointmentSlot.update({
+          where: { id: appointment.slotId },
+          data: { status: 'AVAILABLE' },
+        });
+      }
+
       return updated;
     });
 
@@ -1132,6 +1160,19 @@ export class LaboratoryService {
           actorId: userId,
         },
       });
+
+      // A no-show frees a seat too — same FULL-to-AVAILABLE reset as
+      // cancelAppointment above.
+      const slot = await tx.appointmentSlot.findUnique({
+        where: { id: appointment.slotId },
+      });
+
+      if (slot && slot.status === 'FULL' && slot.bookedCount < slot.capacity) {
+        await tx.appointmentSlot.update({
+          where: { id: appointment.slotId },
+          data: { status: 'AVAILABLE' },
+        });
+      }
 
       return updated;
     });

@@ -144,6 +144,9 @@ export class LaboratoryController {
     RoleCode.BLOOD_CENTER_STAFF,
     RoleCode.HOSPITAL_ADMIN,
     RoleCode.HOSPITAL_STAFF,
+    RoleCode.LAB_TECHNICIAN,
+    RoleCode.LAB_REVIEWER,
+    RoleCode.LAB_ADMIN,
     RoleCode.SUPER_ADMIN,
   )
   getLaboratoryAppointments(
@@ -160,6 +163,8 @@ export class LaboratoryController {
     RoleCode.BLOOD_CENTER_STAFF,
     RoleCode.HOSPITAL_ADMIN,
     RoleCode.HOSPITAL_STAFF,
+    RoleCode.LAB_TECHNICIAN,
+    RoleCode.LAB_ADMIN,
     RoleCode.SUPER_ADMIN,
   )
   confirmAppointment(
@@ -176,6 +181,8 @@ export class LaboratoryController {
     RoleCode.BLOOD_CENTER_STAFF,
     RoleCode.HOSPITAL_ADMIN,
     RoleCode.HOSPITAL_STAFF,
+    RoleCode.LAB_TECHNICIAN,
+    RoleCode.LAB_ADMIN,
     RoleCode.SUPER_ADMIN,
   )
   checkInAppointment(
@@ -192,6 +199,8 @@ export class LaboratoryController {
     RoleCode.BLOOD_CENTER_STAFF,
     RoleCode.HOSPITAL_ADMIN,
     RoleCode.HOSPITAL_STAFF,
+    RoleCode.LAB_TECHNICIAN,
+    RoleCode.LAB_ADMIN,
     RoleCode.SUPER_ADMIN,
   )
   startTest(
@@ -208,6 +217,8 @@ export class LaboratoryController {
     RoleCode.BLOOD_CENTER_STAFF,
     RoleCode.HOSPITAL_ADMIN,
     RoleCode.HOSPITAL_STAFF,
+    RoleCode.LAB_TECHNICIAN,
+    RoleCode.LAB_ADMIN,
     RoleCode.SUPER_ADMIN,
   )
   completeAppointment(
@@ -224,6 +235,8 @@ export class LaboratoryController {
     RoleCode.BLOOD_CENTER_STAFF,
     RoleCode.HOSPITAL_ADMIN,
     RoleCode.HOSPITAL_STAFF,
+    RoleCode.LAB_TECHNICIAN,
+    RoleCode.LAB_ADMIN,
     RoleCode.SUPER_ADMIN,
   )
   markNoShow(
@@ -240,12 +253,14 @@ export class LaboratoryController {
     RoleCode.BLOOD_CENTER_STAFF,
     RoleCode.HOSPITAL_ADMIN,
     RoleCode.HOSPITAL_STAFF,
+    RoleCode.LAB_TECHNICIAN,
+    RoleCode.LAB_ADMIN,
     RoleCode.SUPER_ADMIN,
   )
   createResult(
     @Param('organizationId') organizationId: string,
-    @Param('appointmentId') appointmentId: string,
     @Body() dto: {
+      appointmentId: string;
       items: Array<{
         parameterId: string;
         value: string;
@@ -261,7 +276,7 @@ export class LaboratoryController {
     return this.laboratory.createResult(
       organizationId,
       userId,
-      appointmentId,
+      dto.appointmentId,
       {
         items: dto.items.map((item) => ({
           ...item,
@@ -278,6 +293,9 @@ export class LaboratoryController {
     RoleCode.BLOOD_CENTER_STAFF,
     RoleCode.HOSPITAL_ADMIN,
     RoleCode.HOSPITAL_STAFF,
+    RoleCode.LAB_TECHNICIAN,
+    RoleCode.LAB_REVIEWER,
+    RoleCode.LAB_ADMIN,
     RoleCode.SUPER_ADMIN,
   )
   getResult(

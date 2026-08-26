@@ -7,8 +7,10 @@ import {
   Param,
   Query,
   Body,
+  Req,
   UseGuards,
 } from '@nestjs/common';
+import { Request } from 'express';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { NotificationsService } from './services/notifications.service';
@@ -49,6 +51,14 @@ export class NotificationsController {
     return { count: await this.notificationsService.getUnreadCount(userId) };
   }
 
+  // Must be registered before the catch-all @Get(':id') below -- a
+  // single-segment literal route needs to win before a route param at the
+  // same depth, or GET /notifications/preferences resolves as findOne('preferences').
+  @Get('preferences')
+  async getPreferences(@CurrentUser('sub') userId: string) {
+    return { data: await this.preferenceService.getPreferences(userId) };
+  }
+
   @Get(':id')
   async findOne(@Param('id') id: string, @CurrentUser('sub') userId: string) {
     return this.notificationsService.findOne(id, userId);
@@ -77,6 +87,16 @@ export class NotificationsController {
     return this.notificationsService.markAllAsRead(userId);
   }
 
+  @Patch(':id/archive')
+  async archive(@Param('id') id: string, @CurrentUser('sub') userId: string) {
+    return this.notificationsService.archive(id, userId);
+  }
+
+  @Patch(':id/unarchive')
+  async unarchive(@Param('id') id: string, @CurrentUser('sub') userId: string) {
+    return this.notificationsService.unarchive(id, userId);
+  }
+
   @Delete(':id')
   async delete(@Param('id') id: string, @CurrentUser('sub') userId: string) {
     return this.notificationsService.delete(id, userId);
@@ -102,16 +122,18 @@ export class NotificationsController {
     return this.pushDeviceService.removeForUser(userId);
   }
 
-  @Get('preferences')
-  async getPreferences(@CurrentUser('sub') userId: string) {
-    return this.preferenceService.getPreferences(userId);
-  }
-
   @Patch('preferences')
   async updatePreferences(
     @Body() dto: UpdateNotificationPreferencesDto,
     @CurrentUser('sub') userId: string,
+    @Req() req: Request,
   ) {
-    return this.preferenceService.updatePreferences(userId, dto);
+    return {
+      data: await this.preferenceService.updatePreferences(
+        userId,
+        dto,
+        req.headers['x-forwarded-for'] as string,
+      ),
+    };
   }
 }

@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ConflictException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { ShipmentStatus } from '@prisma/client';
+import { OrganizationStatus, OrganizationType, Prisma, RoleCode, ShipmentStatus } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { LocationService } from './services/location.service';
@@ -30,6 +30,7 @@ describe('ShipmentsService status transitions', () => {
   let tx: any;
   let shipmentGateway: { emitShipmentStatusChanged: jest.Mock; emitCourierLocation: jest.Mock };
   let locationService: { validateCourierShipmentAccess: jest.Mock; validateLocationUpdate: jest.Mock };
+  let eventEmitter: { emit: jest.Mock };
 
   const courier = { id: 'courier-1', userId: 'user-1', organizationId: 'org-source' };
 
@@ -67,13 +68,14 @@ describe('ShipmentsService status transitions', () => {
       validateCourierShipmentAccess: jest.fn().mockResolvedValue({ valid: true }),
       validateLocationUpdate: jest.fn().mockResolvedValue({ isValid: true, errors: [], warnings: [] }),
     };
+    eventEmitter = { emit: jest.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ShipmentsService,
         { provide: PrismaService, useValue: prisma },
         { provide: AuditLogsService, useValue: { log: jest.fn().mockResolvedValue({}) } },
-        { provide: EventEmitter2, useValue: { emit: jest.fn() } },
+        { provide: EventEmitter2, useValue: eventEmitter },
         { provide: LocationService, useValue: locationService },
         { provide: ShipmentGateway, useValue: shipmentGateway },
       ],
@@ -144,6 +146,19 @@ describe('ShipmentsService status transitions', () => {
       await expect(service.declineShipment('user-1', 'shp-1', 'traffic')).rejects.toThrow(ConflictException);
       expect(tx.courier.update).not.toHaveBeenCalled();
       expect(shipmentGateway.emitShipmentStatusChanged).not.toHaveBeenCalled();
+    });
+
+    it('notifies the blood center that the courier declined, unlike every other transition this used to skip', async () => {
+      prisma.shipment.findUnique.mockResolvedValue(makeShipment({ status: ShipmentStatus.COURIER_ASSIGNED }));
+      prisma.user.findMany.mockResolvedValue([{ id: 'bc-staff-1' }, { id: 'bc-staff-2' }]);
+
+      await service.declineShipment('user-1', 'shp-1', 'traffic');
+
+      expect(eventEmitter.emit).toHaveBeenCalledWith('shipment.event', {
+        shipmentId: 'shp-1',
+        eventType: 'declined',
+        recipientIds: ['bc-staff-1', 'bc-staff-2'],
+      });
     });
   });
 
@@ -265,43 +280,6 @@ describe('ShipmentsService status transitions', () => {
     });
   });
 
-  describe('confirmDelivery', () => {
-    const units = [
-      { id: 'su-1', bloodUnitId: 'bu-1', reservationId: 'res-1', bloodUnit: {}, reservation: {} },
-    ];
-
-    it('claims the transition first, then fulfils each unit', async () => {
-      prisma.shipment.findUnique.mockResolvedValue(
-        makeShipment({ status: ShipmentStatus.ARRIVED_AT_HOSPITAL, units, courierId: 'courier-1' }),
-      );
-
-      await service.confirmDelivery('org-dest', 'hosp-user-1', 'shp-1', {});
-
-      expect(tx.shipment.updateMany).toHaveBeenCalledWith({
-        where: {
-          id: 'shp-1',
-          status: { in: ShipmentStateMachine.getSourceStatuses(ShipmentStatus.DELIVERED) },
-        },
-        data: expect.objectContaining({ status: ShipmentStatus.DELIVERED }),
-      });
-      expect(tx.bloodUnitReservation.update).toHaveBeenCalledTimes(1);
-      expect(tx.bloodRequest.update).toHaveBeenCalled();
-    });
-
-    it('throws ConflictException and never touches units when the claim loses the race', async () => {
-      prisma.shipment.findUnique.mockResolvedValue(
-        makeShipment({ status: ShipmentStatus.ARRIVED_AT_HOSPITAL, units, courierId: 'courier-1' }),
-      );
-      tx.shipment.updateMany.mockResolvedValue({ count: 0 });
-
-      await expect(service.confirmDelivery('org-dest', 'hosp-user-1', 'shp-1', {})).rejects.toThrow(
-        ConflictException,
-      );
-      expect(tx.bloodUnitReservation.update).not.toHaveBeenCalled();
-      expect(tx.bloodRequest.update).not.toHaveBeenCalled();
-    });
-  });
-
   describe('failShipment', () => {
     const units = [{ id: 'su-1', bloodUnitId: 'bu-1', bloodUnit: {}, reservation: {} }];
 
@@ -412,6 +390,61 @@ describe('ShipmentsService status transitions', () => {
       ).rejects.toThrow(ConflictException);
       expect(tx.bloodUnitReservation.update).not.toHaveBeenCalled();
       expect(shipmentGateway.emitShipmentStatusChanged).not.toHaveBeenCalled();
+    });
+
+    const twoUnits = [
+      { id: 'su-1', bloodUnitId: 'bu-1', reservationId: 'res-1', bloodUnit: {}, reservation: {} },
+      { id: 'su-2', bloodUnitId: 'bu-2', reservationId: 'res-2', bloodUnit: {}, reservation: {} },
+    ];
+
+    it('rejects receiving more units than were shipped', async () => {
+      prisma.shipment.findUnique.mockResolvedValue(
+        makeShipment({ status: ShipmentStatus.ARRIVED_AT_HOSPITAL, units, courierId: 'courier-1' }),
+      );
+
+      await expect(
+        service.confirmDeliveryFull('org-dest', 'hosp-user-1', 'shp-1', { unitsReceived: 2 }),
+      ).rejects.toThrow(BadRequestException);
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('requires a discrepancy reason when fewer units are received than shipped', async () => {
+      prisma.shipment.findUnique.mockResolvedValue(
+        makeShipment({ status: ShipmentStatus.ARRIVED_AT_HOSPITAL, units: twoUnits, courierId: 'courier-1' }),
+      );
+
+      await expect(
+        service.confirmDeliveryFull('org-dest', 'hosp-user-1', 'shp-1', { unitsReceived: 1 }),
+      ).rejects.toThrow(BadRequestException);
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('marks the shortfall units DISCREPANCY and the request PARTIALLY_DELIVERED', async () => {
+      prisma.shipment.findUnique.mockResolvedValue(
+        makeShipment({ status: ShipmentStatus.ARRIVED_AT_HOSPITAL, units: twoUnits, courierId: 'courier-1' }),
+      );
+
+      await service.confirmDeliveryFull('org-dest', 'hosp-user-1', 'shp-1', {
+        unitsReceived: 1,
+        discrepancyReason: 'One unit damaged in transit',
+      });
+
+      expect(tx.shipmentUnit.update).toHaveBeenCalledWith({
+        where: { id: 'su-1' },
+        data: expect.objectContaining({ status: 'DELIVERED' }),
+      });
+      expect(tx.shipmentUnit.update).toHaveBeenCalledWith({
+        where: { id: 'su-2' },
+        data: { status: 'DISCREPANCY' },
+      });
+      expect(tx.bloodUnit.update).toHaveBeenCalledWith({
+        where: { id: 'bu-2' },
+        data: { status: 'RESERVED' },
+      });
+      expect(tx.bloodUnitReservation.update).toHaveBeenCalledTimes(1);
+      expect(tx.bloodRequest.update).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ status: 'PARTIALLY_DELIVERED' }) }),
+      );
     });
   });
 
@@ -595,5 +628,449 @@ describe('ShipmentsService status transitions', () => {
         recordedAt: recordedAt.toISOString(),
       });
     });
+  });
+});
+
+describe('ShipmentsService organization-status access checks', () => {
+  let service: ShipmentsService;
+  let prisma: any;
+
+  const makeMembership = (organizationId: string, roleCode: string) => ({
+    organizationId,
+    status: 'ACTIVE',
+    role: { code: roleCode },
+  });
+
+  beforeEach(async () => {
+    prisma = {
+      user: { findUnique: jest.fn() },
+      organization: { findUnique: jest.fn() },
+      courier: { findUnique: jest.fn() },
+    };
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        ShipmentsService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: AuditLogsService, useValue: { log: jest.fn().mockResolvedValue({}) } },
+        { provide: EventEmitter2, useValue: { emit: jest.fn() } },
+        { provide: LocationService, useValue: {} },
+        { provide: ShipmentGateway, useValue: {} },
+      ],
+    }).compile();
+
+    service = module.get<ShipmentsService>(ShipmentsService);
+  });
+
+  describe('checkHospitalAccess', () => {
+    it('allows a hospital staff member when the hospital is ACTIVE', async () => {
+      prisma.user.findUnique.mockResolvedValue({
+        id: 'user-1',
+        memberships: [makeMembership('hosp-1', RoleCode.HOSPITAL_ADMIN)],
+      });
+      prisma.organization.findUnique.mockResolvedValue({
+        id: 'hosp-1',
+        type: OrganizationType.HOSPITAL,
+        status: OrganizationStatus.ACTIVE,
+      });
+
+      await expect(service.checkHospitalAccess('user-1', 'hosp-1')).resolves.toBeDefined();
+    });
+
+    it.each([OrganizationStatus.PENDING_APPROVAL, OrganizationStatus.SUSPENDED, OrganizationStatus.DEACTIVATED])(
+      'rejects a hospital staff member when the hospital is %s',
+      async (status) => {
+        prisma.user.findUnique.mockResolvedValue({
+          id: 'user-1',
+          memberships: [makeMembership('hosp-1', RoleCode.HOSPITAL_ADMIN)],
+        });
+        prisma.organization.findUnique.mockResolvedValue({ id: 'hosp-1', type: OrganizationType.HOSPITAL, status });
+
+        await expect(service.checkHospitalAccess('user-1', 'hosp-1')).rejects.toThrow(ForbiddenException);
+      },
+    );
+  });
+
+  describe('checkBloodCenterAccess', () => {
+    it('allows blood center staff when the blood center is ACTIVE', async () => {
+      prisma.user.findUnique.mockResolvedValue({
+        id: 'user-1',
+        memberships: [makeMembership('bc-1', RoleCode.BLOOD_CENTER_STAFF)],
+      });
+      prisma.organization.findUnique.mockResolvedValue({
+        id: 'bc-1',
+        type: OrganizationType.BLOOD_CENTER,
+        status: OrganizationStatus.ACTIVE,
+      });
+
+      await expect(service.checkBloodCenterAccess('user-1', 'bc-1')).resolves.toBeDefined();
+    });
+
+    it('rejects blood center staff when the blood center is SUSPENDED', async () => {
+      prisma.user.findUnique.mockResolvedValue({
+        id: 'user-1',
+        memberships: [makeMembership('bc-1', RoleCode.BLOOD_CENTER_STAFF)],
+      });
+      prisma.organization.findUnique.mockResolvedValue({
+        id: 'bc-1',
+        type: OrganizationType.BLOOD_CENTER,
+        status: OrganizationStatus.SUSPENDED,
+      });
+
+      await expect(service.checkBloodCenterAccess('user-1', 'bc-1')).rejects.toThrow(ForbiddenException);
+    });
+  });
+
+  describe('checkCourierAccess', () => {
+    it('allows a courier whose organization is ACTIVE', async () => {
+      prisma.courier.findUnique.mockResolvedValue({
+        id: 'courier-1',
+        userId: 'user-1',
+        organization: { id: 'bc-1', status: OrganizationStatus.ACTIVE },
+      });
+
+      await expect(service.checkCourierAccess('user-1')).resolves.toBeDefined();
+    });
+
+    it('rejects a courier whose organization is no longer ACTIVE', async () => {
+      prisma.courier.findUnique.mockResolvedValue({
+        id: 'courier-1',
+        userId: 'user-1',
+        organization: { id: 'bc-1', status: OrganizationStatus.SUSPENDED },
+      });
+
+      await expect(service.checkCourierAccess('user-1')).rejects.toThrow(ForbiddenException);
+    });
+  });
+});
+
+describe('ShipmentsService.getShipmentTracking', () => {
+  let service: ShipmentsService;
+  let prisma: any;
+
+  function makeTrackedShipment(overrides: Record<string, any> = {}) {
+    return {
+      id: 'shp-1',
+      shipmentReference: 'SHP-2026-000001',
+      status: 'IN_TRANSIT',
+      createdAt: new Date('2026-01-01T00:00:00.000Z'),
+      sourceOrganizationId: 'org-source',
+      destinationOrganizationId: 'org-dest',
+      pickupLatitude: '40.7128',
+      pickupLongitude: '-74.006',
+      destinationLatitude: '40.73',
+      destinationLongitude: '-74.0',
+      bloodRequest: { id: 'req-1', requestReference: 'REQ-2026-000001', priority: 'ROUTINE' },
+      sourceOrganization: { id: 'org-source', name: 'Blood Center', address: '1 Main St' },
+      destinationOrganization: { id: 'org-dest', name: 'Hospital', address: '2 Main St' },
+      courier: { id: 'courier-1', displayName: 'Jane Courier', phone: '+1555' },
+      units: [],
+      ...overrides,
+    };
+  }
+
+  beforeEach(async () => {
+    prisma = {
+      shipment: { findUnique: jest.fn() },
+      courier: { findUnique: jest.fn().mockResolvedValue(null) },
+      user: { findUnique: jest.fn().mockResolvedValue({ memberships: [{ organizationId: 'org-source' }] }) },
+      shipmentLocation: { findFirst: jest.fn().mockResolvedValue(null), findMany: jest.fn().mockResolvedValue([]) },
+      shipmentEvent: { findFirst: jest.fn().mockResolvedValue(null) },
+    };
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        ShipmentsService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: AuditLogsService, useValue: { log: jest.fn().mockResolvedValue({}) } },
+        { provide: EventEmitter2, useValue: { emit: jest.fn() } },
+        { provide: LocationService, useValue: {} },
+        { provide: ShipmentGateway, useValue: {} },
+      ],
+    }).compile();
+
+    service = module.get<ShipmentsService>(ShipmentsService);
+  });
+
+  it('summarizes the real blood types actually loaded on the shipment', async () => {
+    prisma.shipment.findUnique.mockResolvedValue(
+      makeTrackedShipment({
+        units: [
+          { id: 'su-1', bloodUnit: { bloodType: 'O', rhFactor: 'POSITIVE' } },
+          { id: 'su-2', bloodUnit: { bloodType: 'O', rhFactor: 'POSITIVE' } },
+          { id: 'su-3', bloodUnit: { bloodType: 'A', rhFactor: 'NEGATIVE' } },
+        ],
+      }),
+    );
+
+    const result = await service.getShipmentTracking('shp-1', 'user-1');
+
+    expect(result.bloodGroup).toBe('2 O+, 1 A-');
+    expect(result.bloodGroup).not.toBe('Available after delivery confirmation');
+  });
+
+  it('reports no units assigned yet instead of the old hardcoded placeholder', async () => {
+    prisma.shipment.findUnique.mockResolvedValue(makeTrackedShipment({ units: [] }));
+
+    const result = await service.getShipmentTracking('shp-1', 'user-1');
+
+    expect(result.bloodGroup).toBe('No units assigned yet');
+  });
+
+  it("uses the courier's own recent average speed for the ETA when available", async () => {
+    prisma.shipment.findUnique.mockResolvedValue(makeTrackedShipment());
+    prisma.shipmentLocation.findFirst.mockResolvedValue({
+      latitude: '40.72',
+      longitude: '-74.01',
+      recordedAt: new Date(),
+    });
+    prisma.shipmentLocation.findMany.mockResolvedValue([
+      { speed: '60' },
+      { speed: '80' },
+    ]);
+
+    const result = await service.getShipmentTracking('shp-1', 'user-1');
+
+    // Average speed of 70 km/h (of the two samples), not the old flat 40 km/h assumption.
+    expect(result.eta!.note).toContain("courier's own recent average speed");
+    expect(result.eta!.etaMinutes).toBe(1);
+  });
+
+  it('falls back to the default speed assumption when there is no usable recent speed data', async () => {
+    prisma.shipment.findUnique.mockResolvedValue(makeTrackedShipment());
+    prisma.shipmentLocation.findFirst.mockResolvedValue({
+      latitude: '40.72',
+      longitude: '-74.01',
+      recordedAt: new Date(),
+    });
+    prisma.shipmentLocation.findMany.mockResolvedValue([]);
+
+    const result = await service.getShipmentTracking('shp-1', 'user-1');
+
+    expect(result.eta!.note).toContain('a default average speed');
+    expect(result.eta!.etaMinutes).toBe(2);
+  });
+});
+
+function uniqueConstraintError(field: string): Prisma.PrismaClientKnownRequestError {
+  return new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+    code: 'P2002',
+    clientVersion: 'test',
+    meta: { target: [field] },
+  });
+}
+
+describe('ShipmentsService reference-number collision retry', () => {
+  let service: ShipmentsService;
+  let prisma: any;
+
+  beforeEach(async () => {
+    prisma = {
+      user: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'user-1',
+          memberships: [{ organizationId: 'org-1', status: 'ACTIVE', role: { code: RoleCode.HOSPITAL_ADMIN } }],
+        }),
+        findMany: jest.fn().mockResolvedValue([]),
+      },
+      organization: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'org-1',
+          type: OrganizationType.HOSPITAL,
+          status: OrganizationStatus.ACTIVE,
+        }),
+      },
+      bloodRequest: { findUnique: jest.fn() },
+      $transaction: jest.fn(),
+    };
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        ShipmentsService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: AuditLogsService, useValue: { log: jest.fn().mockResolvedValue({}) } },
+        { provide: EventEmitter2, useValue: { emit: jest.fn() } },
+        { provide: LocationService, useValue: {} },
+        { provide: ShipmentGateway, useValue: { emitShipmentStatusChanged: jest.fn() } },
+      ],
+    }).compile();
+
+    service = module.get<ShipmentsService>(ShipmentsService);
+  });
+
+  it('retries createRequest on a requestReference collision and succeeds with a fresh reference', async () => {
+    const tx = {
+      bloodRequest: { create: jest.fn().mockResolvedValue({ id: 'req-1', requestReference: 'REQ-2026-000002' }) },
+      bloodRequestItem: { create: jest.fn().mockResolvedValue({}) },
+      bloodRequestEvent: { create: jest.fn().mockResolvedValue({}) },
+    };
+    prisma.$transaction
+      .mockImplementationOnce(async () => {
+        throw uniqueConstraintError('requestReference');
+      })
+      .mockImplementationOnce(async (cb: any) => cb(tx));
+
+    const result = await service.createRequest('org-1', 'user-1', {
+      items: [{ bloodType: 'O', rhFactor: 'POSITIVE', unitsRequested: 2 }],
+    });
+
+    expect(prisma.$transaction).toHaveBeenCalledTimes(2);
+    expect(result.id).toBe('req-1');
+  });
+
+  it('retries createShipment on a shipmentReference collision and succeeds with a fresh reference', async () => {
+    prisma.organization.findUnique.mockImplementation(async ({ where: { id } }: any) =>
+      id === 'org-1'
+        ? { id: 'org-1', type: OrganizationType.BLOOD_CENTER, status: OrganizationStatus.ACTIVE }
+        : { id: 'org-dest', name: 'Dest Hospital', address: '1 Main St', latitude: null, longitude: null },
+    );
+    prisma.user.findUnique.mockResolvedValue({
+      id: 'user-1',
+      memberships: [{ organizationId: 'org-1', status: 'ACTIVE', role: { code: RoleCode.BLOOD_CENTER_ADMIN } }],
+    });
+    prisma.bloodRequest.findUnique.mockResolvedValue({
+      id: 'req-1',
+      status: 'READY_FOR_PICKUP',
+      shipment: null,
+      fulfillingOrganizationId: 'org-1',
+      requestingOrganizationId: 'org-dest',
+      deliveryAddress: null,
+      deliveryLatitude: null,
+      deliveryLongitude: null,
+      items: [],
+    });
+    const tx = {
+      shipment: { create: jest.fn().mockResolvedValue({ id: 'shp-1', shipmentReference: 'SHP-2026-000002' }) },
+      shipmentUnit: { create: jest.fn().mockResolvedValue({}) },
+      shipmentEvent: { create: jest.fn().mockResolvedValue({}) },
+      bloodRequestEvent: { create: jest.fn().mockResolvedValue({}) },
+    };
+    prisma.$transaction
+      .mockImplementationOnce(async () => {
+        throw uniqueConstraintError('shipmentReference');
+      })
+      .mockImplementationOnce(async (cb: any) => cb(tx));
+
+    const result = await service.createShipment('org-1', 'user-1', 'req-1', {});
+
+    expect(prisma.$transaction).toHaveBeenCalledTimes(2);
+    expect(result.id).toBe('shp-1');
+  });
+});
+
+describe('ShipmentsService.approveRequest', () => {
+  let service: ShipmentsService;
+  let prisma: any;
+  let tx: any;
+
+  const item = { id: 'item-1', bloodType: 'O', rhFactor: 'POSITIVE', unitsRequested: 1, unitsApproved: 0 };
+  const availableUnit = { id: 'bu-1', status: 'AVAILABLE', bloodType: 'O', rhFactor: 'POSITIVE', collectedAt: new Date('2026-01-01') };
+
+  beforeEach(async () => {
+    tx = {
+      bloodRequestItem: {
+        update: jest.fn().mockResolvedValue({}),
+        findMany: jest.fn().mockResolvedValue([{ ...item, unitsApproved: 1 }]),
+      },
+      bloodUnit: {
+        findMany: jest.fn().mockResolvedValue([availableUnit]),
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+      },
+      bloodUnitReservation: { create: jest.fn().mockResolvedValue({ id: 'res-1' }) },
+      inventoryMovement: { create: jest.fn().mockResolvedValue({}) },
+      bloodRequest: { update: jest.fn().mockResolvedValue({ id: 'req-1', status: 'APPROVED' }) },
+      bloodRequestEvent: { create: jest.fn().mockResolvedValue({}) },
+    };
+
+    prisma = {
+      bloodRequest: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'req-1',
+          status: 'SUBMITTED',
+          requestReference: 'REQ-2026-000001',
+          requestingOrganizationId: 'org-dest',
+          items: [item],
+        }),
+      },
+      $transaction: jest.fn().mockImplementation(async (cb: any) => cb(tx)),
+    };
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        ShipmentsService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: AuditLogsService, useValue: { log: jest.fn().mockResolvedValue({}) } },
+        { provide: EventEmitter2, useValue: { emit: jest.fn() } },
+        { provide: LocationService, useValue: {} },
+        { provide: ShipmentGateway, useValue: {} },
+      ],
+    }).compile();
+
+    service = module.get<ShipmentsService>(ShipmentsService);
+    jest.spyOn(service, 'checkBloodCenterAccess').mockResolvedValue({ user: { id: 'bc-user-1' } } as any);
+  });
+
+  it('selects AVAILABLE units of the matching blood type directly, oldest-collected first', async () => {
+    await service.approveRequest('org-1', 'bc-user-1', 'req-1', {
+      items: [{ itemId: 'item-1', unitsApproved: 1 }],
+    });
+
+    expect(tx.bloodUnit.findMany).toHaveBeenCalledWith({
+      where: { organizationId: 'org-1', bloodType: 'O', rhFactor: 'POSITIVE', status: 'AVAILABLE' },
+      take: 1,
+      orderBy: { collectedAt: 'asc' },
+    });
+  });
+
+  it('claims the underlying unit as RESERVED', async () => {
+    await service.approveRequest('org-1', 'bc-user-1', 'req-1', {
+      items: [{ itemId: 'item-1', unitsApproved: 1 }],
+    });
+
+    expect(tx.bloodUnit.updateMany).toHaveBeenCalledWith({
+      where: { id: 'bu-1', status: 'AVAILABLE' },
+      data: { status: 'RESERVED' },
+    });
+  });
+
+  it("creates a reservation linked to the BloodRequestItem it was approved for, so createShipment's item.reservations read finds it", async () => {
+    await service.approveRequest('org-1', 'bc-user-1', 'req-1', {
+      items: [{ itemId: 'item-1', unitsApproved: 1 }],
+    });
+
+    expect(tx.bloodUnitReservation.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        bloodUnitId: 'bu-1',
+        reservedBy: 'bc-user-1',
+        bloodRequestItems: { connect: { id: 'item-1' } },
+      }),
+    });
+    expect(tx.inventoryMovement.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ bloodUnitId: 'bu-1', type: 'RESERVED' }) }),
+    );
+  });
+
+  it('does not reserve a unit whose claim lost the race', async () => {
+    tx.bloodUnit.updateMany.mockResolvedValue({ count: 0 });
+
+    await service.approveRequest('org-1', 'bc-user-1', 'req-1', {
+      items: [{ itemId: 'item-1', unitsApproved: 1 }],
+    });
+
+    expect(tx.bloodUnitReservation.create).not.toHaveBeenCalled();
+    expect(tx.inventoryMovement.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects approving a request that is not SUBMITTED or UNDER_REVIEW', async () => {
+    prisma.bloodRequest.findUnique.mockResolvedValue({
+      id: 'req-1',
+      status: 'APPROVED',
+      items: [item],
+    });
+
+    await expect(
+      service.approveRequest('org-1', 'bc-user-1', 'req-1', { items: [{ itemId: 'item-1', unitsApproved: 1 }] }),
+    ).rejects.toThrow(BadRequestException);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 });

@@ -8,7 +8,7 @@ import { LeaderboardService } from './services/leaderboard.service';
 import { ReputationService } from './services/reputation.service';
 import { AntiAbuseService } from './services/anti-abuse.service';
 import { GamificationProfileDto, XpHistoryDto, DonationStatsDto } from './dto/gamification.dto';
-import { AchievementType } from '@prisma/client';
+import { AchievementType, XpTransactionType } from '@prisma/client';
 import { LEVEL_CONFIG } from './config/gamification.config';
 
 @Injectable()
@@ -330,6 +330,42 @@ export class GamificationService {
       xpAmount: xpResult.xpAmount,
       newTotalXp: xpResult.newTotal,
       achievementsUnlocked: achievements.map((a) => a.code).concat(badgesEarned),
+    };
+  }
+
+  async processChallengeCompleted(
+    userId: string,
+    challengeId: string,
+    xpAmount: number,
+    challengeTitle: string,
+  ): Promise<{
+    xpAwarded: boolean;
+    xpAmount: number;
+    newTotalXp: number;
+  }> {
+    if (xpAmount <= 0) {
+      return { xpAwarded: false, xpAmount: 0, newTotalXp: 0 };
+    }
+
+    const xpResult = await this.xpService.awardXp(
+      userId,
+      xpAmount,
+      XpTransactionType.CHALLENGE_COMPLETED,
+      'CHALLENGE',
+      challengeId,
+      `Challenge completed: ${challengeTitle}`,
+    );
+
+    if (!xpResult.success) {
+      return { xpAwarded: false, xpAmount: 0, newTotalXp: 0 };
+    }
+
+    await this.levelService.updateUserLevel(userId, xpResult.newTotal);
+
+    return {
+      xpAwarded: true,
+      xpAmount,
+      newTotalXp: xpResult.newTotal,
     };
   }
 

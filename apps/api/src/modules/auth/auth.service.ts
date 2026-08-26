@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { OrganizationType, RoleCode } from '@prisma/client';
+import { OrganizationStatus, OrganizationType, RoleCode } from '@prisma/client';
 import * as argon2 from 'argon2';
 import { createHmac, randomBytes } from 'node:crypto';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
@@ -16,6 +16,8 @@ import { PrismaService } from '../../database/prisma.service';
 import { EmailService } from '../email/email.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import { RegisterDto } from './dto/register.dto';
+import { RegisterOrganizationDto } from './dto/register-organization.dto';
+import { PlatformSettingsService } from '../platform-settings/platform-settings.service';
 
 export interface TokenPair {
   accessToken: string;
@@ -33,6 +35,7 @@ export class AuthService {
     private readonly audit: AuditLogsService,
     private readonly permissions: PermissionsService,
     private readonly email: EmailService,
+    private readonly platformSettings: PlatformSettingsService,
   ) {}
 
   async register(input: RegisterDto, ipAddress?: string) {
@@ -71,18 +74,20 @@ export class AuthService {
         data: { userId: newUser.id },
       });
 
-      // Assign the DONOR role. If a dedicated donor organization exists, use it;
-      // otherwise create a fallback organization so the user has active permissions.
+      // Every role grant runs through an OrganizationMembership, so donors —
+      // who have no real affiliated hospital/blood center — need somewhere
+      // to point that required FK. Use a singleton SYSTEM-type org rather
+      // than a fake HOSPITAL, so donor accounts never show up as a bogus
+      // "hospital" in admin/discovery listings that filter or count by type.
       let donorOrg = await tx.organization.findFirst({
-        where: { name: 'DONOR Donors', status: 'ACTIVE' },
+        where: { type: OrganizationType.SYSTEM },
       });
       if (!donorOrg) {
         donorOrg = await tx.organization.create({
           data: {
-            type: OrganizationType.HOSPITAL,
-            name: 'DONOR Donors',
+            type: OrganizationType.SYSTEM,
+            name: 'Donor Accounts (System)',
             status: 'ACTIVE',
-            hospital: { create: {} },
           },
         });
       }
@@ -120,6 +125,99 @@ export class AuthService {
     }
 
     return { data: user };
+  }
+
+  async registerOrganization(input: RegisterOrganizationDto, ipAddress?: string) {
+    const email = input.adminEmail.toLowerCase().trim();
+    const existing = await this.db.user.findUnique({ where: { email } });
+    if (existing) {
+      throw new BadRequestException('Email is already registered.');
+    }
+
+    const adminRoleCode =
+      input.organizationType === OrganizationType.HOSPITAL
+        ? RoleCode.HOSPITAL_ADMIN
+        : RoleCode.BLOOD_CENTER_ADMIN;
+    const adminRole = await this.db.role.findUnique({ where: { code: adminRoleCode } });
+    if (!adminRole) {
+      throw new NotFoundException(`${adminRoleCode} role not found. Run seed script.`);
+    }
+
+    const { user, organization } = await this.db.$transaction(async (tx) => {
+      const organization = await tx.organization.create({
+        data: {
+          type: input.organizationType,
+          name: input.organizationName.trim(),
+          legalName: input.legalName?.trim(),
+          email: input.organizationEmail?.toLowerCase().trim(),
+          phone: input.organizationPhone?.trim(),
+          address: input.address?.trim(),
+          latitude: input.latitude,
+          longitude: input.longitude,
+          status: OrganizationStatus.PENDING_APPROVAL,
+          ...(input.organizationType === OrganizationType.HOSPITAL
+            ? { hospital: { create: {} } }
+            : { bloodCenter: { create: {} } }),
+        },
+      });
+
+      const newUser = await tx.user.create({
+        data: {
+          email,
+          passwordHash: await argon2.hash(input.adminPassword),
+          firstName: input.adminFirstName.trim(),
+          lastName: input.adminLastName.trim(),
+          phone: input.adminPhone?.trim(),
+          status: 'PENDING_VERIFICATION',
+          emailVerified: false,
+        },
+        select: {
+          id: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+          status: true,
+        },
+      });
+
+      await tx.organizationMembership.create({
+        data: {
+          userId: newUser.id,
+          organizationId: organization.id,
+          roleId: adminRole.id,
+          status: 'ACTIVE',
+        },
+      });
+
+      return { user: newUser, organization };
+    });
+
+    await this.audit.log({
+      actorId: user.id,
+      action: 'ORGANIZATION_REGISTERED',
+      entityType: 'Organization',
+      entityId: organization.id,
+      organizationId: organization.id,
+      metadata: { organizationType: organization.type, organizationName: organization.name },
+      ipAddress,
+    });
+
+    try {
+      const rawToken = await this.createEmailVerificationToken(user.id);
+      const { verifyUrl, deepLink } = this.buildVerificationLinks(rawToken);
+      await this.email.sendVerificationEmail(user.email, user.firstName, verifyUrl, deepLink);
+    } catch (error) {
+      this.logger.error(
+        `Failed to send verification email to ${user.email}: ${(error as Error).message}`,
+      );
+    }
+
+    return {
+      data: {
+        user,
+        organization: { id: organization.id, name: organization.name, status: organization.status },
+      },
+    };
   }
 
   async verifyEmail(token: string, ipAddress?: string) {
@@ -219,6 +317,19 @@ export class AuthService {
         ipAddress,
       });
       throw new UnauthorizedException('Email or password is incorrect.');
+    }
+
+    const isSuperAdmin = user.memberships.some((m) => m.role.code === RoleCode.SUPER_ADMIN);
+    if (!isSuperAdmin && (await this.platformSettings.isMaintenanceMode())) {
+      await this.audit.log({
+        actorId: user.id,
+        action: 'LOGIN_FAILED',
+        entityType: 'User',
+        entityId: user.id,
+        metadata: { reason: 'maintenance_mode' },
+        ipAddress,
+      });
+      throw new ForbiddenException('The platform is temporarily down for maintenance. Please try again later.');
     }
 
     if (user.lockoutUntil && user.lockoutUntil > new Date()) {
@@ -427,7 +538,10 @@ export class AuthService {
       include: {
         memberships: {
           where: { status: 'ACTIVE' },
-          include: { role: true, organization: { select: { id: true, name: true, type: true } } },
+          include: {
+            role: true,
+            organization: { select: { id: true, name: true, type: true, status: true } },
+          },
         },
         donorProfile: true,
       },
@@ -459,6 +573,7 @@ export class AuthService {
           type: m.organization.type,
           role: m.role.code,
           status: m.status,
+          organizationStatus: m.organization.status,
         })),
         donorProfile: user.donorProfile
           ? {
@@ -660,8 +775,8 @@ export class AuthService {
     );
 
     const rawRefresh = randomBytes(48).toString('hex');
-    const expiresIn = this.config.get<string>('JWT_REFRESH_EXPIRES_IN', '30d');
-    const expiresAt = new Date(Date.now() + this.parseDuration(expiresIn as string));
+    const sessionTimeoutMinutes = await this.platformSettings.getSessionTimeoutMinutes();
+    const expiresAt = new Date(Date.now() + sessionTimeoutMinutes * 60 * 1000);
 
     await this.db.refreshToken.create({
       data: {
@@ -677,19 +792,5 @@ export class AuthService {
   private hashRefreshToken(token: string): string {
     const secret = this.config.getOrThrow<string>('JWT_REFRESH_SECRET');
     return createHmac('sha256', secret).update(token).digest('hex');
-  }
-
-  private parseDuration(value: string): number {
-    const match = value.match(/^(\d+)([dhm])$/i);
-    if (!match) return 30 * 24 * 60 * 60 * 1000;
-    const amount = Number(match[1]!);
-    const unit = match[2]!.toLowerCase();
-    const multipliers: Record<string, number> = {
-      m: 60 * 1000,
-      h: 60 * 60 * 1000,
-      d: 24 * 60 * 60 * 1000,
-    };
-    const multiplier = multipliers[unit] ?? multipliers['d']!;
-    return amount * multiplier;
   }
 }

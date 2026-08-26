@@ -1,15 +1,17 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Activity, ChevronRight } from 'lucide-react';
+import Link from 'next/link';
+import { Activity, ChevronRight, Clock } from 'lucide-react';
 import { DashboardShell, EmptyState, StatCard, StatusBadge } from '@donor/ui/components';
-import { login, logout as logoutApi, me, isAuthenticated } from '../lib/auth';
+import { login, logout as logoutApi, me, isAuthenticated, MeResponse } from '../lib/auth';
 import { sidebarItems } from '../lib/navigation';
 
 interface User {
   firstName: string;
   lastName: string;
   roles: string[];
+  organizations: MeResponse['organizations'];
 }
 
 export default function HospitalDashboard() {
@@ -29,6 +31,7 @@ export default function HospitalDashboard() {
             firstName: userData.firstName,
             lastName: userData.lastName,
             roles: userData.roles,
+            organizations: userData.organizations,
           });
         }
       } catch (err) {
@@ -51,6 +54,7 @@ export default function HospitalDashboard() {
         firstName: userData.firstName,
         lastName: userData.lastName,
         roles: userData.roles,
+        organizations: userData.organizations,
       });
     } catch (err: any) {
       setError(err.message ?? 'Login failed');
@@ -143,6 +147,12 @@ export default function HospitalDashboard() {
               {isSubmitting ? 'Signing in...' : 'Sign in'}
             </button>
           </form>
+          <p className="mt-6 text-center text-sm text-donor-muted">
+            New hospital?{' '}
+            <Link href="/register" className="font-semibold text-donor-primary hover:underline">
+              Register your organization
+            </Link>
+          </p>
         </div>
       </DashboardShell>
     );
@@ -151,6 +161,43 @@ export default function HospitalDashboard() {
   const hasHospitalAccess = user.roles.some((r) =>
     ['HOSPITAL_ADMIN', 'HOSPITAL_STAFF', 'SUPER_ADMIN'].includes(r),
   );
+
+  const hospitalOrg = user.organizations.find((org) => org.type === 'HOSPITAL');
+
+  if (hasHospitalAccess && hospitalOrg && hospitalOrg.organizationStatus !== 'ACTIVE') {
+    const isPending = hospitalOrg.organizationStatus === 'PENDING_APPROVAL';
+    return (
+      <DashboardShell
+        title={isPending ? 'Pending Approval' : 'Organization Unavailable'}
+        subtitle="HOSPITAL CONSOLE"
+        activeItem=""
+        sidebarItems={sidebarItems}
+        organizationName={hospitalOrg.name}
+        organizationType="Operations workspace"
+        userName={`${user.firstName} ${user.lastName}`}
+        onNotifications={() => {}}
+        onLogout={handleLogout}
+      >
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-donor-border bg-donor-surface p-12 text-center">
+          <Clock className="mb-4 text-donor-primary" size={48} />
+          <h2 className="mb-2 font-display text-2xl font-semibold text-donor-text">
+            {isPending ? 'Your hospital is pending approval' : 'Organization unavailable'}
+          </h2>
+          <p className="mb-6 max-w-md text-donor-muted">
+            {isPending
+              ? `${hospitalOrg.name} is still under review by a DONOR platform admin. You'll get full access as soon as it's approved.`
+              : `${hospitalOrg.name} is currently ${hospitalOrg.organizationStatus.toLowerCase().replace('_', ' ')}. Contact your DONOR platform admin for details.`}
+          </p>
+          <button
+            onClick={handleLogout}
+            className="rounded-lg bg-donor-surface px-6 py-3 font-semibold text-donor-text border border-donor-border transition-colors hover:bg-donor-border"
+          >
+            Sign out
+          </button>
+        </div>
+      </DashboardShell>
+    );
+  }
 
   if (!hasHospitalAccess) {
     return (

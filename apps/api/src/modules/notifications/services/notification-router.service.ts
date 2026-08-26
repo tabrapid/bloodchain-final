@@ -189,6 +189,9 @@ export class NotificationRouterService {
   async routeShipmentNotification(shipment: any, recipientIds: string[], event: string) {
     const templates: Record<string, { title: string; body: string }> = {
       created: { title: 'Shipment Created', body: 'A new blood shipment has been created' },
+      courier_assigned: { title: 'New Delivery Assignment', body: "You've been assigned a new blood shipment delivery" },
+      accepted: { title: 'Courier Accepted Delivery', body: 'The assigned courier has accepted this shipment' },
+      declined: { title: 'Courier Declined Delivery', body: 'The assigned courier declined this shipment - it needs to be reassigned' },
       picked_up: { title: 'Shipment Picked Up', body: 'Courier has picked up the shipment' },
       in_transit: { title: 'Shipment In Transit', body: 'Your shipment is on the way' },
       arrived: { title: 'Shipment Arrived', body: 'Shipment has arrived at its destination' },
@@ -200,7 +203,7 @@ export class NotificationRouterService {
 
     return this.route({
       type: NotificationType.SHIPMENT,
-      priority: event === 'failed' ? NotificationPriority.HIGH : NotificationPriority.NORMAL,
+      priority: event === 'failed' || event === 'declined' ? NotificationPriority.HIGH : NotificationPriority.NORMAL,
       title: template.title,
       body: template.body,
       data: { shipmentId: shipment.id, event },

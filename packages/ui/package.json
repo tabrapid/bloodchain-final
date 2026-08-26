@@ -11,7 +11,7 @@
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "lint": "tsc --noEmit -p tsconfig.json",
-    "test": "echo 'UI package tests scheduled with first component release'"
+    "test": "vitest run"
   },
   "peerDependencies": {
     "react": ">=18.0.0",
@@ -23,16 +23,22 @@
     }
   },
   "devDependencies": {
+    "@testing-library/dom": "^10.4.0",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.1.0",
+    "@testing-library/user-event": "^14.5.2",
     "@types/leaflet": "^1.9.8",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "clsx": "^2.1.1",
+    "jsdom": "^30.0.1",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.468.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-leaflet": "^4.2.1",
     "tailwind-merge": "^2.6.0",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
   }
 }

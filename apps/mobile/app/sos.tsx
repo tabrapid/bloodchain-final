@@ -12,6 +12,7 @@ import {
   XCircle,
 } from 'lucide-react-native';
 import { AppButton, AppText, Card, LoadingState, Screen } from '../src/components';
+import { LocationMap, type MapMarkerPoint } from '../src/components/map/LocationMap';
 import { colors, spacing } from '../src/theme';
 import {
   acceptEmergency,
@@ -19,8 +20,10 @@ import {
   cancelResponse,
   declineEmergency,
   DonorEmergenciesResponse,
+  DonorTrackingResponse,
   EmergencyRequest,
   getDonorEmergencies,
+  getDonorTracking,
   startJourney,
   updateLocation,
   viewEmergencyMatch,
@@ -37,6 +40,7 @@ export default function SosScreen() {
   const [myResponses, setMyResponses] = useState<EmergencyRequest[]>([]);
   const [selectedEmergency, setSelectedEmergency] = useState<EmergencyRequest | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [tracking, setTracking] = useState<DonorTrackingResponse | null>(null);
 
   const loadEmergencies = useCallback(async () => {
     setStatus('loading');
@@ -83,7 +87,8 @@ export default function SosScreen() {
             longitude: position.coords.longitude,
             accuracy: position.coords.accuracy ?? undefined,
             heading: position.coords.heading ?? undefined,
-            speed: position.coords.speed ?? undefined,
+            // expo-location reports speed in meters/second; stored server-side as km/h.
+            speed: position.coords.speed != null ? position.coords.speed * 3.6 : undefined,
           }).catch(() => {
             // Best-effort: a single missed location update shouldn't interrupt the journey.
           });
@@ -100,6 +105,59 @@ export default function SosScreen() {
       locationSubscription.current = null;
     };
   }, [status, selectedEmergency?.responseId]);
+
+  useEffect(() => {
+    const responseId = selectedEmergency?.responseId;
+    if (!responseId || !['responding', 'en_route', 'arrived'].includes(status)) {
+      setTracking(null);
+      return;
+    }
+
+    let cancelled = false;
+    const poll = async () => {
+      try {
+        const result = await getDonorTracking(responseId);
+        if (!cancelled) setTracking(result);
+      } catch {
+        // Best-effort: the response card below still works from local state alone.
+      }
+    };
+
+    poll();
+    const interval = setInterval(poll, LOCATION_UPDATE_INTERVAL_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [status, selectedEmergency?.responseId]);
+
+  const trackingMarkers: MapMarkerPoint[] = tracking
+    ? [
+        ...(tracking.locations[0]
+          ? [
+              {
+                id: 'donor',
+                latitude: Number(tracking.locations[0].latitude),
+                longitude: Number(tracking.locations[0].longitude),
+                label: 'You',
+                variant: 'donor' as const,
+              },
+            ]
+          : []),
+        ...(tracking.emergencyRequest.hospital.latitude && tracking.emergencyRequest.hospital.longitude
+          ? [
+              {
+                id: 'hospital',
+                latitude: Number(tracking.emergencyRequest.hospital.latitude),
+                longitude: Number(tracking.emergencyRequest.hospital.longitude),
+                label: tracking.emergencyRequest.hospital.name,
+                sublabel: tracking.emergencyRequest.hospital.address,
+                variant: 'hospital' as const,
+              },
+            ]
+          : []),
+      ]
+    : [];
 
   const handleViewMatch = async (emergency: EmergencyRequest) => {
     if (!emergency.matchId) return;
@@ -544,6 +602,12 @@ export default function SosScreen() {
               </View>
             </View>
           </Card>
+
+          {trackingMarkers.length > 0 && (
+            <Card style={{ marginBottom: spacing.lg, padding: 0, overflow: 'hidden' }}>
+              <LocationMap markers={trackingMarkers} height={200} />
+            </Card>
+          )}
 
           <Card style={{ marginBottom: spacing.lg }}>
             <AppText variant="heading" style={{ marginBottom: spacing.md }}>

@@ -19,13 +19,17 @@ import {
 } from '@prisma/client';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../database/prisma.service';
+import { withUniqueRetry } from '../../common/utils/unique-retry.util';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { Courier, Organization, User } from '@prisma/client';
 import { LocationService } from './services/location.service';
 import { ShipmentStateMachine } from './services/shipment-state.service';
 import { ShipmentGateway } from '../../gateways/shipment.gateway';
+import { assertOrganizationActive } from '../../common/utils/organization-status.util';
 
 const SHIPMENT_EVENT = 'shipment.event';
+const DEFAULT_ETA_SPEED_KMH = 40;
+const RECENT_SPEED_SAMPLE_SIZE = 5;
 
 type OrganizationWithType = Organization & { __typename?: string };
 
@@ -85,6 +89,7 @@ export class ShipmentsService {
     if (!org || org.type !== OrganizationType.BLOOD_CENTER) {
       throw new ForbiddenException('Only blood centers can perform this action.');
     }
+    assertOrganizationActive(org);
     const hasPermission = user.memberships.some(
       (m: { role: { code: string } }) =>
         ['BLOOD_CENTER_ADMIN', 'BLOOD_CENTER_STAFF', 'SUPER_ADMIN'].includes(m.role.code),
@@ -101,6 +106,7 @@ export class ShipmentsService {
     if (!org || org.type !== OrganizationType.HOSPITAL) {
       throw new ForbiddenException('Only hospitals can perform this action.');
     }
+    assertOrganizationActive(org);
     const hasPermission = user.memberships.some(
       (m: { role: { code: string } }) =>
         ['HOSPITAL_ADMIN', 'HOSPITAL_STAFF', 'SUPER_ADMIN'].includes(m.role.code),
@@ -119,6 +125,7 @@ export class ShipmentsService {
     if (!courier) {
       throw new ForbiddenException('Courier profile not found.');
     }
+    assertOrganizationActive(courier.organization);
     return courier;
   }
 
@@ -143,46 +150,50 @@ export class ShipmentsService {
   ) {
     const { user } = await this.checkHospitalAccess(userId, organizationId);
 
-    const result = await this.db.$transaction(async (tx) => {
-      const request = await tx.bloodRequest.create({
-        data: {
-          requestReference: this.generateRequestReference(),
-          requestingOrganizationId: organizationId,
-          priority: (dto.priority as any) || 'ROUTINE',
-          status: BloodRequestStatus.SUBMITTED,
-          notes: dto.notes,
-          deliveryAddress: dto.deliveryAddress,
-          deliveryLatitude: dto.deliveryLatitude ? new Prisma.Decimal(dto.deliveryLatitude) : undefined,
-          deliveryLongitude: dto.deliveryLongitude ? new Prisma.Decimal(dto.deliveryLongitude) : undefined,
-          deliveryPhone: dto.deliveryPhone,
-          expectedDeliveryDate: dto.expectedDeliveryDate ? new Date(dto.expectedDeliveryDate) : undefined,
-        },
-      });
+    const result = await withUniqueRetry(
+      () =>
+        this.db.$transaction(async (tx) => {
+          const request = await tx.bloodRequest.create({
+            data: {
+              requestReference: this.generateRequestReference(),
+              requestingOrganizationId: organizationId,
+              priority: (dto.priority as any) || 'ROUTINE',
+              status: BloodRequestStatus.SUBMITTED,
+              notes: dto.notes,
+              deliveryAddress: dto.deliveryAddress,
+              deliveryLatitude: dto.deliveryLatitude ? new Prisma.Decimal(dto.deliveryLatitude) : undefined,
+              deliveryLongitude: dto.deliveryLongitude ? new Prisma.Decimal(dto.deliveryLongitude) : undefined,
+              deliveryPhone: dto.deliveryPhone,
+              expectedDeliveryDate: dto.expectedDeliveryDate ? new Date(dto.expectedDeliveryDate) : undefined,
+            },
+          });
 
-      for (const item of dto.items) {
-        await tx.bloodRequestItem.create({
-          data: {
-            bloodRequestId: request.id,
-            bloodType: item.bloodType as any,
-            rhFactor: item.rhFactor as any,
-            componentType: (item.componentType as any) || 'WHOLE_BLOOD',
-            unitsRequested: item.unitsRequested,
-          },
-        });
-      }
+          for (const item of dto.items) {
+            await tx.bloodRequestItem.create({
+              data: {
+                bloodRequestId: request.id,
+                bloodType: item.bloodType as any,
+                rhFactor: item.rhFactor as any,
+                componentType: (item.componentType as any) || 'WHOLE_BLOOD',
+                unitsRequested: item.unitsRequested,
+              },
+            });
+          }
 
-      await tx.bloodRequestEvent.create({
-        data: {
-          bloodRequestId: request.id,
-          eventType: 'SUBMITTED',
-          actorId: user.id,
-          organizationId,
-          metadata: { items: dto.items.length },
-        },
-      });
+          await tx.bloodRequestEvent.create({
+            data: {
+              bloodRequestId: request.id,
+              eventType: 'SUBMITTED',
+              actorId: user.id,
+              organizationId,
+              metadata: { items: dto.items.length },
+            },
+          });
 
-      return request;
-    });
+          return request;
+        }),
+      { uniqueFields: ['requestReference'] },
+    );
 
     await this.audit.log({
       actorId: user.id,
@@ -306,35 +317,55 @@ export class ShipmentsService {
         });
 
         if (approval.unitsApproved > 0) {
-          const reservations = await tx.bloodUnitReservation.findMany({
+          // No real flow ever leaves a BloodUnitReservation ACTIVE while its
+          // BloodUnit is still AVAILABLE -- InventoryService.reserveUnit (the
+          // only place a reservation is created) atomically flips the unit to
+          // RESERVED in the same transaction, and releaseReservation moves
+          // both back together. So rather than searching for a pre-existing
+          // reservation that can never be found, select AVAILABLE units
+          // directly (oldest-collected-first, standard FIFO rotation) and
+          // create the reservation here, exactly as reserveUnit does.
+          const availableUnits = await tx.bloodUnit.findMany({
             where: {
               organizationId,
-              status: ReservationStatus.ACTIVE,
-              bloodUnit: {
-                bloodType: item.bloodType,
-                rhFactor: item.rhFactor,
-                status: 'AVAILABLE',
-                organizationId,
-              },
+              bloodType: item.bloodType,
+              rhFactor: item.rhFactor,
+              status: 'AVAILABLE',
             },
-            include: { bloodUnit: true },
             take: approval.unitsApproved,
-            orderBy: { reservedAt: 'asc' },
+            orderBy: { collectedAt: 'asc' },
           });
 
-          for (const reservation of reservations) {
+          for (const unit of availableUnits) {
             // Atomic conditional update: only claim the unit if it's still
             // AVAILABLE at lock time, closing the race with concurrent approvals.
             const { count } = await tx.bloodUnit.updateMany({
-              where: { id: reservation.bloodUnitId, status: 'AVAILABLE' },
+              where: { id: unit.id, status: 'AVAILABLE' },
               data: { status: 'RESERVED' },
             });
             if (count === 0) continue;
 
-            await tx.bloodUnitReservation.update({
-              where: { id: reservation.id },
+            await tx.bloodUnitReservation.create({
               data: {
+                bloodUnitId: unit.id,
+                organizationId,
                 reservedForOrganizationId: request.requestingOrganizationId,
+                reservedBy: user.id,
+                reason: `Blood request ${request.requestReference}`,
+                // createShipment later reads item.reservations to decide which
+                // reservations become ShipmentUnit rows for this request's
+                // items -- without this link every shipment created from an
+                // approved request would ship with zero recorded units.
+                bloodRequestItems: { connect: { id: approval.itemId } },
+              },
+            });
+
+            await tx.inventoryMovement.create({
+              data: {
+                bloodUnitId: unit.id,
+                organizationId,
+                type: MovementType.RESERVED,
+                actorId: user.id,
                 reason: `Blood request ${request.requestReference}`,
               },
             });
@@ -501,58 +532,62 @@ export class ShipmentsService {
       throw new NotFoundException('Destination organization not found.');
     }
 
-    const result = await this.db.$transaction(async (tx) => {
-      const shipment = await tx.shipment.create({
-        data: {
-          shipmentReference: this.generateShipmentReference(),
-          bloodRequestId: requestId,
-          sourceOrganizationId: organizationId,
-          destinationOrganizationId: request.requestingOrganizationId,
-          status: ShipmentStatus.CREATED,
-          pickupAddress: dto.pickupAddress || destinationOrg.address || undefined,
-          pickupLatitude: dto.pickupLatitude ? new Prisma.Decimal(dto.pickupLatitude) : (destinationOrg.latitude ? new Prisma.Decimal(Number(destinationOrg.latitude)) : undefined),
-          pickupLongitude: dto.pickupLongitude ? new Prisma.Decimal(dto.pickupLongitude) : (destinationOrg.longitude ? new Prisma.Decimal(Number(destinationOrg.longitude)) : undefined),
-          destinationAddress: request.deliveryAddress || destinationOrg.address || undefined,
-          destinationLatitude: request.deliveryLatitude || undefined,
-          destinationLongitude: request.deliveryLongitude || undefined,
-        },
-      });
-
-      for (const item of request.items) {
-        for (const reservation of item.reservations) {
-          await tx.shipmentUnit.create({
+    const result = await withUniqueRetry(
+      () =>
+        this.db.$transaction(async (tx) => {
+          const shipment = await tx.shipment.create({
             data: {
-              shipmentId: shipment.id,
-              bloodUnitId: reservation.bloodUnitId,
-              reservationId: reservation.id,
-              bloodRequestItemId: item.id,
-              status: 'PENDING',
+              shipmentReference: this.generateShipmentReference(),
+              bloodRequestId: requestId,
+              sourceOrganizationId: organizationId,
+              destinationOrganizationId: request.requestingOrganizationId,
+              status: ShipmentStatus.CREATED,
+              pickupAddress: dto.pickupAddress || destinationOrg.address || undefined,
+              pickupLatitude: dto.pickupLatitude ? new Prisma.Decimal(dto.pickupLatitude) : (destinationOrg.latitude ? new Prisma.Decimal(Number(destinationOrg.latitude)) : undefined),
+              pickupLongitude: dto.pickupLongitude ? new Prisma.Decimal(dto.pickupLongitude) : (destinationOrg.longitude ? new Prisma.Decimal(Number(destinationOrg.longitude)) : undefined),
+              destinationAddress: request.deliveryAddress || destinationOrg.address || undefined,
+              destinationLatitude: request.deliveryLatitude || undefined,
+              destinationLongitude: request.deliveryLongitude || undefined,
             },
           });
-        }
-      }
 
-      await tx.shipmentEvent.create({
-        data: {
-          shipmentId: shipment.id,
-          eventType: ShipmentEventType.CREATED,
-          actorId: user.id,
-          organizationId,
-        },
-      });
+          for (const item of request.items) {
+            for (const reservation of item.reservations) {
+              await tx.shipmentUnit.create({
+                data: {
+                  shipmentId: shipment.id,
+                  bloodUnitId: reservation.bloodUnitId,
+                  reservationId: reservation.id,
+                  bloodRequestItemId: item.id,
+                  status: 'PENDING',
+                },
+              });
+            }
+          }
 
-      await tx.bloodRequestEvent.create({
-        data: {
-          bloodRequestId: requestId,
-          eventType: 'SHIPMENT_CREATED',
-          actorId: user.id,
-          organizationId,
-          metadata: { shipmentId: shipment.id, shipmentReference: shipment.shipmentReference },
-        },
-      });
+          await tx.shipmentEvent.create({
+            data: {
+              shipmentId: shipment.id,
+              eventType: ShipmentEventType.CREATED,
+              actorId: user.id,
+              organizationId,
+            },
+          });
 
-      return shipment;
-    });
+          await tx.bloodRequestEvent.create({
+            data: {
+              bloodRequestId: requestId,
+              eventType: 'SHIPMENT_CREATED',
+              actorId: user.id,
+              organizationId,
+              metadata: { shipmentId: shipment.id, shipmentReference: shipment.shipmentReference },
+            },
+          });
+
+          return shipment;
+        }),
+      { uniqueFields: ['shipmentReference'] },
+    );
 
     await this.audit.log({
       actorId: user.id,
@@ -971,6 +1006,17 @@ export class ShipmentsService {
       ipAddress,
     });
 
+    const bloodCenterUsers = await this.db.user.findMany({
+      where: { memberships: { some: { organizationId: shipment.sourceOrganizationId } } },
+      select: { id: true },
+    });
+
+    this.eventEmitter.emit(SHIPMENT_EVENT, {
+      shipmentId,
+      eventType: 'declined',
+      recipientIds: bloodCenterUsers.map((u) => u.id),
+    });
+
     this.shipmentGateway.emitShipmentStatusChanged(shipmentId, ShipmentStatus.COURIER_DECLINED, { reason });
 
     return result;
@@ -1378,164 +1424,6 @@ export class ShipmentsService {
     return result;
   }
 
-  async confirmDelivery(
-    organizationId: string,
-    userId: string,
-    shipmentId: string,
-    dto: { verificationCode?: string },
-    ipAddress?: string,
-  ) {
-    const { user } = await this.checkHospitalAccess(userId, organizationId);
-
-    const shipment = await this.db.shipment.findUnique({
-      where: { id: shipmentId },
-      include: {
-        units: {
-          include: {
-            bloodUnit: true,
-            reservation: true,
-          },
-        },
-        bloodRequest: true,
-      },
-    });
-
-    if (!shipment) {
-      throw new NotFoundException('Shipment not found.');
-    }
-
-    if (shipment.destinationOrganizationId !== organizationId) {
-      throw new ForbiddenException('This shipment is not destined for your organization.');
-    }
-
-    ShipmentStateMachine.assertTransition(shipment.status, ShipmentStatus.DELIVERED);
-
-    const result = await this.db.$transaction(async (tx) => {
-      const now = new Date();
-
-      const claim = await tx.shipment.updateMany({
-        where: {
-          id: shipmentId,
-          status: { in: ShipmentStateMachine.getSourceStatuses(ShipmentStatus.DELIVERED) },
-        },
-        data: {
-          status: ShipmentStatus.DELIVERED,
-          deliveredAt: now,
-        },
-      });
-
-      if (claim.count === 0) {
-        throw new ConflictException('Shipment can no longer be delivered from its current state.');
-      }
-
-      for (const unit of shipment.units) {
-        await tx.shipmentUnit.update({
-          where: { id: unit.id },
-          data: {
-            deliveredAt: now,
-            status: 'DELIVERED',
-          },
-        });
-
-        await tx.bloodUnit.update({
-          where: { id: unit.bloodUnitId },
-          data: {
-            organizationId: organizationId,
-            status: 'AVAILABLE',
-          },
-        });
-
-        await tx.inventoryMovement.create({
-          data: {
-            bloodUnitId: unit.bloodUnitId,
-            organizationId,
-            type: MovementType.TRANSFER_IN,
-            actorId: user.id,
-            reason: `Shipment ${shipment.shipmentReference} delivery`,
-          },
-        });
-
-        await tx.bloodUnitReservation.update({
-          where: { id: unit.reservationId },
-          data: {
-            status: ReservationStatus.FULFILLED,
-            fulfilledAt: now,
-          },
-        });
-      }
-
-      const updated = await tx.shipment.findUniqueOrThrow({ where: { id: shipmentId } });
-
-      await tx.bloodRequest.update({
-        where: { id: shipment.bloodRequestId },
-        data: {
-          status: BloodRequestStatus.DELIVERED,
-          deliveredAt: now,
-        },
-      });
-
-      await tx.courier.update({
-        where: { id: shipment.courierId! },
-        data: { status: CourierStatus.AVAILABLE },
-      });
-
-      await tx.shipmentEvent.create({
-        data: {
-          shipmentId,
-          eventType: ShipmentEventType.DELIVERED,
-          actorId: user.id,
-          organizationId,
-          metadata: { unitsDelivered: shipment.units.length },
-        },
-      });
-
-      await tx.bloodRequestEvent.create({
-        data: {
-          bloodRequestId: shipment.bloodRequestId,
-          eventType: 'DELIVERED',
-          actorId: user.id,
-          organizationId,
-          metadata: { shipmentId, shipmentReference: shipment.shipmentReference },
-        },
-      });
-
-      return updated;
-    });
-
-    await this.audit.log({
-      actorId: user.id,
-      action: 'SHIPMENT_DELIVERED',
-      entityType: 'Shipment',
-      entityId: shipmentId,
-      organizationId,
-      metadata: { shipmentReference: shipment.shipmentReference, unitsDelivered: shipment.units.length },
-      ipAddress,
-    });
-
-    const bloodCenterUsers = await this.db.user.findMany({
-      where: { memberships: { some: { organizationId: shipment.sourceOrganizationId } } },
-      select: { id: true },
-    });
-
-    const courierUser = await this.db.courier.findUnique({
-      where: { id: shipment.courierId! },
-      select: { userId: true },
-    });
-
-    const recipientIds = [
-      ...bloodCenterUsers.map((u) => u.id),
-      ...(courierUser ? [courierUser.userId] : []),
-    ];
-
-    this.eventEmitter.emit(SHIPMENT_EVENT, {
-      shipmentId,
-      eventType: 'delivered',
-      recipientIds,
-    });
-
-    return result;
-  }
-
   async failShipment(
     courierId: string,
     shipmentId: string,
@@ -1776,7 +1664,7 @@ export class ShipmentsService {
           select: { id: true, displayName: true, phone: true },
         },
         units: {
-          select: { id: true },
+          select: { id: true, bloodUnit: { select: { bloodType: true, rhFactor: true } } },
         },
       },
     });
@@ -1821,12 +1709,31 @@ export class ShipmentsService {
         Number(shipment.destinationLatitude),
         Number(shipment.destinationLongitude),
       );
-      const etaMinutes = Math.round((distance / 40) * 60);
+
+      // Prefer this courier's own recent, real GPS speed over a flat assumed
+      // constant. Falls back to DEFAULT_ETA_SPEED_KMH when there isn't
+      // enough recent speed data yet (e.g. right after pickup).
+      const recentSpeeds = await this.db.shipmentLocation.findMany({
+        where: { shipmentId, speed: { not: null } },
+        orderBy: { recordedAt: 'desc' },
+        take: RECENT_SPEED_SAMPLE_SIZE,
+        select: { speed: true },
+      });
+      const usableSpeeds = recentSpeeds.map((l) => Number(l.speed)).filter((s) => s > 0);
+      const avgSpeedKmh =
+        usableSpeeds.length > 0
+          ? usableSpeeds.reduce((sum, s) => sum + s, 0) / usableSpeeds.length
+          : DEFAULT_ETA_SPEED_KMH;
+
+      const etaMinutes = Math.round((distance / avgSpeedKmh) * 60);
       eta = {
         distanceKm: Math.round(distance * 10) / 10,
         etaMinutes,
         calculatedAt: new Date().toISOString(),
-        note: 'Estimated based on straight-line distance and average speed. Not a guaranteed delivery time.',
+        note:
+          usableSpeeds.length > 0
+            ? "Estimated based on straight-line distance and the courier's own recent average speed. Not a guaranteed delivery time."
+            : 'Estimated based on straight-line distance and a default average speed. Not a guaranteed delivery time.',
       };
     }
 
@@ -1835,7 +1742,7 @@ export class ShipmentsService {
       reference: shipment.shipmentReference,
       status: shipment.status,
       priority: shipment.bloodRequest.priority,
-      bloodGroup: 'Available after delivery confirmation',
+      bloodGroup: this.summarizeUnitBloodGroups(shipment.units),
       units: shipment.units?.length || 0,
       source: {
         id: shipment.sourceOrganization.id,
@@ -2248,10 +2155,6 @@ export class ShipmentsService {
       ipAddress,
     });
 
-    // This is the route actually wired to POST .../confirm-delivery (see
-    // shipments.controller.ts) - confirmDelivery above is dead code that
-    // was never reachable, which is why "delivered" push notifications and
-    // live tracking updates never fired for real deliveries before this.
     const bloodCenterUsers = await this.db.user.findMany({
       where: { memberships: { some: { organizationId: shipment.sourceOrganizationId } } },
       select: { id: true },
@@ -2289,6 +2192,28 @@ export class ShipmentsService {
         } : null,
       },
     };
+  }
+
+  /** Summarizes the real blood types actually loaded on a shipment, e.g. "2 O+, 1 A-". */
+  private summarizeUnitBloodGroups(units: Array<{ bloodUnit: { bloodType: string; rhFactor: string } | null }>): string {
+    if (!units || units.length === 0) {
+      return 'No units assigned yet';
+    }
+
+    const counts = new Map<string, number>();
+    for (const unit of units) {
+      if (!unit.bloodUnit) continue;
+      const key = `${unit.bloodUnit.bloodType}${unit.bloodUnit.rhFactor === 'POSITIVE' ? '+' : '-'}`;
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+
+    if (counts.size === 0) {
+      return 'No units assigned yet';
+    }
+
+    return Array.from(counts.entries())
+      .map(([bloodGroup, count]) => `${count} ${bloodGroup}`)
+      .join(', ');
   }
 
   private calculateHaversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {

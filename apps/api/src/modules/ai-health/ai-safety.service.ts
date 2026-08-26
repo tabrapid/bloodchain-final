@@ -9,117 +9,150 @@ interface UnsafePattern {
   replacement?: string;
 }
 
+// Matches a diagnosis-shaped noun phrase without depending on an enumerated
+// disease list, which by construction can never be complete (the previous
+// version only recognized 9 specific conditions -- "do I have lupus?" or
+// "you likely have COPD" sailed straight through). Combines a short list of
+// conditions common enough to name explicitly with two structural catches:
+// common medical-term suffixes (anemia, hepatitis, thrombosis, carcinoma,
+// neuropathy, neuralgia, ...) and generic diagnosis nouns (disease,
+// disorder, deficiency, infection, syndrome), which together cover the vast
+// majority of real condition names without needing to list them individually.
+const DIAGNOSIS_TERM =
+  '(?:cancer|diabetes|hiv|aids|std|sti|hpv|hepatitis|hep|chlamydia|syphilis|gonorrhea|' +
+  'lupus|leukemia|lymphoma|tuberculosis|copd|[a-z]+(?:emia|itis|osis|oma|pathy|algia)|' +
+  '[a-z ]{0,20}(?:disease|disorder|deficiency|infection|syndrome))';
+
 const UNSAFE_REQUEST_PATTERNS: UnsafePattern[] = [
   {
-    pattern: /do i have (cancer|diabetes|anemia|hpv|hep|hepatitis| hiv|std|sti|chlamydia|syphilis|gonorrhea)/i,
+    pattern: new RegExp(`\\bdo i have\\b.{0,40}?\\b${DIAGNOSIS_TERM}`, 'i'),
     safetyLevel: SafetyLevel.OUT_OF_SCOPE,
   },
   {
-    pattern: /am i (sick|ill|diseased|healthy)/i,
+    pattern: new RegExp(`\\b(could|might|do you think) i have\\b.{0,40}?\\b${DIAGNOSIS_TERM}`, 'i'),
     safetyLevel: SafetyLevel.OUT_OF_SCOPE,
   },
   {
-    pattern: /what disease do i have/i,
+    pattern: /\bam i (sick|ill|diseased|healthy)\b/i,
     safetyLevel: SafetyLevel.OUT_OF_SCOPE,
   },
   {
-    pattern: /diagnose me/i,
+    pattern: /\bwhat('s| is) wrong with me\b/i,
     safetyLevel: SafetyLevel.OUT_OF_SCOPE,
   },
   {
-    pattern: /should i take (medication|medicine|drugs?|pills?|supplements?)/i,
+    pattern: /\bwhat (disease|condition|illness) do i have\b/i,
     safetyLevel: SafetyLevel.OUT_OF_SCOPE,
   },
   {
-    pattern: /what (dosage|dose) should i take/i,
+    pattern: /\bdiagnose me\b/i,
     safetyLevel: SafetyLevel.OUT_OF_SCOPE,
   },
   {
-    pattern: /should i stop taking (my medication|my medicine)/i,
+    pattern: /\b(am i|do i) (test|tested)?\s*(positive|negative) for\b/i,
     safetyLevel: SafetyLevel.OUT_OF_SCOPE,
   },
   {
-    pattern: /prescribe (me |me )?(medication|medicine|drugs?|treatment)/i,
+    pattern: /\bshould i take (medication|medicine|drugs?|pills?|supplements?)\b/i,
     safetyLevel: SafetyLevel.OUT_OF_SCOPE,
   },
   {
-    pattern: /ignore (your|all) (safety|system|previous|original) (instructions|prompts?)/i,
+    pattern: /\bwhat (dosage|dose) should i take\b/i,
     safetyLevel: SafetyLevel.OUT_OF_SCOPE,
   },
   {
-    pattern: /reveal (your |the )?(system |secret |original )?prompt/i,
+    pattern: /\bshould i stop taking (my medication|my medicine)\b/i,
     safetyLevel: SafetyLevel.OUT_OF_SCOPE,
   },
   {
-    pattern: /you are (now |just |really )?(a |an )?(doctor|physician|medic|medical professional|nurse|clinician)/i,
+    pattern: /\bprescribe (me )?(medication|medicine|drugs?|treatment)\b/i,
     safetyLevel: SafetyLevel.OUT_OF_SCOPE,
   },
   {
-    pattern: /can i donate blood (if|when|while) (i('m| am) (sick|ill|fever|unwell|nauseous|dizzy|tired|exhausted))/i,
+    pattern: /\bignore (your|all) (safety|system|previous|original) (instructions|prompts?)\b/i,
     safetyLevel: SafetyLevel.OUT_OF_SCOPE,
   },
   {
-    pattern: /should i donate blood (if|when|while) (i('m| am) (sick|ill|fever|unwell|nauseous|dizzy|tired|exhausted))/i,
+    pattern: /\breveal (your |the )?(system |secret |original )?prompt\b/i,
     safetyLevel: SafetyLevel.OUT_OF_SCOPE,
   },
   {
-    pattern: /can i ignore (this |my )?(result|symptom|test|doctor)/i,
+    pattern: /\byou are (now |just |really )?(a |an )?(doctor|physician|medic|medical professional|nurse|clinician)\b/i,
     safetyLevel: SafetyLevel.OUT_OF_SCOPE,
   },
   {
-    pattern: /what (pill|drug|medicine|medication|treatment) should i (take|use)/i,
+    pattern: /\bcan i donate blood (if|when|while) (i('m| am) (sick|ill|fever|unwell|nauseous|dizzy|tired|exhausted))\b/i,
     safetyLevel: SafetyLevel.OUT_OF_SCOPE,
   },
   {
-    pattern: /is this (dangerous|serious|fatal|deadly|critical|life.?threatening)/i,
+    pattern: /\bshould i donate blood (if|when|while) (i('m| am) (sick|ill|fever|unwell|nauseous|dizzy|tired|exhausted))\b/i,
+    safetyLevel: SafetyLevel.OUT_OF_SCOPE,
+  },
+  {
+    pattern: /\bcan i ignore (this |my )?(result|symptom|test|doctor)\b/i,
+    safetyLevel: SafetyLevel.OUT_OF_SCOPE,
+  },
+  {
+    pattern: /\bwhat (pill|drug|medicine|medication|treatment) should i (take|use)\b/i,
+    safetyLevel: SafetyLevel.OUT_OF_SCOPE,
+  },
+  {
+    pattern: /\bis this (dangerous|serious|fatal|deadly|critical|life.?threatening)\b/i,
     safetyLevel: SafetyLevel.PROFESSIONAL_REVIEW_SUGGESTED,
   },
   {
-    pattern: /am i (going to|gonna) (die|be okay|be fine)/i,
+    pattern: /\bam i (going to|gonna) (die|be okay|be fine)\b/i,
     safetyLevel: SafetyLevel.PROFESSIONAL_REVIEW_SUGGESTED,
   },
 ];
 
 const UNSAFE_OUTPUT_PATTERNS: UnsafePattern[] = [
   {
-    pattern: /you (have|may have|probably have|likely have|definitely have) (cancer|diabetes|anemia|hpv|hep|hepatitis| hiv|std|sti|chlamydia|syphilis|gonorrhea)/i,
+    pattern: new RegExp(
+      `\\byou (have|may have|probably have|likely have|definitely have|are diagnosed with|suffer from|test(?:ed)? positive for)\\b.{0,40}?\\b${DIAGNOSIS_TERM}`,
+      'i',
+    ),
     safetyLevel: SafetyLevel.OUT_OF_SCOPE,
   },
   {
-    pattern: /i (diagnose|am diagnosing|can diagnose) you (with|as)/i,
+    // "is/are/appears consistent with|indicative of|suggestive of a diagnosis
+    // of X" is textbook clinical diagnostic phrasing regardless of what X is
+    // -- an informational insight has no business ever phrasing anything
+    // this way, so this stays broad rather than requiring a DIAGNOSIS_TERM.
+    pattern: /\b(is|are|appears?|seems?|looks?) (consistent with|indicative of|suggestive of|characteristic of|typical of)\b/i,
     safetyLevel: SafetyLevel.OUT_OF_SCOPE,
   },
   {
-    pattern: /take (this |these |the following )?(medication|medicine|drugs?|pills?|prescription|supplement)/i,
+    pattern: /\bi (diagnose|am diagnosing|can diagnose) you (with|as)\b/i,
     safetyLevel: SafetyLevel.OUT_OF_SCOPE,
   },
   {
-    pattern: /your dosage should be \d+/i,
+    pattern: /\btake (this |these |the following )?(medication|medicine|drugs?|pills?|prescription|supplement)\b/i,
     safetyLevel: SafetyLevel.OUT_OF_SCOPE,
   },
   {
-    pattern: /stop taking (your |all |any )?(medication|medicine|drugs?)/i,
+    pattern: /\byour dosage should be \d+\b/i,
     safetyLevel: SafetyLevel.OUT_OF_SCOPE,
   },
   {
-    pattern: /you (definitely|certainly|absolutely|clearly) (have|are|need)/i,
+    pattern: /\bstop taking (your |all |any )?(medication|medicine|drugs?)\b/i,
+    safetyLevel: SafetyLevel.OUT_OF_SCOPE,
+  },
+  {
+    pattern: /\byou (definitely|certainly|absolutely|clearly) (have|are|need)\b/i,
     safetyLevel: SafetyLevel.NEEDS_CONTEXT,
   },
   {
-    pattern: /this proves|this indicates|this means you have/i,
+    pattern: /\b(this proves|this indicates|this means you have)\b/i,
     safetyLevel: SafetyLevel.NEEDS_CONTEXT,
   },
   {
-    pattern: /you should (donate|not donate) blood/i,
+    pattern: /\byou should (donate|not donate) blood\b/i,
     safetyLevel: SafetyLevel.OUT_OF_SCOPE,
   },
   {
-    pattern: /ignore (this|your) (doctor|physician|healthcare professional|medical)/i,
+    pattern: /\bignore (this|your) (doctor|physician|healthcare professional|medical)\b/i,
     safetyLevel: SafetyLevel.OUT_OF_SCOPE,
-  },
-  {
-    pattern: /\b98%?\s*confiden/i,
-    safetyLevel: SafetyLevel.NEEDS_CONTEXT,
   },
   {
     pattern: /\b\d+%?\s*confiden/i,
@@ -153,14 +186,16 @@ const EMERGENCY_PATTERNS: UnsafePattern[] = [
 @Injectable()
 export class AIHealthSafetyService {
   classifyRequest(input: string): SafetyLevel {
+    const normalized = this.normalizeForMatching(input);
+
     for (const pattern of EMERGENCY_PATTERNS) {
-      if (pattern.pattern.test(input)) {
+      if (pattern.pattern.test(normalized)) {
         return SafetyLevel.EMERGENCY_REDIRECT;
       }
     }
 
     for (const pattern of UNSAFE_REQUEST_PATTERNS) {
-      if (pattern.pattern.test(input)) {
+      if (pattern.pattern.test(normalized)) {
         return pattern.safetyLevel;
       }
     }
@@ -169,8 +204,10 @@ export class AIHealthSafetyService {
   }
 
   validateOutput(output: string): { isValid: boolean; safetyLevel: SafetyLevel; reason?: string } {
+    const normalized = this.normalizeForMatching(output);
+
     for (const pattern of EMERGENCY_PATTERNS) {
-      if (pattern.pattern.test(output)) {
+      if (pattern.pattern.test(normalized)) {
         return {
           isValid: false,
           safetyLevel: SafetyLevel.EMERGENCY_REDIRECT,
@@ -180,7 +217,7 @@ export class AIHealthSafetyService {
     }
 
     for (const pattern of UNSAFE_OUTPUT_PATTERNS) {
-      if (pattern.pattern.test(output)) {
+      if (pattern.pattern.test(normalized)) {
         return {
           isValid: false,
           safetyLevel: pattern.safetyLevel,
@@ -193,6 +230,17 @@ export class AIHealthSafetyService {
       isValid: true,
       safetyLevel: SafetyLevel.SAFE_INFORMATIONAL,
     };
+  }
+
+  // Every pattern above is written with literal single spaces between
+  // words, e.g. /do i have/. A regex space only ever matches exactly one
+  // space character, so inserting an extra space, tab, or newline between
+  // any two words -- "do  i  have cancer" -- silently defeated every
+  // pattern in this file. Collapsing whitespace runs to a single space
+  // before matching closes that off without having to rewrite every
+  // pattern to use \s+.
+  private normalizeForMatching(text: string): string {
+    return text.replace(/\s+/g, ' ').trim();
   }
 
   sanitizeInput(input: string): string {

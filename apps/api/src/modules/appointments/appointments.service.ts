@@ -11,6 +11,8 @@ import { PrismaService } from '../../database/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { CreateAppointmentDto, CancelAppointmentDto, RescheduleAppointmentDto, GetMyAppointmentsDto } from './dto/appointment.dto';
 import { APPOINTMENT_COMPLETED_EVENT } from '../gamification/events/gamification-event.handler';
+import { assertOrganizationActive } from '../../common/utils/organization-status.util';
+import { withUniqueRetry } from '../../common/utils/unique-retry.util';
 
 @Injectable()
 export class AppointmentsService {
@@ -56,6 +58,8 @@ export class AppointmentsService {
       throw new NotFoundException('Appointment slot not found.');
     }
 
+    assertOrganizationActive(slot.organization);
+
     if (slot.status !== SlotStatus.AVAILABLE) {
       throw new ConflictException('This slot is no longer available.');
     }
@@ -97,71 +101,75 @@ export class AppointmentsService {
       throw new ConflictException('You already have an appointment at this time.');
     }
 
-    const referenceNumber = this.generateReferenceNumber();
+    const result = await withUniqueRetry(
+      () =>
+        this.db.$transaction(async (tx) => {
+          // Atomic conditional update: only succeeds if the slot is still AVAILABLE
+          // and under capacity at the moment Postgres acquires the row lock,
+          // closing the race window between the pre-checks above and this
+          // transaction — two concurrent bookings for the last seat can no longer
+          // both win.
+          const claim = await tx.appointmentSlot.updateMany({
+            where: { id: slot.id, status: SlotStatus.AVAILABLE, bookedCount: { lt: slot.capacity } },
+            data: { bookedCount: { increment: 1 } },
+          });
 
-    const result = await this.db.$transaction(async (tx) => {
-      // Atomic conditional update: only succeeds if the slot is still AVAILABLE
-      // and under capacity at the moment Postgres acquires the row lock,
-      // closing the race window between the pre-checks above and this
-      // transaction — two concurrent bookings for the last seat can no longer
-      // both win.
-      const claim = await tx.appointmentSlot.updateMany({
-        where: { id: slot.id, status: SlotStatus.AVAILABLE, bookedCount: { lt: slot.capacity } },
-        data: { bookedCount: { increment: 1 } },
-      });
+          if (claim.count === 0) {
+            throw new ConflictException('This slot is no longer available.');
+          }
 
-      if (claim.count === 0) {
-        throw new ConflictException('This slot is no longer available.');
-      }
+          const referenceNumber = this.generateReferenceNumber();
 
-      const appointment = await tx.appointment.create({
-        data: {
-          referenceNumber,
-          donorId,
-          organizationId: slot.organizationId,
-          slotId: slot.id,
-          appointmentType: slot.appointmentType,
-          status: AppointmentStatus.PENDING,
-          scheduledStart: slot.startAt,
-          scheduledEnd: slot.endAt,
-          notes: dto.notes,
-        },
-        include: {
-          organization: {
-            select: {
-              id: true,
-              name: true,
-              type: true,
-              address: true,
+          const appointment = await tx.appointment.create({
+            data: {
+              referenceNumber,
+              donorId,
+              organizationId: slot.organizationId,
+              slotId: slot.id,
+              appointmentType: slot.appointmentType,
+              status: AppointmentStatus.PENDING,
+              scheduledStart: slot.startAt,
+              scheduledEnd: slot.endAt,
+              notes: dto.notes,
             },
-          },
-        },
-      });
+            include: {
+              organization: {
+                select: {
+                  id: true,
+                  name: true,
+                  type: true,
+                  address: true,
+                },
+              },
+            },
+          });
 
-      const updatedSlot = await tx.appointmentSlot.findUniqueOrThrow({
-        where: { id: slot.id },
-        select: { bookedCount: true, capacity: true },
-      });
+          const updatedSlot = await tx.appointmentSlot.findUniqueOrThrow({
+            where: { id: slot.id },
+            select: { bookedCount: true, capacity: true },
+          });
 
-      if (updatedSlot.bookedCount >= updatedSlot.capacity) {
-        await tx.appointmentSlot.update({
-          where: { id: slot.id },
-          data: { status: SlotStatus.FULL },
-        });
-      }
+          if (updatedSlot.bookedCount >= updatedSlot.capacity) {
+            await tx.appointmentSlot.update({
+              where: { id: slot.id },
+              data: { status: SlotStatus.FULL },
+            });
+          }
 
-      await tx.appointmentHistory.create({
-        data: {
-          appointmentId: appointment.id,
-          action: 'CREATED',
-          newStatus: AppointmentStatus.PENDING,
-          actorId: donorId,
-          metadata: { referenceNumber },
-        },
-      });
+          await tx.appointmentHistory.create({
+            data: {
+              appointmentId: appointment.id,
+              action: 'CREATED',
+              newStatus: AppointmentStatus.PENDING,
+              actorId: donorId,
+              metadata: { referenceNumber },
+            },
+          });
 
-      return appointment;
-    });
+          return appointment;
+        }),
+      { uniqueFields: ['referenceNumber'] },
+    );
 
     await this.audit.log({
       actorId: donorId,
@@ -170,7 +178,7 @@ export class AppointmentsService {
       entityId: result.id,
       organizationId: slot.organizationId,
       metadata: {
-        referenceNumber,
+        referenceNumber: result.referenceNumber,
         appointmentType: slot.appointmentType,
         scheduledStart: slot.startAt,
         scheduledEnd: slot.endAt,
@@ -588,15 +596,17 @@ export class AppointmentsService {
       throw new NotFoundException('User not found.');
     }
 
-    const isStaff = user.memberships.some(
+    const membership = user.memberships.find(
       (m) =>
         m.organization.id === appointment.organizationId &&
         ['HOSPITAL_ADMIN', 'HOSPITAL_STAFF', 'BLOOD_CENTER_ADMIN', 'BLOOD_CENTER_STAFF'].includes(m.role.code),
     );
 
-    if (!isStaff) {
+    if (!membership) {
       throw new ForbiddenException('Only staff can confirm appointments.');
     }
+
+    assertOrganizationActive(membership.organization);
 
     if (appointment.status !== AppointmentStatus.PENDING) {
       throw new BadRequestException('Only pending appointments can be confirmed.');
@@ -646,15 +656,17 @@ export class AppointmentsService {
       throw new NotFoundException('User not found.');
     }
 
-    const isStaff = user.memberships.some(
+    const membership = user.memberships.find(
       (m) =>
         m.organization.id === appointment.organizationId &&
         ['HOSPITAL_ADMIN', 'HOSPITAL_STAFF', 'BLOOD_CENTER_ADMIN', 'BLOOD_CENTER_STAFF'].includes(m.role.code),
     );
 
-    if (!isStaff) {
+    if (!membership) {
       throw new ForbiddenException('Only staff can complete appointments.');
     }
+
+    assertOrganizationActive(membership.organization);
 
     if (appointment.status !== AppointmentStatus.CONFIRMED) {
       throw new BadRequestException('Only confirmed appointments can be completed.');

@@ -133,6 +133,14 @@ export async function markNotificationAsUnread(id: string): Promise<Notification
   return apiRequest(`${apiBasePath}/notifications/${id}/unread`, { method: 'PATCH' });
 }
 
+export async function archiveNotification(id: string): Promise<Notification> {
+  return apiRequest(`${apiBasePath}/notifications/${id}/archive`, { method: 'PATCH' });
+}
+
+export async function unarchiveNotification(id: string): Promise<Notification> {
+  return apiRequest(`${apiBasePath}/notifications/${id}/unarchive`, { method: 'PATCH' });
+}
+
 export async function markAllNotificationsAsRead(): Promise<{ count: number }> {
   return apiRequest(`${apiBasePath}/notifications/mark-all-read`, { method: 'PATCH' });
 }

@@ -140,6 +140,31 @@ async function main() {
       'shipment.manage',
       'courier.read',
     ],
+    [RoleCode.LAB_TECHNICIAN]: [
+      'user.read.self',
+      'user.update.self',
+      'organization.read',
+      'blood_test.create',
+      'blood_test.update',
+    ],
+    [RoleCode.LAB_REVIEWER]: [
+      'user.read.self',
+      'user.update.self',
+      'organization.read',
+      'blood_test.update',
+      'blood_test.publish',
+    ],
+    [RoleCode.LAB_ADMIN]: [
+      'user.read.self',
+      'user.update.self',
+      'organization.read',
+      'organization.update',
+      'blood_test.create',
+      'blood_test.update',
+      'blood_test.publish',
+      'analytics.read',
+      'audit.read',
+    ],
   };
 
   for (const code of Object.values(RoleCode)) {
@@ -177,6 +202,9 @@ async function main() {
     where: { code: RoleCode.BLOOD_CENTER_STAFF },
   });
   const courierRole = await db.role.findUniqueOrThrow({ where: { code: RoleCode.COURIER } });
+  const labTechnicianRole = await db.role.findUniqueOrThrow({ where: { code: RoleCode.LAB_TECHNICIAN } });
+  const labReviewerRole = await db.role.findUniqueOrThrow({ where: { code: RoleCode.LAB_REVIEWER } });
+  const labAdminRole = await db.role.findUniqueOrThrow({ where: { code: RoleCode.LAB_ADMIN } });
 
   const admin = await db.user.upsert({
     where: { email: 'admin@donor.local' },
@@ -271,6 +299,45 @@ async function main() {
       email: 'courier@donor.local',
       firstName: 'Sample',
       lastName: 'Courier',
+      passwordHash,
+      status: 'ACTIVE',
+      emailVerified: true,
+    },
+  });
+
+  const labTechnicianUser = await db.user.upsert({
+    where: { email: 'lab.technician@donor.local' },
+    update: {},
+    create: {
+      email: 'lab.technician@donor.local',
+      firstName: 'Lab',
+      lastName: 'Technician',
+      passwordHash,
+      status: 'ACTIVE',
+      emailVerified: true,
+    },
+  });
+
+  const labReviewerUser = await db.user.upsert({
+    where: { email: 'lab.reviewer@donor.local' },
+    update: {},
+    create: {
+      email: 'lab.reviewer@donor.local',
+      firstName: 'Lab',
+      lastName: 'Reviewer',
+      passwordHash,
+      status: 'ACTIVE',
+      emailVerified: true,
+    },
+  });
+
+  const labAdminUser = await db.user.upsert({
+    where: { email: 'lab.admin@donor.local' },
+    update: {},
+    create: {
+      email: 'lab.admin@donor.local',
+      firstName: 'Lab',
+      lastName: 'Admin',
       passwordHash,
       status: 'ACTIVE',
       emailVerified: true,
@@ -655,6 +722,57 @@ async function main() {
       displayName: 'John Courier',
       phone: '+14155550300',
       status: CourierStatus.AVAILABLE,
+    },
+  });
+
+  await db.organizationMembership.upsert({
+    where: {
+      userId_organizationId_roleId: {
+        userId: labTechnicianUser.id,
+        organizationId: centerOrg.id,
+        roleId: labTechnicianRole.id,
+      },
+    },
+    update: {},
+    create: {
+      userId: labTechnicianUser.id,
+      organizationId: centerOrg.id,
+      roleId: labTechnicianRole.id,
+      status: 'ACTIVE',
+    },
+  });
+
+  await db.organizationMembership.upsert({
+    where: {
+      userId_organizationId_roleId: {
+        userId: labReviewerUser.id,
+        organizationId: centerOrg.id,
+        roleId: labReviewerRole.id,
+      },
+    },
+    update: {},
+    create: {
+      userId: labReviewerUser.id,
+      organizationId: centerOrg.id,
+      roleId: labReviewerRole.id,
+      status: 'ACTIVE',
+    },
+  });
+
+  await db.organizationMembership.upsert({
+    where: {
+      userId_organizationId_roleId: {
+        userId: labAdminUser.id,
+        organizationId: centerOrg.id,
+        roleId: labAdminRole.id,
+      },
+    },
+    update: {},
+    create: {
+      userId: labAdminUser.id,
+      organizationId: centerOrg.id,
+      roleId: labAdminRole.id,
+      status: 'ACTIVE',
     },
   });
 
@@ -1109,6 +1227,10 @@ async function main() {
   console.log('  blood.center.staff@donor.local / DevelopmentOnly!123 (BLOOD_CENTER_STAFF)');
   console.log('=== COURIER ===');
   console.log('  courier@donor.local / DevelopmentOnly!123 (COURIER)');
+  console.log('=== LABORATORY STAFF ===');
+  console.log('  lab.technician@donor.local / DevelopmentOnly!123 (LAB_TECHNICIAN)');
+  console.log('  lab.reviewer@donor.local / DevelopmentOnly!123 (LAB_REVIEWER)');
+  console.log('  lab.admin@donor.local / DevelopmentOnly!123 (LAB_ADMIN)');
   console.log('=== ORGANIZATIONS ===');
   console.log('  Northstar Hospital (Development) - Hospital');
   console.log('  Northstar Blood Center (Development) - Blood Center');

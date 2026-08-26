@@ -3,14 +3,70 @@ import {
   IsOptional,
   IsString,
   IsBoolean,
+  IsInt,
   IsNumber,
   IsDateString,
   IsArray,
+  IsNotEmpty,
   Min,
   Max,
 } from 'class-validator';
-import { ApiPropertyOptional } from '@nestjs/swagger';
-import { RoleCode, UserStatus, OrganizationStatus } from '@prisma/client';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  RoleCode,
+  UserStatus,
+  OrganizationStatus,
+  ContentReportStatus,
+  ContentReportReason,
+} from '@prisma/client';
+
+export class AdminUpdateRolePermissionsDto {
+  @ApiProperty({ type: [String], example: ['organization.read', 'shipment.manage'] })
+  @IsArray()
+  @IsString({ each: true })
+  permissionCodes!: string[];
+}
+
+export class AdminUpdateMembershipRoleDto {
+  @ApiProperty({ description: 'The Role id to move this membership to' })
+  @IsString()
+  @IsNotEmpty()
+  roleId!: string;
+}
+
+export class AdminUpdatePlatformSettingsDto {
+  @ApiPropertyOptional({ minimum: 15, maximum: 43200, description: 'How long a session stays valid before requiring re-login' })
+  @IsOptional()
+  @IsInt()
+  @Min(15)
+  @Max(43200)
+  sessionTimeoutMinutes?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  aiHealthInsightsEnabled?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  sosEmergencyEnabled?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  gamificationEnabled?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  pushNotificationsEnabled?: boolean;
+
+  @ApiPropertyOptional({ description: 'When enabled, only SUPER_ADMIN accounts can sign in' })
+  @IsOptional()
+  @IsBoolean()
+  maintenanceMode?: boolean;
+}
 
 export class AdminListUsersDto {
   @ApiPropertyOptional({ default: '1' })
@@ -331,6 +387,39 @@ export class AdminAcknowledgeAlertDto {
   @IsOptional()
   @IsString()
   notes?: string;
+}
+
+export class AdminListContentReportsDto {
+  @ApiPropertyOptional({ default: '1' })
+  @IsOptional()
+  @IsString()
+  page?: string;
+
+  @ApiPropertyOptional({ default: '20' })
+  @IsOptional()
+  @IsString()
+  limit?: string;
+
+  @ApiPropertyOptional({ enum: ContentReportStatus })
+  @IsOptional()
+  @IsEnum(ContentReportStatus)
+  status?: ContentReportStatus;
+
+  @ApiPropertyOptional({ enum: ContentReportReason })
+  @IsOptional()
+  @IsEnum(ContentReportReason)
+  reason?: ContentReportReason;
+}
+
+export class AdminResolveContentReportDto {
+  @ApiProperty({ enum: ['DISMISS', 'HIDE', 'REMOVE'] })
+  @IsEnum(['DISMISS', 'HIDE', 'REMOVE'])
+  action!: 'DISMISS' | 'HIDE' | 'REMOVE';
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  resolution?: string;
 }
 
 export class AdminListFeatureFlagsDto {

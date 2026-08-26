@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { DonationStatus } from '@prisma/client';
+import { DonationStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { DonationEligibilityService } from '../donation-eligibility/donation-eligibility.service';
@@ -16,6 +16,14 @@ function makeDonation(overrides: Record<string, any> = {}) {
     appointmentId: null,
     ...overrides,
   };
+}
+
+function uniqueConstraintError(field: string): Prisma.PrismaClientKnownRequestError {
+  return new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+    code: 'P2002',
+    clientVersion: 'test',
+    meta: { target: [field] },
+  });
 }
 
 describe('DonationsService.completeDonation', () => {
@@ -84,5 +92,101 @@ describe('DonationsService.completeDonation', () => {
         data: expect.objectContaining({ nextDonationDate: new Date(staffDate) }),
       }),
     );
+  });
+
+  it('retries the whole transaction on a unitReference collision and succeeds with a fresh reference', async () => {
+    prisma.$transaction
+      .mockImplementationOnce(async () => {
+        throw uniqueConstraintError('unitReference');
+      })
+      .mockImplementationOnce(async (cb: any) => cb(tx));
+
+    const result = await service.completeDonation('donation-1', 'org-1', 'staff-1', {
+      collectionCompletedAt: new Date().toISOString(),
+      volumeMl: 450,
+      bloodType: 'O',
+      rhFactor: 'POSITIVE',
+    } as any);
+
+    expect(prisma.$transaction).toHaveBeenCalledTimes(2);
+    expect(result.data.status).toBe(DonationStatus.COMPLETED);
+  });
+});
+
+describe('DonationsService.checkInDonation', () => {
+  let service: DonationsService;
+  let prisma: any;
+  let tx: any;
+
+  const appointment = {
+    id: 'appt-1',
+    organizationId: 'org-1',
+    appointmentType: 'BLOOD_DONATION',
+    status: 'PENDING',
+    donor: {
+      id: 'donor-1',
+      firstName: 'Test',
+      lastName: 'Donor',
+      email: 'donor@donor.local',
+      donorProfile: { bloodType: 'O', rhFactor: 'POSITIVE' },
+    },
+    organization: { id: 'org-1', name: 'Test Org', type: 'HOSPITAL', address: '123 Main St' },
+  };
+
+  beforeEach(async () => {
+    tx = {
+      donation: {
+        create: jest.fn().mockResolvedValue({
+          id: 'donation-1',
+          donationReference: 'DONATION-2026-000002',
+          status: DonationStatus.CHECKED_IN,
+          donationType: 'WHOLE_BLOOD',
+          bloodType: 'O',
+          rhFactor: 'POSITIVE',
+          organization: appointment.organization,
+        }),
+      },
+      donationEvent: { create: jest.fn().mockResolvedValue({}) },
+      appointment: { update: jest.fn().mockResolvedValue({}) },
+    };
+
+    prisma = {
+      appointment: { findUnique: jest.fn().mockResolvedValue(appointment) },
+      donation: { findUnique: jest.fn().mockResolvedValue(null) },
+      $transaction: jest.fn().mockImplementation(async (cb: any) => cb(tx)),
+    };
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        DonationsService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: AuditLogsService, useValue: { log: jest.fn().mockResolvedValue({}) } },
+        { provide: EventEmitter2, useValue: { emit: jest.fn() } },
+        { provide: DonationEligibilityService, useValue: {} },
+      ],
+    }).compile();
+
+    service = module.get<DonationsService>(DonationsService);
+  });
+
+  it('retries the whole transaction on a donationReference collision and succeeds with a fresh reference', async () => {
+    prisma.$transaction
+      .mockImplementationOnce(async () => {
+        throw uniqueConstraintError('donationReference');
+      })
+      .mockImplementationOnce(async (cb: any) => cb(tx));
+
+    const result = await service.checkInDonation('appt-1', 'org-1', 'staff-1', {} as any);
+
+    expect(prisma.$transaction).toHaveBeenCalledTimes(2);
+    expect(result.data.status).toBe(DonationStatus.CHECKED_IN);
+  });
+
+  it('does not retry and rethrows for an unrelated error', async () => {
+    const error = new Error('connection lost');
+    prisma.$transaction.mockRejectedValue(error);
+
+    await expect(service.checkInDonation('appt-1', 'org-1', 'staff-1', {} as any)).rejects.toBe(error);
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
   });
 });

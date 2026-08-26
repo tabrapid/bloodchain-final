@@ -1,11 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { GamificationService } from '../gamification.service';
+import { PlatformSettingsService } from '../../platform-settings/platform-settings.service';
 
 export const DONATION_COMPLETED_EVENT = 'donation.completed';
 export const BLOOD_TEST_COMPLETED_EVENT = 'blood-test.completed';
 export const APPOINTMENT_COMPLETED_EVENT = 'appointment.completed';
 export const EMERGENCY_RESPONSE_COMPLETED_EVENT = 'emergency-response.completed';
+export const CHALLENGE_COMPLETED_EVENT = 'challenge.completed';
 
 export interface DonationCompletedPayload {
   donationId: string;
@@ -29,16 +31,29 @@ export interface EmergencyResponseCompletedPayload {
   donorId: string;
 }
 
+export interface ChallengeCompletedPayload {
+  challengeId: string;
+  userId: string;
+  xpAmount: number;
+  challengeTitle: string;
+}
+
 @Injectable()
 export class GamificationEventHandler {
   private readonly logger = new Logger(GamificationEventHandler.name);
 
   constructor(
     private readonly gamificationService: GamificationService,
+    private readonly platformSettings: PlatformSettingsService,
   ) {}
+
+  private async isGamificationEnabled(): Promise<boolean> {
+    return this.platformSettings.isEnabled('gamificationEnabled');
+  }
 
   @OnEvent(DONATION_COMPLETED_EVENT)
   async handleDonationCompleted(payload: DonationCompletedPayload): Promise<void> {
+    if (!(await this.isGamificationEnabled())) return;
     try {
       this.logger.log(`Processing gamification for donation ${payload.donationId}`);
 
@@ -64,6 +79,7 @@ export class GamificationEventHandler {
 
   @OnEvent(BLOOD_TEST_COMPLETED_EVENT)
   async handleBloodTestCompleted(payload: BloodTestCompletedPayload): Promise<void> {
+    if (!(await this.isGamificationEnabled())) return;
     try {
       this.logger.log(`Processing gamification for blood test ${payload.resultId}`);
 
@@ -88,6 +104,7 @@ export class GamificationEventHandler {
 
   @OnEvent(APPOINTMENT_COMPLETED_EVENT)
   async handleAppointmentCompleted(payload: AppointmentCompletedPayload): Promise<void> {
+    if (!(await this.isGamificationEnabled())) return;
     try {
       this.logger.log(`Processing gamification for appointment ${payload.appointmentId}`);
 
@@ -111,6 +128,7 @@ export class GamificationEventHandler {
 
   @OnEvent(EMERGENCY_RESPONSE_COMPLETED_EVENT)
   async handleEmergencyResponseCompleted(payload: EmergencyResponseCompletedPayload): Promise<void> {
+    if (!(await this.isGamificationEnabled())) return;
     try {
       this.logger.log(`Processing gamification for emergency response ${payload.responseId}`);
 
@@ -130,6 +148,30 @@ export class GamificationEventHandler {
     } catch (error) {
       const err = error as Error;
       this.logger.error(`Failed to process emergency response completed event: ${err.message}`, err.stack);
+    }
+  }
+
+  @OnEvent(CHALLENGE_COMPLETED_EVENT)
+  async handleChallengeCompleted(payload: ChallengeCompletedPayload): Promise<void> {
+    if (!(await this.isGamificationEnabled())) return;
+    try {
+      this.logger.log(`Processing gamification for challenge ${payload.challengeId}`);
+
+      await this.gamificationService.ensureGamificationProfile(payload.userId);
+
+      const result = await this.gamificationService.processChallengeCompleted(
+        payload.userId,
+        payload.challengeId,
+        payload.xpAmount,
+        payload.challengeTitle,
+      );
+
+      if (result.xpAwarded) {
+        this.logger.log(`Challenge ${payload.challengeId}: +${result.xpAmount} XP`);
+      }
+    } catch (error) {
+      const err = error as Error;
+      this.logger.error(`Failed to process challenge completed event: ${err.message}`, err.stack);
     }
   }
 }

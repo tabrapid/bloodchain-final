@@ -25,6 +25,7 @@ export interface EmergencyRequest {
   hospitalId: string;
   bloodType: string;
   rhFactor: string;
+  componentType: string;
   unitsRequired: number;
   urgencyLevel: string;
   status: string;
@@ -58,6 +59,7 @@ export interface EmergencyRequest {
 export interface CreateEmergencyDto {
   bloodType: string;
   rhFactor: string;
+  componentType?: string;
   unitsRequired: number;
   urgencyLevel?: string;
   patientReference?: string;
@@ -181,7 +183,7 @@ export async function confirmArrival(
 export async function completeEmergencyDonation(
   organizationId: string,
   responseId: string,
-  data?: { bloodType?: string; rhFactor?: string; volumeMl?: number }
+  data?: { bloodType?: string; rhFactor?: string; componentType?: string; volumeMl?: number }
 ): Promise<unknown> {
   return apiRequest(
     `/organizations/${organizationId}/emergency-responses/${responseId}/complete`,

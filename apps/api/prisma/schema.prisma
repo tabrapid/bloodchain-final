@@ -17,6 +17,10 @@ enum UserStatus {
 enum OrganizationType {
   HOSPITAL
   BLOOD_CENTER
+  // Internal placeholder org used solely as the required OrganizationMembership
+  // FK target for donor accounts, which have no real affiliated organization.
+  // Never a real hospital/blood center — excluded from admin/discovery listings.
+  SYSTEM
 }
 
 enum OrganizationStatus {
@@ -190,6 +194,7 @@ enum MovementType {
   RELEASED_FROM_QUARANTINE
   TRANSFER_OUT
   TRANSFER_IN
+  ADJUSTED
 }
 
 enum ReservationStatus {
@@ -506,6 +511,8 @@ model DonorProfile {
   bloodTypeNote       String?
   city                String?             @db.VarChar(100)
   district            String?             @db.VarChar(100)
+  latitude            Decimal?            @db.Decimal(9, 6)
+  longitude           Decimal?            @db.Decimal(9, 6)
   donorStatus         DonorStatus         @default(ACTIVE)
   verificationStatus  VerificationStatus  @default(UNVERIFIED)
   dateOfBirth         DateTime?           @db.Date
@@ -614,6 +621,22 @@ model AuditLog {
   @@index([action])
   @@index([entityType])
   @@index([createdAt])
+}
+
+// Singleton row (fixed id "platform") holding platform-wide settings the
+// admin app can actually read and mutate — session length and feature
+// kill-switches read by AuthService, AiHealthService, EmergencyService,
+// GamificationEventHandler, and NotificationDeliveryService.
+model PlatformSettings {
+  id                        String   @id @default("platform")
+  sessionTimeoutMinutes     Int      @default(43200)
+  aiHealthInsightsEnabled   Boolean  @default(true)
+  sosEmergencyEnabled       Boolean  @default(true)
+  gamificationEnabled       Boolean  @default(true)
+  pushNotificationsEnabled  Boolean  @default(true)
+  maintenanceMode           Boolean  @default(false)
+  updatedAt                 DateTime @updatedAt
+  updatedById               String?
 }
 
 model IdempotencyRecord {
@@ -1114,6 +1137,7 @@ model EmergencyRequest {
   hospitalId         String
   bloodType          BloodType
   rhFactor           RhFactor
+  componentType      ComponentType   @default(WHOLE_BLOOD)
   unitsRequired      Int
   urgencyLevel       String          @default("CRITICAL")
   status             EmergencyStatus @default(DRAFT)

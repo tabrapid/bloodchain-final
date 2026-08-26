@@ -49,6 +49,7 @@ export interface MeResponse {
     type: string;
     role: string;
     status: string;
+    organizationStatus: string;
   }>;
   donorProfile: unknown;
   permissions: string[];
@@ -194,4 +195,43 @@ export async function me(): Promise<MeResponse> {
 
 export function isAuthenticated(): boolean {
   return !!getAuthToken();
+}
+
+export interface RegisterOrganizationInput {
+  organizationType: 'HOSPITAL' | 'BLOOD_CENTER';
+  organizationName: string;
+  address?: string;
+  organizationPhone?: string;
+  organizationEmail?: string;
+  adminEmail: string;
+  adminPassword: string;
+  adminFirstName: string;
+  adminLastName: string;
+  adminPhone?: string;
+}
+
+export async function registerOrganization(
+  input: RegisterOrganizationInput,
+): Promise<{ user: { id: string; email: string }; organization: { id: string; name: string; status: string } }> {
+  const response = await fetch(`${API_BASE_URL}${API_BASE_PATH}/auth/register-organization`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  });
+
+  const json = (await response.json()) as {
+    data?: { user: { id: string; email: string }; organization: { id: string; name: string; status: string } };
+    statusCode?: number;
+    message?: string;
+  };
+
+  if (!response.ok) {
+    throw new ApiRequestError({
+      statusCode: json.statusCode ?? response.status,
+      code: 'REGISTER_ORGANIZATION_FAILED',
+      message: json.message ?? 'Registration failed',
+    });
+  }
+
+  return json.data!;
 }

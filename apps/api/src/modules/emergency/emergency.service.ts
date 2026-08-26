@@ -8,6 +8,8 @@ import {
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   BloodType,
+  ComponentType,
+  DonationType,
   DonorStatus,
   EmergencyMatchStatus,
   EmergencyResponseStatus,
@@ -18,6 +20,7 @@ import {
   RoleCode,
 } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
+import { withUniqueRetry } from '../../common/utils/unique-retry.util';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { EmergencyGateway } from '../../gateways/emergency.gateway';
 import {
@@ -25,10 +28,24 @@ import {
   EMERGENCY_RESPONSE_COMPLETED_EVENT,
 } from '../gamification/events/gamification-event.handler';
 import { DonationEligibilityService } from '../donation-eligibility/donation-eligibility.service';
+import { PlatformSettingsService } from '../platform-settings/platform-settings.service';
+import { assertOrganizationActive } from '../../common/utils/organization-status.util';
+import { haversineDistanceKm } from '../../common/utils/geo.util';
 
 const SOS_REQUEST_CREATED_EVENT = 'sos.request.created';
 const SOS_DONOR_ACCEPTED_EVENT = 'sos.donor.accepted';
 const DEFAULT_WHOLE_BLOOD_VOLUME_ML = 450;
+
+// DonationType has no packed-red-cells value; RED_CELLS emergencies still
+// record as an OTHER-type donation, matching the inventory's own BloodUnit
+// (which keeps the precise ComponentType regardless of the donation record).
+const COMPONENT_TO_DONATION_TYPE: Record<ComponentType, DonationType> = {
+  [ComponentType.WHOLE_BLOOD]: DonationType.WHOLE_BLOOD,
+  [ComponentType.PLASMA]: DonationType.PLASMA,
+  [ComponentType.PLATELETS]: DonationType.PLATELETS,
+  [ComponentType.RED_CELLS]: DonationType.OTHER,
+  [ComponentType.OTHER]: DonationType.OTHER,
+};
 
 const BLOOD_COMPATIBILITY: Record<string, string[]> = {
   'O-NEGATIVE': ['O-NEGATIVE', 'O-POSITIVE', 'A-NEGATIVE', 'A-POSITIVE', 'B-NEGATIVE', 'B-POSITIVE', 'AB-NEGATIVE', 'AB-POSITIVE'],
@@ -51,6 +68,7 @@ export class EmergencyService {
     private readonly eventEmitter: EventEmitter2,
     private readonly gateway: EmergencyGateway,
     private readonly donationEligibility: DonationEligibilityService,
+    private readonly platformSettings: PlatformSettingsService,
   ) {}
 
   private generateEmergencyReference(): string {
@@ -104,6 +122,7 @@ export class EmergencyService {
     if (!org || org.type !== OrganizationType.HOSPITAL) {
       throw new ForbiddenException('Only hospitals can perform this action.');
     }
+    assertOrganizationActive(org);
     const hasPermission = user.memberships.some(
       (m: { role: { code: string } }) =>
         ['HOSPITAL_ADMIN', 'HOSPITAL_STAFF', 'SUPER_ADMIN'].includes(m.role.code),
@@ -184,6 +203,7 @@ export class EmergencyService {
     dto: {
       bloodType: string;
       rhFactor: string;
+      componentType?: ComponentType;
       unitsRequired: number;
       urgencyLevel?: string;
       patientReference?: string;
@@ -194,34 +214,43 @@ export class EmergencyService {
       longitude?: number;
     },
   ) {
+    if (!(await this.platformSettings.isEnabled('sosEmergencyEnabled'))) {
+      throw new ForbiddenException('SOS emergency requests are currently disabled by the platform admin.');
+    }
+
     const { user } = await this.checkHospitalAccess(userId, organizationId);
 
     if (dto.unitsRequired < 1 || dto.unitsRequired > 20) {
       throw new BadRequestException('Units required must be between 1 and 20.');
     }
 
-    const result = await this.db.$transaction(async (tx) => {
-      const emergency = await tx.emergencyRequest.create({
-        data: {
-          emergencyReference: this.generateEmergencyReference(),
-          hospitalId: organizationId,
-          bloodType: dto.bloodType as BloodType,
-          rhFactor: dto.rhFactor as RhFactor,
-          unitsRequired: dto.unitsRequired,
-          urgencyLevel: dto.urgencyLevel || 'CRITICAL',
-          status: EmergencyStatus.DRAFT,
-          patientReference: dto.patientReference,
-          description: dto.description,
-          requiredBefore: dto.requiredBefore ? new Date(dto.requiredBefore) : undefined,
-          donationLocation: dto.donationLocation,
-          latitude: dto.latitude ? new Prisma.Decimal(dto.latitude) : undefined,
-          longitude: dto.longitude ? new Prisma.Decimal(dto.longitude) : undefined,
-          createdBy: user.id,
-        },
-      });
+    const result = await withUniqueRetry(
+      () =>
+        this.db.$transaction(async (tx) => {
+          const emergency = await tx.emergencyRequest.create({
+            data: {
+              emergencyReference: this.generateEmergencyReference(),
+              hospitalId: organizationId,
+              bloodType: dto.bloodType as BloodType,
+              rhFactor: dto.rhFactor as RhFactor,
+              componentType: dto.componentType ?? ComponentType.WHOLE_BLOOD,
+              unitsRequired: dto.unitsRequired,
+              urgencyLevel: dto.urgencyLevel || 'CRITICAL',
+              status: EmergencyStatus.DRAFT,
+              patientReference: dto.patientReference,
+              description: dto.description,
+              requiredBefore: dto.requiredBefore ? new Date(dto.requiredBefore) : undefined,
+              donationLocation: dto.donationLocation,
+              latitude: dto.latitude ? new Prisma.Decimal(dto.latitude) : undefined,
+              longitude: dto.longitude ? new Prisma.Decimal(dto.longitude) : undefined,
+              createdBy: user.id,
+            },
+          });
 
-      return emergency;
-    });
+          return emergency;
+        }),
+      { uniqueFields: ['emergencyReference'] },
+    );
 
     await this.audit.log({
       actorId: user.id,
@@ -261,10 +290,12 @@ export class EmergencyService {
       throw new BadRequestException('Emergency can only be activated from DRAFT status.');
     }
 
+    const effectiveRequiredBefore = emergency.requiredBefore ?? new Date(Date.now() + 4 * 60 * 60 * 1000);
+
     const result = await this.db.$transaction(async (tx) => {
       const updated = await tx.emergencyRequest.update({
         where: { id: emergencyId },
-        data: { status: EmergencyStatus.ACTIVE },
+        data: { status: EmergencyStatus.ACTIVE, requiredBefore: effectiveRequiredBefore },
       });
 
       await tx.emergencyRequest.update({
@@ -324,13 +355,48 @@ export class EmergencyService {
         );
       });
 
+      // Rank by real distance when the emergency has a location and a donor
+      // has consented to sharing theirs; donors without a usable distance
+      // sort last (still eligible - blood-type compatibility matters more
+      // than an unknown distance) rather than being dropped from the pool.
+      const emergencyLat = emergency.latitude !== null ? Number(emergency.latitude) : null;
+      const emergencyLon = emergency.longitude !== null ? Number(emergency.longitude) : null;
+
+      const rankedDonors = compatibleDonors
+        .map((donor) => {
+          const hasDonorLocation =
+            donor.donorProfile!.consentLocation &&
+            donor.donorProfile!.latitude !== null &&
+            donor.donorProfile!.longitude !== null;
+          const distanceKm =
+            emergencyLat !== null && emergencyLon !== null && hasDonorLocation
+              ? haversineDistanceKm(
+                  emergencyLat,
+                  emergencyLon,
+                  Number(donor.donorProfile!.latitude),
+                  Number(donor.donorProfile!.longitude),
+                )
+              : null;
+          return { donor, distanceKm };
+        })
+        .sort((a, b) => {
+          if (a.distanceKm === null && b.distanceKm === null) return 0;
+          if (a.distanceKm === null) return 1;
+          if (b.distanceKm === null) return -1;
+          return a.distanceKm - b.distanceKm;
+        });
+
       const matchedDonorIds: string[] = [];
-      for (const donor of compatibleDonors.slice(0, 50)) {
+      for (const { donor, distanceKm } of rankedDonors.slice(0, 50)) {
         await tx.emergencyMatch.create({
           data: {
             emergencyRequestId: emergencyId,
             donorId: donor.id,
             status: EmergencyMatchStatus.MATCHED,
+            distanceKm,
+            // Simple proximity score (0-100, closer is higher) - there's no
+            // existing consumer of this field to match a richer formula to.
+            matchScore: distanceKm !== null ? Math.max(0, Math.round(100 - distanceKm)) : null,
           },
         });
         matchedDonorIds.push(donor.id);
@@ -345,12 +411,11 @@ export class EmergencyService {
     });
 
     if (result.matchedDonorIds.length > 0) {
-      const expireAt = emergency.requiredBefore ?? new Date(Date.now() + 4 * 60 * 60 * 1000);
       this.eventEmitter.emit(SOS_REQUEST_CREATED_EVENT, {
         requestId: emergencyId,
         bloodType: `${emergency.bloodType}${emergency.rhFactor === RhFactor.POSITIVE ? '+' : '-'}`,
         urgency: emergency.urgencyLevel,
-        expireAt,
+        expireAt: effectiveRequiredBefore,
         compatibleDonorIds: result.matchedDonorIds,
       });
 
@@ -846,7 +911,7 @@ export class EmergencyService {
     organizationId: string,
     staffUserId: string,
     responseId: string,
-    dto: { bloodType?: BloodType; rhFactor?: RhFactor; volumeMl?: number },
+    dto: { bloodType?: BloodType; rhFactor?: RhFactor; componentType?: ComponentType; volumeMl?: number },
   ) {
     const { user: staff } = await this.checkHospitalAccess(staffUserId, organizationId);
 
@@ -872,71 +937,77 @@ export class EmergencyService {
 
     const bloodType = dto.bloodType ?? response.donor.donorProfile?.bloodType ?? response.emergencyRequest.bloodType;
     const rhFactor = dto.rhFactor ?? response.donor.donorProfile?.rhFactor ?? response.emergencyRequest.rhFactor;
+    const componentType = dto.componentType ?? response.emergencyRequest.componentType;
     const volumeMl = dto.volumeMl ?? DEFAULT_WHOLE_BLOOD_VOLUME_ML;
 
-    const result = await this.db.$transaction(async (tx) => {
-      const donation = await tx.donation.create({
-        data: {
-          donationReference: this.generateDonationReference(),
-          donorId: response.donorId,
-          organizationId,
-          donationType: 'WHOLE_BLOOD',
-          status: 'COMPLETED',
-          bloodType,
-          rhFactor,
-          volumeMl,
-          collectionStartedAt: response.donationStartedAt ?? new Date(),
-          collectionCompletedAt: new Date(),
-          completedAt: new Date(),
-          completedBy: staff.id,
-        },
-      });
+    const result = await withUniqueRetry(
+      () =>
+        this.db.$transaction(async (tx) => {
+          const donation = await tx.donation.create({
+            data: {
+              donationReference: this.generateDonationReference(),
+              donorId: response.donorId,
+              organizationId,
+              donationType: COMPONENT_TO_DONATION_TYPE[componentType],
+              status: 'COMPLETED',
+              bloodType,
+              rhFactor,
+              volumeMl,
+              collectionStartedAt: response.donationStartedAt ?? new Date(),
+              collectionCompletedAt: new Date(),
+              completedAt: new Date(),
+              completedBy: staff.id,
+            },
+          });
 
-      await tx.donationEvent.create({
-        data: {
-          donationId: donation.id,
-          eventType: 'COMPLETED',
-          actorId: staff.id,
-          organizationId,
-          metadata: { source: 'EMERGENCY', emergencyResponseId: responseId, bloodType, rhFactor, volumeMl },
-        },
-      });
+          await tx.donationEvent.create({
+            data: {
+              donationId: donation.id,
+              eventType: 'COMPLETED',
+              actorId: staff.id,
+              organizationId,
+              metadata: { source: 'EMERGENCY', emergencyResponseId: responseId, bloodType, rhFactor, componentType, volumeMl },
+            },
+          });
 
-      await tx.bloodUnit.create({
-        data: {
-          unitReference: this.generateUnitReference(),
-          donationId: donation.id,
-          organizationId,
-          bloodType,
-          rhFactor,
-          volumeMl,
-          status: 'COLLECTED',
-          collectedAt: new Date(),
-        },
-      });
+          await tx.bloodUnit.create({
+            data: {
+              unitReference: this.generateUnitReference(),
+              donationId: donation.id,
+              organizationId,
+              componentType,
+              bloodType,
+              rhFactor,
+              volumeMl,
+              status: 'COLLECTED',
+              collectedAt: new Date(),
+            },
+          });
 
-      const updatedResponse = await tx.emergencyResponse.update({
-        where: { id: responseId },
-        data: {
-          status: EmergencyResponseStatus.COMPLETED,
-          completedAt: new Date(),
-        },
-      });
+          const updatedResponse = await tx.emergencyResponse.update({
+            where: { id: responseId },
+            data: {
+              status: EmergencyResponseStatus.COMPLETED,
+              completedAt: new Date(),
+            },
+          });
 
-      const emergency = await tx.emergencyRequest.update({
-        where: { id: response.emergencyRequestId },
-        data: { unitsCollected: { increment: 1 } },
-      });
+          const emergency = await tx.emergencyRequest.update({
+            where: { id: response.emergencyRequestId },
+            data: { unitsCollected: { increment: 1 } },
+          });
 
-      if (emergency.unitsCollected >= emergency.unitsRequired) {
-        await tx.emergencyRequest.update({
-          where: { id: response.emergencyRequestId },
-          data: { status: EmergencyStatus.COMPLETED, closedAt: new Date() },
-        });
-      }
+          if (emergency.unitsCollected >= emergency.unitsRequired) {
+            await tx.emergencyRequest.update({
+              where: { id: response.emergencyRequestId },
+              data: { status: EmergencyStatus.COMPLETED, closedAt: new Date() },
+            });
+          }
 
-      return { response: updatedResponse, donation };
-    });
+          return { response: updatedResponse, donation };
+        }),
+      { uniqueFields: ['donationReference', 'unitReference'] },
+    );
 
     this.eventEmitter.emit(DONATION_COMPLETED_EVENT, {
       donationId: result.donation.id,

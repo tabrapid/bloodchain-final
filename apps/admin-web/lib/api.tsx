@@ -22,10 +22,27 @@ export interface User {
   emailVerified: boolean;
   createdAt: string;
   lastLoginAt?: string;
-  roles: Array<{ role: string; organization: { id: string; name: string; type: string } }>;
+  roles: Array<{
+    membershipId: string;
+    role: string;
+    organization: { id: string; name: string; type: string };
+  }>;
   bloodType?: string;
   rhFactor?: string;
   donorStatus?: string;
+}
+
+export interface Role {
+  id: string;
+  code: string;
+  name: string;
+  permissions: string[];
+}
+
+export interface Permission {
+  id: string;
+  code: string;
+  name: string;
 }
 
 export interface Organization {
@@ -102,6 +119,27 @@ export interface AuditLog {
   organization?: { id: string; name: string };
 }
 
+export interface ContentReport {
+  id: string;
+  reason: string;
+  description?: string;
+  status: string;
+  createdAt: string;
+  reviewedAt?: string;
+  resolution?: string;
+  post: { id: string; type: string; title: string; body: string; status: string };
+  reporter: { id: string; firstName: string; lastName: string; email: string };
+  reviewer?: { id: string; firstName: string; lastName: string; email: string };
+}
+
+export interface ContentReportDetail extends ContentReport {
+  post: ContentReport['post'] & {
+    imageUrl?: string;
+    author?: { id: string; firstName: string; lastName: string; email: string };
+  };
+  otherReportsOnPost: Array<{ id: string; reason: string; status: string; createdAt: string }>;
+}
+
 export interface PaginatedResponse<T> {
   data: T[];
   meta: { total: number; page: number; limit: number; totalPages: number };
@@ -150,6 +188,31 @@ export async function suspendUser(id: string, reason?: string): Promise<{ id: st
 export async function restoreUser(id: string): Promise<{ id: string; status: string }> {
   return apiRequest<{ id: string; status: string }>(`/admin/users/${id}/restore`, {
     method: 'POST',
+  });
+}
+
+export async function listRoles(): Promise<Role[]> {
+  return apiRequest<Role[]>('/admin/roles');
+}
+
+export async function listPermissions(): Promise<Permission[]> {
+  return apiRequest<Permission[]>('/admin/permissions');
+}
+
+export async function updateRolePermissions(roleId: string, permissionCodes: string[]): Promise<Role> {
+  return apiRequest<Role>(`/admin/roles/${roleId}/permissions`, {
+    method: 'PATCH',
+    body: JSON.stringify({ permissionCodes }),
+  });
+}
+
+export async function updateMembershipRole(
+  membershipId: string,
+  roleId: string,
+): Promise<{ id: string; userId: string; organizationId: string; role: string }> {
+  return apiRequest(`/admin/memberships/${membershipId}/role`, {
+    method: 'PATCH',
+    body: JSON.stringify({ roleId }),
   });
 }
 
@@ -300,6 +363,36 @@ export async function listEmergencies(params: {
   return apiRequest<PaginatedResponse<Emergency>>(`/admin/emergencies${query ? `?${query}` : ''}`);
 }
 
+export async function listContentReports(params: {
+  page?: number;
+  limit?: number;
+  status?: string;
+  reason?: string;
+}): Promise<PaginatedResponse<ContentReport>> {
+  const searchParams = new URLSearchParams();
+  if (params.page) searchParams.set('page', String(params.page));
+  if (params.limit) searchParams.set('limit', String(params.limit));
+  if (params.status) searchParams.set('status', params.status);
+  if (params.reason) searchParams.set('reason', params.reason);
+  const query = searchParams.toString();
+  return apiRequest<PaginatedResponse<ContentReport>>(`/admin/content-reports${query ? `?${query}` : ''}`);
+}
+
+export async function getContentReport(id: string): Promise<ContentReportDetail> {
+  return apiRequest<ContentReportDetail>(`/admin/content-reports/${id}`);
+}
+
+export async function resolveContentReport(
+  id: string,
+  action: 'DISMISS' | 'HIDE' | 'REMOVE',
+  resolution?: string,
+): Promise<ContentReport> {
+  return apiRequest<ContentReport>(`/admin/content-reports/${id}/resolve`, {
+    method: 'POST',
+    body: JSON.stringify({ action, resolution }),
+  });
+}
+
 export async function getInventoryOverview(): Promise<any> {
   return apiRequest<any>('/admin/inventory/overview');
 }
@@ -324,6 +417,43 @@ export async function acknowledgeAlert(id: string, notes?: string): Promise<any>
   });
 }
 
-export async function getSystemHealth(): Promise<any> {
-  return apiRequest<any>('/admin/health');
+export interface SystemHealth {
+  status: string;
+  database: string;
+  version: string;
+  timestamp: string;
+  pending: { organizations: number; couriers: number };
+  alerts: number;
+  recentErrors: number;
+}
+
+export async function getSystemHealth(): Promise<SystemHealth> {
+  return apiRequest<SystemHealth>('/admin/health');
+}
+
+export interface PlatformSettings {
+  id: string;
+  sessionTimeoutMinutes: number;
+  aiHealthInsightsEnabled: boolean;
+  sosEmergencyEnabled: boolean;
+  gamificationEnabled: boolean;
+  pushNotificationsEnabled: boolean;
+  maintenanceMode: boolean;
+  updatedAt: string;
+  updatedById: string | null;
+}
+
+export type PlatformSettingsPatch = Partial<
+  Omit<PlatformSettings, 'id' | 'updatedAt' | 'updatedById'>
+>;
+
+export async function getPlatformSettings(): Promise<PlatformSettings> {
+  return apiRequest<PlatformSettings>('/admin/settings');
+}
+
+export async function updatePlatformSettings(patch: PlatformSettingsPatch): Promise<PlatformSettings> {
+  return apiRequest<PlatformSettings>('/admin/settings', {
+    method: 'PATCH',
+    body: JSON.stringify(patch),
+  });
 }

@@ -23,6 +23,7 @@ export class AppointmentsController {
   constructor(private readonly appointments: AppointmentsService) {}
 
   @Post()
+  @Roles(RoleCode.DONOR, RoleCode.SUPER_ADMIN)
   @Idempotent('appointment.book')
   @UseInterceptors(IdempotencyInterceptor)
   @ApiOperation({ summary: 'Book an appointment' })
@@ -37,6 +38,7 @@ export class AppointmentsController {
   }
 
   @Get('me')
+  @Roles(RoleCode.DONOR, RoleCode.SUPER_ADMIN)
   @ApiOperation({ summary: 'Get my appointments' })
   @ApiResponse({ status: 200, description: 'Appointments list' })
   getMyAppointments(@CurrentUser('sub') userId: string, @Query() filters: GetMyAppointmentsDto) {
@@ -44,6 +46,7 @@ export class AppointmentsController {
   }
 
   @Get('me/next')
+  @Roles(RoleCode.DONOR, RoleCode.SUPER_ADMIN)
   @ApiOperation({ summary: 'Get next upcoming appointment' })
   @ApiResponse({ status: 200, description: 'Next appointment or null' })
   getNextAppointment(@CurrentUser('sub') userId: string) {
@@ -60,6 +63,7 @@ export class AppointmentsController {
   }
 
   @Post(':id/cancel')
+  @Roles(RoleCode.DONOR, RoleCode.SUPER_ADMIN)
   @ApiOperation({ summary: 'Cancel an appointment' })
   @ApiResponse({ status: 200, description: 'Appointment cancelled' })
   @ApiResponse({ status: 400, description: 'Cannot cancel this appointment' })
@@ -73,6 +77,7 @@ export class AppointmentsController {
   }
 
   @Post(':id/reschedule')
+  @Roles(RoleCode.DONOR, RoleCode.SUPER_ADMIN)
   @ApiOperation({ summary: 'Reschedule an appointment' })
   @ApiResponse({ status: 200, description: 'Appointment rescheduled' })
   @ApiResponse({ status: 409, description: 'New slot not available' })

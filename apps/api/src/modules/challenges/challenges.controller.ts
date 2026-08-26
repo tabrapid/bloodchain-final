@@ -103,13 +103,12 @@ export class ChallengesController {
   }
 
   @Put(':id/progress')
-  @ApiOperation({ summary: 'Update challenge progress' })
-  @ApiResponse({ status: 200, description: 'Progress updated successfully' })
-  async updateProgress(
+  @ApiOperation({ summary: "Recalculate the current user's progress on a challenge from their real activity records" })
+  @ApiResponse({ status: 200, description: 'Progress recalculated successfully' })
+  async recalculateProgress(
     @Param('id') id: string,
     @CurrentUser('sub') userId: string,
-    @Body('progress') progress: number,
   ) {
-    return this.challengesService.updateProgress(id, userId, progress);
+    return this.challengesService.recalculateProgress(id, userId);
   }
 }

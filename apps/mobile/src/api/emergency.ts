@@ -117,8 +117,25 @@ export async function arriveAtHospital(responseId: string): Promise<EmergencyRes
   });
 }
 
-export async function getDonorTracking(responseId: string): Promise<EmergencyResponse> {
-  return apiRequest<EmergencyResponse>(`/donor/emergency-responses/${responseId}/tracking`);
+export interface DonorTrackingResponse extends EmergencyResponse {
+  emergencyRequest: {
+    id: string;
+    donationLocation?: string;
+    latitude?: string;
+    longitude?: string;
+    hospital: {
+      id: string;
+      name: string;
+      address?: string;
+      latitude?: string;
+      longitude?: string;
+    };
+  };
+  locations: EmergencyLocation[];
+}
+
+export async function getDonorTracking(responseId: string): Promise<DonorTrackingResponse> {
+  return apiRequest<DonorTrackingResponse>(`/donor/emergency-responses/${responseId}/tracking`);
 }
 
 export async function cancelResponse(

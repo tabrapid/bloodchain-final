@@ -8,6 +8,7 @@ import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { PrismaService } from '../../database/prisma.service';
 import { EmailService } from '../email/email.service';
 import { PermissionsService } from '../../modules/permissions/permissions.service';
+import { PlatformSettingsService } from '../platform-settings/platform-settings.service';
 import { AuthService } from './auth.service';
 
 type MockPrisma = {
@@ -34,6 +35,7 @@ describe('AuthService', () => {
   let jwt: Partial<JwtService>;
   let permissions: Partial<PermissionsService>;
   let email: Partial<EmailService>;
+  let platformSettings: Partial<PlatformSettingsService>;
 
   beforeEach(async () => {
     prisma = {
@@ -66,6 +68,12 @@ describe('AuthService', () => {
       sendVerificationEmail: jest.fn().mockResolvedValue(undefined),
     };
 
+    platformSettings = {
+      getSessionTimeoutMinutes: jest.fn().mockResolvedValue(43200),
+      isEnabled: jest.fn().mockResolvedValue(true),
+      isMaintenanceMode: jest.fn().mockResolvedValue(false),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
@@ -95,6 +103,10 @@ describe('AuthService', () => {
         {
           provide: EmailService,
           useValue: email,
+        },
+        {
+          provide: PlatformSettingsService,
+          useValue: platformSettings,
         },
       ],
     }).compile();
@@ -140,6 +152,81 @@ describe('AuthService', () => {
     expect(result.data.email).toBe('test@donor.local');
   });
 
+  it('creates a SYSTEM-type placeholder org for a donor, never a fake HOSPITAL', async () => {
+    prisma.user.findUnique.mockResolvedValue(null);
+    prisma.role.findUnique.mockResolvedValue({ id: 'r1', code: RoleCode.DONOR });
+    const findFirst = jest.fn().mockResolvedValue(null);
+    const orgCreate = jest.fn().mockResolvedValue({ id: 'sys-org', type: 'SYSTEM' });
+    prisma.$transaction.mockImplementation(async (callback) => {
+      const tx = {
+        user: {
+          create: jest.fn().mockResolvedValue({
+            id: 'u1',
+            email: 'test@donor.local',
+            firstName: 'Test',
+            lastName: 'User',
+            status: 'PENDING_VERIFICATION',
+          }),
+        },
+        donorProfile: { create: jest.fn().mockResolvedValue({}) },
+        organization: { findFirst, create: orgCreate },
+        organizationMembership: { create: jest.fn().mockResolvedValue({}) },
+      };
+      return callback(tx);
+    });
+
+    await service.register({
+      email: 'test@donor.local',
+      password: 'SecurePassword123!',
+      firstName: 'Test',
+      lastName: 'User',
+    });
+
+    expect(findFirst).toHaveBeenCalledWith({ where: { type: 'SYSTEM' } });
+    expect(orgCreate).toHaveBeenCalledWith({
+      data: {
+        type: 'SYSTEM',
+        name: 'Donor Accounts (System)',
+        status: 'ACTIVE',
+      },
+    });
+  });
+
+  it('reuses an existing SYSTEM org instead of creating a duplicate', async () => {
+    prisma.user.findUnique.mockResolvedValue(null);
+    prisma.role.findUnique.mockResolvedValue({ id: 'r1', code: RoleCode.DONOR });
+    const orgCreate = jest.fn();
+    prisma.$transaction.mockImplementation(async (callback) => {
+      const tx = {
+        user: {
+          create: jest.fn().mockResolvedValue({
+            id: 'u1',
+            email: 'test2@donor.local',
+            firstName: 'Test',
+            lastName: 'User',
+            status: 'PENDING_VERIFICATION',
+          }),
+        },
+        donorProfile: { create: jest.fn().mockResolvedValue({}) },
+        organization: {
+          findFirst: jest.fn().mockResolvedValue({ id: 'sys-org', type: 'SYSTEM' }),
+          create: orgCreate,
+        },
+        organizationMembership: { create: jest.fn().mockResolvedValue({}) },
+      };
+      return callback(tx);
+    });
+
+    await service.register({
+      email: 'test2@donor.local',
+      password: 'SecurePassword123!',
+      firstName: 'Test',
+      lastName: 'User',
+    });
+
+    expect(orgCreate).not.toHaveBeenCalled();
+  });
+
   it('rejects registration with existing email', async () => {
     prisma.user.findUnique.mockResolvedValue({ id: 'existing', email: 'test@donor.local' });
 
@@ -151,6 +238,74 @@ describe('AuthService', () => {
         lastName: 'User',
       }),
     ).rejects.toThrow();
+  });
+
+  it('registers a new organization pending approval, with an admin membership', async () => {
+    prisma.user.findUnique.mockResolvedValue(null);
+    prisma.role.findUnique.mockResolvedValue({ id: 'role-hospital-admin', code: RoleCode.HOSPITAL_ADMIN });
+    const txOrganizationCreate = jest.fn().mockResolvedValue({
+      id: 'org1',
+      name: 'Northstar Hospital',
+      type: 'HOSPITAL',
+      status: 'PENDING_APPROVAL',
+    });
+    const txUserCreate = jest.fn().mockResolvedValue({
+      id: 'u1',
+      email: 'admin@northstar.example',
+      firstName: 'Alex',
+      lastName: 'Rivera',
+      status: 'PENDING_VERIFICATION',
+    });
+    const txMembershipCreate = jest.fn().mockResolvedValue({});
+    prisma.$transaction.mockImplementation(async (callback) => {
+      const tx = {
+        organization: { create: txOrganizationCreate },
+        user: { create: txUserCreate },
+        organizationMembership: { create: txMembershipCreate },
+      };
+      return callback(tx);
+    });
+
+    const result = await service.registerOrganization({
+      organizationType: 'HOSPITAL',
+      organizationName: 'Northstar Hospital',
+      adminEmail: 'admin@northstar.example',
+      adminPassword: 'SecurePassword123!',
+      adminFirstName: 'Alex',
+      adminLastName: 'Rivera',
+    } as any);
+
+    expect(result.data.organization.status).toBe('PENDING_APPROVAL');
+    expect(result.data.user.email).toBe('admin@northstar.example');
+    expect(txOrganizationCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          type: 'HOSPITAL',
+          status: 'PENDING_APPROVAL',
+          hospital: { create: {} },
+        }),
+      }),
+    );
+    expect(txMembershipCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ roleId: 'role-hospital-admin', status: 'ACTIVE' }),
+      }),
+    );
+  });
+
+  it('rejects organization registration with an already-registered admin email', async () => {
+    prisma.user.findUnique.mockResolvedValue({ id: 'existing', email: 'admin@northstar.example' });
+
+    await expect(
+      service.registerOrganization({
+        organizationType: 'HOSPITAL',
+        organizationName: 'Northstar Hospital',
+        adminEmail: 'admin@northstar.example',
+        adminPassword: 'SecurePassword123!',
+        adminFirstName: 'Alex',
+        adminLastName: 'Rivera',
+      } as any),
+    ).rejects.toThrow(BadRequestException);
   });
 
   it('logs in with valid credentials', async () => {
@@ -211,6 +366,44 @@ describe('AuthService', () => {
     await expect(service.login('test@donor.local', 'SecurePassword123!')).rejects.toThrow(
       ForbiddenException,
     );
+  });
+
+  it('rejects login for a non-admin while the platform is in maintenance mode', async () => {
+    (platformSettings.isMaintenanceMode as jest.Mock).mockResolvedValue(true);
+    const passwordHash = await argon2.hash('SecurePassword123!');
+    prisma.user.findUnique.mockResolvedValue({
+      id: 'u1',
+      email: 'test@donor.local',
+      firstName: 'Test',
+      lastName: 'User',
+      status: 'ACTIVE',
+      emailVerified: true,
+      passwordHash,
+      memberships: [{ role: { code: RoleCode.DONOR }, organization: { type: 'HOSPITAL' }, status: 'ACTIVE' }],
+    });
+
+    await expect(service.login('test@donor.local', 'SecurePassword123!')).rejects.toThrow(
+      ForbiddenException,
+    );
+  });
+
+  it('still allows a SUPER_ADMIN to log in during maintenance mode', async () => {
+    (platformSettings.isMaintenanceMode as jest.Mock).mockResolvedValue(true);
+    const passwordHash = await argon2.hash('SecurePassword123!');
+    prisma.user.findUnique.mockResolvedValue({
+      id: 'u1',
+      email: 'admin@donor.local',
+      firstName: 'Admin',
+      lastName: 'User',
+      status: 'ACTIVE',
+      emailVerified: true,
+      passwordHash,
+      failedLoginAttempts: 0,
+      memberships: [{ role: { code: RoleCode.SUPER_ADMIN }, organization: { type: 'HOSPITAL' }, status: 'ACTIVE' }],
+    });
+
+    const result = await service.login('admin@donor.local', 'SecurePassword123!');
+    expect(result.data.accessToken).toBe('access-token');
   });
 
   it('refreshes tokens with valid refresh token', async () => {

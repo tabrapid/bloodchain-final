@@ -3,10 +3,12 @@ import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { JwtModule } from '@nestjs/jwt';
+import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { LoggerModule } from 'nestjs-pino';
 import { envValidationSchema } from './config/env.validation';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
+import { OrganizationGuard } from './common/guards/organization.guard';
 import { PermissionsGuard } from './common/guards/permissions.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { DatabaseModule } from './database/database.module';
@@ -28,10 +30,10 @@ import { GamificationModule } from './modules/gamification/gamification.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
 import { LaboratoryModule } from './modules/laboratory/laboratory.module';
-import { NotificationPreferencesModule } from './modules/notification-preferences/notification-preferences.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { OrganizationsModule } from './modules/organizations/organizations.module';
 import { PermissionsModule } from './modules/permissions/permissions.module';
+import { PlatformSettingsModule } from './modules/platform-settings/platform-settings.module';
 import { ShipmentsModule } from './modules/shipments/shipments.module';
 import { UsersModule } from './modules/users/users.module';
 import { CourierModule } from './modules/courier/courier.module';
@@ -76,12 +78,14 @@ import { IdempotencyModule } from './modules/idempotency/idempotency.module';
       }),
     }),
     EventEmitterModule.forRoot(),
+    ScheduleModule.forRoot(),
     JwtModule.register({
       global: true,
       secret: process.env.JWT_ACCESS_SECRET ?? 'development-only-secret',
     }),
     DatabaseModule,
     AuditLogsModule,
+    PlatformSettingsModule,
     AdminModule,
     AuthModule,
     UsersModule,
@@ -89,10 +93,9 @@ import { IdempotencyModule } from './modules/idempotency/idempotency.module';
     DonorsModule,
     HealthModule,
     PermissionsModule,
-    NotificationPreferencesModule,
     NotificationsModule,
-    AppointmentsModule,
     AppointmentSlotsModule,
+    AppointmentsModule,
     DonationsModule,
     InventoryModule,
     ShipmentsModule,
@@ -128,6 +131,10 @@ import { IdempotencyModule } from './modules/idempotency/idempotency.module';
     {
       provide: APP_GUARD,
       useClass: PermissionsGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: OrganizationGuard,
     },
   ],
 })

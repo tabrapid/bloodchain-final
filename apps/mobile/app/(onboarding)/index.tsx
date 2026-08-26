@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { View, TextInput, StyleSheet } from 'react-native';
+import { Alert, View, TextInput, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import * as Location from 'expo-location';
 import { AppButton, AppText, Screen, ProgressBar } from '../../src/components';
 import { colors, spacing, radius } from '../../src/theme';
 import { useUpdateDonorProfile } from '../../src/hooks/useDonors';
@@ -25,15 +26,49 @@ export default function OnboardingWelcome() {
     rhFactor: '',
     city: '',
     district: '',
+    consentLocation: false,
+    latitude: undefined as number | undefined,
+    longitude: undefined as number | undefined,
     emergencyRequests: true,
     appointments: true,
     donationReminders: true,
     system: true,
     promotional: false,
   });
+  const [isLocating, setIsLocating] = useState(false);
 
-  const updateField = (field: string, value: string | boolean) => {
+  const updateField = (field: string, value: string | boolean | number | undefined) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleShareLocation = async () => {
+    if (formData.consentLocation) {
+      updateField('consentLocation', false);
+      updateField('latitude', undefined);
+      updateField('longitude', undefined);
+      return;
+    }
+
+    setIsLocating(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(
+          'Location Permission Needed',
+          'DONOR uses your location to match you with nearby emergency requests faster. You can still donate without it.',
+        );
+        return;
+      }
+
+      const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      updateField('consentLocation', true);
+      updateField('latitude', position.coords.latitude);
+      updateField('longitude', position.coords.longitude);
+    } catch {
+      Alert.alert('Could Not Get Location', 'Please try again, or skip this - you can still donate without it.');
+    } finally {
+      setIsLocating(false);
+    }
   };
 
   const handleNext = () => {
@@ -61,6 +96,9 @@ export default function OnboardingWelcome() {
         rhFactor: formData.rhFactor as any || undefined,
         city: formData.city || undefined,
         district: formData.district || undefined,
+        consentLocation: formData.consentLocation,
+        latitude: formData.latitude,
+        longitude: formData.longitude,
       });
 
       await queryClient.invalidateQueries({ queryKey: ['user-profile'] });
@@ -195,6 +233,22 @@ export default function OnboardingWelcome() {
               value={formData.district}
               onChangeText={(v) => updateField('district', v)}
             />
+            <View style={styles.notificationItem}>
+              <View style={styles.notificationText}>
+                <AppText variant="heading">Share precise location</AppText>
+                <AppText muted style={styles.notificationDesc}>
+                  Lets us match you with the nearest emergency requests first. Optional.
+                </AppText>
+              </View>
+              <AppButton
+                variant={formData.consentLocation ? 'primary' : 'secondary'}
+                size="small"
+                onPress={handleShareLocation}
+                disabled={isLocating}
+              >
+                {isLocating ? '...' : formData.consentLocation ? 'ON' : 'OFF'}
+              </AppButton>
+            </View>
           </View>
         );
 
@@ -255,6 +309,10 @@ export default function OnboardingWelcome() {
                 }
               />
               <ReviewItem label="Location" value={formData.city || 'Not provided'} />
+              <ReviewItem
+                label="Precise Location Sharing"
+                value={formData.consentLocation ? 'On' : 'Off'}
+              />
             </View>
           </View>
         );

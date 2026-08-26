@@ -4,6 +4,7 @@ import { PrismaService } from '../../../database/prisma.service';
 import { PushDeviceService } from './push-device.service';
 import { PushProviderService } from './push-provider.service';
 import { NotificationPreferenceService } from './notification-preference.service';
+import { PlatformSettingsService } from '../../platform-settings/platform-settings.service';
 import { DeliveryStatus, NotificationPriority } from '../dto';
 
 interface DeliverableNotification {
@@ -26,6 +27,7 @@ export class NotificationDeliveryService {
     private readonly pushDeviceService: PushDeviceService,
     private readonly pushProvider: PushProviderService,
     private readonly preferenceService: NotificationPreferenceService,
+    private readonly platformSettings: PlatformSettingsService,
   ) {}
 
   async deliver(notificationId: string) {
@@ -39,6 +41,10 @@ export class NotificationDeliveryService {
 
     if (notification.status === 'EXPIRED') {
       return { success: false, reason: 'Notification expired' };
+    }
+
+    if (!(await this.platformSettings.isEnabled('pushNotificationsEnabled'))) {
+      return { success: false, reason: 'Push notifications disabled by platform admin' };
     }
 
     const delivery = await this.prisma.notificationDelivery.create({

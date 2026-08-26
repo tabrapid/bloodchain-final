@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Search, Filter, User, Mail, Phone, Calendar, Shield, ChevronRight, X, LayoutDashboard, Users, Building2, Ship, Package, Droplet, AlertTriangle, TestTube, Bell, FileText, Activity, Settings } from 'lucide-react';
 import { DashboardShell, StatCard, LoadingState, EmptyState } from '@donor/ui/components';
-import { listUsers, suspendUser, restoreUser, type User as UserType } from '@lib/api';
+import { listUsers, suspendUser, restoreUser, listRoles, updateMembershipRole, type User as UserType, type Role } from '@lib/api';
 import { me, isAuthenticated } from '@lib/auth';
 import { StatusBadgeWrapper } from '@lib/status';
 
@@ -20,6 +20,8 @@ export default function UsersPage() {
   const [selectedUser, setSelectedUser] = useState<UserType | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [roles, setRoles] = useState<Role[]>([]);
+  const [roleChangeTarget, setRoleChangeTarget] = useState<Record<string, string>>({});
 
   useEffect(() => {
     async function load() {
@@ -28,7 +30,7 @@ export default function UsersPage() {
         const userData = await me();
         if (!userData.roles.includes('SUPER_ADMIN')) return;
         setCurrentUser({ firstName: userData.firstName, lastName: userData.lastName, roles: userData.roles });
-        await loadUsers();
+        await Promise.all([loadUsers(), listRoles().then(setRoles)]);
       } catch (err) {
         console.error(err);
       } finally {
@@ -77,6 +79,21 @@ export default function UsersPage() {
     setActionLoading(true);
     try {
       await restoreUser(userId);
+      await loadUsers(meta.page);
+      setSelectedUser(null);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  async function handleChangeRole(membershipId: string) {
+    const roleId = roleChangeTarget[membershipId];
+    if (!roleId) return;
+    setActionLoading(true);
+    try {
+      await updateMembershipRole(membershipId, roleId);
       await loadUsers(meta.page);
       setSelectedUser(null);
     } catch (err: any) {
@@ -291,11 +308,36 @@ export default function UsersPage() {
 
               <div>
                 <p className="text-sm text-gray-500 mb-2">Roles</p>
-                <div className="flex flex-wrap gap-2">
-                  {selectedUser.roles.map((r, i) => (
-                    <span key={i} className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-700">
-                      {r.role} - {r.organization?.name}
-                    </span>
+                <div className="space-y-2">
+                  {selectedUser.roles.map((r) => (
+                    <div key={r.membershipId} className="flex items-center gap-2 flex-wrap">
+                      <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-700">
+                        {r.role} - {r.organization?.name}
+                      </span>
+                      <select
+                        value={roleChangeTarget[r.membershipId] ?? ''}
+                        onChange={(e) =>
+                          setRoleChangeTarget((prev) => ({ ...prev, [r.membershipId]: e.target.value }))
+                        }
+                        className="border border-gray-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-red-500"
+                      >
+                        <option value="">Change role to...</option>
+                        {roles
+                          .filter((role) => role.code !== r.role)
+                          .map((role) => (
+                            <option key={role.id} value={role.id}>
+                              {role.code}
+                            </option>
+                          ))}
+                      </select>
+                      <button
+                        onClick={() => handleChangeRole(r.membershipId)}
+                        disabled={actionLoading || !roleChangeTarget[r.membershipId]}
+                        className="text-xs font-medium text-red-600 hover:text-red-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        Update
+                      </button>
+                    </div>
                   ))}
                 </div>
               </div>

@@ -12,6 +12,7 @@ import {
   XCircle,
 } from 'lucide-react-native';
 import { AppButton, AppText, Badge, Card, EmptyState, LoadingState, Screen } from '../../src/components';
+import { LocationMap, type MapMarkerPoint } from '../../src/components/map/LocationMap';
 import { colors, spacing } from '../../src/theme';
 import {
   acceptShipment,
@@ -20,10 +21,12 @@ import {
   declineShipment,
   failShipment,
   getActiveShipment,
+  getShipmentTracking,
   startDelivery,
   startPickup,
   updateLocation,
   type Shipment,
+  type ShipmentTracking,
 } from '../../src/api/courier';
 
 const LOCATION_UPDATE_INTERVAL_MS = 20000;
@@ -57,6 +60,7 @@ export default function CourierActive() {
   const [declineReason, setDeclineReason] = useState('');
   const [showFail, setShowFail] = useState(false);
   const [failReason, setFailReason] = useState('');
+  const [tracking, setTracking] = useState<ShipmentTracking | null>(null);
 
   const locationSubscription = useRef<Location.LocationSubscription | null>(null);
 
@@ -100,7 +104,9 @@ export default function CourierActive() {
             longitude: position.coords.longitude,
             accuracy: position.coords.accuracy ?? undefined,
             heading: position.coords.heading ?? undefined,
-            speed: position.coords.speed ?? undefined,
+            // expo-location reports speed in meters/second; the backend
+            // (ETA averaging, speed sanity checks) expects km/h.
+            speed: position.coords.speed != null ? position.coords.speed * 3.6 : undefined,
           }).catch(() => {
             // Best-effort: a single missed ping shouldn't interrupt the delivery.
           });
@@ -117,6 +123,69 @@ export default function CourierActive() {
       locationSubscription.current = null;
     };
   }, [shipment?.id, shipment?.status]);
+
+  useEffect(() => {
+    const shipmentId = shipment?.id;
+    if (!shipmentId) {
+      setTracking(null);
+      return;
+    }
+
+    let cancelled = false;
+    const poll = async () => {
+      try {
+        const result = await getShipmentTracking(shipmentId);
+        if (!cancelled) setTracking(result);
+      } catch {
+        // Best-effort: the rest of the screen still works from local state alone.
+      }
+    };
+
+    poll();
+    const interval = setInterval(poll, LOCATION_UPDATE_INTERVAL_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [shipment?.id]);
+
+  const trackingMarkers: MapMarkerPoint[] = tracking
+    ? [
+        ...(tracking.source.coordinates
+          ? [
+              {
+                id: 'source',
+                ...tracking.source.coordinates,
+                label: tracking.source.name,
+                sublabel: tracking.source.address,
+                variant: 'origin' as const,
+              },
+            ]
+          : []),
+        ...(tracking.currentLocation
+          ? [
+              {
+                id: 'courier',
+                latitude: tracking.currentLocation.latitude,
+                longitude: tracking.currentLocation.longitude,
+                label: 'You',
+                variant: 'courier' as const,
+              },
+            ]
+          : []),
+        ...(tracking.destination.coordinates
+          ? [
+              {
+                id: 'destination',
+                ...tracking.destination.coordinates,
+                label: tracking.destination.name,
+                sublabel: tracking.destination.address,
+                variant: 'destination' as const,
+              },
+            ]
+          : []),
+      ]
+    : [];
 
   const runAction = async (action: () => Promise<Shipment>) => {
     setActionLoading(true);
@@ -259,6 +328,12 @@ export default function CourierActive() {
                 </View>
               )}
             </Card>
+
+            {trackingMarkers.length > 0 && (
+              <Card style={{ marginBottom: spacing.lg, padding: 0, overflow: 'hidden' }}>
+                <LocationMap markers={trackingMarkers} showRoute height={200} />
+              </Card>
+            )}
 
             {shipment.status === 'COURIER_ASSIGNED' && !showDecline && (
               <View style={{ gap: spacing.sm }}>
