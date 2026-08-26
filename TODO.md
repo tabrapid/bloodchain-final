@@ -3117,6 +3117,148 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   - File: `apps/mobile/app/(app)/education/index.tsx`
     (`EducationCard`'s unused `onStart`/`isStarting`).
 
+- [x] **E2E-1. The e2e suite only covered auth, so no business flow had
+  ever been exercised over HTTP against a real database.** Before this
+  work the only e2e spec was `app.e2e-spec.ts` (health + auth + two
+  authorization checks, 14 tests). Every other guarantee in the backend
+  rested on 621 unit specs that all mock `PrismaService` — which means
+  they validate service logic in isolation but can never catch a bad
+  Prisma query, a broken route wiring, a guard that doesn't fire, or a
+  state machine that doesn't hold across a real multi-actor flow.
+  — Fixed: added four domain suites (64 new tests, 78 total) covering
+  the product's core flows end to end against a real Postgres, each
+  driving several actors whose roles genuinely differ:
+  **`donations.e2e-spec.ts` (17)** — staff opens a slot, donor books,
+  staff confirms and checks in, records the screening assessment,
+  starts and completes the collection, donor sees it in their history.
+  **`shipments.e2e-spec.ts` (20)** — hospital raises a blood request,
+  blood centre approves (reserving a real unit) and dispatches, courier
+  runs accept → start-pickup → confirm-pickup → start-delivery →
+  arrive, hospital confirms receipt.
+  **`emergency.e2e-spec.ts` (15)** — hospital raises and activates an
+  emergency, the real matching engine writes matches, the donor views,
+  accepts, travels and arrives, the hospital completes the response.
+  **`inventory.e2e-spec.ts` (12)** — a unit through quarantine →
+  release → reserve → release-reservation → issue.
+  Coverage is deliberately not just happy paths: it asserts the
+  transitions that must be **refused** (a quarantined unit can't be
+  issued, a discard is terminal, a unit can't be issued twice, a
+  shipment step can't be replayed, an emergency can't be activated
+  twice, delivery can't claim more units than were shipped or fewer
+  without a discrepancy reason), and RBAC/tenant isolation at every
+  boundary (a donor can't open slots or read inventory, a courier can't
+  raise requests, a hospital can't self-approve or reach blood-centre
+  inventory, blood-centre staff can't act as the courier).
+  Added `test/utils/e2e.ts` as the shared harness. It mints tokens via
+  the app's own `JwtService` rather than driving `POST /auth/login`,
+  because login is rate limited to 5 requests/60s and these suites need
+  six or more actors signed in at once — driving them through login
+  would make the suites trip the app's own rate limiter on themselves.
+  The tokens are genuine (same secret, same `{sub, roles, permissions}`
+  payload, roles and permissions read from the database), so every
+  guard validates them for real; login itself stays covered by
+  `app.e2e-spec.ts`.
+  **This immediately paid for itself: it found a completely broken core
+  endpoint.** `donations.service.ts` passed both `include` and `select`
+  for the same `donor` relation in three Prisma queries, which Prisma
+  rejects outright ("Please either use `include` or `select`, but not
+  both at the same time"). So `checkInDonation`, `getDonationForCheckIn`
+  and `getTodayAppointments` — the entire staff-facing donation session
+  surface, including the check-in that begins *every* donation —
+  returned 500 on every single call. Confirmed by reproducing the query
+  standalone against the real database, then fixed by merging
+  `donorProfile` into the `donor` select (preserving the exact fields
+  each caller reads); a repo-wide scan confirms no other
+  include+select conflict remains. The 5 existing donations unit tests
+  never caught it because they mock `PrismaService`, and a mock does not
+  validate query shape — the clearest possible illustration of why this
+  gap mattered.
+  Test hygiene is part of the deliverable: each suite brings its own
+  fixtures (its own donation, blood unit, donor) instead of consuming
+  seeded demo data, restores anything it borrows (the courier's status),
+  and cleans up after itself. Cleanup deliberately does **not**
+  catch-and-ignore, because that pattern was actively hiding bugs while
+  these suites were written: the emergency teardown referenced
+  `db.emergencyEvent`, a model that does not exist, so cleanup silently
+  aborted and left 10 stale emergencies and 5 stale users behind, which
+  then made later runs fail for a completely unrelated-looking reason
+  (zero donors matched). The shipments teardown had the same defect,
+  deleting `BloodUnitReservation` by a `bloodRequestId` field it does
+  not have. Both now delete only cascade roots and let genuine failures
+  surface. Verified by running the full suite twice back to back —
+  78/78 both times — and confirming afterwards that the database holds
+  zero test rows and the seeded demo data is untouched.
+  - Files: `apps/api/test/utils/e2e.ts` (new harness),
+    `apps/api/test/donations.e2e-spec.ts` (new),
+    `apps/api/test/shipments.e2e-spec.ts` (new),
+    `apps/api/test/emergency.e2e-spec.ts` (new),
+    `apps/api/test/inventory.e2e-spec.ts` (new),
+    `apps/api/src/modules/donations/donations.service.ts`
+    (the three include+select fixes).
+
+- [ ] **P3-11. Emergency donor matching silently ignores the blood
+  compatibility map, notifying only exact-type donors (found while
+  writing the emergency e2e suite).** `emergency.service.ts` defines a
+  correct `BLOOD_COMPATIBILITY` map — `'O-NEGATIVE'` lists all eight
+  recipient groups, i.e. the universal donor — and `isBloodCompatible`
+  applies it. But the database query that loads candidate donors
+  prefilters with `donorProfile: { bloodType: emergency.bloodType,
+  rhFactor: emergency.rhFactor }`, an **exact** match. Since
+  `isBloodCompatible` is then applied to that already-exact set, it can
+  only ever return true, and the compatibility map is dead code in this
+  path. The effect is that activating an emergency notifies only donors
+  whose type matches exactly, silently excluding every universal and
+  cross-compatible donor — precisely the donors an emergency most needs.
+  The map's existence is strong evidence the intended behaviour is the
+  broader one. Not fixed here on purpose: widening who gets alerted in a
+  medical emergency is a product and clinical decision, not a test-
+  coverage change, and it also affects notification volume. Likely fix:
+  drop `bloodType`/`rhFactor` from the SQL prefilter (keeping
+  `donorStatus`/`verificationStatus`/`emailVerified`) and let
+  `isBloodCompatible` do the filtering it was written to do — but
+  confirm the intended clinical policy first.
+  - File: `apps/api/src/modules/emergency/emergency.service.ts`
+    (donor prefilter in `activateEmergency`, vs. `BLOOD_COMPATIBILITY`
+    and `isBloodCompatible`).
+
+- [ ] **P3-12. 16 POST routes are documented as returning 200 but
+  actually return 201 (found while writing the donation e2e suite).**
+  These are state-transition endpoints (`/confirm`, `/cancel`,
+  `/start`, `/complete`, `/join`, `/approve`, …) that carry
+  `@ApiResponse({ status: 200 })` but have no `@HttpCode`, so Nest
+  applies its POST default of 201. The published OpenAPI contract
+  therefore disagrees with the real response on every one of them,
+  which matters for any generated client that treats an unexpected
+  status as an error. Semantically 200 is the better answer for these
+  (no new resource is created at the request URI), so the likely fix is
+  adding `@HttpCode(HttpStatus.OK)` rather than editing the docs — but
+  that changes 16 response codes at once, which is a breaking API change
+  for existing consumers and needs an explicit decision. The e2e suites
+  assert the real behaviour (201) and cite this item where they do.
+  - Files: `appointment-slots.controller.ts` (1),
+    `appointments.controller.ts` (4), `campaigns.controller.ts` (1),
+    `challenges.controller.ts` (1), `donations.controller.ts` (4),
+    `donors.controller.ts` (1), `education.controller.ts` (3),
+    `gamification.controller.ts` (1).
+
+- [ ] **P3-13. `ensureProfileExists` can lose a gamification profile
+  under concurrency (observed during the e2e runs).**
+  `xp.service.ts`'s `ensureProfileExists` does a
+  `gamificationProfile.upsert({ where: { userId }, … })`, which raced
+  during an e2e run and threw `Unique constraint failed on the fields:
+  (userId)` — two near-simultaneous `handleDonationCompleted` events
+  for the same user both found no row and both inserted. This was
+  observed, not theorised. Because the caller is a fire-and-forget
+  `@nestjs/event-emitter` handler the user's request still succeeds, so
+  the failure is invisible in the API response and the profile work is
+  simply lost. Likely fix: catch and ignore P2002 specifically (the row
+  exists, which is the desired end state), or serialise profile
+  creation. Worth checking whether other `upsert`-on-unique calls in
+  event handlers have the same exposure.
+  - File: `apps/api/src/modules/gamification/services/xp.service.ts`
+    (`ensureProfileExists`), reached via
+    `gamification-event.handler.ts`'s `handleDonationCompleted`.
+
 ---
 
 ## Suggested execution order
@@ -3466,7 +3608,25 @@ without crashing" tests still passed, exactly matching the defect's
 shape; the old campaigns screen's whole 26-node tree came back with
 `style: null` on every node. Repo-wide: typecheck 10/10, lint 10/10,
 637 tests passing, build 4/4 — the CI pipeline is now fully green).~~ ✅
+~~**E2E-1** (expanded e2e coverage from auth-only to the four core
+business flows — donations, the blood-request/shipment/delivery chain,
+emergency matching, and the inventory lifecycle. 64 new tests, 78
+total, each driving several actors with genuinely different roles
+against a real Postgres, and asserting refused transitions and RBAC
+boundaries as hard as the happy paths. It found a completely broken
+core endpoint on its first run: three Prisma queries in
+donations.service.ts passed both `include` and `select` for the same
+relation, which Prisma rejects, so check-in — the entry point of every
+donation — had always returned 500. The 5 donations unit tests missed
+it because they mock PrismaService. Also tightened teardown after
+catch-and-ignore cleanup was caught hiding two broken delete calls and
+leaving stale rows that made later runs fail for unrelated-looking
+reasons. Verified by running the whole suite twice, 78/78 both times,
+with the database confirmed clean and seeded data untouched).~~ ✅
 Next up: the remainder of **P3-2** (Next.js app pages, more
 `packages/ui` components — the mobile/Expo test setup half is now done
 as part of P3-9), or **P3-4** through **P3-7** (env docs, stale docs,
-repo naming, dead admin DTOs), or the newly-logged **P3-10**.
+repo naming, dead admin DTOs), or the newly-logged **P3-10** through
+**P3-13** — of which **P3-11** (emergency matching ignoring the blood
+compatibility map) is the one with real clinical weight and should
+probably be decided first.
