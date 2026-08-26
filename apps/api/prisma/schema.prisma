@@ -507,6 +507,8 @@ model DonorProfile {
   bloodTypeNote       String?
   city                String?             @db.VarChar(100)
   district            String?             @db.VarChar(100)
+  latitude            Decimal?            @db.Decimal(9, 6)
+  longitude           Decimal?            @db.Decimal(9, 6)
   donorStatus         DonorStatus         @default(ACTIVE)
   verificationStatus  VerificationStatus  @default(UNVERIFIED)
   dateOfBirth         DateTime?           @db.Date

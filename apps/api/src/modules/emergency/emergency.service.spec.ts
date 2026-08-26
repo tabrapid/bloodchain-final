@@ -370,3 +370,131 @@ describe('EmergencyService.checkHospitalAccess', () => {
     },
   );
 });
+
+function makeDonor(overrides: Record<string, any> = {}) {
+  return {
+    id: 'donor-1',
+    donorProfile: {
+      bloodType: 'O',
+      rhFactor: 'NEGATIVE',
+      consentLocation: false,
+      latitude: null,
+      longitude: null,
+    },
+    emergencyMatches: [],
+    emergencyResponses: [],
+    ...overrides,
+  };
+}
+
+describe('EmergencyService.activateEmergency', () => {
+  let service: EmergencyService;
+  let prisma: any;
+  let tx: any;
+  let eventEmitter: { emit: jest.Mock };
+
+  beforeEach(async () => {
+    tx = {
+      emergencyRequest: { update: jest.fn().mockResolvedValue({ id: 'req-1' }) },
+      user: { findMany: jest.fn().mockResolvedValue([]) },
+      emergencyMatch: { create: jest.fn().mockResolvedValue({}) },
+    };
+
+    prisma = {
+      emergencyRequest: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'req-1',
+          hospitalId: 'org-1',
+          status: EmergencyStatus.DRAFT,
+          bloodType: 'O',
+          rhFactor: 'NEGATIVE',
+          urgencyLevel: 'CRITICAL',
+          requiredBefore: null,
+          latitude: '40.712800',
+          longitude: '-74.006000',
+        }),
+      },
+      emergencyMatch: { updateMany: jest.fn().mockResolvedValue({ count: 0 }) },
+      $transaction: jest.fn().mockImplementation(async (cb: any) => cb(tx)),
+    };
+
+    eventEmitter = { emit: jest.fn() };
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        EmergencyService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: AuditLogsService, useValue: { log: jest.fn().mockResolvedValue({}) } },
+        { provide: EventEmitter2, useValue: eventEmitter },
+        { provide: EmergencyGateway, useValue: {} },
+        { provide: DonationEligibilityService, useValue: {} },
+        { provide: PlatformSettingsService, useValue: { isEnabled: jest.fn().mockResolvedValue(true) } },
+      ],
+    }).compile();
+
+    service = module.get<EmergencyService>(EmergencyService);
+    jest.spyOn(service, 'checkHospitalAccess').mockResolvedValue({ user: { id: 'staff-1' } } as any);
+  });
+
+  it('computes a real distanceKm and matchScore for a consenting donor with a location', async () => {
+    // ~1.9km from the emergency's coordinates.
+    tx.user.findMany.mockResolvedValue([
+      makeDonor({ donorProfile: { bloodType: 'O', rhFactor: 'NEGATIVE', consentLocation: true, latitude: '40.73', longitude: '-74.0' } }),
+    ]);
+
+    await service.activateEmergency('org-1', 'staff-1', 'req-1');
+
+    expect(tx.emergencyMatch.create).toHaveBeenCalledTimes(1);
+    const { data } = tx.emergencyMatch.create.mock.calls[0][0];
+    expect(data.distanceKm).toBeGreaterThan(0);
+    expect(data.distanceKm).toBeLessThan(5);
+    expect(data.matchScore).toBe(Math.max(0, Math.round(100 - data.distanceKm)));
+  });
+
+  it('leaves distanceKm/matchScore null for a donor who has not consented to location sharing', async () => {
+    tx.user.findMany.mockResolvedValue([
+      makeDonor({ donorProfile: { bloodType: 'O', rhFactor: 'NEGATIVE', consentLocation: false, latitude: '40.73', longitude: '-74.0' } }),
+    ]);
+
+    await service.activateEmergency('org-1', 'staff-1', 'req-1');
+
+    const { data } = tx.emergencyMatch.create.mock.calls[0][0];
+    expect(data.distanceKm).toBeNull();
+    expect(data.matchScore).toBeNull();
+  });
+
+  it('ranks consenting donors nearest-first and sorts unknown-distance donors last', async () => {
+    tx.user.findMany.mockResolvedValue([
+      makeDonor({ id: 'far-donor', donorProfile: { bloodType: 'O', rhFactor: 'NEGATIVE', consentLocation: true, latitude: '41.5', longitude: '-73.5' } }),
+      makeDonor({ id: 'no-location-donor' }),
+      makeDonor({ id: 'near-donor', donorProfile: { bloodType: 'O', rhFactor: 'NEGATIVE', consentLocation: true, latitude: '40.72', longitude: '-74.01' } }),
+    ]);
+
+    await service.activateEmergency('org-1', 'staff-1', 'req-1');
+
+    const matchedOrder = tx.emergencyMatch.create.mock.calls.map((call: any) => call[0].data.donorId);
+    expect(matchedOrder).toEqual(['near-donor', 'far-donor', 'no-location-donor']);
+  });
+
+  it('leaves distanceKm null for every donor when the emergency itself has no location', async () => {
+    prisma.emergencyRequest.findUnique.mockResolvedValue({
+      id: 'req-1',
+      hospitalId: 'org-1',
+      status: EmergencyStatus.DRAFT,
+      bloodType: 'O',
+      rhFactor: 'NEGATIVE',
+      urgencyLevel: 'CRITICAL',
+      requiredBefore: null,
+      latitude: null,
+      longitude: null,
+    });
+    tx.user.findMany.mockResolvedValue([
+      makeDonor({ donorProfile: { bloodType: 'O', rhFactor: 'NEGATIVE', consentLocation: true, latitude: '40.73', longitude: '-74.0' } }),
+    ]);
+
+    await service.activateEmergency('org-1', 'staff-1', 'req-1');
+
+    const { data } = tx.emergencyMatch.create.mock.calls[0][0];
+    expect(data.distanceKm).toBeNull();
+  });
+});

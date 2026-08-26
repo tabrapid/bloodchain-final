@@ -80,6 +80,8 @@ export class DonorsService {
       donorStatus?: DonorStatus;
       dateOfBirth?: Date;
       consentLocation?: boolean;
+      latitude?: number;
+      longitude?: number;
     },
   ) {
     const profile = await this.db.donorProfile.findUnique({ where: { userId } });

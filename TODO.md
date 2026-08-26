@@ -1337,12 +1337,71 @@ These make the product unusable or unsafe for real users. Fix first, in order.
     `apps/hospital-web/lib/emergency.ts`,
     `apps/hospital-web/app/emergency/page.tsx`.
 
-- [ ] **P2-6. Emergency matching ignores real geo distance** —
-  `distanceKm`/`matchScore` fields exist on `EmergencyMatch` but are never
-  populated; matching just takes the first 50 compatible donors in query
-  order. `DonorProfile` also has no lat/lng field, so proximity matching
-  is architecturally impossible without a schema change.
-  `apps/api/src/modules/emergency/emergency.service.ts:263-333`.
+- [x] **P2-6. Emergency matching ignores real geo distance** — Fixed: the
+  schema change this item said was needed. Added
+  `latitude`/`longitude` (nullable `Decimal(9,6)`) to `DonorProfile`
+  (migration `20260826084838_add_donor_profile_location`) — the model
+  already had a `consentLocation` boolean with nothing to consent *to*,
+  another instance of this session's "scaffolding exists, nothing
+  connects it" pattern, just one layer further back than usual (the
+  consent flag existed before the data it was meant to gate).
+  `activateEmergency` now computes a real Haversine distance (new shared
+  `apps/api/src/common/utils/geo.util.ts` — this codebase already had
+  *two* independent copies of the same Haversine formula in
+  `shipments.service.ts` and `location.service.ts`; added a third
+  wasn't an option, so this one's shared, though reconciling the
+  existing two duplicates is its own separate cleanup, not done here)
+  from the emergency's coordinates to each blood-type-compatible donor's,
+  when the emergency has a location and the donor has both consented
+  (`consentLocation`) and has one recorded. Donors are ranked
+  nearest-first before taking the top 50 (previously: query order, i.e.
+  arbitrary); a donor with no usable distance still sorts in and is still
+  matched — an unknown distance isn't a reason to exclude someone whose
+  blood type already qualifies them. Each `EmergencyMatch` now persists
+  the real `distanceKm` and a simple `matchScore`
+  (`max(0, 100 − distanceKm)`, undocumented anywhere and unconsumed by
+  any frontend, so no existing formula to match — documented inline as
+  intentionally simple).
+  Wired the one missing piece that would have made the new column just as
+  unreachable as `consentLocation` already was: nothing anywhere let a
+  donor actually set their location. Extended `donors`' existing
+  profile-update DTO/service (`latitude`/`longitude`, validated) rather
+  than a new endpoint, and added the one real touchpoint on the client
+  side — mobile's onboarding flow's existing "Location" step (which
+  already collects city/district) gained a "Share precise location"
+  toggle that requests foreground permission and captures a one-time GPS
+  fix via `expo-location` (already a dependency since P1-19), off by
+  default, donor-toggleable, never silently sampled.
+  Noticed but explicitly **not fixed** here (would be gratuitous scope
+  creep on a matching-algorithm item): `DonorsService.updateProfile`
+  unconditionally resets `verificationStatus` to `REQUIRES_REVIEW` on
+  *any* profile field change, including ones with nothing to do with
+  blood-type verification (confirmed live — setting only location bumped
+  an already-`VERIFIED` donor back to review) — logged as new **P2-17**.
+  Verified: 4 new tests for `activateEmergency` (real distance/score
+  computed for a consenting donor with a location; null for a
+  non-consenting donor; nearest-first ranking with unknown-distance
+  donors sorted last; all-null when the emergency itself has no
+  location), full suite 327/327 passing (up from 323), clean
+  `tsc --noEmit` on both the API and mobile (same 160 pre-existing,
+  unrelated errors before/after), 0 new lint warnings, clean `expo
+  export` for Android (no device/simulator available in this sandbox,
+  same limitation as P1-19). Live end-to-end against the real Postgres +
+  running API: set a real donor's location through the real
+  `PUT /donors/profile` endpoint, created and activated a real emergency
+  near it, and confirmed the resulting `EmergencyMatch` row carried a
+  correct real-world `distanceKm` (~0.87 km for the coordinates used) and
+  the matching `matchScore` (99) — not nulls, not query-order luck.
+  Cleaned up all test data afterward, including reverting the
+  `verificationStatus` side effect from P2-17 that the live-verification
+  step itself triggered.
+  - Files: `apps/api/prisma/schema.prisma` (+ migration),
+    `apps/api/src/common/utils/geo.util.ts` (new),
+    `apps/api/src/modules/emergency/emergency.service.ts` (+ spec),
+    `apps/api/src/modules/donors/dto/update-donor-profile.dto.ts`,
+    `apps/api/src/modules/donors/donors.service.ts`,
+    `apps/mobile/src/api/donors.ts`,
+    `apps/mobile/app/(onboarding)/index.tsx`.
 
 - [ ] **P2-7. Courier-assigned/accepted notifications show the wrong text**
   (silently fall back to the "shipment created" template because those two
@@ -1434,6 +1493,19 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   `apps/api/src/modules/notification-preferences/`,
   `apps/api/src/modules/notifications/notifications.controller.ts:105-116`,
   `apps/api/src/app.module.ts`.
+
+- [ ] **P2-17. Any donor profile update resets `verificationStatus` to
+  `REQUIRES_REVIEW` (found while verifying P2-6)** — `DonorsService.
+  updateProfile` unconditionally sets `verificationStatus:
+  VerificationStatus.REQUIRES_REVIEW` on every `PUT /donors/profile`
+  call, regardless of which fields actually changed. Confirmed live: a
+  donor updating only their location (or city, or date of birth) knocks
+  an already-`VERIFIED` blood type back to needing re-review, even though
+  none of those fields have anything to do with blood-type verification.
+  Should only reset verification when `bloodType`/`rhFactor` are actually
+  part of the update (and arguably only when they *change*, not just
+  appear in the payload with the same value).
+  `apps/api/src/modules/donors/donors.service.ts:90-96`.
 
 ---
 
@@ -1586,5 +1658,13 @@ shadowing the one this item was fixing, split out to new P2-16).~~ ✅
 donation/blood-unit records (replacing the hardcoded `WHOLE_BLOOD`), and
 hospital-web's create-emergency form; live-verified a real PLATELETS
 emergency completing into a real PLATELETS `Donation`/`BloodUnit`).~~ ✅
-Next up: **P2-6** (Emergency matching ignores real geo distance), then
-the rest of P2, folding in P3-1 tests as each area is touched.
+~~**P2-6** (Emergency matching ignored real geo distance — added
+`DonorProfile.latitude`/`longitude` (the schema change this item said was
+needed), a shared Haversine util, nearest-first ranking in
+`activateEmergency`, a way to actually set the new fields via the
+donors profile endpoint, and a mobile onboarding toggle to capture them;
+live-verified a real ~0.87km match with the correct `matchScore`; found
+and logged an unrelated `verificationStatus` reset bug as new P2-17).~~ ✅
+Next up: **P2-7** (Courier-assigned/accepted notifications show the
+wrong text), then the rest of P2, folding in P3-1 tests as each area is
+touched.

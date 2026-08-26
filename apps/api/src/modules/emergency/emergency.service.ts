@@ -29,6 +29,7 @@ import {
 import { DonationEligibilityService } from '../donation-eligibility/donation-eligibility.service';
 import { PlatformSettingsService } from '../platform-settings/platform-settings.service';
 import { assertOrganizationActive } from '../../common/utils/organization-status.util';
+import { haversineDistanceKm } from '../../common/utils/geo.util';
 
 const SOS_REQUEST_CREATED_EVENT = 'sos.request.created';
 const SOS_DONOR_ACCEPTED_EVENT = 'sos.donor.accepted';
@@ -349,13 +350,48 @@ export class EmergencyService {
         );
       });
 
+      // Rank by real distance when the emergency has a location and a donor
+      // has consented to sharing theirs; donors without a usable distance
+      // sort last (still eligible - blood-type compatibility matters more
+      // than an unknown distance) rather than being dropped from the pool.
+      const emergencyLat = emergency.latitude !== null ? Number(emergency.latitude) : null;
+      const emergencyLon = emergency.longitude !== null ? Number(emergency.longitude) : null;
+
+      const rankedDonors = compatibleDonors
+        .map((donor) => {
+          const hasDonorLocation =
+            donor.donorProfile!.consentLocation &&
+            donor.donorProfile!.latitude !== null &&
+            donor.donorProfile!.longitude !== null;
+          const distanceKm =
+            emergencyLat !== null && emergencyLon !== null && hasDonorLocation
+              ? haversineDistanceKm(
+                  emergencyLat,
+                  emergencyLon,
+                  Number(donor.donorProfile!.latitude),
+                  Number(donor.donorProfile!.longitude),
+                )
+              : null;
+          return { donor, distanceKm };
+        })
+        .sort((a, b) => {
+          if (a.distanceKm === null && b.distanceKm === null) return 0;
+          if (a.distanceKm === null) return 1;
+          if (b.distanceKm === null) return -1;
+          return a.distanceKm - b.distanceKm;
+        });
+
       const matchedDonorIds: string[] = [];
-      for (const donor of compatibleDonors.slice(0, 50)) {
+      for (const { donor, distanceKm } of rankedDonors.slice(0, 50)) {
         await tx.emergencyMatch.create({
           data: {
             emergencyRequestId: emergencyId,
             donorId: donor.id,
             status: EmergencyMatchStatus.MATCHED,
+            distanceKm,
+            // Simple proximity score (0-100, closer is higher) - there's no
+            // existing consumer of this field to match a richer formula to.
+            matchScore: distanceKm !== null ? Math.max(0, Math.round(100 - distanceKm)) : null,
           },
         });
         matchedDonorIds.push(donor.id);

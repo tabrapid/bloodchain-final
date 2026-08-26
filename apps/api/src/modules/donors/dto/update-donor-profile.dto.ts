@@ -1,6 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { BloodType, DonorStatus, RhFactor } from '@prisma/client';
-import { IsBoolean, IsDateString, IsEnum, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsDateString, IsEnum, IsNumber, IsOptional, IsString, Max, Min } from 'class-validator';
 
 export class UpdateDonorProfileDto {
   @ApiPropertyOptional({ enum: BloodType })
@@ -37,4 +37,18 @@ export class UpdateDonorProfileDto {
   @IsOptional()
   @IsBoolean()
   consentLocation?: boolean;
+
+  @ApiPropertyOptional({ description: 'Only used when consentLocation is true.' })
+  @IsOptional()
+  @IsNumber()
+  @Min(-90)
+  @Max(90)
+  latitude?: number;
+
+  @ApiPropertyOptional({ description: 'Only used when consentLocation is true.' })
+  @IsOptional()
+  @IsNumber()
+  @Min(-180)
+  @Max(180)
+  longitude?: number;
 }
