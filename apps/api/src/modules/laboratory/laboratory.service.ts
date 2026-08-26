@@ -705,6 +705,15 @@ export class LaboratoryService {
     },
     testTypeId: string,
   ) {
+    // Prisma silently omits an undefined filter field rather than matching
+    // nothing, so a missing appointmentId here wouldn't 404 -- it would
+    // match an arbitrary BLOOD_TEST appointment for this organization and
+    // silently attach the result to the wrong donor. Guard explicitly
+    // rather than rely on the id filter alone.
+    if (!appointmentId) {
+      throw new BadRequestException('appointmentId is required.');
+    }
+
     const appointment = await this.db.appointment.findFirst({
       where: {
         id: appointmentId,

@@ -1853,7 +1853,7 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   directly).
   - Files: `apps/api/src/modules/shipments/shipments.service.ts` (+ spec).
 
-- [ ] **P2-15. `POST .../laboratory-results` can never succeed for anyone
+- [x] **P2-15. `POST .../laboratory-results` can never succeed for anyone
   (found while verifying P2-2)** — the route
   `organizations/:organizationId/laboratory-results` has no
   `:appointmentId` segment, but the handler reads
@@ -1866,7 +1866,62 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   changed to carry `appointmentId` in the body instead, whichever this
   module's convention should be for a *result*, which isn't itself
   keyed by appointment the way `confirm`/`check-in`/`start`/`complete`
-  are.
+  are. — Fixed, and it's a more dangerous bug than "can never succeed":
+  confirmed live that `appointmentId: undefined` does **not** make the
+  Prisma `findFirst({ where: { id: appointmentId, ... } })` call match
+  nothing — Prisma silently *omits* an `undefined` filter field from the
+  query rather than treating it as "match null," so the call actually
+  returns an arbitrary `BLOOD_TEST` appointment for the organization
+  (whichever the DB happens to return first). With more than one
+  in-flight lab appointment at an organization, this endpoint could
+  silently attach a real donor's test result to a *different* donor's
+  appointment instead of failing — a real patient-safety-adjacent data
+  bug, not just a broken endpoint. It only looked like "can never
+  succeed" in a dev DB with exactly one `BLOOD_TEST` appointment total.
+  Confirmed the fix direction wasn't ambiguous: `blood-center-web`'s
+  existing `createLaboratoryResult` client (`apps/blood-center-web/lib/
+  laboratory.ts:251-268`) already sends `body: JSON.stringify({
+  appointmentId, ...data })` — the frontend was built correctly for the
+  body-based design; only the backend had the mismatch. Moved
+  `appointmentId` from `@Param()` into the DTO body (alongside the
+  existing `testTypeId`), matching how this same route already treats a
+  *result* as its own resource keyed by `resultId`, not by appointment,
+  everywhere else (`GET/:resultId`, `POST /:resultId/review`,
+  `POST /:resultId/publish`). Also hardened `LaboratoryService
+  .createResult` itself with an explicit `if (!appointmentId) throw
+  BadRequestException(...)` guard before the Prisma call, so the
+  underlying "undefined filter is silently omitted" pitfall can't bite
+  again here even if a future caller (or a client bug) omits the field
+  — fails loudly instead of matching an arbitrary record.
+  Had a general-purpose audit agent sweep all 24 API controllers (264
+  routes, 199 `@Param()` uses) for the same route/param-mismatch
+  pattern; verified against this exact bug as ground truth (correctly
+  flagged the pre-fix code), then confirmed zero other instances exist
+  in the current codebase — this was an isolated bug, not a systemic
+  pattern.
+  Verified: 6 new tests in a new `LaboratoryService.createResult`
+  describe block (successful creation with a real id; rejects a missing
+  `appointmentId` *without ever querying the DB*, which is the actual
+  regression guard for the dangerous behavior above; rejects an
+  empty-string id the same way; 404s for a genuinely nonexistent
+  appointment; rejects when the appointment isn't `RESULT_PENDING`;
+  rejects when a result already exists), full suite 401/401 passing (up
+  from 395), clean `tsc --noEmit`, 0 new lint errors. Live end-to-end
+  against the real Postgres + running API: confirmed the missing-id case
+  now correctly returns `400 appointmentId is required` instead of
+  silently matching whatever appointment Prisma happened to return; then
+  booked a real fresh lab appointment, drove it through
+  confirm → check-in → start → complete to `RESULT_PENDING`, and
+  confirmed `POST .../laboratory-results` with a real `appointmentId` in
+  the body correctly created a result linked to *that exact*
+  appointment. Cleaned up the test appointment, its result and history,
+  slot booking count, and audit log rows afterward — including reverting
+  an accidental status advance on the real seeded lab appointment I
+  first tried this against (it already had a genuine `PUBLISHED` result
+  from seed data, which is exactly the "already exists" rejection
+  correctly firing, not a bug).
+  - Files: `apps/api/src/modules/laboratory/laboratory.controller.ts`,
+    `apps/api/src/modules/laboratory/laboratory.service.ts` (+ spec).
   `apps/api/src/modules/laboratory/laboratory.controller.ts:249-273`.
 
 - [ ] **P2-16. Two complete, independent modules both implement
@@ -2150,6 +2205,15 @@ test coverage that method itself was missing; live-verified the real
 `confirm-delivery` route still resolves and works correctly after the
 removal — and found a real, separate, system-critical bug along the way
 in how approved requests get shipped, logged as new P2-18).~~ ✅
-Next up: **P2-15** (`POST .../laboratory-results` can never succeed for
-anyone — a route/param mismatch), then the rest of P2, folding in P3-1
-tests as each area is touched.
+~~**P2-15** (`POST .../laboratory-results` had a route/param mismatch
+that was worse than "never succeeds" — Prisma silently omits an
+undefined filter instead of matching nothing, so it could have attached
+a result to the wrong donor's appointment; moved `appointmentId` into
+the body to match the already-correct frontend client, added an
+explicit guard against the underlying Prisma pitfall, and swept all 24
+controllers confirming this was an isolated bug, not a pattern;
+live-verified the 400 now fires correctly and a real result attaches to
+the exact right appointment).~~ ✅
+Next up: **P2-16** (two complete, independent modules both implement
+notification preferences), then the rest of P2, folding in P3-1 tests
+as each area is touched.

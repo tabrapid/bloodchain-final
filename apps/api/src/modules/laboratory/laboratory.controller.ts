@@ -259,8 +259,8 @@ export class LaboratoryController {
   )
   createResult(
     @Param('organizationId') organizationId: string,
-    @Param('appointmentId') appointmentId: string,
     @Body() dto: {
+      appointmentId: string;
       items: Array<{
         parameterId: string;
         value: string;
@@ -276,7 +276,7 @@ export class LaboratoryController {
     return this.laboratory.createResult(
       organizationId,
       userId,
-      appointmentId,
+      dto.appointmentId,
       {
         items: dto.items.map((item) => ({
           ...item,

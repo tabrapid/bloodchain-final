@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
@@ -292,5 +292,103 @@ describe('LaboratoryService.markNoShow', () => {
 
     await expect(service.markNoShow('lab-1', 'staff-1', 'apt-1')).rejects.toThrow(BadRequestException);
     expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+});
+
+describe('LaboratoryService.createResult', () => {
+  let service: LaboratoryService;
+  let prisma: any;
+  let tx: any;
+
+  beforeEach(async () => {
+    tx = {
+      laboratoryResult: {
+        create: jest.fn().mockResolvedValue({ id: 'result-1', appointmentId: 'apt-1' }),
+      },
+      testParameter: { findUnique: jest.fn().mockResolvedValue(null) },
+      testReferenceRange: { findFirst: jest.fn().mockResolvedValue(null) },
+      laboratoryResultItem: { create: jest.fn().mockResolvedValue({}) },
+      laboratoryResultVersion: { create: jest.fn().mockResolvedValue({}) },
+    };
+
+    prisma = {
+      appointment: {
+        findFirst: jest.fn().mockResolvedValue(
+          makeLabAppointment({ status: 'RESULT_PENDING', laboratoryResult: null }),
+        ),
+      },
+      $transaction: jest.fn().mockImplementation(async (cb: any) => cb(tx)),
+    };
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        LaboratoryService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: AuditLogsService, useValue: { log: jest.fn().mockResolvedValue({}) } },
+        { provide: EventEmitter2, useValue: { emit: jest.fn() } },
+      ],
+    }).compile();
+
+    service = module.get<LaboratoryService>(LaboratoryService);
+  });
+
+  it('creates a result for a real appointment id', async () => {
+    const result = await service.createResult(
+      'lab-1',
+      'staff-1',
+      'apt-1',
+      { items: [] },
+      'test-type-1',
+    );
+
+    expect(prisma.appointment.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ id: 'apt-1', organizationId: 'lab-1' }) }),
+    );
+    expect(result.id).toBe('result-1');
+  });
+
+  it('rejects with BadRequestException when appointmentId is missing, without ever querying the DB', async () => {
+    // This is the exact live bug this test guards: an undefined
+    // appointmentId must never reach a Prisma `where: { id: undefined }`
+    // filter, since Prisma silently omits an undefined filter field
+    // instead of matching nothing -- it would return an arbitrary
+    // BLOOD_TEST appointment for the organization instead of failing.
+    await expect(
+      service.createResult('lab-1', 'staff-1', undefined as any, { items: [] }, 'test-type-1'),
+    ).rejects.toThrow(BadRequestException);
+    expect(prisma.appointment.findFirst).not.toHaveBeenCalled();
+  });
+
+  it('rejects with BadRequestException for an empty-string appointmentId', async () => {
+    await expect(
+      service.createResult('lab-1', 'staff-1', '', { items: [] }, 'test-type-1'),
+    ).rejects.toThrow(BadRequestException);
+    expect(prisma.appointment.findFirst).not.toHaveBeenCalled();
+  });
+
+  it('throws NotFoundException when no matching appointment exists', async () => {
+    prisma.appointment.findFirst.mockResolvedValue(null);
+
+    await expect(
+      service.createResult('lab-1', 'staff-1', 'apt-missing', { items: [] }, 'test-type-1'),
+    ).rejects.toThrow(NotFoundException);
+  });
+
+  it('rejects when the appointment is not awaiting results', async () => {
+    prisma.appointment.findFirst.mockResolvedValue(makeLabAppointment({ status: 'CONFIRMED' }));
+
+    await expect(
+      service.createResult('lab-1', 'staff-1', 'apt-1', { items: [] }, 'test-type-1'),
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it('rejects when a result already exists for the appointment', async () => {
+    prisma.appointment.findFirst.mockResolvedValue(
+      makeLabAppointment({ status: 'RESULT_PENDING', laboratoryResult: { id: 'existing-result' } }),
+    );
+
+    await expect(
+      service.createResult('lab-1', 'staff-1', 'apt-1', { items: [] }, 'test-type-1'),
+    ).rejects.toThrow(BadRequestException);
   });
 });
