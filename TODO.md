@@ -2263,6 +2263,58 @@ These make the product unusable or unsafe for real users. Fix first, in order.
     (new),
     `apps/api/src/modules/platform-settings/platform-settings.service.spec.ts`
     (new).
+  - **Second installment**: covered the next 3 smallest remaining
+    zero-coverage modules — `email` (107 lines), `ai-cache` (130 lines),
+    `users` (166 lines). `email` (nodemailer wrapper used for
+    registration verification emails) gets 8 new tests: dev-mode stream
+    transport fallback when `SMTP_HOST` is unset, real SMTP transport
+    construction with/without auth when it is set, the configured
+    `SMTP_FROM` override, swallowing a transport failure instead of
+    throwing (email delivery must never break the calling request), and
+    `sendVerificationEmail`'s content plus HTML-escaping of the
+    recipient's first name (the URLs it interpolates are not
+    user-controlled, so were left unescaped as before — not a live bug,
+    just documenting the asymmetry). `ai-cache` (the `AIInsightCache`
+    read-through cache backing `ai-health`'s insight generation) gets 12
+    new tests: cache hit, cache miss, expired-entry eviction-on-read,
+    default vs. custom TTL on `set`, and every write path
+    (`set`/`delete`/`invalidateUserCache`/`cleanupExpired`) swallowing a
+    DB failure and returning a safe default instead of throwing, matching
+    the service's existing "cache errors must never break the calling
+    request" design. `users` (profile read/update, admin user listing)
+    gets 11 new tests covering the redacted `findById` projection (no
+    password/hash fields), `findMany` pagination math, `getProfile`'s
+    `NotFoundException` and null-relation handling, and `updateProfile`'s
+    `?? existing` per-field fallback plus its `USER_PROFILE_UPDATED`
+    audit-log call. Full suite went from 447 to 478 passing (478/478
+    green), `tsc --noEmit` clean, lint 0 errors (408 warnings, up from
+    402, same `any`-mock pattern). Live-verified `users`'s full HTTP
+    surface against the real dev DB: `GET /api/v1/users/me` returned the
+    real seeded donor's profile including nested `donorProfile`/
+    `notificationPreference`; `PATCH /api/v1/users/me` with
+    `{"displayName":"Test Display Name"}` updated it and produced a real
+    `USER_PROFILE_UPDATED` audit row; attempting to clear it back via
+    `{"displayName":null}` surfaced that `updateProfile`'s `data.field ??
+    user.field` fallback treats an explicit `null` as "no change" (same
+    class as the nullish-coalescing pitfall already known from this
+    session, not a new bug worth its own backlog item since no route
+    currently needs to null out `displayName`) — reverted via a direct
+    DB update instead, then deleted both test-generated audit rows;
+    `GET /api/v1/users?page=1&limit=3` returned real paginated results
+    as `SUPER_ADMIN` and a real `403` as a `donor`-role token confirming
+    `RolesGuard` enforcement; `GET /api/v1/users/:id` returned the
+    reverted profile with `displayName: null` confirmed restored.
+    `email` and `ai-cache` have no controller of their own (internal
+    services only), so — consistent with the same reasoning already
+    applied to `audit-logs`/`permissions` — no contrived direct live
+    test was added for them; `ai-cache` in particular has already been
+    exercised indirectly by every prior live AI-health verification step
+    this session. 8 modules now remain at zero coverage: `analytics`,
+    `campaigns`, `community`, `courier`, `education`, `appointment-slots`,
+    `ai-history`, `ai-logging`.
+    - Files: `apps/api/src/modules/email/email.service.spec.ts` (new),
+      `apps/api/src/modules/ai-cache/ai-cache.service.spec.ts` (new),
+      `apps/api/src/modules/users/users.service.spec.ts` (new).
 
 - [ ] **P3-2. No frontend tests at all** (Next.js apps or mobile) — no
   Jest/RTL/Playwright/Detox setup found.
@@ -2519,6 +2571,16 @@ end via the real `/admin/settings` endpoints, and noted why
 live coverage instead of a fresh direct test. 11 modules remain at zero
 coverage: `analytics`, `campaigns`, `community`, `courier`, `education`,
 `email`, `appointment-slots`, `users`, `ai-cache`, `ai-history`,
-`ai-logging` — still outstanding for a future pass).~~ ✅ (partial)
-Next up: the remainder of **P3-1** (11 modules still at zero coverage,
+`ai-logging` — still outstanding for a future pass; second installment
+below covers 3 more).~~ ✅ (partial)
+~~**P3-1 second installment** (`email`, `ai-cache`, `users` — 31 new
+tests, full suite 478/478; live-verified `users`'s full HTTP surface
+(`GET`/`PATCH /users/me`, `GET /users`, `GET /users/:id`) end-to-end
+against the real dev DB, including RBAC enforcement and a real
+`USER_PROFILE_UPDATED` audit row; surfaced that `updateProfile`'s `??`
+fallback can't null out a field via explicit `null` — not a live bug
+since no route needs that, just documented. 8 modules remain at zero
+coverage: `analytics`, `campaigns`, `community`, `courier`, `education`,
+`appointment-slots`, `ai-history`, `ai-logging`).~~ ✅ (partial)
+Next up: the remainder of **P3-1** (8 modules still at zero coverage,
 listed above) or **P3-2** (no frontend tests at all).
