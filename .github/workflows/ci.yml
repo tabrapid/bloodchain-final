@@ -83,6 +83,8 @@ jobs:
         run: pnpm --filter @donor/api prisma:generate
       - name: Apply migrations
         run: pnpm --filter @donor/api exec prisma migrate deploy
+      - name: Seed database (roles/permissions the app requires to function, e.g. register needs the DONOR role to exist)
+        run: pnpm --filter @donor/api prisma:seed
       - run: pnpm --filter @donor/api test:e2e
 
   build:
