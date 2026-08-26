@@ -97,29 +97,31 @@ describe('Blood request and shipment chain (e2e)', () => {
   });
 
   afterAll(async () => {
-    // Unwind in dependency order; the blood unit cascades off the donation.
+    // No catch-and-ignore here on purpose: a silently swallowed cleanup error
+    // leaves rows behind that make a later run fail for an unrelated-looking
+    // reason. deleteMany on a non-existent row is already a no-op, so a throw
+    // here means something genuinely wrong, and the suite should say so.
+    //
+    // Shipment events/units and blood-request items/events/reservations all
+    // cascade off their parent, and the blood unit cascades off its donation,
+    // so only the roots need deleting -- in dependency order.
     if (shipmentId) {
-      await db.shipmentEvent.deleteMany({ where: { shipmentId } }).catch(() => undefined);
-      await db.shipmentUnit.deleteMany({ where: { shipmentId } }).catch(() => undefined);
-      await db.shipment.deleteMany({ where: { id: shipmentId } }).catch(() => undefined);
+      await db.shipment.deleteMany({ where: { id: shipmentId } });
     }
     if (requestId) {
-      await db.bloodRequestEvent.deleteMany({ where: { bloodRequestId: requestId } }).catch(() => undefined);
-      await db.bloodUnitReservation.deleteMany({ where: { bloodRequestId: requestId } }).catch(() => undefined);
-      await db.bloodRequestItem.deleteMany({ where: { bloodRequestId: requestId } }).catch(() => undefined);
-      await db.bloodRequest.deleteMany({ where: { id: requestId } }).catch(() => undefined);
+      await db.bloodRequest.deleteMany({ where: { id: requestId } });
     }
     if (fixtureUnitId) {
-      await db.bloodUnitReservation.deleteMany({ where: { bloodUnitId: fixtureUnitId } }).catch(() => undefined);
-      await db.inventoryMovement.deleteMany({ where: { bloodUnitId: fixtureUnitId } }).catch(() => undefined);
+      await db.inventoryMovement.deleteMany({ where: { bloodUnitId: fixtureUnitId } });
     }
     if (fixtureDonationId) {
-      await db.donation.deleteMany({ where: { id: fixtureDonationId } }).catch(() => undefined);
+      await db.donation.deleteMany({ where: { id: fixtureDonationId } });
     }
     if (courierId) {
-      await db.courier
-        .update({ where: { id: courierId }, data: { status: previousCourierStatus as never } })
-        .catch(() => undefined);
+      await db.courier.update({
+        where: { id: courierId },
+        data: { status: previousCourierStatus as never },
+      });
     }
 
     await app.close();
