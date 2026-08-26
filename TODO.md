@@ -2383,6 +2383,71 @@ These make the product unusable or unsafe for real users. Fix first, in order.
       (new), `apps/api/src/modules/education/education.service.spec.ts`
       (new), `apps/api/src/modules/ai-history/ai-history.service.spec.ts`
       (new).
+  - **Fourth installment**: covered the next 3 remaining zero-coverage
+    modules — `community` (258 lines), `campaigns` (272 lines), `courier`
+    (349 lines) — leaving only `appointment-slots` (358 lines) and
+    `analytics` (896 lines, by far the largest single service file in
+    the backend) outstanding. `community` (public feed, post detail,
+    content reporting, impact/community stats) gets 15 new tests:
+    `getFeed`'s always-PUBLISHED filter, `getPost`'s draft-post 404 (does
+    not leak unpublished content through the direct-by-id route),
+    `reportContent`'s dedup-on-existing-pending/reviewed-report
+    behavior, and `getImpactStats`'s null-gamification-profile
+    defaulting (xp/level/reputation default to 0/1/0 for a user who
+    hasn't triggered gamification-profile creation yet). `campaigns`
+    (campaign CRUD, join/leave, organization-scoped ownership) gets 18
+    new tests: `createCampaign` always forcing `DRAFT` status regardless
+    of input, `updateCampaign`'s cross-organization `ForbiddenException`
+    (an org can't edit another org's campaign), `getCampaigns`/
+    `getCampaign`'s participant-count flattening, `joinCampaign`'s
+    ACTIVE-or-PUBLISHED-only gate and idempotent re-join, and
+    `leaveCampaign`'s not-a-participant guard. `courier` (courier
+    profile, status-machine, shipment queries, stats) gets 15 new tests:
+    `updateCourierStatus`'s two status-machine guards (can't go OFFLINE
+    or become AVAILABLE-from-BUSY while shipments are still active),
+    `getCourierStats`'s average-delivery-time computation and
+    active-count-by-subtraction math, and the ownership/ 404 checks
+    across `getCourierByUserId`/`getCourierById`/`updateCourierProfile`/
+    `getActiveShipment`. Two `tsc --noEmit` strict-null errors surfaced
+    on landing (`result.items[0]` / `result[0]` typed as possibly
+    `undefined` under the project's strict indexed-access setting) and
+    were fixed with non-null assertions on the array access, consistent
+    with how existing specs in this codebase handle the same pattern.
+    Full suite went from 519 to 567 passing (567/567 green), `tsc
+    --noEmit` clean, lint 0 errors (434 warnings, up from 423, same
+    `any`-mock pattern). Live-verified two of the three modules' full
+    HTTP surfaces against the real dev DB: `campaigns` — created a real
+    campaign as `HOSPITAL_ADMIN` (confirmed the forced `DRAFT` default),
+    activated it to `ACTIVE`, had a real donor join it twice (confirmed
+    idempotent), confirmed `participantCount` reflected the join on
+    `GET /campaigns/:id` — and in the process of checking `GET
+    /campaigns/my/campaigns`, **found a real bug**: the endpoint returned
+    `"status": "JOINED"` for the campaign instead of its real `"ACTIVE"`
+    status, because `getUserCampaigns` spreads the campaign object and
+    then overwrites its `status` field with the participant's own
+    status. This is a different, unrelated defect from the test-coverage
+    work at hand (not the same bug class being chased), so — consistent
+    with this session's standing practice of not silently scope-creeping
+    a coverage pass into an unrelated fix — logged it as new **P3-8**
+    rather than fixing it here. `courier` — fetched the seeded courier's
+    real profile, updated its `displayName` then reverted it, and drove
+    the real status machine end-to-end (`AVAILABLE` → `BUSY` →
+    `AVAILABLE`, confirming `previousStatus` tracked correctly and
+    `GET /courier/shipments/active` correctly returned an empty 200 body
+    for "no active shipment"). Deleted the test-generated
+    `Campaign`/`CampaignParticipant` rows afterward. `community` has a
+    real controller too, but time-budgeted this installment to two live
+    verifications; it was not skipped for the "no controller of its own"
+    reason that applied to the internal-only modules in prior
+    installments — it remains a candidate for direct live verification
+    in a future pass. 2 modules now remain at zero coverage:
+    `appointment-slots`, `analytics` (`analytics` alone is nearly as
+    large as all 8 modules covered across this item's four installments
+    combined, and will likely warrant its own dedicated pass).
+    - Files: `apps/api/src/modules/community/community.service.spec.ts`
+      (new), `apps/api/src/modules/campaigns/campaigns.service.spec.ts`
+      (new), `apps/api/src/modules/courier/courier.service.spec.ts`
+      (new).
 
 - [ ] **P3-2. No frontend tests at all** (Next.js apps or mobile) — no
   Jest/RTL/Playwright/Detox setup found.
@@ -2421,6 +2486,29 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   a starting spec if support tickets/announcements/generic feature-flag
   CRUD ever get built for real.
   - File: `apps/api/src/modules/admin/dto/admin.dto.ts`.
+
+- [ ] **P3-8. `GET /campaigns/my/campaigns` silently overwrites the
+  campaign's own `status` with the caller's participation status
+  (found live-verifying P3-1's campaigns coverage).**
+  `CampaignsService.getUserCampaigns` builds each response item as
+  `{ ...p.campaign, joinedAt: p.joinedAt, status: p.status }` — since
+  `p.campaign.status` (e.g. `ACTIVE`/`COMPLETED`/`CANCELLED`) is spread
+  first and `p.status` (the `CampaignParticipant` row's own status, e.g.
+  `JOINED`/`COMPLETED`) is assigned after, the campaign's real lifecycle
+  status is always clobbered by the user's join status in this one
+  endpoint. Confirmed live: activated a real campaign to `ACTIVE`, had a
+  donor join it, and `GET /campaigns/my/campaigns` returned
+  `"status": "JOINED"` for it instead of `"ACTIVE"` — a client rendering
+  "my campaigns" has no way to tell from this endpoint whether a
+  campaign the user joined is still running, has ended, or was
+  cancelled. Every other endpoint in this service (`getCampaign`,
+  `getCampaigns`) returns the real campaign status untouched, so this
+  looks like an unintentional field-name collision rather than a
+  deliberate design choice. Likely fix: rename the participant's own
+  status onto a distinct key (e.g. `participantStatus: p.status`) and
+  leave the spread `status` as the campaign's real status.
+  - File: `apps/api/src/modules/campaigns/campaigns.service.ts`
+    (`getUserCampaigns`).
 
 ---
 
@@ -2664,6 +2752,18 @@ controller of their own, so rely on the same indirect
 session-wide-verification reasoning as `audit-logs`/`permissions`/
 `email`/`ai-cache`. 5 modules remain at zero coverage: `analytics`,
 `campaigns`, `community`, `courier`, `appointment-slots`).~~ ✅ (partial)
-Next up: the remainder of **P3-1** (5 modules still at zero coverage,
-listed above; `analytics` at 896 lines is by far the largest and may
-warrant its own installment) or **P3-2** (no frontend tests at all).
+~~**P3-1 fourth installment** (`community`, `campaigns`, `courier` — 48
+new tests, full suite 567/567; live-verified `campaigns` and `courier`
+end-to-end against the real dev DB (org-scoped ownership, the courier
+status machine, idempotent join/start flows), cleaned up all
+test-generated rows afterward. Along the way found and logged a new,
+unrelated bug as **P3-8**: `GET /campaigns/my/campaigns` silently
+overwrites a campaign's real status with the caller's own participation
+status. 2 modules remain at zero coverage: `appointment-slots`,
+`analytics` — `analytics` (896 lines) will likely need its own
+installment).~~ ✅ (partial)
+Next up: the remainder of **P3-1** (`appointment-slots` and `analytics`
+— the latter likely warranting its own installment given its size) or
+**P3-2** (no frontend tests at all), plus newly-logged **P3-8**
+(campaigns status-clobbering bug) whenever P3 hygiene work is picked up
+again.
