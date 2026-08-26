@@ -19,6 +19,7 @@ import {
 } from '@prisma/client';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../database/prisma.service';
+import { withUniqueRetry } from '../../common/utils/unique-retry.util';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { Courier, Organization, User } from '@prisma/client';
 import { LocationService } from './services/location.service';
@@ -149,46 +150,50 @@ export class ShipmentsService {
   ) {
     const { user } = await this.checkHospitalAccess(userId, organizationId);
 
-    const result = await this.db.$transaction(async (tx) => {
-      const request = await tx.bloodRequest.create({
-        data: {
-          requestReference: this.generateRequestReference(),
-          requestingOrganizationId: organizationId,
-          priority: (dto.priority as any) || 'ROUTINE',
-          status: BloodRequestStatus.SUBMITTED,
-          notes: dto.notes,
-          deliveryAddress: dto.deliveryAddress,
-          deliveryLatitude: dto.deliveryLatitude ? new Prisma.Decimal(dto.deliveryLatitude) : undefined,
-          deliveryLongitude: dto.deliveryLongitude ? new Prisma.Decimal(dto.deliveryLongitude) : undefined,
-          deliveryPhone: dto.deliveryPhone,
-          expectedDeliveryDate: dto.expectedDeliveryDate ? new Date(dto.expectedDeliveryDate) : undefined,
-        },
-      });
+    const result = await withUniqueRetry(
+      () =>
+        this.db.$transaction(async (tx) => {
+          const request = await tx.bloodRequest.create({
+            data: {
+              requestReference: this.generateRequestReference(),
+              requestingOrganizationId: organizationId,
+              priority: (dto.priority as any) || 'ROUTINE',
+              status: BloodRequestStatus.SUBMITTED,
+              notes: dto.notes,
+              deliveryAddress: dto.deliveryAddress,
+              deliveryLatitude: dto.deliveryLatitude ? new Prisma.Decimal(dto.deliveryLatitude) : undefined,
+              deliveryLongitude: dto.deliveryLongitude ? new Prisma.Decimal(dto.deliveryLongitude) : undefined,
+              deliveryPhone: dto.deliveryPhone,
+              expectedDeliveryDate: dto.expectedDeliveryDate ? new Date(dto.expectedDeliveryDate) : undefined,
+            },
+          });
 
-      for (const item of dto.items) {
-        await tx.bloodRequestItem.create({
-          data: {
-            bloodRequestId: request.id,
-            bloodType: item.bloodType as any,
-            rhFactor: item.rhFactor as any,
-            componentType: (item.componentType as any) || 'WHOLE_BLOOD',
-            unitsRequested: item.unitsRequested,
-          },
-        });
-      }
+          for (const item of dto.items) {
+            await tx.bloodRequestItem.create({
+              data: {
+                bloodRequestId: request.id,
+                bloodType: item.bloodType as any,
+                rhFactor: item.rhFactor as any,
+                componentType: (item.componentType as any) || 'WHOLE_BLOOD',
+                unitsRequested: item.unitsRequested,
+              },
+            });
+          }
 
-      await tx.bloodRequestEvent.create({
-        data: {
-          bloodRequestId: request.id,
-          eventType: 'SUBMITTED',
-          actorId: user.id,
-          organizationId,
-          metadata: { items: dto.items.length },
-        },
-      });
+          await tx.bloodRequestEvent.create({
+            data: {
+              bloodRequestId: request.id,
+              eventType: 'SUBMITTED',
+              actorId: user.id,
+              organizationId,
+              metadata: { items: dto.items.length },
+            },
+          });
 
-      return request;
-    });
+          return request;
+        }),
+      { uniqueFields: ['requestReference'] },
+    );
 
     await this.audit.log({
       actorId: user.id,
@@ -507,58 +512,62 @@ export class ShipmentsService {
       throw new NotFoundException('Destination organization not found.');
     }
 
-    const result = await this.db.$transaction(async (tx) => {
-      const shipment = await tx.shipment.create({
-        data: {
-          shipmentReference: this.generateShipmentReference(),
-          bloodRequestId: requestId,
-          sourceOrganizationId: organizationId,
-          destinationOrganizationId: request.requestingOrganizationId,
-          status: ShipmentStatus.CREATED,
-          pickupAddress: dto.pickupAddress || destinationOrg.address || undefined,
-          pickupLatitude: dto.pickupLatitude ? new Prisma.Decimal(dto.pickupLatitude) : (destinationOrg.latitude ? new Prisma.Decimal(Number(destinationOrg.latitude)) : undefined),
-          pickupLongitude: dto.pickupLongitude ? new Prisma.Decimal(dto.pickupLongitude) : (destinationOrg.longitude ? new Prisma.Decimal(Number(destinationOrg.longitude)) : undefined),
-          destinationAddress: request.deliveryAddress || destinationOrg.address || undefined,
-          destinationLatitude: request.deliveryLatitude || undefined,
-          destinationLongitude: request.deliveryLongitude || undefined,
-        },
-      });
-
-      for (const item of request.items) {
-        for (const reservation of item.reservations) {
-          await tx.shipmentUnit.create({
+    const result = await withUniqueRetry(
+      () =>
+        this.db.$transaction(async (tx) => {
+          const shipment = await tx.shipment.create({
             data: {
-              shipmentId: shipment.id,
-              bloodUnitId: reservation.bloodUnitId,
-              reservationId: reservation.id,
-              bloodRequestItemId: item.id,
-              status: 'PENDING',
+              shipmentReference: this.generateShipmentReference(),
+              bloodRequestId: requestId,
+              sourceOrganizationId: organizationId,
+              destinationOrganizationId: request.requestingOrganizationId,
+              status: ShipmentStatus.CREATED,
+              pickupAddress: dto.pickupAddress || destinationOrg.address || undefined,
+              pickupLatitude: dto.pickupLatitude ? new Prisma.Decimal(dto.pickupLatitude) : (destinationOrg.latitude ? new Prisma.Decimal(Number(destinationOrg.latitude)) : undefined),
+              pickupLongitude: dto.pickupLongitude ? new Prisma.Decimal(dto.pickupLongitude) : (destinationOrg.longitude ? new Prisma.Decimal(Number(destinationOrg.longitude)) : undefined),
+              destinationAddress: request.deliveryAddress || destinationOrg.address || undefined,
+              destinationLatitude: request.deliveryLatitude || undefined,
+              destinationLongitude: request.deliveryLongitude || undefined,
             },
           });
-        }
-      }
 
-      await tx.shipmentEvent.create({
-        data: {
-          shipmentId: shipment.id,
-          eventType: ShipmentEventType.CREATED,
-          actorId: user.id,
-          organizationId,
-        },
-      });
+          for (const item of request.items) {
+            for (const reservation of item.reservations) {
+              await tx.shipmentUnit.create({
+                data: {
+                  shipmentId: shipment.id,
+                  bloodUnitId: reservation.bloodUnitId,
+                  reservationId: reservation.id,
+                  bloodRequestItemId: item.id,
+                  status: 'PENDING',
+                },
+              });
+            }
+          }
 
-      await tx.bloodRequestEvent.create({
-        data: {
-          bloodRequestId: requestId,
-          eventType: 'SHIPMENT_CREATED',
-          actorId: user.id,
-          organizationId,
-          metadata: { shipmentId: shipment.id, shipmentReference: shipment.shipmentReference },
-        },
-      });
+          await tx.shipmentEvent.create({
+            data: {
+              shipmentId: shipment.id,
+              eventType: ShipmentEventType.CREATED,
+              actorId: user.id,
+              organizationId,
+            },
+          });
 
-      return shipment;
-    });
+          await tx.bloodRequestEvent.create({
+            data: {
+              bloodRequestId: requestId,
+              eventType: 'SHIPMENT_CREATED',
+              actorId: user.id,
+              organizationId,
+              metadata: { shipmentId: shipment.id, shipmentReference: shipment.shipmentReference },
+            },
+          });
+
+          return shipment;
+        }),
+      { uniqueFields: ['shipmentReference'] },
+    );
 
     await this.audit.log({
       actorId: user.id,

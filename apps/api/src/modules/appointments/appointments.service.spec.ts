@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConflictException, ForbiddenException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { AppointmentStatus, OrganizationStatus, SlotStatus } from '@prisma/client';
+import { AppointmentStatus, OrganizationStatus, Prisma, SlotStatus } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { APPOINTMENT_COMPLETED_EVENT } from '../gamification/events/gamification-event.handler';
@@ -167,6 +167,30 @@ describe('AppointmentsService', () => {
         expect(prisma.$transaction).not.toHaveBeenCalled();
       },
     );
+
+    it('retries the whole transaction on a referenceNumber collision and succeeds with a fresh reference', async () => {
+      prisma.user.findUnique.mockResolvedValue(makeDonor());
+      prisma.appointmentSlot.findUnique.mockResolvedValue(makeSlot());
+      prisma.appointment.findFirst.mockResolvedValue(null);
+      const collision = new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+        code: 'P2002',
+        clientVersion: 'test',
+        meta: { target: ['referenceNumber'] },
+      });
+      prisma.$transaction
+        .mockImplementationOnce(async () => {
+          throw collision;
+        })
+        .mockImplementationOnce(async (cb: any) => cb(tx));
+
+      const result = await service.bookAppointment('donor-1', {
+        slotId: 'slot-1',
+        appointmentType: 'BLOOD_DONATION' as any,
+      });
+
+      expect(prisma.$transaction).toHaveBeenCalledTimes(2);
+      expect(result.data.id).toBe('apt-1');
+    });
   });
 
   describe('rescheduleAppointment', () => {

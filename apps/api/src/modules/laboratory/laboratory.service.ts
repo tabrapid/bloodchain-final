@@ -14,6 +14,7 @@ import {
   RoleCode,
 } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
+import { withUniqueRetry } from '../../common/utils/unique-retry.util';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { BLOOD_TEST_COMPLETED_EVENT, BloodTestCompletedPayload } from '../gamification/events/gamification-event.handler';
 
@@ -240,60 +241,64 @@ export class LaboratoryService {
       throw new BadRequestException('You already have an appointment for this slot.');
     }
 
-    const referenceNumber = `LAB-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 999999)).padStart(6, '0')}`;
+    const result = await withUniqueRetry(
+      () =>
+        this.db.$transaction(async (tx) => {
+          // Atomic conditional update: only succeeds if the slot is still
+          // AVAILABLE and under capacity at the moment Postgres acquires the row
+          // lock, closing the race window between the pre-checks above and this
+          // transaction — mirrors the same fix in appointments.service.ts, since
+          // both booking paths share the AppointmentSlot table.
+          const claim = await tx.appointmentSlot.updateMany({
+            where: { id: slotId, status: 'AVAILABLE', bookedCount: { lt: slot.capacity } },
+            data: { bookedCount: { increment: 1 } },
+          });
 
-    const result = await this.db.$transaction(async (tx) => {
-      // Atomic conditional update: only succeeds if the slot is still
-      // AVAILABLE and under capacity at the moment Postgres acquires the row
-      // lock, closing the race window between the pre-checks above and this
-      // transaction — mirrors the same fix in appointments.service.ts, since
-      // both booking paths share the AppointmentSlot table.
-      const claim = await tx.appointmentSlot.updateMany({
-        where: { id: slotId, status: 'AVAILABLE', bookedCount: { lt: slot.capacity } },
-        data: { bookedCount: { increment: 1 } },
-      });
+          if (claim.count === 0) {
+            throw new BadRequestException('Slot is fully booked.');
+          }
 
-      if (claim.count === 0) {
-        throw new BadRequestException('Slot is fully booked.');
-      }
+          const referenceNumber = `LAB-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 999999)).padStart(6, '0')}`;
 
-      const appointment = await tx.appointment.create({
-        data: {
-          referenceNumber,
-          donorId: userId,
-          organizationId: laboratoryId,
-          slotId: slotId,
-          appointmentType: AppointmentType.BLOOD_TEST,
-          status: AppointmentStatus.PENDING,
-          scheduledStart: slot.startAt,
-          scheduledEnd: slot.endAt,
-          notes,
-        },
-      });
+          const appointment = await tx.appointment.create({
+            data: {
+              referenceNumber,
+              donorId: userId,
+              organizationId: laboratoryId,
+              slotId: slotId,
+              appointmentType: AppointmentType.BLOOD_TEST,
+              status: AppointmentStatus.PENDING,
+              scheduledStart: slot.startAt,
+              scheduledEnd: slot.endAt,
+              notes,
+            },
+          });
 
-      const updatedSlot = await tx.appointmentSlot.findUniqueOrThrow({
-        where: { id: slotId },
-        select: { bookedCount: true, capacity: true },
-      });
+          const updatedSlot = await tx.appointmentSlot.findUniqueOrThrow({
+            where: { id: slotId },
+            select: { bookedCount: true, capacity: true },
+          });
 
-      if (updatedSlot.bookedCount >= updatedSlot.capacity) {
-        await tx.appointmentSlot.update({
-          where: { id: slotId },
-          data: { status: 'FULL' },
-        });
-      }
+          if (updatedSlot.bookedCount >= updatedSlot.capacity) {
+            await tx.appointmentSlot.update({
+              where: { id: slotId },
+              data: { status: 'FULL' },
+            });
+          }
 
-      await tx.appointmentHistory.create({
-        data: {
-          appointmentId: appointment.id,
-          action: 'BOOKED',
-          newStatus: AppointmentStatus.PENDING,
-          actorId: userId,
-        },
-      });
+          await tx.appointmentHistory.create({
+            data: {
+              appointmentId: appointment.id,
+              action: 'BOOKED',
+              newStatus: AppointmentStatus.PENDING,
+              actorId: userId,
+            },
+          });
 
-      return appointment;
-    });
+          return appointment;
+        }),
+      { uniqueFields: ['referenceNumber'] },
+    );
 
     await this.audit.log({
       actorId: userId,

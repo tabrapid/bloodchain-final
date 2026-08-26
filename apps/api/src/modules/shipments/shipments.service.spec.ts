@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConflictException, ForbiddenException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { OrganizationStatus, OrganizationType, RoleCode, ShipmentStatus } from '@prisma/client';
+import { OrganizationStatus, OrganizationType, Prisma, RoleCode, ShipmentStatus } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { LocationService } from './services/location.service';
@@ -831,5 +831,111 @@ describe('ShipmentsService.getShipmentTracking', () => {
 
     expect(result.eta!.note).toContain('a default average speed');
     expect(result.eta!.etaMinutes).toBe(2);
+  });
+});
+
+function uniqueConstraintError(field: string): Prisma.PrismaClientKnownRequestError {
+  return new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+    code: 'P2002',
+    clientVersion: 'test',
+    meta: { target: [field] },
+  });
+}
+
+describe('ShipmentsService reference-number collision retry', () => {
+  let service: ShipmentsService;
+  let prisma: any;
+
+  beforeEach(async () => {
+    prisma = {
+      user: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'user-1',
+          memberships: [{ organizationId: 'org-1', status: 'ACTIVE', role: { code: RoleCode.HOSPITAL_ADMIN } }],
+        }),
+        findMany: jest.fn().mockResolvedValue([]),
+      },
+      organization: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'org-1',
+          type: OrganizationType.HOSPITAL,
+          status: OrganizationStatus.ACTIVE,
+        }),
+      },
+      bloodRequest: { findUnique: jest.fn() },
+      $transaction: jest.fn(),
+    };
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        ShipmentsService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: AuditLogsService, useValue: { log: jest.fn().mockResolvedValue({}) } },
+        { provide: EventEmitter2, useValue: { emit: jest.fn() } },
+        { provide: LocationService, useValue: {} },
+        { provide: ShipmentGateway, useValue: { emitShipmentStatusChanged: jest.fn() } },
+      ],
+    }).compile();
+
+    service = module.get<ShipmentsService>(ShipmentsService);
+  });
+
+  it('retries createRequest on a requestReference collision and succeeds with a fresh reference', async () => {
+    const tx = {
+      bloodRequest: { create: jest.fn().mockResolvedValue({ id: 'req-1', requestReference: 'REQ-2026-000002' }) },
+      bloodRequestItem: { create: jest.fn().mockResolvedValue({}) },
+      bloodRequestEvent: { create: jest.fn().mockResolvedValue({}) },
+    };
+    prisma.$transaction
+      .mockImplementationOnce(async () => {
+        throw uniqueConstraintError('requestReference');
+      })
+      .mockImplementationOnce(async (cb: any) => cb(tx));
+
+    const result = await service.createRequest('org-1', 'user-1', {
+      items: [{ bloodType: 'O', rhFactor: 'POSITIVE', unitsRequested: 2 }],
+    });
+
+    expect(prisma.$transaction).toHaveBeenCalledTimes(2);
+    expect(result.id).toBe('req-1');
+  });
+
+  it('retries createShipment on a shipmentReference collision and succeeds with a fresh reference', async () => {
+    prisma.organization.findUnique.mockImplementation(async ({ where: { id } }: any) =>
+      id === 'org-1'
+        ? { id: 'org-1', type: OrganizationType.BLOOD_CENTER, status: OrganizationStatus.ACTIVE }
+        : { id: 'org-dest', name: 'Dest Hospital', address: '1 Main St', latitude: null, longitude: null },
+    );
+    prisma.user.findUnique.mockResolvedValue({
+      id: 'user-1',
+      memberships: [{ organizationId: 'org-1', status: 'ACTIVE', role: { code: RoleCode.BLOOD_CENTER_ADMIN } }],
+    });
+    prisma.bloodRequest.findUnique.mockResolvedValue({
+      id: 'req-1',
+      status: 'READY_FOR_PICKUP',
+      shipment: null,
+      fulfillingOrganizationId: 'org-1',
+      requestingOrganizationId: 'org-dest',
+      deliveryAddress: null,
+      deliveryLatitude: null,
+      deliveryLongitude: null,
+      items: [],
+    });
+    const tx = {
+      shipment: { create: jest.fn().mockResolvedValue({ id: 'shp-1', shipmentReference: 'SHP-2026-000002' }) },
+      shipmentUnit: { create: jest.fn().mockResolvedValue({}) },
+      shipmentEvent: { create: jest.fn().mockResolvedValue({}) },
+      bloodRequestEvent: { create: jest.fn().mockResolvedValue({}) },
+    };
+    prisma.$transaction
+      .mockImplementationOnce(async () => {
+        throw uniqueConstraintError('shipmentReference');
+      })
+      .mockImplementationOnce(async (cb: any) => cb(tx));
+
+    const result = await service.createShipment('org-1', 'user-1', 'req-1', {});
+
+    expect(prisma.$transaction).toHaveBeenCalledTimes(2);
+    expect(result.id).toBe('shp-1');
   });
 });

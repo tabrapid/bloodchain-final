@@ -20,6 +20,7 @@ import {
   RoleCode,
 } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
+import { withUniqueRetry } from '../../common/utils/unique-retry.util';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { EmergencyGateway } from '../../gateways/emergency.gateway';
 import {
@@ -223,29 +224,33 @@ export class EmergencyService {
       throw new BadRequestException('Units required must be between 1 and 20.');
     }
 
-    const result = await this.db.$transaction(async (tx) => {
-      const emergency = await tx.emergencyRequest.create({
-        data: {
-          emergencyReference: this.generateEmergencyReference(),
-          hospitalId: organizationId,
-          bloodType: dto.bloodType as BloodType,
-          rhFactor: dto.rhFactor as RhFactor,
-          componentType: dto.componentType ?? ComponentType.WHOLE_BLOOD,
-          unitsRequired: dto.unitsRequired,
-          urgencyLevel: dto.urgencyLevel || 'CRITICAL',
-          status: EmergencyStatus.DRAFT,
-          patientReference: dto.patientReference,
-          description: dto.description,
-          requiredBefore: dto.requiredBefore ? new Date(dto.requiredBefore) : undefined,
-          donationLocation: dto.donationLocation,
-          latitude: dto.latitude ? new Prisma.Decimal(dto.latitude) : undefined,
-          longitude: dto.longitude ? new Prisma.Decimal(dto.longitude) : undefined,
-          createdBy: user.id,
-        },
-      });
+    const result = await withUniqueRetry(
+      () =>
+        this.db.$transaction(async (tx) => {
+          const emergency = await tx.emergencyRequest.create({
+            data: {
+              emergencyReference: this.generateEmergencyReference(),
+              hospitalId: organizationId,
+              bloodType: dto.bloodType as BloodType,
+              rhFactor: dto.rhFactor as RhFactor,
+              componentType: dto.componentType ?? ComponentType.WHOLE_BLOOD,
+              unitsRequired: dto.unitsRequired,
+              urgencyLevel: dto.urgencyLevel || 'CRITICAL',
+              status: EmergencyStatus.DRAFT,
+              patientReference: dto.patientReference,
+              description: dto.description,
+              requiredBefore: dto.requiredBefore ? new Date(dto.requiredBefore) : undefined,
+              donationLocation: dto.donationLocation,
+              latitude: dto.latitude ? new Prisma.Decimal(dto.latitude) : undefined,
+              longitude: dto.longitude ? new Prisma.Decimal(dto.longitude) : undefined,
+              createdBy: user.id,
+            },
+          });
 
-      return emergency;
-    });
+          return emergency;
+        }),
+      { uniqueFields: ['emergencyReference'] },
+    );
 
     await this.audit.log({
       actorId: user.id,
@@ -935,70 +940,74 @@ export class EmergencyService {
     const componentType = dto.componentType ?? response.emergencyRequest.componentType;
     const volumeMl = dto.volumeMl ?? DEFAULT_WHOLE_BLOOD_VOLUME_ML;
 
-    const result = await this.db.$transaction(async (tx) => {
-      const donation = await tx.donation.create({
-        data: {
-          donationReference: this.generateDonationReference(),
-          donorId: response.donorId,
-          organizationId,
-          donationType: COMPONENT_TO_DONATION_TYPE[componentType],
-          status: 'COMPLETED',
-          bloodType,
-          rhFactor,
-          volumeMl,
-          collectionStartedAt: response.donationStartedAt ?? new Date(),
-          collectionCompletedAt: new Date(),
-          completedAt: new Date(),
-          completedBy: staff.id,
-        },
-      });
+    const result = await withUniqueRetry(
+      () =>
+        this.db.$transaction(async (tx) => {
+          const donation = await tx.donation.create({
+            data: {
+              donationReference: this.generateDonationReference(),
+              donorId: response.donorId,
+              organizationId,
+              donationType: COMPONENT_TO_DONATION_TYPE[componentType],
+              status: 'COMPLETED',
+              bloodType,
+              rhFactor,
+              volumeMl,
+              collectionStartedAt: response.donationStartedAt ?? new Date(),
+              collectionCompletedAt: new Date(),
+              completedAt: new Date(),
+              completedBy: staff.id,
+            },
+          });
 
-      await tx.donationEvent.create({
-        data: {
-          donationId: donation.id,
-          eventType: 'COMPLETED',
-          actorId: staff.id,
-          organizationId,
-          metadata: { source: 'EMERGENCY', emergencyResponseId: responseId, bloodType, rhFactor, componentType, volumeMl },
-        },
-      });
+          await tx.donationEvent.create({
+            data: {
+              donationId: donation.id,
+              eventType: 'COMPLETED',
+              actorId: staff.id,
+              organizationId,
+              metadata: { source: 'EMERGENCY', emergencyResponseId: responseId, bloodType, rhFactor, componentType, volumeMl },
+            },
+          });
 
-      await tx.bloodUnit.create({
-        data: {
-          unitReference: this.generateUnitReference(),
-          donationId: donation.id,
-          organizationId,
-          componentType,
-          bloodType,
-          rhFactor,
-          volumeMl,
-          status: 'COLLECTED',
-          collectedAt: new Date(),
-        },
-      });
+          await tx.bloodUnit.create({
+            data: {
+              unitReference: this.generateUnitReference(),
+              donationId: donation.id,
+              organizationId,
+              componentType,
+              bloodType,
+              rhFactor,
+              volumeMl,
+              status: 'COLLECTED',
+              collectedAt: new Date(),
+            },
+          });
 
-      const updatedResponse = await tx.emergencyResponse.update({
-        where: { id: responseId },
-        data: {
-          status: EmergencyResponseStatus.COMPLETED,
-          completedAt: new Date(),
-        },
-      });
+          const updatedResponse = await tx.emergencyResponse.update({
+            where: { id: responseId },
+            data: {
+              status: EmergencyResponseStatus.COMPLETED,
+              completedAt: new Date(),
+            },
+          });
 
-      const emergency = await tx.emergencyRequest.update({
-        where: { id: response.emergencyRequestId },
-        data: { unitsCollected: { increment: 1 } },
-      });
+          const emergency = await tx.emergencyRequest.update({
+            where: { id: response.emergencyRequestId },
+            data: { unitsCollected: { increment: 1 } },
+          });
 
-      if (emergency.unitsCollected >= emergency.unitsRequired) {
-        await tx.emergencyRequest.update({
-          where: { id: response.emergencyRequestId },
-          data: { status: EmergencyStatus.COMPLETED, closedAt: new Date() },
-        });
-      }
+          if (emergency.unitsCollected >= emergency.unitsRequired) {
+            await tx.emergencyRequest.update({
+              where: { id: response.emergencyRequestId },
+              data: { status: EmergencyStatus.COMPLETED, closedAt: new Date() },
+            });
+          }
 
-      return { response: updatedResponse, donation };
-    });
+          return { response: updatedResponse, donation };
+        }),
+      { uniqueFields: ['donationReference', 'unitReference'] },
+    );
 
     this.eventEmitter.emit(DONATION_COMPLETED_EVENT, {
       donationId: result.donation.id,

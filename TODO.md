@@ -1637,11 +1637,77 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   - Files: `apps/api/src/modules/ai-health/ai-safety.service.ts` (+
     spec).
 
-- [ ] **P2-11. Donation & lab reference numbers use unguarded `Math.random()`**
+- [x] **P2-11. Donation & lab reference numbers use unguarded `Math.random()`**
   with no uniqueness retry loop — low-probability but real collision →
   raw DB constraint 500 instead of a clean retry.
   `apps/api/src/modules/donations/donations.service.ts:44,50`,
-  `apps/api/src/modules/laboratory/laboratory.service.ts:243`.
+  `apps/api/src/modules/laboratory/laboratory.service.ts:243`. — Fixed:
+  the exact same `Math.random() * 999999` pattern generating a reference
+  number with no collision handling turned out to be duplicated in 6
+  files, not 2 — `shipments.service.ts` (request/shipment references),
+  `emergency.service.ts` (emergency/donation/unit references, the latter
+  two literally the same format string as `donations.service.ts`'s
+  generators, doubling the real collision space for those two shared
+  tables), and `appointments.service.ts` (donation-appointment
+  references), on top of the two named here. Since the underlying defect
+  — "no retry loop" — is identical in all of them and the fix is
+  mechanical, fixed all 8 live call sites rather than leaving 6 of them
+  with the same known bug (left `inventory.service.ts`'s
+  `generateUnitReference` alone — confirmed it's dead code, never called
+  anywhere, so not a live bug).
+  Added a shared `withUniqueRetry` utility
+  (`apps/api/src/common/utils/unique-retry.util.ts`) that retries an
+  operation up to 5 times specifically on a Prisma P2002 unique-constraint
+  violation naming one of a caller-declared set of fields, rethrowing
+  immediately for any other error (including a P2002 on an unrelated
+  field, so a genuine business-rule conflict inside the same transaction
+  fails fast instead of retrying pointlessly). Every call site wraps its
+  whole `$transaction(...)` call — not just the inner `create` — since
+  Prisma transactions roll back atomically on failure, so retrying the
+  entire closure from scratch is always safe: it recomputes the reference
+  number fresh (two sites, `appointments.service.ts` and
+  `laboratory.service.ts`, generated the reference number *before* the
+  transaction, which would have handed every retry the exact same
+  doomed value — moved the generation inside the retried closure) and
+  never produces duplicate side effects, since the failed attempt's
+  writes were fully undone by Postgres.
+  Verified: `unique-retry.util.spec.ts` (7 tests) exhaustively covers the
+  utility itself — succeeds on the first try, retries and succeeds on a
+  tracked-field collision (including when Postgres reports the violated
+  column as a raw constraint-name string rather than an array, which
+  happens on some drivers), does not retry an untracked field or a
+  non-P2002 error, gives up after `maxAttempts`. Then, per service,
+  proved the *wiring* is correct with a test that makes the mocked
+  `$transaction` throw a real `Prisma.PrismaClientKnownRequestError`
+  (P2002) once and succeed on the second call, asserting the operation
+  transparently returns the successful result: 2 new tests in
+  `donations.service.spec.ts` (donationReference, unitReference), 1 each
+  in `laboratory.service.spec.ts`, `appointments.service.spec.ts`,
+  `emergency.service.spec.ts` (covering both `completeEmergency`'s
+  donationReference/unitReference and `createEmergency`'s
+  emergencyReference), and 2 in `shipments.service.spec.ts`
+  (requestReference, shipmentReference) — 9 new tests total, full suite
+  375/375 passing (up from 366), clean `tsc --noEmit`, 0 new lint errors
+  (20 new warnings, all `@typescript-eslint/no-explicit-any` on new
+  `prisma: any`/`tx: any` test-double variables, matching every existing
+  mock in these same spec files). A real forced collision can't be
+  demonstrated live (it's a 1-in-999999 event by construction — the only
+  way to make one happen on demand is to control the RNG, which is
+  exactly what the mocked tests above do; that's the legitimate way to
+  verify collision-handling logic, not a shortcut around live
+  verification). Instead live-verified the refactor didn't break the
+  ordinary (zero-collision) path it wraps: booked a real donation
+  appointment through the real `POST /appointments` endpoint against the
+  real Postgres + running API and confirmed it succeeded on the first
+  `$transaction` attempt with a real `DON-2026-858417` reference, exactly
+  as before the refactor. Cleaned up the test appointment, its slot
+  booking count, and its audit log row afterward.
+  - Files: `apps/api/src/common/utils/unique-retry.util.ts` (new, + spec),
+    `apps/api/src/modules/donations/donations.service.ts` (+ spec),
+    `apps/api/src/modules/laboratory/laboratory.service.ts` (+ spec),
+    `apps/api/src/modules/appointments/appointments.service.ts` (+ spec),
+    `apps/api/src/modules/emergency/emergency.service.ts` (+ spec),
+    `apps/api/src/modules/shipments/shipments.service.ts` (+ spec).
 
 - [ ] **P2-12. Cancelled/no-show lab appointments never reset slot status**
   back to `AVAILABLE` (only `bookedCount` is decremented) — unlike the
@@ -1903,6 +1969,12 @@ via a normalization pass and replaced the fixed list with a
 suffix/generic-noun pattern that covers real condition names without
 enumerating them; live-verified through the real controller call chain
 that both bypasses are now caught).~~ ✅
-Next up: **P2-11** (donation & lab reference numbers use unguarded
-`Math.random()` with no uniqueness retry loop), then the rest of P2,
-folding in P3-1 tests as each area is touched.
+~~**P2-11** (the unguarded-`Math.random()`-reference-number bug named for
+2 files turned out to be duplicated in 6; added a shared
+`withUniqueRetry` utility and applied it to all 8 live call sites —
+donations, laboratory, shipments, emergency, appointments — rather than
+leaving the same known bug in 6 of 8 places; live-verified the
+zero-collision happy path still works unchanged).~~ ✅
+Next up: **P2-12** (cancelled/no-show lab appointments never reset slot
+status back to `AVAILABLE`), then the rest of P2, folding in P3-1 tests
+as each area is touched.

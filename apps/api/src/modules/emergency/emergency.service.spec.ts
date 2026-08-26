@@ -7,6 +7,7 @@ import {
   EmergencyStatus,
   OrganizationStatus,
   OrganizationType,
+  Prisma,
   RoleCode,
 } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
@@ -142,6 +143,27 @@ describe('EmergencyService.completeEmergency', () => {
     );
     expect(tx.bloodUnit.create).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ componentType: 'RED_CELLS' }) }),
+    );
+  });
+
+  it('retries the whole transaction on a donationReference/unitReference collision and succeeds', async () => {
+    const collision = new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+      code: 'P2002',
+      clientVersion: 'test',
+      meta: { target: ['unitReference'] },
+    });
+    prisma.$transaction
+      .mockImplementationOnce(async () => {
+        throw collision;
+      })
+      .mockImplementationOnce(async (cb: any) => cb(tx));
+
+    await service.completeEmergency('org-1', 'staff-1', 'resp-1', {});
+
+    expect(prisma.$transaction).toHaveBeenCalledTimes(2);
+    expect(eventEmitter.emit).toHaveBeenCalledWith(
+      DONATION_COMPLETED_EVENT,
+      expect.objectContaining({ donationId: 'donation-1' }),
     );
   });
 });
@@ -315,6 +337,47 @@ describe('EmergencyService.createEmergency', () => {
     expect(prisma.emergencyRequest.create).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ componentType: 'PLATELETS' }) }),
     );
+  });
+
+  it('retries the whole transaction on an emergencyReference collision and succeeds with a fresh reference', async () => {
+    const tx: any = {
+      emergencyRequest: { create: jest.fn().mockResolvedValue({ id: 'req-1', emergencyReference: 'SOS-2026-000002' }) },
+    };
+    const collision = new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+      code: 'P2002',
+      clientVersion: 'test',
+      meta: { target: ['emergencyReference'] },
+    });
+    const prisma: any = {
+      $transaction: jest
+        .fn()
+        .mockImplementationOnce(async () => {
+          throw collision;
+        })
+        .mockImplementationOnce(async (cb: any) => cb(tx)),
+    };
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        EmergencyService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: AuditLogsService, useValue: { log: jest.fn().mockResolvedValue({}) } },
+        { provide: EventEmitter2, useValue: { emit: jest.fn() } },
+        { provide: EmergencyGateway, useValue: {} },
+        { provide: DonationEligibilityService, useValue: {} },
+        { provide: PlatformSettingsService, useValue: platformSettings },
+      ],
+    }).compile();
+    const svc = module.get<EmergencyService>(EmergencyService);
+    jest.spyOn(svc, 'checkHospitalAccess').mockResolvedValue({ user: { id: 'staff-1' } } as any);
+
+    const result = await svc.createEmergency('org-1', 'staff-1', {
+      bloodType: 'O',
+      rhFactor: 'NEGATIVE',
+      unitsRequired: 2,
+    });
+
+    expect(prisma.$transaction).toHaveBeenCalledTimes(2);
+    expect(result.id).toBe('req-1');
   });
 });
 

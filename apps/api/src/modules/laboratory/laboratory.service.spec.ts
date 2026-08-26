@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { LaboratoryService } from './laboratory.service';
@@ -124,5 +125,24 @@ describe('LaboratoryService.bookLaboratoryAppointment', () => {
     ).rejects.toThrow(BadRequestException);
 
     expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('retries the whole transaction on a referenceNumber collision and succeeds with a fresh reference', async () => {
+    prisma.appointmentSlot.findUnique.mockResolvedValue(makeSlot());
+    const collision = new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+      code: 'P2002',
+      clientVersion: 'test',
+      meta: { target: ['referenceNumber'] },
+    });
+    prisma.$transaction
+      .mockImplementationOnce(async () => {
+        throw collision;
+      })
+      .mockImplementationOnce(async (cb: any) => cb(tx));
+
+    const result = await service.bookLaboratoryAppointment('donor-1', 'lab-1', 'test-1', 'slot-1');
+
+    expect(prisma.$transaction).toHaveBeenCalledTimes(2);
+    expect(result.id).toBe('apt-1');
   });
 });

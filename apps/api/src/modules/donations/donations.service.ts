@@ -18,6 +18,7 @@ import {
   RoleCode,
 } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
+import { withUniqueRetry } from '../../common/utils/unique-retry.util';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import {
   CheckInDonationDto,
@@ -111,56 +112,60 @@ export class DonationsService {
       throw new ConflictException('A donation record already exists for this appointment.');
     }
 
-    const result = await this.db.$transaction(async (tx) => {
-      const donation = await tx.donation.create({
-        data: {
-          donationReference: this.generateDonationReference(),
-          donorId: appointment.donor.id,
-          organizationId,
-          appointmentId,
-          donationType: DonationType.WHOLE_BLOOD,
-          status: DonationStatus.CHECKED_IN,
-          bloodType: appointment.donor.donorProfile?.bloodType ?? undefined,
-          rhFactor: appointment.donor.donorProfile?.rhFactor ?? undefined,
-        },
-        include: {
-          organization: {
-            select: {
-              id: true,
-              name: true,
-              type: true,
-              address: true,
+    const result = await withUniqueRetry(
+      () =>
+        this.db.$transaction(async (tx) => {
+          const donation = await tx.donation.create({
+            data: {
+              donationReference: this.generateDonationReference(),
+              donorId: appointment.donor.id,
+              organizationId,
+              appointmentId,
+              donationType: DonationType.WHOLE_BLOOD,
+              status: DonationStatus.CHECKED_IN,
+              bloodType: appointment.donor.donorProfile?.bloodType ?? undefined,
+              rhFactor: appointment.donor.donorProfile?.rhFactor ?? undefined,
             },
-          },
-        },
-      });
+            include: {
+              organization: {
+                select: {
+                  id: true,
+                  name: true,
+                  type: true,
+                  address: true,
+                },
+              },
+            },
+          });
 
-      await tx.donationEvent.create({
-        data: {
-          donationId: donation.id,
-          eventType: DonationEventType.CREATED,
-          actorId: staffId,
-          organizationId,
-          metadata: { appointmentId },
-        },
-      });
+          await tx.donationEvent.create({
+            data: {
+              donationId: donation.id,
+              eventType: DonationEventType.CREATED,
+              actorId: staffId,
+              organizationId,
+              metadata: { appointmentId },
+            },
+          });
 
-      await tx.donationEvent.create({
-        data: {
-          donationId: donation.id,
-          eventType: DonationEventType.CHECKED_IN,
-          actorId: staffId,
-          organizationId,
-        },
-      });
+          await tx.donationEvent.create({
+            data: {
+              donationId: donation.id,
+              eventType: DonationEventType.CHECKED_IN,
+              actorId: staffId,
+              organizationId,
+            },
+          });
 
-      await tx.appointment.update({
-        where: { id: appointmentId },
-        data: { status: AppointmentStatus.CONFIRMED },
-      });
+          await tx.appointment.update({
+            where: { id: appointmentId },
+            data: { status: AppointmentStatus.CONFIRMED },
+          });
 
-      return donation;
-    });
+          return donation;
+        }),
+      { uniqueFields: ['donationReference'] },
+    );
 
     await this.audit.log({
       actorId: staffId,
@@ -397,77 +402,81 @@ export class DonationsService {
       ? new Date(dto.nextDonationDate)
       : this.donationEligibility.computeDefaultNextEligibleDate(now);
 
-    const result = await this.db.$transaction(async (tx) => {
-      const bloodTypeEnum = dto.bloodType as BloodType | undefined;
-      const rhFactorEnum = dto.rhFactor as RhFactor | undefined;
+    const result = await withUniqueRetry(
+      () =>
+        this.db.$transaction(async (tx) => {
+          const bloodTypeEnum = dto.bloodType as BloodType | undefined;
+          const rhFactorEnum = dto.rhFactor as RhFactor | undefined;
 
-      const updated = await tx.donation.update({
-        where: { id: donationId },
-        data: {
-          status: DonationStatus.COMPLETED,
-          volumeMl: dto.volumeMl,
-          collectionCompletedAt: completedAt,
-          bloodType: bloodTypeEnum,
-          rhFactor: rhFactorEnum,
-          staffNotes: dto.notes,
-          nextDonationDate,
-          completedAt: now,
-          completedBy: staffId,
-        },
-      });
-
-      if (donation.appointmentId) {
-        await tx.appointment.update({
-          where: { id: donation.appointmentId },
-          data: { status: AppointmentStatus.COMPLETED },
-        });
-      }
-
-      await tx.donationEvent.create({
-        data: {
-          donationId,
-          eventType: DonationEventType.COMPLETED,
-          actorId: staffId,
-          organizationId,
-          metadata: {
-            volumeMl: dto.volumeMl,
-            bloodType: dto.bloodType,
-            rhFactor: dto.rhFactor,
-          },
-        },
-      });
-
-      if (bloodTypeEnum && rhFactorEnum) {
-        await tx.bloodUnit.create({
-          data: {
-            unitReference: this.generateUnitReference(),
-            donationId,
-            organizationId,
-            bloodType: bloodTypeEnum,
-            rhFactor: rhFactorEnum,
-            volumeMl: dto.volumeMl,
-            status: 'COLLECTED',
-            collectedAt: completedAt,
-          },
-        });
-
-        await tx.donationEvent.create({
-          data: {
-            donationId,
-            eventType: DonationEventType.VERIFIED,
-            actorId: staffId,
-            organizationId,
-            metadata: {
+          const updated = await tx.donation.update({
+            where: { id: donationId },
+            data: {
+              status: DonationStatus.COMPLETED,
+              volumeMl: dto.volumeMl,
+              collectionCompletedAt: completedAt,
               bloodType: bloodTypeEnum,
               rhFactor: rhFactorEnum,
-              volumeMl: dto.volumeMl,
+              staffNotes: dto.notes,
+              nextDonationDate,
+              completedAt: now,
+              completedBy: staffId,
             },
-          },
-        });
-      }
+          });
 
-      return updated;
-    });
+          if (donation.appointmentId) {
+            await tx.appointment.update({
+              where: { id: donation.appointmentId },
+              data: { status: AppointmentStatus.COMPLETED },
+            });
+          }
+
+          await tx.donationEvent.create({
+            data: {
+              donationId,
+              eventType: DonationEventType.COMPLETED,
+              actorId: staffId,
+              organizationId,
+              metadata: {
+                volumeMl: dto.volumeMl,
+                bloodType: dto.bloodType,
+                rhFactor: dto.rhFactor,
+              },
+            },
+          });
+
+          if (bloodTypeEnum && rhFactorEnum) {
+            await tx.bloodUnit.create({
+              data: {
+                unitReference: this.generateUnitReference(),
+                donationId,
+                organizationId,
+                bloodType: bloodTypeEnum,
+                rhFactor: rhFactorEnum,
+                volumeMl: dto.volumeMl,
+                status: 'COLLECTED',
+                collectedAt: completedAt,
+              },
+            });
+
+            await tx.donationEvent.create({
+              data: {
+                donationId,
+                eventType: DonationEventType.VERIFIED,
+                actorId: staffId,
+                organizationId,
+                metadata: {
+                  bloodType: bloodTypeEnum,
+                  rhFactor: rhFactorEnum,
+                  volumeMl: dto.volumeMl,
+                },
+              },
+            });
+          }
+
+          return updated;
+        }),
+      { uniqueFields: ['unitReference'] },
+    );
 
     await this.audit.log({
       actorId: staffId,
