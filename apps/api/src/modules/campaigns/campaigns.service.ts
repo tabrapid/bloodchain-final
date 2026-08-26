@@ -262,7 +262,7 @@ export class CampaignsService {
       items: items.map((p) => ({
         ...p.campaign,
         joinedAt: p.joinedAt,
-        status: p.status,
+        participantStatus: p.status,
       })),
       total,
       page,

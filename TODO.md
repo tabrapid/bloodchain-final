@@ -2629,7 +2629,7 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   CRUD ever get built for real.
   - File: `apps/api/src/modules/admin/dto/admin.dto.ts`.
 
-- [ ] **P3-8. `GET /campaigns/my/campaigns` silently overwrites the
+- [x] **P3-8. `GET /campaigns/my/campaigns` silently overwrites the
   campaign's own `status` with the caller's participation status
   (found live-verifying P3-1's campaigns coverage).**
   `CampaignsService.getUserCampaigns` builds each response item as
@@ -2648,9 +2648,41 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   looks like an unintentional field-name collision rather than a
   deliberate design choice. Likely fix: rename the participant's own
   status onto a distinct key (e.g. `participantStatus: p.status`) and
-  leave the spread `status` as the campaign's real status.
-  - File: `apps/api/src/modules/campaigns/campaigns.service.ts`
-    (`getUserCampaigns`).
+  leave the spread `status` as the campaign's real status. — Fixed:
+  applied the suggested fix exactly — `getUserCampaigns` now returns
+  `participantStatus: p.status` instead of `status: p.status`, so the
+  spread `...p.campaign` real lifecycle status is never overwritten.
+  Checked for consumers before changing the shape: the mobile client's
+  `getMyCampaigns()`/`Campaign` type (`apps/mobile/src/api/campaigns.ts`)
+  already declares `status` as the campaign lifecycle enum (not the
+  participant status), confirming the backend response shape was
+  inconsistent with its own client's type contract — and no screen in
+  the mobile app actually calls `getMyCampaigns` yet, so there was zero
+  risk of breaking an existing consumer. Added `participantStatus?:
+  string` and `joinedAt?: string` (the latter was already present in
+  the real response but missing from the type) to the mobile `Campaign`
+  interface. Updated the existing unit test
+  (`CampaignsService.getUserCampaigns`) into an explicit P3-8 regression
+  test: a campaign with a real `ACTIVE` status and a participant with
+  `JOINED` status now asserts both fields land correctly and
+  independently, so this exact bug (real status silently clobbered)
+  would fail the test if reintroduced. Full backend suite: 621/621
+  still passing, `tsc --noEmit` clean (backend), lint 0 errors. Mobile
+  `tsc --noEmit` still shows its pre-existing, unrelated NativeWind
+  `className` typing errors in `education/index.tsx` — confirmed via
+  `git stash` that these predate this change and `campaigns.ts` itself
+  has zero errors. Live-verified end-to-end against the real dev DB:
+  created a real campaign, activated it to `ACTIVE`, had a real donor
+  join it, and confirmed `GET /campaigns/my/campaigns` now returns
+  `"status": "ACTIVE"` (the real campaign status) alongside
+  `"participantStatus": "JOINED"` — reproducing the exact live steps
+  that originally surfaced the bug in P3-1's fourth installment, now
+  fixed. Deleted the test-generated campaign and participant rows
+  afterward.
+  - Files: `apps/api/src/modules/campaigns/campaigns.service.ts`
+    (`getUserCampaigns`), `apps/api/src/modules/campaigns/campaigns.service.spec.ts`
+    (updated regression test), `apps/mobile/src/api/campaigns.ts`
+    (`Campaign` type gains `participantStatus`/`joinedAt`).
 
 ---
 
@@ -2934,6 +2966,11 @@ check even runs, confirming genuine defense-in-depth. All GETs, so no
 cleanup needed. **P3-1 is now fully closed — all 32 backend modules
 that had zero coverage at the start of this item now have real spec
 files**, 621/621 passing overall, up from 424 when P3-1 began).~~ ✅
+~~**P3-8** (`getUserCampaigns` was clobbering a campaign's real status
+with the caller's participation status — renamed the participant field
+to `participantStatus`, updated the mobile `Campaign` type and the unit
+test into an explicit regression test, live-verified the exact repro
+from P3-1 now returns both fields correctly, cleaned up test
+data).~~ ✅
 Next up: **P3-2** (no frontend tests at all) or **P3-3** (no
-Docker/CI), plus newly-logged **P3-8** (campaigns status-clobbering
-bug) whenever picked up.
+Docker/CI).

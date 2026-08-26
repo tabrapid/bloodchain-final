@@ -21,6 +21,8 @@ export interface Campaign {
     name: string;
   };
   participantCount?: number;
+  joinedAt?: string;
+  participantStatus?: string;
 }
 
 export interface CampaignListResponse {

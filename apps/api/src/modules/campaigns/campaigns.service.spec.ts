@@ -184,16 +184,26 @@ describe('CampaignsService', () => {
   });
 
   describe('getUserCampaigns', () => {
-    it('flattens joinedAt/status from the participant row onto the campaign', async () => {
+    it('flattens joinedAt onto the campaign and exposes the participant status separately, without clobbering the campaign\'s own status (P3-8 regression)', async () => {
       prisma.campaignParticipant.findMany.mockResolvedValue([
-        { campaign: { id: 'c-1', title: 'Drive' }, joinedAt: new Date('2026-01-01'), status: 'JOINED' },
+        {
+          campaign: { id: 'c-1', title: 'Drive', status: CampaignStatus.ACTIVE },
+          joinedAt: new Date('2026-01-01'),
+          status: 'JOINED',
+        },
       ]);
       prisma.campaignParticipant.count.mockResolvedValue(1);
 
       const result = await service.getUserCampaigns('user-1');
 
       expect(result.items[0]).toEqual(
-        expect.objectContaining({ id: 'c-1', title: 'Drive', status: 'JOINED', joinedAt: new Date('2026-01-01') }),
+        expect.objectContaining({
+          id: 'c-1',
+          title: 'Drive',
+          status: CampaignStatus.ACTIVE,
+          participantStatus: 'JOINED',
+          joinedAt: new Date('2026-01-01'),
+        }),
       );
     });
   });
