@@ -96,6 +96,29 @@ pnpm lint
 pnpm test
 ```
 
+### Docker (API + PostgreSQL)
+
+`docker-compose.yml` at the repo root runs the API and its PostgreSQL
+database as containers — no local Node/pnpm/Postgres install required.
+
+```bash
+cp .env.example .env   # edit JWT_ACCESS_SECRET / JWT_REFRESH_SECRET at minimum
+docker compose up --build
+```
+
+This builds `apps/api/Dockerfile` (a multi-stage production build —
+`pnpm install` → `prisma generate` → `nest build`, running as a
+non-root user in the final image), starts PostgreSQL 16, waits for it
+to report healthy, then runs `prisma migrate deploy` before starting
+the API. The API is reachable at `http://localhost:3001` (override with
+`API_PORT`); PostgreSQL is reachable at `localhost:5432` (override with
+`POSTGRES_PORT`) if you want to connect to it directly. Data persists
+in the `postgres_data` named volume across restarts; `docker compose
+down -v` removes it.
+
+The 3 Next.js web apps and the Expo mobile app are not containerized —
+they're run locally via `pnpm dev:*` as shown above.
+
 ## Phase 2: Authentication, Authorization, RBAC
 
 The platform now includes a complete authentication and authorization system:

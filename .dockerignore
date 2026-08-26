@@ -1,0 +1,14 @@
+**/node_modules
+**/dist
+**/.next
+**/.turbo
+**/coverage
+**/.expo
+**/*.tsbuildinfo
+.git
+.gitignore
+*.md
+!README.md
+.env
+.env.*
+!.env.example

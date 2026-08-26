@@ -2674,9 +2674,91 @@ These make the product unusable or unsafe for real users. Fix first, in order.
     `packages/ui/src/components/feedback/EmptyState.spec.tsx` (new),
     `packages/ui/src/components/feedback/ErrorState.spec.tsx` (new).
 
-- [ ] **P3-3. No Docker / docker-compose, no CI pipeline**
+- [x] **P3-3. No Docker / docker-compose, no CI pipeline**
   (`.github/workflows`), despite `IMPLEMENTATION_SUMMARY.md` and
-  `docs/roadmap.md` describing the platform as "production-ready."
+  `docs/roadmap.md` describing the platform as "production-ready." —
+  Fixed (Docker half only; CI pipeline — `.github/workflows` — is still
+  outstanding and intentionally out of scope for this installment):
+  Added a real multi-stage production `Dockerfile` for `apps/api`
+  (`node:22-slim` base — chosen over `alpine` specifically because the
+  API's one native dependency, `argon2`, and Prisma's query engine both
+  have better-tested glibc support than musl, and using the same base
+  image for both the build and runtime stages avoids any ABI mismatch
+  risk for that native module) with three stages: `deps` (installs only
+  `@donor/api` and its workspace-linked dependencies via `pnpm install
+  --filter=@donor/api...`, so the image doesn't need to resolve or
+  build the 3 web apps or mobile), `build` (`prisma generate` then
+  `nest build`), and `runtime` (copies only the compiled `dist/`,
+  `node_modules`, the Prisma schema/migrations, and `package.json`;
+  runs as a non-root `nestjs` user). Added
+  `apps/api/docker-entrypoint.sh`, which runs `prisma migrate deploy`
+  before starting the compiled server — the container always launches
+  against a fully-migrated schema, the same as this session's own
+  live-verification routine has done manually via `service postgresql
+  start` + migrations every single time. Added a root `docker-compose.yml`
+  with a `postgres:16-alpine` service (healthchecked via `pg_isready`,
+  persisted to a named volume) and the `api` service (depends on
+  postgres's healthcheck, healthchecked itself via a real `GET
+  /api/v1/health` call, environment variables sourced from a root
+  `.env` with the same shape as `.env.example` plus sane defaults via
+  `${VAR:-default}`, and hard-failing with a clear message if
+  `JWT_ACCESS_SECRET`/`JWT_REFRESH_SECRET` are left unset via `:?`).
+  Deliberately did not add a `redis` service despite `REDIS_URL` being
+  present in `.env.example` and `env.validation.ts` — grepped
+  `apps/api/src` and confirmed nothing in the codebase actually
+  connects to Redis (it's `.optional()` in validation and otherwise
+  unused), so containerizing an unused service would be pure ceremony;
+  noting this here rather than silently adding infrastructure the app
+  doesn't consume. Added a `.dockerignore` and a "Docker (API +
+  PostgreSQL)" section to `README.md` documenting `cp .env.example .env`
+  + `docker compose up --build`. Deliberately scoped this installment
+  to the API + database only, not the 3 Next.js apps or the mobile app:
+  those are typically deployed via a static/edge host or compiled to
+  native binaries rather than run as long-lived containers, so the
+  backend + its stateful database is the part of "production-ready"
+  that Docker infrastructure actually serves — documented this scoping
+  decision in the new README section rather than leaving it unstated.
+  **Verification is honestly partial and the reason is worth stating
+  plainly**: before touching Docker at all, first confirmed the exact
+  command the container runs — `nest build` then `node dist/src/main.js`
+  — actually works, since this session had only ever run the API via
+  `nest start --watch` (a dev-mode ts-node-style transform), never via
+  its real compiled production entrypoint; built it, ran the compiled
+  output directly against the real dev Postgres, and confirmed it
+  booted with production-format (JSON/pino) logging and `GET
+  /api/v1/health` responded correctly — this is the same code path the
+  container's `ENTRYPOINT` runs, so it substantially de-risks the
+  Dockerfile even without a full container run. Also confirmed
+  `apps/api/src` never actually imports any `@donor/*` workspace
+  package despite declaring several as dependencies, so the "these
+  packages export raw `.ts` via `package.json`'s `exports` field"
+  question that would otherwise threaten a `node dist/...` runtime
+  never actually arises for this app. However, actually running `docker
+  compose up --build` in this sandboxed session hit a hard environment
+  limitation: every Docker Hub image pull (`node:22-slim`,
+  `postgres:16-alpine`, even the `docker/dockerfile:1` BuildKit syntax
+  frontend) failed with a `403 Forbidden` from
+  `production.cloudfront.docker.com`. Checked the session's egress-proxy
+  status endpoint before assuming this was fixable: it's a `connect_rejected`
+  / policy-denial entry, not a TLS or config problem — a blanket block
+  on this Docker Hub CDN host for this session, not specific to any one
+  image. Per that proxy's own documented instructions ("do not retry or
+  route around it — report the blocked host"), did not attempt a mirror,
+  alternate registry, or any other workaround. Still validated what was
+  checkable without a pull: `docker compose config` renders the compose
+  file correctly (variable interpolation, the `:?`-required JWT secrets,
+  healthchecks, port mappings, and the named volume all resolved as
+  intended), and `docker build` with the legacy (non-BuildKit) builder
+  parsed the full 35-step `Dockerfile` with zero syntax errors before
+  failing at the same blocked base-image pull. **This installment should
+  be treated as configuration-complete but not container-run-verified**
+  — the next person with unrestricted registry access should run `cp
+  .env.example .env` (setting real JWT secrets) then `docker compose up
+  --build` and confirm the API becomes healthy and reachable before
+  trusting this in a real deployment.
+  - Files: `apps/api/Dockerfile` (new), `apps/api/docker-entrypoint.sh`
+    (new), `docker-compose.yml` (new), `.dockerignore` (new),
+    `README.md` (new "Docker" section).
 
 - [ ] **P3-4. `.env.example` gaps**: `AI_BASE_URL`/`AI_ENABLED`/
   `AI_MAX_TOKENS`/`AI_MODEL`/`AI_TIMEOUT_MS` are read by code but
@@ -3064,5 +3146,21 @@ unrelated and unaffected); live-verified by building a real consumer
 app (`hospital-web`) end-to-end. Still outstanding: the 3 Next.js apps'
 own pages, the rest of `packages/ui`'s components, and the mobile/Expo
 app's own test setup).~~ ✅ (partial)
-Next up: the remainder of **P3-2** (Next.js app pages, more `packages/ui`
-components, mobile/Expo test setup) or **P3-3** (no Docker/CI).
+~~**P3-3 first installment** (Docker half only — a real multi-stage
+`apps/api/Dockerfile` + root `docker-compose.yml` (API + PostgreSQL,
+healthchecked, migrations run on boot) + `.dockerignore` + README docs.
+De-risked by first confirming the exact production entrypoint (`nest
+build` → `node dist/src/main.js`) actually works — this session had
+only ever run the API in dev-watch mode before. Verification is
+honestly partial: this sandboxed session's Docker Hub pulls are
+blocked by a confirmed egress-policy 403 (not a config issue, and per
+the proxy's own instructions not something to route around), so
+`docker compose up --build` could not be run end-to-end here — `docker
+compose config` and a Dockerfile syntax parse both validated cleanly,
+but someone with real registry access should run the actual build
+before trusting this in a deployment. CI pipeline
+(`.github/workflows`) is a separate, still-outstanding half of this
+item).~~ ✅ (partial)
+Next up: **P3-3**'s CI-pipeline half (`.github/workflows`), or the
+remainder of **P3-2** (Next.js app pages, more `packages/ui`
+components, mobile/Expo test setup).
