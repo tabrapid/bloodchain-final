@@ -27,6 +27,8 @@ import { ShipmentGateway } from '../../gateways/shipment.gateway';
 import { assertOrganizationActive } from '../../common/utils/organization-status.util';
 
 const SHIPMENT_EVENT = 'shipment.event';
+const DEFAULT_ETA_SPEED_KMH = 40;
+const RECENT_SPEED_SAMPLE_SIZE = 5;
 
 type OrganizationWithType = Organization & { __typename?: string };
 
@@ -1791,7 +1793,7 @@ export class ShipmentsService {
           select: { id: true, displayName: true, phone: true },
         },
         units: {
-          select: { id: true },
+          select: { id: true, bloodUnit: { select: { bloodType: true, rhFactor: true } } },
         },
       },
     });
@@ -1836,12 +1838,31 @@ export class ShipmentsService {
         Number(shipment.destinationLatitude),
         Number(shipment.destinationLongitude),
       );
-      const etaMinutes = Math.round((distance / 40) * 60);
+
+      // Prefer this courier's own recent, real GPS speed over a flat assumed
+      // constant. Falls back to DEFAULT_ETA_SPEED_KMH when there isn't
+      // enough recent speed data yet (e.g. right after pickup).
+      const recentSpeeds = await this.db.shipmentLocation.findMany({
+        where: { shipmentId, speed: { not: null } },
+        orderBy: { recordedAt: 'desc' },
+        take: RECENT_SPEED_SAMPLE_SIZE,
+        select: { speed: true },
+      });
+      const usableSpeeds = recentSpeeds.map((l) => Number(l.speed)).filter((s) => s > 0);
+      const avgSpeedKmh =
+        usableSpeeds.length > 0
+          ? usableSpeeds.reduce((sum, s) => sum + s, 0) / usableSpeeds.length
+          : DEFAULT_ETA_SPEED_KMH;
+
+      const etaMinutes = Math.round((distance / avgSpeedKmh) * 60);
       eta = {
         distanceKm: Math.round(distance * 10) / 10,
         etaMinutes,
         calculatedAt: new Date().toISOString(),
-        note: 'Estimated based on straight-line distance and average speed. Not a guaranteed delivery time.',
+        note:
+          usableSpeeds.length > 0
+            ? "Estimated based on straight-line distance and the courier's own recent average speed. Not a guaranteed delivery time."
+            : 'Estimated based on straight-line distance and a default average speed. Not a guaranteed delivery time.',
       };
     }
 
@@ -1850,7 +1871,7 @@ export class ShipmentsService {
       reference: shipment.shipmentReference,
       status: shipment.status,
       priority: shipment.bloodRequest.priority,
-      bloodGroup: 'Available after delivery confirmation',
+      bloodGroup: this.summarizeUnitBloodGroups(shipment.units),
       units: shipment.units?.length || 0,
       source: {
         id: shipment.sourceOrganization.id,
@@ -2304,6 +2325,28 @@ export class ShipmentsService {
         } : null,
       },
     };
+  }
+
+  /** Summarizes the real blood types actually loaded on a shipment, e.g. "2 O+, 1 A-". */
+  private summarizeUnitBloodGroups(units: Array<{ bloodUnit: { bloodType: string; rhFactor: string } | null }>): string {
+    if (!units || units.length === 0) {
+      return 'No units assigned yet';
+    }
+
+    const counts = new Map<string, number>();
+    for (const unit of units) {
+      if (!unit.bloodUnit) continue;
+      const key = `${unit.bloodUnit.bloodType}${unit.bloodUnit.rhFactor === 'POSITIVE' ? '+' : '-'}`;
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+
+    if (counts.size === 0) {
+      return 'No units assigned yet';
+    }
+
+    return Array.from(counts.entries())
+      .map(([bloodGroup, count]) => `${count} ${bloodGroup}`)
+      .join(', ');
   }
 
   private calculateHaversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {

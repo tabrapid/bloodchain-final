@@ -104,7 +104,9 @@ export default function CourierActive() {
             longitude: position.coords.longitude,
             accuracy: position.coords.accuracy ?? undefined,
             heading: position.coords.heading ?? undefined,
-            speed: position.coords.speed ?? undefined,
+            // expo-location reports speed in meters/second; the backend
+            // (ETA averaging, speed sanity checks) expects km/h.
+            speed: position.coords.speed != null ? position.coords.speed * 3.6 : undefined,
           }).catch(() => {
             // Best-effort: a single missed ping shouldn't interrupt the delivery.
           });

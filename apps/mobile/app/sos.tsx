@@ -87,7 +87,8 @@ export default function SosScreen() {
             longitude: position.coords.longitude,
             accuracy: position.coords.accuracy ?? undefined,
             heading: position.coords.heading ?? undefined,
-            speed: position.coords.speed ?? undefined,
+            // expo-location reports speed in meters/second; stored server-side as km/h.
+            speed: position.coords.speed != null ? position.coords.speed * 3.6 : undefined,
           }).catch(() => {
             // Best-effort: a single missed location update shouldn't interrupt the journey.
           });

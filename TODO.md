@@ -1446,11 +1446,62 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   - Files: `apps/api/src/modules/notifications/services/notification-router.service.ts` (+ new spec),
     `apps/api/src/modules/shipments/shipments.service.ts` (+ spec).
 
-- [ ] **P2-8. ETA is a hardcoded-speed straight-line estimate** (40km/h
+- [x] **P2-8. ETA is a hardcoded-speed straight-line estimate** (40km/h
   constant, no routing/traffic) and `getShipmentTracking` returns a
   **literal hardcoded string** `'Available after delivery confirmation'`
-  as the blood group regardless of actual contents.
-  `apps/api/src/modules/shipments/shipments.service.ts:1670-1692`.
+  as the blood group regardless of actual contents. — Fixed: confirmed
+  both live before fixing — a real in-transit shipment's tracking
+  response always showed `bloodGroup: 'Available after delivery
+  confirmation'` no matter what units it actually carried, and its ETA
+  used a fixed 40km/h regardless of how fast the courier was actually
+  moving. Real turn-by-turn routing (traffic, road network) is out of
+  reach in this sandbox — no external routing API/key is configured —
+  so rather than fake it, made the existing straight-line estimate
+  genuinely data-driven: `ShipmentLocation.speed` (GPS-reported speed)
+  was already being captured on every location ping but never used for
+  anything. `getShipmentTracking` now averages the courier's last 5
+  non-null, positive recent speed readings for this shipment and uses
+  that average for the ETA instead of the flat constant, falling back to
+  the 40km/h default only when there's no usable recent speed data yet.
+  The response's `note` field is explicit about which case applies
+  ("the courier's own recent average speed" vs. "a default average
+  speed") rather than presenting either as a guaranteed number. Found and
+  fixed an adjacent real bug while wiring this up: `expo-location`
+  reports `position.coords.speed` in meters/second, but the backend (the
+  existing `MAX_SPEED_KMH` sanity check in `location.service.ts`, and now
+  this new ETA averaging) treats stored `speed` values as km/h — a
+  genuine unit mismatch that was silently under-reporting every courier's
+  real speed by a factor of ~3.6. Fixed at the source in both mobile
+  screens that send it (`sos.tsx`, `(courier)/active.tsx`), converting
+  with `* 3.6` before sending. Replaced the hardcoded `bloodGroup` string
+  with a new `summarizeUnitBloodGroups` helper that groups the shipment's
+  real `ShipmentUnit` → `BloodUnit` records by blood type + Rh factor and
+  formats them like `"2 O+, 1 A-"`, or `"No units assigned yet"` when
+  none are attached.
+  Verified: 4 new tests for `getShipmentTracking` (uses the courier's
+  real recent average speed when available, falls back to the default
+  when it isn't, summarizes multiple real blood-unit records correctly,
+  and reports "No units assigned yet" when none are attached — exact
+  expected `etaMinutes` values computed independently via the same
+  Haversine formula, not reverse-engineered from rounded output), full
+  suite 342/342 passing (up from 338), clean `tsc --noEmit` on both the
+  API and mobile (same pre-existing unrelated errors before/after), 0 new
+  lint warnings. Live end-to-end against the real Postgres + running API:
+  drove a real blood request through approval → shipment creation →
+  courier assignment/accept/pickup → in-transit, sent two real location
+  pings at 65 and 75 km/h, attached two real `AVAILABLE` `BloodUnit`
+  records of different types (B+ and A+) via real `ShipmentUnit`/
+  `BloodUnitReservation` rows, and confirmed `GET /shipments/:id/tracking`
+  returned `bloodGroup: "1 B+, 1 A+"` (not the hardcoded placeholder) and
+  an ETA (`distanceKm: 1.3`, `etaMinutes: 1`) correctly reflecting the
+  ~70km/h real average speed with the honest "courier's own recent
+  average speed" note. Cleaned up all test data afterward (shipment unit
+  and reservation rows, shipment locations/events, the shipment and
+  blood request and their items/events, all 26 generated notifications
+  and their deliveries, courier status reset to `AVAILABLE`, blood unit
+  status reset to `AVAILABLE`).
+  - Files: `apps/api/src/modules/shipments/shipments.service.ts` (+ spec),
+    `apps/mobile/app/sos.tsx`, `apps/mobile/app/(courier)/active.tsx`.
 
 - [ ] **P2-9. Donor registration fabricates a fake HOSPITAL-type org**
   ("DONOR Donors") purely to satisfy a required FK — a data-model smell
@@ -1707,6 +1758,13 @@ the generic "Shipment Created" template, and courier decline never
 notified anyone at all — added the missing templates and the missing
 `declineShipment` emit call; live-verified a real decline producing
 seven real HIGH-priority notifications where before it produced zero).~~ ✅
-Next up: **P2-8** (ETA is a hardcoded-speed straight-line estimate and
-`getShipmentTracking` returns a literal hardcoded placeholder string),
-then the rest of P2, folding in P3-1 tests as each area is touched.
+~~**P2-8** (ETA used a hardcoded 40km/h constant and `bloodGroup` was a
+literal hardcoded placeholder string — made the ETA use the courier's own
+real recent average speed (captured GPS data that was going unused, with
+an honest fallback note when it isn't available yet), replaced the
+placeholder with a real blood-unit summary, and fixed an adjacent m/s vs.
+km/h unit-mismatch bug in the mobile speed-reporting code; live-verified
+a real "1 B+, 1 A+" summary and a correctly speed-derived ETA).~~ ✅
+Next up: **P2-9** (donor registration fabricates a fake HOSPITAL-type org
+— "DONOR Donors" — purely to satisfy a required FK), then the rest of
+P2, folding in P3-1 tests as each area is touched.

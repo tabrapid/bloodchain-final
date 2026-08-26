@@ -725,3 +725,111 @@ describe('ShipmentsService organization-status access checks', () => {
     });
   });
 });
+
+describe('ShipmentsService.getShipmentTracking', () => {
+  let service: ShipmentsService;
+  let prisma: any;
+
+  function makeTrackedShipment(overrides: Record<string, any> = {}) {
+    return {
+      id: 'shp-1',
+      shipmentReference: 'SHP-2026-000001',
+      status: 'IN_TRANSIT',
+      createdAt: new Date('2026-01-01T00:00:00.000Z'),
+      sourceOrganizationId: 'org-source',
+      destinationOrganizationId: 'org-dest',
+      pickupLatitude: '40.7128',
+      pickupLongitude: '-74.006',
+      destinationLatitude: '40.73',
+      destinationLongitude: '-74.0',
+      bloodRequest: { id: 'req-1', requestReference: 'REQ-2026-000001', priority: 'ROUTINE' },
+      sourceOrganization: { id: 'org-source', name: 'Blood Center', address: '1 Main St' },
+      destinationOrganization: { id: 'org-dest', name: 'Hospital', address: '2 Main St' },
+      courier: { id: 'courier-1', displayName: 'Jane Courier', phone: '+1555' },
+      units: [],
+      ...overrides,
+    };
+  }
+
+  beforeEach(async () => {
+    prisma = {
+      shipment: { findUnique: jest.fn() },
+      courier: { findUnique: jest.fn().mockResolvedValue(null) },
+      user: { findUnique: jest.fn().mockResolvedValue({ memberships: [{ organizationId: 'org-source' }] }) },
+      shipmentLocation: { findFirst: jest.fn().mockResolvedValue(null), findMany: jest.fn().mockResolvedValue([]) },
+      shipmentEvent: { findFirst: jest.fn().mockResolvedValue(null) },
+    };
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        ShipmentsService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: AuditLogsService, useValue: { log: jest.fn().mockResolvedValue({}) } },
+        { provide: EventEmitter2, useValue: { emit: jest.fn() } },
+        { provide: LocationService, useValue: {} },
+        { provide: ShipmentGateway, useValue: {} },
+      ],
+    }).compile();
+
+    service = module.get<ShipmentsService>(ShipmentsService);
+  });
+
+  it('summarizes the real blood types actually loaded on the shipment', async () => {
+    prisma.shipment.findUnique.mockResolvedValue(
+      makeTrackedShipment({
+        units: [
+          { id: 'su-1', bloodUnit: { bloodType: 'O', rhFactor: 'POSITIVE' } },
+          { id: 'su-2', bloodUnit: { bloodType: 'O', rhFactor: 'POSITIVE' } },
+          { id: 'su-3', bloodUnit: { bloodType: 'A', rhFactor: 'NEGATIVE' } },
+        ],
+      }),
+    );
+
+    const result = await service.getShipmentTracking('shp-1', 'user-1');
+
+    expect(result.bloodGroup).toBe('2 O+, 1 A-');
+    expect(result.bloodGroup).not.toBe('Available after delivery confirmation');
+  });
+
+  it('reports no units assigned yet instead of the old hardcoded placeholder', async () => {
+    prisma.shipment.findUnique.mockResolvedValue(makeTrackedShipment({ units: [] }));
+
+    const result = await service.getShipmentTracking('shp-1', 'user-1');
+
+    expect(result.bloodGroup).toBe('No units assigned yet');
+  });
+
+  it("uses the courier's own recent average speed for the ETA when available", async () => {
+    prisma.shipment.findUnique.mockResolvedValue(makeTrackedShipment());
+    prisma.shipmentLocation.findFirst.mockResolvedValue({
+      latitude: '40.72',
+      longitude: '-74.01',
+      recordedAt: new Date(),
+    });
+    prisma.shipmentLocation.findMany.mockResolvedValue([
+      { speed: '60' },
+      { speed: '80' },
+    ]);
+
+    const result = await service.getShipmentTracking('shp-1', 'user-1');
+
+    // Average speed of 70 km/h (of the two samples), not the old flat 40 km/h assumption.
+    expect(result.eta!.note).toContain("courier's own recent average speed");
+    expect(result.eta!.etaMinutes).toBe(1);
+  });
+
+  it('falls back to the default speed assumption when there is no usable recent speed data', async () => {
+    prisma.shipment.findUnique.mockResolvedValue(makeTrackedShipment());
+    prisma.shipmentLocation.findFirst.mockResolvedValue({
+      latitude: '40.72',
+      longitude: '-74.01',
+      recordedAt: new Date(),
+    });
+    prisma.shipmentLocation.findMany.mockResolvedValue([]);
+
+    const result = await service.getShipmentTracking('shp-1', 'user-1');
+
+    expect(result.eta!.note).toContain('a default average speed');
+    expect(result.eta!.etaMinutes).toBe(2);
+  });
+});
