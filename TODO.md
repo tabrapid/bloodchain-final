@@ -2846,6 +2846,48 @@ These make the product unusable or unsafe for real users. Fix first, in order.
     (updated regression test), `apps/mobile/src/api/campaigns.ts`
     (`Campaign` type gains `participantStatus`/`joinedAt`).
 
+- [ ] **P3-9. 4 mobile screens use `className` (Tailwind-style utility
+  strings) on plain React Native components, but this app has no
+  NativeWind — or any styling library — wired up to process it (found
+  while diagnosing why setting up CI would make `lint-and-typecheck`
+  fail on day one).** Referenced loosely several times earlier in this
+  session as "pre-existing NativeWind `className` typing errors," but
+  never actually root-caused or logged as its own item until now.
+  Diagnosis: `apps/mobile/package.json` does not depend on `nativewind`
+  at all, there is no `babel.config.js`, and no `tailwind.config.*`
+  anywhere under `apps/mobile` — yet
+  `app/(app)/{community,education,challenges,campaigns}/index.tsx` pass
+  real Tailwind utility strings like `className="text-sm text-gray-600
+  ml-1"` and `className="bg-red-600 py-2 px-6 rounded-xl"` directly to
+  `View`/`Text`/`TouchableOpacity`. Since `className` isn't a prop those
+  core React Native components understand without NativeWind's Babel
+  transform actually running, this isn't just a `tsc` type-checking
+  annoyance (160 `error TS2769`/`TS2322` errors, all in these 4 files:
+  58 in `community/index.tsx`, 42 in `education/index.tsx`, 33 in
+  `challenges/index.tsx`, 27 in `campaigns/index.tsx`) — these 4 screens
+  are almost certainly rendering **completely unstyled** on a real
+  device or simulator right now, since the prop is silently a no-op.
+  The rest of the app doesn't have this problem: 27 of the app's 48
+  screen files use the working, real pattern
+  (`StyleSheet.create({...})` + a `style` prop), confirming these 4
+  screens are the outlier, not the norm — most likely built by copying
+  a web-style Tailwind pattern from one of the Next.js apps without
+  translating it to the mobile app's actual styling approach. Likely
+  fix: rewrite these 4 screens' `className` usages into
+  `StyleSheet.create`-based styles matching the rest of the app, rather
+  than introducing NativeWind app-wide just for 4 files. Directly
+  relevant to **P3-3**: the new `.github/workflows/ci.yml`'s
+  `lint-and-typecheck` job runs `pnpm typecheck`/`pnpm lint` across
+  every workspace package including `@donor/mobile`, so it will
+  correctly show this job failing on the very first CI run — that is
+  CI doing its job (surfacing a real, previously undiagnosed defect),
+  not a CI misconfiguration, and is called out explicitly in P3-3's own
+  write-up so it isn't mistaken for one.
+  - Files: `apps/mobile/app/(app)/community/index.tsx`,
+    `apps/mobile/app/(app)/education/index.tsx`,
+    `apps/mobile/app/(app)/challenges/index.tsx`,
+    `apps/mobile/app/(app)/campaigns/index.tsx`.
+
 ---
 
 ## Suggested execution order
