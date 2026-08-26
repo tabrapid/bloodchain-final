@@ -2592,7 +2592,87 @@ These make the product unusable or unsafe for real users. Fix first, in order.
       (new).
 
 - [ ] **P3-2. No frontend tests at all** (Next.js apps or mobile) — no
-  Jest/RTL/Playwright/Detox setup found.
+  Jest/RTL/Playwright/Detox setup found. — Fixed (first installment,
+  test infrastructure stood up for the first time in this repo's
+  frontend, plus real tests for the highest-leverage shared code; the 3
+  Next.js apps' own pages and the mobile/Expo app remain untested and
+  are scoped for future installments — see below):
+  Confirmed the diagnosis first — all 4 frontend apps (`hospital-web`,
+  `blood-center-web`, `admin-web`, `mobile`) had a stub `"test"` script
+  that just echoes a placeholder string, and zero of Jest/RTL/Vitest/
+  Playwright/Detox were installed anywhere outside `apps/api`. Rather
+  than start with an app's own pages (which in this Next.js App Router
+  codebase are large, fetch-heavy client components with no smaller
+  presentational units to isolate), started with the two packages that
+  are the actual highest-leverage target: `packages/utils` and
+  `packages/validation` are declared as a dependency of *all five*
+  workspace packages including `apps/api` itself (confirmed via
+  `package.json` dependency grep) — `@donor/validation`'s schemas in
+  particular are the real client-side validation gating the mobile
+  app's register/login forms before any request reaches the API, so a
+  bug there is a bug users hit before the backend ever sees the
+  request. Chose Vitest over Jest for the frontend/packages side (unlike
+  the backend, which stays on Jest/ts-jest) since it needs no ts-jest
+  transform config, has native ESM/TS support matching these packages'
+  `"type": "module"` setup, and is the standard pairing for a
+  Vite/Next-adjacent monorepo. Added real `vitest.config.ts` + a
+  `test`/`vitest run` script to `packages/utils` (18 tests covering
+  `totalPages`/`pagination`/`clamp`/`sleep`/`isDefined`, including
+  `pagination`'s divide-by-zero-avoidance and clamping edge cases) and
+  `packages/validation` (37 tests covering every exported zod schema —
+  `passwordSchema`'s 12-128 char boundary including a check against the
+  real dev-seed password used everywhere else in this session,
+  `phoneSchema`'s international-format regex edge cases, `emailSchema`'s
+  case/whitespace normalization, and all 7 composite request schemas).
+  Also stood up `packages/ui` — the shared component library consumed
+  by all 3 web apps — with Vitest + `jsdom` + `@testing-library/react`/
+  `jest-dom`/`user-event` (a real jsdom+RTL harness, not just pure-
+  function testing) and wrote 21 tests for 5 of its simplest
+  presentational components: `cn` (the `clsx`+`tailwind-merge` class
+  helper used by nearly every component in the library), `StatusBadge`,
+  `EmptyState`, `StatCard`, and `ErrorState` — the last of which has
+  real conditional logic (its Retry/Back buttons only render when a
+  handler is passed) verified with actual `userEvent.click()`
+  interactions confirming each callback fires independently. Hit one
+  real setup snag: `@testing-library/jest-dom`'s matcher-type
+  augmentation wasn't visible to `tsc` because `vitest.setup.ts` lived
+  outside `tsconfig.json`'s `include: ["src"]` — fixed by adding it to
+  `include` rather than moving the file. All 76 new tests pass (18 +
+  37 + 21); ran `pnpm test` at the repo root (`turbo test`) and
+  confirmed all 8 workspace test tasks succeed together, including the
+  pre-existing 621-test `@donor/api` suite untouched; ran `pnpm
+  typecheck`/`pnpm lint` at the root and confirmed all 3 touched
+  packages are clean (the only failures, in `@donor/mobile`, are the
+  pre-existing NativeWind `className` typing errors in
+  `education/index.tsx` already documented earlier in this session —
+  confirmed via `git stash` unaffected by this change). Since no
+  production code changed (only test files, `vitest.config.ts`s, and
+  `package.json`/`tsconfig.json` additions), live-verified by actually
+  building a real consumer: `pnpm --filter @donor/hospital-web build`
+  completed successfully end-to-end, confirming the shared packages
+  still resolve and compile correctly for a real Next.js app. Still
+  outstanding: the 3 Next.js apps' own pages/routes have zero tests
+  (they're large fetch-driven client components — testing them properly
+  will likely want either component-level extraction first or a
+  Playwright/E2E approach rather than RTL-in-isolation), the rest of
+  `packages/ui`'s components (`DataTable`, `Modal`, `Drawer`, `Sidebar`,
+  `Topbar`, `DashboardShell`, `SearchInput`, `FilterBar`, `Chart`,
+  `LocationMap`) have no tests yet, and the mobile/Expo app has no
+  Jest/React Native Testing Library or Detox setup at all.
+  - Files: `packages/utils/vitest.config.ts` (new),
+    `packages/utils/src/index.spec.ts` (new),
+    `packages/utils/package.json` (added `test` script),
+    `packages/validation/vitest.config.ts` (new),
+    `packages/validation/src/index.spec.ts` (new),
+    `packages/validation/package.json` (added `test` script),
+    `packages/ui/vitest.config.ts` (new), `packages/ui/vitest.setup.ts`
+    (new), `packages/ui/tsconfig.json` (include the setup file),
+    `packages/ui/package.json` (added `test` script + RTL/jsdom
+    devDependencies), `packages/ui/src/components/cn.spec.ts` (new),
+    `packages/ui/src/components/data/StatusBadge.spec.tsx` (new),
+    `packages/ui/src/components/data/StatCard.spec.tsx` (new),
+    `packages/ui/src/components/feedback/EmptyState.spec.tsx` (new),
+    `packages/ui/src/components/feedback/ErrorState.spec.tsx` (new).
 
 - [ ] **P3-3. No Docker / docker-compose, no CI pipeline**
   (`.github/workflows`), despite `IMPLEMENTATION_SUMMARY.md` and
@@ -2972,5 +3052,17 @@ to `participantStatus`, updated the mobile `Campaign` type and the unit
 test into an explicit regression test, live-verified the exact repro
 from P3-1 now returns both fields correctly, cleaned up test
 data).~~ ✅
-Next up: **P3-2** (no frontend tests at all) or **P3-3** (no
-Docker/CI).
+~~**P3-2 first installment** (stood up Vitest test infrastructure for
+the frontend side of this repo for the first time — `packages/utils`
+(18 tests), `packages/validation` (37 tests, the real client-side
+validation gating mobile register/login), and `packages/ui` with a real
+jsdom+React-Testing-Library harness (21 tests across 5 presentational
+components including real `userEvent` interaction tests). 76 new tests,
+all passing; `pnpm test`/`typecheck`/`lint` at the repo root confirm no
+regressions (mobile's pre-existing NativeWind typing errors are
+unrelated and unaffected); live-verified by building a real consumer
+app (`hospital-web`) end-to-end. Still outstanding: the 3 Next.js apps'
+own pages, the rest of `packages/ui`'s components, and the mobile/Expo
+app's own test setup).~~ ✅ (partial)
+Next up: the remainder of **P3-2** (Next.js app pages, more `packages/ui`
+components, mobile/Expo test setup) or **P3-3** (no Docker/CI).
