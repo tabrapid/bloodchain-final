@@ -2126,7 +2126,7 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   audit log rows afterward, and restored the blood unit to `AVAILABLE`.
   - Files: `apps/api/src/modules/shipments/shipments.service.ts` (+ spec).
 
-- [ ] **P2-19. `approveRequest` can never actually find a real reservation
+- [x] **P2-19. `approveRequest` can never actually find a real reservation
   to claim (found while live-verifying P2-18)** — its query requires an
   `ACTIVE` `BloodUnitReservation` whose linked `BloodUnit` is still
   `AVAILABLE`, but that combination never arises from any real code
@@ -2152,7 +2152,43 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   `apps/api/src/modules/shipments/shipments.service.ts:319-334`
   (the query), `apps/api/src/modules/inventory/inventory.service.ts:601-660`
   (`reserveUnit`, the only reservation-creation path, showing why the
-  precondition never holds).
+  precondition never holds). — Fixed exactly as diagnosed: replaced the
+  dead-on-arrival reservation search with a direct `bloodUnit.findMany`
+  for `AVAILABLE` units of the request item's blood type/Rh, ordered
+  oldest-collected-first (standard FIFO inventory rotation — the
+  original code's `reservedAt: 'asc'` ordering had no real equivalent
+  since there's no longer a pre-existing reservation to order by).
+  For each unit whose atomic `AVAILABLE`→`RESERVED` claim succeeds (the
+  same race-safe `updateMany` pattern as before, unchanged), *creates* a
+  new `BloodUnitReservation` — mirroring `reserveUnit`'s own shape
+  exactly (`reservedBy`, `reservedForOrganizationId`, `reason`, plus a
+  matching `InventoryMovement` row of type `RESERVED` that `reserveUnit`
+  also writes, so approval-driven reservations show up in inventory
+  history the same way manually-reserved ones do) — linked to the
+  request item via the same `bloodRequestItems: { connect }` relation
+  P2-18 added.
+  Verified: rewrote the `ShipmentsService.approveRequest` describe block
+  (5 tests) to match the new selection query, the reservation *create*
+  call (previously an *update*), the linked `InventoryMovement`, and
+  that a lost unit-claim race still correctly skips both the reservation
+  and the movement record — full suite 424/424 passing (up from 423),
+  clean `tsc --noEmit`, 0 new lint errors. Live end-to-end against the
+  real Postgres + running API, this time with **zero manual database
+  seeding at any step** (unlike P2-14's and P2-18's workarounds):
+  approved a real blood request for a real available A+ unit and
+  confirmed, entirely through real endpoints, that a real
+  `BloodUnitReservation` was created (correct `reservedBy`/
+  `reservedForOrganizationId`), correctly linked to the request item via
+  the join table, the unit flipped to `RESERVED`, and a real
+  `InventoryMovement` row was written — then created a real shipment and
+  confirmed `GET /shipments/:id/tracking` reported `"bloodGroup": "1 A+"`
+  automatically. This closes the fulfillment pipeline gap completely:
+  approve → ready-for-pickup → create-shipment → deliver now works
+  unassisted end-to-end for the first time this session traced it.
+  Cleaned up the shipment, request, reservation, movement record, join
+  row, notifications, and audit log rows afterward, restoring the unit
+  to `AVAILABLE`.
+  - Files: `apps/api/src/modules/shipments/shipments.service.ts` (+ spec).
 
 ---
 
@@ -2395,7 +2431,22 @@ now auto-attaching a real unit end-to-end with zero manual intervention,
 unlike P2-14's workaround; found and logged an even deeper issue as new
 P2-19 — the reservation state the fix's precondition needs never
 actually arises from any real code path).~~ ✅
-Next up: **P2-19** (`approveRequest`'s reservation search can never
-match anything real — the last known gap in the fulfillment pipeline),
-then the rest of P2/P3 as it comes up. **All originally-planned P2 and
-P3-discovered-along-the-way items are now done except P2-19.**
+~~**P2-19** (`approveRequest`'s reservation search could never match
+anything real, since no code path leaves a reservation ACTIVE on a
+still-AVAILABLE unit — replaced the dead search with direct unit
+selection + reservation creation, mirroring `reserveUnit`'s own shape;
+live-verified the *entire* fulfillment pipeline — approve →
+ready-for-pickup → create-shipment → tracking — working unassisted
+end-to-end for the first time, with zero manual DB seeding at any
+step).~~ ✅
+
+**All P0, P1, and P2 items are now done**, including every item
+discovered and logged along the way during P2's live verification
+(P2-4 → P2-9's SYSTEM-org fix chain, P2-6 → P2-17's verification-reset
+fix, P2-8 → P2-14 → P2-18 → P2-19's shipment/reservation chain, and
+P2-13's notification-archive and P2-16's duplicate-module fixes).
+Next up: **P3** (hygiene, tests, docs, infra) — start with **P3-1**
+(26 of 30 backend modules had zero automated tests; substantially
+improved organically throughout the P2 pass since almost every fix
+above added real spec coverage for the module it touched, but P3-1
+itself hasn't been swept as its own dedicated pass yet).

@@ -964,12 +964,7 @@ describe('ShipmentsService.approveRequest', () => {
   let tx: any;
 
   const item = { id: 'item-1', bloodType: 'O', rhFactor: 'POSITIVE', unitsRequested: 1, unitsApproved: 0 };
-  const reservation = {
-    id: 'res-1',
-    bloodUnitId: 'bu-1',
-    reservedAt: new Date('2026-01-01'),
-    bloodUnit: { id: 'bu-1', status: 'AVAILABLE' },
-  };
+  const availableUnit = { id: 'bu-1', status: 'AVAILABLE', bloodType: 'O', rhFactor: 'POSITIVE', collectedAt: new Date('2026-01-01') };
 
   beforeEach(async () => {
     tx = {
@@ -977,11 +972,12 @@ describe('ShipmentsService.approveRequest', () => {
         update: jest.fn().mockResolvedValue({}),
         findMany: jest.fn().mockResolvedValue([{ ...item, unitsApproved: 1 }]),
       },
-      bloodUnitReservation: {
-        findMany: jest.fn().mockResolvedValue([reservation]),
-        update: jest.fn().mockResolvedValue({}),
+      bloodUnit: {
+        findMany: jest.fn().mockResolvedValue([availableUnit]),
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
       },
-      bloodUnit: { updateMany: jest.fn().mockResolvedValue({ count: 1 }) },
+      bloodUnitReservation: { create: jest.fn().mockResolvedValue({ id: 'res-1' }) },
+      inventoryMovement: { create: jest.fn().mockResolvedValue({}) },
       bloodRequest: { update: jest.fn().mockResolvedValue({ id: 'req-1', status: 'APPROVED' }) },
       bloodRequestEvent: { create: jest.fn().mockResolvedValue({}) },
     };
@@ -1014,16 +1010,15 @@ describe('ShipmentsService.approveRequest', () => {
     jest.spyOn(service, 'checkBloodCenterAccess').mockResolvedValue({ user: { id: 'bc-user-1' } } as any);
   });
 
-  it("links each claimed reservation to the BloodRequestItem it was approved for, so createShipment's item.reservations read finds it", async () => {
+  it('selects AVAILABLE units of the matching blood type directly, oldest-collected first', async () => {
     await service.approveRequest('org-1', 'bc-user-1', 'req-1', {
       items: [{ itemId: 'item-1', unitsApproved: 1 }],
     });
 
-    expect(tx.bloodUnitReservation.update).toHaveBeenCalledWith({
-      where: { id: 'res-1' },
-      data: expect.objectContaining({
-        bloodRequestItems: { connect: { id: 'item-1' } },
-      }),
+    expect(tx.bloodUnit.findMany).toHaveBeenCalledWith({
+      where: { organizationId: 'org-1', bloodType: 'O', rhFactor: 'POSITIVE', status: 'AVAILABLE' },
+      take: 1,
+      orderBy: { collectedAt: 'asc' },
     });
   });
 
@@ -1038,14 +1033,32 @@ describe('ShipmentsService.approveRequest', () => {
     });
   });
 
-  it('does not link a reservation whose unit claim lost the race', async () => {
+  it("creates a reservation linked to the BloodRequestItem it was approved for, so createShipment's item.reservations read finds it", async () => {
+    await service.approveRequest('org-1', 'bc-user-1', 'req-1', {
+      items: [{ itemId: 'item-1', unitsApproved: 1 }],
+    });
+
+    expect(tx.bloodUnitReservation.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        bloodUnitId: 'bu-1',
+        reservedBy: 'bc-user-1',
+        bloodRequestItems: { connect: { id: 'item-1' } },
+      }),
+    });
+    expect(tx.inventoryMovement.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ bloodUnitId: 'bu-1', type: 'RESERVED' }) }),
+    );
+  });
+
+  it('does not reserve a unit whose claim lost the race', async () => {
     tx.bloodUnit.updateMany.mockResolvedValue({ count: 0 });
 
     await service.approveRequest('org-1', 'bc-user-1', 'req-1', {
       items: [{ itemId: 'item-1', unitsApproved: 1 }],
     });
 
-    expect(tx.bloodUnitReservation.update).not.toHaveBeenCalled();
+    expect(tx.bloodUnitReservation.create).not.toHaveBeenCalled();
+    expect(tx.inventoryMovement.create).not.toHaveBeenCalled();
   });
 
   it('rejects approving a request that is not SUBMITTED or UNDER_REVIEW', async () => {

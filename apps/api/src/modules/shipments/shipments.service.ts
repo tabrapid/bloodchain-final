@@ -317,41 +317,56 @@ export class ShipmentsService {
         });
 
         if (approval.unitsApproved > 0) {
-          const reservations = await tx.bloodUnitReservation.findMany({
+          // No real flow ever leaves a BloodUnitReservation ACTIVE while its
+          // BloodUnit is still AVAILABLE -- InventoryService.reserveUnit (the
+          // only place a reservation is created) atomically flips the unit to
+          // RESERVED in the same transaction, and releaseReservation moves
+          // both back together. So rather than searching for a pre-existing
+          // reservation that can never be found, select AVAILABLE units
+          // directly (oldest-collected-first, standard FIFO rotation) and
+          // create the reservation here, exactly as reserveUnit does.
+          const availableUnits = await tx.bloodUnit.findMany({
             where: {
               organizationId,
-              status: ReservationStatus.ACTIVE,
-              bloodUnit: {
-                bloodType: item.bloodType,
-                rhFactor: item.rhFactor,
-                status: 'AVAILABLE',
-                organizationId,
-              },
+              bloodType: item.bloodType,
+              rhFactor: item.rhFactor,
+              status: 'AVAILABLE',
             },
-            include: { bloodUnit: true },
             take: approval.unitsApproved,
-            orderBy: { reservedAt: 'asc' },
+            orderBy: { collectedAt: 'asc' },
           });
 
-          for (const reservation of reservations) {
+          for (const unit of availableUnits) {
             // Atomic conditional update: only claim the unit if it's still
             // AVAILABLE at lock time, closing the race with concurrent approvals.
             const { count } = await tx.bloodUnit.updateMany({
-              where: { id: reservation.bloodUnitId, status: 'AVAILABLE' },
+              where: { id: unit.id, status: 'AVAILABLE' },
               data: { status: 'RESERVED' },
             });
             if (count === 0) continue;
 
-            await tx.bloodUnitReservation.update({
-              where: { id: reservation.id },
+            await tx.bloodUnitReservation.create({
               data: {
+                bloodUnitId: unit.id,
+                organizationId,
                 reservedForOrganizationId: request.requestingOrganizationId,
+                reservedBy: user.id,
                 reason: `Blood request ${request.requestReference}`,
                 // createShipment later reads item.reservations to decide which
                 // reservations become ShipmentUnit rows for this request's
                 // items -- without this link every shipment created from an
                 // approved request would ship with zero recorded units.
                 bloodRequestItems: { connect: { id: approval.itemId } },
+              },
+            });
+
+            await tx.inventoryMovement.create({
+              data: {
+                bloodUnitId: unit.id,
+                organizationId,
+                type: MovementType.RESERVED,
+                actorId: user.id,
+                reason: `Blood request ${request.requestReference}`,
               },
             });
           }
