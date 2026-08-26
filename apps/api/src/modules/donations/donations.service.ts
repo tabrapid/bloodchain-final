@@ -65,19 +65,17 @@ export class DonationsService {
       where: { id: appointmentId },
       include: {
         donor: {
-          include: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
             donorProfile: {
               select: {
                 bloodType: true,
                 rhFactor: true,
               },
             },
-          },
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
           },
         },
         organization: true,
@@ -995,7 +993,12 @@ export class DonationsService {
       where: { id: appointmentId },
       include: {
         donor: {
-          include: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            dateOfBirth: true,
             donorProfile: {
               select: {
                 id: true,
@@ -1007,13 +1010,6 @@ export class DonationsService {
                 district: true,
               },
             },
-          },
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-            dateOfBirth: true,
           },
         },
         organization: {
@@ -1128,7 +1124,11 @@ export class DonationsService {
       orderBy: { scheduledStart: 'asc' },
       include: {
         donor: {
-          include: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
             donorProfile: {
               select: {
                 bloodType: true,
@@ -1136,12 +1136,6 @@ export class DonationsService {
                 verificationStatus: true,
               },
             },
-          },
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
           },
         },
         donation: {
