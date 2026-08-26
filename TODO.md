@@ -1179,9 +1179,38 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   - Files: `apps/api/prisma/seed.ts`,
     `apps/api/src/modules/laboratory/laboratory.controller.ts`.
 
-- [ ] **P2-3. Appointment booking has no `@Roles(DONOR)` guard** — any
-  authenticated staff/courier/admin account can book a donation
-  appointment for themselves. `apps/api/src/modules/appointments/appointments.controller.ts:23-33`.
+- [x] **P2-3. Appointment booking has no `@Roles(DONOR)` guard** — Fixed:
+  confirmed live before fixing — a `hospital.staff@donor.local` token and
+  a `courier@donor.local` token could both successfully call
+  `POST /appointments` and book a real donation slot for themselves, none
+  of the six donor-self-service routes (`book`, `me`, `me/next`, `cancel`,
+  `reschedule`, plus implicitly `:id` for reading) had any `@Roles(...)`
+  at all — only the two staff-only routes (`confirm`/`complete`) were
+  gated. Added `@Roles(DONOR, SUPER_ADMIN)` to `bookAppointment`,
+  `getMyAppointments`, `getNextAppointment`, `cancelAppointment`, and
+  `rescheduleAppointment` — matching the `DONOR, SUPER_ADMIN` pattern this
+  codebase already uses for the equivalent donor-self-service routes in
+  `laboratory.controller.ts`.
+  Deliberately left `GET /appointments/:id` (`getAppointmentById`)
+  unrestricted: its service method already has its own internal
+  authorization branch allowing *either* the donor who owns the
+  appointment *or* staff of the organization hosting it (verified by
+  reading `AppointmentsService.getAppointmentById`) — adding a
+  donor-only role guard there would have been a regression, blocking
+  legitimate staff from viewing appointment details they're already
+  allowed to see. `cancelAppointment`/`rescheduleAppointment` have no such
+  staff branch (strictly `appointment.donorId !== donorId` →
+  `ForbiddenException`), confirming they were safe to restrict.
+  Verified: full suite still 319/319 (pure `@Roles()` metadata change, no
+  service logic touched), clean `tsc --noEmit`, 0 new lint warnings. Live
+  end-to-end against the real Postgres + running API: reproduced the
+  exact exploit from this item's description with both a hospital-staff
+  and a courier token (both `403` now, previously `201`/booked
+  successfully), confirmed a real donor could still book, view, and
+  cancel an appointment normally, and confirmed hospital staff could
+  still view that same appointment by ID and confirm it — proving the
+  intentional dual-access route wasn't broken by this fix.
+  - File: `apps/api/src/modules/appointments/appointments.controller.ts`.
 
 - [ ] **P2-4. Emergency module DTOs are plain interfaces with zero
   class-validator decorators**, so Nest's global `ValidationPipe` silently
@@ -1401,5 +1430,11 @@ permissions split by responsibility, added the missing roles to each
 route's `@Roles(...)`, and seeded one test account per role; found an
 unrelated routing bug blocking `createResult` for everyone, split out to
 new P2-15).~~ ✅
-Next up: **P2-3** (Appointment booking has no `@Roles(DONOR)` guard),
-then the rest of P2, folding in P3-1 tests as each area is touched.
+~~**P2-3** (Appointment booking had no `@Roles(DONOR)` guard — confirmed
+live that hospital-staff and courier tokens could both book a real
+donation slot for themselves; added `@Roles(DONOR, SUPER_ADMIN)` to the
+five donor-self-service routes, deliberately leaving `GET :id`
+unrestricted since its service already permits staff-of-org too).~~ ✅
+Next up: **P2-4** (Emergency module DTOs are plain interfaces with zero
+class-validator decorators), then the rest of P2, folding in P3-1 tests
+as each area is touched.
