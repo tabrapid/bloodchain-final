@@ -2941,7 +2941,7 @@ These make the product unusable or unsafe for real users. Fix first, in order.
     (updated regression test), `apps/mobile/src/api/campaigns.ts`
     (`Campaign` type gains `participantStatus`/`joinedAt`).
 
-- [ ] **P3-9. 4 mobile screens use `className` (Tailwind-style utility
+- [x] **P3-9. 4 mobile screens use `className` (Tailwind-style utility
   strings) on plain React Native components, but this app has no
   NativeWind — or any styling library — wired up to process it (found
   while diagnosing why setting up CI would make `lint-and-typecheck`
@@ -2982,11 +2982,119 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   (surfacing a real, previously undiagnosed defect), not a CI
   misconfiguration, and is called out explicitly in P3-3's own write-up
   so it isn't mistaken for one. Fixing these 4 screens turns the
-  pipeline fully green.
+  pipeline fully green. — Fixed: rewrote all four screens onto the
+  mobile app's real design system. Took the suggested approach
+  (`StyleSheet.create` + the app's own components) rather than adding
+  NativeWind for 4 files, and went one step further than a literal
+  class-to-style translation, for a reason that only became obvious
+  once the theme was read properly: **`src/theme.ts` defines a dark
+  palette** (`background: '#080D14'`, `text: '#F2F5F7'`), while these 4
+  screens' Tailwind strings were all light-mode web classes
+  (`bg-gray-50`, `bg-white`, `text-gray-900`). Translating those
+  literally would have produced 4 blindingly light screens inside a
+  dark app — the copied-from-the-web origin diagnosed above is exactly
+  why they can't be translated at face value. So each screen was
+  rebuilt against the existing component library the other 27 screens
+  already use (`Screen`, `AppText`, `Card`, `GlassCard`, `Badge`,
+  `AppButton`, `EmptyState`, `LoadingState`, `ProgressBar`, `Avatar`,
+  `Divider`) plus `StyleSheet.create` with `colors`/`spacing`/`radius`
+  tokens — no hard-coded hex values left in any of the four. Hand-rolled
+  markup was replaced with the real primitives wherever one existed: the
+  ad-hoc `bg-gray-200`/`bg-red-600` progress bars became `<ProgressBar>`,
+  the `bg-red-100` pills became `<Badge variant="primary">`, the
+  spinner-in-a-centered-View loading states became `<LoadingState>`, the
+  "No Active Campaigns" blocks became `<EmptyState>`, and the
+  `TouchableOpacity` submit buttons became `<AppButton loading={...}>`
+  (which already handles the pressed/disabled/loading states these
+  screens were each reimplementing by hand). All 160 type errors are
+  gone and `@donor/mobile#typecheck` passes, which was the whole point:
+  **the repo-wide `pnpm typecheck` now reports 10/10 tasks successful**,
+  turning P3-3's CI pipeline fully green.
+  **Verified by actually rendering the screens, not just type-checking
+  them.** Type-checking only proves the props are legal now; the real
+  claim in this item was that these screens *render unstyled*, which no
+  compiler can confirm. The mobile app had **no test infrastructure at
+  all** (its `test` script was a literal `echo 'Mobile component tests
+  scheduled with the first native feature'` placeholder), so this
+  installment stood one up: `jest-expo` + `react-test-renderer`, a
+  `jest.setup.js` mocking the three things that need a native module in
+  a test process (`lucide-react-native`'s SVG icons,
+  `expo-blur`'s `BlurView`, and `react-native-safe-area-context` via its
+  own shipped mock), and 16 tests in
+  `src/__tests__/community-screens.spec.tsx` that mount all four screens
+  for real against mocked API fixtures and walk the resulting render
+  tree. Two of them are the direct P3-9 regression guards: one asserts
+  **no node in the tree carries a `className` prop**, the other asserts
+  the app's real theme colors are actually present in the resolved
+  styles.
+  **These tests were then proven to actually catch the bug**, by
+  `git stash`-ing just the 4 rewritten screens and re-running the suite
+  against the original code: **10 of the 16 failed**. The most
+  informative part of that run is what *didn't* fail — all four
+  "renders without crashing" tests passed on the old code too, which is
+  precisely the shape of this defect: the screens never errored, they
+  just silently rendered with nothing applied. The failure output makes
+  it concrete — the old campaigns screen's entire 26-node render tree
+  came back with `style: null` on every single node except one
+  `{"opacity":1}` that `TouchableOpacity` sets internally for its press
+  animation. Zero styles, exactly as this item predicted, now confirmed
+  from a real render rather than inferred. Restoring the fix returns all
+  16 to green.
+  While wiring the harness up, hit the **same pnpm-layout problem that
+  bit P3-3's API e2e job**: `jest-expo`'s stock
+  `transformIgnorePatterns` assume npm/yarn's flat
+  `node_modules/react-native/...` layout, so under pnpm's
+  `node_modules/.pnpm/<name>@<version>/node_modules/<name>/...` the
+  negative lookahead sees `.pnpm` and skips the whole tree, leaving
+  React Native's own Flow-typed sources untransformed
+  (`SyntaxError: Unexpected identifier 'ErrorHandler'`). Fixed the same
+  way, with a pnpm-aware pattern matching pnpm's directory encoding
+  (scoped packages as `@scope+name@version`). Worth noting as a pattern:
+  this repo will hit this a third time the next time a package needs
+  transforming.
+  Full verification after the change: repo-wide `pnpm typecheck` 10/10,
+  `pnpm lint` 10/10, `pnpm test` **637 passing** (621 API + the 16 new
+  mobile tests, which now actually run in CI instead of echoing a
+  placeholder), and `pnpm build` 4/4 — i.e. all four CI jobs' commands
+  green locally before pushing.
+  Left deliberately unfixed and logged separately as **P3-10**: the
+  education screen's `onStart`/`isStarting` props are wired to a real
+  `startContent` mutation but no control in the card ever triggers them.
+  That's a missing feature, not a styling defect, so it wasn't smuggled
+  into this fix.
   - Files: `apps/mobile/app/(app)/community/index.tsx`,
     `apps/mobile/app/(app)/education/index.tsx`,
     `apps/mobile/app/(app)/challenges/index.tsx`,
-    `apps/mobile/app/(app)/campaigns/index.tsx`.
+    `apps/mobile/app/(app)/campaigns/index.tsx` (all four rewritten onto
+    the design system), `apps/mobile/src/__tests__/community-screens.spec.tsx`
+    (new — 16 render tests incl. the two P3-9 regression guards),
+    `apps/mobile/jest.config.js` (new — jest-expo preset + pnpm-aware
+    `transformIgnorePatterns`), `apps/mobile/jest.setup.js` (new — native
+    module mocks), `apps/mobile/package.json` (`test` script now really
+    runs jest; adds `jest`, `jest-expo`, `react-test-renderer`,
+    `@types/jest`, `@types/react-test-renderer`).
+
+- [ ] **P3-10. The education screen's "start content" flow is wired but
+  unreachable (found while fixing P3-9).**
+  `apps/mobile/app/(app)/education/index.tsx` creates a real
+  `startMutation` against the backend's `startContent` endpoint and
+  passes `onStart`/`isStarting` down into `EducationCard` — but the card
+  renders only a "Complete" button, so nothing ever calls them. The
+  effect is that a user can mark content complete without it ever being
+  marked started, which quietly skews the very stats the same screen
+  displays (`totalStarted` can never exceed whatever other code paths
+  set it, while `totalCompleted` climbs). Both the API function
+  (`src/api/education.ts`'s `startContent`) and the
+  `EducationProgress` model behind it already exist, so this is an
+  unfinished UI, not a missing backend. Left alone during P3-9 on
+  purpose: adding a "Start" control is a product/UX decision about how
+  content consumption should flow (does opening the card start it? is
+  there a reading view at all?), not part of a styling fix. Worth
+  deciding alongside whether educational content should have a detail
+  screen — there's currently no route that renders a single piece of
+  content, which is probably where "start" belongs.
+  - File: `apps/mobile/app/(app)/education/index.tsx`
+    (`EducationCard`'s unused `onStart`/`isStarting`).
 
 ---
 
@@ -3323,6 +3431,21 @@ the `DONOR` role `register()` requires didn't exist. Final run: unit
 tests ✓, e2e 14/14 ✓, build ✓; lint+typecheck ✗ **on purpose**, failing
 only on `@donor/mobile` — that's P3-9, a real pre-existing defect CI
 correctly surfaced, not a pipeline problem).~~ ✅
+~~**P3-9** (rewrote the 4 `className` screens onto the app's real design
+system — and found, reading the theme properly, that a literal
+Tailwind-to-StyleSheet translation would have been wrong: the app's
+theme is *dark* while every one of those classes was light-mode web CSS,
+so they were rebuilt against the same component library the other 27
+screens use. Stood up the mobile app's first-ever test infrastructure to
+verify it — jest-expo + react-test-renderer, 16 tests that actually
+mount all 4 screens — because type-checking can't prove "renders
+unstyled." Proved the tests catch the bug by stashing the fix and
+re-running: 10 of 16 failed on the old code, while all four "renders
+without crashing" tests still passed, exactly matching the defect's
+shape; the old campaigns screen's whole 26-node tree came back with
+`style: null` on every node. Repo-wide: typecheck 10/10, lint 10/10,
+637 tests passing, build 4/4 — the CI pipeline is now fully green).~~ ✅
 Next up: the remainder of **P3-2** (Next.js app pages, more
-`packages/ui` components, mobile/Expo test setup), or **P3-9** (the 4
-unstyled mobile screens now holding the CI lint job red).
+`packages/ui` components — the mobile/Expo test setup half is now done
+as part of P3-9), or **P3-4** through **P3-7** (env docs, stale docs,
+repo naming, dead admin DTOs), or the newly-logged **P3-10**.

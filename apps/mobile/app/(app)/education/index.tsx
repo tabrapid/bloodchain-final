@@ -1,13 +1,7 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  ActivityIndicator,
-  RefreshControl,
-} from 'react-native';
+import { useState } from 'react';
+import { RefreshControl, StyleSheet, View } from 'react-native';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { BookOpen, Clock, Award, CheckCircle } from 'lucide-react-native';
 import {
   getEducationalContent,
   startContent,
@@ -15,7 +9,17 @@ import {
   getMyEducationStats,
   type EducationalContent,
 } from '../../../src/api/education';
-import { BookOpen, Clock, Award, CheckCircle } from 'lucide-react-native';
+import {
+  AppButton,
+  AppText,
+  Badge,
+  Card,
+  EmptyState,
+  GlassCard,
+  LoadingState,
+  Screen,
+} from '../../../src/components';
+import { colors, spacing } from '../../../src/theme';
 
 export default function EducationScreen() {
   const [refreshing, setRefreshing] = useState(false);
@@ -56,55 +60,55 @@ export default function EducationScreen() {
 
   if (isLoading) {
     return (
-      <View className="flex-1 items-center justify-center bg-gray-50">
-        <ActivityIndicator size="large" color="#dc2626" />
-      </View>
+      <Screen>
+        <LoadingState message="Loading content..." />
+      </Screen>
     );
   }
 
   return (
-    <ScrollView
-      className="flex-1 bg-gray-50"
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+    <Screen
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          tintColor={colors.primary}
+        />
+      }
     >
-      <View className="p-4">
-        <Text className="text-2xl font-bold text-gray-900 mb-2">Education Hub</Text>
-        <Text className="text-sm text-gray-600 mb-6">
+      <View style={styles.header}>
+        <AppText variant="title">Education Hub</AppText>
+        <AppText muted variant="bodySmall" style={styles.subtitle}>
           Learn about blood donation and earn XP
-        </Text>
+        </AppText>
+      </View>
 
-        {stats && (
-          <View className="bg-white p-6 rounded-2xl shadow-sm mb-6">
-            <Text className="text-lg font-bold text-gray-900 mb-4">Your Progress</Text>
-            <View className="flex-row justify-between">
-              <View className="items-center">
-                <Text className="text-3xl font-bold text-red-600">{stats.totalCompleted}</Text>
-                <Text className="text-sm text-gray-600 mt-1">Completed</Text>
-              </View>
-              <View className="items-center">
-                <Text className="text-3xl font-bold text-red-600">{stats.totalStarted}</Text>
-                <Text className="text-sm text-gray-600 mt-1">Started</Text>
-              </View>
-              <View className="items-center">
-                <Text className="text-3xl font-bold text-red-600">{stats.totalXpEarned}</Text>
-                <Text className="text-sm text-gray-600 mt-1">XP Earned</Text>
-              </View>
-            </View>
+      {stats && (
+        <Card style={styles.statsCard}>
+          <AppText variant="heading">Your Progress</AppText>
+          <View style={styles.statsRow}>
+            <EducationStat label="Completed" value={stats.totalCompleted} />
+            <EducationStat label="Started" value={stats.totalStarted} />
+            <EducationStat label="XP Earned" value={stats.totalXpEarned} />
           </View>
-        )}
+        </Card>
+      )}
 
-        <Text className="text-lg font-bold text-gray-900 mb-4">Available Content</Text>
+      <AppText variant="heading" style={styles.sectionTitle}>
+        Available Content
+      </AppText>
 
-        {content?.items.length === 0 ? (
-          <View className="bg-white p-8 rounded-2xl items-center">
-            <BookOpen size={48} color="#9ca3af" />
-            <Text className="text-lg font-medium text-gray-900 mt-4">No Content Available</Text>
-            <Text className="text-sm text-gray-500 mt-2 text-center">
-              Check back later for educational content
-            </Text>
-          </View>
-        ) : (
-          content?.items.map((item) => (
+      {content?.items.length === 0 ? (
+        <Card>
+          <EmptyState
+            icon={BookOpen}
+            title="No Content Available"
+            description="Check back later for educational content"
+          />
+        </Card>
+      ) : (
+        <View style={styles.list}>
+          {content?.items.map((item) => (
             <EducationCard
               key={item.id}
               content={item}
@@ -113,10 +117,23 @@ export default function EducationScreen() {
               isStarting={startMutation.isPending}
               isCompleting={completeMutation.isPending}
             />
-          ))
-        )}
-      </View>
-    </ScrollView>
+          ))}
+        </View>
+      )}
+    </Screen>
+  );
+}
+
+function EducationStat({ label, value }: { label: string; value: number }) {
+  return (
+    <View style={styles.stat}>
+      <AppText variant="numeric" style={styles.statValue}>
+        {value}
+      </AppText>
+      <AppText muted variant="bodySmall" style={styles.statLabel}>
+        {label}
+      </AppText>
+    </View>
   );
 }
 
@@ -128,67 +145,123 @@ function EducationCard({
   isCompleting,
 }: {
   content: EducationalContent;
+  // onStart/isStarting are wired to a real backend mutation but no control in
+  // this card triggers them yet — see P3-10.
   onStart: () => void;
   onComplete: () => void;
   isStarting: boolean;
   isCompleting: boolean;
 }) {
   return (
-    <View className="bg-white p-6 rounded-2xl shadow-sm mb-4">
-      <View className="flex-row items-start justify-between mb-3">
-        <View className="flex-1">
-          <View className="flex-row items-center mb-1">
-            <View className="px-2 py-1 bg-red-100 rounded mr-2">
-              <Text className="text-xs font-medium text-red-600">{content.type}</Text>
-            </View>
-            <View className="px-2 py-1 bg-gray-100 rounded">
-              <Text className="text-xs font-medium text-gray-600">{content.difficulty}</Text>
-            </View>
-          </View>
-          <Text className="text-xl font-bold text-gray-900">{content.title}</Text>
-        </View>
+    <GlassCard style={styles.card}>
+      <View style={styles.badgeRow}>
+        <Badge variant="primary">{content.type}</Badge>
+        <Badge>{content.difficulty}</Badge>
       </View>
+      <AppText variant="heading">{content.title}</AppText>
 
-      <Text className="text-sm text-gray-700 mb-4" numberOfLines={3}>
+      <AppText variant="bodySmall" style={styles.description} numberOfLines={3}>
         {content.description}
-      </Text>
+      </AppText>
 
-      <View className="flex-row items-center mb-4">
+      <View style={styles.meta}>
         {content.estimatedMinutes && (
-          <View className="flex-row items-center mr-4">
-            <Clock size={16} color="#6b7280" />
-            <Text className="text-sm text-gray-600 ml-1">{content.estimatedMinutes} min</Text>
+          <View style={styles.detailRow}>
+            <Clock size={16} color={colors.textMuted} />
+            <AppText muted variant="bodySmall">
+              {content.estimatedMinutes} min
+            </AppText>
           </View>
         )}
 
         {content.xpReward > 0 && (
-          <View className="flex-row items-center">
-            <Award size={16} color="#dc2626" />
-            <Text className="text-sm font-medium text-red-600 ml-1">+{content.xpReward} XP</Text>
+          <View style={styles.detailRow}>
+            <Award size={16} color={colors.primary} />
+            <AppText variant="bodySmall" style={styles.xpReward}>
+              +{content.xpReward} XP
+            </AppText>
           </View>
         )}
       </View>
 
-      <View className="flex-row items-center justify-between">
-        <View className="px-3 py-1 bg-gray-100 rounded-full">
-          <Text className="text-xs font-medium text-gray-600">{content.category}</Text>
-        </View>
+      <View style={styles.cardFooter}>
+        <Badge>{content.category}</Badge>
 
-        <TouchableOpacity
-          onPress={onComplete}
-          disabled={isCompleting}
-          className="bg-red-600 py-2 px-6 rounded-xl"
-        >
-          {isCompleting ? (
-            <ActivityIndicator color="#fff" size="small" />
-          ) : (
-            <View className="flex-row items-center">
-              <CheckCircle size={16} color="#fff" />
-              <Text className="text-white font-semibold ml-1">Complete</Text>
-            </View>
-          )}
-        </TouchableOpacity>
+        <AppButton onPress={onComplete} loading={isCompleting} size="small">
+          <CheckCircle size={16} color={colors.white} />
+          Complete
+        </AppButton>
       </View>
-    </View>
+    </GlassCard>
   );
 }
+
+const styles = StyleSheet.create({
+  header: {
+    marginBottom: spacing.lg,
+  },
+  subtitle: {
+    marginTop: spacing.xs,
+  },
+  statsCard: {
+    padding: spacing.lg,
+    marginBottom: spacing.lg,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: spacing.md,
+  },
+  stat: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  statValue: {
+    fontSize: 28,
+    lineHeight: 34,
+    color: colors.primary,
+  },
+  statLabel: {
+    marginTop: spacing.xs,
+  },
+  sectionTitle: {
+    marginBottom: spacing.md,
+  },
+  list: {
+    gap: spacing.md,
+    paddingBottom: spacing.xl,
+  },
+  card: {
+    padding: spacing.lg,
+  },
+  badgeRow: {
+    flexDirection: 'row',
+    gap: spacing.xs,
+    marginBottom: spacing.sm,
+  },
+  description: {
+    marginTop: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  meta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    marginBottom: spacing.md,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  xpReward: {
+    fontWeight: '600',
+    color: colors.primary,
+  },
+  cardFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+  },
+});
