@@ -1212,13 +1212,74 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   intentional dual-access route wasn't broken by this fix.
   - File: `apps/api/src/modules/appointments/appointments.controller.ts`.
 
-- [ ] **P2-4. Emergency module DTOs are plain interfaces with zero
-  class-validator decorators**, so Nest's global `ValidationPipe` silently
-  skips validation on create/cancel/complete/location-update bodies — bad
-  input reaches Prisma and surfaces as an ugly 500 instead of a 400.
-  Same gap in notification/push-device DTOs.
-  `apps/api/src/modules/emergency/emergency.controller.ts`,
-  `apps/api/src/modules/notifications/dto/*`.
+- [x] **P2-4. Emergency module DTOs are plain interfaces with zero
+  class-validator decorators.** — Fixed. Confirmed live before fixing:
+  `POST .../emergencies` with `bloodType: "NOT_A_BLOOD_TYPE"` or a negative
+  `unitsRequired` sailed straight through the global `ValidationPipe`
+  (which only validates real classes — a plain inline TS interface has no
+  runtime representation, so `toValidate()` treats it as nothing to
+  check) into `EmergencyService`/Prisma. Added a new
+  `apps/api/src/modules/emergency/dto/emergency.dto.ts` with five real
+  classes (`CreateEmergencyDto`, `CancelEmergencyDto`,
+  `CancelEmergencyResponseDto`, `CompleteEmergencyResponseDto`,
+  `UpdateEmergencyLocationDto`) and swapped every inline `@Body()` type in
+  `emergency.controller.ts` for one of them — enum checks on
+  `bloodType`/`rhFactor`, `@Min(1)` on `unitsRequired`/`volumeMl`,
+  `@IsIn([...])` on `urgencyLevel` matching the exact 4-value set
+  hospital-web's own create form already offers, lat/lng range checks
+  matching `shipments`' existing `UpdateLocationDto` pattern (the service
+  layer's own defensive range checks on `updateLocation` stay as
+  harmless defense-in-depth). Left `getEmergencies`' `@Query()` filter
+  interface alone — this item's own scope is bodies, and a GET filter
+  is a materially lower-risk gap than the mutation endpoints named here.
+  On the notifications side, most of `dto/*` turned out to already be
+  proper classes (`RegisterPushDeviceDto`/`UpdatePushDeviceDto`) or pure
+  internal types never touched by `@Body()`
+  (`CreateNotificationDto`/`NotificationFilterDto`/
+  `UpdateNotificationDto`/response shapes) — no gap there. The two real
+  ones: `MarkReadDto` (`{notificationIds: string[]}` — a malformed or
+  missing value would have hit `dto.notificationIds.map(...)` as a raw
+  TypeError, an actual 500 confirmed live before the fix) and
+  `UpdateNotificationPreferencesDto`, both converted to real classes.
+  Fixing the preferences DTO surfaced a real, separate bug: **two
+  complete, independent modules** both implement notification
+  preferences and both register `@Controller('notifications')` +
+  `@Patch('preferences')`/`@Get('preferences')` — `notification-preferences/`
+  (small, standalone) and `notifications/` (the larger combined module,
+  whose own `NotificationPreferenceService` also has load-bearing
+  internal methods — `isInQuietHours`/`shouldEmergencyOverride`/
+  `isChannelEnabled` — actually used by the real delivery pipeline, so
+  it's not simply dead). Because `NotificationPreferencesModule` is
+  imported first in `app.module.ts`, its controller silently wins the
+  route registration and the other's `getPreferences`/`updatePreferences`
+  are unreachable dead code — confirmed by editing the "obvious" file
+  first, getting genuinely confusing live-test results, and tracing it
+  back to this route collision (a full audit of every controller found
+  it's the *only* such collision in the API). Fixed the DTO that's
+  actually live (`notification-preferences/dto/update-notification-preferences.dto.ts`)
+  with the same quiet-hours `HH:mm` `@Matches` validation, kept the
+  parallel fix on the dead copy since it's harmless and matches this
+  item's own file pointer, and logged the duplicate-module discovery
+  itself as new **P2-16** below rather than trying to resolve a
+  whole-module consolidation inside a DTO-validation fix.
+  Verified: full suite still 319/319, clean `tsc --noEmit`, 0 new lint
+  warnings. Live end-to-end against the real Postgres + running API:
+  confirmed bad `bloodType`/negative `unitsRequired`/bogus `urgencyLevel`
+  now return clean `400`s instead of reaching Prisma raw, confirmed a
+  legitimate create/cancel still works, confirmed `forbidNonWhitelisted`
+  now actually rejects an unexpected extra field on the emergency cancel
+  body (previously silently accepted since there was no class to
+  whitelist against), confirmed `mark-read` with a non-array/missing
+  `notificationIds` now 400s instead of 500ing, and — after tracing the
+  duplicate-module issue — confirmed the quiet-hours format fix on the
+  actually-live preferences route specifically (`25:99` now `400`s,
+  `22:30`/`06:15` still succeeds). Restored the test donor's notification
+  preferences to sane defaults afterward.
+  - Files: `apps/api/src/modules/emergency/dto/emergency.dto.ts` (new),
+    `apps/api/src/modules/emergency/emergency.controller.ts`,
+    `apps/api/src/modules/notifications/dto/create-notification.dto.ts`,
+    `apps/api/src/modules/notifications/dto/notification-preference.dto.ts`,
+    `apps/api/src/modules/notification-preferences/dto/update-notification-preferences.dto.ts`.
 
 - [ ] **P2-5. `EmergencyRequest` has no blood-component field** — only
   blood type, unlike the parallel `BloodRequestItem` model — so an
@@ -1293,6 +1354,37 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   keyed by appointment the way `confirm`/`check-in`/`start`/`complete`
   are.
   `apps/api/src/modules/laboratory/laboratory.controller.ts:249-273`.
+
+- [ ] **P2-16. Two complete, independent modules both implement
+  notification preferences (found while verifying P2-4)** —
+  `apps/api/src/modules/notification-preferences/` (small, standalone)
+  and `apps/api/src/modules/notifications/` (the larger combined
+  notifications module) both register a controller at
+  `@Controller('notifications')` with `@Get('preferences')`/
+  `@Patch('preferences')`. Both are imported in `app.module.ts`, but
+  since `NotificationPreferencesModule` is imported first, its
+  controller wins the route registration and the other module's
+  `getPreferences`/`updatePreferences` handlers are permanently
+  unreachable dead code — confirmed live, and confirmed (via a full
+  audit of every controller's registered paths) to be the *only* such
+  collision in the API. Not a currently-live user-facing bug: both
+  services read/write the same `NotificationPreference` table, so data
+  stays consistent regardless of which one answers a request, and the
+  `notifications` module's own `NotificationPreferenceService` still
+  does real work elsewhere (`isInQuietHours`/`shouldEmergencyOverride`/
+  `isChannelEnabled` are used by the real delivery pipeline in
+  `notification-delivery.service.ts`) — but it's a correctness trap
+  waiting to happen: reordering `app.module.ts`'s imports, or anyone
+  editing the "obviously right" file without knowing about the other
+  one (as P2-4's fix nearly did), silently changes live behavior with
+  no compiler or test signal. Needs a decision on which module is
+  canonical (the larger `notifications` module, given its service has
+  the load-bearing quiet-hours/channel logic, looks like the intended
+  survivor) and the other's controller/route deleted, with its DTO's
+  validation (already fixed in P2-4) merged in if not already equivalent.
+  `apps/api/src/modules/notification-preferences/`,
+  `apps/api/src/modules/notifications/notifications.controller.ts:105-116`,
+  `apps/api/src/app.module.ts`.
 
 ---
 
@@ -1435,6 +1527,10 @@ live that hospital-staff and courier tokens could both book a real
 donation slot for themselves; added `@Roles(DONOR, SUPER_ADMIN)` to the
 five donor-self-service routes, deliberately leaving `GET :id`
 unrestricted since its service already permits staff-of-org too).~~ ✅
-Next up: **P2-4** (Emergency module DTOs are plain interfaces with zero
-class-validator decorators), then the rest of P2, folding in P3-1 tests
-as each area is touched.
+~~**P2-4** (Emergency + notification DTOs were plain interfaces skipping
+validation entirely — added real classes with enum/range/format checks;
+found and fixed a genuine live 500-on-bad-input in `mark-read`, and
+discovered a whole duplicate notification-preferences module silently
+shadowing the one this item was fixing, split out to new P2-16).~~ ✅
+Next up: **P2-5** (`EmergencyRequest` has no blood-component field), then
+the rest of P2, folding in P3-1 tests as each area is touched.
