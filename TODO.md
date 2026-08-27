@@ -3263,7 +3263,7 @@ These make the product unusable or unsafe for real users. Fix first, in order.
     (5 regression tests), `apps/api/test/emergency.e2e-spec.ts`
     (cross-group matching against a real database).
 
-- [ ] **P3-12. 16 POST routes are documented as returning 200 but
+- [x] **P3-12. 16 POST routes are documented as returning 200 but
   actually return 201 (found while writing the donation e2e suite).**
   These are state-transition endpoints (`/confirm`, `/cancel`,
   `/start`, `/complete`, `/join`, `/approve`, …) that carry
@@ -3277,6 +3277,36 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   that changes 16 response codes at once, which is a breaking API change
   for existing consumers and needs an explicit decision. The e2e suites
   assert the real behaviour (201) and cite this item where they do.
+  — Fixed (on the user's explicit go-ahead, after the breaking-change
+  concern above was put to them): **not** by blanket-applying
+  `@HttpCode(HttpStatus.OK)` to all 16, which would have been wrong.
+  Checked what each route actually does first, and the 16 split in two:
+  **12 mutate an existing resource** (`blockSlot`, appointment
+  `cancel`/`reschedule`/`confirm`/`complete`, donation
+  `start`/`complete`/`cancel`/`abort`, `verifyBloodType`, education
+  `complete`, `leaderboard-visibility`). Confirmed from the services
+  that each one calls `.update()` and creates nothing addressable —
+  `rescheduleAppointment`, for instance, updates the existing
+  appointment rather than making a new one. For these 200 is the
+  correct status, so they now carry `@HttpCode(HttpStatus.OK)` and
+  match the annotation they already had.
+  **4 genuinely create a resource** — education `POST /` (creates
+  content), education `:id/start` and campaigns/challenges `:id/join`,
+  each of which calls `.create()` for a new progress or participant
+  row. For those 201 was right all along and the *annotation* was
+  wrong, so the docs were corrected to 201 and the behaviour left
+  untouched. That reduces the breaking surface from 16 routes to 12,
+  and leaves each route semantically correct rather than merely
+  consistent.
+  The e2e suites earned their keep here: they asserted the old 201 on
+  the three affected routes they exercise (`appointments/:id/confirm`,
+  `donations/:id/start`, `donations/:id/complete`) and failed
+  immediately on the change, which is exactly the signal a real
+  consumer would have seen. Those assertions now expect 200. A repo-wide
+  re-scan confirms **zero** remaining routes where the declared status
+  and the real one disagree.
+  Verified: 626 API unit tests, 83 e2e on a pristine migrate+seed
+  database, typecheck 10/10, lint 10/10.
   - Files: `appointment-slots.controller.ts` (1),
     `appointments.controller.ts` (4), `campaigns.controller.ts` (1),
     `challenges.controller.ts` (1), `donations.controller.ts` (4),
@@ -3705,6 +3735,15 @@ catch-and-ignore cleanup was caught hiding two broken delete calls and
 leaving stale rows that made later runs fail for unrelated-looking
 reasons. Verified by running the whole suite twice, 78/78 both times,
 with the database confirmed clean and seeded data untouched).~~ ✅
+~~**P3-12** (the OpenAPI status mismatch is gone, and deliberately not by
+blanket-setting every route to 200. Reading what each one actually does
+split the 16: twelve mutate an existing resource and now return 200 via
+@HttpCode, while four genuinely create a row — education create/start,
+campaign and challenge join — so their *annotation* was the wrong half
+and 201 stays. That keeps every route semantically right and cuts the
+breaking surface from 16 routes to 12. The e2e suites caught the change
+on the three routes they exercise, exactly as a real consumer would;
+a repo-wide re-scan shows no declared/actual mismatches left).~~ ✅
 ~~**P3-13** (gamification profile creation is no longer racy. Proved the
 mechanism from Prisma's emitted SQL — upsert compiles to SELECT then a
 plain INSERT with no ON CONFLICT — and reproduced the P2002 on 6 of 6
@@ -3732,6 +3771,4 @@ passing, so the pool widened to compatible donors, not to everyone).~~ ✅
 Next up: the remainder of **P3-2** (Next.js app pages, more
 `packages/ui` components — the mobile/Expo test setup half is now done
 as part of P3-9), or **P3-4** through **P3-7** (env docs, stale docs,
-repo naming, dead admin DTOs), or **P3-10**, or **P3-12** (the OpenAPI
-status mismatch, which needs a call on whether to make the breaking
-change).
+repo naming, dead admin DTOs), or **P3-10**.

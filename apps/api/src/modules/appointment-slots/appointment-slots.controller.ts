@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Patch, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
 import { AppointmentType, RoleCode } from '@prisma/client';
@@ -67,6 +67,7 @@ export class AppointmentSlotsController {
   }
 
   @Post('organizations/:organizationId/slots/:slotId/block')
+  @HttpCode(HttpStatus.OK)
   @Roles(RoleCode.SUPER_ADMIN, RoleCode.HOSPITAL_ADMIN, RoleCode.HOSPITAL_STAFF, RoleCode.BLOOD_CENTER_ADMIN, RoleCode.BLOOD_CENTER_STAFF)
   @ApiOperation({ summary: 'Block appointment slot (staff only)' })
   @ApiResponse({ status: 200, description: 'Slot blocked' })

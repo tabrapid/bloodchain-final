@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Query, Body, UseGuards, Request } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Post, Query, Request, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse, ApiQuery } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { GamificationService } from './gamification.service';
@@ -79,6 +79,7 @@ export class GamificationController {
   }
 
   @Post('me/gamification/leaderboard-visibility')
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Update leaderboard visibility setting' })
   @ApiResponse({ status: 200, description: 'Visibility updated' })
   async updateLeaderboardVisibility(

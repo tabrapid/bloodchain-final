@@ -104,7 +104,7 @@ export class ChallengesController {
 
   @Put(':id/progress')
   @ApiOperation({ summary: "Recalculate the current user's progress on a challenge from their real activity records" })
-  @ApiResponse({ status: 200, description: 'Progress recalculated successfully' })
+  @ApiResponse({ status: 201, description: 'Progress recalculated successfully' })
   async recalculateProgress(
     @Param('id') id: string,
     @CurrentUser('sub') userId: string,

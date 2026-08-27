@@ -129,14 +129,14 @@ describe('Donation lifecycle (e2e)', () => {
 
   describe('3. Check-in', () => {
     it('staff can confirm the appointment', async () => {
-      // 201, not 200: the route has no @HttpCode, so Nest applies its POST
-      // default. The controller's own @ApiResponse says 200, so the published
-      // Swagger contract disagrees with the real response — logged as P3-11.
+      // 200, not 201: confirming mutates the existing appointment rather than
+      // creating anything, so the route carries @HttpCode(HttpStatus.OK) and
+      // now matches its own OpenAPI annotation (P3-12).
       await request(app.getHttpServer())
         .post(`${API}/appointments/${appointmentId}/confirm`)
         .set('Authorization', `Bearer ${staffToken}`)
         .send({})
-        .expect(201);
+        .expect(200);
     });
 
     it('staff from an unrelated organization cannot check the donor in', async () => {
@@ -188,13 +188,13 @@ describe('Donation lifecycle (e2e)', () => {
     });
 
     it('staff can start the donation once the assessment approves it', async () => {
-      // 201 again, per the P3-11 note above: these state-transition POSTs are
-      // documented as 200 but Nest returns its POST default.
+      // 200 for the same reason as confirm above: a state transition on an
+      // existing donation.
       await request(app.getHttpServer())
         .post(`${API}/organizations/${bloodCenterId}/donations/${donationId}/start`)
         .set('Authorization', `Bearer ${staffToken}`)
         .send({ donationType: 'WHOLE_BLOOD' })
-        .expect(201);
+        .expect(200);
 
       const donation = await db.donation.findUniqueOrThrow({ where: { id: donationId } });
       expect(donation.status).toBe('IN_PROGRESS');
@@ -235,7 +235,7 @@ describe('Donation lifecycle (e2e)', () => {
           collectionCompletedAt: now.toISOString(),
           notes: 'e2e completion',
         })
-        .expect(201);
+        .expect(200);
 
       const donation = await db.donation.findUniqueOrThrow({ where: { id: donationId } });
       expect(donation.status).toBe('COMPLETED');

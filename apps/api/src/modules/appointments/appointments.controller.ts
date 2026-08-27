@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Query, Req, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Query, Req, UseGuards, UseInterceptors } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
 import { RoleCode } from '@prisma/client';
@@ -63,6 +63,7 @@ export class AppointmentsController {
   }
 
   @Post(':id/cancel')
+  @HttpCode(HttpStatus.OK)
   @Roles(RoleCode.DONOR, RoleCode.SUPER_ADMIN)
   @ApiOperation({ summary: 'Cancel an appointment' })
   @ApiResponse({ status: 200, description: 'Appointment cancelled' })
@@ -77,6 +78,7 @@ export class AppointmentsController {
   }
 
   @Post(':id/reschedule')
+  @HttpCode(HttpStatus.OK)
   @Roles(RoleCode.DONOR, RoleCode.SUPER_ADMIN)
   @ApiOperation({ summary: 'Reschedule an appointment' })
   @ApiResponse({ status: 200, description: 'Appointment rescheduled' })
@@ -91,6 +93,7 @@ export class AppointmentsController {
   }
 
   @Post(':id/confirm')
+  @HttpCode(HttpStatus.OK)
   @Roles(RoleCode.SUPER_ADMIN, RoleCode.HOSPITAL_ADMIN, RoleCode.HOSPITAL_STAFF, RoleCode.BLOOD_CENTER_ADMIN, RoleCode.BLOOD_CENTER_STAFF)
   @ApiOperation({ summary: 'Confirm appointment (staff only)' })
   @ApiResponse({ status: 200, description: 'Appointment confirmed' })
@@ -103,6 +106,7 @@ export class AppointmentsController {
   }
 
   @Post(':id/complete')
+  @HttpCode(HttpStatus.OK)
   @Roles(RoleCode.SUPER_ADMIN, RoleCode.HOSPITAL_ADMIN, RoleCode.HOSPITAL_STAFF, RoleCode.BLOOD_CENTER_ADMIN, RoleCode.BLOOD_CENTER_STAFF)
   @ApiOperation({ summary: 'Mark appointment as completed (staff only)' })
   @ApiResponse({ status: 200, description: 'Appointment completed' })

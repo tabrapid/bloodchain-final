@@ -93,7 +93,7 @@ export class CampaignsController {
 
   @Delete(':id/leave')
   @ApiOperation({ summary: 'Leave a campaign' })
-  @ApiResponse({ status: 200, description: 'Left campaign successfully' })
+  @ApiResponse({ status: 201, description: 'Left campaign successfully' })
   async leaveCampaign(
     @Param('id') id: string,
     @CurrentUser('sub') userId: string,
