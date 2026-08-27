@@ -58,7 +58,14 @@ describe('Blood request and shipment chain (e2e)', () => {
     const donor = await db.user.findUniqueOrThrow({ where: { email: SEEDED.donor } });
     donorUserId = donor.id;
 
-    // A dedicated AB- unit for this suite to ship.
+    // A dedicated AB- unit for this suite to ship, deliberately collected long
+    // before any seeded unit. Approval picks stock with
+    // `orderBy: { collectedAt: 'asc' }` -- oldest first, which is correct stock
+    // rotation -- so dating this unit back is what makes "the unit this suite
+    // created is the one that gets reserved" a deterministic claim rather than
+    // a race against whatever the seed happens to hold. It still expires in the
+    // future, so it is genuinely issuable.
+    const collectedAt = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
     const donation = await db.donation.create({
       data: {
         donationReference: DONATION_REF,
@@ -81,7 +88,7 @@ describe('Blood request and shipment chain (e2e)', () => {
         rhFactor: 'NEGATIVE',
         volumeMl: 450,
         status: 'AVAILABLE',
-        collectedAt: new Date(),
+        collectedAt,
         expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
       },
     });
@@ -194,8 +201,9 @@ describe('Blood request and shipment chain (e2e)', () => {
       expect(updated.fulfillingOrganizationId).toBe(bloodCenterId);
 
       // The approval must take a real unit out of general availability, not
-      // just advance the request's status. This suite's own AB- unit was the
-      // only matching one it created, so it is the one that must have moved.
+      // just advance the request's status. Because this suite's AB- unit is the
+      // oldest matching stock, correct FIFO rotation must select exactly it --
+      // so this also pins the rotation rule, not just "something got reserved".
       const unit = await db.bloodUnit.findUniqueOrThrow({ where: { id: fixtureUnitId } });
       expect(unit.status).toBe('RESERVED');
 
