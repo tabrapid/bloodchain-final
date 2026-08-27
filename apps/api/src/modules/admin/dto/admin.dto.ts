@@ -4,7 +4,6 @@ import {
   IsString,
   IsBoolean,
   IsInt,
-  IsNumber,
   IsDateString,
   IsArray,
   IsNotEmpty,
@@ -197,20 +196,6 @@ export class AdminSuspendOrganizationDto {
   reason?: string;
 }
 
-export class AdminVerifyCourierDto {
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  notes?: string;
-}
-
-export class AdminRejectCourierDto {
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  reason?: string;
-}
-
 export class AdminSuspendCourierDto {
   @ApiPropertyOptional()
   @IsOptional()
@@ -282,79 +267,6 @@ export class AdminListAuditLogsDto {
   result?: string;
 }
 
-export class AdminListSupportTicketsDto {
-  @ApiPropertyOptional({ default: '1' })
-  @IsOptional()
-  @IsString()
-  page?: string;
-
-  @ApiPropertyOptional({ default: '20' })
-  @IsOptional()
-  @IsString()
-  limit?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  status?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  priority?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  category?: string;
-}
-
-export class AdminAssignTicketDto {
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  adminId?: string;
-}
-
-export class AdminUpdateTicketDto {
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  status?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  priority?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  resolution?: string;
-}
-
-export class AdminCreateTicketDto {
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  category?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  priority?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  subject?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  description?: string;
-}
-
 export class AdminListAlertsDto {
   @ApiPropertyOptional({ default: '1' })
   @IsOptional()
@@ -420,133 +332,6 @@ export class AdminResolveContentReportDto {
   @IsOptional()
   @IsString()
   resolution?: string;
-}
-
-export class AdminListFeatureFlagsDto {
-  @ApiPropertyOptional({ default: '1' })
-  @IsOptional()
-  @IsString()
-  page?: string;
-
-  @ApiPropertyOptional({ default: '50' })
-  @IsOptional()
-  @IsString()
-  limit?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  enabled?: string;
-}
-
-export class AdminUpdateFeatureFlagDto {
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsBoolean()
-  enabled?: boolean;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  description?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  notes?: string;
-}
-
-export class AdminListAnnouncementsDto {
-  @ApiPropertyOptional({ default: '1' })
-  @IsOptional()
-  @IsString()
-  page?: string;
-
-  @ApiPropertyOptional({ default: '20' })
-  @IsOptional()
-  @IsString()
-  limit?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  type?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  active?: string;
-}
-
-export class AdminCreateAnnouncementDto {
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  type?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  title?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  body?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  targetRoles?: string[];
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  startsAt?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  endsAt?: string;
-}
-
-export class AdminUpdateAnnouncementDto {
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  type?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  title?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  body?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  targetRoles?: string[];
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  startsAt?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  endsAt?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsBoolean()
-  active?: boolean;
 }
 
 export class AdminListShipmentsDto {
@@ -633,53 +418,4 @@ export class AdminListEmergenciesDto {
   @IsOptional()
   @IsString()
   bloodType?: string;
-}
-
-export class AdminPlatformStatsDto {
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsDateString()
-  startDate?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsDateString()
-  endDate?: string;
-}
-
-export class AdminUpdateSettingsDto {
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  maintenanceMode?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsBoolean()
-  sosEnabled?: boolean;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsBoolean()
-  courierEnabled?: boolean;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsBoolean()
-  gamificationEnabled?: boolean;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsBoolean()
-  aiInsightsEnabled?: boolean;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  platformName?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  supportEmail?: string;
 }

@@ -2925,19 +2925,88 @@ These make the product unusable or unsafe for real users. Fix first, in order.
     importing a workspace package, the three web apps' `layout.tsx`,
     `packages/ui/.../Sidebar.tsx`, `README.md`, `docs/`.
 
-- [ ] **P3-7. Dead DTO scaffolding for three never-built admin features
-  (found while working P1-15).** `apps/api/src/modules/admin/dto/admin.dto.ts`
-  has `AdminListFeatureFlagsDto`/`AdminUpdateFeatureFlagDto`,
-  `AdminListAnnouncementsDto`/`AdminCreateAnnouncementDto`/`AdminUpdateAnnouncementDto`,
-  `AdminListSupportTicketsDto`/`AdminAssignTicketDto`/`AdminUpdateTicketDto`/`AdminCreateTicketDto`,
-  and `AdminUpdateSettingsDto` — none imported by the controller, none
-  backed by a Prisma model. Pure leftover scaffolding from admin features
-  that were apparently planned and never built past the DTO layer (P1-14
-  built real platform settings a different way; the others have no
-  model/service/UI at all). Either delete the dead classes or use them as
-  a starting spec if support tickets/announcements/generic feature-flag
-  CRUD ever get built for real.
-  - File: `apps/api/src/modules/admin/dto/admin.dto.ts`.
+- [x] **P3-7. Dead DTO scaffolding for never-built admin features
+  (found while working P1-15).** — Fixed: 13 of the dead classes deleted, and
+  the 14th turned out not to be dead scaffolding at all but the correct,
+  unwired fix for a live route with **no request validation on it**.
+
+  **The scan.** The audit note listed 10 suspects; an empirical scan found 14.
+  The first scan I ran reported all 33 classes in the file as "used" — those
+  extra hits were inside `.next` build artifacts, i.e. stale compiled copies of
+  the same source, not real references. Re-running with
+  `--exclude-dir=.next --exclude-dir=dist --exclude-dir=node_modules` gave the
+  real answer: 19 referenced, 14 referenced by nothing anywhere in the repo
+  outside their own definition. Beyond the note's 10 it caught three courier
+  DTOs (`AdminVerifyCourierDto`, `AdminRejectCourierDto`,
+  `AdminSuspendCourierDto`) and `AdminPlatformStatsDto`.
+
+  **The 14th.** `AdminSuspendCourierDto` was unreferenced, but
+  `POST /admin/couriers/:id/suspend` *is* a live, shipped route — it just
+  declared its body as an inline anonymous type, `@Body() body: { reason?: string }`.
+  NestJS's `ValidationPipe` skips validation outright when the resolved metatype
+  is a native type (`Object` is on its skip list), so this route ran with **no**
+  validation at all: the app's global `whitelist` / `forbidNonWhitelisted`
+  policy did not apply to it, and Swagger documented no request body for it.
+  The correctly-written DTO for exactly this route sat unused a few lines away
+  in the same file. So the fix here is to wire it in, not delete it. Its sibling
+  `POST /admin/users/:id/suspend` already used `AdminSuspendUserDto` properly,
+  which is what made the courier route the odd one out.
+
+  Pinned by a new e2e suite (`test/admin-couriers.e2e-spec.ts`, 3 tests, own
+  courier fixture so it doesn't disturb the seeded courier the shipment suites
+  borrow). Proved the test catches the bug: reverting the controller to the
+  inline body fails it 2/3 — the unknown-property request is *accepted*, and it
+  actually suspends the courier, which is exactly the pre-fix behaviour. One
+  thing measured rather than assumed: `@IsString()` on `reason` is close to
+  unenforceable here because the app sets `enableImplicitConversion: true`, so
+  class-transformer stringifies an object body before the validator sees it — a
+  test asserting otherwise passed against the *broken* code, so it was dropped.
+  What this fix genuinely restores on the route is the whitelist policy, and
+  that is what the suite asserts.
+
+  `AdminVerifyCourierDto` / `AdminRejectCourierDto` are a different story: there
+  are no courier verify/reject routes at all (only suspend/restore), so those
+  two describe endpoints that do not exist. Deleted.
+
+  **`AdminUpdateSettingsDto`** is the clearest argument for deleting rather than
+  keeping the rest as a "spec". It is a near-duplicate of the real, wired
+  `AdminUpdatePlatformSettingsDto` (P1-14) with different field names
+  (`sosEnabled` vs `sosEmergencyEnabled`, `aiInsightsEnabled` vs
+  `aiHealthInsightsEnabled`, `maintenanceMode` typed `string` instead of
+  `boolean`) and none of its validation bounds. Two similarly-named settings
+  DTOs one file apart, only one of them real, is exactly the sort of thing
+  someone wires up by accident.
+
+  The remaining 10 describe support tickets, feature flags and announcements.
+  Confirmed entirely unbuilt rather than half-built: a case-insensitive grep for
+  `supportticket|featureflag|announcement` across `apps/api/src` and
+  `schema.prisma` returns exactly one hit, and it is the unrelated `ANNOUNCEMENT`
+  value of the community post-type enum. No model, no service, no route, no UI.
+
+  None of the deleted 13 ever reached the OpenAPI document — `@nestjs/swagger`
+  only emits models reachable from a route, and no route referenced them — so
+  the deletion cannot change the published API surface. There are no
+  `@ApiExtraModels` / `getSchemaPath` usages anywhere in the codebase that could
+  have pulled one in by name.
+
+  Result: 685 → 421 lines, 33 → 20 exported classes, plus one now-orphaned
+  `IsNumber` import pruned from `class-validator`. The 20 that remain are
+  exactly the 20 the controller imports.
+
+  Left open as **P3-14**: four *other* routes still declare inline anonymous
+  request bodies and are therefore equally unvalidated, including two that take
+  required fields and one that accepts clinical lab results.
+
+  Verified: `pnpm typecheck` 10/10, `pnpm lint` 10/10 (0 errors),
+  `pnpm turbo run test --force` (626 API + 16 mobile + package tests) green,
+  `pnpm build` 4/4, and 86 e2e tests across 7 suites against a database freshly
+  created, migrated and seeded for the run — the e2e harness boots the real
+  `AppModule`, so it also proves the admin module still resolves and Swagger
+  still builds with the 13 classes gone. Checked the run left no residue
+  (0 fixture users, 0 fixture couriers, 0 stray audit rows).
+  - Files: `apps/api/src/modules/admin/dto/admin.dto.ts`,
+    `apps/api/src/modules/admin/admin.controller.ts`,
+    `apps/api/test/admin-couriers.e2e-spec.ts` (new).
 
 - [x] **P3-8. `GET /campaigns/my/campaigns` silently overwrites the
   campaign's own `status` with the caller's participation status
@@ -3442,6 +3511,41 @@ These make the product unusable or unsafe for real users. Fix first, in order.
     `apps/api/src/modules/gamification/services/reputation.service.ts`
     (two transaction guards),
     `apps/api/test/gamification-concurrency.e2e-spec.ts` (new).
+
+- [ ] **P3-14. Four routes declare inline anonymous request bodies, so they
+  run with no validation at all (found while working P3-7).** NestJS's
+  `ValidationPipe` skips validation when the resolved metatype is a native
+  type, and an inline object type such as `@Body() dto: { courierId: string }`
+  resolves to `Object`. The app's global `whitelist` /
+  `forbidNonWhitelisted` / `transform` policy therefore does not apply to
+  these routes, and Swagger documents no request body for any of them.
+  P3-7 fixed the fifth instance (`POST /admin/couriers/:id/suspend`, which
+  already had a correct-but-unwired DTO sitting next to it). The remaining
+  four have no DTO at all and need one written:
+  - `POST /organizations/:organizationId/shipments/:shipmentId/assign`
+    (`shipments.controller.ts:165`) — `{ courierId: string }`, a **required**
+    field. A body with `courierId` missing or non-string reaches the service
+    and then Prisma unchecked.
+  - `POST /laboratory-appointments` (`laboratory.controller.ts:59`) —
+    `{ laboratoryId, testTypeId, slotId, notes? }`, three **required** fields,
+    none validated.
+  - `POST /me/laboratory-appointments/:appointmentId/cancel`
+    (`laboratory.controller.ts:103`) — `{ reason?: string }`.
+  - `POST /organizations/:organizationId/laboratory-results`
+    (`laboratory.controller.ts:262`) — `{ appointmentId, items[], testTypeId }`,
+    including a nested array of result items with numeric values, units and
+    flags. This one accepts **clinical data** with no shape checking, no
+    nested validation, and no `@ValidateNested`/`@Type` on the array; it is
+    the highest-risk of the four.
+
+  Each needs a DTO class with the right `class-validator` decorators (and
+  `@ValidateNested()` + `@Type()` for the results array), wired onto the
+  route the same way P3-7 wired `AdminSuspendCourierDto`. Worth adding a
+  guard test that fails if any controller reintroduces an inline `@Body()`
+  object type, since nothing in the type system or the linter catches it.
+  - Files: `apps/api/src/modules/shipments/shipments.controller.ts`,
+    `apps/api/src/modules/laboratory/laboratory.controller.ts`, plus new
+    DTO files for each module.
 
 ---
 

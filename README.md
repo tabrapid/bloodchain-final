@@ -98,9 +98,9 @@ pnpm build
 ```
 
 The API also has an end-to-end suite that runs against a **real** PostgreSQL
-database rather than mocks — 83 tests covering auth, the donation lifecycle, the
+database rather than mocks — 86 tests covering auth, the donation lifecycle, the
 blood-request → shipment → delivery chain, emergency donor matching, the
-inventory lifecycle, and gamification concurrency. It needs a migrated **and
+inventory lifecycle, admin request validation, and gamification concurrency. It needs a migrated **and
 seeded** database (registration fails without the seeded roles):
 
 ```bash
