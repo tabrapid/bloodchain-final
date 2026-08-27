@@ -202,6 +202,51 @@ These make the product unusable or unsafe for real users. Fix first, in order.
     `apps/api/src/common/interceptors/wrap-response.interceptor.ts`,
     `apps/api/test/response-envelope.e2e-spec.ts` (new).
 
+- [x] **P0-11. `docker compose up --build` could not build the API image at
+  all — found live, by the user, the first time anyone actually ran it.**
+  — Fixed. Every prior "verified" claim about Docker in this repo's history
+  was necessarily about the Dockerfile's shape, never a real build: this
+  sandbox has no egress to Docker Hub, so I have never once been able to run
+  `docker build` or `docker compose up` myself. The user ran it on their own
+  machine and hit a build failure at the final `COPY --from=build
+  /repo/apps/api/dist /repo/apps/api/dist` step: `"/repo/apps/api/dist": not
+  found`.
+
+  Root cause: `apps/api/Dockerfile` still filtered on `@donor/api` —
+  `RUN pnpm install --frozen-lockfile --filter=@donor/api...`,
+  `RUN pnpm --filter @donor/api prisma:generate`,
+  `RUN pnpm --filter @donor/api build` — the package name from before this
+  session's rename to `@bloodchain/api`. The rename updated every source
+  file, config, and doc that a `typecheck`/`lint`/`test`/`build` run could
+  touch, but the Dockerfile is invisible to all four, so it silently kept
+  the dead name. `pnpm --filter` with a selector that matches nothing exits
+  **0** rather than erroring, so both the install and the build step
+  "succeeded" — install in 3.6s (installed almost nothing) and build in
+  0.2s (compiled nothing) — and the pipeline only broke three stages later,
+  at the `COPY` that expected a `dist/` the build had never produced. The
+  user's build log's own timings gave this away before I even looked at the
+  file.
+
+  Confirmed in the sandbox, without Docker, by running the same `pnpm
+  --filter` selector directly: `pnpm --filter @donor/api... list --depth -1`
+  → `No projects matched the filters`; `pnpm --filter @bloodchain/api... list
+  --depth -1` → the correct 5 packages (`api`, `config`, `types`, `utils`,
+  `validation`) — exactly what the Dockerfile's `deps` stage `COPY`s in.
+  Fixed all three `--filter` invocations plus two doc comments referencing
+  the old name and the old example image tag.
+
+  This is the second Docker-adjacent gap this session (after P3-4's
+  `.env.example` rejecting its own template) that no amount of `typecheck`/
+  `lint`/`test`/`build` could have caught, because none of them touch the
+  Docker path — only actually running it does. As of this fix the build has
+  **not yet been re-run successfully** — I still cannot build Docker images
+  in this sandbox (no Docker Hub egress), and the user's confirmation of a
+  clean `docker compose up --build` on this fix was still pending when this
+  entry was written. Standing caveat either way: nothing about Docker in
+  this repo should be assumed clean until it has actually been run start to
+  finish.
+  - Files: `apps/api/Dockerfile`.
+
 ## 🟠 P1 — Major gaps (feature exists but disconnected, or missing entirely)
 
 - [x] **P1-1. Booking race conditions (double-booking) in appointments and lab slots.** — Fixed:
