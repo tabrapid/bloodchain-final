@@ -3,14 +3,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Info, Mail, Phone, RefreshCw, Truck, Users } from 'lucide-react';
 import {
-  DashboardShell,
   EmptyState,
   StatCard,
   StatusBadge,
 } from '@bloodchain/ui/components';
-import { logout as logoutApi, me, isAuthenticated, MeResponse } from '../../lib/auth';
+import { me, isAuthenticated, MeResponse } from '../../lib/auth';
 import { getCourierRoster, CourierRosterEntry } from '../../lib/couriers';
-import { sidebarItems } from '../../lib/navigation';
+import { AppShell } from '../../components/AppShell';
 
 const STATUS_CONFIG: Record<string, { label: string; variant: 'success' | 'warning' | 'info' | 'default' | 'danger' }> = {
   AVAILABLE: { label: 'Available', variant: 'success' },
@@ -71,36 +70,28 @@ export default function CouriersPage() {
 
   if (isLoading) {
     return (
-      <DashboardShell
+      <AppShell
         title="Loading..."
         subtitle="BLOOD CENTER CONSOLE"
-        activeItem="couriers"
-        sidebarItems={sidebarItems}
         organizationName="RedCross Blood Center (Development)"
         organizationType="Blood Center workspace"
         userName="Loading..."
-        onNotifications={() => {}}
-        onLogout={() => {}}
       >
         <div className="flex items-center justify-center p-12">
           <Truck className="animate-spin text-donor-primary" size={32} />
         </div>
-      </DashboardShell>
+      </AppShell>
     );
   }
 
   if (!user) {
     return (
-      <DashboardShell
+      <AppShell
         title="Authentication Required"
         subtitle="BLOOD CENTER CONSOLE"
-        activeItem=""
-        sidebarItems={sidebarItems}
         organizationName="RedCross Blood Center (Development)"
         organizationType="Blood Center workspace"
         userName="Guest"
-        onNotifications={() => {}}
-        onLogout={() => {}}
       >
         <div className="flex flex-col items-center justify-center rounded-2xl border border-donor-border bg-donor-surface p-12">
           <Truck className="mb-4 text-donor-primary" size={48} />
@@ -111,7 +102,7 @@ export default function CouriersPage() {
             Please sign in to access courier management
           </p>
         </div>
-      </DashboardShell>
+      </AppShell>
     );
   }
 
@@ -120,16 +111,12 @@ export default function CouriersPage() {
   const offlineCount = couriers.filter((c) => c.status === 'OFFLINE' || c.status === 'SUSPENDED').length;
 
   return (
-    <DashboardShell
+    <AppShell
       title="Couriers"
       subtitle="BLOOD CENTER OPERATIONS"
-      activeItem="couriers"
-      sidebarItems={sidebarItems}
       organizationName="RedCross Blood Center (Development)"
       organizationType="Blood Center Console"
       userName={`${user.firstName} ${user.lastName}`}
-      onNotifications={() => {}}
-      onLogout={logoutApi}
     >
       <div className="mb-6 flex items-center justify-between">
         <div>
@@ -219,6 +206,6 @@ export default function CouriersPage() {
           })}
         </div>
       )}
-    </DashboardShell>
+    </AppShell>
   );
 }

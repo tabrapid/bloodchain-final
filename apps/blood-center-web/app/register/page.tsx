@@ -3,9 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Building2, CheckCircle } from 'lucide-react';
-import { DashboardShell } from '@bloodchain/ui/components';
 import { registerOrganization, ApiRequestError } from '../../lib/auth';
-import { sidebarItems } from '../../lib/navigation';
+import { AppShell } from '../../components/AppShell';
 
 export default function RegisterBloodCenterPage() {
   const router = useRouter();
@@ -47,16 +46,12 @@ export default function RegisterBloodCenterPage() {
 
   if (submitted) {
     return (
-      <DashboardShell
+      <AppShell
         title="Registration Submitted"
         subtitle="BLOOD CENTER CONSOLE"
-        activeItem=""
-        sidebarItems={sidebarItems}
         organizationName="Northstar Blood Center (Development)"
         organizationType="Operations workspace"
         userName="Guest"
-        onNotifications={() => {}}
-        onLogout={() => {}}
       >
         <div className="flex flex-col items-center justify-center rounded-2xl border border-donor-border bg-donor-surface p-12 text-center">
           <CheckCircle className="mb-4 text-donor-secondary" size={48} />
@@ -75,21 +70,17 @@ export default function RegisterBloodCenterPage() {
             Back to sign in
           </button>
         </div>
-      </DashboardShell>
+      </AppShell>
     );
   }
 
   return (
-    <DashboardShell
+    <AppShell
       title="Register Your Blood Center"
       subtitle="BLOOD CENTER CONSOLE"
-      activeItem=""
-      sidebarItems={sidebarItems}
       organizationName="Northstar Blood Center (Development)"
       organizationType="Operations workspace"
       userName="Guest"
-      onNotifications={() => {}}
-      onLogout={() => {}}
     >
       <div className="mx-auto max-w-lg rounded-2xl border border-donor-border bg-donor-surface p-8">
         <Building2 className="mb-4 text-donor-secondary" size={40} />
@@ -246,6 +237,6 @@ export default function RegisterBloodCenterPage() {
           </button>
         </form>
       </div>
-    </DashboardShell>
+    </AppShell>
   );
 }

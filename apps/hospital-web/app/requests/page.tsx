@@ -11,14 +11,13 @@ import {
   Truck,
 } from 'lucide-react';
 import {
-  DashboardShell,
   EmptyState,
   StatCard,
   StatusBadge,
 } from '@bloodchain/ui/components';
-import { logout as logoutApi, me, isAuthenticated, MeResponse } from '../../lib/auth';
+import { me, isAuthenticated, MeResponse } from '../../lib/auth';
 import { getBloodRequests, BloodRequest } from '../../lib/shipments';
-import { sidebarItems } from '../../lib/navigation';
+import { AppShell } from '../../components/AppShell';
 
 const STATUS_CONFIG: Record<string, { label: string; variant: 'success' | 'warning' | 'info' | 'default' | 'danger' }> = {
   DRAFT: { label: 'Draft', variant: 'default' },
@@ -91,36 +90,28 @@ export default function BloodRequestsPage() {
 
   if (isLoading) {
     return (
-      <DashboardShell
+      <AppShell
         title="Loading..."
         subtitle="HOSPITAL CONSOLE"
-        activeItem="requests"
-        sidebarItems={sidebarItems}
         organizationName="Northstar Hospital (Development)"
         organizationType="Hospital workspace"
         userName="Loading..."
-        onNotifications={() => {}}
-        onLogout={() => {}}
       >
         <div className="flex items-center justify-center p-12">
           <Droplet className="animate-spin text-donor-primary" size={32} />
         </div>
-      </DashboardShell>
+      </AppShell>
     );
   }
 
   if (!user) {
     return (
-      <DashboardShell
+      <AppShell
         title="Authentication Required"
         subtitle="HOSPITAL CONSOLE"
-        activeItem=""
-        sidebarItems={sidebarItems}
         organizationName="Northstar Hospital (Development)"
         organizationType="Hospital workspace"
         userName="Guest"
-        onNotifications={() => {}}
-        onLogout={() => {}}
       >
         <div className="flex flex-col items-center justify-center rounded-2xl border border-donor-border bg-donor-surface p-12">
           <Droplet className="mb-4 text-donor-primary" size={48} />
@@ -131,7 +122,7 @@ export default function BloodRequestsPage() {
             Please sign in to access blood requests
           </p>
         </div>
-      </DashboardShell>
+      </AppShell>
     );
   }
 
@@ -141,16 +132,12 @@ export default function BloodRequestsPage() {
   const deliveredCount = requests.filter((r) => ['DELIVERED', 'PARTIALLY_DELIVERED'].includes(r.status)).length;
 
   return (
-    <DashboardShell
+    <AppShell
       title="Blood Requests"
       subtitle="HOSPITAL OPERATIONS"
-      activeItem="requests"
-      sidebarItems={sidebarItems}
       organizationName="Northstar Hospital (Development)"
       organizationType="Hospital Console"
       userName={`${user.firstName} ${user.lastName}`}
-      onNotifications={() => {}}
-      onLogout={logoutApi}
     >
       <div className="mb-6">
         <div className="mb-4 flex items-center justify-between">
@@ -284,6 +271,6 @@ export default function BloodRequestsPage() {
           })}
         </div>
       )}
-    </DashboardShell>
+    </AppShell>
   );
 }

@@ -11,8 +11,8 @@ import {
   Truck,
   XCircle,
 } from 'lucide-react';
-import { DashboardShell, StatusBadge } from '@bloodchain/ui/components';
-import { logout as logoutApi, me, isAuthenticated, MeResponse } from '../../../lib/auth';
+import { StatusBadge } from '@bloodchain/ui/components';
+import { me, isAuthenticated, MeResponse } from '../../../lib/auth';
 import {
   getBloodRequest,
   approveBloodRequest,
@@ -20,7 +20,7 @@ import {
   createShipment,
   BloodRequest,
 } from '../../../lib/shipments';
-import { sidebarItems } from '../../../lib/navigation';
+import { AppShell } from '../../../components/AppShell';
 
 const STATUS_CONFIG: Record<string, { label: string; variant: 'success' | 'warning' | 'info' | 'default' | 'danger' }> = {
   DRAFT: { label: 'Draft', variant: 'default' },
@@ -153,36 +153,28 @@ export default function BloodRequestDetailPage() {
 
   if (isLoading) {
     return (
-      <DashboardShell
+      <AppShell
         title="Loading..."
         subtitle="BLOOD CENTER CONSOLE"
-        activeItem="requests"
-        sidebarItems={sidebarItems}
         organizationName="RedCross Blood Center (Development)"
         organizationType="Blood Center workspace"
         userName="Loading..."
-        onNotifications={() => {}}
-        onLogout={() => {}}
       >
         <div className="flex items-center justify-center p-12">
           <Droplet className="animate-spin text-donor-primary" size={32} />
         </div>
-      </DashboardShell>
+      </AppShell>
     );
   }
 
   if (!user || !request) {
     return (
-      <DashboardShell
+      <AppShell
         title="Request Not Found"
         subtitle="BLOOD CENTER CONSOLE"
-        activeItem="requests"
-        sidebarItems={sidebarItems}
         organizationName="RedCross Blood Center (Development)"
         organizationType="Blood Center workspace"
         userName={user ? `${user.firstName} ${user.lastName}` : 'Guest'}
-        onNotifications={() => {}}
-        onLogout={logoutApi}
       >
         <div className="flex flex-col items-center justify-center rounded-2xl border border-donor-border bg-donor-surface p-12">
           <XCircle className="mb-4 text-donor-primary" size={48} />
@@ -196,7 +188,7 @@ export default function BloodRequestDetailPage() {
             Back to Requests
           </button>
         </div>
-      </DashboardShell>
+      </AppShell>
     );
   }
 
@@ -210,16 +202,12 @@ export default function BloodRequestDetailPage() {
   const canCreateShipment = request.status === 'READY_FOR_PICKUP' && !request.shipment;
 
   return (
-    <DashboardShell
+    <AppShell
       title={request.requestReference}
       subtitle="BLOOD REQUEST DETAILS"
-      activeItem="requests"
-      sidebarItems={sidebarItems}
       organizationName="RedCross Blood Center (Development)"
       organizationType="Blood Center Console"
       userName={`${user.firstName} ${user.lastName}`}
-      onNotifications={() => {}}
-      onLogout={logoutApi}
     >
       <button
         onClick={() => router.push('/requests')}
@@ -468,6 +456,6 @@ export default function BloodRequestDetailPage() {
           </div>
         </div>
       )}
-    </DashboardShell>
+    </AppShell>
   );
 }

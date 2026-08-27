@@ -3,9 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Building2, CheckCircle } from 'lucide-react';
-import { DashboardShell } from '@bloodchain/ui/components';
 import { registerOrganization, ApiRequestError } from '../../lib/auth';
-import { sidebarItems } from '../../lib/navigation';
+import { AppShell } from '../../components/AppShell';
 
 export default function RegisterHospitalPage() {
   const router = useRouter();
@@ -47,16 +46,12 @@ export default function RegisterHospitalPage() {
 
   if (submitted) {
     return (
-      <DashboardShell
+      <AppShell
         title="Registration Submitted"
         subtitle="HOSPITAL CONSOLE"
-        activeItem=""
-        sidebarItems={sidebarItems}
         organizationName="Northstar Hospital (Development)"
         organizationType="Operations workspace"
         userName="Guest"
-        onNotifications={() => {}}
-        onLogout={() => {}}
       >
         <div className="flex flex-col items-center justify-center rounded-2xl border border-donor-border bg-donor-surface p-12 text-center">
           <CheckCircle className="mb-4 text-donor-success" size={48} />
@@ -75,21 +70,17 @@ export default function RegisterHospitalPage() {
             Back to sign in
           </button>
         </div>
-      </DashboardShell>
+      </AppShell>
     );
   }
 
   return (
-    <DashboardShell
+    <AppShell
       title="Register Your Hospital"
       subtitle="HOSPITAL CONSOLE"
-      activeItem=""
-      sidebarItems={sidebarItems}
       organizationName="Northstar Hospital (Development)"
       organizationType="Operations workspace"
       userName="Guest"
-      onNotifications={() => {}}
-      onLogout={() => {}}
     >
       <div className="mx-auto max-w-lg rounded-2xl border border-donor-border bg-donor-surface p-8">
         <Building2 className="mb-4 text-donor-primary" size={40} />
@@ -246,6 +237,6 @@ export default function RegisterHospitalPage() {
           </button>
         </form>
       </div>
-    </DashboardShell>
+    </AppShell>
   );
 }

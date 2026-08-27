@@ -15,7 +15,7 @@ import {
   Clock,
   Activity,
 } from 'lucide-react';
-import { DashboardShell, StatCard, EmptyState, LoadingState } from '@bloodchain/ui/components';
+import { StatCard, EmptyState, LoadingState } from '@bloodchain/ui/components';
 import { StatusBadgeWrapper } from '@lib/status';
 import { login, logout as logoutApi, me, isAuthenticated } from '@lib/auth';
 import {
@@ -27,7 +27,7 @@ import {
   listShipments,
   getSystemHealth,
 } from '@lib/api';
-import { navItems } from '@lib/navigation';
+import { AppShell } from '../components/AppShell';
 
 interface PlatformStats {
   users: { total: number; active: number; verifiedDonors: number };
@@ -136,9 +136,9 @@ export default function AdminDashboard() {
 
   if (isLoading) {
     return (
-      <DashboardShell title="Admin Dashboard" sidebarItems={[]} userName={user ? `${user.firstName} ${user.lastName}` : undefined} onLogout={handleLogout}>
+      <AppShell title="Admin Dashboard" userName={user ? `${user.firstName} ${user.lastName}` : undefined}>
         <LoadingState />
-      </DashboardShell>
+      </AppShell>
     );
   }
 
@@ -207,7 +207,7 @@ export default function AdminDashboard() {
   }
 
   return (
-    <DashboardShell title="Admin Dashboard" sidebarItems={navItems} userName={user ? `${user.firstName} ${user.lastName}` : undefined} onLogout={handleLogout}>
+    <AppShell title="Admin Dashboard" userName={user ? `${user.firstName} ${user.lastName}` : undefined}>
       <div className="p-6">
         <div className="mb-8">
           <h1 className="text-2xl font-semibold text-gray-900">Platform Dashboard</h1>
@@ -393,6 +393,6 @@ export default function AdminDashboard() {
           </div>
         </div>
       </div>
-    </DashboardShell>
+    </AppShell>
   );
 }

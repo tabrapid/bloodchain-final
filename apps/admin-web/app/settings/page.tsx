@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { DashboardShell, LoadingState } from '@bloodchain/ui/components';
+import { LoadingState } from '@bloodchain/ui/components';
 import { me, isAuthenticated } from '@lib/auth';
 import {
   getPlatformSettings,
@@ -11,8 +11,7 @@ import {
   type SystemHealth,
 } from '@lib/api';
 import { AlertTriangle, Bell, Database, Settings as SettingsIcon, Shield, X } from 'lucide-react';
-
-import { navItems } from '@lib/navigation';
+import { AppShell } from '../../components/AppShell';
 
 function Toggle({
   checked,
@@ -95,24 +94,24 @@ export default function SettingsPage() {
 
   if (isLoading) {
     return (
-      <DashboardShell title="Platform Settings" sidebarItems={navItems} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined} onLogout={() => {}}>
+      <AppShell title="Platform Settings" userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
         <LoadingState />
-      </DashboardShell>
+      </AppShell>
     );
   }
 
   if (!settings) {
     return (
-      <DashboardShell title="Platform Settings" sidebarItems={navItems} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined} onLogout={() => {}}>
+      <AppShell title="Platform Settings" userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
         <div className="p-6 text-sm text-gray-500">Failed to load platform settings.</div>
-      </DashboardShell>
+      </AppShell>
     );
   }
 
   const sessionTimeoutHours = Math.round((settings.sessionTimeoutMinutes / 60) * 10) / 10;
 
   return (
-    <DashboardShell title="Platform Settings" sidebarItems={navItems} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined} onLogout={() => {}}>
+    <AppShell title="Platform Settings" userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
       <div className="p-6">
         <div className="mb-6">
           <h1 className="text-2xl font-semibold text-gray-900">Platform Settings</h1>
@@ -321,6 +320,6 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
-    </DashboardShell>
+    </AppShell>
   );
 }

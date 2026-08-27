@@ -19,7 +19,6 @@ import {
   XCircle,
 } from 'lucide-react';
 import {
-  DashboardShell,
   DataTable,
   DataTableColumn,
   EmptyState,
@@ -29,7 +28,6 @@ import {
 } from '@bloodchain/ui/components';
 import {
   login,
-  logout as logoutApi,
   me,
   isAuthenticated,
   MeResponse,
@@ -43,7 +41,7 @@ import {
   markLaboratoryNoShow,
   LaboratoryAppointment,
 } from '../../lib/laboratory';
-import { sidebarItems } from '../../lib/navigation';
+import { AppShell } from '../../components/AppShell';
 
 const statusConfig: Record<string, { label: string; variant: 'success' | 'warning' | 'danger' | 'info' | 'default' }> = {
   PENDING: { label: 'Pending', variant: 'warning' },
@@ -213,34 +211,26 @@ export default function LaboratoryPage() {
 
   if (isLoading) {
     return (
-      <DashboardShell
+      <AppShell
         title="Loading..."
         subtitle="BLOOD CENTER CONSOLE"
-        activeItem="laboratory"
-        sidebarItems={sidebarItems}
         organizationName="Loading..."
         userName="Loading..."
-        onNotifications={() => {}}
-        onLogout={() => {}}
       >
         <div className="flex items-center justify-center p-12">
           <Activity className="animate-spin text-donor-primary" size={32} />
         </div>
-      </DashboardShell>
+      </AppShell>
     );
   }
 
   if (!user) {
     return (
-      <DashboardShell
+      <AppShell
         title="Authentication Required"
         subtitle="BLOOD CENTER CONSOLE"
-        activeItem=""
-        sidebarItems={sidebarItems}
         organizationName="Northstar Blood Center"
         userName="Guest"
-        onNotifications={() => {}}
-        onLogout={() => {}}
       >
         <div className="flex flex-col items-center justify-center rounded-2xl border border-donor-border bg-donor-surface p-12">
           <Beaker className="mb-4 text-donor-primary" size={48} />
@@ -251,20 +241,16 @@ export default function LaboratoryPage() {
             Please sign in to access the laboratory dashboard
           </p>
         </div>
-      </DashboardShell>
+      </AppShell>
     );
   }
 
   return (
-    <DashboardShell
+    <AppShell
       title="Laboratory"
       subtitle="BLOOD TEST MANAGEMENT"
-      activeItem="laboratory"
-      sidebarItems={sidebarItems}
       organizationName="Northstar Blood Center"
       userName={`${user.firstName} ${user.lastName}`}
-      onNotifications={() => {}}
-      onLogout={logoutApi}
     >
       <div className="mb-6 flex items-center justify-between">
         <div>
@@ -447,6 +433,6 @@ export default function LaboratoryPage() {
           </table>
         </div>
       )}
-    </DashboardShell>
+    </AppShell>
   );
 }

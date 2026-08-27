@@ -17,7 +17,6 @@ import {
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import {
-  DashboardShell,
   StatusBadge,
 } from '@bloodchain/ui/components';
 import type { MapMarker } from '@bloodchain/ui/map';
@@ -35,8 +34,8 @@ import {
   TrackingInfo,
   TimelineEvent,
 } from '../../../lib/shipments';
-import { sidebarItems } from '../../../lib/navigation';
 import { useShipmentTracking } from '../../../lib/useShipmentTracking';
+import { AppShell } from '../../../components/AppShell';
 
 const STATUS_CONFIG: Record<string, { label: string; variant: 'success' | 'warning' | 'info' | 'default' | 'danger' }> = {
   CREATED: { label: 'Created', variant: 'default' },
@@ -155,36 +154,28 @@ export default function ShipmentDetailPage() {
 
   if (isLoading) {
     return (
-      <DashboardShell
+      <AppShell
         title="Loading..."
         subtitle="HOSPITAL CONSOLE"
-        activeItem="shipments"
-        sidebarItems={sidebarItems}
         organizationName="Northstar Hospital (Development)"
         organizationType="Hospital workspace"
         userName="Loading..."
-        onNotifications={() => {}}
-        onLogout={() => {}}
       >
         <div className="flex items-center justify-center p-12">
           <Truck className="animate-spin text-donor-primary" size={32} />
         </div>
-      </DashboardShell>
+      </AppShell>
     );
   }
 
   if (!user || !shipment) {
     return (
-      <DashboardShell
+      <AppShell
         title="Shipment Not Found"
         subtitle="HOSPITAL CONSOLE"
-        activeItem="shipments"
-        sidebarItems={sidebarItems}
         organizationName="Northstar Hospital (Development)"
         organizationType="Hospital workspace"
         userName={user ? `${user.firstName} ${user.lastName}` : 'Guest'}
-        onNotifications={() => {}}
-        onLogout={() => {}}
       >
         <div className="flex flex-col items-center justify-center rounded-2xl border border-donor-border bg-donor-surface p-12">
           <XCircle className="mb-4 text-donor-primary" size={48} />
@@ -198,7 +189,7 @@ export default function ShipmentDetailPage() {
             Back to Shipments
           </button>
         </div>
-      </DashboardShell>
+      </AppShell>
     );
   }
 
@@ -206,16 +197,12 @@ export default function ShipmentDetailPage() {
   const totalUnits = shipment.units?.length || 0;
 
   return (
-    <DashboardShell
+    <AppShell
       title={shipment.shipmentReference}
       subtitle="SHIPMENT TRACKING"
-      activeItem="shipments"
-      sidebarItems={sidebarItems}
       organizationName="Northstar Hospital (Development)"
       organizationType="Hospital Console"
       userName={`${user.firstName} ${user.lastName}`}
-      onNotifications={() => {}}
-      onLogout={logoutApi}
     >
       <div className="mb-6">
         <button
@@ -503,6 +490,6 @@ export default function ShipmentDetailPage() {
           </div>
         </div>
       )}
-    </DashboardShell>
+    </AppShell>
   );
 }

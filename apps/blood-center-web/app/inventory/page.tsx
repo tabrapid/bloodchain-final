@@ -19,7 +19,6 @@ import {
   XCircle,
 } from 'lucide-react';
 import {
-  DashboardShell,
   EmptyState,
   StatCard,
   StatusBadge,
@@ -43,7 +42,7 @@ import {
   InventoryLocation,
   GetInventoryParams,
 } from '../../lib/inventory';
-import { sidebarItems } from '../../lib/navigation';
+import { AppShell } from '../../components/AppShell';
 
 const BLOOD_TYPES = ['A', 'B', 'AB', 'O'] as const;
 const RH_FACTORS = ['POSITIVE', 'NEGATIVE'] as const;
@@ -333,36 +332,28 @@ export default function InventoryPage() {
 
   if (isLoading) {
     return (
-      <DashboardShell
+      <AppShell
         title="Loading..."
         subtitle="BLOOD CENTER CONSOLE"
-        activeItem="inventory"
-        sidebarItems={sidebarItems}
         organizationName="Northstar Blood Center (Development)"
         organizationType="Operations workspace"
         userName="Loading..."
-        onNotifications={() => {}}
-        onLogout={() => {}}
       >
         <div className="flex items-center justify-center p-12">
           <Activity className="animate-spin text-donor-secondary" size={32} />
         </div>
-      </DashboardShell>
+      </AppShell>
     );
   }
 
   if (!user) {
     return (
-      <DashboardShell
+      <AppShell
         title="Authentication Required"
         subtitle="BLOOD CENTER CONSOLE"
-        activeItem=""
-        sidebarItems={sidebarItems}
         organizationName="Northstar Blood Center (Development)"
         organizationType="Operations workspace"
         userName="Guest"
-        onNotifications={() => {}}
-        onLogout={() => {}}
       >
         <div className="flex flex-col items-center justify-center rounded-2xl border border-donor-border bg-donor-surface p-12">
           <Activity className="mb-4 text-donor-secondary" size={48} />
@@ -380,21 +371,17 @@ export default function InventoryPage() {
             Sign in as Blood Center Admin
           </button>
         </div>
-      </DashboardShell>
+      </AppShell>
     );
   }
 
   return (
-    <DashboardShell
+    <AppShell
       title="Blood Inventory"
       subtitle="BLOOD CENTER CONSOLE"
-      activeItem="inventory"
-      sidebarItems={sidebarItems}
       organizationName="Northstar Blood Center (Development)"
       organizationType="Operations workspace"
       userName={`${user.firstName} ${user.lastName}`}
-      onNotifications={() => {}}
-      onLogout={handleLogout}
     >
       {error && (
         <div className="mb-4 rounded-lg border border-red-900/50 bg-red-950/20 p-4 text-red-400">
@@ -899,6 +886,6 @@ export default function InventoryPage() {
           </div>
         </div>
       </Modal>
-    </DashboardShell>
+    </AppShell>
   );
 }

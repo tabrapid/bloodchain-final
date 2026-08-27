@@ -18,12 +18,11 @@ import {
   Truck,
 } from 'lucide-react';
 import {
-  DashboardShell,
   EmptyState,
   FilterBar,
   StatCard,
 } from '@bloodchain/ui/components';
-import { logout as logoutApi, me, isAuthenticated, MeResponse } from '../../lib/auth';
+import { me, isAuthenticated, MeResponse } from '../../lib/auth';
 import {
   DateRangeType,
   AnalyticsFilter,
@@ -40,7 +39,7 @@ import {
   getAlerts,
   AlertItem,
 } from '../../lib/analytics';
-import { sidebarItems } from '../../lib/navigation';
+import { AppShell } from '../../components/AppShell';
 
 const DATE_RANGE_OPTIONS = [
   { value: DateRangeType.TODAY, label: 'Today' },
@@ -147,36 +146,28 @@ export default function AnalyticsPage() {
 
   if (isLoading) {
     return (
-      <DashboardShell
+      <AppShell
         title="Loading..."
         subtitle="BLOOD CENTER CONSOLE"
-        activeItem="analytics"
-        sidebarItems={sidebarItems}
         organizationName="RedCross Blood Center (Development)"
         organizationType="Blood Center workspace"
         userName="Loading..."
-        onNotifications={() => {}}
-        onLogout={() => {}}
       >
         <div className="flex items-center justify-center p-12">
           <Activity className="animate-spin text-donor-primary" size={32} />
         </div>
-      </DashboardShell>
+      </AppShell>
     );
   }
 
   if (!user) {
     return (
-      <DashboardShell
+      <AppShell
         title="Authentication Required"
         subtitle="BLOOD CENTER CONSOLE"
-        activeItem=""
-        sidebarItems={sidebarItems}
         organizationName="RedCross Blood Center (Development)"
         organizationType="Blood Center workspace"
         userName="Guest"
-        onNotifications={() => {}}
-        onLogout={() => {}}
       >
         <div className="flex flex-col items-center justify-center rounded-2xl border border-donor-border bg-donor-surface p-12">
           <BarChart3 className="mb-4 text-donor-primary" size={48} />
@@ -187,7 +178,7 @@ export default function AnalyticsPage() {
             Please sign in to access the analytics dashboard
           </p>
         </div>
-      </DashboardShell>
+      </AppShell>
     );
   }
 
@@ -195,16 +186,12 @@ export default function AnalyticsPage() {
   const highAlerts = alerts.filter((a) => a.severity === 'high' && !a.acknowledged);
 
   return (
-    <DashboardShell
+    <AppShell
       title="Analytics Dashboard"
       subtitle="OPERATIONS INTELLIGENCE"
-      activeItem="analytics"
-      sidebarItems={sidebarItems}
       organizationName="RedCross Blood Center (Development)"
       organizationType="Blood Center Console"
       userName={`${user.firstName} ${user.lastName}`}
-      onNotifications={() => {}}
-      onLogout={logoutApi}
     >
       <div className="mb-6">
         <div className="mb-4 flex items-center justify-between">
@@ -646,6 +633,6 @@ export default function AnalyticsPage() {
           </div>
         </div>
       )}
-    </DashboardShell>
+    </AppShell>
   );
 }

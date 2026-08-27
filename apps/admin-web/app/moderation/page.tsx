@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { DashboardShell, LoadingState } from '@bloodchain/ui/components';
+import { LoadingState } from '@bloodchain/ui/components';
 import {
   listContentReports,
   getContentReport,
@@ -12,8 +12,7 @@ import {
 import { me, isAuthenticated } from '@lib/auth';
 import { StatusBadgeWrapper } from '@lib/status';
 import { Flag, X } from 'lucide-react';
-
-import { navItems } from '@lib/navigation';
+import { AppShell } from '../../components/AppShell';
 
 export default function ModerationPage() {
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -87,14 +86,14 @@ export default function ModerationPage() {
 
   if (isLoading) {
     return (
-      <DashboardShell title="Content Moderation" sidebarItems={navItems} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined} onLogout={() => {}}>
+      <AppShell title="Content Moderation" userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
         <LoadingState />
-      </DashboardShell>
+      </AppShell>
     );
   }
 
   return (
-    <DashboardShell title="Content Moderation" sidebarItems={navItems} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined} onLogout={() => {}}>
+    <AppShell title="Content Moderation" userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
       <div className="p-6">
         <div className="mb-6">
           <h1 className="text-2xl font-semibold text-gray-900">Content Moderation</h1>
@@ -346,6 +345,6 @@ export default function ModerationPage() {
           </div>
         </div>
       )}
-    </DashboardShell>
+    </AppShell>
   );
 }

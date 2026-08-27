@@ -3852,6 +3852,74 @@ These make the product unusable or unsafe for real users. Fix first, in order.
     `apps/api/src/common/controller-body-validation.spec.ts` (new),
     `apps/api/test/laboratory-validation.e2e-spec.ts` (new).
 
+- [x] **P3-15. Four navigation defects that every page was reproducing by hand
+  (found while adding the tests P3-2 asked for).** — Fixed.
+
+  Checked the nav data first, since a stale nav is the usual suspect: all three
+  apps' sidebar entries match the routes that actually exist, and the entries
+  marked "Soon" correspond to routes that genuinely don't. The problems were
+  entirely in how the pages wired the shell up.
+
+  - **Logout did nothing on most pages.** `onLogout` was passed as `() => {}`
+    at 16 of 27 call sites in hospital-web, 20 of 34 in blood-center-web, and
+    **30 of 32 in admin-web**. The button rendered and silently failed. Worst on
+    the loading and error branches of each page — exactly where a user waiting
+    on a slow request is most likely to give up and try to sign out — and worst
+    of all in the admin console, where a dead sign-out button on a shared
+    machine is a security problem, not a cosmetic one.
+  - **admin-web never highlighted the current page.** `activeItem` is an id the
+    caller has to hand-copy onto every render branch of every page; admin-web
+    passed it on none of its fifteen. A fifteen-entry sidebar with nothing
+    highlighted gives the user no idea where they are.
+  - **Every sidebar click was a full document load.** The shared `Sidebar`
+    renders plain `<a href>` so `packages/ui` can stay framework-agnostic
+    (it peer-depends on React alone), but nobody injected Next's `Link`, so each
+    navigation discarded the React tree and re-downloaded the bundle.
+  - **The notifications bell was a no-op at all 61 call sites** in the two
+    dashboards, and neither app has a notifications route to send it to.
+
+  Fixed by giving each app one `components/AppShell.tsx` that owns all of it:
+  it calls `usePathname()`, injects `next/link`, and handles logout itself
+  (clear tokens, then `router.push('/')`, which is where the sign-in form
+  lives). Pages now write `<AppShell title="…" userName={…}>` and pass no
+  navigation props at all — 35 pages migrated, 521 lines deleted against 399
+  added. The bell is simply not passed, so `Topbar` does not render it: a
+  control that does nothing is worse than no control, and it can come back the
+  day there is a route behind it.
+
+  `packages/ui`'s `Sidebar` gained two props to make that possible, both
+  optional so nothing else breaks: `linkComponent` (typed as a plain call
+  signature rather than `ComponentType`, because Next's `Link` is a
+  `ForwardRefExoticComponent` whose legacy `propTypes` static declares
+  `href: Url` and fails assignability on that alone), and `currentPath`, from
+  which the active entry is derived by longest matching `href`. The longest-match
+  rule matters: `/` is a prefix of every route, so a naive `startsWith` would
+  light up Dashboard on every page, and `/requests/new` has to select Requests
+  rather than Dashboard. Explicit `activeItem` still wins where a caller sets it.
+  Also marked disabled entries `aria-disabled` and named the nav landmark, which
+  is what makes them assertable.
+
+  **Tests** — 60 new, and the three components at the centre of this had none
+  before: `Sidebar` (14, including six on the matching rule alone), `Topbar` (7,
+  pinning that each control renders only when given a handler — the property the
+  bell fix depends on), `DashboardShell` (3, that it forwards the new props),
+  and `AppShell` (12 per app, 36 total, driving the real navigation data each app
+  ships). Proved each fix is caught: reverting logout to `() => {}` fails 1,
+  removing `linkComponent` fails 1, removing `currentPath` fails 2.
+
+  Verified: `pnpm typecheck` 10/10, `pnpm lint` 0 errors, `pnpm build` 4/4, and
+  825 unit tests across 8 packages (up from 765). The API is untouched; its 103
+  e2e still pass. One caveat worth recording: a first e2e run failed all 10
+  suites, which turned out to be the local Postgres having stopped, not the
+  change — restarted it and re-ran green rather than assuming.
+  - Files: `packages/ui/src/components/layout/Sidebar.tsx`,
+    `packages/ui/src/components/layout/DashboardShell.tsx`,
+    `packages/ui/src/components/layout/{Sidebar,Topbar,DashboardShell}.spec.tsx`
+    (new), `apps/{hospital-web,blood-center-web,admin-web}/components/AppShell.tsx`
+    and `AppShell.spec.tsx` (new), 35 page files across the three apps,
+    `apps/*/vitest.config.ts`, `apps/*/vitest.setup.ts` (new),
+    `apps/*/package.json` (RTL devDependencies).
+
 ---
 
 ## Suggested execution order

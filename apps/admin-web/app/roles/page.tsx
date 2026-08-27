@@ -1,12 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { DashboardShell, LoadingState } from '@bloodchain/ui/components';
+import { LoadingState } from '@bloodchain/ui/components';
 import { listRoles, listPermissions, updateRolePermissions, type Role, type Permission } from '@lib/api';
 import { me, isAuthenticated } from '@lib/auth';
 import { KeyRound, Lock, X } from 'lucide-react';
-
-import { navItems } from '@lib/navigation';
+import { AppShell } from '../../components/AppShell';
 
 function permissionGroup(code: string): string {
   return code.split('.')[0] ?? code;
@@ -83,14 +82,14 @@ export default function RolesPage() {
 
   if (isLoading) {
     return (
-      <DashboardShell title="Roles & Permissions" sidebarItems={navItems} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined} onLogout={() => {}}>
+      <AppShell title="Roles & Permissions" userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
         <LoadingState />
-      </DashboardShell>
+      </AppShell>
     );
   }
 
   return (
-    <DashboardShell title="Roles & Permissions" sidebarItems={navItems} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined} onLogout={() => {}}>
+    <AppShell title="Roles & Permissions" userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
       <div className="p-6">
         <div className="mb-6">
           <h1 className="text-2xl font-semibold text-gray-900">Roles & Permissions</h1>
@@ -219,6 +218,6 @@ export default function RolesPage() {
           </div>
         </div>
       )}
-    </DashboardShell>
+    </AppShell>
   );
 }

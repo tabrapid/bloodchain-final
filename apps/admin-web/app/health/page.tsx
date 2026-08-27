@@ -1,13 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { DashboardShell, LoadingState } from '@bloodchain/ui/components';
+import { LoadingState } from '@bloodchain/ui/components';
 import { getSystemHealth, getDashboard } from '@lib/api';
 import { me, isAuthenticated } from '@lib/auth';
 import { StatusBadgeWrapper } from '@lib/status';
 import { LayoutDashboard, Users, Building2, Ship, Package, Droplet, AlertTriangle, TestTube, Bell, FileText, Activity, Settings, CheckCircle, XCircle, Server, RefreshCw, Database } from 'lucide-react';
-
-import { navItems } from '@lib/navigation';
+import { AppShell } from '../../components/AppShell';
 
 export default function SystemHealthPage() {
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -54,14 +53,14 @@ export default function SystemHealthPage() {
 
   if (isLoading) {
     return (
-      <DashboardShell title="System Health" sidebarItems={navItems} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined} onLogout={() => {}}>
+      <AppShell title="System Health" userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
         <LoadingState />
-      </DashboardShell>
+      </AppShell>
     );
   }
 
   return (
-    <DashboardShell title="System Health" sidebarItems={navItems} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined} onLogout={() => {}}>
+    <AppShell title="System Health" userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
       <div className="p-6">
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -188,6 +187,6 @@ export default function SystemHealthPage() {
           </div>
         </div>
       </div>
-    </DashboardShell>
+    </AppShell>
   );
 }

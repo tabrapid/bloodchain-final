@@ -16,7 +16,6 @@ import {
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import {
-  DashboardShell,
   EmptyState,
   Modal,
   StatusBadge,
@@ -37,8 +36,8 @@ import {
   getEmergencies,
   EmergencyRequest,
 } from '../../lib/emergency';
-import { sidebarItems } from '../../lib/navigation';
 import { useEmergencyTracking } from '../../lib/useEmergencyTracking';
+import { AppShell } from '../../components/AppShell';
 
 const BLOOD_TYPES = ['A', 'B', 'AB', 'O'];
 const RH_FACTORS = ['POSITIVE', 'NEGATIVE'];
@@ -222,36 +221,28 @@ export default function EmergencyPage() {
 
   if (isLoading) {
     return (
-      <DashboardShell
+      <AppShell
         title="Loading..."
         subtitle="HOSPITAL CONSOLE"
-        activeItem="emergency"
-        sidebarItems={sidebarItems}
         organizationName="Northstar Hospital (Development)"
         organizationType="Operations workspace"
         userName="Loading..."
-        onNotifications={() => {}}
-        onLogout={() => {}}
       >
         <div className="flex items-center justify-center p-12">
           <Activity className="animate-spin text-donor-primary" size={32} />
         </div>
-      </DashboardShell>
+      </AppShell>
     );
   }
 
   if (!user) {
     return (
-      <DashboardShell
+      <AppShell
         title="Authentication Required"
         subtitle="HOSPITAL CONSOLE"
-        activeItem=""
-        sidebarItems={sidebarItems}
         organizationName="Northstar Hospital (Development)"
         organizationType="Operations workspace"
         userName="Guest"
-        onNotifications={() => {}}
-        onLogout={() => {}}
       >
         <div className="flex flex-col items-center justify-center rounded-2xl border border-donor-border bg-donor-surface p-12">
           <AlertTriangle className="mb-4 text-donor-primary" size={48} />
@@ -262,21 +253,17 @@ export default function EmergencyPage() {
             Please sign in to access the emergency dashboard
           </p>
         </div>
-      </DashboardShell>
+      </AppShell>
     );
   }
 
   return (
-    <DashboardShell
+    <AppShell
       title="Emergency SOS"
       subtitle="BLOOD EMERGENCY MANAGEMENT"
-      activeItem="emergency"
-      sidebarItems={sidebarItems}
       organizationName="Northstar Hospital (Development)"
       organizationType="Hospital Console"
       userName={`${user.firstName} ${user.lastName}`}
-      onNotifications={() => {}}
-      onLogout={logoutApi}
     >
       <div className="mb-6 flex items-center justify-between">
         <div>
@@ -726,6 +713,6 @@ export default function EmergencyPage() {
           </div>
         </Modal>
       )}
-    </DashboardShell>
+    </AppShell>
   );
 }
