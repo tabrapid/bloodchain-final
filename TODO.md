@@ -3416,6 +3416,25 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   cache; re-running with `--no-cache` is what exposed it.)
   Verified: 626 API unit tests, 83 e2e (up from 79) on a pristine
   migrate+seed database, typecheck 10/10, lint 10/10, no leftover rows.
+
+- [x] **P3-9 follow-up: the mobile render suite had a latent timing flake,
+  surfaced by a slow CI runner.** After the BloodChain rename, CI's unit
+  job failed on one mobile test — "community applies the app theme
+  rather than rendering unstyled" — while typecheck, e2e and build all
+  passed. Nothing to do with the rename: the render helper flushed React
+  Query with a single `setTimeout(0)` tick, which was enough locally but
+  not on a cold runner where the first screen mount pays ~9s of React
+  Native module-transform cost and the community screen has four queries
+  to resolve. The assertion therefore ran against `LoadingState` and saw
+  only its muted colours. — Fixed by waiting until the loading state is
+  actually gone (bounded loop) instead of assuming one tick suffices, so
+  it no longer depends on how fast the machine is. Proved it addresses
+  the real mechanism rather than hopefully papering over it: delaying the
+  mocked query resolution reproduces the exact CI failure under the old
+  single-tick behaviour and passes with the loop. The wait walks the node
+  tree rather than `JSON.stringify`-ing the render output, which hits
+  circular references on React context props.
+  - File: `apps/mobile/src/__tests__/community-screens.spec.tsx`.
   - Files: `apps/api/src/modules/gamification/services/gamification-profile.util.ts`
     (new — the atomic primitive and the reasoning),
     `apps/api/src/modules/gamification/services/xp.service.ts`

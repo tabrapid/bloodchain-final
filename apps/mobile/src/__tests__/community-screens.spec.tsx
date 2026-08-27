@@ -153,11 +153,25 @@ async function renderScreen(Screen: React.ComponentType) {
   });
 
   // React Query flushes subscriber notifications on a macrotask, so the first
-  // commit still shows the loading state. Let the queries settle so the tests
-  // assert against the real, populated screen rather than a spinner.
-  await act(async () => {
-    await new Promise((resolve) => setTimeout(resolve, 0));
-  });
+  // commit still shows the loading state. Settle the queries before returning,
+  // otherwise the tests assert against a spinner instead of the real screen.
+  //
+  // Deliberately a loop rather than a single tick. One tick was enough locally
+  // but not on a cold CI runner, where the first screen mount pays the React
+  // Native module-transform cost (~9s) and the community screen has four
+  // queries to resolve: the suite failed there with a fingerprint containing
+  // only LoadingState's colours. Waiting until the loading state is actually
+  // gone makes it independent of how many ticks the machine happens to need.
+  // (walks the node tree rather than JSON.stringify-ing it — the render output
+  // carries React context objects that stringify hits circular refs on.)
+  for (let attempt = 0; attempt < 25; attempt++) {
+    const json = tree.toJSON() as ReactTestRendererJSON | null;
+    if (!json) break;
+    if (!renderedText(allNodes(json)).includes('Loading')) break;
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+  }
 
   return tree;
 }
