@@ -3920,6 +3920,50 @@ These make the product unusable or unsafe for real users. Fix first, in order.
     `apps/*/vitest.config.ts`, `apps/*/vitest.setup.ts` (new),
     `apps/*/package.json` (RTL devDependencies).
 
+- [x] **P3-16. The rest of `packages/ui` was untested, and two overlay
+  components could not be closed from the keyboard.** — Fixed.
+
+  P3-2's first installment covered five of the library's simplest components
+  and listed the rest as outstanding. This closes that list for everything with
+  behaviour worth asserting: `DataTable` (7 tests), `Modal` (8), `Drawer` (6),
+  `SearchInput` (5) and `FilterBar` (2). Together with P3-15's layout tests the
+  package goes from 21 tests to 73.
+
+  Writing them turned up two real defects, both in the overlays:
+
+  - **Neither `Modal` nor `Drawer` closed on Escape.** The only ways out were
+    clicking the overlay or the X, so anyone not using a mouse was stuck inside
+    the dialog with no way to dismiss it. Both now listen for Escape while open,
+    and detach the listener on close and unmount — the unmount case has its own
+    test, since a leaked document-level handler firing into a closed dialog's
+    `onClose` is the usual way this gets written wrong.
+  - **Neither identified itself as a dialog.** No `role="dialog"`, no
+    `aria-modal`, and no association between the heading and the dialog, so a
+    screen reader announced them as anonymous divs. Both now carry the role, are
+    labelled by their title through `useId` when they have one, and fall back to
+    a generic accessible name when they do not. The backdrop is marked
+    `aria-hidden` so it is not announced as content.
+
+  Also gave `SearchInput`'s clear button an `aria-label` — it was an unlabelled
+  button next to the field.
+
+  `DataTable`'s cell fallback is `String(value ?? '-')`, which is correct but
+  easy to "simplify" into a truthiness check; there is a test asserting a
+  numeric `0` renders as `0` rather than a dash, next to one asserting `null`
+  does render as a dash. This is the same defect class as P2-20's `numericValue`
+  bug, where a truthiness check on a real zero silently discarded a lab
+  measurement.
+
+  Proved the fixes are caught: removing the Escape handler and the dialog role
+  fails 3 of Modal's 8 tests.
+
+  Verified: `pnpm typecheck` 10/10, `pnpm lint` 0 errors, `pnpm build` 4/4, 853
+  unit tests across 8 packages.
+  - Files: `packages/ui/src/components/overlay/{Modal,Drawer}.tsx`,
+    `packages/ui/src/components/form/SearchInput.tsx`, and new specs for
+    `data/DataTable`, `overlay/Modal`, `overlay/Drawer`, `form/SearchInput`,
+    `form/FilterBar`.
+
 ---
 
 ## Suggested execution order
