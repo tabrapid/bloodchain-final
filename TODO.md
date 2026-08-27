@@ -2708,7 +2708,7 @@ These make the product unusable or unsafe for real users. Fix first, in order.
     - Files: `apps/api/src/modules/analytics/services/analytics.service.spec.ts`
       (new).
 
-- [ ] **P3-2. No frontend tests at all** (Next.js apps or mobile) — no
+- [x] **P3-2. No frontend tests at all** (Next.js apps or mobile) — no
   Jest/RTL/Playwright/Detox setup found. — Fixed (first installment,
   test infrastructure stood up for the first time in this repo's
   frontend, plus real tests for the highest-leverage shared code; the 3
@@ -2776,6 +2776,66 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   `Topbar`, `DashboardShell`, `SearchInput`, `FilterBar`, `Chart`,
   `LocationMap`) have no tests yet, and the mobile/Expo app has no
   Jest/React Native Testing Library or Detox setup at all.
+  **Second installment (the 3 Next.js apps).** The first installment stopped at
+  the shared packages, reasoning that the apps' own pages are large fetch-driven
+  client components with nothing small to isolate. That is still true of the
+  pages — but it skipped the layer underneath them, which is where the bugs
+  actually were. Each app's `lib/` holds its HTTP client, and testing that first
+  turned up two defects immediately:
+
+  - **No token refresh in two of the four apps.** hospital-web and
+    blood-center-web had **nine** copies of the same `apiRequest` helper — one
+    per `lib/*.ts` module — and not one of them refreshed an expired token.
+    `refreshAccessToken` existed in `auth.ts` and was called by exactly one
+    function, `me()`. Access tokens live 15 minutes, so every dashboard action
+    after that window failed with a raw 401 until the user reloaded the page —
+    which called `me()`, silently refreshed, and made the whole thing look
+    intermittent. admin-web and the mobile app both refresh-and-retry; these two
+    simply never got it.
+  - **`instanceof ApiRequestError` was false across modules.** Each of those
+    nine files declared its own `ApiRequestError` class, so the check only
+    matched errors thrown by the module the class happened to be imported from.
+    A page catching errors from two modules fell through to its generic fallback
+    message with no indication anything was wrong. Only one page uses the check
+    today, and it happens to import from the module it catches from, so this was
+    a landmine rather than a live bug — but it is exactly the kind that survives
+    a code review.
+
+  Both are fixed by the same change: one `lib/api-client.ts` per app holding a
+  single helper (token storage, refresh-and-retry, error mapping, envelope
+  unwrap) and a single error class, with all nine modules and `auth.ts` reduced
+  to importing it. That deletes ~250 lines of duplicated code and makes the two
+  dashboards behave like the other two apps.
+
+  Stood up Vitest + jsdom in all three Next.js apps (`vitest.config.ts` and a
+  real `test` script replacing the `echo 'Web tests scheduled with the first
+  feature release'` placeholder) and wrote 30 tests against the client layer:
+  11 each for hospital-web and blood-center-web, 8 for admin-web. They cover the
+  bearer header, the envelope unwrap, refresh-and-retry with token rotation
+  persisted, session clearing when the refresh token is also dead, the no-refresh-
+  token path, error mapping from the API's own `statusCode`/`code`/`message`,
+  the non-JSON body fallback, caller header overrides not clobbering
+  Authorization, and a single shared error identity. admin-web's tests document
+  where it deliberately differs (its own storage keys, `Content-Type` only for
+  string bodies, and a bare 401 passed through when no refresh token is stored)
+  rather than papering over the difference.
+
+  Proved the tests catch the bug: removing the refresh-and-retry block fails 3
+  of the 11.
+
+  Still outstanding after this installment: the apps' own pages and routes have
+  no tests (still the argument for Playwright over RTL-in-isolation), and
+  `packages/ui`'s larger components (`DataTable`, `Modal`, `Drawer`, `Sidebar`,
+  `Topbar`, `DashboardShell`, `SearchInput`, `FilterBar`, `Chart`,
+  `LocationMap`) remain uncovered. The mobile app is no longer at zero — P3-9
+  and P3-10 added 19 tests — but has no Detox/integration layer.
+  - Files (second installment): `apps/{hospital-web,blood-center-web}/lib/api-client.ts`
+    (new), `apps/{hospital-web,blood-center-web}/lib/auth.ts` and the nine
+    domain modules (local helpers removed in favour of the shared one),
+    `apps/{hospital-web,blood-center-web,admin-web}/vitest.config.ts` (new),
+    `apps/{hospital-web,blood-center-web,admin-web}/package.json` (real `test`
+    script + vitest/jsdom), `apps/{hospital-web,blood-center-web,admin-web}/lib/api-client.spec.ts`
+    (new).
   - Files: `packages/utils/vitest.config.ts` (new),
     `packages/utils/src/index.spec.ts` (new),
     `packages/utils/package.json` (added `test` script),
