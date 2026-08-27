@@ -560,4 +560,124 @@ describe('EmergencyService.activateEmergency', () => {
     const { data } = tx.emergencyMatch.create.mock.calls[0][0];
     expect(data.distanceKm).toBeNull();
   });
+
+  // P3-11 regression tests.
+  //
+  // The donor query used to prefilter on the emergency's exact bloodType and
+  // rhFactor, which meant BLOOD_COMPATIBILITY could never widen the pool and an
+  // O-negative universal donor was silently unreachable for an A-positive
+  // patient. The tests above never caught it because they mock
+  // tx.user.findMany, so the where clause itself was never exercised - hence
+  // the first test here asserts on the query, not just its results.
+  describe('P3-11: compatible donors of other blood groups', () => {
+    it('does not constrain the donor query to the emergency blood group', async () => {
+      tx.user.findMany.mockResolvedValue([]);
+
+      await service.activateEmergency('org-1', 'staff-1', 'req-1');
+
+      const [{ where }] = tx.user.findMany.mock.calls[0];
+      expect(where.donorProfile).not.toHaveProperty('bloodType');
+      expect(where.donorProfile).not.toHaveProperty('rhFactor');
+      // The eligibility constraints must survive; only the group narrowing goes.
+      expect(where.donorProfile.donorStatus).toBe('ACTIVE');
+      expect(where.donorProfile.verificationStatus).toBe('VERIFIED');
+      expect(where.emailVerified).toBe(true);
+    });
+
+    it('matches an O-negative universal donor to an A-positive emergency', async () => {
+      prisma.emergencyRequest.findUnique.mockResolvedValue({
+        id: 'req-1',
+        hospitalId: 'org-1',
+        status: EmergencyStatus.DRAFT,
+        bloodType: 'A',
+        rhFactor: 'POSITIVE',
+        urgencyLevel: 'CRITICAL',
+        requiredBefore: null,
+        latitude: null,
+        longitude: null,
+      });
+      tx.user.findMany.mockResolvedValue([
+        makeDonor({ id: 'o-neg-donor', donorProfile: { bloodType: 'O', rhFactor: 'NEGATIVE' } }),
+      ]);
+
+      await service.activateEmergency('org-1', 'staff-1', 'req-1');
+
+      const matched = tx.emergencyMatch.create.mock.calls.map((c: any) => c[0].data.donorId);
+      expect(matched).toEqual(['o-neg-donor']);
+    });
+
+    it('still refuses a donor who is genuinely incompatible', async () => {
+      // A-positive cannot donate to an O-negative patient. Widening the pool
+      // must not turn into matching everyone.
+      tx.user.findMany.mockResolvedValue([
+        makeDonor({ id: 'a-pos-donor', donorProfile: { bloodType: 'A', rhFactor: 'POSITIVE' } }),
+      ]);
+
+      await service.activateEmergency('org-1', 'staff-1', 'req-1');
+
+      expect(tx.emergencyMatch.create).not.toHaveBeenCalled();
+    });
+
+    it('ranks an exact-group donor ahead of a nearer compatible one', async () => {
+      // Clinical ordering: type-specific blood first, universal donors as the
+      // fallback. Without the tier the O-negative donor would win on distance
+      // alone and, under the 50-donor cap, could crowd out exact-group donors -
+      // spending the scarcest supply on a case type-specific blood covers.
+      prisma.emergencyRequest.findUnique.mockResolvedValue({
+        id: 'req-1',
+        hospitalId: 'org-1',
+        status: EmergencyStatus.DRAFT,
+        bloodType: 'A',
+        rhFactor: 'POSITIVE',
+        urgencyLevel: 'CRITICAL',
+        requiredBefore: null,
+        latitude: '40.712800',
+        longitude: '-74.006000',
+      });
+      tx.user.findMany.mockResolvedValue([
+        makeDonor({
+          id: 'near-universal-donor',
+          donorProfile: { bloodType: 'O', rhFactor: 'NEGATIVE', consentLocation: true, latitude: '40.7129', longitude: '-74.0061' },
+        }),
+        makeDonor({
+          id: 'far-exact-donor',
+          donorProfile: { bloodType: 'A', rhFactor: 'POSITIVE', consentLocation: true, latitude: '41.5', longitude: '-73.5' },
+        }),
+      ]);
+
+      await service.activateEmergency('org-1', 'staff-1', 'req-1');
+
+      const matched = tx.emergencyMatch.create.mock.calls.map((c: any) => c[0].data.donorId);
+      expect(matched).toEqual(['far-exact-donor', 'near-universal-donor']);
+    });
+
+    it('still ranks by distance among donors of the same exactness tier', async () => {
+      prisma.emergencyRequest.findUnique.mockResolvedValue({
+        id: 'req-1',
+        hospitalId: 'org-1',
+        status: EmergencyStatus.DRAFT,
+        bloodType: 'A',
+        rhFactor: 'POSITIVE',
+        urgencyLevel: 'CRITICAL',
+        requiredBefore: null,
+        latitude: '40.712800',
+        longitude: '-74.006000',
+      });
+      tx.user.findMany.mockResolvedValue([
+        makeDonor({
+          id: 'far-universal',
+          donorProfile: { bloodType: 'O', rhFactor: 'NEGATIVE', consentLocation: true, latitude: '41.5', longitude: '-73.5' },
+        }),
+        makeDonor({
+          id: 'near-universal',
+          donorProfile: { bloodType: 'O', rhFactor: 'NEGATIVE', consentLocation: true, latitude: '40.72', longitude: '-74.01' },
+        }),
+      ]);
+
+      await service.activateEmergency('org-1', 'staff-1', 'req-1');
+
+      const matched = tx.emergencyMatch.create.mock.calls.map((c: any) => c[0].data.donorId);
+      expect(matched).toEqual(['near-universal', 'far-universal']);
+    });
+  });
 });

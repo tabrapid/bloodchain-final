@@ -30,6 +30,8 @@ describe('Emergency request and donor matching (e2e)', () => {
   let incompatibleEmergencyId: string;
   let matchId: string;
   let responseId: string;
+  let crossGroupEmergencyId: string;
+  let universalDonorUserId: string;
 
   const DONOR_EMAIL = `e2e.emergency.donor.${Date.now()}@donor.local`;
 
@@ -87,13 +89,13 @@ describe('Emergency request and donor matching (e2e)', () => {
     // was being written.
     // EmergencyMatch and EmergencyResponse both cascade off EmergencyRequest,
     // so deleting the request is enough.
-    for (const id of [emergencyId, incompatibleEmergencyId].filter(Boolean)) {
+    for (const id of [emergencyId, incompatibleEmergencyId, crossGroupEmergencyId].filter(Boolean)) {
       await db.emergencyRequest.deleteMany({ where: { id } });
     }
 
-    if (donorUserId) {
-      // Profile and membership cascade off the user.
-      await db.user.deleteMany({ where: { id: donorUserId } });
+    // Profile and membership cascade off each user.
+    for (const id of [donorUserId, universalDonorUserId].filter(Boolean)) {
+      await db.user.deleteMany({ where: { id } });
     }
 
     await app.close();
@@ -205,6 +207,64 @@ describe('Emergency request and donor matching (e2e)', () => {
         where: { emergencyRequestId: incompatibleEmergencyId, donorId: donorUserId },
       });
       expect(matches).toHaveLength(0);
+    });
+
+    it('matches a compatible donor of a different blood group (P3-11)', async () => {
+      // The real proof of the P3-11 fix. The unit tests mock tx.user.findMany,
+      // so they cannot exercise the SQL prefilter that was the actual bug --
+      // only a run against a real database can. This creates an O-negative
+      // universal donor and an A-positive emergency: before the fix the query
+      // narrowed to exact group, so this donor was never even loaded and could
+      // not be alerted; after it, BLOOD_COMPATIBILITY does its job.
+      const donorRole = await db.role.findUniqueOrThrow({ where: { code: 'DONOR' } });
+      const universalEmail = `e2e.universal.donor.${Date.now()}@donor.local`;
+
+      const universalDonor = await db.user.create({
+        data: {
+          email: universalEmail,
+          firstName: 'E2E',
+          lastName: 'Universal',
+          passwordHash: 'not-used-tokens-are-minted-directly',
+          status: 'ACTIVE',
+          emailVerified: true,
+          donorProfile: {
+            create: {
+              bloodType: 'O',
+              rhFactor: 'NEGATIVE',
+              donorStatus: 'ACTIVE',
+              verificationStatus: 'VERIFIED',
+            },
+          },
+          memberships: {
+            create: { organizationId: hospitalId, roleId: donorRole.id, status: 'ACTIVE' },
+          },
+        },
+      });
+      universalDonorUserId = universalDonor.id;
+
+      const res = await request(app.getHttpServer())
+        .post(`${API}/organizations/${hospitalId}/emergencies`)
+        .set('Authorization', `Bearer ${hospitalToken}`)
+        .send({
+          bloodType: 'A',
+          rhFactor: 'POSITIVE',
+          unitsRequired: 1,
+          description: 'e2e cross-group',
+        })
+        .expect(201);
+
+      crossGroupEmergencyId = res.body.data?.id ?? res.body.id;
+
+      await request(app.getHttpServer())
+        .post(`${API}/organizations/${hospitalId}/emergencies/${crossGroupEmergencyId}/activate`)
+        .set('Authorization', `Bearer ${hospitalToken}`)
+        .send({})
+        .expect(201);
+
+      const match = await db.emergencyMatch.findFirst({
+        where: { emergencyRequestId: crossGroupEmergencyId, donorId: universalDonorUserId },
+      });
+      expect(match).not.toBeNull();
     });
   });
 

@@ -3196,7 +3196,7 @@ These make the product unusable or unsafe for real users. Fix first, in order.
     `apps/api/src/modules/donations/donations.service.ts`
     (the three include+select fixes).
 
-- [ ] **P3-11. Emergency donor matching silently ignores the blood
+- [x] **P3-11. Emergency donor matching silently ignores the blood
   compatibility map, notifying only exact-type donors (found while
   writing the emergency e2e suite).** `emergency.service.ts` defines a
   correct `BLOOD_COMPATIBILITY` map — `'O-NEGATIVE'` lists all eight
@@ -3216,10 +3216,52 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   drop `bloodType`/`rhFactor` from the SQL prefilter (keeping
   `donorStatus`/`verificationStatus`/`emailVerified`) and let
   `isBloodCompatible` do the filtering it was written to do — but
-  confirm the intended clinical policy first.
-  - File: `apps/api/src/modules/emergency/emergency.service.ts`
-    (donor prefilter in `activateEmergency`, vs. `BLOOD_COMPATIBILITY`
-    and `isBloodCompatible`).
+  confirm the intended clinical policy first. — Fixed (on the user's
+  explicit instruction to proceed, after the concern above was raised
+  and they confirmed): dropped `bloodType`/`rhFactor` from the SQL
+  prefilter, keeping every eligibility constraint
+  (`donorStatus: ACTIVE`, `verificationStatus: VERIFIED`,
+  `emailVerified`, active DONOR membership), so `isBloodCompatible` now
+  decides compatibility and the map finally does its job. First
+  confirmed the map is medically right before relying on it: it encodes
+  donor→recipient direction correctly for red cells (O− to all eight
+  groups; AB+ only to AB+; each Rh− group to its own and the matching
+  Rh+ group).
+  **A naive version of this fix would have introduced a worse bug**, so
+  the change has a second half. Ranking was purely nearest-first, and
+  the pool is capped at 50 donors. Widening the pool without touching
+  the ranking would let a nearby O-negative universal donor outrank an
+  exact-group donor for, say, an A-positive patient — spending the
+  scarcest and most broadly usable supply on a case that type-specific
+  blood already covers, and under the 50-donor cap potentially crowding
+  exact-group donors out of the alert entirely. Standard transfusion
+  practice is type-specific first with universal donors as the
+  fallback, so ranking now sorts on an exact-group tier first and
+  distance second. Distance ordering within a tier is unchanged.
+  Tests: five new unit tests, of which the two that actually pin the
+  fix are the one asserting the **query shape** (the `where` clause must
+  not carry `bloodType`/`rhFactor` while keeping the eligibility
+  constraints) and the one asserting a far exact-group donor outranks a
+  near universal donor. Verified they catch the defect by reverting the
+  service and re-running: exactly those two fail. Worth recording that
+  the third unit test ("matches an O-negative donor to an A-positive
+  emergency") passes against the buggy code too — the existing specs
+  mock `tx.user.findMany`, so a mocked unit test structurally *cannot*
+  exercise the SQL prefilter that was the bug. That is precisely why
+  this item was invisible until the e2e work, and why the real proof is
+  a new e2e test that creates a genuine O-negative donor and an
+  A-positive emergency against a real database: reverting the service
+  makes exactly that one test fail, while the incompatible-donor test
+  keeps passing, confirming the pool widened to compatible donors
+  rather than to everyone.
+  Verified: 626 API unit tests (up from 621), 79 e2e (up from 78) green
+  on a pristine migrate+seed database, plus typecheck 10/10, lint
+  10/10 repo-wide.
+  - Files: `apps/api/src/modules/emergency/emergency.service.ts`
+    (donor prefilter and ranking in `activateEmergency`),
+    `apps/api/src/modules/emergency/emergency.service.spec.ts`
+    (5 regression tests), `apps/api/test/emergency.e2e-spec.ts`
+    (cross-group matching against a real database).
 
 - [ ] **P3-12. 16 POST routes are documented as returning 200 but
   actually return 201 (found while writing the donation e2e suite).**
@@ -3623,10 +3665,19 @@ catch-and-ignore cleanup was caught hiding two broken delete calls and
 leaving stale rows that made later runs fail for unrelated-looking
 reasons. Verified by running the whole suite twice, 78/78 both times,
 with the database confirmed clean and seeded data untouched).~~ ✅
+~~**P3-11** (emergency matching now reaches compatible donors of other
+blood groups, so a universal O-negative donor is finally alerted for an
+A-positive patient instead of being silently excluded. Confirmed the
+compatibility map was medically correct before relying on it, then
+added the half a naive fix would have missed: ranking sorts exact-group
+donors ahead of merely-compatible ones, because with a 50-donor cap and
+distance-only ranking a nearby universal donor would otherwise crowd out
+exact-group donors and spend the scarcest supply on a case
+type-specific blood already covers. Proved by reverting the service:
+the two unit tests that pin the query shape and the ranking tier fail,
+as does the new e2e test — while the incompatible-donor test keeps
+passing, so the pool widened to compatible donors, not to everyone).~~ ✅
 Next up: the remainder of **P3-2** (Next.js app pages, more
 `packages/ui` components — the mobile/Expo test setup half is now done
 as part of P3-9), or **P3-4** through **P3-7** (env docs, stale docs,
-repo naming, dead admin DTOs), or the newly-logged **P3-10** through
-**P3-13** — of which **P3-11** (emergency matching ignoring the blood
-compatibility map) is the one with real clinical weight and should
-probably be decided first.
+repo naming, dead admin DTOs), or **P3-10**, **P3-12**, **P3-13**.
