@@ -347,6 +347,40 @@ These make the product unusable or unsafe for real users. Fix first, in order.
     `apps/blood-center-web/lib/{shipments,couriers,appointment-slots}.spec.ts`
     (new), `apps/blood-center-web/app/{requests,shipments,couriers,appointments}/page.tsx`.
 
+- [x] **P0-13. The blood-center inventory page crashed the same way P0-12's
+  did (`units.length` on `undefined`) — a variant of the same bug class
+  `apiRequest` cannot represent on its own.** — Fixed. Found live, same
+  session as P0-12: `getInventory` was typed `Promise<PaginatedResponse<
+  InventoryUnit>>` (a named `{ data: T[]; meta: {...} }` type, which is why
+  P0-12's grep for the literal `Promise<{ data:` pattern missed it) and the
+  page correctly read `response.data` / `response.meta.totalPages` /
+  `response.meta.total` — but `InventoryController` carries no
+  `WrapResponseInterceptor` and its service hand-wraps its own
+  `{ data, meta }`, so `apiRequest`'s `return json.data as T` resolved to
+  the bare array, discarding `meta` entirely. Confirmed against the
+  backend rather than assumed: checked all 17 `InventoryController` routes'
+  service methods, and all 17 hand-wrap `{ data: ... }` uniformly with no
+  interceptor — 14 of them are consumed by the frontend as bare values
+  (correctly, since that is genuinely what `apiRequest` resolves to for
+  them) and would have broken had the fix instead added the interceptor to
+  the whole controller. `getMovements` and `getReservations` have the
+  identical shape and are not currently called from any page, so they had
+  no live symptom yet but were fixed alongside `getInventory` rather than
+  left for the next person to trip over.
+
+  Unlike P0-12, this could not be fixed by correcting a type: `meta` is
+  real data the page needs (pagination totals for "N of M units" and the
+  next/prev controls) and `apiRequest` structurally discards anything
+  outside `json.data`. Added `apiRequestEnvelope<T>` to
+  `blood-center-web/lib/api-client.ts` — the same fetch/auth/refresh/error
+  logic, factored out and returning the whole parsed body instead of just
+  `.data`; `apiRequest` is now `apiRequestEnvelope(...).then(e => e.data)`,
+  so none of that app's ~30 other call sites change behavior. The three
+  inventory functions call `apiRequestEnvelope` directly and reassemble
+  `{ data, meta }` themselves.
+  - Files: `apps/blood-center-web/lib/api-client.ts`,
+    `apps/blood-center-web/lib/inventory.ts`.
+
 ## 🟠 P1 — Major gaps (feature exists but disconnected, or missing entirely)
 
 - [x] **P1-1. Booking race conditions (double-booking) in appointments and lab slots.** — Fixed:
