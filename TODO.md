@@ -3283,7 +3283,7 @@ These make the product unusable or unsafe for real users. Fix first, in order.
     `donors.controller.ts` (1), `education.controller.ts` (3),
     `gamification.controller.ts` (1).
 
-- [ ] **P3-13. `ensureProfileExists` can lose a gamification profile
+- [x] **P3-13. `ensureProfileExists` can lose a gamification profile
   under concurrency (observed during the e2e runs).**
   `xp.service.ts`'s `ensureProfileExists` does a
   `gamificationProfile.upsert({ where: { userId }, … })`, which raced
@@ -3296,10 +3296,50 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   simply lost. Likely fix: catch and ignore P2002 specifically (the row
   exists, which is the desired end state), or serialise profile
   creation. Worth checking whether other `upsert`-on-unique calls in
-  event handlers have the same exposure.
-  - File: `apps/api/src/modules/gamification/services/xp.service.ts`
-    (`ensureProfileExists`), reached via
-    `gamification-event.handler.ts`'s `handleDonationCompleted`.
+  event handlers have the same exposure. — Fixed: first proved the
+  mechanism rather than assuming it. Prisma query logging shows the
+  `upsert` on this model compiles to three statements —
+  `SELECT ... WHERE userId = $1`, then a **plain** `INSERT` with no
+  `ON CONFLICT`, then a read-back — i.e. a textbook non-atomic
+  check-then-insert, matching the bare INSERT in the CI error exactly.
+  Then reproduced it deterministically against the real database:
+  concurrent callers for one fresh user raced on **6 of 6** trials
+  with P2002.
+  The fix is a single atomic statement instead of a retry:
+  `createMany({ data: [...], skipDuplicates: true })`, which emits
+  `INSERT ... ON CONFLICT DO NOTHING` (verified in the emitted SQL) and
+  is resolved by the database itself, so no caller can lose. Extracted
+  it as `ensureGamificationProfileRow` so the primitive lives in one
+  place rather than being duplicated.
+  **The check for sibling exposure found four more.** `xp.service`'s
+  `awardXp` and `createAdminAdjustment`, and `reputation.service`'s
+  `awardReputation` and `createAdminReputationAdjustment`, each upsert
+  the same profile inside a transaction. Those must *increment*, so
+  they cannot become ON CONFLICT DO NOTHING; instead each now calls the
+  atomic helper before opening its transaction, which guarantees the
+  row exists so the upsert inside always takes its update branch and
+  can never reach the racy insert path. Five racy call sites in total,
+  all closed.
+  Regression guard is a new e2e suite, since a unit test cannot
+  reproduce a database race — it needs real parallel connections.
+  **Tuning it honestly mattered**: the first version fired a single
+  burst of 32 and passed against the *unfixed* code, i.e. it was no
+  guard at all. Measuring showed the first burst after pool warm-up is
+  effectively serialised — 32×1 detected the bug in 0 of 3 runs, while
+  32×3 and 64×1 detected it in 3 of 3. The suite therefore repeats
+  64-way bursts over fresh users, and was confirmed to fail on the
+  reverted code in 3 of 3 runs and pass on the fixed code in 3 of 3.
+  (An earlier apparent "passes when reverted" result was a stale jest
+  cache; re-running with `--no-cache` is what exposed it.)
+  Verified: 626 API unit tests, 83 e2e (up from 79) on a pristine
+  migrate+seed database, typecheck 10/10, lint 10/10, no leftover rows.
+  - Files: `apps/api/src/modules/gamification/services/gamification-profile.util.ts`
+    (new — the atomic primitive and the reasoning),
+    `apps/api/src/modules/gamification/services/xp.service.ts`
+    (`ensureProfileExists` plus two transaction guards),
+    `apps/api/src/modules/gamification/services/reputation.service.ts`
+    (two transaction guards),
+    `apps/api/test/gamification-concurrency.e2e-spec.ts` (new).
 
 ---
 
@@ -3665,6 +3705,18 @@ catch-and-ignore cleanup was caught hiding two broken delete calls and
 leaving stale rows that made later runs fail for unrelated-looking
 reasons. Verified by running the whole suite twice, 78/78 both times,
 with the database confirmed clean and seeded data untouched).~~ ✅
+~~**P3-13** (gamification profile creation is no longer racy. Proved the
+mechanism from Prisma's emitted SQL — upsert compiles to SELECT then a
+plain INSERT with no ON CONFLICT — and reproduced the P2002 on 6 of 6
+trials against a real database. Replaced it with a single atomic
+INSERT ... ON CONFLICT DO NOTHING, extracted as a shared primitive.
+Checking the siblings found four more racy call sites: the four
+transactional upserts that increment XP and reputation now call the
+atomic helper first, so their upsert always takes the update branch.
+The regression guard is an e2e suite, since a unit test cannot
+reproduce a database race; its first version silently passed against
+the unfixed code, so it was measured and retuned until it failed on
+reverted code in 3 of 3 runs).~~ ✅
 ~~**P3-11** (emergency matching now reaches compatible donors of other
 blood groups, so a universal O-negative donor is finally alerted for an
 A-positive patient instead of being silently excluded. Confirmed the
@@ -3680,4 +3732,6 @@ passing, so the pool widened to compatible donors, not to everyone).~~ ✅
 Next up: the remainder of **P3-2** (Next.js app pages, more
 `packages/ui` components — the mobile/Expo test setup half is now done
 as part of P3-9), or **P3-4** through **P3-7** (env docs, stale docs,
-repo naming, dead admin DTOs), or **P3-10**, **P3-12**, **P3-13**.
+repo naming, dead admin DTOs), or **P3-10**, or **P3-12** (the OpenAPI
+status mismatch, which needs a call on whether to make the breaking
+change).
