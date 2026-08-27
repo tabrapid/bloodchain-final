@@ -16,6 +16,17 @@ WORKDIR /repo
 
 # ---- deps: install only what @bloodchain/api needs (itself + its workspace deps) ----
 FROM base AS deps
+# .npmrc pins auto-install-peers/strict-peer-dependencies to the values
+# pnpm-lock.yaml was generated with. Without it pnpm falls back to its own
+# defaults here, which disagree with the lockfile's recorded settings and
+# --frozen-lockfile refuses to proceed (ERR_PNPM_LOCKFILE_CONFIG_MISMATCH).
+COPY .npmrc .npmrc
+# apps/api/tsconfig.json and every packages/*/tsconfig.json extend this file
+# for target/lib/esModuleInterop/etc. Without it present at the same relative
+# path, tsc silently falls back to its own defaults (ES5/no esModuleInterop/no
+# downlevelIteration) instead of failing loudly, which breaks the build on
+# ordinary ES2022 syntax already used throughout the codebase.
+COPY tsconfig.json tsconfig.json
 COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
 COPY apps/api/package.json apps/api/package.json
 COPY packages/config/package.json packages/config/package.json

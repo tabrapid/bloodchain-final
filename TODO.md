@@ -203,48 +203,70 @@ These make the product unusable or unsafe for real users. Fix first, in order.
     `apps/api/test/response-envelope.e2e-spec.ts` (new).
 
 - [x] **P0-11. `docker compose up --build` could not build the API image at
-  all — found live, by the user, the first time anyone actually ran it.**
-  — Fixed. Every prior "verified" claim about Docker in this repo's history
-  was necessarily about the Dockerfile's shape, never a real build: this
-  sandbox has no egress to Docker Hub, so I have never once been able to run
-  `docker build` or `docker compose up` myself. The user ran it on their own
-  machine and hit a build failure at the final `COPY --from=build
-  /repo/apps/api/dist /repo/apps/api/dist` step: `"/repo/apps/api/dist": not
-  found`.
+  all — three independent bugs, stacked, found live by the user the first
+  time anyone actually ran it.** — Fixed. Every prior "verified" claim about
+  Docker in this repo's history was necessarily about the Dockerfile's
+  shape, never a real build: this sandbox has no egress to Docker Hub, so I
+  have never once been able to run `docker build` or `docker compose up`
+  myself. Each bug below hid the next one — fixing #1 only revealed #2, and
+  fixing #2 only revealed #3 — which is exactly why nobody had found all
+  three until a real build ran the whole pipeline end to end.
 
-  Root cause: `apps/api/Dockerfile` still filtered on `@donor/api` —
-  `RUN pnpm install --frozen-lockfile --filter=@donor/api...`,
-  `RUN pnpm --filter @donor/api prisma:generate`,
-  `RUN pnpm --filter @donor/api build` — the package name from before this
-  session's rename to `@bloodchain/api`. The rename updated every source
-  file, config, and doc that a `typecheck`/`lint`/`test`/`build` run could
-  touch, but the Dockerfile is invisible to all four, so it silently kept
-  the dead name. `pnpm --filter` with a selector that matches nothing exits
-  **0** rather than erroring, so both the install and the build step
-  "succeeded" — install in 3.6s (installed almost nothing) and build in
-  0.2s (compiled nothing) — and the pipeline only broke three stages later,
-  at the `COPY` that expected a `dist/` the build had never produced. The
-  user's build log's own timings gave this away before I even looked at the
-  file.
+  **Bug 1 — stale package filter.** The user's first attempt failed at the
+  final `COPY --from=build /repo/apps/api/dist /repo/apps/api/dist` step:
+  `"/repo/apps/api/dist": not found`. `apps/api/Dockerfile` still filtered
+  on `@donor/api` — three `pnpm --filter @donor/api ...` invocations left
+  over from before this session's rename to `@bloodchain/api`. The rename
+  updated every source file, config, and doc that `typecheck`/`lint`/
+  `test`/`build` could reach, but the Dockerfile is invisible to all four.
+  `pnpm --filter` with a selector matching nothing exits **0** rather than
+  erroring, so install and build both "succeeded" doing nothing (3.6s and
+  0.2s — too fast to be real) and the pipeline only broke three stages
+  later at the `COPY`. Confirmed by running the same selector directly in
+  the sandbox: the old name matches zero packages, the new name resolves to
+  exactly the 5 the Dockerfile expects.
 
-  Confirmed in the sandbox, without Docker, by running the same `pnpm
-  --filter` selector directly: `pnpm --filter @donor/api... list --depth -1`
-  → `No projects matched the filters`; `pnpm --filter @bloodchain/api... list
-  --depth -1` → the correct 5 packages (`api`, `config`, `types`, `utils`,
-  `validation`) — exactly what the Dockerfile's `deps` stage `COPY`s in.
-  Fixed all three `--filter` invocations plus two doc comments referencing
-  the old name and the old example image tag.
+  **Bug 2 — `.npmrc` never copied.** Fixing #1 and having the user retry
+  surfaced `ERR_PNPM_LOCKFILE_CONFIG_MISMATCH: The current
+  "settings.autoInstallPeers" configuration doesn't match the value found in
+  the lockfile`. The repo's `.npmrc` pins `auto-install-peers=false` /
+  `strict-peer-dependencies=false` to match how `pnpm-lock.yaml` was
+  generated, but the Dockerfile's `deps` stage never `COPY`'d it in, so pnpm
+  fell back to its own default and `--frozen-lockfile` refused to proceed.
+  Reproduced by hand in the sandbox: copying only the files the `deps` stage
+  copies (no `.npmrc`) into a scratch directory and running the same
+  install reproduces the exact error; adding `.npmrc` back installs 833 real
+  packages in 11s (versus the earlier 3.6s no-op).
 
-  This is the second Docker-adjacent gap this session (after P3-4's
-  `.env.example` rejecting its own template) that no amount of `typecheck`/
-  `lint`/`test`/`build` could have caught, because none of them touch the
-  Docker path — only actually running it does. As of this fix the build has
-  **not yet been re-run successfully** — I still cannot build Docker images
-  in this sandbox (no Docker Hub egress), and the user's confirmation of a
-  clean `docker compose up --build` on this fix was still pending when this
-  entry was written. Standing caveat either way: nothing about Docker in
-  this repo should be assumed clean until it has actually been run start to
-  finish.
+  **Bug 3 — root `tsconfig.json` never copied, found before the user hit
+  it.** With #1 and #2 fixed, continuing the same scratch-directory
+  reproduction through `nest build` failed with 13 TypeScript errors —
+  `replaceAll` not existing on a string, `matchAll` needing
+  `--downlevelIteration`, regex flags needing ES2018 — the unmistakable
+  signature of a project silently compiling under TypeScript's ES5
+  defaults. `apps/api/tsconfig.json` and every `packages/*/tsconfig.json`
+  `extend` the workspace root `tsconfig.json` (which sets `target: ES2022`,
+  `esModuleInterop: true`, etc.), but the Dockerfile never copies that file
+  into the image, and a missing `extends` target apparently fails silently
+  here rather than erroring, quietly discarding every setting it would have
+  supplied. Fixed, then re-ran the full scratch-directory reproduction from
+  a clean install through `nest build`: zero errors, `dist/src/main.js`
+  produced, and `node dist/src/main.js` boots the compiled Nest app and
+  fails only on the expected `DATABASE_URL`/`JWT_ACCESS_SECRET`/
+  `JWT_REFRESH_SECRET` being unset — exactly what real container env vars
+  from `docker-compose.yml` supply at runtime, and proof the compiled
+  artifact itself is sound.
+
+  This is the third Docker-adjacent gap this session (after P3-4's
+  `.env.example` rejecting its own template, and Bug 1 above) that no
+  amount of `typecheck`/`lint`/`test`/`build` could have caught, because
+  none of them touch the Docker path. The reproduction now goes further
+  than a shape review ever could — a real `pnpm install` plus a real `nest
+  build` plus a real boot of the resulting artifact — but it still is not
+  `docker build` itself, and the user's confirmation of a clean
+  `docker compose up --build` was still pending when this entry was
+  written. Standing caveat: nothing about Docker in this repo should be
+  assumed clean until `docker compose up --build` has actually completed.
   - Files: `apps/api/Dockerfile`.
 
 ## 🟠 P1 — Major gaps (feature exists but disconnected, or missing entirely)
