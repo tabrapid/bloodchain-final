@@ -57,7 +57,16 @@ cp .env.example .env
 cp .env.example apps/api/.env
 ```
 
-Edit `.env` and `apps/api/.env` with your local database URL and strong JWT secrets. The example values are safe for local development only.
+Edit `.env` and `apps/api/.env` with your local database URL and strong JWT
+secrets (32+ characters each — the API refuses to start otherwise). Everything
+else in the template works as shipped: empty values mean "not configured", and
+the API validates the whole file against
+`apps/api/src/config/env.validation.ts` at boot.
+
+The three Next.js apps and the Expo app read `NEXT_PUBLIC_API_URL` /
+`EXPO_PUBLIC_API_URL`, not the API's own variables; both fall back to
+`http://localhost:3001`, so they only need setting once the API moves off
+localhost.
 
 ### Database
 
@@ -93,7 +102,7 @@ pnpm dev:mobile
 ```bash
 pnpm typecheck   # tsc --noEmit across all 10 workspace packages
 pnpm lint
-pnpm test        # 650 API unit tests + 16 mobile + 76 package tests
+pnpm test        # 654 API unit tests + 16 mobile + 76 package tests
 pnpm build
 ```
 

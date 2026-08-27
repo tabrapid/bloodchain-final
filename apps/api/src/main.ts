@@ -16,8 +16,8 @@ async function bootstrap() {
 
   if (config.get<string>('NODE_ENV') !== 'production') {
     const swagger = new DocumentBuilder()
-      .setTitle('DONOR API')
-      .setDescription('Foundation API for the DONOR healthcare platform')
+      .setTitle('BloodChain API')
+      .setDescription('Foundation API for the BloodChain healthcare platform')
       .setVersion('1.0')
       .addBearerAuth()
       .build();
@@ -26,6 +26,6 @@ async function bootstrap() {
 
   const port = config.get<number>('PORT', 3001);
   await app.listen(port);
-  logger.log(`DONOR API listening on port ${port}`);
+  logger.log(`BloodChain API listening on port ${port}`);
 }
 bootstrap();

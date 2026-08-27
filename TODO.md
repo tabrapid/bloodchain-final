@@ -2855,11 +2855,87 @@ These make the product unusable or unsafe for real users. Fix first, in order.
     `apps/api/src/modules/ai-logging/ai-logging.service.spec.ts`
     (obsolete `jest.mock('uuid')` removed).
 
-- [ ] **P3-4. `.env.example` gaps**: `AI_BASE_URL`/`AI_ENABLED`/
-  `AI_MAX_TOKENS`/`AI_MODEL`/`AI_TIMEOUT_MS` are read by code but
-  undocumented; conversely `FCM_SERVER_KEY`/`APNS_KEY_ID`/`MAP_API_KEY`/
-  `EXPO_ACCESS_TOKEN` are documented but never read anywhere server-side
-  (confirms P0-5/P1-10 are unfinished integrations, not just UI gaps).
+- [x] **P3-4. `.env.example` gaps.** — Fixed, and the investigation turned up
+  something considerably worse than gaps: **the API refused to boot with the
+  `.env.example` the README tells you to copy.**
+
+  `SMTP_HOST`, `SMTP_USER`, `SMTP_PASSWORD` and `EXPO_ACCESS_TOKEN` were all
+  declared `Joi.string().optional()`, and Joi rejects an empty string for a
+  plain `Joi.string()`. The template ships all four as `""` — deliberately, with
+  a comment telling you to leave `SMTP_HOST` empty in local dev. So following
+  the documented setup (`cp .env.example .env && cp .env.example apps/api/.env`,
+  then `pnpm dev:api`) died at startup with
+  `Config validation error: "SMTP_HOST" is not allowed to be empty. "SMTP_USER"
+  ... "SMTP_PASSWORD" ... "EXPO_ACCESS_TOKEN" ...`. `docker compose up` hit the
+  same wall, since compose passes `SMTP_HOST: ${SMTP_HOST:-}` — an empty string.
+  Reproduced live before fixing and confirmed fixed after: the compiled API now
+  starts on the template unchanged apart from the database URL and the two
+  secrets, logging the intended `SMTP_HOST is not set — outgoing emails will be
+  logged only` warning. The consuming code was always fine (`if (host)`,
+  `user ? … : undefined`, `accessToken ? … : undefined`); only the schema
+  disagreed. Fix is `.allow('')` on the four.
+
+  On the documented-but-inert side, the audit note was right about three and
+  wrong about one. `MAP_API_KEY`, `FCM_SERVER_KEY` and `APNS_KEY_ID` have zero
+  references anywhere in the repository — removed from both `.env.example` and
+  `docker-compose.yml`, with a comment in their place saying plainly that push
+  goes through Expo and there is no direct FCM/APNs integration. But
+  `EXPO_ACCESS_TOKEN` **is** read (`push-provider.service.ts:16`) and is in the
+  schema, so it stays.
+
+  Two more inert variables the note didn't catch:
+  - **`JWT_REFRESH_EXPIRES_IN`** was documented, validated, defaulted to `30d`
+    and passed through docker-compose — and read by nothing but a test mock.
+    Refresh tokens here are opaque random strings, not JWTs, and their lifetime
+    comes from `PlatformSettings.sessionTimeoutMinutes` (P1-14), editable by a
+    SUPER_ADMIN. An operator setting `JWT_REFRESH_EXPIRES_IN=1h` to satisfy a
+    security requirement would have believed it took effect. Removed from all
+    three places; `.env.example` now says where the lifetime actually comes
+    from.
+  - **`REDIS_URL`** — same story, already established in P3-5 that nothing
+    connects to Redis. Removed from the schema and the template.
+
+  The five AI variables (`AI_ENABLED`, `AI_BASE_URL`, `AI_MODEL`,
+  `AI_MAX_TOKENS`, `AI_TIMEOUT_MS`) are now documented *and* validated, with
+  every default set to the same fallback the reading code already passes to
+  `ConfigService.get`, so nothing changes behaviourally — a typo in
+  `AI_MAX_TOKENS` now fails at boot instead of silently reverting to 1000.
+  One trap avoided by reading the consumer first: `AI_ENABLED` is declared
+  `Joi.string().valid('true','false')`, not `Joi.boolean()`, because the feature
+  gate compares it with `!== 'true'` — a boolean would have coerced and turned
+  AI permanently off. Docker-compose passed only `AI_API_KEY`, so a
+  containerised deployment could not enable AI at all; all six now pass through.
+
+  Also added the two variables the *frontends* read and nothing documented —
+  `NEXT_PUBLIC_API_URL` and `EXPO_PUBLIC_API_URL` — flagged as such, since they
+  fall back to localhost and so only bite on a real deployment.
+
+  **Guard.** `src/config/env-example.spec.ts` reads the real `.env.example` and
+  the real Joi schema and asserts: the file validates under exactly the options
+  ConfigModule uses; every variable the schema knows about is documented; and
+  none of the five dead variables have crept back. Proved it catches the
+  original bug — restoring `SMTP_HOST: Joi.string().optional()` fails it with
+  the same message the API died on.
+
+  **Product-name leftovers** found while touching these files and fixed in the
+  same pass: `appConfig.name` was still `'DONOR'`, the Swagger title was
+  `'DONOR API'`, the startup log said `DONOR API listening`, and the email
+  `from` fallback was `DONOR <no-reply@donor.local>` (in the service, the Joi
+  default, docker-compose, and the spec's expectations). Seed account emails and
+  the `donor://` deep-link scheme are deliberately left alone — the scheme must
+  match `expo.scheme` in `apps/mobile/app.json`, and the seed emails are
+  referenced by the e2e harness and the README credentials table.
+
+  Verified: `pnpm typecheck` 10/10, `pnpm lint` 0 errors, 654 API unit tests
+  (650 + 4 new) + 16 mobile + package tests, `pnpm build` 4/4, 95 e2e across 8
+  suites against a fresh migrated+seeded database, plus the live boot of the
+  compiled API on the template itself.
+  - Files: `.env.example`, `docker-compose.yml`,
+    `apps/api/src/config/env.validation.ts`,
+    `apps/api/src/config/env-example.spec.ts` (new),
+    `apps/api/src/main.ts`, `apps/api/src/modules/email/email.service.ts`,
+    `apps/api/src/modules/email/email.service.spec.ts`,
+    `packages/config/src/index.ts`, `README.md`.
 
 - [x] **P3-5. Stale/inconsistent docs.** `docs/architecture.md` says
   WebSocket is "prepared but not implemented" even though the gateways are

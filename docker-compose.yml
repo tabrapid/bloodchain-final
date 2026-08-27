@@ -31,7 +31,6 @@ services:
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?Set JWT_ACCESS_SECRET in .env (min 32 chars)}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?Set JWT_REFRESH_SECRET in .env (min 32 chars)}
       JWT_ACCESS_EXPIRES_IN: ${JWT_ACCESS_EXPIRES_IN:-15m}
-      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-30d}
       API_URL: ${API_URL:-http://localhost:3001}
       WEB_URL: ${WEB_URL:-http://localhost:3000,http://localhost:3002,http://localhost:3003}
       MOBILE_DEEP_LINK: ${MOBILE_DEEP_LINK:-donor://}
@@ -42,14 +41,16 @@ services:
       SMTP_SECURE: ${SMTP_SECURE:-false}
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
-      SMTP_FROM: ${SMTP_FROM:-DONOR <no-reply@donor.local>}
+      SMTP_FROM: ${SMTP_FROM:-BloodChain <no-reply@donor.local>}
       EMAIL_VERIFICATION_TTL_HOURS: ${EMAIL_VERIFICATION_TTL_HOURS:-24}
       DONATION_COOLDOWN_DAYS: ${DONATION_COOLDOWN_DAYS:-56}
-      AI_API_KEY: ${AI_API_KEY:-}
-      MAP_API_KEY: ${MAP_API_KEY:-}
       EXPO_ACCESS_TOKEN: ${EXPO_ACCESS_TOKEN:-}
-      FCM_SERVER_KEY: ${FCM_SERVER_KEY:-}
-      APNS_KEY_ID: ${APNS_KEY_ID:-}
+      AI_ENABLED: ${AI_ENABLED:-false}
+      AI_API_KEY: ${AI_API_KEY:-}
+      AI_MODEL: ${AI_MODEL:-gpt-4o-mini}
+      AI_BASE_URL: ${AI_BASE_URL:-https://api.openai.com/v1}
+      AI_MAX_TOKENS: ${AI_MAX_TOKENS:-1000}
+      AI_TIMEOUT_MS: ${AI_TIMEOUT_MS:-30000}
     ports:
       - '${API_PORT:-3001}:3001'
     healthcheck:

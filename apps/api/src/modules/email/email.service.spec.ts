@@ -46,7 +46,7 @@ describe('EmailService', () => {
         if (key === 'SMTP_SECURE') return true;
         if (key === 'SMTP_USER') return 'apikey';
         if (key === 'SMTP_PASSWORD') return 'secret';
-        if (key === 'SMTP_FROM') return 'DONOR <hello@donor.app>';
+        if (key === 'SMTP_FROM') return 'BloodChain <hello@donor.app>';
         return fallback;
       });
 
@@ -85,7 +85,7 @@ describe('EmailService', () => {
       await service.send({ to: 'donor@example.com', subject: 'Hi', html: '<p>hi</p>', text: 'hi' });
 
       expect(sendMail).toHaveBeenCalledWith({
-        from: 'DONOR <no-reply@donor.local>',
+        from: 'BloodChain <no-reply@donor.local>',
         to: 'donor@example.com',
         subject: 'Hi',
         html: '<p>hi</p>',
@@ -95,14 +95,14 @@ describe('EmailService', () => {
 
     it('uses the configured SMTP_FROM address when set', async () => {
       config.get.mockImplementation((key: string) =>
-        key === 'SMTP_FROM' ? 'DONOR <hello@donor.app>' : undefined,
+        key === 'SMTP_FROM' ? 'BloodChain <hello@donor.app>' : undefined,
       );
       service.onModuleInit();
 
       await service.send({ to: 'donor@example.com', subject: 'Hi', html: '<p>hi</p>', text: 'hi' });
 
       expect(sendMail).toHaveBeenCalledWith(
-        expect.objectContaining({ from: 'DONOR <hello@donor.app>' }),
+        expect.objectContaining({ from: 'BloodChain <hello@donor.app>' }),
       );
     });
 
