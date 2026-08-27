@@ -2993,9 +2993,9 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   `IsNumber` import pruned from `class-validator`. The 20 that remain are
   exactly the 20 the controller imports.
 
-  Left open as **P3-14**: four *other* routes still declare inline anonymous
-  request bodies and are therefore equally unvalidated, including two that take
-  required fields and one that accepts clinical lab results.
+  Split out as **P3-14** (now fixed): four *other* routes had the same
+  inline-body defect, including two that take required fields and one that
+  accepts clinical lab results.
 
   Verified: `pnpm typecheck` 10/10, `pnpm lint` 10/10 (0 errors),
   `pnpm turbo run test --force` (626 API + 16 mobile + package tests) green,
@@ -3512,40 +3512,78 @@ These make the product unusable or unsafe for real users. Fix first, in order.
     (two transaction guards),
     `apps/api/test/gamification-concurrency.e2e-spec.ts` (new).
 
-- [ ] **P3-14. Four routes declare inline anonymous request bodies, so they
-  run with no validation at all (found while working P3-7).** NestJS's
-  `ValidationPipe` skips validation when the resolved metatype is a native
-  type, and an inline object type such as `@Body() dto: { courierId: string }`
-  resolves to `Object`. The app's global `whitelist` /
-  `forbidNonWhitelisted` / `transform` policy therefore does not apply to
-  these routes, and Swagger documents no request body for any of them.
-  P3-7 fixed the fifth instance (`POST /admin/couriers/:id/suspend`, which
-  already had a correct-but-unwired DTO sitting next to it). The remaining
-  four have no DTO at all and need one written:
-  - `POST /organizations/:organizationId/shipments/:shipmentId/assign`
-    (`shipments.controller.ts:165`) — `{ courierId: string }`, a **required**
-    field. A body with `courierId` missing or non-string reaches the service
-    and then Prisma unchecked.
-  - `POST /laboratory-appointments` (`laboratory.controller.ts:59`) —
-    `{ laboratoryId, testTypeId, slotId, notes? }`, three **required** fields,
-    none validated.
-  - `POST /me/laboratory-appointments/:appointmentId/cancel`
-    (`laboratory.controller.ts:103`) — `{ reason?: string }`.
-  - `POST /organizations/:organizationId/laboratory-results`
-    (`laboratory.controller.ts:262`) — `{ appointmentId, items[], testTypeId }`,
-    including a nested array of result items with numeric values, units and
-    flags. This one accepts **clinical data** with no shape checking, no
-    nested validation, and no `@ValidateNested`/`@Type` on the array; it is
-    the highest-risk of the four.
+- [x] **P3-14. Four routes declared inline anonymous request bodies, so they
+  ran with no validation at all (found while working P3-7).** — Fixed.
 
-  Each needs a DTO class with the right `class-validator` decorators (and
-  `@ValidateNested()` + `@Type()` for the results array), wired onto the
-  route the same way P3-7 wired `AdminSuspendCourierDto`. Worth adding a
-  guard test that fails if any controller reintroduces an inline `@Body()`
-  object type, since nothing in the type system or the linter catches it.
-  - Files: `apps/api/src/modules/shipments/shipments.controller.ts`,
-    `apps/api/src/modules/laboratory/laboratory.controller.ts`, plus new
-    DTO files for each module.
+  NestJS's `ValidationPipe` skips validation when the resolved metatype is a
+  native type, and an inline object type such as `@Body() dto: { courierId: string }`
+  compiles to `Object`. The app's global `whitelist` / `forbidNonWhitelisted` /
+  `transform` policy therefore did not apply to these routes, and Swagger
+  documented no request body for any of them — while they type-checked and
+  linted perfectly cleanly.
+
+  Two of the four already had a correct DTO sitting unused in the module's own
+  `dto/` file (`AssignCourierDto`; P3-7's `AdminSuspendCourierDto` was the same
+  story), which is what makes this defect class easy to reintroduce: writing the
+  DTO is the part people remember.
+
+  **What the routes actually did with bad input** — measured by reverting the
+  fix and running the new suite against it, not inferred:
+
+  - `POST /organizations/:organizationId/laboratory-results` — the worst of the
+    four, since it accepts clinical data. A body with no `items` array **500**ed
+    on a `TypeError` from `dto.items.map`. A body with `items: []` returned
+    **201**: it created a real `LaboratoryResult` row, on the track that leads to
+    review and publication, carrying no measurements at all. A `flag` outside
+    the `ResultFlag` enum was cast straight through by the controller's
+    `flag: item.flag as any` into a Prisma enum column. A non-numeric
+    `numericValue` threw inside the `Prisma.Decimal` constructor — part-way
+    through the transaction that writes the result.
+  - `POST /laboratory-appointments` — three required ids (`laboratoryId`,
+    `testTypeId`, `slotId`), none validated; an empty body **500**ed after
+    reaching Prisma with `undefined` ids.
+  - `POST /organizations/:orgId/shipments/:shipmentId/assign` — a body with no
+    `courierId` **500**ed (I had guessed 404; the measurement said otherwise).
+  - `POST /me/laboratory-appointments/:appointmentId/cancel` — unknown
+    properties silently accepted.
+
+  All four now bind real DTO classes with proper decorators, including
+  `@ValidateNested({ each: true })` + `@Type()` on the lab-result items array so
+  the nested objects are validated too (an unknown property *inside* an item is
+  now rejected, which is asserted). Every one of the failure modes above is a
+  400 now. The `as any` cast on `flag` is gone — `@IsEnum(ResultFlag)` types it
+  properly.
+
+  **Adjacent data-loss bug fixed in the same pass.** `createResult` stored
+  `item.numericValue ? new Prisma.Decimal(...) : null`. On this path
+  `numericValue` is a plain number off the request body, so a legitimate result
+  of **0** — an undetectable marker, a zero cell count — was silently stored as
+  `null`, losing the measurement. Checked the two other `numericValue ?` sites
+  (`laboratory.service.ts:1224`, `ai-context-builder-enhanced.service.ts:225`)
+  and both are fine: they read a `Prisma.Decimal` from the database, and
+  `Decimal(0)` is a truthy object. Only the write path was wrong. Pinned by a
+  test that posts `numericValue: 0` and asserts the stored value is `0`, not
+  null.
+
+  **Guard against reintroduction.** Nothing in TypeScript or ESLint can see this
+  defect, which is how five routes accumulated it. Added
+  `src/common/controller-body-validation.spec.ts`, which reads every
+  `*.controller.ts` under `src/modules` as source and fails on any `@Body()`
+  bound to an inline object type (23 controllers, plus a test asserting the scan
+  isn't silently empty). Proved it works: reintroducing the inline body on the
+  shipments route fails it.
+
+  Verified: `pnpm typecheck` 10/10, `pnpm lint` 0 errors, 650 API unit tests
+  (626 + 24 from the new guard) + 16 mobile + package tests, `pnpm build` 4/4,
+  and 95 e2e across 8 suites against a freshly created, migrated and seeded
+  database. Reverting all four routes fails the new e2e suite 9/9 with exactly
+  the status codes documented above. Confirmed the run leaves no residue.
+  - Files: `apps/api/src/modules/laboratory/dto/laboratory.dto.ts` (new),
+    `apps/api/src/modules/laboratory/laboratory.controller.ts`,
+    `apps/api/src/modules/laboratory/laboratory.service.ts`,
+    `apps/api/src/modules/shipments/shipments.controller.ts`,
+    `apps/api/src/common/controller-body-validation.spec.ts` (new),
+    `apps/api/test/laboratory-validation.e2e-spec.ts` (new).
 
 ---
 

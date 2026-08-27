@@ -31,6 +31,7 @@ import {
   UpdateLocationDto,
   CancelShipmentDto,
   ReassignCourierDto,
+  AssignCourierDto,
   DeliveryConfirmationDto,
 } from './dto/shipment.dto';
 
@@ -162,7 +163,7 @@ export class ShipmentsController {
   assignCourier(
     @Param('organizationId') organizationId: string,
     @Param('shipmentId') shipmentId: string,
-    @Body() dto: { courierId: string },
+    @Body() dto: AssignCourierDto,
     @CurrentUser('sub') userId: string,
     @Req() req: Request,
   ) {
