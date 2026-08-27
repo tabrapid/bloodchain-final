@@ -123,7 +123,7 @@ export interface CreateBloodRequestParams {
   expectedDeliveryDate?: string;
 }
 
-export function getBloodRequests(organizationId: string, filters?: { status?: string; type?: string }): Promise<{ data: BloodRequest[] }> {
+export function getBloodRequests(organizationId: string, filters?: { status?: string; type?: string }): Promise<BloodRequest[]> {
   const searchParams = new URLSearchParams();
   if (filters?.status) searchParams.set('status', filters.status);
   if (filters?.type) searchParams.set('type', filters.type);
@@ -170,7 +170,7 @@ export function createShipment(
   });
 }
 
-export function getShipments(organizationId: string, filters?: { status?: string; type?: string }): Promise<{ data: Shipment[] }> {
+export function getShipments(organizationId: string, filters?: { status?: string; type?: string }): Promise<Shipment[]> {
   const searchParams = new URLSearchParams();
   if (filters?.status) searchParams.set('status', filters.status);
   if (filters?.type) searchParams.set('type', filters.type);

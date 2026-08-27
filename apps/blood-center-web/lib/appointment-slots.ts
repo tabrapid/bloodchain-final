@@ -21,7 +21,7 @@ export interface AppointmentSlot {
 export function getSlots(
   organizationId: string,
   filters?: { appointmentType?: AppointmentType; startDate?: string; endDate?: string },
-): Promise<{ data: AppointmentSlot[] }> {
+): Promise<AppointmentSlot[]> {
   const searchParams = new URLSearchParams();
   if (filters?.appointmentType) searchParams.set('appointmentType', filters.appointmentType);
   if (filters?.startDate) searchParams.set('startDate', filters.startDate);
@@ -33,7 +33,7 @@ export function getSlots(
 export function createSlot(
   organizationId: string,
   params: { appointmentType: AppointmentType; startAt: string; endAt: string; capacity?: number },
-): Promise<{ data: AppointmentSlot }> {
+): Promise<AppointmentSlot> {
   return apiRequest(`/appointments/organizations/${organizationId}/slots`, {
     method: 'POST',
     body: JSON.stringify(params),
@@ -44,14 +44,14 @@ export function updateSlot(
   organizationId: string,
   slotId: string,
   params: { startAt?: string; endAt?: string; capacity?: number; status?: SlotStatus },
-): Promise<{ data: AppointmentSlot }> {
+): Promise<AppointmentSlot> {
   return apiRequest(`/appointments/organizations/${organizationId}/slots/${slotId}`, {
     method: 'PATCH',
     body: JSON.stringify(params),
   });
 }
 
-export function blockSlot(organizationId: string, slotId: string): Promise<{ data: AppointmentSlot }> {
+export function blockSlot(organizationId: string, slotId: string): Promise<AppointmentSlot> {
   return apiRequest(`/appointments/organizations/${organizationId}/slots/${slotId}/block`, {
     method: 'POST',
   });

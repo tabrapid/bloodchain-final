@@ -46,7 +46,7 @@ export default function BloodRequestsPage() {
       const filters: { status?: string; type?: string } = { type: 'fulfilling' };
       if (statusFilter) filters.status = statusFilter;
       const data = await getBloodRequests(organizationId, filters);
-      setRequests(data.data);
+      setRequests(data);
     } catch (err) {
       console.error('Failed to load blood requests:', err);
     } finally {

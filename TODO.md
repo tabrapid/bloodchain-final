@@ -279,6 +279,74 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   Dockerfile's shape, since this sandbox has no Docker Hub egress.
   - Files: `apps/api/Dockerfile`.
 
+- [x] **P0-12. Nine web-app API functions were typed to return
+  `{ data: T }` and every caller read `.data` off the result — but the
+  real resolved value was always `T` directly, so `.data` was `undefined`
+  and crashed the first page a user actually opened in the browser.**
+  — Fixed. Found live: the user's first click into `/requests` on the
+  hospital dashboard threw `TypeError: Cannot read properties of
+  undefined (reading 'filter')` on `requests.filter(...)`, because
+  `setRequests(data.data)` had set the state to `undefined`.
+
+  Root cause: `apiRequest<T>` (this session's own `api-client.ts` from
+  P3-2) already unwraps the HTTP response's top-level `data` field —
+  `return json.data as T`. For most endpoints that's correct, because
+  `WrapResponseInterceptor` (P0-10) wraps a bare service payload as
+  `{ data: payload }` exactly once. But `ShipmentsController` and
+  `AppointmentSlotsController` carry no interceptor at all — their
+  services hand-wrap their *own* return values as `{ data: payload }`
+  directly, so the HTTP body is `{"data": payload}` either way, and
+  `apiRequest` correctly resolves to `payload`. Nine functions across two
+  apps were nonetheless declared `Promise<{ data: T }>` and their callers
+  read `result.data` — a second, fictional unwrap that the type checker
+  had no way to catch, because `apiRequest`'s generic `T` is supplied
+  entirely from the caller's declared return type and never checked
+  against what the endpoint actually returns.
+
+  Confirmed each of the nine individually against its backing service
+  method before touching anything, rather than assuming the same bug
+  everywhere a similar type appeared: `ShipmentsService.getRequests` /
+  `getShipments` / `getCourierRoster` and all four
+  `AppointmentSlotsService` methods (`getSlotsByOrganization`,
+  `createSlot`, `updateSlot`, `blockSlot`) each `return { data: ... }`
+  with no interceptor on their controller — the fictional-wrapper pattern,
+  confirmed nine for nine. (Two other multi-field `Promise<{ ... }>`
+  return types in the same files — `getShipmentTimeline`,
+  `getShipmentTracking` — are genuine domain shapes, not this bug; left
+  alone.)
+
+  Fixed the return type on all nine to the type `apiRequest` actually
+  resolves to, and fixed every caller that read `.data` off the result (6
+  of the 9 — the other 3, `createSlot`/`updateSlot`/`blockSlot`, discard
+  their return value and re-fetch instead, so only their type annotation
+  was wrong). The corrected types are self-enforcing from here: reverting
+  a caller to `result.data` now fails `pnpm typecheck` outright —
+  `Property 'data' does not exist on type 'BloodRequest[]'` — proven by
+  temporarily reintroducing it and watching typecheck fail, then
+  reverting. Added runtime specs (11 new tests: 2 + 2 + 1 + 4 across
+  `hospital-web/lib/shipments`, `blood-center-web/lib/{shipments,couriers,
+  appointment-slots}`) asserting each function resolves to the real
+  unwrapped shape a hand-wrapping backend actually sends, not the
+  double-unwrap the old types assumed — these are Node-level and would
+  survive even if `pnpm typecheck` were somehow bypassed.
+
+  This is the same failure mode as P0-10 (undefined payload → the screen
+  looks like an empty state, or in this case a hard crash) but the
+  opposite direction: P0-10 was controllers sending no envelope where
+  clients expected one; this is clients expecting a second envelope no
+  controller ever sent. Both come from the same root condition — response
+  shape is asserted by hand at both ends of the wire with nothing
+  checking the two agree — and this one was found the same way P0-10 was:
+  by someone actually clicking through the running app, not by
+  `typecheck`/`lint`/`test`/`build`, none of which model the network
+  boundary between client and server.
+  - Files: `apps/hospital-web/lib/shipments.ts`,
+    `apps/hospital-web/lib/shipments.spec.ts` (new),
+    `apps/hospital-web/app/{requests,shipments}/page.tsx`,
+    `apps/blood-center-web/lib/{shipments,couriers,appointment-slots}.ts`,
+    `apps/blood-center-web/lib/{shipments,couriers,appointment-slots}.spec.ts`
+    (new), `apps/blood-center-web/app/{requests,shipments,couriers,appointments}/page.tsx`.
+
 ## 🟠 P1 — Major gaps (feature exists but disconnected, or missing entirely)
 
 - [x] **P1-1. Booking race conditions (double-booking) in appointments and lab slots.** — Fixed:
