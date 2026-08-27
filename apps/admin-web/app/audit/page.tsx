@@ -2,12 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { Search, FileText, User, Clock, X, LayoutDashboard, Users, Building2, Ship, Package, Droplet, AlertTriangle, TestTube, Bell, Activity, Settings } from 'lucide-react';
-import { DashboardShell, LoadingState } from '@donor/ui/components';
+import { LoadingState } from '@bloodchain/ui/components';
 import { listAuditLogs, type AuditLog } from '@lib/api';
 import { me, isAuthenticated } from '@lib/auth';
 import { StatusBadgeWrapper } from '@lib/status';
-
-import { navItems } from '@lib/navigation';
+import { AppShell } from '../../components/AppShell';
 
 export default function AuditLogsPage() {
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -56,14 +55,14 @@ export default function AuditLogsPage() {
 
   if (isLoading) {
     return (
-      <DashboardShell title="Audit Logs" sidebarItems={navItems} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined} onLogout={() => {}}>
+      <AppShell title="Audit Logs" userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
         <LoadingState />
-      </DashboardShell>
+      </AppShell>
     );
   }
 
   return (
-    <DashboardShell title="Audit Logs" sidebarItems={navItems} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined} onLogout={() => {}}>
+    <AppShell title="Audit Logs" userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
       <div className="p-6">
         <div className="mb-6">
           <h1 className="text-2xl font-semibold text-gray-900">Audit Logs</h1>
@@ -196,6 +195,6 @@ export default function AuditLogsPage() {
           )}
         </div>
       </div>
-    </DashboardShell>
+    </AppShell>
   );
 }

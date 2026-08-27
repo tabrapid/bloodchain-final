@@ -1,6 +1,6 @@
-# DONOR
+# BloodChain
 
-DONOR is a production-oriented healthcare technology platform that connects donors, hospitals, blood centers, and couriers around a safer, more transparent blood supply.
+BloodChain is a production-oriented healthcare technology platform that connects donors, hospitals, blood centers, and couriers around a safer, more transparent blood supply.
 
 This repository contains the **Phase 1 + Phase 2 foundation**: a scalable monorepo with the API, mobile application, hospital web console, blood-center web console, shared packages, database schema, authentication, RBAC, and development tooling.
 
@@ -32,7 +32,7 @@ donor/
 ## Tech stack
 
 - **Mobile:** React Native, Expo, Expo Router, TypeScript, TanStack Query, Zustand, React Hook Form, Zod, Expo SecureStore, lucide-react-native.
-- **Web:** Next.js 14 (App Router), React 18, TypeScript, Tailwind CSS, lucide-react, shared `@donor/ui` components.
+- **Web:** Next.js 14 (App Router), React 18, TypeScript, Tailwind CSS, lucide-react, shared `@bloodchain/ui` components.
 - **Backend:** NestJS, TypeScript, Prisma, PostgreSQL, argon2, JWT access/refresh tokens, Passport, Swagger/OpenAPI, structured logging with pino, rate limiting, Helmet security headers.
 - **Tooling:** pnpm workspaces, Turborepo, TypeScript, ESLint (API), Prettier.
 
@@ -57,7 +57,16 @@ cp .env.example .env
 cp .env.example apps/api/.env
 ```
 
-Edit `.env` and `apps/api/.env` with your local database URL and strong JWT secrets. The example values are safe for local development only.
+Edit `.env` and `apps/api/.env` with your local database URL and strong JWT
+secrets (32+ characters each — the API refuses to start otherwise). Everything
+else in the template works as shipped: empty values mean "not configured", and
+the API validates the whole file against
+`apps/api/src/config/env.validation.ts` at boot.
+
+The three Next.js apps and the Expo app read `NEXT_PUBLIC_API_URL` /
+`EXPO_PUBLIC_API_URL`, not the API's own variables; both fall back to
+`http://localhost:3001`, so they only need setting once the API moves off
+localhost.
 
 ### Database
 
@@ -91,10 +100,27 @@ pnpm dev:mobile
 ### Verification
 
 ```bash
-pnpm typecheck
+pnpm typecheck   # tsc --noEmit across all 10 workspace packages
 pnpm lint
-pnpm test
+pnpm test        # 658 API + 48 web + 19 mobile + 128 package tests
+pnpm build
 ```
+
+The API also has an end-to-end suite that runs against a **real** PostgreSQL
+database rather than mocks — 103 tests covering auth, the donation lifecycle,
+the blood-request → shipment → delivery chain, emergency donor matching, the
+inventory lifecycle, education progress and XP, request-body validation, the
+response envelope every client depends on, and gamification concurrency. It needs a migrated **and
+seeded** database (registration fails without the seeded roles):
+
+```bash
+pnpm --filter @bloodchain/api exec prisma migrate deploy
+pnpm --filter @bloodchain/api prisma:seed
+pnpm --filter @bloodchain/api test:e2e
+```
+
+All four of these run in CI on every push and pull request to `main` — see
+`.github/workflows/ci.yml`.
 
 ### Docker (API + PostgreSQL)
 
@@ -188,6 +214,10 @@ The seed script creates the following development-only accounts:
 - [Security](./docs/security.md)
 - [Roadmap](./docs/roadmap.md)
 
+`TODO.md` is the live production-readiness audit: what has been fixed, how each
+fix was verified, and what is still open. Read it before assuming any part of
+this system is finished.
+
 ## License
 
-Proprietary — DONOR platform. All rights reserved.
+Proprietary — BloodChain. All rights reserved.

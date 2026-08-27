@@ -18,12 +18,11 @@ import {
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import {
-  DashboardShell,
   EmptyState,
   StatCard,
   StatusBadge,
-} from '@donor/ui/components';
-import type { MapMarker } from '@donor/ui/map';
+} from '@bloodchain/ui/components';
+import type { MapMarker } from '@bloodchain/ui/map';
 import { logout as logoutApi, me, isAuthenticated, MeResponse } from '../../../lib/auth';
 import {
   getShipment,
@@ -36,13 +35,13 @@ import {
   Shipment,
 } from '../../../lib/shipments';
 
-const LocationMap = dynamic(() => import('@donor/ui/map').then((mod) => mod.LocationMap), {
+const LocationMap = dynamic(() => import('@bloodchain/ui/map').then((mod) => mod.LocationMap), {
   ssr: false,
 });
 
 type TrackingInfo = Awaited<ReturnType<typeof getShipmentTracking>>;
-import { sidebarItems } from '../../../lib/navigation';
 import { useShipmentTracking } from '../../../lib/useShipmentTracking';
+import { AppShell } from '../../../components/AppShell';
 
 const STATUS_CONFIG: Record<string, { label: string; variant: 'success' | 'warning' | 'info' | 'default' | 'danger' }> = {
   CREATED: { label: 'Created', variant: 'default' },
@@ -187,36 +186,28 @@ export default function ShipmentDetailPage() {
 
   if (isLoading) {
     return (
-      <DashboardShell
+      <AppShell
         title="Loading..."
         subtitle="BLOOD CENTER CONSOLE"
-        activeItem="shipments"
-        sidebarItems={sidebarItems}
         organizationName="RedCross Blood Center (Development)"
         organizationType="Blood Center workspace"
         userName="Loading..."
-        onNotifications={() => {}}
-        onLogout={() => {}}
       >
         <div className="flex items-center justify-center p-12">
           <Truck className="animate-spin text-donor-primary" size={32} />
         </div>
-      </DashboardShell>
+      </AppShell>
     );
   }
 
   if (!user || !shipment) {
     return (
-      <DashboardShell
+      <AppShell
         title="Shipment Not Found"
         subtitle="BLOOD CENTER CONSOLE"
-        activeItem="shipments"
-        sidebarItems={sidebarItems}
         organizationName="RedCross Blood Center (Development)"
         organizationType="Blood Center workspace"
         userName={user ? `${user.firstName} ${user.lastName}` : 'Guest'}
-        onNotifications={() => {}}
-        onLogout={logoutApi}
       >
         <div className="flex flex-col items-center justify-center rounded-2xl border border-donor-border bg-donor-surface p-12">
           <XCircle className="mb-4 text-donor-primary" size={48} />
@@ -230,23 +221,19 @@ export default function ShipmentDetailPage() {
             Back to Shipments
           </button>
         </div>
-      </DashboardShell>
+      </AppShell>
     );
   }
 
   const status = STATUS_CONFIG[shipment.status] || { label: shipment.status, variant: 'default' as const };
 
   return (
-    <DashboardShell
+    <AppShell
       title={shipment.shipmentReference}
       subtitle="SHIPMENT DETAILS"
-      activeItem="shipments"
-      sidebarItems={sidebarItems}
       organizationName="RedCross Blood Center (Development)"
       organizationType="Blood Center Console"
       userName={`${user.firstName} ${user.lastName}`}
-      onNotifications={() => {}}
-      onLogout={logoutApi}
     >
       <div className="mb-6">
         <button
@@ -541,6 +528,6 @@ export default function ShipmentDetailPage() {
           </div>
         </div>
       )}
-    </DashboardShell>
+    </AppShell>
   );
 }

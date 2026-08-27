@@ -1,6 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { EducationProgressStatus } from '@prisma/client';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { EDUCATION_COMPLETED_EVENT } from '../gamification/events/gamification-event.handler';
 import { PrismaService } from '../../database/prisma.service';
 import { EducationService } from './education.service';
 
@@ -24,6 +26,7 @@ function makeContent(overrides: Record<string, any> = {}) {
 
 describe('EducationService', () => {
   let service: EducationService;
+  let eventEmitter: jest.Mocked<Pick<EventEmitter2, 'emit'>>;
   let prisma: any;
 
   beforeEach(async () => {
@@ -45,8 +48,14 @@ describe('EducationService', () => {
       },
     };
 
+    eventEmitter = { emit: jest.fn() } as unknown as jest.Mocked<Pick<EventEmitter2, 'emit'>>;
+
     const module: TestingModule = await Test.createTestingModule({
-      providers: [EducationService, { provide: PrismaService, useValue: prisma }],
+      providers: [
+        EducationService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: EventEmitter2, useValue: eventEmitter },
+      ],
     }).compile();
 
     service = module.get<EducationService>(EducationService);
@@ -210,7 +219,7 @@ describe('EducationService', () => {
       expect(prisma.educationProgress.update).not.toHaveBeenCalled();
     });
 
-    it('marks progress COMPLETED and awards the content xpReward on first completion', async () => {
+    it('marks progress COMPLETED and records the content xpReward on first completion', async () => {
       prisma.educationalContent.findUnique.mockResolvedValue(makeContent({ xpReward: 75 }));
       prisma.educationProgress.findUnique.mockResolvedValue({ status: EducationProgressStatus.STARTED });
       prisma.educationProgress.update.mockResolvedValue({});
@@ -225,6 +234,38 @@ describe('EducationService', () => {
           completedAt: expect.any(Date),
         }),
       });
+    });
+
+    it('emits the event that actually credits the XP', async () => {
+      // Writing xpAwarded onto the progress row is bookkeeping, not a grant.
+      // Until this event existed, the reward the mobile card advertises was
+      // recorded here and never reached the donor's gamification profile —
+      // and the assertion above, on its own, called that "awards XP".
+      prisma.educationalContent.findUnique.mockResolvedValue(
+        makeContent({ xpReward: 75, title: 'Iron and you' }),
+      );
+      prisma.educationProgress.findUnique.mockResolvedValue({ status: EducationProgressStatus.STARTED });
+      prisma.educationProgress.update.mockResolvedValue({});
+
+      await service.completeContent('user-1', 'content-1');
+
+      expect(eventEmitter.emit).toHaveBeenCalledWith(EDUCATION_COMPLETED_EVENT, {
+        contentId: 'content-1',
+        userId: 'user-1',
+        xpAmount: 75,
+        contentTitle: 'Iron and you',
+      });
+    });
+
+    it('does not re-emit when the content was already completed', async () => {
+      prisma.educationalContent.findUnique.mockResolvedValue(makeContent({ xpReward: 75 }));
+      prisma.educationProgress.findUnique.mockResolvedValue({
+        status: EducationProgressStatus.COMPLETED,
+      });
+
+      await service.completeContent('user-1', 'content-1');
+
+      expect(eventEmitter.emit).not.toHaveBeenCalled();
     });
   });
 

@@ -1,15 +1,15 @@
 # Architecture
 
-This document describes the high-level architecture of the DONOR platform after Phase 19.
+This document describes the high-level architecture of the BloodChain after Phase 19.
 
 ## Design principles
 
 - **Modular domains:** Each business domain (auth, users, organizations, donors, appointments, inventory, etc.) lives in its own NestJS module with clear boundaries.
 - **Separation of concerns:** Controllers handle HTTP; services contain business logic; repositories (Prisma) are abstracted behind a global `DatabaseModule`.
 - **Dependency inversion:** Core modules depend on abstractions (interfaces, DTOs) rather than concrete implementations.
-- **Type safety:** Strict TypeScript everywhere. Shared types live in `@donor/types` and are consumed by API, web, and mobile.
+- **Type safety:** Strict TypeScript everywhere. Shared types live in `@bloodchain/types` and are consumed by API, web, and mobile.
 - **Security first:** Authentication, RBAC, audit logging, input validation, security headers, rate limiting, and safe token storage are built in from the start.
-- **Real-time ready:** The backend is prepared for WebSocket gateways, Redis pub/sub, and domain events, but none are implemented yet.
+- **Real-time:** Two Socket.IO gateways are implemented and registered — `/emergency` and `/shipments` — both authenticated and room-scoped. Domain events are implemented too, on `@nestjs/event-emitter` (21 handlers). Redis pub/sub is *not* used: `REDIS_URL` appears in the environment schema but nothing in the codebase connects to Redis, so gateway state is per-instance and horizontal scaling would need an adapter first.
 - **No fake backend:** UI placeholders call the real API architecture; unfinished features are clearly marked as development placeholders.
 
 ## Monorepo layout
@@ -119,4 +119,4 @@ Error:
 
 ## Shared design tokens
 
-`@donor/ui/tokens` exports `colors`, `spacing`, `radius`, and `typography` used by the web design system. Mobile keeps equivalent tokens locally to avoid React DOM peer dependency issues; a future `@donor/tokens` package can unify them.
+`@bloodchain/ui/tokens` exports `colors`, `spacing`, `radius`, and `typography` used by the web design system. Mobile keeps equivalent tokens locally to avoid React DOM peer dependency issues; a future `@bloodchain/tokens` package can unify them.

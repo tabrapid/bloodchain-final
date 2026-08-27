@@ -3,10 +3,9 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AlertCircle, ArrowLeft, Droplet, Plus, Trash2 } from 'lucide-react';
-import { DashboardShell } from '@donor/ui/components';
-import { logout as logoutApi, me, isAuthenticated, MeResponse } from '../../../lib/auth';
+import { me, isAuthenticated, MeResponse } from '../../../lib/auth';
 import { createBloodRequest } from '../../../lib/shipments';
-import { sidebarItems } from '../../../lib/navigation';
+import { AppShell } from '../../../components/AppShell';
 
 const BLOOD_TYPES = ['A', 'B', 'AB', 'O'];
 const RH_FACTORS = ['POSITIVE', 'NEGATIVE'];
@@ -97,35 +96,27 @@ export default function NewBloodRequestPage() {
 
   if (isLoading) {
     return (
-      <DashboardShell
+      <AppShell
         title="Loading..."
         subtitle="HOSPITAL CONSOLE"
-        activeItem="requests"
-        sidebarItems={sidebarItems}
         organizationName="Northstar Hospital (Development)"
         organizationType="Hospital workspace"
         userName="Loading..."
-        onNotifications={() => {}}
-        onLogout={() => {}}
       >
         <div className="flex items-center justify-center p-12">
           <Droplet className="animate-spin text-donor-primary" size={32} />
         </div>
-      </DashboardShell>
+      </AppShell>
     );
   }
 
   return (
-    <DashboardShell
+    <AppShell
       title="New Blood Request"
       subtitle="HOSPITAL OPERATIONS"
-      activeItem="requests"
-      sidebarItems={sidebarItems}
       organizationName="Northstar Hospital (Development)"
       organizationType="Hospital Console"
       userName={user ? `${user.firstName} ${user.lastName}` : 'Guest'}
-      onNotifications={() => {}}
-      onLogout={logoutApi}
     >
       <button
         onClick={() => router.push('/requests')}
@@ -296,6 +287,6 @@ export default function NewBloodRequestPage() {
           </button>
         </div>
       </div>
-    </DashboardShell>
+    </AppShell>
   );
 }

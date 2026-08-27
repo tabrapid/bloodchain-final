@@ -1,15 +1,4 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Patch,
-  Delete,
-  Param,
-  Query,
-  Body,
-  Req,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UseGuards, UseInterceptors } from '@nestjs/common';
 import { Request } from 'express';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -25,8 +14,10 @@ import {
   UpdatePushDeviceDto,
   UpdateNotificationPreferencesDto,
 } from './dto';
+import { WrapResponseInterceptor } from '../../common/interceptors/wrap-response.interceptor';
 
 @Controller('notifications')
+@UseInterceptors(WrapResponseInterceptor)
 @UseGuards(JwtAuthGuard)
 export class NotificationsController {
   constructor(
@@ -56,7 +47,7 @@ export class NotificationsController {
   // same depth, or GET /notifications/preferences resolves as findOne('preferences').
   @Get('preferences')
   async getPreferences(@CurrentUser('sub') userId: string) {
-    return { data: await this.preferenceService.getPreferences(userId) };
+    return this.preferenceService.getPreferences(userId);
   }
 
   @Get(':id')

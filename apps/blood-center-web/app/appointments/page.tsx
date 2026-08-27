@@ -3,13 +3,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { AlertCircle, Ban, CalendarDays, Clock, Plus, RefreshCw, Users } from 'lucide-react';
 import {
-  DashboardShell,
   EmptyState,
   Modal,
   StatCard,
   StatusBadge,
-} from '@donor/ui/components';
-import { logout as logoutApi, me, isAuthenticated, MeResponse } from '../../lib/auth';
+} from '@bloodchain/ui/components';
+import { me, isAuthenticated, MeResponse } from '../../lib/auth';
 import {
   getSlots,
   createSlot,
@@ -17,7 +16,7 @@ import {
   AppointmentSlot,
   AppointmentType,
 } from '../../lib/appointment-slots';
-import { sidebarItems } from '../../lib/navigation';
+import { AppShell } from '../../components/AppShell';
 
 const TYPE_LABEL: Record<AppointmentType, string> = {
   BLOOD_DONATION: 'Blood Donation',
@@ -155,36 +154,28 @@ export default function AppointmentSlotsPage() {
 
   if (isLoading) {
     return (
-      <DashboardShell
+      <AppShell
         title="Loading..."
         subtitle="BLOOD CENTER CONSOLE"
-        activeItem="appointments"
-        sidebarItems={sidebarItems}
         organizationName="RedCross Blood Center (Development)"
         organizationType="Blood Center workspace"
         userName="Loading..."
-        onNotifications={() => {}}
-        onLogout={() => {}}
       >
         <div className="flex items-center justify-center p-12">
           <CalendarDays className="animate-spin text-donor-primary" size={32} />
         </div>
-      </DashboardShell>
+      </AppShell>
     );
   }
 
   if (!user) {
     return (
-      <DashboardShell
+      <AppShell
         title="Authentication Required"
         subtitle="BLOOD CENTER CONSOLE"
-        activeItem=""
-        sidebarItems={sidebarItems}
         organizationName="RedCross Blood Center (Development)"
         organizationType="Blood Center workspace"
         userName="Guest"
-        onNotifications={() => {}}
-        onLogout={() => {}}
       >
         <div className="flex flex-col items-center justify-center rounded-2xl border border-donor-border bg-donor-surface p-12">
           <CalendarDays className="mb-4 text-donor-primary" size={48} />
@@ -195,7 +186,7 @@ export default function AppointmentSlotsPage() {
             Please sign in to configure appointment slots
           </p>
         </div>
-      </DashboardShell>
+      </AppShell>
     );
   }
 
@@ -206,16 +197,12 @@ export default function AppointmentSlotsPage() {
   const totalBooked = slots.reduce((sum, s) => sum + s.bookedCount, 0);
 
   return (
-    <DashboardShell
+    <AppShell
       title="Appointment Slots"
       subtitle="BLOOD CENTER OPERATIONS"
-      activeItem="appointments"
-      sidebarItems={sidebarItems}
       organizationName="RedCross Blood Center (Development)"
       organizationType="Blood Center Console"
       userName={`${user.firstName} ${user.lastName}`}
-      onNotifications={() => {}}
-      onLogout={logoutApi}
     >
       <div className="mb-6 flex items-center justify-between">
         <div>
@@ -394,6 +381,6 @@ export default function AppointmentSlotsPage() {
           </div>
         </div>
       </Modal>
-    </DashboardShell>
+    </AppShell>
   );
 }

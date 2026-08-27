@@ -24,7 +24,12 @@ export function SearchInput({ className, onClear, wrapperClassName, ...props }: 
         {...props}
       />
       {props.value && onClear && (
-        <button type="button" onClick={onClear} className="text-[#8495A3] hover:text-[#F2F5F7]">
+        <button
+          type="button"
+          onClick={onClear}
+          aria-label="Clear search"
+          className="text-[#8495A3] hover:text-[#F2F5F7]"
+        >
           <X size={14} />
         </button>
       )}

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Query, Req, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Query, Req, UseGuards, UseInterceptors } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
 import { RoleCode } from '@prisma/client';
@@ -115,6 +115,7 @@ export class OrganizationDonationsController {
   }
 
   @Post(':id/start')
+  @HttpCode(HttpStatus.OK)
   @Roles(RoleCode.SUPER_ADMIN, RoleCode.HOSPITAL_ADMIN, RoleCode.HOSPITAL_STAFF, RoleCode.BLOOD_CENTER_ADMIN, RoleCode.BLOOD_CENTER_STAFF)
   @ApiOperation({ summary: 'Start donation (staff only)' })
   @ApiResponse({ status: 200, description: 'Donation started' })
@@ -157,6 +158,7 @@ export class OrganizationDonationsController {
   }
 
   @Post(':id/complete')
+  @HttpCode(HttpStatus.OK)
   @Roles(RoleCode.SUPER_ADMIN, RoleCode.HOSPITAL_ADMIN, RoleCode.HOSPITAL_STAFF, RoleCode.BLOOD_CENTER_ADMIN, RoleCode.BLOOD_CENTER_STAFF)
   @Idempotent('donation.complete')
   @UseInterceptors(IdempotencyInterceptor)
@@ -180,6 +182,7 @@ export class OrganizationDonationsController {
   }
 
   @Post(':id/cancel')
+  @HttpCode(HttpStatus.OK)
   @Roles(RoleCode.SUPER_ADMIN, RoleCode.HOSPITAL_ADMIN, RoleCode.HOSPITAL_STAFF, RoleCode.BLOOD_CENTER_ADMIN, RoleCode.BLOOD_CENTER_STAFF)
   @ApiOperation({ summary: 'Cancel donation (staff only)' })
   @ApiResponse({ status: 200, description: 'Donation cancelled' })
@@ -201,6 +204,7 @@ export class OrganizationDonationsController {
   }
 
   @Post(':id/abort')
+  @HttpCode(HttpStatus.OK)
   @Roles(RoleCode.SUPER_ADMIN, RoleCode.HOSPITAL_ADMIN, RoleCode.HOSPITAL_STAFF, RoleCode.BLOOD_CENTER_ADMIN, RoleCode.BLOOD_CENTER_STAFF)
   @ApiOperation({ summary: 'Abort donation (staff only)' })
   @ApiResponse({ status: 200, description: 'Donation aborted' })

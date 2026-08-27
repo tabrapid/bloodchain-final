@@ -1,5 +1,5 @@
 import { PropsWithChildren } from 'react';
-import { Sidebar, SidebarItem } from './Sidebar';
+import { Sidebar, SidebarItem, type SidebarLinkComponent } from './Sidebar';
 import { Topbar } from './Topbar';
 import { cn } from '../cn';
 
@@ -8,6 +8,8 @@ export interface DashboardShellProps extends PropsWithChildren {
   subtitle?: string;
   sidebarItems: SidebarItem[];
   activeItem?: string;
+  currentPath?: string;
+  linkComponent?: SidebarLinkComponent;
   organizationName?: string;
   organizationType?: string;
   userName?: string;
@@ -23,6 +25,8 @@ export function DashboardShell({
   subtitle,
   sidebarItems,
   activeItem,
+  currentPath,
+  linkComponent,
   organizationName,
   organizationType,
   userName,
@@ -36,6 +40,8 @@ export function DashboardShell({
       <Sidebar
         items={sidebarItems}
         activeItem={activeItem}
+        currentPath={currentPath}
+        linkComponent={linkComponent}
         organizationName={organizationName}
         organizationType={organizationType}
       />

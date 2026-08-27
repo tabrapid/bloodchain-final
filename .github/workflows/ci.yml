@@ -28,7 +28,7 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Generate Prisma client
-        run: pnpm --filter @donor/api prisma:generate
+        run: pnpm --filter @bloodchain/api prisma:generate
       - run: pnpm typecheck
       - run: pnpm lint
 
@@ -45,7 +45,7 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Generate Prisma client
-        run: pnpm --filter @donor/api prisma:generate
+        run: pnpm --filter @bloodchain/api prisma:generate
       - run: pnpm test
 
   test-e2e:
@@ -80,10 +80,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Generate Prisma client
-        run: pnpm --filter @donor/api prisma:generate
+        run: pnpm --filter @bloodchain/api prisma:generate
       - name: Apply migrations
-        run: pnpm --filter @donor/api exec prisma migrate deploy
-      - run: pnpm --filter @donor/api test:e2e
+        run: pnpm --filter @bloodchain/api exec prisma migrate deploy
+      - name: Seed database (roles/permissions the app requires to function, e.g. register needs the DONOR role to exist)
+        run: pnpm --filter @bloodchain/api prisma:seed
+      - run: pnpm --filter @bloodchain/api test:e2e
 
   build:
     name: Build all apps
@@ -98,5 +100,5 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Generate Prisma client
-        run: pnpm --filter @donor/api prisma:generate
+        run: pnpm --filter @bloodchain/api prisma:generate
       - run: pnpm build

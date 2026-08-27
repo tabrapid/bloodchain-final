@@ -3,9 +3,9 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Activity, Clock } from 'lucide-react';
-import { DashboardShell, EmptyState, StatCard, StatusBadge } from '@donor/ui/components';
+import { EmptyState, StatCard, StatusBadge } from '@bloodchain/ui/components';
 import { login, logout as logoutApi, me, isAuthenticated, MeResponse } from '../lib/auth';
-import { sidebarItems } from '../lib/navigation';
+import { AppShell } from '../components/AppShell';
 
 interface User {
   firstName: string;
@@ -70,36 +70,28 @@ export default function BloodCenterDashboard() {
 
   if (isLoading) {
     return (
-      <DashboardShell
+      <AppShell
         title="Loading..."
         subtitle="BLOOD CENTER CONSOLE"
-        activeItem="dashboard"
-        sidebarItems={sidebarItems}
         organizationName="Northstar Blood Center (Development)"
         organizationType="Operations workspace"
         userName="Loading..."
-        onNotifications={() => {}}
-        onLogout={() => {}}
       >
         <div className="flex items-center justify-center p-12">
           <Activity className="animate-spin text-donor-secondary" size={32} />
         </div>
-      </DashboardShell>
+      </AppShell>
     );
   }
 
   if (!user) {
     return (
-      <DashboardShell
+      <AppShell
         title="Authentication Required"
         subtitle="BLOOD CENTER CONSOLE"
-        activeItem=""
-        sidebarItems={sidebarItems}
         organizationName="Northstar Blood Center (Development)"
         organizationType="Operations workspace"
         userName="Guest"
-        onNotifications={() => {}}
-        onLogout={() => {}}
       >
         <div className="flex flex-col items-center justify-center rounded-2xl border border-donor-border bg-donor-surface p-12">
           <Activity className="mb-4 text-donor-secondary" size={48} />
@@ -154,7 +146,7 @@ export default function BloodCenterDashboard() {
             </Link>
           </p>
         </div>
-      </DashboardShell>
+      </AppShell>
     );
   }
 
@@ -167,16 +159,12 @@ export default function BloodCenterDashboard() {
   if (hasBloodCenterAccess && bloodCenterOrg && bloodCenterOrg.organizationStatus !== 'ACTIVE') {
     const isPending = bloodCenterOrg.organizationStatus === 'PENDING_APPROVAL';
     return (
-      <DashboardShell
+      <AppShell
         title={isPending ? 'Pending Approval' : 'Organization Unavailable'}
         subtitle="BLOOD CENTER CONSOLE"
-        activeItem=""
-        sidebarItems={sidebarItems}
         organizationName={bloodCenterOrg.name}
         organizationType="Operations workspace"
         userName={`${user.firstName} ${user.lastName}`}
-        onNotifications={() => {}}
-        onLogout={handleLogout}
       >
         <div className="flex flex-col items-center justify-center rounded-2xl border border-donor-border bg-donor-surface p-12 text-center">
           <Clock className="mb-4 text-donor-secondary" size={48} />
@@ -185,8 +173,8 @@ export default function BloodCenterDashboard() {
           </h2>
           <p className="mb-6 max-w-md text-donor-muted">
             {isPending
-              ? `${bloodCenterOrg.name} is still under review by a DONOR platform admin. You'll get full access as soon as it's approved.`
-              : `${bloodCenterOrg.name} is currently ${bloodCenterOrg.organizationStatus.toLowerCase().replace('_', ' ')}. Contact your DONOR platform admin for details.`}
+              ? `${bloodCenterOrg.name} is still under review by a BloodChain admin. You'll get full access as soon as it's approved.`
+              : `${bloodCenterOrg.name} is currently ${bloodCenterOrg.organizationStatus.toLowerCase().replace('_', ' ')}. Contact your BloodChain admin for details.`}
           </p>
           <button
             onClick={handleLogout}
@@ -195,22 +183,18 @@ export default function BloodCenterDashboard() {
             Sign out
           </button>
         </div>
-      </DashboardShell>
+      </AppShell>
     );
   }
 
   if (!hasBloodCenterAccess) {
     return (
-      <DashboardShell
+      <AppShell
         title="Access Denied"
         subtitle="BLOOD CENTER CONSOLE"
-        activeItem=""
-        sidebarItems={sidebarItems}
         organizationName="Northstar Blood Center (Development)"
         organizationType="Operations workspace"
         userName={`${user.firstName} ${user.lastName}`}
-        onNotifications={() => {}}
-        onLogout={handleLogout}
       >
         <div className="flex flex-col items-center justify-center rounded-2xl border border-red-900/50 bg-red-950/20 p-12">
           <Activity className="mb-4 text-red-400" size={48} />
@@ -227,21 +211,17 @@ export default function BloodCenterDashboard() {
             Sign out
           </button>
         </div>
-      </DashboardShell>
+      </AppShell>
     );
   }
 
   return (
-    <DashboardShell
+    <AppShell
       title={`Good morning, ${user.firstName}.`}
       subtitle="BLOOD CENTER CONSOLE"
-      activeItem="dashboard"
-      sidebarItems={sidebarItems}
       organizationName="Northstar Blood Center (Development)"
       organizationType="Operations workspace"
       userName={`${user.firstName} ${user.lastName}`}
-      onNotifications={() => {}}
-      onLogout={handleLogout}
     >
       <div className="mb-8 flex items-center justify-between rounded-2xl border border-donor-border bg-donor-surface p-6">
         <div>
@@ -305,6 +285,6 @@ export default function BloodCenterDashboard() {
           description="Inbound blood requests from hospitals will appear here when the transfer module is enabled."
         />
       </div>
-    </DashboardShell>
+    </AppShell>
   );
 }

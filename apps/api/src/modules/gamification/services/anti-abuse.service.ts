@@ -6,11 +6,12 @@ export class AntiAbuseService {
   constructor(private readonly db: PrismaService) {}
 
   async isDuplicateXpTransaction(
+    userId: string,
     sourceType: string,
     sourceId: string,
   ): Promise<boolean> {
     const existing = await this.db.xpTransaction.findUnique({
-      where: { sourceType_sourceId: { sourceType, sourceId } },
+      where: { userId_sourceType_sourceId: { userId, sourceType, sourceId } },
     });
     return !!existing;
   }

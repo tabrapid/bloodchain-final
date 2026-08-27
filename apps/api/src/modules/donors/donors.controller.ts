@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { BloodType, DonorStatus, RoleCode } from '@prisma/client';
 import { Request } from 'express';
@@ -49,6 +49,7 @@ export class DonorsController {
   }
 
   @Post(':id/verify-blood-type')
+  @HttpCode(HttpStatus.OK)
   @UseGuards(PermissionsGuard)
   @Permissions('donor.verify')
   @ApiOperation({ summary: 'Verify donor blood type (staff only)' })

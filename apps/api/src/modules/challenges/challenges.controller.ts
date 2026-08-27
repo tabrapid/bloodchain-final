@@ -1,13 +1,4 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Put,
-  Param,
-  Query,
-  Body,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Put, Query, UseGuards, UseInterceptors } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -22,9 +13,11 @@ import {
   ChallengeResponseDto,
   ChallengeListResponseDto,
 } from './dto/challenges.dto';
+import { WrapResponseInterceptor } from '../../common/interceptors/wrap-response.interceptor';
 
 @ApiTags('Challenges')
 @Controller('challenges')
+@UseInterceptors(WrapResponseInterceptor)
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class ChallengesController {
@@ -104,7 +97,7 @@ export class ChallengesController {
 
   @Put(':id/progress')
   @ApiOperation({ summary: "Recalculate the current user's progress on a challenge from their real activity records" })
-  @ApiResponse({ status: 200, description: 'Progress recalculated successfully' })
+  @ApiResponse({ status: 201, description: 'Progress recalculated successfully' })
   async recalculateProgress(
     @Param('id') id: string,
     @CurrentUser('sub') userId: string,

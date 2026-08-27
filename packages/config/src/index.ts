@@ -1,5 +1,5 @@
 export const appConfig = {
-  name: 'DONOR',
+  name: 'BloodChain',
   apiVersion: 'v1',
   apiBasePath: '/api/v1',
 } as const;

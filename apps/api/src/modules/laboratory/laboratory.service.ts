@@ -781,7 +781,15 @@ export class LaboratoryService {
             resultId: labResult.id,
             parameterId: item.parameterId,
             value: item.value,
-            numericValue: item.numericValue ? new Prisma.Decimal(item.numericValue) : null,
+            // `item.numericValue` is a plain number off the request body here,
+            // so a truthiness check silently discards a legitimate result of
+            // 0 (an undetectable marker, a zero cell count) and stores null.
+            // The two read paths are unaffected -- they see a Prisma.Decimal,
+            // and Decimal(0) is a truthy object.
+            numericValue:
+              item.numericValue === undefined || item.numericValue === null
+                ? null
+                : new Prisma.Decimal(item.numericValue),
             unit: item.unit || parameter?.unit,
             referenceMin,
             referenceMax,

@@ -1,13 +1,4 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Put,
-  Param,
-  Query,
-  Body,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Put, Query, UseGuards, UseInterceptors } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -23,9 +14,11 @@ import {
   EducationalContentListResponseDto,
   EducationProgressResponseDto,
 } from './dto/education.dto';
+import { WrapResponseInterceptor } from '../../common/interceptors/wrap-response.interceptor';
 
 @ApiTags('Education')
 @Controller('education')
+@UseInterceptors(WrapResponseInterceptor)
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class EducationController {
@@ -44,7 +37,7 @@ export class EducationController {
   @UseGuards(RolesGuard)
   @Roles(RoleCode.SUPER_ADMIN, RoleCode.HOSPITAL_ADMIN, RoleCode.BLOOD_CENTER_ADMIN)
   @ApiOperation({ summary: 'Update educational content (admin only)' })
-  @ApiResponse({ status: 200, description: 'Content updated successfully', type: EducationalContentResponseDto })
+  @ApiResponse({ status: 201, description: 'Content updated successfully', type: EducationalContentResponseDto })
   async updateContent(
     @Param('id') id: string,
     @Body() dto: UpdateEducationalContentDto,
@@ -100,6 +93,7 @@ export class EducationController {
   }
 
   @Post(':id/complete')
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Complete educational content' })
   @ApiResponse({ status: 200, description: 'Content completed successfully', type: EducationProgressResponseDto })
   async completeContent(

@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../database/prisma.service';
+import { ensureGamificationProfileRow } from './gamification-profile.util';
 import { ReputationType } from '@prisma/client';
 
 @Injectable()
@@ -22,6 +23,12 @@ export class ReputationService {
     reason: string,
     metadata?: Record<string, any>,
   ): Promise<{ success: boolean; newScore: number }> {
+    // Guarantee the profile row exists before the transaction, so the upsert
+    // inside it always takes its update branch. Without this, two concurrent
+    // awards for a user with no profile yet race on the insert (see
+    // ensureGamificationProfileRow).
+    await ensureGamificationProfileRow(this.db, userId);
+
     const result = await this.db.$transaction(async (tx) => {
       await tx.reputationTransaction.create({
         data: {
@@ -95,6 +102,12 @@ export class ReputationService {
     amount: number,
     reason: string,
   ): Promise<{ success: boolean; newScore: number }> {
+    // Guarantee the profile row exists before the transaction, so the upsert
+    // inside it always takes its update branch. Without this, two concurrent
+    // awards for a user with no profile yet race on the insert (see
+    // ensureGamificationProfileRow).
+    await ensureGamificationProfileRow(this.db, userId);
+
     const result = await this.db.$transaction(async (tx) => {
       await tx.reputationTransaction.create({
         data: {

@@ -1,6 +1,6 @@
 import { Injectable, Logger, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'node:crypto';
 import { AIInsightType, AIInsightStatus } from '@prisma/client';
 import { AIContextBuilder } from './ai-context-builder.service';
 import { AIContextBuilderService } from './ai-context-builder-enhanced.service';
@@ -542,7 +542,7 @@ export class AIHealthService {
     };
 
     const userMsg: ChatMessageResponseDto = {
-      id: uuidv4(),
+      id: randomUUID(),
       conversationId: convId,
       role: 'user',
       content: userMessage,
@@ -551,7 +551,7 @@ export class AIHealthService {
     void userMsg;
 
     const assistantMsg: ChatMessageResponseDto = {
-      id: uuidv4(),
+      id: randomUUID(),
       conversationId: convId,
       role: 'assistant',
       content: insight.summary,

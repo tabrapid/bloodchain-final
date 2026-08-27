@@ -30,6 +30,7 @@ import {
   AdminVerifyOrganizationDto,
   AdminRejectOrganizationDto,
   AdminSuspendOrganizationDto,
+  AdminSuspendCourierDto,
   AdminSearchDto,
   AdminListAuditLogsDto,
   AdminListShipmentsDto,
@@ -265,7 +266,7 @@ export class AdminController {
   suspendCourier(
     @CurrentUser('sub') adminId: string,
     @Param('id') courierId: string,
-    @Body() body: { reason?: string },
+    @Body() body: AdminSuspendCourierDto,
   ) {
     return this.admin.suspendCourier(adminId, courierId, body.reason);
   }

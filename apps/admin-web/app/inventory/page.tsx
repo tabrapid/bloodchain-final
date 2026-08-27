@@ -1,13 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { DashboardShell, LoadingState } from '@donor/ui/components';
+import { LoadingState } from '@bloodchain/ui/components';
 import { getInventoryOverview, listAlerts } from '@lib/api';
 import { me, isAuthenticated } from '@lib/auth';
 import { StatusBadgeWrapper } from '@lib/status';
 import { LayoutDashboard, Users, Building2, Ship, Package, Droplet, AlertTriangle, TestTube, Bell, FileText, Activity, Settings } from 'lucide-react';
-
-import { navItems } from '@lib/navigation';
+import { AppShell } from '../../components/AppShell';
 
 export default function InventoryPage() {
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -47,9 +46,9 @@ export default function InventoryPage() {
 
   if (isLoading) {
     return (
-      <DashboardShell title="Blood Inventory" sidebarItems={navItems} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined} onLogout={() => {}}>
+      <AppShell title="Blood Inventory" userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
         <LoadingState />
-      </DashboardShell>
+      </AppShell>
     );
   }
 
@@ -57,7 +56,7 @@ export default function InventoryPage() {
   const rhFactors = ['POSITIVE', 'NEGATIVE'];
 
   return (
-    <DashboardShell title="Blood Inventory" sidebarItems={navItems} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined} onLogout={() => {}}>
+    <AppShell title="Blood Inventory" userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
       <div className="p-6">
         <div className="mb-6">
           <h1 className="text-2xl font-semibold text-gray-900">Blood Inventory Overview</h1>
@@ -127,6 +126,6 @@ export default function InventoryPage() {
           </div>
         </div>
       </div>
-    </DashboardShell>
+    </AppShell>
   );
 }

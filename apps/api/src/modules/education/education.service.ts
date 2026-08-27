@@ -1,11 +1,19 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../database/prisma.service';
 import { EducationContentType, EducationProgressStatus } from '@prisma/client';
 import { CreateEducationalContentDto, UpdateEducationalContentDto } from './dto/education.dto';
+import {
+  EDUCATION_COMPLETED_EVENT,
+  EducationCompletedPayload,
+} from '../gamification/events/gamification-event.handler';
 
 @Injectable()
 export class EducationService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly eventEmitter: EventEmitter2,
+  ) {}
 
   async createContent(dto: CreateEducationalContentDto) {
     const content = await this.prisma.educationalContent.create({
@@ -177,6 +185,16 @@ export class EducationService {
         xpAwarded: content.xpReward,
       },
     });
+
+    // Recording xpAwarded on the progress row is not the same as granting it.
+    // Until this event existed, the reward the card advertises ("+50 XP") was
+    // written here and never reached the donor's gamification profile.
+    this.eventEmitter.emit(EDUCATION_COMPLETED_EVENT, {
+      contentId,
+      userId,
+      xpAmount: content.xpReward,
+      contentTitle: content.title,
+    } satisfies EducationCompletedPayload);
 
     return updated;
   }

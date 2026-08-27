@@ -1,12 +1,4 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Param,
-  Query,
-  Body,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, UseGuards, UseInterceptors } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -18,9 +10,11 @@ import {
   CommunityPostResponseDto,
   ContentReportResponseDto,
 } from './dto/community.dto';
+import { WrapResponseInterceptor } from '../../common/interceptors/wrap-response.interceptor';
 
 @ApiTags('Community')
 @Controller('community')
+@UseInterceptors(WrapResponseInterceptor)
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class CommunityController {

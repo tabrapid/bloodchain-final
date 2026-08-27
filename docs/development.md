@@ -80,11 +80,11 @@ The API has unit tests for authentication (including user status checks, suspend
 
 | Package                   | Dev                     | Lint                            | Typecheck                            | Test                            |
 | ------------------------- | ----------------------- | ------------------------------- | ------------------------------------ | ------------------------------- |
-| `@donor/api`              | `pnpm dev:api`          | `pnpm --filter @donor/api lint` | `pnpm --filter @donor/api typecheck` | `pnpm --filter @donor/api test` |
-| `@donor/hospital-web`     | `pnpm dev:hospital`     | `tsc --noEmit`                  | `tsc --noEmit`                       | echo placeholder                |
-| `@donor/blood-center-web` | `pnpm dev:blood-center` | `tsc --noEmit`                  | `tsc --noEmit`                       | echo placeholder                |
-| `@donor/mobile`           | `pnpm dev:mobile`       | `tsc --noEmit`                  | `tsc --noEmit`                       | echo placeholder                |
-| `@donor/ui`               | —                       | `tsc --noEmit`                  | `tsc --noEmit`                       | echo placeholder                |
+| `@bloodchain/api`              | `pnpm dev:api`          | `pnpm --filter @bloodchain/api lint` | `pnpm --filter @bloodchain/api typecheck` | `pnpm --filter @bloodchain/api test` |
+| `@bloodchain/hospital-web`     | `pnpm dev:hospital`     | `tsc --noEmit`                  | `tsc --noEmit`                       | echo placeholder                |
+| `@bloodchain/blood-center-web` | `pnpm dev:blood-center` | `tsc --noEmit`                  | `tsc --noEmit`                       | echo placeholder                |
+| `@bloodchain/mobile`           | `pnpm dev:mobile`       | `tsc --noEmit`                  | `tsc --noEmit`                       | echo placeholder                |
+| `@bloodchain/ui`               | —                       | `tsc --noEmit`                  | `tsc --noEmit`                       | echo placeholder                |
 
 ## Mobile development
 

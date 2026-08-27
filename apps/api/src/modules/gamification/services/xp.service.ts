@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../database/prisma.service';
+import { ensureGamificationProfileRow } from './gamification-profile.util';
 import { XP_CONFIG, LEVEL_CONFIG } from '../config/gamification.config';
 import { XpTransactionType } from '@prisma/client';
 
@@ -37,12 +38,18 @@ export class XpService {
     metadata?: Record<string, any>,
   ): Promise<{ success: boolean; newTotal: number; transactionId: string }> {
     const existingTx = await this.db.xpTransaction.findUnique({
-      where: { sourceType_sourceId: { sourceType, sourceId } },
+      where: { userId_sourceType_sourceId: { userId, sourceType, sourceId } },
     });
 
     if (existingTx) {
       return { success: false, newTotal: 0, transactionId: existingTx.id };
     }
+
+    // Guarantee the profile row exists before the transaction, so the upsert
+    // inside it always takes its update branch. Without this, two concurrent
+    // awards for a user with no profile yet race on the insert (see
+    // ensureGamificationProfileRow).
+    await ensureGamificationProfileRow(this.db, userId);
 
     const result = await this.db.$transaction(async (tx) => {
       const transaction = await tx.xpTransaction.create({
@@ -191,6 +198,12 @@ export class XpService {
     amount: number,
     reason: string,
   ): Promise<{ success: boolean; newTotal: number }> {
+    // Guarantee the profile row exists before the transaction, so the upsert
+    // inside it always takes its update branch. Without this, two concurrent
+    // awards for a user with no profile yet race on the insert (see
+    // ensureGamificationProfileRow).
+    await ensureGamificationProfileRow(this.db, userId);
+
     const result = await this.db.$transaction(async (tx) => {
       const transaction = await tx.xpTransaction.create({
         data: {
@@ -233,10 +246,6 @@ export class XpService {
   }
 
   async ensureProfileExists(userId: string): Promise<void> {
-    await this.db.gamificationProfile.upsert({
-      where: { userId },
-      create: { userId, totalXp: 0, level: 1 },
-      update: {},
-    });
+    await ensureGamificationProfileRow(this.db, userId);
   }
 }

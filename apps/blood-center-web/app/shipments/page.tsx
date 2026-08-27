@@ -17,19 +17,18 @@ import {
   XCircle,
 } from 'lucide-react';
 import {
-  DashboardShell,
   EmptyState,
   StatCard,
   StatusBadge,
-} from '@donor/ui/components';
-import { logout as logoutApi, me, isAuthenticated, MeResponse } from '../../lib/auth';
+} from '@bloodchain/ui/components';
+import { me, isAuthenticated, MeResponse } from '../../lib/auth';
 import {
   getShipments,
   Shipment,
   getAvailableCouriers,
   Courier,
 } from '../../lib/shipments';
-import { sidebarItems } from '../../lib/navigation';
+import { AppShell } from '../../components/AppShell';
 
 const STATUS_CONFIG: Record<string, { label: string; variant: 'success' | 'warning' | 'info' | 'default' | 'danger' }> = {
   CREATED: { label: 'Created', variant: 'default' },
@@ -106,36 +105,28 @@ export default function ShipmentsPage() {
 
   if (isLoading) {
     return (
-      <DashboardShell
+      <AppShell
         title="Loading..."
         subtitle="BLOOD CENTER CONSOLE"
-        activeItem="shipments"
-        sidebarItems={sidebarItems}
         organizationName="RedCross Blood Center (Development)"
         organizationType="Blood Center workspace"
         userName="Loading..."
-        onNotifications={() => {}}
-        onLogout={() => {}}
       >
         <div className="flex items-center justify-center p-12">
           <Truck className="animate-spin text-donor-primary" size={32} />
         </div>
-      </DashboardShell>
+      </AppShell>
     );
   }
 
   if (!user) {
     return (
-      <DashboardShell
+      <AppShell
         title="Authentication Required"
         subtitle="BLOOD CENTER CONSOLE"
-        activeItem=""
-        sidebarItems={sidebarItems}
         organizationName="RedCross Blood Center (Development)"
         organizationType="Blood Center workspace"
         userName="Guest"
-        onNotifications={() => {}}
-        onLogout={() => {}}
       >
         <div className="flex flex-col items-center justify-center rounded-2xl border border-donor-border bg-donor-surface p-12">
           <Truck className="mb-4 text-donor-primary" size={48} />
@@ -146,7 +137,7 @@ export default function ShipmentsPage() {
             Please sign in to access the shipments dashboard
           </p>
         </div>
-      </DashboardShell>
+      </AppShell>
     );
   }
 
@@ -157,16 +148,12 @@ export default function ShipmentsPage() {
   const deliveredCount = shipments.filter((s) => s.status === 'DELIVERED').length;
 
   return (
-    <DashboardShell
+    <AppShell
       title="Shipments"
       subtitle="BLOOD CENTER OPERATIONS"
-      activeItem="shipments"
-      sidebarItems={sidebarItems}
       organizationName="RedCross Blood Center (Development)"
       organizationType="Blood Center Console"
       userName={`${user.firstName} ${user.lastName}`}
-      onNotifications={() => {}}
-      onLogout={logoutApi}
     >
       <div className="mb-6">
         <div className="mb-4 flex items-center justify-between">
@@ -304,6 +291,6 @@ export default function ShipmentsPage() {
           })}
         </div>
       )}
-    </DashboardShell>
+    </AppShell>
   );
 }

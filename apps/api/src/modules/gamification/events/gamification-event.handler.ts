@@ -8,6 +8,7 @@ export const BLOOD_TEST_COMPLETED_EVENT = 'blood-test.completed';
 export const APPOINTMENT_COMPLETED_EVENT = 'appointment.completed';
 export const EMERGENCY_RESPONSE_COMPLETED_EVENT = 'emergency-response.completed';
 export const CHALLENGE_COMPLETED_EVENT = 'challenge.completed';
+export const EDUCATION_COMPLETED_EVENT = 'education.completed';
 
 export interface DonationCompletedPayload {
   donationId: string;
@@ -36,6 +37,13 @@ export interface ChallengeCompletedPayload {
   userId: string;
   xpAmount: number;
   challengeTitle: string;
+}
+
+export interface EducationCompletedPayload {
+  contentId: string;
+  userId: string;
+  xpAmount: number;
+  contentTitle: string;
 }
 
 @Injectable()
@@ -148,6 +156,30 @@ export class GamificationEventHandler {
     } catch (error) {
       const err = error as Error;
       this.logger.error(`Failed to process emergency response completed event: ${err.message}`, err.stack);
+    }
+  }
+
+  @OnEvent(EDUCATION_COMPLETED_EVENT)
+  async handleEducationCompleted(payload: EducationCompletedPayload): Promise<void> {
+    if (!(await this.isGamificationEnabled())) return;
+    try {
+      this.logger.log(`Processing gamification for education content ${payload.contentId}`);
+
+      await this.gamificationService.ensureGamificationProfile(payload.userId);
+
+      const result = await this.gamificationService.processEducationCompleted(
+        payload.userId,
+        payload.contentId,
+        payload.xpAmount,
+        payload.contentTitle,
+      );
+
+      if (result.xpAwarded) {
+        this.logger.log(`Education ${payload.contentId}: +${result.xpAmount} XP`);
+      }
+    } catch (error) {
+      const err = error as Error;
+      this.logger.error(`Failed to process education completed event: ${err.message}`, err.stack);
     }
   }
 

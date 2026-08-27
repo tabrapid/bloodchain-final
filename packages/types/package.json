@@ -1,5 +1,5 @@
 {
-  "name": "@donor/types",
+  "name": "@bloodchain/types",
   "version": "0.1.0",
   "private": true,
   "type": "module",

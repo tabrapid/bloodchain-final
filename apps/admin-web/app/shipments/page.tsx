@@ -1,13 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { DashboardShell, LoadingState } from '@donor/ui/components';
+import { LoadingState } from '@bloodchain/ui/components';
 import { listShipments, getShipment, type Shipment } from '@lib/api';
 import { me, isAuthenticated } from '@lib/auth';
 import { StatusBadgeWrapper } from '@lib/status';
 import { LayoutDashboard, Users, Building2, Ship, Package, Droplet, AlertTriangle, TestTube, Bell, FileText, Activity, Settings } from 'lucide-react';
-
-import { navItems } from '@lib/navigation';
+import { AppShell } from '../../components/AppShell';
 
 export default function ShipmentsPage() {
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -55,14 +54,14 @@ export default function ShipmentsPage() {
 
   if (isLoading) {
     return (
-      <DashboardShell title="Shipment Monitoring" sidebarItems={navItems} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined} onLogout={() => {}}>
+      <AppShell title="Shipment Monitoring" userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
         <LoadingState />
-      </DashboardShell>
+      </AppShell>
     );
   }
 
   return (
-    <DashboardShell title="Shipment Monitoring" sidebarItems={navItems} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined} onLogout={() => {}}>
+    <AppShell title="Shipment Monitoring" userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
       <div className="p-6">
         <div className="mb-6">
           <h1 className="text-2xl font-semibold text-gray-900">Shipment Monitoring</h1>
@@ -177,6 +176,6 @@ export default function ShipmentsPage() {
           )}
         </div>
       </div>
-    </DashboardShell>
+    </AppShell>
   );
 }

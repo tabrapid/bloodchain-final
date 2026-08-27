@@ -1,15 +1,20 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  ActivityIndicator,
-  RefreshControl,
-} from 'react-native';
+import { useState } from 'react';
+import { RefreshControl, StyleSheet, View } from 'react-native';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Trophy, Clock, Award } from 'lucide-react-native';
 import { getActiveChallenges, joinChallenge, type Challenge } from '../../../src/api/challenges';
-import { Trophy, Target, Clock, Award } from 'lucide-react-native';
+import {
+  AppButton,
+  AppText,
+  Badge,
+  Card,
+  EmptyState,
+  GlassCard,
+  LoadingState,
+  ProgressBar,
+  Screen,
+} from '../../../src/components';
+import { colors, spacing, radius } from '../../../src/theme';
 
 export default function ChallengesScreen() {
   const [refreshing, setRefreshing] = useState(false);
@@ -36,43 +41,50 @@ export default function ChallengesScreen() {
 
   if (isLoading) {
     return (
-      <View className="flex-1 items-center justify-center bg-gray-50">
-        <ActivityIndicator size="large" color="#dc2626" />
-      </View>
+      <Screen>
+        <LoadingState message="Loading challenges..." />
+      </Screen>
     );
   }
 
   return (
-    <ScrollView
-      className="flex-1 bg-gray-50"
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+    <Screen
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          tintColor={colors.primary}
+        />
+      }
     >
-      <View className="p-4">
-        <Text className="text-2xl font-bold text-gray-900 mb-2">Challenges</Text>
-        <Text className="text-sm text-gray-600 mb-6">
+      <View style={styles.header}>
+        <AppText variant="title">Challenges</AppText>
+        <AppText muted variant="bodySmall" style={styles.subtitle}>
           Complete challenges to earn XP and badges
-        </Text>
+        </AppText>
+      </View>
 
-        {challenges?.length === 0 ? (
-          <View className="bg-white p-8 rounded-2xl items-center">
-            <Trophy size={48} color="#9ca3af" />
-            <Text className="text-lg font-medium text-gray-900 mt-4">No Active Challenges</Text>
-            <Text className="text-sm text-gray-500 mt-2 text-center">
-              Check back later for new challenges
-            </Text>
-          </View>
-        ) : (
-          challenges?.map((challenge) => (
+      {challenges?.length === 0 ? (
+        <Card>
+          <EmptyState
+            icon={Trophy}
+            title="No Active Challenges"
+            description="Check back later for new challenges"
+          />
+        </Card>
+      ) : (
+        <View style={styles.list}>
+          {challenges?.map((challenge) => (
             <ChallengeCard
               key={challenge.id}
               challenge={challenge}
               onJoin={() => joinMutation.mutate(challenge.id)}
               isJoining={joinMutation.isPending}
             />
-          ))
-        )}
-      </View>
-    </ScrollView>
+          ))}
+        </View>
+      )}
+    </Screen>
   );
 }
 
@@ -85,89 +97,137 @@ function ChallengeCard({
   onJoin: () => void;
   isJoining: boolean;
 }) {
-  const progress = (challenge.userProgress || 0) / challenge.goal;
+  const current = challenge.userProgress || 0;
+  const progress = current / challenge.goal;
   const hasJoined = challenge.userProgress !== undefined;
 
   return (
-    <View className="bg-white p-6 rounded-2xl shadow-sm mb-4">
-      <View className="flex-row items-start justify-between mb-3">
-        <View className="flex-1">
-          <View className="flex-row items-center mb-1">
-            <View className="px-2 py-1 bg-red-100 rounded mr-2">
-              <Text className="text-xs font-medium text-red-600">{challenge.type}</Text>
-            </View>
-          </View>
-          <Text className="text-xl font-bold text-gray-900">{challenge.title}</Text>
-        </View>
+    <GlassCard style={styles.card}>
+      <View style={styles.badgeRow}>
+        <Badge variant="primary">{challenge.type}</Badge>
       </View>
+      <AppText variant="heading">{challenge.title}</AppText>
 
-      <Text className="text-sm text-gray-700 mb-4" numberOfLines={3}>
+      <AppText variant="bodySmall" style={styles.description} numberOfLines={3}>
         {challenge.description}
-      </Text>
+      </AppText>
 
       {challenge.endDate && (
-        <View className="flex-row items-center mb-3">
-          <Clock size={16} color="#6b7280" />
-          <Text className="text-sm text-gray-600 ml-2">
+        <View style={styles.detailRow}>
+          <Clock size={16} color={colors.textMuted} />
+          <AppText muted variant="bodySmall">
             Ends {new Date(challenge.endDate).toLocaleDateString()}
-          </Text>
+          </AppText>
         </View>
       )}
 
-      <View className="mb-4">
-        <View className="flex-row justify-between mb-2">
-          <Text className="text-sm font-medium text-gray-700">Progress</Text>
-          <Text className="text-sm font-medium text-gray-700">
-            {challenge.userProgress || 0} / {challenge.goal}
-          </Text>
+      <View style={styles.progressSection}>
+        <View style={styles.progressLabels}>
+          <AppText muted variant="bodySmall">
+            Progress
+          </AppText>
+          <AppText variant="bodySmall" style={styles.progressValue}>
+            {current} / {challenge.goal}
+          </AppText>
         </View>
-        <View className="h-3 bg-gray-200 rounded-full overflow-hidden">
-          <View
-            className="h-full bg-red-600 rounded-full"
-            style={{ width: `${Math.min(progress * 100, 100)}%` }}
-          />
-        </View>
+        <ProgressBar progress={progress * 100} height={8} />
       </View>
 
-      <View className="flex-row items-center justify-between">
+      <View style={styles.rewards}>
         {challenge.xpReward > 0 && (
-          <View className="flex-row items-center">
-            <Trophy size={18} color="#dc2626" />
-            <Text className="text-sm font-bold text-red-600 ml-1">
+          <View style={styles.detailRow}>
+            <Trophy size={18} color={colors.primary} />
+            <AppText variant="bodySmall" style={styles.xpReward}>
               +{challenge.xpReward} XP
-            </Text>
+            </AppText>
           </View>
         )}
 
         {challenge.badge && (
-          <View className="flex-row items-center">
-            <Award size={18} color="#dc2626" />
-            <Text className="text-sm font-medium text-gray-700 ml-1">
-              {challenge.badge.name}
-            </Text>
+          <View style={styles.detailRow}>
+            <Award size={18} color={colors.primary} />
+            <AppText variant="bodySmall">{challenge.badge.name}</AppText>
           </View>
         )}
       </View>
 
       {!hasJoined && (
-        <TouchableOpacity
-          onPress={onJoin}
-          disabled={isJoining}
-          className="bg-red-600 py-3 px-6 rounded-xl items-center mt-4"
-        >
-          {isJoining ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text className="text-white font-semibold">Join Challenge</Text>
-          )}
-        </TouchableOpacity>
+        <AppButton onPress={onJoin} loading={isJoining} style={styles.action}>
+          Join Challenge
+        </AppButton>
       )}
 
       {hasJoined && progress >= 1 && (
-        <View className="bg-green-100 py-3 px-6 rounded-xl items-center mt-4">
-          <Text className="text-green-600 font-semibold">Challenge Completed!</Text>
+        <View style={styles.completed}>
+          <AppText style={styles.completedText}>Challenge Completed!</AppText>
         </View>
       )}
-    </View>
+    </GlassCard>
   );
 }
+
+const styles = StyleSheet.create({
+  header: {
+    marginBottom: spacing.lg,
+  },
+  subtitle: {
+    marginTop: spacing.xs,
+  },
+  list: {
+    gap: spacing.md,
+    paddingBottom: spacing.xl,
+  },
+  card: {
+    padding: spacing.lg,
+  },
+  badgeRow: {
+    flexDirection: 'row',
+    marginBottom: spacing.sm,
+  },
+  description: {
+    marginTop: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  progressSection: {
+    marginTop: spacing.md,
+    marginBottom: spacing.md,
+  },
+  progressLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: spacing.xs,
+  },
+  progressValue: {
+    fontWeight: '600',
+  },
+  rewards: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+  },
+  xpReward: {
+    fontWeight: '700',
+    color: colors.primary,
+  },
+  action: {
+    marginTop: spacing.md,
+  },
+  completed: {
+    marginTop: spacing.md,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radius.sm,
+    alignItems: 'center',
+    backgroundColor: '#10221F',
+  },
+  completedText: {
+    fontWeight: '700',
+    color: colors.success,
+  },
+});

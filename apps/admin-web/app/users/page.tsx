@@ -2,12 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { Search, Filter, User, Mail, Phone, Calendar, Shield, ChevronRight, X, LayoutDashboard, Users, Building2, Ship, Package, Droplet, AlertTriangle, TestTube, Bell, FileText, Activity, Settings } from 'lucide-react';
-import { DashboardShell, StatCard, LoadingState, EmptyState } from '@donor/ui/components';
+import { StatCard, LoadingState, EmptyState } from '@bloodchain/ui/components';
 import { listUsers, suspendUser, restoreUser, listRoles, updateMembershipRole, type User as UserType, type Role } from '@lib/api';
 import { me, isAuthenticated } from '@lib/auth';
 import { StatusBadgeWrapper } from '@lib/status';
-
-import { navItems } from '@lib/navigation';
+import { AppShell } from '../../components/AppShell';
 
 export default function UsersPage() {
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -105,14 +104,14 @@ export default function UsersPage() {
 
   if (isLoading) {
     return (
-      <DashboardShell title="User Management" sidebarItems={navItems} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined} onLogout={() => {}}>
+      <AppShell title="User Management" userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
         <LoadingState />
-      </DashboardShell>
+      </AppShell>
     );
   }
 
   return (
-    <DashboardShell title="User Management" sidebarItems={navItems} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined} onLogout={() => {}}>
+    <AppShell title="User Management" userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
       <div className="p-6">
         <div className="mb-6">
           <h1 className="text-2xl font-semibold text-gray-900">User Management</h1>
@@ -364,6 +363,6 @@ export default function UsersPage() {
           </div>
         </div>
       )}
-    </DashboardShell>
+    </AppShell>
   );
 }

@@ -7,7 +7,7 @@ import {
   deleteAccessToken,
   deleteRefreshToken,
 } from '../auth/storage';
-import type { AuthenticatedUser, TokenPair } from '@donor/types';
+import type { AuthenticatedUser, TokenPair } from '@bloodchain/types';
 
 export interface LoginInput {
   email: string;

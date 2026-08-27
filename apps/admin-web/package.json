@@ -1,5 +1,5 @@
 {
-  "name": "@donor/admin-web",
+  "name": "@bloodchain/admin-web",
   "private": true,
   "version": "0.1.0",
   "scripts": {
@@ -7,25 +7,31 @@
     "build": "next build",
     "lint": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
-    "test": "echo 'Admin web tests scheduled with the first feature release'"
+    "test": "vitest run"
   },
   "dependencies": {
-    "@donor/config": "workspace:*",
-    "@donor/types": "workspace:*",
-    "@donor/ui": "workspace:*",
-    "@donor/utils": "workspace:*",
+    "@bloodchain/config": "workspace:*",
+    "@bloodchain/types": "workspace:*",
+    "@bloodchain/ui": "workspace:*",
+    "@bloodchain/utils": "workspace:*",
     "lucide-react": "^0.468.0",
     "next": "^14.2.21",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@testing-library/dom": "^10.4.0",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.1.0",
+    "@testing-library/user-event": "^14.5.2",
     "@types/node": "^22.10.2",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "autoprefixer": "^10.4.20",
+    "jsdom": "^30.0.1",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.17",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
   }
 }

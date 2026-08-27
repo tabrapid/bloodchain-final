@@ -1,6 +1,6 @@
-# DONOR Platform — Production Readiness TODO
+# BloodChain — Production Readiness TODO
 
-Generated from a full codebase audit against the DONOR product specification
+Generated from a full codebase audit against the BloodChain product specification
 (2026-08-25). This is the **single source of truth** for what's broken,
 missing, mocked, disconnected, or unsafe. Work items top-to-bottom within
 each tier; check items off (`[x]`) as they land, and add a one-line note
@@ -148,6 +148,59 @@ These make the product unusable or unsafe for real users. Fix first, in order.
     `apps/api/src/modules/shipments/shipments.service.ts`.
 
 ---
+
+- [x] **P0-10. 26 GET routes returned no `{ data }` envelope, so every client
+  call against them evaluated to `undefined` (found while writing P3-10's
+  tests).** — Fixed.
+
+  Every HTTP client in this repository ends its request helper with
+  `return json.data as T` — mobile, hospital-web, blood-center-web and
+  admin-web alike — and `docs/api.md` and `README.md` both document the
+  `{ data, meta }` envelope. But the envelope was never applied globally. Some
+  services hand-wrote `return { data: ... }`, `AdminController` used
+  `WrapResponseInterceptor`, and seven whole controllers did neither.
+
+  Measured against the running API by walking its own OpenAPI document: of 64
+  parameterless GET routes that answered, **38 were enveloped and 26 were bare**
+  — notifications (3), laboratory (4), gamification (7), leaderboard (2),
+  community (3), campaigns (2), challenges (3) and education (3). That is very
+  nearly the whole donor-facing surface of the mobile app.
+
+  The failure mode is silent rather than loud, which is why it survived: with
+  `content` undefined, `content?.items.length === 0` is false, so the screen
+  skips its empty state and then renders `content?.items.map(...)` as nothing,
+  and `stats && <Card/>` renders nothing. The screens look like empty states
+  instead of errors. It also explains why the P3-9 styling work looked healthy —
+  those mobile tests mock the `src/api/*` modules, so they never exercise the
+  client that drops the payload.
+
+  Fixed by applying `WrapResponseInterceptor` to the eight controller classes
+  that lacked it (the gamification file holds two), and removing the one
+  hand-written `return { data: ... }` in `notifications.controller.ts` that
+  would otherwise have double-wrapped. No service logic changed.
+
+  The interceptor's own doc comment asserted that "most services already return
+  `{ data: ... }` themselves" — the probe falsified that, so the comment is
+  rewritten to describe what is actually true.
+
+  **Guard.** `test/response-envelope.e2e-spec.ts` builds the application's
+  OpenAPI document at runtime, walks every parameterless GET, and fails on any
+  successful response without a `data` key. It is deliberately generated from
+  the app rather than a hand-written list, so a controller added tomorrow
+  without the interceptor fails the day it lands. It has already earned its
+  keep: my first mechanical pass decorated only the first `@Controller` in each
+  file and silently missed `LeaderboardController`, which shares a file with
+  `GamificationController`. The guard caught both leaderboard routes.
+
+  Left as-is deliberately: `/admin/*` returns `{ data: { data, meta } }` because
+  `AdminService` returns a `PaginatedResult` and the interceptor wraps it again.
+  That is inconsistent with `/users`, which returns `{ data: [...], meta }` —
+  but admin-web's `PaginatedResponse<T>` type expects exactly the double wrap,
+  so it is working, and unpicking it means changing admin-web too. Recorded
+  here rather than fixed silently.
+  - Files: `apps/api/src/modules/{campaigns,challenges,community,education,gamification,laboratory,notifications}/*.controller.ts`,
+    `apps/api/src/common/interceptors/wrap-response.interceptor.ts`,
+    `apps/api/test/response-envelope.e2e-spec.ts` (new).
 
 ## 🟠 P1 — Major gaps (feature exists but disconnected, or missing entirely)
 
@@ -374,8 +427,8 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   (mobile intentionally out of scope, see below). Added `leaflet` +
   `react-leaflet` and a shared `LocationMap` component
   (`packages/ui/src/components/map/LocationMap.tsx`, exported via its own
-  `@donor/ui/map` subpath — deliberately *not* re-exported through the main
-  `@donor/ui/components` barrel, because that barrel is imported by every
+  `@bloodchain/ui/map` subpath — deliberately *not* re-exported through the main
+  `@bloodchain/ui/components` barrel, because that barrel is imported by every
   page including ones with no map, and Leaflet's `window` access at import
   time broke SSR/prerendering for the *entire app* the first time it was
   wired through the shared barrel; every consuming page now also uses
@@ -2192,6 +2245,70 @@ These make the product unusable or unsafe for real users. Fix first, in order.
 
 ---
 
+- [x] **P2-20. Education XP was advertised and recorded but never granted — and
+  the XP uniqueness key let only the first donor on the platform earn any
+  shared-milestone XP (found while writing P3-10's tests).** — Fixed. Two
+  defects, one in front of the other.
+
+  **The reward was never granted.** `EducationalContent.xpReward` is advertised
+  on every mobile card ("+50 XP") and `completeContent` writes it to
+  `EducationProgress.xpAwarded` — but nothing ever credited it to the donor's
+  gamification profile. The education module emitted no events and gamification
+  contained no reference to education. `XpTransactionType` already had an
+  unused `EDUCATION_COMPLETED` member sitting there, which says the wiring was
+  intended and simply never done. Fixed by following the pattern challenges
+  already use: emit `education.completed`, handle it in
+  `GamificationEventHandler`, award through
+  `GamificationService.processEducationCompleted`.
+
+  Worth noting how this hid: the existing unit test was named *"marks progress
+  COMPLETED and awards the content xpReward on first completion"* and asserted
+  only that `xpAwarded: 75` was written to the progress row. The name claimed a
+  grant; the assertion checked bookkeeping. It is renamed to say what it
+  actually checks, and joined by one that asserts the event is emitted.
+
+  **The uniqueness key was wrong.** `XpTransaction` had
+  `@@unique([sourceType, sourceId])` — platform-wide, not per-donor. That is
+  fine where `sourceId` is a per-user record id (`DONATION`, `BLOOD_TEST`,
+  `APPOINTMENT`, `EMERGENCY_RESPONSE`, and `PROFILE`, which passes `userId`
+  itself). It is wrong for the three whose sourceId names a *shared* milestone:
+  `ACHIEVEMENT` (an achievement code), `CHALLENGE` (a challenge id), and the
+  `EDUCATION` award being added here. Under the old key the first donor in the
+  entire system to unlock an achievement or finish a challenge took the XP, and
+  every donor after them hit the existing-transaction branch and was silently
+  refused — `awardXp` returns `{ success: false }` and nobody logs it.
+
+  Fixed with a migration widening the key to `(userId, sourceType, sourceId)`.
+  Adding a column to a unique index strictly weakens it, so no existing row can
+  conflict and the migration is safe on populated databases. Idempotency is
+  preserved exactly where it was wanted — the same donor cannot be awarded
+  twice for the same source.
+
+  The evidence is nicer than a test assertion: after the fix, two donors each
+  earned XP for the same content, and Postgres then **refused to recreate the
+  old index** — `Key ("sourceType", "sourceId")=(EDUCATION, ...) is duplicated`.
+  The old constraint cannot coexist with correct behaviour.
+
+  Both are pinned by e2e tests that fail against the unfixed code. The XP
+  assertions poll rather than read immediately: gamification runs in
+  `@OnEvent` handlers the request does not await, so asserting straight after
+  the response is a race that passes or fails on machine speed. Added a shared
+  `waitFor` helper to the e2e utils for this.
+
+  Noticed in passing, not fixed: `AntiAbuseService.isDuplicateXpTransaction`
+  has no callers anywhere. Its signature was updated to keep it correct under
+  the new key rather than leaving it wrong; it is a candidate for deletion
+  alongside any future dead-code pass.
+  - Files: `apps/api/prisma/schema.prisma`,
+    `apps/api/prisma/migrations/20260827050000_scope_xp_transaction_unique_by_user/migration.sql`
+    (new), `apps/api/src/modules/education/education.service.ts`,
+    `apps/api/src/modules/education/education.service.spec.ts`,
+    `apps/api/src/modules/gamification/events/gamification-event.handler.ts`,
+    `apps/api/src/modules/gamification/gamification.service.ts`,
+    `apps/api/src/modules/gamification/services/xp.service.ts`,
+    `apps/api/src/modules/gamification/services/anti-abuse.service.ts`,
+    `apps/api/test/education.e2e-spec.ts`, `apps/api/test/utils/e2e.ts`.
+
 ## 🔵 P3 — Hygiene, tests, docs, infra
 
 - [x] **P3-1. 26 of 30 backend modules have zero automated tests**,
@@ -2591,7 +2708,7 @@ These make the product unusable or unsafe for real users. Fix first, in order.
     - Files: `apps/api/src/modules/analytics/services/analytics.service.spec.ts`
       (new).
 
-- [ ] **P3-2. No frontend tests at all** (Next.js apps or mobile) — no
+- [x] **P3-2. No frontend tests at all** (Next.js apps or mobile) — no
   Jest/RTL/Playwright/Detox setup found. — Fixed (first installment,
   test infrastructure stood up for the first time in this repo's
   frontend, plus real tests for the highest-leverage shared code; the 3
@@ -2607,7 +2724,7 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   are the actual highest-leverage target: `packages/utils` and
   `packages/validation` are declared as a dependency of *all five*
   workspace packages including `apps/api` itself (confirmed via
-  `package.json` dependency grep) — `@donor/validation`'s schemas in
+  `package.json` dependency grep) — `@bloodchain/validation`'s schemas in
   particular are the real client-side validation gating the mobile
   app's register/login forms before any request reaches the API, so a
   bug there is a bug users hit before the backend ever sees the
@@ -2640,15 +2757,15 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   `include` rather than moving the file. All 76 new tests pass (18 +
   37 + 21); ran `pnpm test` at the repo root (`turbo test`) and
   confirmed all 8 workspace test tasks succeed together, including the
-  pre-existing 621-test `@donor/api` suite untouched; ran `pnpm
+  pre-existing 621-test `@bloodchain/api` suite untouched; ran `pnpm
   typecheck`/`pnpm lint` at the root and confirmed all 3 touched
-  packages are clean (the only failures, in `@donor/mobile`, are the
+  packages are clean (the only failures, in `@bloodchain/mobile`, are the
   pre-existing NativeWind `className` typing errors in
   `education/index.tsx` already documented earlier in this session —
   confirmed via `git stash` unaffected by this change). Since no
   production code changed (only test files, `vitest.config.ts`s, and
   `package.json`/`tsconfig.json` additions), live-verified by actually
-  building a real consumer: `pnpm --filter @donor/hospital-web build`
+  building a real consumer: `pnpm --filter @bloodchain/hospital-web build`
   completed successfully end-to-end, confirming the shared packages
   still resolve and compile correctly for a real Next.js app. Still
   outstanding: the 3 Next.js apps' own pages/routes have zero tests
@@ -2659,6 +2776,66 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   `Topbar`, `DashboardShell`, `SearchInput`, `FilterBar`, `Chart`,
   `LocationMap`) have no tests yet, and the mobile/Expo app has no
   Jest/React Native Testing Library or Detox setup at all.
+  **Second installment (the 3 Next.js apps).** The first installment stopped at
+  the shared packages, reasoning that the apps' own pages are large fetch-driven
+  client components with nothing small to isolate. That is still true of the
+  pages — but it skipped the layer underneath them, which is where the bugs
+  actually were. Each app's `lib/` holds its HTTP client, and testing that first
+  turned up two defects immediately:
+
+  - **No token refresh in two of the four apps.** hospital-web and
+    blood-center-web had **nine** copies of the same `apiRequest` helper — one
+    per `lib/*.ts` module — and not one of them refreshed an expired token.
+    `refreshAccessToken` existed in `auth.ts` and was called by exactly one
+    function, `me()`. Access tokens live 15 minutes, so every dashboard action
+    after that window failed with a raw 401 until the user reloaded the page —
+    which called `me()`, silently refreshed, and made the whole thing look
+    intermittent. admin-web and the mobile app both refresh-and-retry; these two
+    simply never got it.
+  - **`instanceof ApiRequestError` was false across modules.** Each of those
+    nine files declared its own `ApiRequestError` class, so the check only
+    matched errors thrown by the module the class happened to be imported from.
+    A page catching errors from two modules fell through to its generic fallback
+    message with no indication anything was wrong. Only one page uses the check
+    today, and it happens to import from the module it catches from, so this was
+    a landmine rather than a live bug — but it is exactly the kind that survives
+    a code review.
+
+  Both are fixed by the same change: one `lib/api-client.ts` per app holding a
+  single helper (token storage, refresh-and-retry, error mapping, envelope
+  unwrap) and a single error class, with all nine modules and `auth.ts` reduced
+  to importing it. That deletes ~250 lines of duplicated code and makes the two
+  dashboards behave like the other two apps.
+
+  Stood up Vitest + jsdom in all three Next.js apps (`vitest.config.ts` and a
+  real `test` script replacing the `echo 'Web tests scheduled with the first
+  feature release'` placeholder) and wrote 30 tests against the client layer:
+  11 each for hospital-web and blood-center-web, 8 for admin-web. They cover the
+  bearer header, the envelope unwrap, refresh-and-retry with token rotation
+  persisted, session clearing when the refresh token is also dead, the no-refresh-
+  token path, error mapping from the API's own `statusCode`/`code`/`message`,
+  the non-JSON body fallback, caller header overrides not clobbering
+  Authorization, and a single shared error identity. admin-web's tests document
+  where it deliberately differs (its own storage keys, `Content-Type` only for
+  string bodies, and a bare 401 passed through when no refresh token is stored)
+  rather than papering over the difference.
+
+  Proved the tests catch the bug: removing the refresh-and-retry block fails 3
+  of the 11.
+
+  Still outstanding after this installment: the apps' own pages and routes have
+  no tests (still the argument for Playwright over RTL-in-isolation), and
+  `packages/ui`'s larger components (`DataTable`, `Modal`, `Drawer`, `Sidebar`,
+  `Topbar`, `DashboardShell`, `SearchInput`, `FilterBar`, `Chart`,
+  `LocationMap`) remain uncovered. The mobile app is no longer at zero — P3-9
+  and P3-10 added 19 tests — but has no Detox/integration layer.
+  - Files (second installment): `apps/{hospital-web,blood-center-web}/lib/api-client.ts`
+    (new), `apps/{hospital-web,blood-center-web}/lib/auth.ts` and the nine
+    domain modules (local helpers removed in favour of the shared one),
+    `apps/{hospital-web,blood-center-web,admin-web}/vitest.config.ts` (new),
+    `apps/{hospital-web,blood-center-web,admin-web}/package.json` (real `test`
+    script + vitest/jsdom), `apps/{hospital-web,blood-center-web,admin-web}/lib/api-client.spec.ts`
+    (new).
   - Files: `packages/utils/vitest.config.ts` (new),
     `packages/utils/src/index.spec.ts` (new),
     `packages/utils/package.json` (added `test` script),
@@ -2677,16 +2854,16 @@ These make the product unusable or unsafe for real users. Fix first, in order.
 - [x] **P3-3. No Docker / docker-compose, no CI pipeline**
   (`.github/workflows`), despite `IMPLEMENTATION_SUMMARY.md` and
   `docs/roadmap.md` describing the platform as "production-ready." —
-  Fixed (Docker half only; CI pipeline — `.github/workflows` — is still
-  outstanding and intentionally out of scope for this installment):
-  Added a real multi-stage production `Dockerfile` for `apps/api`
+  Fixed (both halves — Docker infrastructure, then the CI pipeline;
+  done as two separate installments, written up in that order below):
+  **Docker half.** Added a real multi-stage production `Dockerfile` for `apps/api`
   (`node:22-slim` base — chosen over `alpine` specifically because the
   API's one native dependency, `argon2`, and Prisma's query engine both
   have better-tested glibc support than musl, and using the same base
   image for both the build and runtime stages avoids any ABI mismatch
   risk for that native module) with three stages: `deps` (installs only
-  `@donor/api` and its workspace-linked dependencies via `pnpm install
-  --filter=@donor/api...`, so the image doesn't need to resolve or
+  `@bloodchain/api` and its workspace-linked dependencies via `pnpm install
+  --filter=@bloodchain/api...`, so the image doesn't need to resolve or
   build the 3 web apps or mobile), `build` (`prisma generate` then
   `nest build`), and `runtime` (copies only the compiled `dist/`,
   `node_modules`, the Prisma schema/migrations, and `package.json`;
@@ -2729,7 +2906,7 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   /api/v1/health` responded correctly — this is the same code path the
   container's `ENTRYPOINT` runs, so it substantially de-risks the
   Dockerfile even without a full container run. Also confirmed
-  `apps/api/src` never actually imports any `@donor/*` workspace
+  `apps/api/src` never actually imports any `@bloodchain/*` workspace
   package despite declaring several as dependencies, so the "these
   packages export raw `.ts` via `package.json`'s `exports` field"
   question that would otherwise threaten a `node dist/...` runtime
@@ -2756,40 +2933,333 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   .env.example .env` (setting real JWT secrets) then `docker compose up
   --build` and confirm the API becomes healthy and reachable before
   trusting this in a real deployment.
+  **CI half.** Added `.github/workflows/ci.yml` with four parallel jobs
+  on every push/PR to `main` (plus `workflow_dispatch`), all on Node 22
+  with pnpm caching and a `prisma generate` step: `lint-and-typecheck`
+  (`pnpm typecheck` + `pnpm lint` across every workspace package),
+  `test` (the full 621-test backend unit suite — needs no database,
+  since every existing spec mocks `PrismaService`), `test-e2e` (a real
+  `postgres:16-alpine` **service container**, `prisma migrate deploy`,
+  `prisma:seed`, then `apps/api/test/app.e2e-spec.ts` booting the real
+  unmocked `AppModule` against that live database), and `build` (`pnpm
+  build` across all apps). Added a `concurrency` group with
+  `cancel-in-progress` so superseded runs don't pile up.
+  **Unlike the Docker half, this was genuinely verified end-to-end on
+  GitHub's own infrastructure** — across two real PRs (#4 and #5) and
+  five real workflow runs — and that verification was the entire point,
+  because it found **six real, previously-invisible bugs** that no
+  amount of local checking had surfaced. The root reason so much was
+  hiding: `apps/api/test/app.e2e-spec.ts` had existed in this repo since
+  before this session but had **never once successfully run** — it boots
+  the real, unmocked application graph, a path none of the 621 mocked
+  unit specs ever touch. The six:
+  (1) `import { v4 as uuidv4 } from 'uuid'` in three AI-module services
+  crashed Jest's CJS transform the moment the real `AppModule` loaded
+  them (uuid v14 is ESM-only) — fixed at the root by replacing all of
+  them with Node's built-in `crypto.randomUUID()` and dropping the
+  `uuid`/`@types/uuid` dependency entirely (which also made an existing
+  `jest.mock('uuid', ...)` workaround in a unit spec unnecessary).
+  (2) The same ESM-vs-CJS class of failure then surfaced for
+  `expo-server-sdk`, which unlike `uuid` is a genuine dependency with no
+  built-in replacement — fixed properly with a **pnpm-aware**
+  `transformIgnorePatterns` in `test/jest-e2e.json`
+  (`node_modules/\.pnpm/(?!(expo-server-sdk)@)`; the naive
+  `node_modules/(?!(expo-server-sdk)/)` pattern silently does nothing
+  under pnpm's nested `.pnpm/<pkg>@<version>/node_modules/<pkg>` layout).
+  (3) The spec imported supertest as `import * as request` — a
+  namespace import that isn't callable under this project's
+  `esModuleInterop`/ts-jest combination; fixed to the standard default
+  import.
+  (4) Once requests actually reached the app, **every route 404'd**: the
+  harness only did `createNestApplication()` + `app.init()`, so none of
+  `main.ts`'s CORS/helmet/`setGlobalPrefix('api/v1')`/`ValidationPipe`/
+  filter/interceptor setup ever ran and nothing existed under `/api/v1`.
+  Rather than duplicate that config into the test (guaranteeing future
+  drift), extracted it into a new `configureApp(app, config)` in
+  `apps/api/src/bootstrap.ts` that both `main.ts` and the e2e test now
+  call — so the tests exercise the same bootstrap production does.
+  (5) With those fixed the tests passed in CI (14/14) but the job then
+  **sat `in_progress` for 6+ minutes** instead of the ~4s the suite
+  takes — Jest's familiar "did not exit one second after the test run
+  has completed" condition (real `@nestjs/schedule` cron registrations
+  and a live Prisma pool that don't tear down on `app.close()`), benign
+  locally but an indefinite hang on a CI runner. Fixed with `--forceExit`
+  on the `test:e2e` script, which is NestJS's own documented
+  recommendation for exactly this case (real-app e2e, as opposed to
+  fully-mocked unit tests) rather than a workaround masking a defect.
+  (6) `POST /auth/register` then returned **404 in CI while passing
+  locally**. Treated it as a possible flake exactly once per protocol —
+  a `rerun_failed_jobs` reproduced it identically, so it was real. The
+  response's `x-ratelimit-limit: 10` header exactly matched
+  `@Post('register')`'s own `@Throttle` decorator, proving the route
+  *was* matched and its guards *did* run, which ruled out the
+  "route-not-registered" reading and pointed inside the handler:
+  `AuthService.register()` looks up the `DONOR` role and throws
+  `NotFoundException('DONOR role not found. Run seed script.')` when
+  it's missing. The CI job ran migrations but **never seeded**, so every
+  fresh CI database had zero `Role` rows; local runs had been passing
+  only because this session's dev database had been seeded repeatedly
+  for weeks of work. Rather than guess, reproduced CI's exact conditions
+  locally: created a genuinely fresh database, ran `migrate deploy`
+  only, and got the **identical** "7 failed, 7 passed, 14 total"
+  signature; then ran `prisma:seed` against that same database and
+  re-ran the suite for 14/14 passing — proving both the diagnosis and
+  the fix before pushing it. Added the missing `prisma:seed` step to the
+  workflow between migrations and the tests.
+  **Final state, verified on run #5 (commit `e9dccef`, PR #5):** `Unit
+  tests` ✓, `API e2e tests (real database)` ✓ (all 14 against a real
+  Postgres service container, ~6s), `Build all apps` ✓ — and `Lint &
+  typecheck` ✗, failing **only** on `@bloodchain/mobile#typecheck` (8 of 10
+  turbo tasks pass; the backend's own `tsc --noEmit` is clean). That one
+  failure is **P3-9**, the NativeWind `className` defect logged
+  separately below — it is CI correctly surfacing a real, pre-existing
+  bug on its first run, not a pipeline misconfiguration, and it stays
+  red on purpose until P3-9 is actually fixed.
   - Files: `apps/api/Dockerfile` (new), `apps/api/docker-entrypoint.sh`
     (new), `docker-compose.yml` (new), `.dockerignore` (new),
-    `README.md` (new "Docker" section).
+    `README.md` (new "Docker" section), `.github/workflows/ci.yml`
+    (new), `apps/api/src/bootstrap.ts` (new — `configureApp` shared by
+    `main.ts` and the e2e test), `apps/api/src/main.ts` (now calls
+    `configureApp`), `apps/api/test/app.e2e-spec.ts` (supertest import,
+    real bootstrap config, account-activation step, login-once token
+    reuse), `apps/api/test/jest-e2e.json`
+    (pnpm-aware `transformIgnorePatterns`), `apps/api/package.json`
+    (`uuid`/`@types/uuid` removed, `--forceExit` on `test:e2e`),
+    `apps/api/src/modules/ai-health/ai-health.service.ts`,
+    `apps/api/src/modules/ai-health/ai-response.service.ts`,
+    `apps/api/src/modules/ai-logging/ai-logging.service.ts` (all three
+    `uuid` → `crypto.randomUUID()`),
+    `apps/api/src/modules/ai-logging/ai-logging.service.spec.ts`
+    (obsolete `jest.mock('uuid')` removed).
 
-- [ ] **P3-4. `.env.example` gaps**: `AI_BASE_URL`/`AI_ENABLED`/
-  `AI_MAX_TOKENS`/`AI_MODEL`/`AI_TIMEOUT_MS` are read by code but
-  undocumented; conversely `FCM_SERVER_KEY`/`APNS_KEY_ID`/`MAP_API_KEY`/
-  `EXPO_ACCESS_TOKEN` are documented but never read anywhere server-side
-  (confirms P0-5/P1-10 are unfinished integrations, not just UI gaps).
+- [x] **P3-4. `.env.example` gaps.** — Fixed, and the investigation turned up
+  something considerably worse than gaps: **the API refused to boot with the
+  `.env.example` the README tells you to copy.**
 
-- [ ] **P3-5. Stale/inconsistent docs.** `docs/architecture.md` says
+  `SMTP_HOST`, `SMTP_USER`, `SMTP_PASSWORD` and `EXPO_ACCESS_TOKEN` were all
+  declared `Joi.string().optional()`, and Joi rejects an empty string for a
+  plain `Joi.string()`. The template ships all four as `""` — deliberately, with
+  a comment telling you to leave `SMTP_HOST` empty in local dev. So following
+  the documented setup (`cp .env.example .env && cp .env.example apps/api/.env`,
+  then `pnpm dev:api`) died at startup with
+  `Config validation error: "SMTP_HOST" is not allowed to be empty. "SMTP_USER"
+  ... "SMTP_PASSWORD" ... "EXPO_ACCESS_TOKEN" ...`. `docker compose up` hit the
+  same wall, since compose passes `SMTP_HOST: ${SMTP_HOST:-}` — an empty string.
+  Reproduced live before fixing and confirmed fixed after: the compiled API now
+  starts on the template unchanged apart from the database URL and the two
+  secrets, logging the intended `SMTP_HOST is not set — outgoing emails will be
+  logged only` warning. The consuming code was always fine (`if (host)`,
+  `user ? … : undefined`, `accessToken ? … : undefined`); only the schema
+  disagreed. Fix is `.allow('')` on the four.
+
+  On the documented-but-inert side, the audit note was right about three and
+  wrong about one. `MAP_API_KEY`, `FCM_SERVER_KEY` and `APNS_KEY_ID` have zero
+  references anywhere in the repository — removed from both `.env.example` and
+  `docker-compose.yml`, with a comment in their place saying plainly that push
+  goes through Expo and there is no direct FCM/APNs integration. But
+  `EXPO_ACCESS_TOKEN` **is** read (`push-provider.service.ts:16`) and is in the
+  schema, so it stays.
+
+  Two more inert variables the note didn't catch:
+  - **`JWT_REFRESH_EXPIRES_IN`** was documented, validated, defaulted to `30d`
+    and passed through docker-compose — and read by nothing but a test mock.
+    Refresh tokens here are opaque random strings, not JWTs, and their lifetime
+    comes from `PlatformSettings.sessionTimeoutMinutes` (P1-14), editable by a
+    SUPER_ADMIN. An operator setting `JWT_REFRESH_EXPIRES_IN=1h` to satisfy a
+    security requirement would have believed it took effect. Removed from all
+    three places; `.env.example` now says where the lifetime actually comes
+    from.
+  - **`REDIS_URL`** — same story, already established in P3-5 that nothing
+    connects to Redis. Removed from the schema and the template.
+
+  The five AI variables (`AI_ENABLED`, `AI_BASE_URL`, `AI_MODEL`,
+  `AI_MAX_TOKENS`, `AI_TIMEOUT_MS`) are now documented *and* validated, with
+  every default set to the same fallback the reading code already passes to
+  `ConfigService.get`, so nothing changes behaviourally — a typo in
+  `AI_MAX_TOKENS` now fails at boot instead of silently reverting to 1000.
+  One trap avoided by reading the consumer first: `AI_ENABLED` is declared
+  `Joi.string().valid('true','false')`, not `Joi.boolean()`, because the feature
+  gate compares it with `!== 'true'` — a boolean would have coerced and turned
+  AI permanently off. Docker-compose passed only `AI_API_KEY`, so a
+  containerised deployment could not enable AI at all; all six now pass through.
+
+  Also added the two variables the *frontends* read and nothing documented —
+  `NEXT_PUBLIC_API_URL` and `EXPO_PUBLIC_API_URL` — flagged as such, since they
+  fall back to localhost and so only bite on a real deployment.
+
+  **Guard.** `src/config/env-example.spec.ts` reads the real `.env.example` and
+  the real Joi schema and asserts: the file validates under exactly the options
+  ConfigModule uses; every variable the schema knows about is documented; and
+  none of the five dead variables have crept back. Proved it catches the
+  original bug — restoring `SMTP_HOST: Joi.string().optional()` fails it with
+  the same message the API died on.
+
+  **Product-name leftovers** found while touching these files and fixed in the
+  same pass: `appConfig.name` was still `'DONOR'`, the Swagger title was
+  `'DONOR API'`, the startup log said `DONOR API listening`, and the email
+  `from` fallback was `DONOR <no-reply@donor.local>` (in the service, the Joi
+  default, docker-compose, and the spec's expectations). Seed account emails and
+  the `donor://` deep-link scheme are deliberately left alone — the scheme must
+  match `expo.scheme` in `apps/mobile/app.json`, and the seed emails are
+  referenced by the e2e harness and the README credentials table.
+
+  Verified: `pnpm typecheck` 10/10, `pnpm lint` 0 errors, 654 API unit tests
+  (650 + 4 new) + 16 mobile + package tests, `pnpm build` 4/4, 95 e2e across 8
+  suites against a fresh migrated+seeded database, plus the live boot of the
+  compiled API on the template itself.
+  - Files: `.env.example`, `docker-compose.yml`,
+    `apps/api/src/config/env.validation.ts`,
+    `apps/api/src/config/env-example.spec.ts` (new),
+    `apps/api/src/main.ts`, `apps/api/src/modules/email/email.service.ts`,
+    `apps/api/src/modules/email/email.service.spec.ts`,
+    `packages/config/src/index.ts`, `README.md`.
+
+- [x] **P3-5. Stale/inconsistent docs.** `docs/architecture.md` says
   WebSocket is "prepared but not implemented" even though the gateways are
   real and working; `IMPLEMENTATION_SUMMARY.md` claims "45+ passing
   tests" vs. 8 actual spec files. Reconcile docs with reality once the
   P0/P1 items land, not before (docs will keep drifting otherwise).
+  — Fixed: deleted the two files the user identified as obsolete
+  (`IMPLEMENTATION_SUMMARY.md`, `PHASE_19_COMPLETION_REPORT.md`), which
+  removes the "45+ passing tests" and "production-ready through 19
+  phases" claims at the source rather than patching them.
+  Checked each remaining claim against the code before rewriting it,
+  rather than assuming the audit note was still accurate:
+  `docs/architecture.md` and `docs/api.md` both said WebSocket gateways
+  and domain events were unimplemented. Both are implemented —
+  `/emergency` and `/shipments` Socket.IO gateways exist, are registered
+  as providers in their modules, authenticate on connect and scope every
+  broadcast to a room; and there are 21 `@OnEvent` handlers on
+  `@nestjs/event-emitter`. But the same sentence also claimed Redis
+  pub/sub, and a grep confirms **nothing connects to Redis** — `REDIS_URL`
+  is in the env schema and otherwise unused. So the rewrite documents the
+  real socket event names and domain event names, and states plainly that
+  gateway state is per-instance and horizontal scaling needs an adapter
+  first. That last part is a limitation the old text accidentally hid by
+  being wrong in the other direction.
+  `README.md`'s Verification section now lists the real numbers (626 API
+  unit + 16 mobile + 76 package tests, and the 83-test e2e suite), spells
+  out that e2e needs a **seeded** database (registration fails without
+  the seeded roles — the exact trap that cost a CI cycle in P3-3), and
+  points at the CI workflow. Added a line directing readers to `TODO.md`
+  as the live account of what is and is not finished.
+  - Files: `IMPLEMENTATION_SUMMARY.md` (deleted),
+    `PHASE_19_COMPLETION_REPORT.md` (deleted), `docs/architecture.md`,
+    `docs/api.md`, `README.md`.
 
-- [ ] **P3-6. Repo/product name mismatch** — directory/remote is named
+- [x] **P3-6. Repo/product name mismatch** — directory/remote is named
   "bloodchain-final" but the product is "DONOR" with zero blockchain code
   anywhere. Purely cosmetic; flag to the user, no code action needed
-  unless they want a rename.
+  unless they want a rename. — Fixed: the user resolved it in favour of
+  the repo name, so the product is now **BloodChain** throughout.
+  Done in two layers. The **brand** layer is the user-visible one: the
+  sidebar logo, all three web apps' browser titles, the org-approval
+  copy in the hospital and blood-centre apps, `README.md`, and the
+  affected `docs/` pages. The **identifier** layer is the npm scope:
+  `@donor/*` → `@bloodchain/*` across 63 files (152 occurrences,
+  including the lockfile and the CI workflow), plus the root package
+  name `donor-platform` → `bloodchain`. Renaming only the brand would
+  have left the exact mismatch this item is about, just moved.
+  Deliberately left alone, because they are local development fixtures
+  rather than product naming, and renaming them forces every developer
+  to drop and re-seed their database for no benefit: the dev database
+  name `donor_dev` and the seeded demo accounts' `@donor.local` email
+  domain. Also left every `RoleCode.DONOR` / `DONOR_STATUSES`
+  identifier untouched — "donor" is a real domain role in a blood
+  donation system and has nothing to do with the product name; the
+  rename was applied by hand-checked patterns rather than a blanket
+  find-and-replace precisely so those survived.
+  Verified the identifier rename broke nothing: `pnpm install
+  --frozen-lockfile` succeeds (the CI path), typecheck 10/10, lint
+  10/10, 626 API + 16 mobile unit tests, `pnpm build` 4/4, and 83 e2e
+  against a pristine migrate+seed database.
+  - Files: root `package.json` and all 10 workspace `package.json`s,
+    `pnpm-lock.yaml`, `.github/workflows/ci.yml`, every source file
+    importing a workspace package, the three web apps' `layout.tsx`,
+    `packages/ui/.../Sidebar.tsx`, `README.md`, `docs/`.
 
-- [ ] **P3-7. Dead DTO scaffolding for three never-built admin features
-  (found while working P1-15).** `apps/api/src/modules/admin/dto/admin.dto.ts`
-  has `AdminListFeatureFlagsDto`/`AdminUpdateFeatureFlagDto`,
-  `AdminListAnnouncementsDto`/`AdminCreateAnnouncementDto`/`AdminUpdateAnnouncementDto`,
-  `AdminListSupportTicketsDto`/`AdminAssignTicketDto`/`AdminUpdateTicketDto`/`AdminCreateTicketDto`,
-  and `AdminUpdateSettingsDto` — none imported by the controller, none
-  backed by a Prisma model. Pure leftover scaffolding from admin features
-  that were apparently planned and never built past the DTO layer (P1-14
-  built real platform settings a different way; the others have no
-  model/service/UI at all). Either delete the dead classes or use them as
-  a starting spec if support tickets/announcements/generic feature-flag
-  CRUD ever get built for real.
-  - File: `apps/api/src/modules/admin/dto/admin.dto.ts`.
+- [x] **P3-7. Dead DTO scaffolding for never-built admin features
+  (found while working P1-15).** — Fixed: 13 of the dead classes deleted, and
+  the 14th turned out not to be dead scaffolding at all but the correct,
+  unwired fix for a live route with **no request validation on it**.
+
+  **The scan.** The audit note listed 10 suspects; an empirical scan found 14.
+  The first scan I ran reported all 33 classes in the file as "used" — those
+  extra hits were inside `.next` build artifacts, i.e. stale compiled copies of
+  the same source, not real references. Re-running with
+  `--exclude-dir=.next --exclude-dir=dist --exclude-dir=node_modules` gave the
+  real answer: 19 referenced, 14 referenced by nothing anywhere in the repo
+  outside their own definition. Beyond the note's 10 it caught three courier
+  DTOs (`AdminVerifyCourierDto`, `AdminRejectCourierDto`,
+  `AdminSuspendCourierDto`) and `AdminPlatformStatsDto`.
+
+  **The 14th.** `AdminSuspendCourierDto` was unreferenced, but
+  `POST /admin/couriers/:id/suspend` *is* a live, shipped route — it just
+  declared its body as an inline anonymous type, `@Body() body: { reason?: string }`.
+  NestJS's `ValidationPipe` skips validation outright when the resolved metatype
+  is a native type (`Object` is on its skip list), so this route ran with **no**
+  validation at all: the app's global `whitelist` / `forbidNonWhitelisted`
+  policy did not apply to it, and Swagger documented no request body for it.
+  The correctly-written DTO for exactly this route sat unused a few lines away
+  in the same file. So the fix here is to wire it in, not delete it. Its sibling
+  `POST /admin/users/:id/suspend` already used `AdminSuspendUserDto` properly,
+  which is what made the courier route the odd one out.
+
+  Pinned by a new e2e suite (`test/admin-couriers.e2e-spec.ts`, 3 tests, own
+  courier fixture so it doesn't disturb the seeded courier the shipment suites
+  borrow). Proved the test catches the bug: reverting the controller to the
+  inline body fails it 2/3 — the unknown-property request is *accepted*, and it
+  actually suspends the courier, which is exactly the pre-fix behaviour. One
+  thing measured rather than assumed: `@IsString()` on `reason` is close to
+  unenforceable here because the app sets `enableImplicitConversion: true`, so
+  class-transformer stringifies an object body before the validator sees it — a
+  test asserting otherwise passed against the *broken* code, so it was dropped.
+  What this fix genuinely restores on the route is the whitelist policy, and
+  that is what the suite asserts.
+
+  `AdminVerifyCourierDto` / `AdminRejectCourierDto` are a different story: there
+  are no courier verify/reject routes at all (only suspend/restore), so those
+  two describe endpoints that do not exist. Deleted.
+
+  **`AdminUpdateSettingsDto`** is the clearest argument for deleting rather than
+  keeping the rest as a "spec". It is a near-duplicate of the real, wired
+  `AdminUpdatePlatformSettingsDto` (P1-14) with different field names
+  (`sosEnabled` vs `sosEmergencyEnabled`, `aiInsightsEnabled` vs
+  `aiHealthInsightsEnabled`, `maintenanceMode` typed `string` instead of
+  `boolean`) and none of its validation bounds. Two similarly-named settings
+  DTOs one file apart, only one of them real, is exactly the sort of thing
+  someone wires up by accident.
+
+  The remaining 10 describe support tickets, feature flags and announcements.
+  Confirmed entirely unbuilt rather than half-built: a case-insensitive grep for
+  `supportticket|featureflag|announcement` across `apps/api/src` and
+  `schema.prisma` returns exactly one hit, and it is the unrelated `ANNOUNCEMENT`
+  value of the community post-type enum. No model, no service, no route, no UI.
+
+  None of the deleted 13 ever reached the OpenAPI document — `@nestjs/swagger`
+  only emits models reachable from a route, and no route referenced them — so
+  the deletion cannot change the published API surface. There are no
+  `@ApiExtraModels` / `getSchemaPath` usages anywhere in the codebase that could
+  have pulled one in by name.
+
+  Result: 685 → 421 lines, 33 → 20 exported classes, plus one now-orphaned
+  `IsNumber` import pruned from `class-validator`. The 20 that remain are
+  exactly the 20 the controller imports.
+
+  Split out as **P3-14** (now fixed): four *other* routes had the same
+  inline-body defect, including two that take required fields and one that
+  accepts clinical lab results.
+
+  Verified: `pnpm typecheck` 10/10, `pnpm lint` 10/10 (0 errors),
+  `pnpm turbo run test --force` (626 API + 16 mobile + package tests) green,
+  `pnpm build` 4/4, and 86 e2e tests across 7 suites against a database freshly
+  created, migrated and seeded for the run — the e2e harness boots the real
+  `AppModule`, so it also proves the admin module still resolves and Swagger
+  still builds with the 13 classes gone. Checked the run left no residue
+  (0 fixture users, 0 fixture couriers, 0 stray audit rows).
+  - Files: `apps/api/src/modules/admin/dto/admin.dto.ts`,
+    `apps/api/src/modules/admin/admin.controller.ts`,
+    `apps/api/test/admin-couriers.e2e-spec.ts` (new).
 
 - [x] **P3-8. `GET /campaigns/my/campaigns` silently overwrites the
   campaign's own `status` with the caller's participation status
@@ -2845,6 +3315,654 @@ These make the product unusable or unsafe for real users. Fix first, in order.
     (`getUserCampaigns`), `apps/api/src/modules/campaigns/campaigns.service.spec.ts`
     (updated regression test), `apps/mobile/src/api/campaigns.ts`
     (`Campaign` type gains `participantStatus`/`joinedAt`).
+
+- [x] **P3-9. 4 mobile screens use `className` (Tailwind-style utility
+  strings) on plain React Native components, but this app has no
+  NativeWind — or any styling library — wired up to process it (found
+  while diagnosing why setting up CI would make `lint-and-typecheck`
+  fail on day one).** Referenced loosely several times earlier in this
+  session as "pre-existing NativeWind `className` typing errors," but
+  never actually root-caused or logged as its own item until now.
+  Diagnosis: `apps/mobile/package.json` does not depend on `nativewind`
+  at all, there is no `babel.config.js`, and no `tailwind.config.*`
+  anywhere under `apps/mobile` — yet
+  `app/(app)/{community,education,challenges,campaigns}/index.tsx` pass
+  real Tailwind utility strings like `className="text-sm text-gray-600
+  ml-1"` and `className="bg-red-600 py-2 px-6 rounded-xl"` directly to
+  `View`/`Text`/`TouchableOpacity`. Since `className` isn't a prop those
+  core React Native components understand without NativeWind's Babel
+  transform actually running, this isn't just a `tsc` type-checking
+  annoyance (160 `error TS2769`/`TS2322` errors, all in these 4 files:
+  58 in `community/index.tsx`, 42 in `education/index.tsx`, 33 in
+  `challenges/index.tsx`, 27 in `campaigns/index.tsx`) — these 4 screens
+  are almost certainly rendering **completely unstyled** on a real
+  device or simulator right now, since the prop is silently a no-op.
+  The rest of the app doesn't have this problem: 27 of the app's 48
+  screen files use the working, real pattern
+  (`StyleSheet.create({...})` + a `style` prop), confirming these 4
+  screens are the outlier, not the norm — most likely built by copying
+  a web-style Tailwind pattern from one of the Next.js apps without
+  translating it to the mobile app's actual styling approach. Likely
+  fix: rewrite these 4 screens' `className` usages into
+  `StyleSheet.create`-based styles matching the rest of the app, rather
+  than introducing NativeWind app-wide just for 4 files. Directly
+  relevant to **P3-3**: the new `.github/workflows/ci.yml`'s
+  `lint-and-typecheck` job runs `pnpm typecheck`/`pnpm lint` across
+  every workspace package including `@bloodchain/mobile`, so this is now the
+  one red job on an otherwise fully green pipeline — **confirmed on the
+  real CI run**, which failed on exactly one of its ten turbo tasks
+  (`@bloodchain/mobile#typecheck`) with these same `className` errors while
+  the backend's own `tsc --noEmit`, the 621 unit tests, the 14 API e2e
+  tests, and the full build all passed. That is CI doing its job
+  (surfacing a real, previously undiagnosed defect), not a CI
+  misconfiguration, and is called out explicitly in P3-3's own write-up
+  so it isn't mistaken for one. Fixing these 4 screens turns the
+  pipeline fully green. — Fixed: rewrote all four screens onto the
+  mobile app's real design system. Took the suggested approach
+  (`StyleSheet.create` + the app's own components) rather than adding
+  NativeWind for 4 files, and went one step further than a literal
+  class-to-style translation, for a reason that only became obvious
+  once the theme was read properly: **`src/theme.ts` defines a dark
+  palette** (`background: '#080D14'`, `text: '#F2F5F7'`), while these 4
+  screens' Tailwind strings were all light-mode web classes
+  (`bg-gray-50`, `bg-white`, `text-gray-900`). Translating those
+  literally would have produced 4 blindingly light screens inside a
+  dark app — the copied-from-the-web origin diagnosed above is exactly
+  why they can't be translated at face value. So each screen was
+  rebuilt against the existing component library the other 27 screens
+  already use (`Screen`, `AppText`, `Card`, `GlassCard`, `Badge`,
+  `AppButton`, `EmptyState`, `LoadingState`, `ProgressBar`, `Avatar`,
+  `Divider`) plus `StyleSheet.create` with `colors`/`spacing`/`radius`
+  tokens — no hard-coded hex values left in any of the four. Hand-rolled
+  markup was replaced with the real primitives wherever one existed: the
+  ad-hoc `bg-gray-200`/`bg-red-600` progress bars became `<ProgressBar>`,
+  the `bg-red-100` pills became `<Badge variant="primary">`, the
+  spinner-in-a-centered-View loading states became `<LoadingState>`, the
+  "No Active Campaigns" blocks became `<EmptyState>`, and the
+  `TouchableOpacity` submit buttons became `<AppButton loading={...}>`
+  (which already handles the pressed/disabled/loading states these
+  screens were each reimplementing by hand). All 160 type errors are
+  gone and `@bloodchain/mobile#typecheck` passes, which was the whole point:
+  **the repo-wide `pnpm typecheck` now reports 10/10 tasks successful**,
+  turning P3-3's CI pipeline fully green.
+  **Verified by actually rendering the screens, not just type-checking
+  them.** Type-checking only proves the props are legal now; the real
+  claim in this item was that these screens *render unstyled*, which no
+  compiler can confirm. The mobile app had **no test infrastructure at
+  all** (its `test` script was a literal `echo 'Mobile component tests
+  scheduled with the first native feature'` placeholder), so this
+  installment stood one up: `jest-expo` + `react-test-renderer`, a
+  `jest.setup.js` mocking the three things that need a native module in
+  a test process (`lucide-react-native`'s SVG icons,
+  `expo-blur`'s `BlurView`, and `react-native-safe-area-context` via its
+  own shipped mock), and 16 tests in
+  `src/__tests__/community-screens.spec.tsx` that mount all four screens
+  for real against mocked API fixtures and walk the resulting render
+  tree. Two of them are the direct P3-9 regression guards: one asserts
+  **no node in the tree carries a `className` prop**, the other asserts
+  the app's real theme colors are actually present in the resolved
+  styles.
+  **These tests were then proven to actually catch the bug**, by
+  `git stash`-ing just the 4 rewritten screens and re-running the suite
+  against the original code: **10 of the 16 failed**. The most
+  informative part of that run is what *didn't* fail — all four
+  "renders without crashing" tests passed on the old code too, which is
+  precisely the shape of this defect: the screens never errored, they
+  just silently rendered with nothing applied. The failure output makes
+  it concrete — the old campaigns screen's entire 26-node render tree
+  came back with `style: null` on every single node except one
+  `{"opacity":1}` that `TouchableOpacity` sets internally for its press
+  animation. Zero styles, exactly as this item predicted, now confirmed
+  from a real render rather than inferred. Restoring the fix returns all
+  16 to green.
+  While wiring the harness up, hit the **same pnpm-layout problem that
+  bit P3-3's API e2e job**: `jest-expo`'s stock
+  `transformIgnorePatterns` assume npm/yarn's flat
+  `node_modules/react-native/...` layout, so under pnpm's
+  `node_modules/.pnpm/<name>@<version>/node_modules/<name>/...` the
+  negative lookahead sees `.pnpm` and skips the whole tree, leaving
+  React Native's own Flow-typed sources untransformed
+  (`SyntaxError: Unexpected identifier 'ErrorHandler'`). Fixed the same
+  way, with a pnpm-aware pattern matching pnpm's directory encoding
+  (scoped packages as `@scope+name@version`). Worth noting as a pattern:
+  this repo will hit this a third time the next time a package needs
+  transforming.
+  Full verification after the change: repo-wide `pnpm typecheck` 10/10,
+  `pnpm lint` 10/10, `pnpm test` **637 passing** (621 API + the 16 new
+  mobile tests, which now actually run in CI instead of echoing a
+  placeholder), and `pnpm build` 4/4 — i.e. all four CI jobs' commands
+  green locally before pushing.
+  **One more real bug surfaced once the new suite met CI**, and it's
+  worth recording because it's a class this repo will hit again: the
+  suite passed locally but failed its first CI run on **exactly one**
+  test — the first one, `community renders without crashing`, timing
+  out at 8429ms against Jest's default 5s per-test budget, while the
+  other 15 passed in ~10ms each. Rather than re-run it as a flake,
+  reproduced the mechanism locally by clearing the jest cache to match
+  a fresh runner: the first test to mount a screen pays a one-off cost
+  for Babel-transforming the entire React Native module graph (~2.9s
+  locally, ~8.4s on CI's slower shared runner), and everything after it
+  runs in single digits. That is real one-time setup cost landing on
+  whichever test happens to sort first — not a slow test, and *not* a
+  flake, since it would fail again on every cold cache. Fixed with an
+  explicit `testTimeout` covering a cold start, so run order no longer
+  decides which test absorbs the transform. Also cleared the
+  "overlapping act() calls" warnings the same run emitted (mounting
+  inside an *async* `act()` nests an act scope inside the renderer's
+  own; mount in a synchronous `act()` and keep the async one for the
+  React Query flush). Re-verified from a cleared cache: 16/16, zero
+  warnings. **CI run #8 is fully green across all four jobs** — the
+  first time this pipeline has been green end to end.
+  Left deliberately unfixed and logged separately as **P3-10**: the
+  education screen's `onStart`/`isStarting` props are wired to a real
+  `startContent` mutation but no control in the card ever triggers them.
+  That's a missing feature, not a styling defect, so it wasn't smuggled
+  into this fix.
+  - Files: `apps/mobile/app/(app)/community/index.tsx`,
+    `apps/mobile/app/(app)/education/index.tsx`,
+    `apps/mobile/app/(app)/challenges/index.tsx`,
+    `apps/mobile/app/(app)/campaigns/index.tsx` (all four rewritten onto
+    the design system), `apps/mobile/src/__tests__/community-screens.spec.tsx`
+    (new — 16 render tests incl. the two P3-9 regression guards),
+    `apps/mobile/jest.config.js` (new — jest-expo preset + pnpm-aware
+    `transformIgnorePatterns`), `apps/mobile/jest.setup.js` (new — native
+    module mocks), `apps/mobile/package.json` (`test` script now really
+    runs jest; adds `jest`, `jest-expo`, `react-test-renderer`,
+    `@types/jest`, `@types/react-test-renderer`).
+
+- [x] **P3-10. The education screen's "start content" flow is wired but
+  unreachable (found while fixing P3-9).** — Fixed, and the investigation
+  showed the note understated it. I had written that the effect was skewed
+  stats. It was worse: `completeContent` throws
+  `BadRequestException('You must start the content before completing it')` when
+  no progress row exists, so **the only button on the screen failed every time
+  it was tapped**. The feature was not missing a step; it was unreachable.
+
+  The card now derives its control from the donor's real progress, fetched from
+  `GET /education/my/progress` (an endpoint that already existed and that the
+  mobile client already had a function for — the screen simply never called
+  it): **Start** when not begun, **Complete** once started, a **Completed**
+  badge when done. The `isStarting`/`isCompleting` flags are now scoped to the
+  card being acted on, so one tap doesn't spin every button on the list.
+
+  Deliberately *not* invented here: a reading/detail view. The note wondered
+  whether "start" belongs on a detail screen. Maybe, but the backend contract
+  says start must happen before complete, and that is answerable without
+  designing a new screen. If a detail view is added later, Start moves into it.
+
+  Verified with a new e2e suite (`education.e2e-spec.ts`, 6 tests) covering the
+  real contract — complete-before-start is rejected, start is idempotent, the
+  progress row shows up on `my/progress`, complete awards XP exactly once — and
+  three new mobile tests pinning which control each state shows. Proved the
+  mobile tests catch the old behaviour: reverting the card to Complete-only
+  fails 2 of the 3.
+
+  Two further defects fell out of writing those tests, both recorded below as
+  their own entries because neither is about the education screen:
+  **P0-10** (the missing response envelope) and **P2-20** (education XP was
+  advertised and recorded but never granted, plus a unique constraint that let
+  only the first donor on the platform earn any shared-milestone XP).
+  - Files: `apps/mobile/app/(app)/education/index.tsx`,
+    `apps/mobile/src/__tests__/community-screens.spec.tsx`,
+    `apps/api/test/education.e2e-spec.ts` (new).
+
+- [x] **E2E-1. The e2e suite only covered auth, so no business flow had
+  ever been exercised over HTTP against a real database.** Before this
+  work the only e2e spec was `app.e2e-spec.ts` (health + auth + two
+  authorization checks, 14 tests). Every other guarantee in the backend
+  rested on 621 unit specs that all mock `PrismaService` — which means
+  they validate service logic in isolation but can never catch a bad
+  Prisma query, a broken route wiring, a guard that doesn't fire, or a
+  state machine that doesn't hold across a real multi-actor flow.
+  — Fixed: added four domain suites (64 new tests, 78 total) covering
+  the product's core flows end to end against a real Postgres, each
+  driving several actors whose roles genuinely differ:
+  **`donations.e2e-spec.ts` (17)** — staff opens a slot, donor books,
+  staff confirms and checks in, records the screening assessment,
+  starts and completes the collection, donor sees it in their history.
+  **`shipments.e2e-spec.ts` (20)** — hospital raises a blood request,
+  blood centre approves (reserving a real unit) and dispatches, courier
+  runs accept → start-pickup → confirm-pickup → start-delivery →
+  arrive, hospital confirms receipt.
+  **`emergency.e2e-spec.ts` (15)** — hospital raises and activates an
+  emergency, the real matching engine writes matches, the donor views,
+  accepts, travels and arrives, the hospital completes the response.
+  **`inventory.e2e-spec.ts` (12)** — a unit through quarantine →
+  release → reserve → release-reservation → issue.
+  Coverage is deliberately not just happy paths: it asserts the
+  transitions that must be **refused** (a quarantined unit can't be
+  issued, a discard is terminal, a unit can't be issued twice, a
+  shipment step can't be replayed, an emergency can't be activated
+  twice, delivery can't claim more units than were shipped or fewer
+  without a discrepancy reason), and RBAC/tenant isolation at every
+  boundary (a donor can't open slots or read inventory, a courier can't
+  raise requests, a hospital can't self-approve or reach blood-centre
+  inventory, blood-centre staff can't act as the courier).
+  Added `test/utils/e2e.ts` as the shared harness. It mints tokens via
+  the app's own `JwtService` rather than driving `POST /auth/login`,
+  because login is rate limited to 5 requests/60s and these suites need
+  six or more actors signed in at once — driving them through login
+  would make the suites trip the app's own rate limiter on themselves.
+  The tokens are genuine (same secret, same `{sub, roles, permissions}`
+  payload, roles and permissions read from the database), so every
+  guard validates them for real; login itself stays covered by
+  `app.e2e-spec.ts`.
+  **This immediately paid for itself: it found a completely broken core
+  endpoint.** `donations.service.ts` passed both `include` and `select`
+  for the same `donor` relation in three Prisma queries, which Prisma
+  rejects outright ("Please either use `include` or `select`, but not
+  both at the same time"). So `checkInDonation`, `getDonationForCheckIn`
+  and `getTodayAppointments` — the entire staff-facing donation session
+  surface, including the check-in that begins *every* donation —
+  returned 500 on every single call. Confirmed by reproducing the query
+  standalone against the real database, then fixed by merging
+  `donorProfile` into the `donor` select (preserving the exact fields
+  each caller reads); a repo-wide scan confirms no other
+  include+select conflict remains. The 5 existing donations unit tests
+  never caught it because they mock `PrismaService`, and a mock does not
+  validate query shape — the clearest possible illustration of why this
+  gap mattered.
+  Test hygiene is part of the deliverable: each suite brings its own
+  fixtures (its own donation, blood unit, donor) instead of consuming
+  seeded demo data, restores anything it borrows (the courier's status),
+  and cleans up after itself. Cleanup deliberately does **not**
+  catch-and-ignore, because that pattern was actively hiding bugs while
+  these suites were written: the emergency teardown referenced
+  `db.emergencyEvent`, a model that does not exist, so cleanup silently
+  aborted and left 10 stale emergencies and 5 stale users behind, which
+  then made later runs fail for a completely unrelated-looking reason
+  (zero donors matched). The shipments teardown had the same defect,
+  deleting `BloodUnitReservation` by a `bloodRequestId` field it does
+  not have. Both now delete only cascade roots and let genuine failures
+  surface. Verified by running the full suite twice back to back —
+  78/78 both times — and confirming afterwards that the database holds
+  zero test rows and the seeded demo data is untouched.
+  - Files: `apps/api/test/utils/e2e.ts` (new harness),
+    `apps/api/test/donations.e2e-spec.ts` (new),
+    `apps/api/test/shipments.e2e-spec.ts` (new),
+    `apps/api/test/emergency.e2e-spec.ts` (new),
+    `apps/api/test/inventory.e2e-spec.ts` (new),
+    `apps/api/src/modules/donations/donations.service.ts`
+    (the three include+select fixes).
+
+- [x] **P3-11. Emergency donor matching silently ignores the blood
+  compatibility map, notifying only exact-type donors (found while
+  writing the emergency e2e suite).** `emergency.service.ts` defines a
+  correct `BLOOD_COMPATIBILITY` map — `'O-NEGATIVE'` lists all eight
+  recipient groups, i.e. the universal donor — and `isBloodCompatible`
+  applies it. But the database query that loads candidate donors
+  prefilters with `donorProfile: { bloodType: emergency.bloodType,
+  rhFactor: emergency.rhFactor }`, an **exact** match. Since
+  `isBloodCompatible` is then applied to that already-exact set, it can
+  only ever return true, and the compatibility map is dead code in this
+  path. The effect is that activating an emergency notifies only donors
+  whose type matches exactly, silently excluding every universal and
+  cross-compatible donor — precisely the donors an emergency most needs.
+  The map's existence is strong evidence the intended behaviour is the
+  broader one. Not fixed here on purpose: widening who gets alerted in a
+  medical emergency is a product and clinical decision, not a test-
+  coverage change, and it also affects notification volume. Likely fix:
+  drop `bloodType`/`rhFactor` from the SQL prefilter (keeping
+  `donorStatus`/`verificationStatus`/`emailVerified`) and let
+  `isBloodCompatible` do the filtering it was written to do — but
+  confirm the intended clinical policy first. — Fixed (on the user's
+  explicit instruction to proceed, after the concern above was raised
+  and they confirmed): dropped `bloodType`/`rhFactor` from the SQL
+  prefilter, keeping every eligibility constraint
+  (`donorStatus: ACTIVE`, `verificationStatus: VERIFIED`,
+  `emailVerified`, active DONOR membership), so `isBloodCompatible` now
+  decides compatibility and the map finally does its job. First
+  confirmed the map is medically right before relying on it: it encodes
+  donor→recipient direction correctly for red cells (O− to all eight
+  groups; AB+ only to AB+; each Rh− group to its own and the matching
+  Rh+ group).
+  **A naive version of this fix would have introduced a worse bug**, so
+  the change has a second half. Ranking was purely nearest-first, and
+  the pool is capped at 50 donors. Widening the pool without touching
+  the ranking would let a nearby O-negative universal donor outrank an
+  exact-group donor for, say, an A-positive patient — spending the
+  scarcest and most broadly usable supply on a case that type-specific
+  blood already covers, and under the 50-donor cap potentially crowding
+  exact-group donors out of the alert entirely. Standard transfusion
+  practice is type-specific first with universal donors as the
+  fallback, so ranking now sorts on an exact-group tier first and
+  distance second. Distance ordering within a tier is unchanged.
+  Tests: five new unit tests, of which the two that actually pin the
+  fix are the one asserting the **query shape** (the `where` clause must
+  not carry `bloodType`/`rhFactor` while keeping the eligibility
+  constraints) and the one asserting a far exact-group donor outranks a
+  near universal donor. Verified they catch the defect by reverting the
+  service and re-running: exactly those two fail. Worth recording that
+  the third unit test ("matches an O-negative donor to an A-positive
+  emergency") passes against the buggy code too — the existing specs
+  mock `tx.user.findMany`, so a mocked unit test structurally *cannot*
+  exercise the SQL prefilter that was the bug. That is precisely why
+  this item was invisible until the e2e work, and why the real proof is
+  a new e2e test that creates a genuine O-negative donor and an
+  A-positive emergency against a real database: reverting the service
+  makes exactly that one test fail, while the incompatible-donor test
+  keeps passing, confirming the pool widened to compatible donors
+  rather than to everyone.
+  Verified: 626 API unit tests (up from 621), 79 e2e (up from 78) green
+  on a pristine migrate+seed database, plus typecheck 10/10, lint
+  10/10 repo-wide.
+  - Files: `apps/api/src/modules/emergency/emergency.service.ts`
+    (donor prefilter and ranking in `activateEmergency`),
+    `apps/api/src/modules/emergency/emergency.service.spec.ts`
+    (5 regression tests), `apps/api/test/emergency.e2e-spec.ts`
+    (cross-group matching against a real database).
+
+- [x] **P3-12. 16 POST routes are documented as returning 200 but
+  actually return 201 (found while writing the donation e2e suite).**
+  These are state-transition endpoints (`/confirm`, `/cancel`,
+  `/start`, `/complete`, `/join`, `/approve`, …) that carry
+  `@ApiResponse({ status: 200 })` but have no `@HttpCode`, so Nest
+  applies its POST default of 201. The published OpenAPI contract
+  therefore disagrees with the real response on every one of them,
+  which matters for any generated client that treats an unexpected
+  status as an error. Semantically 200 is the better answer for these
+  (no new resource is created at the request URI), so the likely fix is
+  adding `@HttpCode(HttpStatus.OK)` rather than editing the docs — but
+  that changes 16 response codes at once, which is a breaking API change
+  for existing consumers and needs an explicit decision. The e2e suites
+  assert the real behaviour (201) and cite this item where they do.
+  — Fixed (on the user's explicit go-ahead, after the breaking-change
+  concern above was put to them): **not** by blanket-applying
+  `@HttpCode(HttpStatus.OK)` to all 16, which would have been wrong.
+  Checked what each route actually does first, and the 16 split in two:
+  **12 mutate an existing resource** (`blockSlot`, appointment
+  `cancel`/`reschedule`/`confirm`/`complete`, donation
+  `start`/`complete`/`cancel`/`abort`, `verifyBloodType`, education
+  `complete`, `leaderboard-visibility`). Confirmed from the services
+  that each one calls `.update()` and creates nothing addressable —
+  `rescheduleAppointment`, for instance, updates the existing
+  appointment rather than making a new one. For these 200 is the
+  correct status, so they now carry `@HttpCode(HttpStatus.OK)` and
+  match the annotation they already had.
+  **4 genuinely create a resource** — education `POST /` (creates
+  content), education `:id/start` and campaigns/challenges `:id/join`,
+  each of which calls `.create()` for a new progress or participant
+  row. For those 201 was right all along and the *annotation* was
+  wrong, so the docs were corrected to 201 and the behaviour left
+  untouched. That reduces the breaking surface from 16 routes to 12,
+  and leaves each route semantically correct rather than merely
+  consistent.
+  The e2e suites earned their keep here: they asserted the old 201 on
+  the three affected routes they exercise (`appointments/:id/confirm`,
+  `donations/:id/start`, `donations/:id/complete`) and failed
+  immediately on the change, which is exactly the signal a real
+  consumer would have seen. Those assertions now expect 200. A repo-wide
+  re-scan confirms **zero** remaining routes where the declared status
+  and the real one disagree.
+  Verified: 626 API unit tests, 83 e2e on a pristine migrate+seed
+  database, typecheck 10/10, lint 10/10.
+  - Files: `appointment-slots.controller.ts` (1),
+    `appointments.controller.ts` (4), `campaigns.controller.ts` (1),
+    `challenges.controller.ts` (1), `donations.controller.ts` (4),
+    `donors.controller.ts` (1), `education.controller.ts` (3),
+    `gamification.controller.ts` (1).
+
+- [x] **P3-13. `ensureProfileExists` can lose a gamification profile
+  under concurrency (observed during the e2e runs).**
+  `xp.service.ts`'s `ensureProfileExists` does a
+  `gamificationProfile.upsert({ where: { userId }, … })`, which raced
+  during an e2e run and threw `Unique constraint failed on the fields:
+  (userId)` — two near-simultaneous `handleDonationCompleted` events
+  for the same user both found no row and both inserted. This was
+  observed, not theorised. Because the caller is a fire-and-forget
+  `@nestjs/event-emitter` handler the user's request still succeeds, so
+  the failure is invisible in the API response and the profile work is
+  simply lost. Likely fix: catch and ignore P2002 specifically (the row
+  exists, which is the desired end state), or serialise profile
+  creation. Worth checking whether other `upsert`-on-unique calls in
+  event handlers have the same exposure. — Fixed: first proved the
+  mechanism rather than assuming it. Prisma query logging shows the
+  `upsert` on this model compiles to three statements —
+  `SELECT ... WHERE userId = $1`, then a **plain** `INSERT` with no
+  `ON CONFLICT`, then a read-back — i.e. a textbook non-atomic
+  check-then-insert, matching the bare INSERT in the CI error exactly.
+  Then reproduced it deterministically against the real database:
+  concurrent callers for one fresh user raced on **6 of 6** trials
+  with P2002.
+  The fix is a single atomic statement instead of a retry:
+  `createMany({ data: [...], skipDuplicates: true })`, which emits
+  `INSERT ... ON CONFLICT DO NOTHING` (verified in the emitted SQL) and
+  is resolved by the database itself, so no caller can lose. Extracted
+  it as `ensureGamificationProfileRow` so the primitive lives in one
+  place rather than being duplicated.
+  **The check for sibling exposure found four more.** `xp.service`'s
+  `awardXp` and `createAdminAdjustment`, and `reputation.service`'s
+  `awardReputation` and `createAdminReputationAdjustment`, each upsert
+  the same profile inside a transaction. Those must *increment*, so
+  they cannot become ON CONFLICT DO NOTHING; instead each now calls the
+  atomic helper before opening its transaction, which guarantees the
+  row exists so the upsert inside always takes its update branch and
+  can never reach the racy insert path. Five racy call sites in total,
+  all closed.
+  Regression guard is a new e2e suite, since a unit test cannot
+  reproduce a database race — it needs real parallel connections.
+  **Tuning it honestly mattered**: the first version fired a single
+  burst of 32 and passed against the *unfixed* code, i.e. it was no
+  guard at all. Measuring showed the first burst after pool warm-up is
+  effectively serialised — 32×1 detected the bug in 0 of 3 runs, while
+  32×3 and 64×1 detected it in 3 of 3. The suite therefore repeats
+  64-way bursts over fresh users, and was confirmed to fail on the
+  reverted code in 3 of 3 runs and pass on the fixed code in 3 of 3.
+  (An earlier apparent "passes when reverted" result was a stale jest
+  cache; re-running with `--no-cache` is what exposed it.)
+  Verified: 626 API unit tests, 83 e2e (up from 79) on a pristine
+  migrate+seed database, typecheck 10/10, lint 10/10, no leftover rows.
+
+- [x] **P3-9 follow-up: the mobile render suite had a latent timing flake,
+  surfaced by a slow CI runner.** After the BloodChain rename, CI's unit
+  job failed on one mobile test — "community applies the app theme
+  rather than rendering unstyled" — while typecheck, e2e and build all
+  passed. Nothing to do with the rename: the render helper flushed React
+  Query with a single `setTimeout(0)` tick, which was enough locally but
+  not on a cold runner where the first screen mount pays ~9s of React
+  Native module-transform cost and the community screen has four queries
+  to resolve. The assertion therefore ran against `LoadingState` and saw
+  only its muted colours. — Fixed by waiting until the loading state is
+  actually gone (bounded loop) instead of assuming one tick suffices, so
+  it no longer depends on how fast the machine is. Proved it addresses
+  the real mechanism rather than hopefully papering over it: delaying the
+  mocked query resolution reproduces the exact CI failure under the old
+  single-tick behaviour and passes with the loop. The wait walks the node
+  tree rather than `JSON.stringify`-ing the render output, which hits
+  circular references on React context props.
+  - File: `apps/mobile/src/__tests__/community-screens.spec.tsx`.
+  - Files: `apps/api/src/modules/gamification/services/gamification-profile.util.ts`
+    (new — the atomic primitive and the reasoning),
+    `apps/api/src/modules/gamification/services/xp.service.ts`
+    (`ensureProfileExists` plus two transaction guards),
+    `apps/api/src/modules/gamification/services/reputation.service.ts`
+    (two transaction guards),
+    `apps/api/test/gamification-concurrency.e2e-spec.ts` (new).
+
+- [x] **P3-14. Four routes declared inline anonymous request bodies, so they
+  ran with no validation at all (found while working P3-7).** — Fixed.
+
+  NestJS's `ValidationPipe` skips validation when the resolved metatype is a
+  native type, and an inline object type such as `@Body() dto: { courierId: string }`
+  compiles to `Object`. The app's global `whitelist` / `forbidNonWhitelisted` /
+  `transform` policy therefore did not apply to these routes, and Swagger
+  documented no request body for any of them — while they type-checked and
+  linted perfectly cleanly.
+
+  Two of the four already had a correct DTO sitting unused in the module's own
+  `dto/` file (`AssignCourierDto`; P3-7's `AdminSuspendCourierDto` was the same
+  story), which is what makes this defect class easy to reintroduce: writing the
+  DTO is the part people remember.
+
+  **What the routes actually did with bad input** — measured by reverting the
+  fix and running the new suite against it, not inferred:
+
+  - `POST /organizations/:organizationId/laboratory-results` — the worst of the
+    four, since it accepts clinical data. A body with no `items` array **500**ed
+    on a `TypeError` from `dto.items.map`. A body with `items: []` returned
+    **201**: it created a real `LaboratoryResult` row, on the track that leads to
+    review and publication, carrying no measurements at all. A `flag` outside
+    the `ResultFlag` enum was cast straight through by the controller's
+    `flag: item.flag as any` into a Prisma enum column. A non-numeric
+    `numericValue` threw inside the `Prisma.Decimal` constructor — part-way
+    through the transaction that writes the result.
+  - `POST /laboratory-appointments` — three required ids (`laboratoryId`,
+    `testTypeId`, `slotId`), none validated; an empty body **500**ed after
+    reaching Prisma with `undefined` ids.
+  - `POST /organizations/:orgId/shipments/:shipmentId/assign` — a body with no
+    `courierId` **500**ed (I had guessed 404; the measurement said otherwise).
+  - `POST /me/laboratory-appointments/:appointmentId/cancel` — unknown
+    properties silently accepted.
+
+  All four now bind real DTO classes with proper decorators, including
+  `@ValidateNested({ each: true })` + `@Type()` on the lab-result items array so
+  the nested objects are validated too (an unknown property *inside* an item is
+  now rejected, which is asserted). Every one of the failure modes above is a
+  400 now. The `as any` cast on `flag` is gone — `@IsEnum(ResultFlag)` types it
+  properly.
+
+  **Adjacent data-loss bug fixed in the same pass.** `createResult` stored
+  `item.numericValue ? new Prisma.Decimal(...) : null`. On this path
+  `numericValue` is a plain number off the request body, so a legitimate result
+  of **0** — an undetectable marker, a zero cell count — was silently stored as
+  `null`, losing the measurement. Checked the two other `numericValue ?` sites
+  (`laboratory.service.ts:1224`, `ai-context-builder-enhanced.service.ts:225`)
+  and both are fine: they read a `Prisma.Decimal` from the database, and
+  `Decimal(0)` is a truthy object. Only the write path was wrong. Pinned by a
+  test that posts `numericValue: 0` and asserts the stored value is `0`, not
+  null.
+
+  **Guard against reintroduction.** Nothing in TypeScript or ESLint can see this
+  defect, which is how five routes accumulated it. Added
+  `src/common/controller-body-validation.spec.ts`, which reads every
+  `*.controller.ts` under `src/modules` as source and fails on any `@Body()`
+  bound to an inline object type (23 controllers, plus a test asserting the scan
+  isn't silently empty). Proved it works: reintroducing the inline body on the
+  shipments route fails it.
+
+  Verified: `pnpm typecheck` 10/10, `pnpm lint` 0 errors, 650 API unit tests
+  (626 + 24 from the new guard) + 16 mobile + package tests, `pnpm build` 4/4,
+  and 95 e2e across 8 suites against a freshly created, migrated and seeded
+  database. Reverting all four routes fails the new e2e suite 9/9 with exactly
+  the status codes documented above. Confirmed the run leaves no residue.
+  - Files: `apps/api/src/modules/laboratory/dto/laboratory.dto.ts` (new),
+    `apps/api/src/modules/laboratory/laboratory.controller.ts`,
+    `apps/api/src/modules/laboratory/laboratory.service.ts`,
+    `apps/api/src/modules/shipments/shipments.controller.ts`,
+    `apps/api/src/common/controller-body-validation.spec.ts` (new),
+    `apps/api/test/laboratory-validation.e2e-spec.ts` (new).
+
+- [x] **P3-15. Four navigation defects that every page was reproducing by hand
+  (found while adding the tests P3-2 asked for).** — Fixed.
+
+  Checked the nav data first, since a stale nav is the usual suspect: all three
+  apps' sidebar entries match the routes that actually exist, and the entries
+  marked "Soon" correspond to routes that genuinely don't. The problems were
+  entirely in how the pages wired the shell up.
+
+  - **Logout did nothing on most pages.** `onLogout` was passed as `() => {}`
+    at 16 of 27 call sites in hospital-web, 20 of 34 in blood-center-web, and
+    **30 of 32 in admin-web**. The button rendered and silently failed. Worst on
+    the loading and error branches of each page — exactly where a user waiting
+    on a slow request is most likely to give up and try to sign out — and worst
+    of all in the admin console, where a dead sign-out button on a shared
+    machine is a security problem, not a cosmetic one.
+  - **admin-web never highlighted the current page.** `activeItem` is an id the
+    caller has to hand-copy onto every render branch of every page; admin-web
+    passed it on none of its fifteen. A fifteen-entry sidebar with nothing
+    highlighted gives the user no idea where they are.
+  - **Every sidebar click was a full document load.** The shared `Sidebar`
+    renders plain `<a href>` so `packages/ui` can stay framework-agnostic
+    (it peer-depends on React alone), but nobody injected Next's `Link`, so each
+    navigation discarded the React tree and re-downloaded the bundle.
+  - **The notifications bell was a no-op at all 61 call sites** in the two
+    dashboards, and neither app has a notifications route to send it to.
+
+  Fixed by giving each app one `components/AppShell.tsx` that owns all of it:
+  it calls `usePathname()`, injects `next/link`, and handles logout itself
+  (clear tokens, then `router.push('/')`, which is where the sign-in form
+  lives). Pages now write `<AppShell title="…" userName={…}>` and pass no
+  navigation props at all — 35 pages migrated, 521 lines deleted against 399
+  added. The bell is simply not passed, so `Topbar` does not render it: a
+  control that does nothing is worse than no control, and it can come back the
+  day there is a route behind it.
+
+  `packages/ui`'s `Sidebar` gained two props to make that possible, both
+  optional so nothing else breaks: `linkComponent` (typed as a plain call
+  signature rather than `ComponentType`, because Next's `Link` is a
+  `ForwardRefExoticComponent` whose legacy `propTypes` static declares
+  `href: Url` and fails assignability on that alone), and `currentPath`, from
+  which the active entry is derived by longest matching `href`. The longest-match
+  rule matters: `/` is a prefix of every route, so a naive `startsWith` would
+  light up Dashboard on every page, and `/requests/new` has to select Requests
+  rather than Dashboard. Explicit `activeItem` still wins where a caller sets it.
+  Also marked disabled entries `aria-disabled` and named the nav landmark, which
+  is what makes them assertable.
+
+  **Tests** — 60 new, and the three components at the centre of this had none
+  before: `Sidebar` (14, including six on the matching rule alone), `Topbar` (7,
+  pinning that each control renders only when given a handler — the property the
+  bell fix depends on), `DashboardShell` (3, that it forwards the new props),
+  and `AppShell` (12 per app, 36 total, driving the real navigation data each app
+  ships). Proved each fix is caught: reverting logout to `() => {}` fails 1,
+  removing `linkComponent` fails 1, removing `currentPath` fails 2.
+
+  Verified: `pnpm typecheck` 10/10, `pnpm lint` 0 errors, `pnpm build` 4/4, and
+  825 unit tests across 8 packages (up from 765). The API is untouched; its 103
+  e2e still pass. One caveat worth recording: a first e2e run failed all 10
+  suites, which turned out to be the local Postgres having stopped, not the
+  change — restarted it and re-ran green rather than assuming.
+  - Files: `packages/ui/src/components/layout/Sidebar.tsx`,
+    `packages/ui/src/components/layout/DashboardShell.tsx`,
+    `packages/ui/src/components/layout/{Sidebar,Topbar,DashboardShell}.spec.tsx`
+    (new), `apps/{hospital-web,blood-center-web,admin-web}/components/AppShell.tsx`
+    and `AppShell.spec.tsx` (new), 35 page files across the three apps,
+    `apps/*/vitest.config.ts`, `apps/*/vitest.setup.ts` (new),
+    `apps/*/package.json` (RTL devDependencies).
+
+- [x] **P3-16. The rest of `packages/ui` was untested, and two overlay
+  components could not be closed from the keyboard.** — Fixed.
+
+  P3-2's first installment covered five of the library's simplest components
+  and listed the rest as outstanding. This closes that list for everything with
+  behaviour worth asserting: `DataTable` (7 tests), `Modal` (8), `Drawer` (6),
+  `SearchInput` (5) and `FilterBar` (2). Together with P3-15's layout tests the
+  package goes from 21 tests to 73.
+
+  Writing them turned up two real defects, both in the overlays:
+
+  - **Neither `Modal` nor `Drawer` closed on Escape.** The only ways out were
+    clicking the overlay or the X, so anyone not using a mouse was stuck inside
+    the dialog with no way to dismiss it. Both now listen for Escape while open,
+    and detach the listener on close and unmount — the unmount case has its own
+    test, since a leaked document-level handler firing into a closed dialog's
+    `onClose` is the usual way this gets written wrong.
+  - **Neither identified itself as a dialog.** No `role="dialog"`, no
+    `aria-modal`, and no association between the heading and the dialog, so a
+    screen reader announced them as anonymous divs. Both now carry the role, are
+    labelled by their title through `useId` when they have one, and fall back to
+    a generic accessible name when they do not. The backdrop is marked
+    `aria-hidden` so it is not announced as content.
+
+  Also gave `SearchInput`'s clear button an `aria-label` — it was an unlabelled
+  button next to the field.
+
+  `DataTable`'s cell fallback is `String(value ?? '-')`, which is correct but
+  easy to "simplify" into a truthiness check; there is a test asserting a
+  numeric `0` renders as `0` rather than a dash, next to one asserting `null`
+  does render as a dash. This is the same defect class as P2-20's `numericValue`
+  bug, where a truthiness check on a real zero silently discarded a lab
+  measurement.
+
+  Proved the fixes are caught: removing the Escape handler and the dialog role
+  fails 3 of Modal's 8 tests.
+
+  Verified: `pnpm typecheck` 10/10, `pnpm lint` 0 errors, `pnpm build` 4/4, 853
+  unit tests across 8 packages.
+  - Files: `packages/ui/src/components/overlay/{Modal,Drawer}.tsx`,
+    `packages/ui/src/components/form/SearchInput.tsx`, and new specs for
+    `data/DataTable`, `overlay/Modal`, `overlay/Drawer`, `form/SearchInput`,
+    `form/FilterBar`.
 
 ---
 
@@ -3161,6 +4279,102 @@ but someone with real registry access should run the actual build
 before trusting this in a deployment. CI pipeline
 (`.github/workflows`) is a separate, still-outstanding half of this
 item).~~ ✅ (partial)
-Next up: **P3-3**'s CI-pipeline half (`.github/workflows`), or the
-remainder of **P3-2** (Next.js app pages, more `packages/ui`
-components, mobile/Expo test setup).
+~~**P3-3 second installment** (CI-pipeline half — `.github/workflows/ci.yml`
+with 4 jobs: lint+typecheck, 621 unit tests, API e2e against a real
+`postgres:16-alpine` service container, and a full build. Unlike the
+Docker half this was **genuinely verified end-to-end on GitHub's own
+infrastructure**, across 2 real PRs and 5 real workflow runs — and that
+verification earned its keep, finding 6 real bugs that had been
+invisible because `app.e2e-spec.ts` had never once successfully run in
+this repo's history: two ESM-only packages breaking Jest's CJS
+transform (`uuid` → replaced with `crypto.randomUUID()`;
+`expo-server-sdk` → pnpm-aware `transformIgnorePatterns`), a
+non-callable supertest namespace import, every route 404ing because the
+e2e harness never ran `main.ts`'s bootstrap config (fixed by extracting
+a shared `configureApp()` into `src/bootstrap.ts`), the e2e job hanging
+6+ minutes on a runner (`--forceExit`), and finally `POST /auth/register`
+404ing in CI only — root-caused via a rigorous fresh-database local
+reproduction to the workflow running migrations but never seeding, so
+the `DONOR` role `register()` requires didn't exist. Final run: unit
+tests ✓, e2e 14/14 ✓, build ✓; lint+typecheck ✗ **on purpose**, failing
+only on `@bloodchain/mobile` — that's P3-9, a real pre-existing defect CI
+correctly surfaced, not a pipeline problem).~~ ✅
+~~**P3-9** (rewrote the 4 `className` screens onto the app's real design
+system — and found, reading the theme properly, that a literal
+Tailwind-to-StyleSheet translation would have been wrong: the app's
+theme is *dark* while every one of those classes was light-mode web CSS,
+so they were rebuilt against the same component library the other 27
+screens use. Stood up the mobile app's first-ever test infrastructure to
+verify it — jest-expo + react-test-renderer, 16 tests that actually
+mount all 4 screens — because type-checking can't prove "renders
+unstyled." Proved the tests catch the bug by stashing the fix and
+re-running: 10 of 16 failed on the old code, while all four "renders
+without crashing" tests still passed, exactly matching the defect's
+shape; the old campaigns screen's whole 26-node tree came back with
+`style: null` on every node. Repo-wide: typecheck 10/10, lint 10/10,
+637 tests passing, build 4/4 — the CI pipeline is now fully green).~~ ✅
+~~**E2E-1** (expanded e2e coverage from auth-only to the four core
+business flows — donations, the blood-request/shipment/delivery chain,
+emergency matching, and the inventory lifecycle. 64 new tests, 78
+total, each driving several actors with genuinely different roles
+against a real Postgres, and asserting refused transitions and RBAC
+boundaries as hard as the happy paths. It found a completely broken
+core endpoint on its first run: three Prisma queries in
+donations.service.ts passed both `include` and `select` for the same
+relation, which Prisma rejects, so check-in — the entry point of every
+donation — had always returned 500. The 5 donations unit tests missed
+it because they mock PrismaService. Also tightened teardown after
+catch-and-ignore cleanup was caught hiding two broken delete calls and
+leaving stale rows that made later runs fail for unrelated-looking
+reasons. Verified by running the whole suite twice, 78/78 both times,
+with the database confirmed clean and seeded data untouched).~~ ✅
+~~**P3-5 + P3-6** (docs reconciled with reality, and the product renamed to
+BloodChain. Deleted the two obsolete summary reports the user identified,
+which removed the "45+ passing tests" and "production-ready through 19
+phases" claims at the source. Checked every remaining claim against the
+code before rewriting: architecture.md and api.md said WebSocket gateways
+and domain events were unimplemented — both are real — but the same
+sentence claimed Redis pub/sub, which nothing connects to, so the rewrite
+documents the real event names *and* states the per-instance scaling
+limit the old wrong text had hidden. The rename went two layers deep —
+brand text plus the @donor/* npm scope across 63 files — because renaming
+only the brand would have left the same mismatch in a new place; the dev
+database name, seeded @donor.local emails and every RoleCode.DONOR
+identifier were deliberately left alone).~~ ✅
+~~**P3-12** (the OpenAPI status mismatch is gone, and deliberately not by
+blanket-setting every route to 200. Reading what each one actually does
+split the 16: twelve mutate an existing resource and now return 200 via
+@HttpCode, while four genuinely create a row — education create/start,
+campaign and challenge join — so their *annotation* was the wrong half
+and 201 stays. That keeps every route semantically right and cuts the
+breaking surface from 16 routes to 12. The e2e suites caught the change
+on the three routes they exercise, exactly as a real consumer would;
+a repo-wide re-scan shows no declared/actual mismatches left).~~ ✅
+~~**P3-13** (gamification profile creation is no longer racy. Proved the
+mechanism from Prisma's emitted SQL — upsert compiles to SELECT then a
+plain INSERT with no ON CONFLICT — and reproduced the P2002 on 6 of 6
+trials against a real database. Replaced it with a single atomic
+INSERT ... ON CONFLICT DO NOTHING, extracted as a shared primitive.
+Checking the siblings found four more racy call sites: the four
+transactional upserts that increment XP and reputation now call the
+atomic helper first, so their upsert always takes the update branch.
+The regression guard is an e2e suite, since a unit test cannot
+reproduce a database race; its first version silently passed against
+the unfixed code, so it was measured and retuned until it failed on
+reverted code in 3 of 3 runs).~~ ✅
+~~**P3-11** (emergency matching now reaches compatible donors of other
+blood groups, so a universal O-negative donor is finally alerted for an
+A-positive patient instead of being silently excluded. Confirmed the
+compatibility map was medically correct before relying on it, then
+added the half a naive fix would have missed: ranking sorts exact-group
+donors ahead of merely-compatible ones, because with a 50-donor cap and
+distance-only ranking a nearby universal donor would otherwise crowd out
+exact-group donors and spend the scarcest supply on a case
+type-specific blood already covers. Proved by reverting the service:
+the two unit tests that pin the query shape and the ranking tier fail,
+as does the new e2e test — while the incompatible-donor test keeps
+passing, so the pool widened to compatible donors, not to everyone).~~ ✅
+Next up: the remainder of **P3-2** (Next.js app pages, more
+`packages/ui` components — the mobile/Expo test setup half is now done
+as part of P3-9), or **P3-4** through **P3-7** (env docs, stale docs,
+dead admin DTOs), or **P3-10**.

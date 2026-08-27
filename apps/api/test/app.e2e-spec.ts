@@ -1,7 +1,10 @@
 import { INestApplication } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
-import * as request from 'supertest';
+import request from 'supertest';
 import { AppModule } from './../src/app.module';
+import { configureApp } from './../src/bootstrap';
+import { PrismaService } from './../src/database/prisma.service';
 
 describe('AppController (e2e)', () => {
   let app: INestApplication;
@@ -12,10 +15,13 @@ describe('AppController (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication({ logger: ['error'] });
+    configureApp(app, app.get(ConfigService));
     await app.init();
   });
 
   afterAll(async () => {
+    const prisma = app.get(PrismaService);
+    await prisma.user.deleteMany({ where: { email: { contains: '@donor.local', startsWith: 'test.' } } });
     await app.close();
   });
 
@@ -55,18 +61,37 @@ describe('AppController (e2e)', () => {
       return request(app.getHttpServer()).post('/api/v1/auth/register').send(testUser).expect(400);
     });
 
-    it('/api/v1/auth/login (POST) - returns tokens for valid credentials', () => {
-      return request(app.getHttpServer())
+    it('activates the account (simulates clicking the email verification link, so the login tests below have a real ACTIVE user to log into)', async () => {
+      const prisma = app.get(PrismaService);
+      const updated = await prisma.user.update({
+        where: { email: testUser.email },
+        data: { emailVerified: true, status: 'ACTIVE' },
+      });
+      expect(updated.status).toBe('ACTIVE');
+    });
+
+    // Login is rate-limited (5 requests/60s in this app's real ThrottlerModule
+    // config) — the tests below deliberately share one successful login's
+    // tokens rather than each calling /auth/login independently, both to
+    // avoid tripping that real limit and because it's the more realistic way
+    // a client actually behaves (log in once, reuse the session).
+    let accessToken: string;
+    let refreshToken: string;
+
+    it('/api/v1/auth/login (POST) - returns tokens for valid credentials', async () => {
+      const res = await request(app.getHttpServer())
         .post('/api/v1/auth/login')
         .send({ email: testUser.email, password: testUser.password })
-        .expect(200)
-        .expect((res) => {
-          expect(res.body.data).toBeDefined();
-          expect(res.body.data.accessToken).toBeDefined();
-          expect(res.body.data.refreshToken).toBeDefined();
-          expect(res.body.data.user).toBeDefined();
-          expect(res.body.data.user.email).toBe(testUser.email);
-        });
+        .expect(200);
+
+      expect(res.body.data).toBeDefined();
+      expect(res.body.data.accessToken).toBeDefined();
+      expect(res.body.data.refreshToken).toBeDefined();
+      expect(res.body.data.user).toBeDefined();
+      expect(res.body.data.user.email).toBe(testUser.email);
+
+      accessToken = res.body.data.accessToken;
+      refreshToken = res.body.data.refreshToken;
     });
 
     it('/api/v1/auth/login (POST) - rejects wrong password', () => {
@@ -90,13 +115,7 @@ describe('AppController (e2e)', () => {
       return request(app.getHttpServer()).get('/api/v1/auth/me').expect(401);
     });
 
-    it('/api/v1/auth/me (GET) - returns user data with valid token', async () => {
-      const loginRes = await request(app.getHttpServer())
-        .post('/api/v1/auth/login')
-        .send({ email: testUser.email, password: testUser.password });
-
-      const { accessToken } = loginRes.body.data;
-
+    it('/api/v1/auth/me (GET) - returns user data with valid token', () => {
       return request(app.getHttpServer())
         .get('/api/v1/auth/me')
         .set('Authorization', `Bearer ${accessToken}`)
@@ -112,21 +131,19 @@ describe('AppController (e2e)', () => {
     });
 
     it('/api/v1/auth/refresh (POST) - rotates tokens', async () => {
-      const loginRes = await request(app.getHttpServer())
-        .post('/api/v1/auth/login')
-        .send({ email: testUser.email, password: testUser.password });
-
-      const { refreshToken } = loginRes.body.data;
-
-      return request(app.getHttpServer())
+      const res = await request(app.getHttpServer())
         .post('/api/v1/auth/refresh')
         .send({ refreshToken })
-        .expect(200)
-        .expect((res) => {
-          expect(res.body.data).toBeDefined();
-          expect(res.body.data.accessToken).toBeDefined();
-          expect(res.body.data.refreshToken).toBeDefined();
-        });
+        .expect(200);
+
+      expect(res.body.data).toBeDefined();
+      expect(res.body.data.accessToken).toBeDefined();
+      expect(res.body.data.refreshToken).toBeDefined();
+
+      // The old refreshToken is now revoked; carry the rotated pair forward
+      // for the logout test below.
+      accessToken = res.body.data.accessToken;
+      refreshToken = res.body.data.refreshToken;
     });
 
     it('/api/v1/auth/refresh (POST) - rejects expired token', () => {
@@ -136,16 +153,10 @@ describe('AppController (e2e)', () => {
         .expect(401);
     });
 
-    it('/api/v1/auth/logout (POST) - revokes session', async () => {
-      const loginRes = await request(app.getHttpServer())
-        .post('/api/v1/auth/login')
-        .send({ email: testUser.email, password: testUser.password });
-
-      const { refreshToken } = loginRes.body.data;
-
+    it('/api/v1/auth/logout (POST) - revokes session', () => {
       return request(app.getHttpServer())
         .post('/api/v1/auth/logout')
-        .set('Authorization', `Bearer ${loginRes.body.data.accessToken}`)
+        .set('Authorization', `Bearer ${accessToken}`)
         .send({ refreshToken })
         .expect(200);
     });

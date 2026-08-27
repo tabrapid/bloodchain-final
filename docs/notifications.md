@@ -4,7 +4,7 @@ This document describes the notification and communication system implemented in
 
 ## Overview
 
-The DONOR platform includes a centralized, production-quality notification system that unifies:
+The BloodChain includes a centralized, production-quality notification system that unifies:
 - Emergency SOS notifications
 - Blood donation notifications
 - Appointment reminders

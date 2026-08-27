@@ -1,18 +1,15 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
-const API_BASE_PATH = '/api/v1';
+import {
+  ApiRequestError,
+  apiUrl,
+  clearTokens,
+  getAuthToken,
+  getRefreshToken,
+  refreshAccessToken,
+  setAuthToken,
+  setRefreshToken,
+} from './api-client';
 
-interface ApiError {
-  statusCode: number;
-  code: string;
-  message: string;
-  details?: unknown;
-}
-
-export class ApiRequestError extends Error {
-  constructor(public readonly error: ApiError) {
-    super(error.message);
-  }
-}
+export { ApiRequestError };
 
 export interface AuthUser {
   id: string;
@@ -55,56 +52,8 @@ export interface MeResponse {
   permissions: string[];
 }
 
-function getAuthToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem('donor_access_token');
-}
-
-function setAuthToken(token: string): void {
-  if (typeof window === 'undefined') return;
-  localStorage.setItem('donor_access_token', token);
-}
-
-function getRefreshToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem('donor_refresh_token');
-}
-
-function setRefreshToken(token: string): void {
-  if (typeof window === 'undefined') return;
-  localStorage.setItem('donor_refresh_token', token);
-}
-
-function clearTokens(): void {
-  if (typeof window === 'undefined') return;
-  localStorage.removeItem('donor_access_token');
-  localStorage.removeItem('donor_refresh_token');
-}
-
-async function refreshAccessToken(): Promise<string | null> {
-  const refreshToken = getRefreshToken();
-  if (!refreshToken) return null;
-
-  try {
-    const response = await fetch(`${API_BASE_URL}${API_BASE_PATH}/auth/refresh`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refreshToken }),
-    });
-
-    if (!response.ok) return null;
-
-    const json = (await response.json()) as { data: { accessToken: string; refreshToken: string } };
-    setAuthToken(json.data.accessToken);
-    setRefreshToken(json.data.refreshToken);
-    return json.data.accessToken;
-  } catch {
-    return null;
-  }
-}
-
 export async function login(email: string, password: string): Promise<AuthResponse> {
-  const response = await fetch(`${API_BASE_URL}${API_BASE_PATH}/auth/login`, {
+  const response = await fetch(apiUrl('/auth/login'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
@@ -135,7 +84,7 @@ export async function logout(): Promise<void> {
 
   if (refreshToken) {
     try {
-      await fetch(`${API_BASE_URL}${API_BASE_PATH}/auth/logout`, {
+      await fetch(apiUrl('/auth/logout'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -156,14 +105,14 @@ export async function me(): Promise<MeResponse> {
   if (!token)
     throw new ApiRequestError({ statusCode: 401, code: 'NO_TOKEN', message: 'Not authenticated' });
 
-  let response = await fetch(`${API_BASE_URL}${API_BASE_PATH}/auth/me`, {
+  let response = await fetch(apiUrl('/auth/me'), {
     headers: { Authorization: `Bearer ${token}` },
   });
 
   if (response.status === 401) {
     const newToken = await refreshAccessToken();
     if (newToken) {
-      response = await fetch(`${API_BASE_URL}${API_BASE_PATH}/auth/me`, {
+      response = await fetch(apiUrl('/auth/me'), {
         headers: { Authorization: `Bearer ${newToken}` },
       });
     } else {
@@ -213,7 +162,7 @@ export interface RegisterOrganizationInput {
 export async function registerOrganization(
   input: RegisterOrganizationInput,
 ): Promise<{ user: { id: string; email: string }; organization: { id: string; name: string; status: string } }> {
-  const response = await fetch(`${API_BASE_URL}${API_BASE_PATH}/auth/register-organization`, {
+  const response = await fetch(apiUrl('/auth/register-organization'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(input),

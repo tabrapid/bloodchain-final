@@ -1,13 +1,20 @@
-import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, UseGuards, UseInterceptors } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { RoleCode } from '@prisma/client';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { LaboratoryService } from './laboratory.service';
+import {
+  BookLaboratoryAppointmentDto,
+  CancelLaboratoryAppointmentDto,
+  CreateLaboratoryResultDto,
+} from './dto/laboratory.dto';
+import { WrapResponseInterceptor } from '../../common/interceptors/wrap-response.interceptor';
 
 @ApiTags('Laboratory')
 @Controller()
+@UseInterceptors(WrapResponseInterceptor)
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class LaboratoryController {
@@ -56,12 +63,7 @@ export class LaboratoryController {
   @Post('laboratory-appointments')
   @Roles(RoleCode.DONOR, RoleCode.SUPER_ADMIN)
   bookAppointment(
-    @Body() dto: {
-      laboratoryId: string;
-      testTypeId: string;
-      slotId: string;
-      notes?: string;
-    },
+    @Body() dto: BookLaboratoryAppointmentDto,
     @CurrentUser('sub') userId: string,
   ) {
     return this.laboratory.bookLaboratoryAppointment(
@@ -100,7 +102,7 @@ export class LaboratoryController {
   @Roles(RoleCode.DONOR, RoleCode.SUPER_ADMIN)
   cancelAppointment(
     @Param('appointmentId') appointmentId: string,
-    @Body() body: { reason?: string },
+    @Body() body: CancelLaboratoryAppointmentDto,
     @CurrentUser('sub') userId: string,
   ) {
     return this.laboratory.cancelAppointment(userId, appointmentId, body.reason);
@@ -259,30 +261,17 @@ export class LaboratoryController {
   )
   createResult(
     @Param('organizationId') organizationId: string,
-    @Body() dto: {
-      appointmentId: string;
-      items: Array<{
-        parameterId: string;
-        value: string;
-        numericValue?: number;
-        unit?: string;
-        flag?: string;
-        notes?: string;
-      }>;
-      testTypeId: string;
-    },
+    @Body() dto: CreateLaboratoryResultDto,
     @CurrentUser('sub') userId: string,
   ) {
+    // No `as any` on `flag` any more: the DTO validates it against the real
+    // ResultFlag enum, so an arbitrary string is a 400 here rather than a
+    // Prisma enum error surfacing as a 500 mid-transaction.
     return this.laboratory.createResult(
       organizationId,
       userId,
       dto.appointmentId,
-      {
-        items: dto.items.map((item) => ({
-          ...item,
-          flag: item.flag as any,
-        })),
-      },
+      { items: dto.items },
       dto.testTypeId,
     );
   }

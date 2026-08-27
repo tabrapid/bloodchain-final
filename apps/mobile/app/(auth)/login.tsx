@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { TextInput, View } from 'react-native';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { loginSchema, type LoginInput } from '@donor/validation';
+import { loginSchema, type LoginInput } from '@bloodchain/validation';
 import { AppButton, AppText, Screen } from '../../src/components';
 import { useLogin, getAuthErrorMessage } from '../../src/hooks/useAuth';
 import { useAuthStore } from '../../src/stores/auth.store';

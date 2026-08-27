@@ -2,12 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { Bell, AlertTriangle, CheckCircle, X, LayoutDashboard, Users, Building2, Ship, Package, Droplet, TestTube, FileText, Activity, Settings } from 'lucide-react';
-import { DashboardShell, LoadingState } from '@donor/ui/components';
+import { LoadingState } from '@bloodchain/ui/components';
 import { listAlerts, acknowledgeAlert } from '@lib/api';
 import { me, isAuthenticated } from '@lib/auth';
 import { StatusBadgeWrapper } from '@lib/status';
-
-import { navItems } from '@lib/navigation';
+import { AppShell } from '../../components/AppShell';
 
 export default function AlertsPage() {
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -62,14 +61,14 @@ export default function AlertsPage() {
 
   if (isLoading) {
     return (
-      <DashboardShell title="Alert Center" sidebarItems={navItems} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined} onLogout={() => {}}>
+      <AppShell title="Alert Center" userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
         <LoadingState />
-      </DashboardShell>
+      </AppShell>
     );
   }
 
   return (
-    <DashboardShell title="Alert Center" sidebarItems={navItems} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined} onLogout={() => {}}>
+    <AppShell title="Alert Center" userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
       <div className="p-6">
         <div className="mb-6">
           <h1 className="text-2xl font-semibold text-gray-900">Alert Center</h1>
@@ -157,6 +156,6 @@ export default function AlertsPage() {
           </div>
         </div>
       </div>
-    </DashboardShell>
+    </AppShell>
   );
 }

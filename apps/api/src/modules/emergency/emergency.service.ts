@@ -311,9 +311,14 @@ export class EmergencyService {
               status: 'ACTIVE',
             },
           },
+          // Deliberately NOT filtered to the emergency's exact blood type here.
+          // Compatibility is decided below by isBloodCompatible against
+          // BLOOD_COMPATIBILITY, which is what lets a compatible donor of a
+          // different group (an O-negative universal donor, say) be reached at
+          // all. Narrowing to an exact type at this level would make that map
+          // unreachable and silently exclude exactly the donors an emergency
+          // most needs.
           donorProfile: {
-            bloodType: emergency.bloodType,
-            rhFactor: emergency.rhFactor,
             donorStatus: DonorStatus.ACTIVE,
             verificationStatus: 'VERIFIED',
           },
@@ -355,10 +360,18 @@ export class EmergencyService {
         );
       });
 
-      // Rank by real distance when the emergency has a location and a donor
-      // has consented to sharing theirs; donors without a usable distance
-      // sort last (still eligible - blood-type compatibility matters more
+      // Rank exact blood-group matches ahead of merely compatible ones, then by
+      // real distance within each tier. Donors without a usable distance sort
+      // last inside their tier (still eligible - compatibility matters more
       // than an unknown distance) rather than being dropped from the pool.
+      //
+      // The tier matters clinically. Now that compatible donors of other groups
+      // are reachable, ranking on distance alone would let a nearby O-negative
+      // universal donor displace an exact-group donor for, say, an A-positive
+      // patient - spending the scarcest, most broadly usable supply on a case
+      // that type-specific blood already covers. Standard practice is
+      // type-specific first, universal donors as the fallback, and the 50-donor
+      // cap below makes that ordering decide who actually gets alerted.
       const emergencyLat = emergency.latitude !== null ? Number(emergency.latitude) : null;
       const emergencyLon = emergency.longitude !== null ? Number(emergency.longitude) : null;
 
@@ -377,9 +390,13 @@ export class EmergencyService {
                   Number(donor.donorProfile!.longitude),
                 )
               : null;
-          return { donor, distanceKm };
+          const isExactGroup =
+            donor.donorProfile!.bloodType === emergency.bloodType &&
+            donor.donorProfile!.rhFactor === emergency.rhFactor;
+          return { donor, distanceKm, isExactGroup };
         })
         .sort((a, b) => {
+          if (a.isExactGroup !== b.isExactGroup) return a.isExactGroup ? -1 : 1;
           if (a.distanceKm === null && b.distanceKm === null) return 0;
           if (a.distanceKm === null) return 1;
           if (b.distanceKm === null) return -1;

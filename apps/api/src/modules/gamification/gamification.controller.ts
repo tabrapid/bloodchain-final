@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Query, Body, UseGuards, Request } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Post, Query, Request, UseGuards, UseInterceptors } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse, ApiQuery } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { GamificationService } from './gamification.service';
@@ -16,11 +16,13 @@ import {
   LevelProgressDto,
   UpdateLeaderboardVisibilityDto,
 } from './dto/gamification.dto';
+import { WrapResponseInterceptor } from '../../common/interceptors/wrap-response.interceptor';
 
 @ApiTags('Gamification')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
 @Controller()
+@UseInterceptors(WrapResponseInterceptor)
 export class GamificationController {
   constructor(
     private readonly gamificationService: GamificationService,
@@ -79,6 +81,7 @@ export class GamificationController {
   }
 
   @Post('me/gamification/leaderboard-visibility')
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Update leaderboard visibility setting' })
   @ApiResponse({ status: 200, description: 'Visibility updated' })
   async updateLeaderboardVisibility(
@@ -94,6 +97,7 @@ export class GamificationController {
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
 @Controller('leaderboard')
+@UseInterceptors(WrapResponseInterceptor)
 export class LeaderboardController {
   constructor(private readonly leaderboardService: LeaderboardService) {}
 

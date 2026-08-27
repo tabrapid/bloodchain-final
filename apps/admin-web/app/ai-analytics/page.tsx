@@ -2,12 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { Brain, TrendingUp, TrendingDown, CheckCircle, XCircle, AlertTriangle, BarChart3, Clock, MessageSquare, ThumbsUp, ThumbsDown, Flag, RefreshCw, LayoutDashboard, Users, Building2, Ship, Package, Droplet, TestTube, Bell, FileText, Activity, Settings } from 'lucide-react';
-import { DashboardShell, LoadingState } from '@donor/ui/components';
+import { LoadingState } from '@bloodchain/ui/components';
 import { isAuthenticated, me } from '@lib/auth';
 import { getAIPatformAnalytics, getAIInsightStats } from '@lib/ai-api';
 import { StatusBadgeWrapper } from '@lib/status';
-
-import { navItems } from '@lib/navigation';
+import { AppShell } from '../../components/AppShell';
 
 interface AIAnalytics {
   totalRequests: number;
@@ -87,24 +86,24 @@ export default function AIAnalyticsPage() {
 
   if (isLoading) {
     return (
-      <DashboardShell title="AI Analytics" sidebarItems={navItems} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined} onLogout={() => {}}>
+      <AppShell title="AI Analytics" userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
         <LoadingState />
-      </DashboardShell>
+      </AppShell>
     );
   }
 
   if (!analytics || !insightStats) {
     return (
-      <DashboardShell title="AI Analytics" sidebarItems={navItems} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined} onLogout={() => {}}>
+      <AppShell title="AI Analytics" userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
         <div className="p-6">
           <p className="text-gray-500">AI analytics data not available.</p>
         </div>
-      </DashboardShell>
+      </AppShell>
     );
   }
 
   return (
-    <DashboardShell title="AI Analytics" sidebarItems={navItems} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined} onLogout={() => {}}>
+    <AppShell title="AI Analytics" userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
       <div className="p-6">
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -300,6 +299,6 @@ export default function AIAnalyticsPage() {
           </div>
         </div>
       </div>
-    </DashboardShell>
+    </AppShell>
   );
 }

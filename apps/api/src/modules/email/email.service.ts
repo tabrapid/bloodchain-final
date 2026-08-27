@@ -20,7 +20,7 @@ export class EmailService implements OnModuleInit {
   private readonly logger = new Logger(EmailService.name);
   private transporter!: nodemailer.Transporter;
   private isConfigured = false;
-  private fromAddress = 'DONOR <no-reply@donor.local>';
+  private fromAddress = 'BloodChain <no-reply@donor.local>';
 
   constructor(private readonly config: ConfigService) {}
 
