@@ -260,13 +260,23 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   This is the third Docker-adjacent gap this session (after P3-4's
   `.env.example` rejecting its own template, and Bug 1 above) that no
   amount of `typecheck`/`lint`/`test`/`build` could have caught, because
-  none of them touch the Docker path. The reproduction now goes further
-  than a shape review ever could — a real `pnpm install` plus a real `nest
-  build` plus a real boot of the resulting artifact — but it still is not
-  `docker build` itself, and the user's confirmation of a clean
-  `docker compose up --build` was still pending when this entry was
-  written. Standing caveat: nothing about Docker in this repo should be
-  assumed clean until `docker compose up --build` has actually completed.
+  none of them touch the Docker path. The reproduction went further than a
+  shape review ever could — a real `pnpm install` plus a real `nest build`
+  plus a real boot of the resulting artifact — but it still was not
+  `docker build` itself.
+
+  **Confirmed by the user, on their own machine, immediately after this
+  fix:** `docker compose build --no-cache api` completed clean end to end —
+  832 packages installed, Prisma client generated, `nest build` with zero
+  errors, all 8 runtime `COPY`/`RUN` steps, image exported as
+  `bloodchain-api:latest`. (An earlier attempt on the same machine failed
+  with a bare `exit code: 1` and no visible error text; likely a transient
+  network drop mid-download given how slow that connection's `apt-get` and
+  `pnpm install` both ran — `--no-cache` on retry succeeded outright, which
+  is consistent with a flake rather than a repo bug.) This is the first
+  confirmed real `docker build` in this repository's history — every
+  earlier "verified" claim about Docker was necessarily about the
+  Dockerfile's shape, since this sandbox has no Docker Hub egress.
   - Files: `apps/api/Dockerfile`.
 
 ## 🟠 P1 — Major gaps (feature exists but disconnected, or missing entirely)
