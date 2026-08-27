@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Building2, CheckCircle } from 'lucide-react';
-import { DashboardShell } from '@donor/ui/components';
+import { DashboardShell } from '@bloodchain/ui/components';
 import { registerOrganization, ApiRequestError } from '../../lib/auth';
 import { sidebarItems } from '../../lib/navigation';
 
@@ -65,7 +65,7 @@ export default function RegisterBloodCenterPage() {
           </h2>
           <p className="mb-6 max-w-md text-donor-muted">
             Check <strong>{adminEmail}</strong> to verify your email address. Once verified, your
-            blood center account will be reviewed by a DONOR platform admin — you&apos;ll be able
+            blood center account will be reviewed by a BloodChain admin — you&apos;ll be able
             to sign in as soon as it&apos;s approved.
           </p>
           <button
@@ -97,7 +97,7 @@ export default function RegisterBloodCenterPage() {
           Register your blood center
         </h2>
         <p className="mb-6 text-sm text-donor-muted">
-          Create an administrator account for your blood center. A DONOR platform admin will
+          Create an administrator account for your blood center. A BloodChain admin will
           review and approve your organization before you can start using the dashboard.
         </p>
 

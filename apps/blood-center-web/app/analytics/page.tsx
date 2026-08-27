@@ -22,7 +22,7 @@ import {
   EmptyState,
   FilterBar,
   StatCard,
-} from '@donor/ui/components';
+} from '@bloodchain/ui/components';
 import { logout as logoutApi, me, isAuthenticated, MeResponse } from '../../lib/auth';
 import {
   DateRangeType,

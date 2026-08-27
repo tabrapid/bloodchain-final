@@ -58,7 +58,7 @@ export async function tokenFor(app: INestApplication, email: string): Promise<st
   if (!user) {
     throw new Error(
       `Seeded user ${email} not found. These suites run against a seeded database — ` +
-        `run \`pnpm --filter @donor/api prisma:seed\` first.`,
+        `run \`pnpm --filter @bloodchain/api prisma:seed\` first.`,
     );
   }
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { DashboardShell, StatCard, LoadingState } from '@donor/ui/components';
+import { DashboardShell, StatCard, LoadingState } from '@bloodchain/ui/components';
 import { listOrganizations, verifyOrganization, rejectOrganization, suspendOrganization, restoreOrganization, type Organization } from '@lib/api';
 import { me, isAuthenticated } from '@lib/auth';
 import { StatusBadgeWrapper } from '@lib/status';

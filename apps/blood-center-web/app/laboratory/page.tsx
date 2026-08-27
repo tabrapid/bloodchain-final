@@ -26,7 +26,7 @@ import {
   Modal,
   StatCard,
   StatusBadge,
-} from '@donor/ui/components';
+} from '@bloodchain/ui/components';
 import {
   login,
   logout as logoutApi,

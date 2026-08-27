@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Search, Filter, User, Mail, Phone, Calendar, Shield, ChevronRight, X, LayoutDashboard, Users, Building2, Ship, Package, Droplet, AlertTriangle, TestTube, Bell, FileText, Activity, Settings } from 'lucide-react';
-import { DashboardShell, StatCard, LoadingState, EmptyState } from '@donor/ui/components';
+import { DashboardShell, StatCard, LoadingState, EmptyState } from '@bloodchain/ui/components';
 import { listUsers, suspendUser, restoreUser, listRoles, updateMembershipRole, type User as UserType, type Role } from '@lib/api';
 import { me, isAuthenticated } from '@lib/auth';
 import { StatusBadgeWrapper } from '@lib/status';

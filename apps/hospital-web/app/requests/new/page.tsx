@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AlertCircle, ArrowLeft, Droplet, Plus, Trash2 } from 'lucide-react';
-import { DashboardShell } from '@donor/ui/components';
+import { DashboardShell } from '@bloodchain/ui/components';
 import { logout as logoutApi, me, isAuthenticated, MeResponse } from '../../../lib/auth';
 import { createBloodRequest } from '../../../lib/shipments';
 import { sidebarItems } from '../../../lib/navigation';

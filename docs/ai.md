@@ -2,7 +2,7 @@
 
 ## Overview
 
-The DONOR platform includes a production-grade AI Health Intelligence system that provides donors with informational insights about their health data. The AI helps donors understand blood test results, trends, donation patterns, and prepares questions for healthcare professionals.
+The BloodChain includes a production-grade AI Health Intelligence system that provides donors with informational insights about their health data. The AI helps donors understand blood test results, trends, donation patterns, and prepares questions for healthcare professionals.
 
 **Important:** The AI is an **INFORMATIONAL ASSISTANT ONLY**. It does not diagnose, prescribe, or replace healthcare professionals.
 

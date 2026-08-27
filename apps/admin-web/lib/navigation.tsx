@@ -15,7 +15,7 @@ import {
   TestTube,
   Users,
 } from 'lucide-react';
-import type { SidebarItem } from '@donor/ui/components';
+import type { SidebarItem } from '@bloodchain/ui/components';
 
 export const navItems: SidebarItem[] = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, href: '/' },

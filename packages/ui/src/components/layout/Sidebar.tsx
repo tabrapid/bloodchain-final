@@ -36,7 +36,7 @@ export function Sidebar({
         <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#D85360]/15 text-[#D85360]">
           <Activity size={18} />
         </span>
-        <span className="font-semibold tracking-wider text-[#F2F5F7]">DONOR</span>
+        <span className="font-semibold tracking-wider text-[#F2F5F7]">BloodChain</span>
       </div>
 
       <nav className="flex flex-1 flex-col gap-1">

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { DashboardShell, LoadingState } from '@donor/ui/components';
+import { DashboardShell, LoadingState } from '@bloodchain/ui/components';
 import { me, isAuthenticated } from '@lib/auth';
 import {
   getPlatformSettings,

@@ -1,5 +1,5 @@
 {
-  "name": "@donor/admin-web",
+  "name": "@bloodchain/admin-web",
   "private": true,
   "version": "0.1.0",
   "scripts": {
@@ -10,10 +10,10 @@
     "test": "echo 'Admin web tests scheduled with the first feature release'"
   },
   "dependencies": {
-    "@donor/config": "workspace:*",
-    "@donor/types": "workspace:*",
-    "@donor/ui": "workspace:*",
-    "@donor/utils": "workspace:*",
+    "@bloodchain/config": "workspace:*",
+    "@bloodchain/types": "workspace:*",
+    "@bloodchain/ui": "workspace:*",
+    "@bloodchain/utils": "workspace:*",
     "lucide-react": "^0.468.0",
     "next": "^14.2.21",
     "react": "^18.3.1",

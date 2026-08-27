@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Brain, TrendingUp, TrendingDown, CheckCircle, XCircle, AlertTriangle, BarChart3, Clock, MessageSquare, ThumbsUp, ThumbsDown, Flag, RefreshCw, LayoutDashboard, Users, Building2, Ship, Package, Droplet, TestTube, Bell, FileText, Activity, Settings } from 'lucide-react';
-import { DashboardShell, LoadingState } from '@donor/ui/components';
+import { DashboardShell, LoadingState } from '@bloodchain/ui/components';
 import { isAuthenticated, me } from '@lib/auth';
 import { getAIPatformAnalytics, getAIInsightStats } from '@lib/ai-api';
 import { StatusBadgeWrapper } from '@lib/status';

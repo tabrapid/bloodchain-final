@@ -1,6 +1,6 @@
 # API
 
-The DONOR API is a REST API built with NestJS. All endpoints are prefixed with `/api/v1`.
+The BloodChain API is a REST API built with NestJS. All endpoints are prefixed with `/api/v1`.
 
 ## Documentation
 
@@ -75,6 +75,22 @@ List endpoints accept `?page=1&limit=20`. `limit` is capped at 100.
 - `RATE_LIMITED`
 - `REQUEST_FAILED`
 
-## Real-time preparation
+## Real-time
 
-WebSocket gateways and domain events are not implemented in Phase 1. Planned event names include `SOS_CREATED`, `DONOR_LOCATION_UPDATED`, `DONATION_COMPLETED`, `SHIPMENT_UPDATED`, and `INVENTORY_UPDATED`.
+Two Socket.IO gateways are implemented. Both require a JWT on connection and
+scope every broadcast to a room, so a client only receives events for records it
+is authorised to see.
+
+`/emergency` — server emits `connected`, `error`, `timeout`, plus
+`donor_location` and `response_status_changed` to the hospital room.
+
+`/shipments` — server emits `connected`, `error`, `timeout`, `shipment_state`,
+and broadcasts `courier_location`, `shipment_status_changed`,
+`shipment_updated`, `eta_updated` and `delivery_confirmed` to the shipment room.
+
+Separately, the backend emits in-process domain events via
+`@nestjs/event-emitter`, consumed by 21 handlers (gamification is the main
+consumer): `donation.completed`, `blood-test.completed`,
+`appointment.completed`, `emergency-response.completed` and
+`challenge.completed`. These are in-process only — they are not published to an
+external broker.

@@ -9,7 +9,7 @@ import {
   Truck,
   Users,
 } from 'lucide-react';
-import type { SidebarItem } from '@donor/ui/components';
+import type { SidebarItem } from '@bloodchain/ui/components';
 
 export const sidebarItems: SidebarItem[] = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, href: '/' },

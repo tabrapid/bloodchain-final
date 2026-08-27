@@ -7,7 +7,7 @@ import {
   EmptyState,
   StatCard,
   StatusBadge,
-} from '@donor/ui/components';
+} from '@bloodchain/ui/components';
 import { logout as logoutApi, me, isAuthenticated, MeResponse } from '../../lib/auth';
 import { getCourierRoster, CourierRosterEntry } from '../../lib/couriers';
 import { sidebarItems } from '../../lib/navigation';

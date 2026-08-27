@@ -1,5 +1,5 @@
 {
-  "name": "@donor/api",
+  "name": "@bloodchain/api",
   "private": true,
   "version": "0.1.0",
   "scripts": {
@@ -16,10 +16,10 @@
     "prisma:seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
-    "@donor/config": "workspace:^",
-    "@donor/types": "workspace:*",
-    "@donor/utils": "workspace:*",
-    "@donor/validation": "workspace:*",
+    "@bloodchain/config": "workspace:^",
+    "@bloodchain/types": "workspace:*",
+    "@bloodchain/utils": "workspace:*",
+    "@bloodchain/validation": "workspace:*",
     "@nestjs/common": "^11.0.2",
     "@nestjs/config": "^4.0.0",
     "@nestjs/core": "^11.0.2",

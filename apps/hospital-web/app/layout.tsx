@@ -2,8 +2,8 @@ import './globals.css';
 import 'leaflet/dist/leaflet.css';
 
 export const metadata = {
-  title: 'DONOR Hospital Console',
-  description: 'Hospital operations workspace for the DONOR platform',
+  title: 'BloodChain Hospital Console',
+  description: 'Hospital operations workspace for the BloodChain',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Search, FileText, User, Clock, X, LayoutDashboard, Users, Building2, Ship, Package, Droplet, AlertTriangle, TestTube, Bell, Activity, Settings } from 'lucide-react';
-import { DashboardShell, LoadingState } from '@donor/ui/components';
+import { DashboardShell, LoadingState } from '@bloodchain/ui/components';
 import { listAuditLogs, type AuditLog } from '@lib/api';
 import { me, isAuthenticated } from '@lib/auth';
 import { StatusBadgeWrapper } from '@lib/status';

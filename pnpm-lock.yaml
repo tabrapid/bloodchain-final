@@ -38,16 +38,16 @@ importers:
 
   apps/admin-web:
     dependencies:
-      '@donor/config':
+      '@bloodchain/config':
         specifier: workspace:*
         version: link:../../packages/config
-      '@donor/types':
+      '@bloodchain/types':
         specifier: workspace:*
         version: link:../../packages/types
-      '@donor/ui':
+      '@bloodchain/ui':
         specifier: workspace:*
         version: link:../../packages/ui
-      '@donor/utils':
+      '@bloodchain/utils':
         specifier: workspace:*
         version: link:../../packages/utils
       lucide-react:
@@ -87,16 +87,16 @@ importers:
 
   apps/api:
     dependencies:
-      '@donor/config':
+      '@bloodchain/config':
         specifier: workspace:^
         version: link:../../packages/config
-      '@donor/types':
+      '@bloodchain/types':
         specifier: workspace:*
         version: link:../../packages/types
-      '@donor/utils':
+      '@bloodchain/utils':
         specifier: workspace:*
         version: link:../../packages/utils
-      '@donor/validation':
+      '@bloodchain/validation':
         specifier: workspace:*
         version: link:../../packages/validation
       '@nestjs/common':
@@ -244,16 +244,16 @@ importers:
 
   apps/blood-center-web:
     dependencies:
-      '@donor/config':
+      '@bloodchain/config':
         specifier: workspace:*
         version: link:../../packages/config
-      '@donor/types':
+      '@bloodchain/types':
         specifier: workspace:*
         version: link:../../packages/types
-      '@donor/ui':
+      '@bloodchain/ui':
         specifier: workspace:*
         version: link:../../packages/ui
-      '@donor/utils':
+      '@bloodchain/utils':
         specifier: workspace:*
         version: link:../../packages/utils
       leaflet:
@@ -302,16 +302,16 @@ importers:
 
   apps/hospital-web:
     dependencies:
-      '@donor/config':
+      '@bloodchain/config':
         specifier: workspace:*
         version: link:../../packages/config
-      '@donor/types':
+      '@bloodchain/types':
         specifier: workspace:*
         version: link:../../packages/types
-      '@donor/ui':
+      '@bloodchain/ui':
         specifier: workspace:*
         version: link:../../packages/ui
-      '@donor/utils':
+      '@bloodchain/utils':
         specifier: workspace:*
         version: link:../../packages/utils
       leaflet:
@@ -363,16 +363,16 @@ importers:
       '@babel/runtime':
         specifier: ^8.0.0
         version: 8.0.0
-      '@donor/config':
+      '@bloodchain/config':
         specifier: workspace:*
         version: link:../../packages/config
-      '@donor/types':
+      '@bloodchain/types':
         specifier: workspace:*
         version: link:../../packages/types
-      '@donor/utils':
+      '@bloodchain/utils':
         specifier: workspace:*
         version: link:../../packages/utils
-      '@donor/validation':
+      '@bloodchain/validation':
         specifier: workspace:*
         version: link:../../packages/validation
       '@hookform/resolvers':
@@ -565,7 +565,7 @@ importers:
 
   packages/validation:
     dependencies:
-      '@donor/types':
+      '@bloodchain/types':
         specifier: workspace:*
         version: link:../types
       zod:

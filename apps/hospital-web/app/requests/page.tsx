@@ -15,7 +15,7 @@ import {
   EmptyState,
   StatCard,
   StatusBadge,
-} from '@donor/ui/components';
+} from '@bloodchain/ui/components';
 import { logout as logoutApi, me, isAuthenticated, MeResponse } from '../../lib/auth';
 import { getBloodRequests, BloodRequest } from '../../lib/shipments';
 import { sidebarItems } from '../../lib/navigation';

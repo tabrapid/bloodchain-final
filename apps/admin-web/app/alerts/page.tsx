@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Bell, AlertTriangle, CheckCircle, X, LayoutDashboard, Users, Building2, Ship, Package, Droplet, TestTube, FileText, Activity, Settings } from 'lucide-react';
-import { DashboardShell, LoadingState } from '@donor/ui/components';
+import { DashboardShell, LoadingState } from '@bloodchain/ui/components';
 import { listAlerts, acknowledgeAlert } from '@lib/api';
 import { me, isAuthenticated } from '@lib/auth';
 import { StatusBadgeWrapper } from '@lib/status';

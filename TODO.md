@@ -1,6 +1,6 @@
-# DONOR Platform — Production Readiness TODO
+# BloodChain — Production Readiness TODO
 
-Generated from a full codebase audit against the DONOR product specification
+Generated from a full codebase audit against the BloodChain product specification
 (2026-08-25). This is the **single source of truth** for what's broken,
 missing, mocked, disconnected, or unsafe. Work items top-to-bottom within
 each tier; check items off (`[x]`) as they land, and add a one-line note
@@ -374,8 +374,8 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   (mobile intentionally out of scope, see below). Added `leaflet` +
   `react-leaflet` and a shared `LocationMap` component
   (`packages/ui/src/components/map/LocationMap.tsx`, exported via its own
-  `@donor/ui/map` subpath — deliberately *not* re-exported through the main
-  `@donor/ui/components` barrel, because that barrel is imported by every
+  `@bloodchain/ui/map` subpath — deliberately *not* re-exported through the main
+  `@bloodchain/ui/components` barrel, because that barrel is imported by every
   page including ones with no map, and Leaflet's `window` access at import
   time broke SSR/prerendering for the *entire app* the first time it was
   wired through the shared barrel; every consuming page now also uses
@@ -2607,7 +2607,7 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   are the actual highest-leverage target: `packages/utils` and
   `packages/validation` are declared as a dependency of *all five*
   workspace packages including `apps/api` itself (confirmed via
-  `package.json` dependency grep) — `@donor/validation`'s schemas in
+  `package.json` dependency grep) — `@bloodchain/validation`'s schemas in
   particular are the real client-side validation gating the mobile
   app's register/login forms before any request reaches the API, so a
   bug there is a bug users hit before the backend ever sees the
@@ -2640,15 +2640,15 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   `include` rather than moving the file. All 76 new tests pass (18 +
   37 + 21); ran `pnpm test` at the repo root (`turbo test`) and
   confirmed all 8 workspace test tasks succeed together, including the
-  pre-existing 621-test `@donor/api` suite untouched; ran `pnpm
+  pre-existing 621-test `@bloodchain/api` suite untouched; ran `pnpm
   typecheck`/`pnpm lint` at the root and confirmed all 3 touched
-  packages are clean (the only failures, in `@donor/mobile`, are the
+  packages are clean (the only failures, in `@bloodchain/mobile`, are the
   pre-existing NativeWind `className` typing errors in
   `education/index.tsx` already documented earlier in this session —
   confirmed via `git stash` unaffected by this change). Since no
   production code changed (only test files, `vitest.config.ts`s, and
   `package.json`/`tsconfig.json` additions), live-verified by actually
-  building a real consumer: `pnpm --filter @donor/hospital-web build`
+  building a real consumer: `pnpm --filter @bloodchain/hospital-web build`
   completed successfully end-to-end, confirming the shared packages
   still resolve and compile correctly for a real Next.js app. Still
   outstanding: the 3 Next.js apps' own pages/routes have zero tests
@@ -2685,8 +2685,8 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   have better-tested glibc support than musl, and using the same base
   image for both the build and runtime stages avoids any ABI mismatch
   risk for that native module) with three stages: `deps` (installs only
-  `@donor/api` and its workspace-linked dependencies via `pnpm install
-  --filter=@donor/api...`, so the image doesn't need to resolve or
+  `@bloodchain/api` and its workspace-linked dependencies via `pnpm install
+  --filter=@bloodchain/api...`, so the image doesn't need to resolve or
   build the 3 web apps or mobile), `build` (`prisma generate` then
   `nest build`), and `runtime` (copies only the compiled `dist/`,
   `node_modules`, the Prisma schema/migrations, and `package.json`;
@@ -2729,7 +2729,7 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   /api/v1/health` responded correctly — this is the same code path the
   container's `ENTRYPOINT` runs, so it substantially de-risks the
   Dockerfile even without a full container run. Also confirmed
-  `apps/api/src` never actually imports any `@donor/*` workspace
+  `apps/api/src` never actually imports any `@bloodchain/*` workspace
   package despite declaring several as dependencies, so the "these
   packages export raw `.ts` via `package.json`'s `exports` field"
   question that would otherwise threaten a `node dist/...` runtime
@@ -2832,7 +2832,7 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   **Final state, verified on run #5 (commit `e9dccef`, PR #5):** `Unit
   tests` ✓, `API e2e tests (real database)` ✓ (all 14 against a real
   Postgres service container, ~6s), `Build all apps` ✓ — and `Lint &
-  typecheck` ✗, failing **only** on `@donor/mobile#typecheck` (8 of 10
+  typecheck` ✗, failing **only** on `@bloodchain/mobile#typecheck` (8 of 10
   turbo tasks pass; the backend's own `tsc --noEmit` is clean). That one
   failure is **P3-9**, the NativeWind `className` defect logged
   separately below — it is CI correctly surfacing a real, pre-existing
@@ -2861,16 +2861,69 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   `EXPO_ACCESS_TOKEN` are documented but never read anywhere server-side
   (confirms P0-5/P1-10 are unfinished integrations, not just UI gaps).
 
-- [ ] **P3-5. Stale/inconsistent docs.** `docs/architecture.md` says
+- [x] **P3-5. Stale/inconsistent docs.** `docs/architecture.md` says
   WebSocket is "prepared but not implemented" even though the gateways are
   real and working; `IMPLEMENTATION_SUMMARY.md` claims "45+ passing
   tests" vs. 8 actual spec files. Reconcile docs with reality once the
   P0/P1 items land, not before (docs will keep drifting otherwise).
+  — Fixed: deleted the two files the user identified as obsolete
+  (`IMPLEMENTATION_SUMMARY.md`, `PHASE_19_COMPLETION_REPORT.md`), which
+  removes the "45+ passing tests" and "production-ready through 19
+  phases" claims at the source rather than patching them.
+  Checked each remaining claim against the code before rewriting it,
+  rather than assuming the audit note was still accurate:
+  `docs/architecture.md` and `docs/api.md` both said WebSocket gateways
+  and domain events were unimplemented. Both are implemented —
+  `/emergency` and `/shipments` Socket.IO gateways exist, are registered
+  as providers in their modules, authenticate on connect and scope every
+  broadcast to a room; and there are 21 `@OnEvent` handlers on
+  `@nestjs/event-emitter`. But the same sentence also claimed Redis
+  pub/sub, and a grep confirms **nothing connects to Redis** — `REDIS_URL`
+  is in the env schema and otherwise unused. So the rewrite documents the
+  real socket event names and domain event names, and states plainly that
+  gateway state is per-instance and horizontal scaling needs an adapter
+  first. That last part is a limitation the old text accidentally hid by
+  being wrong in the other direction.
+  `README.md`'s Verification section now lists the real numbers (626 API
+  unit + 16 mobile + 76 package tests, and the 83-test e2e suite), spells
+  out that e2e needs a **seeded** database (registration fails without
+  the seeded roles — the exact trap that cost a CI cycle in P3-3), and
+  points at the CI workflow. Added a line directing readers to `TODO.md`
+  as the live account of what is and is not finished.
+  - Files: `IMPLEMENTATION_SUMMARY.md` (deleted),
+    `PHASE_19_COMPLETION_REPORT.md` (deleted), `docs/architecture.md`,
+    `docs/api.md`, `README.md`.
 
-- [ ] **P3-6. Repo/product name mismatch** — directory/remote is named
+- [x] **P3-6. Repo/product name mismatch** — directory/remote is named
   "bloodchain-final" but the product is "DONOR" with zero blockchain code
   anywhere. Purely cosmetic; flag to the user, no code action needed
-  unless they want a rename.
+  unless they want a rename. — Fixed: the user resolved it in favour of
+  the repo name, so the product is now **BloodChain** throughout.
+  Done in two layers. The **brand** layer is the user-visible one: the
+  sidebar logo, all three web apps' browser titles, the org-approval
+  copy in the hospital and blood-centre apps, `README.md`, and the
+  affected `docs/` pages. The **identifier** layer is the npm scope:
+  `@donor/*` → `@bloodchain/*` across 63 files (152 occurrences,
+  including the lockfile and the CI workflow), plus the root package
+  name `donor-platform` → `bloodchain`. Renaming only the brand would
+  have left the exact mismatch this item is about, just moved.
+  Deliberately left alone, because they are local development fixtures
+  rather than product naming, and renaming them forces every developer
+  to drop and re-seed their database for no benefit: the dev database
+  name `donor_dev` and the seeded demo accounts' `@donor.local` email
+  domain. Also left every `RoleCode.DONOR` / `DONOR_STATUSES`
+  identifier untouched — "donor" is a real domain role in a blood
+  donation system and has nothing to do with the product name; the
+  rename was applied by hand-checked patterns rather than a blanket
+  find-and-replace precisely so those survived.
+  Verified the identifier rename broke nothing: `pnpm install
+  --frozen-lockfile` succeeds (the CI path), typecheck 10/10, lint
+  10/10, 626 API + 16 mobile unit tests, `pnpm build` 4/4, and 83 e2e
+  against a pristine migrate+seed database.
+  - Files: root `package.json` and all 10 workspace `package.json`s,
+    `pnpm-lock.yaml`, `.github/workflows/ci.yml`, every source file
+    importing a workspace package, the three web apps' `layout.tsx`,
+    `packages/ui/.../Sidebar.tsx`, `README.md`, `docs/`.
 
 - [ ] **P3-7. Dead DTO scaffolding for three never-built admin features
   (found while working P1-15).** `apps/api/src/modules/admin/dto/admin.dto.ts`
@@ -2973,10 +3026,10 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   than introducing NativeWind app-wide just for 4 files. Directly
   relevant to **P3-3**: the new `.github/workflows/ci.yml`'s
   `lint-and-typecheck` job runs `pnpm typecheck`/`pnpm lint` across
-  every workspace package including `@donor/mobile`, so this is now the
+  every workspace package including `@bloodchain/mobile`, so this is now the
   one red job on an otherwise fully green pipeline — **confirmed on the
   real CI run**, which failed on exactly one of its ten turbo tasks
-  (`@donor/mobile#typecheck`) with these same `className` errors while
+  (`@bloodchain/mobile#typecheck`) with these same `className` errors while
   the backend's own `tsc --noEmit`, the 621 unit tests, the 14 API e2e
   tests, and the full build all passed. That is CI doing its job
   (surfacing a real, previously undiagnosed defect), not a CI
@@ -3007,7 +3060,7 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   `TouchableOpacity` submit buttons became `<AppButton loading={...}>`
   (which already handles the pressed/disabled/loading states these
   screens were each reimplementing by hand). All 160 type errors are
-  gone and `@donor/mobile#typecheck` passes, which was the whole point:
+  gone and `@bloodchain/mobile#typecheck` passes, which was the whole point:
   **the repo-wide `pnpm typecheck` now reports 10/10 tasks successful**,
   turning P3-3's CI pipeline fully green.
   **Verified by actually rendering the screens, not just type-checking
@@ -3704,7 +3757,7 @@ a shared `configureApp()` into `src/bootstrap.ts`), the e2e job hanging
 reproduction to the workflow running migrations but never seeding, so
 the `DONOR` role `register()` requires didn't exist. Final run: unit
 tests ✓, e2e 14/14 ✓, build ✓; lint+typecheck ✗ **on purpose**, failing
-only on `@donor/mobile` — that's P3-9, a real pre-existing defect CI
+only on `@bloodchain/mobile` — that's P3-9, a real pre-existing defect CI
 correctly surfaced, not a pipeline problem).~~ ✅
 ~~**P3-9** (rewrote the 4 `className` screens onto the app's real design
 system — and found, reading the theme properly, that a literal
@@ -3735,6 +3788,19 @@ catch-and-ignore cleanup was caught hiding two broken delete calls and
 leaving stale rows that made later runs fail for unrelated-looking
 reasons. Verified by running the whole suite twice, 78/78 both times,
 with the database confirmed clean and seeded data untouched).~~ ✅
+~~**P3-5 + P3-6** (docs reconciled with reality, and the product renamed to
+BloodChain. Deleted the two obsolete summary reports the user identified,
+which removed the "45+ passing tests" and "production-ready through 19
+phases" claims at the source. Checked every remaining claim against the
+code before rewriting: architecture.md and api.md said WebSocket gateways
+and domain events were unimplemented — both are real — but the same
+sentence claimed Redis pub/sub, which nothing connects to, so the rewrite
+documents the real event names *and* states the per-instance scaling
+limit the old wrong text had hidden. The rename went two layers deep —
+brand text plus the @donor/* npm scope across 63 files — because renaming
+only the brand would have left the same mismatch in a new place; the dev
+database name, seeded @donor.local emails and every RoleCode.DONOR
+identifier were deliberately left alone).~~ ✅
 ~~**P3-12** (the OpenAPI status mismatch is gone, and deliberately not by
 blanket-setting every route to 200. Reading what each one actually does
 split the 16: twelve mutate an existing resource and now return 200 via
@@ -3771,4 +3837,4 @@ passing, so the pool widened to compatible donors, not to everyone).~~ ✅
 Next up: the remainder of **P3-2** (Next.js app pages, more
 `packages/ui` components — the mobile/Expo test setup half is now done
 as part of P3-9), or **P3-4** through **P3-7** (env docs, stale docs,
-repo naming, dead admin DTOs), or **P3-10**.
+dead admin DTOs), or **P3-10**.

@@ -19,10 +19,10 @@ import dynamic from 'next/dynamic';
 import {
   DashboardShell,
   StatusBadge,
-} from '@donor/ui/components';
-import type { MapMarker } from '@donor/ui/map';
+} from '@bloodchain/ui/components';
+import type { MapMarker } from '@bloodchain/ui/map';
 
-const LocationMap = dynamic(() => import('@donor/ui/map').then((mod) => mod.LocationMap), {
+const LocationMap = dynamic(() => import('@bloodchain/ui/map').then((mod) => mod.LocationMap), {
   ssr: false,
 });
 import { logout as logoutApi, me, isAuthenticated, MeResponse } from '../../../lib/auth';

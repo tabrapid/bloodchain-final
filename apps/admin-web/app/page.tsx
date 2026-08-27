@@ -15,7 +15,7 @@ import {
   Clock,
   Activity,
 } from 'lucide-react';
-import { DashboardShell, StatCard, EmptyState, LoadingState } from '@donor/ui/components';
+import { DashboardShell, StatCard, EmptyState, LoadingState } from '@bloodchain/ui/components';
 import { StatusBadgeWrapper } from '@lib/status';
 import { login, logout as logoutApi, me, isAuthenticated } from '@lib/auth';
 import {
@@ -152,7 +152,7 @@ export default function AdminDashboard() {
             </div>
             <div>
               <h1 className="text-xl font-semibold text-gray-900">Admin Portal</h1>
-              <p className="text-sm text-gray-500">DONOR Platform Management</p>
+              <p className="text-sm text-gray-500">BloodChain Management</p>
             </div>
           </div>
 
@@ -211,7 +211,7 @@ export default function AdminDashboard() {
       <div className="p-6">
         <div className="mb-8">
           <h1 className="text-2xl font-semibold text-gray-900">Platform Dashboard</h1>
-          <p className="text-sm text-gray-500 mt-1">Real-time overview of the DONOR platform</p>
+          <p className="text-sm text-gray-500 mt-1">Real-time overview of the BloodChain</p>
         </div>
 
         {error && (

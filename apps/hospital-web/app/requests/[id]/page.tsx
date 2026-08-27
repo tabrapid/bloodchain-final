@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Clock, Droplet, Truck, XCircle } from 'lucide-react';
-import { DashboardShell, StatusBadge } from '@donor/ui/components';
+import { DashboardShell, StatusBadge } from '@bloodchain/ui/components';
 import { logout as logoutApi, me, isAuthenticated, MeResponse } from '../../../lib/auth';
 import { getBloodRequest, BloodRequest } from '../../../lib/shipments';
 import { sidebarItems } from '../../../lib/navigation';

@@ -11,7 +11,7 @@ import {
   Truck,
   XCircle,
 } from 'lucide-react';
-import { DashboardShell, StatusBadge } from '@donor/ui/components';
+import { DashboardShell, StatusBadge } from '@bloodchain/ui/components';
 import { logout as logoutApi, me, isAuthenticated, MeResponse } from '../../../lib/auth';
 import {
   getBloodRequest,

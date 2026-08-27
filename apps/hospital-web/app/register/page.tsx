@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Building2, CheckCircle } from 'lucide-react';
-import { DashboardShell } from '@donor/ui/components';
+import { DashboardShell } from '@bloodchain/ui/components';
 import { registerOrganization, ApiRequestError } from '../../lib/auth';
 import { sidebarItems } from '../../lib/navigation';
 
@@ -65,7 +65,7 @@ export default function RegisterHospitalPage() {
           </h2>
           <p className="mb-6 max-w-md text-donor-muted">
             Check <strong>{adminEmail}</strong> to verify your email address. Once verified, your
-            hospital account will be reviewed by a DONOR platform admin — you&apos;ll be able to
+            hospital account will be reviewed by a BloodChain admin — you&apos;ll be able to
             sign in as soon as it&apos;s approved.
           </p>
           <button
@@ -97,7 +97,7 @@ export default function RegisterHospitalPage() {
           Register your hospital
         </h2>
         <p className="mb-6 text-sm text-donor-muted">
-          Create an administrator account for your hospital. A DONOR platform admin will review
+          Create an administrator account for your hospital. A BloodChain admin will review
           and approve your organization before you can start using the dashboard.
         </p>
 

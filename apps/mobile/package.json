@@ -1,5 +1,5 @@
 {
-  "name": "@donor/mobile",
+  "name": "@bloodchain/mobile",
   "private": true,
   "version": "0.1.0",
   "main": "expo-router/entry",
@@ -13,10 +13,10 @@
   },
   "dependencies": {
     "@babel/runtime": "^8.0.0",
-    "@donor/config": "workspace:*",
-    "@donor/types": "workspace:*",
-    "@donor/utils": "workspace:*",
-    "@donor/validation": "workspace:*",
+    "@bloodchain/config": "workspace:*",
+    "@bloodchain/types": "workspace:*",
+    "@bloodchain/utils": "workspace:*",
+    "@bloodchain/validation": "workspace:*",
     "@hookform/resolvers": "^3.9.1",
     "@tanstack/react-query": "^5.62.8",
     "expo": "~52.0.23",

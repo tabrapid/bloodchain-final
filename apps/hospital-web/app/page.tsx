@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Activity, ChevronRight, Clock } from 'lucide-react';
-import { DashboardShell, EmptyState, StatCard, StatusBadge } from '@donor/ui/components';
+import { DashboardShell, EmptyState, StatCard, StatusBadge } from '@bloodchain/ui/components';
 import { login, logout as logoutApi, me, isAuthenticated, MeResponse } from '../lib/auth';
 import { sidebarItems } from '../lib/navigation';
 
@@ -185,8 +185,8 @@ export default function HospitalDashboard() {
           </h2>
           <p className="mb-6 max-w-md text-donor-muted">
             {isPending
-              ? `${hospitalOrg.name} is still under review by a DONOR platform admin. You'll get full access as soon as it's approved.`
-              : `${hospitalOrg.name} is currently ${hospitalOrg.organizationStatus.toLowerCase().replace('_', ' ')}. Contact your DONOR platform admin for details.`}
+              ? `${hospitalOrg.name} is still under review by a BloodChain admin. You'll get full access as soon as it's approved.`
+              : `${hospitalOrg.name} is currently ${hospitalOrg.organizationStatus.toLowerCase().replace('_', ' ')}. Contact your BloodChain admin for details.`}
           </p>
           <button
             onClick={handleLogout}

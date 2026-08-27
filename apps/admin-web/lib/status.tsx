@@ -1,4 +1,4 @@
-import { StatusBadge, type StatusVariant } from '@donor/ui/components';
+import { StatusBadge, type StatusVariant } from '@bloodchain/ui/components';
 
 export function StatusBadgeWrapper({ status }: { status: string }) {
   const variantMap: Record<string, StatusVariant> = {

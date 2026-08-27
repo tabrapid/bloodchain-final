@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Search, Ship, Phone, X, Package, CheckCircle, XCircle, LayoutDashboard, Users, Building2, Droplet, AlertTriangle, TestTube, Bell, FileText, Activity, Settings } from 'lucide-react';
-import { DashboardShell, LoadingState } from '@donor/ui/components';
+import { DashboardShell, LoadingState } from '@bloodchain/ui/components';
 import { listCouriers, suspendCourier, restoreCourier, type Courier } from '@lib/api';
 import { me, isAuthenticated } from '@lib/auth';
 import { StatusBadgeWrapper } from '@lib/status';

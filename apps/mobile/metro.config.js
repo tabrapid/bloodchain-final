@@ -15,7 +15,7 @@ config.resolver.nodeModulesPaths = [
   path.resolve(workspaceRoot, 'node_modules'),
 ];
 
-// Shared @donor/* packages only define "exports" (no "main"), so Metro needs
+// Shared @bloodchain/* packages only define "exports" (no "main"), so Metro needs
 // package exports resolution enabled or it fails to find their entry files.
 config.resolver.unstable_enablePackageExports = true;
 config.resolver.unstable_conditionNames = ['react-native', 'require', 'default'];

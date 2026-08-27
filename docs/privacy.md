@@ -1,8 +1,8 @@
-# DONOR Platform Privacy Documentation
+# BloodChain Privacy Documentation
 
 ## Overview
 
-The DONOR platform handles sensitive health data and is committed to protecting user privacy. This document describes how data is collected, used, stored, and protected.
+The BloodChain handles sensitive health data and is committed to protecting user privacy. This document describes how data is collected, used, stored, and protected.
 
 ## Data Classification
 

@@ -6,7 +6,7 @@ import {
   ORGANIZATION_TYPES,
   RH_FACTORS,
   USER_ROLES,
-} from '@donor/types';
+} from '@bloodchain/types';
 
 export const idSchema = z.string().cuid();
 

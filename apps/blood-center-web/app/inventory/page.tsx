@@ -26,7 +26,7 @@ import {
   DataTable,
   DataTableColumn,
   Modal,
-} from '@donor/ui/components';
+} from '@bloodchain/ui/components';
 import {
   login,
   logout as logoutApi,

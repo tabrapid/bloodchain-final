@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Admin Portal - DONOR',
+  title: 'Admin Portal - BloodChain',
   description: 'Platform administration and management system',
 };
 
