@@ -103,3 +103,27 @@ export async function seededOrganizations(app: INestApplication) {
 }
 
 export const API = '/api/v1';
+
+/**
+ * Poll until `check` returns a truthy value, or fail.
+ *
+ * Gamification runs off `@nestjs/event-emitter` handlers that are not awaited
+ * by the request, so the HTTP response returns before the XP is credited.
+ * Asserting straight after the response is a race that passes or fails on
+ * machine speed; polling makes the assertion about the outcome rather than the
+ * timing.
+ */
+export async function waitFor<T>(
+  check: () => Promise<T | null | undefined | false>,
+  { timeoutMs = 5000, intervalMs = 25, what = 'condition' } = {},
+): Promise<T> {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    const value = await check();
+    if (value) return value as T;
+    if (Date.now() > deadline) {
+      throw new Error(`Timed out after ${timeoutMs}ms waiting for ${what}`);
+    }
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+  }
+}

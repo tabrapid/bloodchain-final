@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Put, Query, UseGuards, UseInterceptors } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -14,9 +14,11 @@ import {
   EducationalContentListResponseDto,
   EducationProgressResponseDto,
 } from './dto/education.dto';
+import { WrapResponseInterceptor } from '../../common/interceptors/wrap-response.interceptor';
 
 @ApiTags('Education')
 @Controller('education')
+@UseInterceptors(WrapResponseInterceptor)
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class EducationController {
@@ -93,7 +95,7 @@ export class EducationController {
   @Post(':id/complete')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Complete educational content' })
-  @ApiResponse({ status: 201, description: 'Content completed successfully', type: EducationProgressResponseDto })
+  @ApiResponse({ status: 200, description: 'Content completed successfully', type: EducationProgressResponseDto })
   async completeContent(
     @Param('id') id: string,
     @CurrentUser('sub') userId: string,

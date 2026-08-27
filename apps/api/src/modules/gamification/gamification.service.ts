@@ -333,6 +333,52 @@ export class GamificationService {
     };
   }
 
+  /**
+   * Education content carries an `xpReward` that the mobile card advertises on
+   * every item ("+50 XP"), and `completeContent` records it on the progress
+   * row — but nothing ever credited it to the donor's profile, so the reward
+   * was advertised, recorded, and never granted. `XpTransactionType` already
+   * had an unused EDUCATION_COMPLETED member for it.
+   *
+   * Idempotency comes from XpTransaction's unique (userId, sourceType,
+   * sourceId), so a replayed event cannot double-award.
+   */
+  async processEducationCompleted(
+    userId: string,
+    contentId: string,
+    xpAmount: number,
+    contentTitle: string,
+  ): Promise<{
+    xpAwarded: boolean;
+    xpAmount: number;
+    newTotalXp: number;
+  }> {
+    if (xpAmount <= 0) {
+      return { xpAwarded: false, xpAmount: 0, newTotalXp: 0 };
+    }
+
+    const xpResult = await this.xpService.awardXp(
+      userId,
+      xpAmount,
+      XpTransactionType.EDUCATION_COMPLETED,
+      'EDUCATION',
+      contentId,
+      `Education completed: ${contentTitle}`,
+    );
+
+    if (!xpResult.success) {
+      return { xpAwarded: false, xpAmount: 0, newTotalXp: 0 };
+    }
+
+    await this.levelService.updateUserLevel(userId, xpResult.newTotal);
+
+    return {
+      xpAwarded: true,
+      xpAmount,
+      newTotalXp: xpResult.newTotal,
+    };
+  }
+
   async processChallengeCompleted(
     userId: string,
     challengeId: string,

@@ -149,6 +149,59 @@ These make the product unusable or unsafe for real users. Fix first, in order.
 
 ---
 
+- [x] **P0-10. 26 GET routes returned no `{ data }` envelope, so every client
+  call against them evaluated to `undefined` (found while writing P3-10's
+  tests).** — Fixed.
+
+  Every HTTP client in this repository ends its request helper with
+  `return json.data as T` — mobile, hospital-web, blood-center-web and
+  admin-web alike — and `docs/api.md` and `README.md` both document the
+  `{ data, meta }` envelope. But the envelope was never applied globally. Some
+  services hand-wrote `return { data: ... }`, `AdminController` used
+  `WrapResponseInterceptor`, and seven whole controllers did neither.
+
+  Measured against the running API by walking its own OpenAPI document: of 64
+  parameterless GET routes that answered, **38 were enveloped and 26 were bare**
+  — notifications (3), laboratory (4), gamification (7), leaderboard (2),
+  community (3), campaigns (2), challenges (3) and education (3). That is very
+  nearly the whole donor-facing surface of the mobile app.
+
+  The failure mode is silent rather than loud, which is why it survived: with
+  `content` undefined, `content?.items.length === 0` is false, so the screen
+  skips its empty state and then renders `content?.items.map(...)` as nothing,
+  and `stats && <Card/>` renders nothing. The screens look like empty states
+  instead of errors. It also explains why the P3-9 styling work looked healthy —
+  those mobile tests mock the `src/api/*` modules, so they never exercise the
+  client that drops the payload.
+
+  Fixed by applying `WrapResponseInterceptor` to the eight controller classes
+  that lacked it (the gamification file holds two), and removing the one
+  hand-written `return { data: ... }` in `notifications.controller.ts` that
+  would otherwise have double-wrapped. No service logic changed.
+
+  The interceptor's own doc comment asserted that "most services already return
+  `{ data: ... }` themselves" — the probe falsified that, so the comment is
+  rewritten to describe what is actually true.
+
+  **Guard.** `test/response-envelope.e2e-spec.ts` builds the application's
+  OpenAPI document at runtime, walks every parameterless GET, and fails on any
+  successful response without a `data` key. It is deliberately generated from
+  the app rather than a hand-written list, so a controller added tomorrow
+  without the interceptor fails the day it lands. It has already earned its
+  keep: my first mechanical pass decorated only the first `@Controller` in each
+  file and silently missed `LeaderboardController`, which shares a file with
+  `GamificationController`. The guard caught both leaderboard routes.
+
+  Left as-is deliberately: `/admin/*` returns `{ data: { data, meta } }` because
+  `AdminService` returns a `PaginatedResult` and the interceptor wraps it again.
+  That is inconsistent with `/users`, which returns `{ data: [...], meta }` —
+  but admin-web's `PaginatedResponse<T>` type expects exactly the double wrap,
+  so it is working, and unpicking it means changing admin-web too. Recorded
+  here rather than fixed silently.
+  - Files: `apps/api/src/modules/{campaigns,challenges,community,education,gamification,laboratory,notifications}/*.controller.ts`,
+    `apps/api/src/common/interceptors/wrap-response.interceptor.ts`,
+    `apps/api/test/response-envelope.e2e-spec.ts` (new).
+
 ## 🟠 P1 — Major gaps (feature exists but disconnected, or missing entirely)
 
 - [x] **P1-1. Booking race conditions (double-booking) in appointments and lab slots.** — Fixed:
@@ -2192,6 +2245,70 @@ These make the product unusable or unsafe for real users. Fix first, in order.
 
 ---
 
+- [x] **P2-20. Education XP was advertised and recorded but never granted — and
+  the XP uniqueness key let only the first donor on the platform earn any
+  shared-milestone XP (found while writing P3-10's tests).** — Fixed. Two
+  defects, one in front of the other.
+
+  **The reward was never granted.** `EducationalContent.xpReward` is advertised
+  on every mobile card ("+50 XP") and `completeContent` writes it to
+  `EducationProgress.xpAwarded` — but nothing ever credited it to the donor's
+  gamification profile. The education module emitted no events and gamification
+  contained no reference to education. `XpTransactionType` already had an
+  unused `EDUCATION_COMPLETED` member sitting there, which says the wiring was
+  intended and simply never done. Fixed by following the pattern challenges
+  already use: emit `education.completed`, handle it in
+  `GamificationEventHandler`, award through
+  `GamificationService.processEducationCompleted`.
+
+  Worth noting how this hid: the existing unit test was named *"marks progress
+  COMPLETED and awards the content xpReward on first completion"* and asserted
+  only that `xpAwarded: 75` was written to the progress row. The name claimed a
+  grant; the assertion checked bookkeeping. It is renamed to say what it
+  actually checks, and joined by one that asserts the event is emitted.
+
+  **The uniqueness key was wrong.** `XpTransaction` had
+  `@@unique([sourceType, sourceId])` — platform-wide, not per-donor. That is
+  fine where `sourceId` is a per-user record id (`DONATION`, `BLOOD_TEST`,
+  `APPOINTMENT`, `EMERGENCY_RESPONSE`, and `PROFILE`, which passes `userId`
+  itself). It is wrong for the three whose sourceId names a *shared* milestone:
+  `ACHIEVEMENT` (an achievement code), `CHALLENGE` (a challenge id), and the
+  `EDUCATION` award being added here. Under the old key the first donor in the
+  entire system to unlock an achievement or finish a challenge took the XP, and
+  every donor after them hit the existing-transaction branch and was silently
+  refused — `awardXp` returns `{ success: false }` and nobody logs it.
+
+  Fixed with a migration widening the key to `(userId, sourceType, sourceId)`.
+  Adding a column to a unique index strictly weakens it, so no existing row can
+  conflict and the migration is safe on populated databases. Idempotency is
+  preserved exactly where it was wanted — the same donor cannot be awarded
+  twice for the same source.
+
+  The evidence is nicer than a test assertion: after the fix, two donors each
+  earned XP for the same content, and Postgres then **refused to recreate the
+  old index** — `Key ("sourceType", "sourceId")=(EDUCATION, ...) is duplicated`.
+  The old constraint cannot coexist with correct behaviour.
+
+  Both are pinned by e2e tests that fail against the unfixed code. The XP
+  assertions poll rather than read immediately: gamification runs in
+  `@OnEvent` handlers the request does not await, so asserting straight after
+  the response is a race that passes or fails on machine speed. Added a shared
+  `waitFor` helper to the e2e utils for this.
+
+  Noticed in passing, not fixed: `AntiAbuseService.isDuplicateXpTransaction`
+  has no callers anywhere. Its signature was updated to keep it correct under
+  the new key rather than leaving it wrong; it is a candidate for deletion
+  alongside any future dead-code pass.
+  - Files: `apps/api/prisma/schema.prisma`,
+    `apps/api/prisma/migrations/20260827050000_scope_xp_transaction_unique_by_user/migration.sql`
+    (new), `apps/api/src/modules/education/education.service.ts`,
+    `apps/api/src/modules/education/education.service.spec.ts`,
+    `apps/api/src/modules/gamification/events/gamification-event.handler.ts`,
+    `apps/api/src/modules/gamification/gamification.service.ts`,
+    `apps/api/src/modules/gamification/services/xp.service.ts`,
+    `apps/api/src/modules/gamification/services/anti-abuse.service.ts`,
+    `apps/api/test/education.e2e-spec.ts`, `apps/api/test/utils/e2e.ts`.
+
 ## 🔵 P3 — Hygiene, tests, docs, infra
 
 - [x] **P3-1. 26 of 30 backend modules have zero automated tests**,
@@ -3293,27 +3410,41 @@ These make the product unusable or unsafe for real users. Fix first, in order.
     runs jest; adds `jest`, `jest-expo`, `react-test-renderer`,
     `@types/jest`, `@types/react-test-renderer`).
 
-- [ ] **P3-10. The education screen's "start content" flow is wired but
-  unreachable (found while fixing P3-9).**
-  `apps/mobile/app/(app)/education/index.tsx` creates a real
-  `startMutation` against the backend's `startContent` endpoint and
-  passes `onStart`/`isStarting` down into `EducationCard` — but the card
-  renders only a "Complete" button, so nothing ever calls them. The
-  effect is that a user can mark content complete without it ever being
-  marked started, which quietly skews the very stats the same screen
-  displays (`totalStarted` can never exceed whatever other code paths
-  set it, while `totalCompleted` climbs). Both the API function
-  (`src/api/education.ts`'s `startContent`) and the
-  `EducationProgress` model behind it already exist, so this is an
-  unfinished UI, not a missing backend. Left alone during P3-9 on
-  purpose: adding a "Start" control is a product/UX decision about how
-  content consumption should flow (does opening the card start it? is
-  there a reading view at all?), not part of a styling fix. Worth
-  deciding alongside whether educational content should have a detail
-  screen — there's currently no route that renders a single piece of
-  content, which is probably where "start" belongs.
-  - File: `apps/mobile/app/(app)/education/index.tsx`
-    (`EducationCard`'s unused `onStart`/`isStarting`).
+- [x] **P3-10. The education screen's "start content" flow is wired but
+  unreachable (found while fixing P3-9).** — Fixed, and the investigation
+  showed the note understated it. I had written that the effect was skewed
+  stats. It was worse: `completeContent` throws
+  `BadRequestException('You must start the content before completing it')` when
+  no progress row exists, so **the only button on the screen failed every time
+  it was tapped**. The feature was not missing a step; it was unreachable.
+
+  The card now derives its control from the donor's real progress, fetched from
+  `GET /education/my/progress` (an endpoint that already existed and that the
+  mobile client already had a function for — the screen simply never called
+  it): **Start** when not begun, **Complete** once started, a **Completed**
+  badge when done. The `isStarting`/`isCompleting` flags are now scoped to the
+  card being acted on, so one tap doesn't spin every button on the list.
+
+  Deliberately *not* invented here: a reading/detail view. The note wondered
+  whether "start" belongs on a detail screen. Maybe, but the backend contract
+  says start must happen before complete, and that is answerable without
+  designing a new screen. If a detail view is added later, Start moves into it.
+
+  Verified with a new e2e suite (`education.e2e-spec.ts`, 6 tests) covering the
+  real contract — complete-before-start is rejected, start is idempotent, the
+  progress row shows up on `my/progress`, complete awards XP exactly once — and
+  three new mobile tests pinning which control each state shows. Proved the
+  mobile tests catch the old behaviour: reverting the card to Complete-only
+  fails 2 of the 3.
+
+  Two further defects fell out of writing those tests, both recorded below as
+  their own entries because neither is about the education screen:
+  **P0-10** (the missing response envelope) and **P2-20** (education XP was
+  advertised and recorded but never granted, plus a unique constraint that let
+  only the first donor on the platform earn any shared-milestone XP).
+  - Files: `apps/mobile/app/(app)/education/index.tsx`,
+    `apps/mobile/src/__tests__/community-screens.spec.tsx`,
+    `apps/api/test/education.e2e-spec.ts` (new).
 
 - [x] **E2E-1. The e2e suite only covered auth, so no business flow had
   ever been exercised over HTTP against a real database.** Before this

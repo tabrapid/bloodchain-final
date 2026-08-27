@@ -1463,7 +1463,11 @@ model XpTransaction {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([sourceType, sourceId])
+  // Scoped by userId. Without it, sourceIds that are platform-wide rather than
+  // per-user -- an achievement code, a challenge id, an education content id --
+  // let the first donor in the whole system to reach that milestone claim the
+  // XP and silently deny it to everyone after them.
+  @@unique([userId, sourceType, sourceId])
   @@index([userId])
   @@index([type])
   @@index([createdAt])

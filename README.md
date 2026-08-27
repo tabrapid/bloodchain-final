@@ -102,14 +102,15 @@ pnpm dev:mobile
 ```bash
 pnpm typecheck   # tsc --noEmit across all 10 workspace packages
 pnpm lint
-pnpm test        # 654 API unit tests + 16 mobile + 76 package tests
+pnpm test        # 658 API unit tests + 19 mobile + 76 package tests
 pnpm build
 ```
 
 The API also has an end-to-end suite that runs against a **real** PostgreSQL
-database rather than mocks — 95 tests covering auth, the donation lifecycle, the
-blood-request → shipment → delivery chain, emergency donor matching, the
-inventory lifecycle, request-body validation, and gamification concurrency. It needs a migrated **and
+database rather than mocks — 103 tests covering auth, the donation lifecycle,
+the blood-request → shipment → delivery chain, emergency donor matching, the
+inventory lifecycle, education progress and XP, request-body validation, the
+response envelope every client depends on, and gamification concurrency. It needs a migrated **and
 seeded** database (registration fails without the seeded roles):
 
 ```bash

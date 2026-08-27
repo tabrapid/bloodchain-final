@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { RefreshControl, StyleSheet, View } from 'react-native';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { BookOpen, Clock, Award, CheckCircle } from 'lucide-react-native';
+import { BookOpen, Clock, Award, CheckCircle, PlayCircle } from 'lucide-react-native';
 import {
   getEducationalContent,
   startContent,
   completeContent,
+  getMyEducationProgress,
   getMyEducationStats,
   type EducationalContent,
 } from '../../../src/api/education';
@@ -35,6 +36,18 @@ export default function EducationScreen() {
     queryFn: getMyEducationStats,
   });
 
+  // The backend refuses to complete content that was never started
+  // ("You must start the content before completing it"), so the card has to
+  // know where each item stands before it can offer the right control.
+  const { data: progress } = useQuery({
+    queryKey: ['education-progress'],
+    queryFn: () => getMyEducationProgress({ page: 1, limit: 100 }),
+  });
+
+  const statusByContentId = new Map(
+    (progress?.items ?? []).map((entry) => [entry.contentId, entry.status] as const),
+  );
+
   const startMutation = useMutation({
     mutationFn: startContent,
     onSuccess: () => {
@@ -42,6 +55,8 @@ export default function EducationScreen() {
       queryClient.invalidateQueries({ queryKey: ['education-stats'] });
     },
   });
+
+  const [pendingId, setPendingId] = useState<string | null>(null);
 
   const completeMutation = useMutation({
     mutationFn: completeContent,
@@ -112,10 +127,17 @@ export default function EducationScreen() {
             <EducationCard
               key={item.id}
               content={item}
-              onStart={() => startMutation.mutate(item.id)}
-              onComplete={() => completeMutation.mutate(item.id)}
-              isStarting={startMutation.isPending}
-              isCompleting={completeMutation.isPending}
+              status={statusByContentId.get(item.id)}
+              onStart={() => {
+                setPendingId(item.id);
+                startMutation.mutate(item.id);
+              }}
+              onComplete={() => {
+                setPendingId(item.id);
+                completeMutation.mutate(item.id);
+              }}
+              isStarting={startMutation.isPending && pendingId === item.id}
+              isCompleting={completeMutation.isPending && pendingId === item.id}
             />
           ))}
         </View>
@@ -139,14 +161,15 @@ function EducationStat({ label, value }: { label: string; value: number }) {
 
 function EducationCard({
   content,
+  status,
   onStart,
   onComplete,
   isStarting,
   isCompleting,
 }: {
   content: EducationalContent;
-  // onStart/isStarting are wired to a real backend mutation but no control in
-  // this card triggers them yet — see P3-10.
+  /** This donor's progress on this item; undefined means not started. */
+  status?: 'STARTED' | 'COMPLETED';
   onStart: () => void;
   onComplete: () => void;
   isStarting: boolean;
@@ -187,10 +210,19 @@ function EducationCard({
       <View style={styles.cardFooter}>
         <Badge>{content.category}</Badge>
 
-        <AppButton onPress={onComplete} loading={isCompleting} size="small">
-          <CheckCircle size={16} color={colors.white} />
-          Complete
-        </AppButton>
+        {status === 'COMPLETED' ? (
+          <Badge variant="success">Completed</Badge>
+        ) : status === 'STARTED' ? (
+          <AppButton onPress={onComplete} loading={isCompleting} size="small">
+            <CheckCircle size={16} color={colors.white} />
+            Complete
+          </AppButton>
+        ) : (
+          <AppButton onPress={onStart} loading={isStarting} size="small">
+            <PlayCircle size={16} color={colors.white} />
+            Start
+          </AppButton>
+        )}
       </View>
     </GlassCard>
   );

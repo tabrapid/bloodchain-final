@@ -36,6 +36,7 @@ jest.mock('../api/campaigns', () => ({
 jest.mock('../api/education', () => ({
   getEducationalContent: jest.fn(),
   getMyEducationStats: jest.fn(),
+  getMyEducationProgress: jest.fn(),
   startContent: jest.fn(),
   completeContent: jest.fn(),
 }));
@@ -43,7 +44,11 @@ jest.mock('../api/education', () => ({
 import { getFeed, getImpactStats } from '../api/community';
 import { getActiveChallenges } from '../api/challenges';
 import { getCampaigns } from '../api/campaigns';
-import { getEducationalContent, getMyEducationStats } from '../api/education';
+import {
+  getEducationalContent,
+  getMyEducationProgress,
+  getMyEducationStats,
+} from '../api/education';
 
 import CommunityScreen from '../../app/(app)/community/index';
 import CampaignsScreen from '../../app/(app)/campaigns/index';
@@ -123,6 +128,12 @@ beforeEach(() => {
     totalCompleted: 5,
     totalStarted: 8,
     totalXpEarned: 400,
+  } as never);
+  jest.mocked(getMyEducationProgress).mockResolvedValue({
+    items: [],
+    total: 0,
+    page: 1,
+    limit: 100,
   } as never);
 });
 
@@ -270,6 +281,82 @@ describe('P3-9: the four screens that used className render with real styles', (
 
     expect(text).toContain('Your Progress');
     expect(text).toContain(contentFixture.title);
+  });
+});
+
+/**
+ * P3-10 regression tests.
+ *
+ * The card used to offer a single "Complete" button and nothing ever called
+ * `startContent`. The backend rejects that outright — `completeContent` throws
+ * `You must start the content before completing it` when no progress row
+ * exists — so the only control on the screen failed every time it was tapped.
+ * The card now derives its control from the donor's actual progress.
+ */
+describe('P3-10: the education card offers the control the backend will accept', () => {
+  /**
+   * Only the content list below the "Available Content" heading — the stats
+   * card above it reads "5 Completed 8 Started", which would satisfy any
+   * naive assertion about these words appearing on screen.
+   */
+  async function cardText() {
+    const text = renderedText(allNodes(await renderTree(EducationScreen)));
+    const listStart = text.indexOf('Available Content');
+    expect(listStart).toBeGreaterThan(-1);
+    return text.slice(listStart + 'Available Content'.length);
+  }
+
+  it('offers Start, not Complete, for content the donor has not begun', async () => {
+    const text = await cardText();
+
+    expect(text).toContain('Start');
+    expect(text).not.toContain('Complete');
+  });
+
+  it('offers Complete once the content is started', async () => {
+    jest.mocked(getMyEducationProgress).mockResolvedValue({
+      items: [
+        {
+          id: 'progress-1',
+          userId: 'user-1',
+          contentId: contentFixture.id,
+          status: 'STARTED',
+          startedAt: '2026-06-01T00:00:00.000Z',
+          xpAwarded: 0,
+        },
+      ],
+      total: 1,
+      page: 1,
+      limit: 100,
+    } as never);
+
+    const text = await cardText();
+
     expect(text).toContain('Complete');
+    expect(text).not.toContain('Start');
+  });
+
+  it('offers no action once the content is completed', async () => {
+    jest.mocked(getMyEducationProgress).mockResolvedValue({
+      items: [
+        {
+          id: 'progress-1',
+          userId: 'user-1',
+          contentId: contentFixture.id,
+          status: 'COMPLETED',
+          startedAt: '2026-06-01T00:00:00.000Z',
+          completedAt: '2026-06-02T00:00:00.000Z',
+          xpAwarded: 50,
+        },
+      ],
+      total: 1,
+      page: 1,
+      limit: 100,
+    } as never);
+
+    const text = await cardText();
+
+    expect(text).toContain('Completed');
+    expect(text).not.toContain('Start');
   });
 });

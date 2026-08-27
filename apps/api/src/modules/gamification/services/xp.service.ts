@@ -38,7 +38,7 @@ export class XpService {
     metadata?: Record<string, any>,
   ): Promise<{ success: boolean; newTotal: number; transactionId: string }> {
     const existingTx = await this.db.xpTransaction.findUnique({
-      where: { sourceType_sourceId: { sourceType, sourceId } },
+      where: { userId_sourceType_sourceId: { userId, sourceType, sourceId } },
     });
 
     if (existingTx) {
