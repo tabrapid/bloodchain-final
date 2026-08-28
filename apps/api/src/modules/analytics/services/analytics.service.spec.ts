@@ -209,6 +209,7 @@ describe('AnalyticsService', () => {
       prisma.organizationMembership.findFirst.mockResolvedValue({ id: 'm-1' });
       jest.spyOn(service as any, 'getInventorySummary').mockResolvedValue({ totalUnits: 1 });
       jest.spyOn(service as any, 'getInventoryByBloodGroup').mockResolvedValue([]);
+      jest.spyOn(service as any, 'getInventoryByComponent').mockResolvedValue([]);
       jest.spyOn(service as any, 'getInventoryTrends').mockResolvedValue({ data: [] });
       jest.spyOn(service as any, 'getInventoryMovements').mockResolvedValue([]);
 
@@ -217,6 +218,7 @@ describe('AnalyticsService', () => {
       expect(result).toEqual({
         summary: { totalUnits: 1 },
         byBloodGroup: [],
+        byComponent: [],
         trends: { data: [] },
         movements: [],
       });
@@ -352,6 +354,17 @@ describe('AnalyticsService', () => {
       expect(result.quarantinedUnits).toBe(1);
     });
 
+    it('counts EXPIRED units separately from quarantined ones', async () => {
+      const result = await callGetInventorySummary([
+        { status: 'EXPIRED', bloodType: 'O', rhFactor: 'POSITIVE' },
+        { status: 'EXPIRED', bloodType: 'A', rhFactor: 'POSITIVE' },
+        { status: 'QUARANTINED', bloodType: 'B', rhFactor: 'NEGATIVE' },
+      ]);
+
+      expect(result.expiredUnits).toBe(2);
+      expect(result.quarantinedUnits).toBe(1);
+    });
+
     it('flags a blood group with zero available units as critical, not merely low', async () => {
       const result = await callGetInventorySummary([]);
 
@@ -377,18 +390,98 @@ describe('AnalyticsService', () => {
   });
 
   describe('getInventoryByBloodGroup (private, exercised via getInventoryAnalytics)', () => {
-    it('labels a zero-count group OUT_OF_STOCK, under-5 LOW, and 5+ HEALTHY', async () => {
+    it('matches the shared BloodGroupCountDto shape, with percent computed against the group total', async () => {
       prisma.bloodUnit.groupBy.mockResolvedValue([
         { bloodType: 'O', rhFactor: 'POSITIVE', _count: { id: 0 } },
         { bloodType: 'A', rhFactor: 'POSITIVE', _count: { id: 3 } },
-        { bloodType: 'B', rhFactor: 'NEGATIVE', _count: { id: 10 } },
+        { bloodType: 'B', rhFactor: 'NEGATIVE', _count: { id: 7 } },
       ]);
 
       const result = await (service as any).getInventoryByBloodGroup('org-1');
 
-      expect(result.find((g: any) => g.bloodGroup === 'O')!.status).toBe('OUT_OF_STOCK');
-      expect(result.find((g: any) => g.bloodGroup === 'A')!.status).toBe('LOW');
-      expect(result.find((g: any) => g.bloodGroup === 'B')!.status).toBe('HEALTHY');
+      expect(result.find((g: any) => g.bloodGroup === 'O')).toEqual({
+        bloodGroup: 'O',
+        rhFactor: 'POSITIVE',
+        fullName: 'O+',
+        count: 0,
+        percent: 0,
+      });
+      expect(result.find((g: any) => g.bloodGroup === 'A')).toEqual({
+        bloodGroup: 'A',
+        rhFactor: 'POSITIVE',
+        fullName: 'A+',
+        count: 3,
+        percent: 30,
+      });
+      expect(result.find((g: any) => g.bloodGroup === 'B')).toEqual({
+        bloodGroup: 'B',
+        rhFactor: 'NEGATIVE',
+        fullName: 'B-',
+        count: 7,
+        percent: 70,
+      });
+    });
+  });
+
+  describe('getInventoryByComponent (private, exercised via getInventoryAnalytics)', () => {
+    it('joins total/available/reserved counts per component type', async () => {
+      prisma.bloodUnit.groupBy
+        .mockResolvedValueOnce([
+          { componentType: 'WHOLE_BLOOD', _count: { id: 10 } },
+          { componentType: 'PLASMA', _count: { id: 4 } },
+        ])
+        .mockResolvedValueOnce([{ componentType: 'WHOLE_BLOOD', _count: { id: 6 } }])
+        .mockResolvedValueOnce([{ componentType: 'PLASMA', _count: { id: 2 } }]);
+
+      const result = await (service as any).getInventoryByComponent('org-1');
+
+      expect(result).toEqual([
+        { componentType: 'WHOLE_BLOOD', count: 10, available: 6, reserved: 0 },
+        { componentType: 'PLASMA', count: 4, available: 0, reserved: 2 },
+      ]);
+    });
+  });
+
+  describe('getDonationSummary (private, exercised via getDonationAnalytics)', () => {
+    it('counts NO_SHOW donations separately and computes completionRate from completed/total', async () => {
+      prisma.donation.count
+        .mockResolvedValueOnce(10) // total
+        .mockResolvedValueOnce(7) // completed
+        .mockResolvedValueOnce(2); // noShow
+      prisma.donation.findMany.mockResolvedValue([{ volumeMl: 450 }, { volumeMl: 450 }]);
+
+      const result = await (service as any).getDonationSummary('org-1', new Date(), new Date());
+
+      expect(result.noShows).toBe(2);
+      expect(result.completionRate).toBe(70);
+      expect(prisma.donation.count).toHaveBeenNthCalledWith(3, expect.objectContaining({
+        where: expect.objectContaining({ status: 'NO_SHOW' }),
+      }));
+    });
+
+    it('returns a null completionRate when there are no donations in range', async () => {
+      prisma.donation.count.mockResolvedValue(0);
+      prisma.donation.findMany.mockResolvedValue([]);
+
+      const result = await (service as any).getDonationSummary('org-1', new Date(), new Date());
+
+      expect(result.completionRate).toBeNull();
+    });
+  });
+
+  describe('getEmergenciesByBloodGroup (private, exercised via getEmergencyAnalytics)', () => {
+    it('matches the shared BloodGroupCountDto shape', async () => {
+      prisma.emergencyRequest.groupBy.mockResolvedValue([
+        { bloodType: 'O', rhFactor: 'NEGATIVE', _count: { id: 3 } },
+        { bloodType: 'A', rhFactor: 'POSITIVE', _count: { id: 1 } },
+      ]);
+
+      const result = await (service as any).getEmergenciesByBloodGroup('org-1', new Date(), new Date());
+
+      expect(result).toEqual([
+        { bloodGroup: 'O', rhFactor: 'NEGATIVE', fullName: 'O-', count: 3, percent: 75 },
+        { bloodGroup: 'A', rhFactor: 'POSITIVE', fullName: 'A+', count: 1, percent: 25 },
+      ]);
     });
   });
 

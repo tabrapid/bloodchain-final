@@ -47,6 +47,16 @@ export interface TimeSeriesDataPointDto {
   value: number;
 }
 
+/**
+ * What every `get*Trends` backend method actually returns — a day-bucketed
+ * series plus its own total, not a bare array (see P0-14).
+ */
+export interface TrendsDto {
+  data: TimeSeriesDataPointDto[];
+  period: string;
+  total: number;
+}
+
 export interface StatusCountDto {
   status: string;
   count: number;
@@ -100,57 +110,55 @@ export interface OverviewAnalytics {
 export interface InventoryAnalytics {
   byBloodGroup: BloodGroupCountDto[];
   byComponent: Array<{ componentType: string; count: number; available: number; reserved: number }>;
-  byStatus: StatusCountDto[];
-  timeSeries: TimeSeriesDataPointDto[];
+  trends: TrendsDto;
   summary: {
     totalUnits: number;
     availableUnits: number;
     reservedUnits: number;
     quarantinedUnits: number;
     expiredUnits: number;
-    lowStockThreshold: number;
-    criticalThreshold: number;
+    lowStockGroups: string[];
+    criticalGroups: string[];
   };
 }
 
 export interface DonationAnalytics {
   byBloodGroup: BloodGroupCountDto[];
   byStatus: StatusCountDto[];
-  byAppointmentType: Array<{ type: string; count: number }>;
-  timeSeries: TimeSeriesDataPointDto[];
+  trends: TrendsDto;
   summary: {
     total: number;
     completed: number;
     cancelled: number;
     noShows: number;
     completionRate: number | null;
+    totalVolumeMl: number;
+    avgVolumeMl: number;
   };
 }
 
 export interface LaboratoryAnalytics {
   byStatus: StatusCountDto[];
-  byBloodType: BloodGroupCountDto[];
-  timeSeries: TimeSeriesDataPointDto[];
+  trends: TrendsDto;
   summary: {
-    total: number;
-    pending: number;
-    completed: number;
-    rejected: number;
-    avgTurnaroundHours: number | null;
+    totalTests: number;
+    pendingTests: number;
+    completedTests: number;
+    avgProcessingTimeHours: number | null;
   };
 }
 
 export interface ShipmentAnalytics {
   byStatus: StatusCountDto[];
-  byType: Array<{ type: string; count: number }>;
-  timeSeries: TimeSeriesDataPointDto[];
+  trends: TrendsDto;
   summary: {
     total: number;
-    inTransit: number;
+    active: number;
     delivered: number;
     delayed: number;
-    returned: number;
-    avgDeliveryHours: number | null;
+    failed: number;
+    avgDeliveryTimeHours: number | null;
+    avgPickupTimeHours: number | null;
   };
 }
 
@@ -166,11 +174,28 @@ export interface ActivityItem {
 export interface AlertItem {
   id: string;
   type: string;
-  severity: 'critical' | 'high' | 'medium' | 'low';
+  priority: 'CRITICAL' | 'HIGH';
   title: string;
   message: string;
+  sourceType: string;
+  sourceId: string;
+  status: 'OPEN' | 'ACKNOWLEDGED';
   createdAt: string;
-  acknowledged: boolean;
+}
+
+/**
+ * `getAlerts` always queries `acknowledged: false`, so `alerts` is already
+ * every open alert; `critical`/`high`/`medium`/`low`/`total` are its own
+ * pre-computed counts (`medium`/`low` are hardcoded 0 today — there is no
+ * inventory alert type mapped to either priority yet).
+ */
+export interface AlertsResponse {
+  alerts: AlertItem[];
+  critical: number;
+  high: number;
+  medium: number;
+  low: number;
+  total: number;
 }
 
 export async function getOverviewAnalytics(
@@ -256,20 +281,25 @@ export async function getShipmentAnalytics(
   return apiRequest<ShipmentAnalytics>(endpoint);
 }
 
+export interface ActivityFeedResponse {
+  items: ActivityItem[];
+  total: number;
+}
+
 export async function getActivityFeed(
   organizationId: string,
   limit = 20,
   offset = 0
-): Promise<ActivityItem[]> {
+): Promise<ActivityFeedResponse> {
   const params = new URLSearchParams();
   params.append('limit', limit.toString());
   params.append('offset', offset.toString());
 
   const endpoint = `/organizations/${organizationId}/analytics/activity?${params.toString()}`;
-  return apiRequest<ActivityItem[]>(endpoint);
+  return apiRequest<ActivityFeedResponse>(endpoint);
 }
 
-export async function getAlerts(organizationId: string): Promise<AlertItem[]> {
+export async function getAlerts(organizationId: string): Promise<AlertsResponse> {
   const endpoint = `/organizations/${organizationId}/analytics/alerts`;
-  return apiRequest<AlertItem[]>(endpoint);
+  return apiRequest<AlertsResponse>(endpoint);
 }

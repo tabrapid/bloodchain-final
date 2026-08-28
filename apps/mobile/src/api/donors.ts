@@ -47,13 +47,13 @@ export interface UpdateDonorProfileInput {
   longitude?: number;
 }
 
-export async function getDonorProfile(): Promise<{ data: DonorProfile }> {
+export async function getDonorProfile(): Promise<DonorProfile> {
   return apiRequest(`${apiBasePath}/donors/profile`);
 }
 
 export async function updateDonorProfile(
   input: UpdateDonorProfileInput,
-): Promise<{ data: DonorProfile }> {
+): Promise<DonorProfile> {
   return apiRequest(`${apiBasePath}/donors/profile`, {
     method: 'PUT',
     body: JSON.stringify(input),

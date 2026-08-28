@@ -56,7 +56,24 @@ async function refreshAccessToken(): Promise<string | null> {
   return refreshPromise;
 }
 
-export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
+interface ResponseEnvelope<T> {
+  data: T;
+  meta?: unknown;
+  statusCode?: number;
+  code?: string;
+  message?: string;
+  details?: unknown;
+}
+
+/**
+ * The full parsed response body, not just `.data` -- for endpoints where
+ * `meta` (e.g. pagination totals) is real data `apiRequest` would otherwise
+ * silently discard. Mirrors blood-center-web's `apiRequestEnvelope` (P0-13).
+ */
+export async function apiRequestEnvelope<T>(
+  path: string,
+  options: RequestOptions = {},
+): Promise<ResponseEnvelope<T>> {
   const url = `${apiBaseUrl}${path}`;
   const headers = new Headers(options.headers);
 
@@ -84,13 +101,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     }
   }
 
-  const json = (await response.json().catch(() => ({}))) as {
-    data?: T;
-    statusCode?: number;
-    code?: string;
-    message?: string;
-    details?: unknown;
-  };
+  const json = (await response.json().catch(() => ({}))) as ResponseEnvelope<T>;
 
   if (!response.ok) {
     throw new ApiRequestError({
@@ -101,5 +112,10 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     });
   }
 
-  return json.data as T;
+  return json;
+}
+
+export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  const envelope = await apiRequestEnvelope<T>(path, options);
+  return envelope.data;
 }

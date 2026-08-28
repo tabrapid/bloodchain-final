@@ -6,10 +6,9 @@ import { useDonationStatistics, useMyDonations } from '../../src/hooks/useDonati
 import { colors, spacing } from '../../src/theme';
 
 export default function Donate() {
-  const { data: statsData } = useDonationStatistics();
+  const { data: stats } = useDonationStatistics();
   const { data: donationsData } = useMyDonations({ limit: 3 });
 
-  const stats = statsData?.data;
   const recentDonations = donationsData?.data ?? [];
 
   const goToBooking = () => {

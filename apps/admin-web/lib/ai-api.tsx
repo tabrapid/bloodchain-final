@@ -1,26 +1,51 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+import { apiRequest } from './client';
 
-async function authFetch(path: string, options: RequestInit = {}) {
-  const token = localStorage.getItem('accessToken');
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...options,
-    headers: {
-      ...options.headers,
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-  });
-  if (!res.ok) {
-    throw new Error(`API error: ${res.status}`);
-  }
-  const json = await res.json();
-  return json.data;
+/**
+ * This file used to hand-roll its own fetch wrapper reading
+ * `localStorage.getItem('accessToken')` — but every other admin-web module
+ * stores the token under `admin_access_token` (see `client.tsx`), so this
+ * page's requests always carried `Authorization: Bearer null` and the API
+ * correctly answered 401 (see P0-14). Routed through the shared `apiRequest`
+ * instead, which also gets this page the refresh-and-retry behavior every
+ * other admin-web page already has.
+ */
+
+export interface AIAnalytics {
+  totalRequests: number;
+  successfulRequests: number;
+  failedRequests: number;
+  successRate: number;
+  averageLatencyMs: number;
+  totalTokens: number;
+  estimatedCost: number;
+  requestsByType: Record<string, number>;
+  requestsByModel: Record<string, number>;
+  fallbackCount: number;
+  safetyBlocks: number;
+  feedbackAnalytics: {
+    total: number;
+    helpful: number;
+    notHelpful: number;
+    reportIssue: number;
+    helpfulRate: number;
+  };
+  recentTrend: {
+    last7Days: number[];
+    labels: string[];
+  };
 }
 
-export async function getAIPatformAnalytics(days = 30) {
-  return authFetch(`/api/v1/admin/ai/analytics?days=${days}`);
+export interface AIInsightStats {
+  totalInsights: number;
+  insightsByType: Record<string, number>;
+  insightsBySafetyLevel: Record<string, number>;
+  averageInsightsPerUser: number;
 }
 
-export async function getAIInsightStats(days = 30) {
-  return authFetch(`/api/v1/admin/ai/insight-stats?days=${days}`);
+export async function getAIPatformAnalytics(days = 30): Promise<AIAnalytics> {
+  return apiRequest<AIAnalytics>(`/admin/ai/analytics?days=${days}`);
+}
+
+export async function getAIInsightStats(days = 30): Promise<AIInsightStats> {
+  return apiRequest<AIInsightStats>(`/admin/ai/insight-stats?days=${days}`);
 }

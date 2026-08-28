@@ -102,7 +102,7 @@ pnpm dev:mobile
 ```bash
 pnpm typecheck   # tsc --noEmit across all 10 workspace packages
 pnpm lint
-pnpm test        # 658 API + 48 web + 19 mobile + 128 package tests
+pnpm test        # 658 API + 57 web + 19 mobile + 128 package tests
 pnpm build
 ```
 

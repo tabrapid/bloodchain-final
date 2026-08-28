@@ -8,7 +8,7 @@ import {
 import type { DonorProfile, ProfileCompletion } from '../api/donors';
 
 export function useDonorProfile() {
-  return useQuery<{ data: DonorProfile }>({
+  return useQuery<DonorProfile>({
     queryKey: ['donor-profile'],
     queryFn: getDonorProfile,
   });

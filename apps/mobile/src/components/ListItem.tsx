@@ -18,16 +18,8 @@ export function ListItem({
   onPress,
   destructive = false,
 }: ListItemProps) {
-  return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => ({
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: spacing.md,
-        opacity: pressed ? 0.7 : 1,
-      })}
-    >
+  const content = (
+    <>
       {Icon && (
         <Icon
           size={20}
@@ -43,7 +35,32 @@ export function ListItem({
           </AppText>
         )}
       </View>
-      <ChevronRight size={18} color={colors.textMuted} />
+      {onPress && <ChevronRight size={18} color={colors.textMuted} />}
+    </>
+  );
+
+  // A row with no onPress isn't tappable -- rendering it as a Pressable with
+  // a chevron (as this component used to, unconditionally) implies it leads
+  // somewhere when it doesn't. Plain rows render as an inert View instead.
+  if (!onPress) {
+    return (
+      <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.md }}>
+        {content}
+      </View>
+    );
+  }
+
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => ({
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: spacing.md,
+        opacity: pressed ? 0.7 : 1,
+      })}
+    >
+      {content}
     </Pressable>
   );
 }

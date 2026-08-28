@@ -117,7 +117,7 @@ export function useDeleteNotification() {
 }
 
 export function useNotificationPreferences() {
-  return useQuery<{ data: NotificationPreferences }>({
+  return useQuery<NotificationPreferences>({
     queryKey: ['notification-preferences'],
     queryFn: getNotificationPreferences,
   });

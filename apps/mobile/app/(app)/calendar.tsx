@@ -27,8 +27,7 @@ export default function Calendar() {
     month: new Date().getMonth(),
   });
 
-  const { data: appointmentsData, isLoading } = useMyAppointments({ upcoming: true });
-  const appointments = appointmentsData?.data || [];
+  const { data: appointments = [], isLoading } = useMyAppointments({ upcoming: true });
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -136,7 +135,7 @@ export default function Calendar() {
           <TouchableOpacity onPress={goToToday} style={styles.todayButton}>
             <AppText style={styles.todayText}>Today</AppText>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => router.push('/(booking)')} style={styles.bookButton}>
+          <TouchableOpacity onPress={() => router.push('/(booking)/select-type')} style={styles.bookButton}>
             <Plus size={18} color={colors.white} />
           </TouchableOpacity>
         </View>

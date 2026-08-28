@@ -66,7 +66,7 @@ export default function AppointmentSlotsPage() {
       };
       if (typeFilter) filters.appointmentType = typeFilter;
       const data = await getSlots(organizationId, filters);
-      setSlots(data.data);
+      setSlots(data);
     } catch (err) {
       console.error('Failed to load appointment slots:', err);
     } finally {

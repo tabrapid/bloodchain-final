@@ -13,9 +13,8 @@ const RH_FACTORS = [
 ] as const;
 
 export default function EditDonorProfile() {
-  const { data } = useDonorProfile();
+  const { data: donor } = useDonorProfile();
   const updateProfile = useUpdateDonorProfile();
-  const donor = data?.data;
 
   const [formData, setFormData] = useState({
     bloodType: donor?.bloodType || '',

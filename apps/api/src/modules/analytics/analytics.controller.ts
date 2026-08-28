@@ -1,15 +1,17 @@
-import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Query, UseGuards, UseInterceptors } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { RoleCode } from '@prisma/client';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { WrapResponseInterceptor } from '../../common/interceptors/wrap-response.interceptor';
 import { AnalyticsService } from './services/analytics.service';
 import { AnalyticsFilterDto } from './dto/analytics.dto';
 
 @ApiTags('Analytics')
 @Controller('organizations/:organizationId/analytics')
 @UseGuards(JwtAuthGuard)
+@UseInterceptors(WrapResponseInterceptor)
 @ApiBearerAuth()
 export class AnalyticsController {
   constructor(private readonly analytics: AnalyticsService) {}

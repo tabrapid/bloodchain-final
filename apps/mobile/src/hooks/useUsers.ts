@@ -3,7 +3,7 @@ import { getUserProfile, updateUserProfile, type UpdateUserProfileInput } from '
 import type { UserProfile } from '../api/users';
 
 export function useUserProfile() {
-  return useQuery<{ data: UserProfile }>({
+  return useQuery<UserProfile>({
     queryKey: ['user-profile'],
     queryFn: getUserProfile,
   });

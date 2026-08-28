@@ -1,4 +1,4 @@
-import { apiRequest } from './client';
+import { apiRequest, apiRequestEnvelope } from './client';
 import { apiBasePath } from './config';
 
 export interface Organization {
@@ -68,13 +68,19 @@ export async function getMyDonations(params?: GetDonationsParams): Promise<{
   if (params?.limit) queryParams.set('limit', String(params.limit));
 
   const query = queryParams.toString();
-  return apiRequest(`${apiBasePath}/donations/me${query ? `?${query}` : ''}`);
+  const envelope = await apiRequestEnvelope<Donation[]>(
+    `${apiBasePath}/donations/me${query ? `?${query}` : ''}`
+  );
+  return {
+    data: envelope.data,
+    meta: envelope.meta as { page: number; limit: number; total: number; totalPages: number } | undefined,
+  };
 }
 
-export async function getMyDonationStatistics(): Promise<{ data: DonationStatistics }> {
+export async function getMyDonationStatistics(): Promise<DonationStatistics> {
   return apiRequest(`${apiBasePath}/donations/me/statistics`);
 }
 
-export async function getDonation(id: string): Promise<{ data: Donation }> {
+export async function getDonation(id: string): Promise<Donation> {
   return apiRequest(`${apiBasePath}/donations/${id}`);
 }

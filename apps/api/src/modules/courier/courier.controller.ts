@@ -17,28 +17,28 @@ export class CourierController {
   @Get('profile')
   @Roles(RoleCode.COURIER, RoleCode.SUPER_ADMIN)
   @ApiOperation({ summary: 'Get courier profile' })
-  getProfile(@CurrentUser('sub') userId: string) {
-    return this.courierService.getCourierByUserId(userId);
+  async getProfile(@CurrentUser('sub') userId: string) {
+    return { data: await this.courierService.getCourierByUserId(userId) };
   }
 
   @Patch('profile')
   @Roles(RoleCode.COURIER, RoleCode.SUPER_ADMIN)
   @ApiOperation({ summary: 'Update courier profile' })
-  updateProfile(
+  async updateProfile(
     @CurrentUser('sub') userId: string,
     @Body() dto: UpdateCourierProfileDto,
   ) {
-    return this.courierService.updateCourierProfile(userId, dto);
+    return { data: await this.courierService.updateCourierProfile(userId, dto) };
   }
 
   @Post('status')
   @Roles(RoleCode.COURIER, RoleCode.SUPER_ADMIN)
   @ApiOperation({ summary: 'Update courier status' })
-  updateStatus(
+  async updateStatus(
     @CurrentUser('sub') userId: string,
     @Body() dto: UpdateCourierStatusDto,
   ) {
-    return this.courierService.updateCourierStatus(userId, dto);
+    return { data: await this.courierService.updateCourierStatus(userId, dto) };
   }
 
   @Get('shipments')
@@ -61,7 +61,7 @@ export class CourierController {
   @ApiOperation({ summary: 'Get active shipment' })
   async getActiveShipment(@CurrentUser('sub') userId: string) {
     const courier = await this.courierService.getCourierByUserId(userId);
-    return this.courierService.getActiveShipment(courier.id);
+    return { data: await this.courierService.getActiveShipment(courier.id) };
   }
 
   @Get('stats')
@@ -73,10 +73,12 @@ export class CourierController {
     @Query('endDate') endDate?: string,
   ) {
     const courier = await this.courierService.getCourierByUserId(userId);
-    return this.courierService.getCourierStats(
-      courier.id,
-      startDate ? new Date(startDate) : undefined,
-      endDate ? new Date(endDate) : undefined,
-    );
+    return {
+      data: await this.courierService.getCourierStats(
+        courier.id,
+        startDate ? new Date(startDate) : undefined,
+        endDate ? new Date(endDate) : undefined,
+      ),
+    };
   }
 }

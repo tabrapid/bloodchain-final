@@ -46,8 +46,8 @@ export default function SosScreen() {
     setStatus('loading');
     try {
       const response: DonorEmergenciesResponse = await getDonorEmergencies();
-      setEmergencies(response.data.active);
-      setMyResponses(response.data.myResponses);
+      setEmergencies(response.active);
+      setMyResponses(response.myResponses);
       setStatus('idle');
     } catch (err: any) {
       setError(err.message || 'Failed to load emergencies');

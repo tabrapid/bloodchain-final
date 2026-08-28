@@ -30,14 +30,12 @@ export default function SelectDate() {
   const year = viewDate.getFullYear();
   const month = viewDate.getMonth();
 
-  const { data: availabilityData, isLoading } = useAvailability({
+  const { data: availableSlots = [], isLoading } = useAvailability({
     organizationId: params.organizationId,
     appointmentType: params.type,
     startDate: new Date(year, month, 1).toISOString().split('T')[0],
     endDate: new Date(year, month + 1, 0).toISOString().split('T')[0],
   });
-
-  const availableSlots = availabilityData?.data || [];
 
   const availableDates = useMemo(() => {
     const dates = new Set<string>();

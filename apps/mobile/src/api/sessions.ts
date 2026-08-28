@@ -11,17 +11,17 @@ export interface Session {
   expiresAt: string;
 }
 
-export async function getSessions(): Promise<{ data: Session[] }> {
+export async function getSessions(): Promise<Session[]> {
   return apiRequest(`${apiBasePath}/auth/sessions`);
 }
 
-export async function revokeSession(sessionId: string): Promise<{ data: { success: boolean } }> {
+export async function revokeSession(sessionId: string): Promise<{ success: boolean }> {
   return apiRequest(`${apiBasePath}/auth/sessions/${sessionId}`, {
     method: 'DELETE',
   });
 }
 
-export async function revokeAllSessions(): Promise<{ data: { success: boolean } }> {
+export async function revokeAllSessions(): Promise<{ success: boolean }> {
   return apiRequest(`${apiBasePath}/auth/sessions/revoke-all`, {
     method: 'POST',
   });
