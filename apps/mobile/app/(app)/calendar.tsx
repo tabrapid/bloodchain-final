@@ -27,8 +27,7 @@ export default function Calendar() {
     month: new Date().getMonth(),
   });
 
-  const { data: appointmentsData, isLoading } = useMyAppointments({ upcoming: true });
-  const appointments = appointmentsData?.data || [];
+  const { data: appointments = [], isLoading } = useMyAppointments({ upcoming: true });
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);

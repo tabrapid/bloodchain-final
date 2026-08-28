@@ -1,4 +1,4 @@
-import { apiRequest } from './client';
+import { apiRequest, apiRequestEnvelope } from './client';
 
 export interface Shipment {
   id: string;
@@ -156,10 +156,13 @@ export async function getCourierShipments(filters?: {
   if (filters?.limit) params.set('limit', String(filters.limit));
   if (filters?.offset) params.set('offset', String(filters.offset));
   const query = params.toString();
-  const response = await apiRequest<{ data: Shipment[]; meta: { total: number; limit: number; offset: number } }>(
+  const envelope = await apiRequestEnvelope<Shipment[]>(
     `/courier/shipments${query ? `?${query}` : ''}`
   );
-  return response;
+  return {
+    data: envelope.data,
+    meta: envelope.meta as { total: number; limit: number; offset: number },
+  };
 }
 
 export async function getActiveShipment(): Promise<Shipment | null> {

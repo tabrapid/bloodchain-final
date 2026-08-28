@@ -21,17 +21,13 @@ import { colors, spacing, radius } from '../../src/theme';
 
 export default function Home() {
   const user = useAuthStore((s) => s.user);
-  const { data: userData } = useUserProfile();
-  const { data: donorData } = useDonorProfile();
+  const { data: userProfile } = useUserProfile();
+  const { data: donorProfile } = useDonorProfile();
   const { data: completionData } = useProfileCompletion();
-  const { data: nextAptData } = useNextAppointment();
-  const { data: donationStatsData } = useDonationStatistics();
+  const { data: nextAppointment } = useNextAppointment();
+  const { data: donationStats } = useDonationStatistics();
 
-  const userProfile = userData?.data;
-  const donorProfile = donorData?.data;
   const completion = completionData?.data;
-  const nextAppointment = nextAptData?.data;
-  const donationStats = donationStatsData?.data;
 
   const firstName = userProfile?.firstName || user?.firstName || 'there';
   const greeting = getGreeting(firstName);

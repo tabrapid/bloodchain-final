@@ -7,8 +7,7 @@ import { colors, spacing } from '../../src/theme';
 
 export default function BookingConfirmation() {
   const params = useLocalSearchParams<{ appointmentId: string }>();
-  const { data, isLoading } = useAppointment(params.appointmentId);
-  const appointment = data?.data;
+  const { data: appointment, isLoading } = useAppointment(params.appointmentId);
 
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString('en-US', {

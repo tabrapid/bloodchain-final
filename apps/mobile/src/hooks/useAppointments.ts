@@ -22,14 +22,14 @@ export function useAvailability(params?: {
   startDate?: string;
   endDate?: string;
 }) {
-  return useQuery<{ data: AppointmentSlot[] }>({
+  return useQuery<AppointmentSlot[]>({
     queryKey: ['availability', params],
     queryFn: () => getAvailability(params),
   });
 }
 
 export function useOrganizations(params?: { type?: string }) {
-  return useQuery<{ data: Array<{ id: string; type: string; name: string; address?: string }> }>({
+  return useQuery<Array<{ id: string; type: string; name: string; address?: string }>>({
     queryKey: ['organizations', params],
     queryFn: () => getOrganizations(params),
   });
@@ -42,21 +42,21 @@ export function useMyAppointments(params?: {
   past?: boolean;
   date?: string;
 }) {
-  return useQuery<{ data: Appointment[] }>({
+  return useQuery<Appointment[]>({
     queryKey: ['my-appointments', params],
     queryFn: () => getMyAppointments(params),
   });
 }
 
 export function useNextAppointment() {
-  return useQuery<{ data: Appointment | null }>({
+  return useQuery<Appointment | null>({
     queryKey: ['next-appointment'],
     queryFn: getNextAppointment,
   });
 }
 
 export function useAppointment(id: string) {
-  return useQuery<{ data: Appointment }>({
+  return useQuery<Appointment>({
     queryKey: ['appointment', id],
     queryFn: () => getAppointment(id),
     enabled: !!id,

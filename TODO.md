@@ -524,6 +524,133 @@ These make the product unusable or unsafe for real users. Fix first, in order.
     `apps/admin-web/lib/ai-api.tsx`,
     `apps/admin-web/app/ai-analytics/page.tsx`.
 
+- [x] **P0-15. The same fictional-envelope bug class from P0-12/13/14 turned
+  out to be systemic across nearly the entire mobile app's API layer — not
+  isolated to one or two functions.** — Fixed. With the web apps' "every
+  page and menu" sweep clean (P0-14), and no Android/iOS simulator
+  available in this sandbox to browser-test the mobile app the same way,
+  the next-best move was to apply the same discipline statically: check
+  every mobile `api/*.ts` function against its actual backend pairing
+  before touching anything. That produced a much bigger finding than
+  expected — 12 of the mobile app's 18 API modules had at least one
+  affected function, spanning donor-facing features across nearly the
+  whole app: appointment booking (`getAvailability`, `getOrganizations`,
+  `getMyAppointments`, `getNextAppointment`, `getAppointment`,
+  `bookAppointment`, `cancelAppointment`, `rescheduleAppointment`),
+  donations (`getMyDonations`, `getMyDonationStatistics`, `getDonation`),
+  the donor profile (`getDonorProfile`, `updateDonorProfile`), the user
+  profile (`getUserProfile`, `updateUserProfile`), sessions
+  (`getSessions`, `revokeSession`, `revokeAllSessions`), gamification (9
+  functions across profile/XP/achievements/badges/leaderboard),
+  notification preferences, all 12 laboratory functions, courier shipment
+  history (`getCourierShipments`), and two unused-but-still-wrong `auth.ts`
+  functions (`register`, the dead-code `refreshTokens` — the real
+  token-refresh path in `client.ts`'s own `refreshAccessToken` was already
+  correct). Every one of these silently resolved to `undefined` at the
+  point a screen read `.data` off it — not a crash, since every call site
+  used `?.` and an empty-array/empty-state fallback, so the calendar,
+  booking flow, donation history, gamification screens, and donor/user
+  profile screens looked like ordinary empty states rather than failures,
+  exactly as `test/response-envelope.e2e-spec.ts`'s own doc comment
+  predicted for this bug class on mobile.
+
+  Two of the eighteen modules (`ai-health.ts`, `health-trends.ts`) and five
+  of `auth.ts`'s functions (`login`, `verifyEmail`, `me`, `logout`,
+  `resendVerification`) were checked and found already correct — their
+  backend controllers hand-wrap `{ data: ... }` at the controller level
+  with no interceptor, which is exactly what those functions' existing
+  `apiRequest<{ data: T }>()` calls expected. Confirming these were fine
+  (not just assuming, per this session's established discipline) is what
+  kept the fix scoped to the 12 modules that actually needed it.
+
+  Three bug shapes, matching the taxonomy from P0-10/12/13:
+  1. **Fictional double-unwrap** (P0-12's class, the overwhelming majority
+     here): the backend single-wraps via either `WrapResponseInterceptor`
+     alone (gamification, laboratory, notifications — bare service
+     returns) or a service hand-wrap alone (appointments, donations minus
+     `getMyDonations`, donors minus `getProfileCompletion`, users,
+     sessions, auth) — either way `apiRequest`'s single `json.data as T`
+     already resolves to the real payload, so the extra `{ data: T }` type
+     + `.data` re-read some of these functions carried was one level too
+     deep. Fixed by removing that extra level from the function's return
+     type (and, where the call used `apiRequest<{ data: T }>()` then
+     `response.data` instead of an inferred generic, from the call itself).
+  2. **`meta` silently discarded** (P0-13's class): `getCourierShipments`
+     and `getMyDonations` hand-wrap `{ data, meta }` with no interceptor —
+     `meta` (real pagination totals) sat next to `data` at the top level of
+     the HTTP body, so `apiRequest`'s single unwrap discarded it exactly
+     like blood-center-web's inventory page did. Added
+     `apiRequestEnvelope<T>` to `mobile/src/api/client.ts` — factored out
+     of `apiRequest` the same way blood-center-web's version was in P0-13,
+     returning the whole parsed body instead of just `.data` — and rebuilt
+     `apiRequest` on top of it (`apiRequestEnvelope(...).then(e => e.data)`)
+     so none of the other ~50 call sites in the app change behavior. Both
+     functions now call `apiRequestEnvelope` directly and reassemble
+     `{ data, meta }` themselves.
+  3. **Missing envelope entirely** (P0-10's class — a genuine backend gap,
+     not a client mistype): `DonorsService.getProfileCompletion` returned
+     `{ percentage, completed, missing }` bare, with neither an interceptor
+     nor a hand-wrap, while its sibling `getProfile` on the same controller
+     hand-wraps `{ data: ... }` — so `GET /donors/profile/completion`'s
+     real HTTP body had no `data` key at all, and `apiRequest`'s `json.data
+     as T` was always `undefined`. Fixed by hand-wrapping this one
+     service method's return to match its sibling, rather than adding a
+     controller-wide interceptor (which would have double-wrapped
+     `getProfile`). Five of `CourierController`'s six routes (`getProfile`,
+     `updateProfile`, `updateStatus`, `getActiveShipment`, `getStats`) had
+     the identical gap — bare returns, no interceptor, while the sixth
+     (`getShipments`) was correctly hand-wrapped by its service method —
+     fixed by hand-wrapping the other five at the controller level to
+     match, which needed zero mobile-side changes since those functions'
+     `apiRequest<T>()` calls (without a `{ data: T }` wrapper) already
+     expected exactly this shape.
+
+  This also explains why `test/response-envelope.e2e-spec.ts` (added in an
+  earlier P0-10 fix specifically to catch missing envelopes) never caught
+  the courier or donor-profile-completion gaps: it walks only
+  parameterless GET routes reachable by a super-admin token, and both
+  `/donors/profile/completion` (`@Roles(DONOR)`) and every affected
+  `/courier/*` route 403/404 for that actor (no `Courier` row), so the
+  probe's `res.status >= 400 → continue` skip silently passed over exactly
+  the routes that needed checking. Not fixed as part of this item — a
+  genuine gap in that test's actor coverage, worth a follow-up — but it is
+  why unit tests target the specific service/controller methods here
+  instead of relying on that e2e suite alone.
+
+  Verified three ways: (1) `pnpm -r typecheck` across all 11 workspace
+  projects, clean — this pattern is self-enforcing once the types are
+  correct, the same way P0-12 demonstrated (an errant `.data` re-read now
+  fails typecheck outright, and one such case, in
+  `app/(app)/profile/edit.tsx`, was caught and fixed exactly this way
+  during this fix); (2) new unit tests: 6 new cases in
+  `apps/mobile/src/api/client.spec.ts` asserting `apiRequest` resolves
+  directly to the payload (not a second wrapper), `apiRequestEnvelope`
+  preserves `meta`, error responses throw `ApiRequestError`, and auth
+  headers are attached/skipped correctly; 3 new + 2 updated cases in
+  `apps/api/src/modules/donors/donors.service.spec.ts` for the
+  `getProfileCompletion` envelope fix (`666/666` API unit tests passing
+  overall, `25/25` mobile); (3) live verification against the running dev
+  API with real seeded tokens (`donor@donor.local`, `courier@donor.local`)
+  for every backend-side fix — `GET /donors/profile/completion`,
+  `/courier/profile`, `/courier/stats`, `/courier/shipments/active`,
+  `/appointments/me`, `/me/gamification`, `/donations/me/statistics`,
+  `/notifications/preferences` — confirming each now returns a correctly
+  enveloped `{ data: ... }` body. No Android/iOS simulator is available in
+  this sandbox, so the mobile screens themselves could not be
+  screenshot-verified the way the three web apps were in P0-14; that
+  remains for the user's own device via `claude/local-test-ready`.
+  - Files: `apps/mobile/src/api/client.ts`, `apps/mobile/src/api/client.spec.ts`
+    (new), `apps/mobile/src/api/{appointments,auth,courier,donations,donors,
+    gamification,laboratory,notifications,sessions,users}.ts`,
+    `apps/mobile/src/hooks/{useAppointments,useDonations,useDonors,
+    useGamification,useNotifications,useSessions,useUsers}.ts`,
+    `apps/mobile/app/(app)/{appointment/[id],calendar,donate,donations/[id],
+    home,profile,profile/donor,profile/edit}.tsx`,
+    `apps/mobile/app/(booking)/{confirmation,date,organizations,review,time}.tsx`,
+    `apps/api/src/modules/donors/donors.service.ts`,
+    `apps/api/src/modules/donors/donors.service.spec.ts`,
+    `apps/api/src/modules/courier/courier.controller.ts`.
+
 ## 🟠 P1 — Major gaps (feature exists but disconnected, or missing entirely)
 
 - [x] **P1-1. Booking race conditions (double-booking) in appointments and lab slots.** — Fixed:

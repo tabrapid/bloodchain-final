@@ -7,8 +7,7 @@ import { colors, spacing, radius } from '../../../src/theme';
 
 export default function DonationDetailScreen() {
   const params = useLocalSearchParams<{ id: string }>();
-  const { data, isLoading } = useDonation(params.id);
-  const donation = data?.data;
+  const { data: donation, isLoading } = useDonation(params.id);
 
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString('en-US', {

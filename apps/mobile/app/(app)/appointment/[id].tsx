@@ -22,8 +22,7 @@ import { colors, spacing } from '../../../src/theme';
 
 export default function AppointmentDetail() {
   const params = useLocalSearchParams<{ id: string }>();
-  const { data, isLoading } = useAppointment(params.id);
-  const appointment = data?.data;
+  const { data: appointment, isLoading } = useAppointment(params.id);
 
   const [showCancelReason, setShowCancelReason] = useState(false);
   const [cancelReason, setCancelReason] = useState('');

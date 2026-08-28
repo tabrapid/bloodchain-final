@@ -16,14 +16,14 @@ export function useMyDonations(params?: GetDonationsParams) {
 }
 
 export function useDonationStatistics() {
-  return useQuery<{ data: DonationStatistics }>({
+  return useQuery<DonationStatistics>({
     queryKey: ['donation-statistics'],
     queryFn: getMyDonationStatistics,
   });
 }
 
 export function useDonation(id: string) {
-  return useQuery<{ data: Donation }>({
+  return useQuery<Donation>({
     queryKey: ['donation', id],
     queryFn: () => getDonation(id),
     enabled: !!id,
