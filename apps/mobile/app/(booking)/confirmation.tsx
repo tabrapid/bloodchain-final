@@ -6,8 +6,9 @@ import { useAppointment } from '../../src/hooks/useAppointments';
 import { colors, spacing } from '../../src/theme';
 
 export default function BookingConfirmation() {
-  const params = useLocalSearchParams<{ appointmentId: string }>();
+  const params = useLocalSearchParams<{ appointmentId: string; rescheduled?: string }>();
   const { data: appointment, isLoading } = useAppointment(params.appointmentId);
+  const isRescheduled = params.rescheduled === '1';
 
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString('en-US', {
@@ -34,10 +35,12 @@ export default function BookingConfirmation() {
         </View>
 
         <AppText variant="title" style={styles.title}>
-          Booking Confirmed!
+          {isRescheduled ? 'Appointment Rescheduled!' : 'Booking Confirmed!'}
         </AppText>
         <AppText muted style={styles.subtitle}>
-          Your appointment has been successfully scheduled.
+          {isRescheduled
+            ? 'Your appointment has been moved to the new date and time.'
+            : 'Your appointment has been successfully scheduled.'}
         </AppText>
 
         {isLoading ? (

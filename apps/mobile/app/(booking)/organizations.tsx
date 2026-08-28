@@ -7,7 +7,13 @@ import { colors, spacing, radius } from '../../src/theme';
 
 export default function SelectOrganization() {
   const params = useLocalSearchParams<{ type: string }>();
-  const { data: organizations = [], isLoading } = useOrganizations(params.type ? { type: params.type } : undefined);
+  const {
+    data: organizations = [],
+    isLoading,
+    isError,
+    refetch,
+    isRefetching,
+  } = useOrganizations(params.type ? { type: params.type } : undefined);
 
   const handleSelect = (organizationId: string) => {
     router.push({
@@ -31,6 +37,21 @@ export default function SelectOrganization() {
 
         {isLoading ? (
           <AppText muted>Loading organizations...</AppText>
+        ) : isError ? (
+          <Card style={styles.emptyCard}>
+            <EmptyState
+              title="Couldn't load organizations"
+              description="Something went wrong reaching the server. Check your connection and try again."
+            />
+            <AppButton
+              variant="secondary"
+              onPress={() => refetch()}
+              disabled={isRefetching}
+              style={styles.retryButton}
+            >
+              {isRefetching ? 'Retrying...' : 'Retry'}
+            </AppButton>
+          </Card>
         ) : organizations.length === 0 ? (
           <Card style={styles.emptyCard}>
             <EmptyState
@@ -102,6 +123,10 @@ const styles = StyleSheet.create({
   },
   emptyCard: {
     paddingVertical: spacing.xl,
+  },
+  retryButton: {
+    marginTop: spacing.md,
+    alignSelf: 'center',
   },
   organizationsList: {
     gap: spacing.md,

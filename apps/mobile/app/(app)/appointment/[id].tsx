@@ -17,7 +17,7 @@ import {
   GlassCard,
   Screen,
 } from '../../../src/components';
-import { useAppointment, useCancelAppointment, useRescheduleAppointment } from '../../../src/hooks/useAppointments';
+import { useAppointment, useCancelAppointment } from '../../../src/hooks/useAppointments';
 import { colors, spacing } from '../../../src/theme';
 
 export default function AppointmentDetail() {
@@ -29,7 +29,6 @@ export default function AppointmentDetail() {
   const [error, setError] = useState<string | null>(null);
 
   const cancelMutation = useCancelAppointment();
-  const rescheduleMutation = useRescheduleAppointment();
 
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString('en-US', {
@@ -105,9 +104,17 @@ export default function AppointmentDetail() {
   };
 
   const handleReschedule = () => {
+    if (!appointment) return;
+    // Reschedule keeps the same organization and appointment type -- only
+    // the date/time change -- so this skips straight to date selection
+    // instead of re-running the full new-booking flow.
     router.push({
-      pathname: '/(booking)/select-type' as const,
-      params: { reschedule: params.id },
+      pathname: '/(booking)/date' as const,
+      params: {
+        organizationId: appointment.organization.id,
+        type: appointment.appointmentType,
+        rescheduleAppointmentId: params.id,
+      },
     });
   };
 

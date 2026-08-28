@@ -996,6 +996,80 @@ These make the product unusable or unsafe for real users. Fix first, in order.
     `apps/api/src/modules/ai-health/ai-notification.service.ts`,
     `apps/api/src/modules/ai-health/ai-notification.service.spec.ts` (new).
 
+- [x] **P0-21. Booking flow audit: "Reschedule" silently created a
+  duplicate appointment instead of rescheduling, and three of the five
+  booking screens went permanently blank/stuck with zero explanation on a
+  network error or an expired slot.** — Fixed, continuing the same
+  line-by-line audit as P0-20.
+
+  **"Reschedule" didn't reschedule.** `appointment/[id].tsx`'s
+  `handleReschedule` pushed into the full new-booking flow
+  (`select-type` → `organizations` → `date` → `time` → `review`) carrying a
+  `reschedule` param that nothing downstream ever read — every booking
+  screen's `router.push` calls only forwarded `organizationId`/`type`/
+  `date`/`slotId`, dropping it at the first hop. Meanwhile
+  `useRescheduleAppointment()` (which calls the real, already-correct
+  `POST /appointments/:id/reschedule` backend endpoint — ownership check,
+  RESCHEDULED-status handling, past-slot rejection, all already in place)
+  was instantiated in `appointment/[id].tsx` and never called. Net effect:
+  tapping "Reschedule" created a brand-new appointment and left the
+  original one untouched and still on the calendar — a silent duplicate
+  booking, not a reschedule.
+
+  Fixed by making `handleReschedule` skip straight to `/(booking)/date`
+  with the existing appointment's `organizationId`/`appointmentType`
+  pre-filled (no need to re-pick type or organization for a reschedule)
+  plus a `rescheduleAppointmentId` param, threaded through `date.tsx` →
+  `time.tsx` → `review.tsx`'s subsequent `router.push` calls. In
+  `review.tsx`, `handleConfirm` now branches: when
+  `rescheduleAppointmentId` is present it calls
+  `rescheduleMutation.mutateAsync({ id, input: { newSlotId } })` instead of
+  `bookMutation`, and the removed dead `rescheduleMutation` from
+  `appointment/[id].tsx` is now the one actually doing the work. Screen
+  titles/button labels ("Reschedule Appointment" / "Confirm Reschedule" /
+  "Appointment Rescheduled!") switch based on the same flag so the flow
+  doesn't claim to be creating a new booking when it isn't.
+
+  **Three booking screens had no error or not-found state at all.**
+  - `organizations.tsx` and `time.tsx`: destructured `isLoading` from their
+    `useQuery` hooks but never checked `isError` — a failed fetch (network
+    error, unreachable API) resolved `isLoading` to `false` with empty
+    data, which both screens rendered identically to "genuinely zero
+    results" (a misleading "No organizations found" / "No available
+    times" with no way to tell the difference or retry). Added an
+    `isError` branch with a real retry button calling `refetch()`.
+  - `date.tsx`: worse — `isLoading` was destructured but never referenced
+    anywhere in the component at all. While the availability query was in
+    flight (or had failed), the calendar rendered immediately with every
+    day looking permanently disabled/grayed-out, no loading indicator, no
+    error, nothing — this is the exact "app looks broken on open" failure
+    mode the user hit live on their device with this same screen before
+    P0-18/P0-19. Added a loading line and an `isError` + retry card above
+    the calendar.
+  - `review.tsx`: if either of its two independent queries (`slots` by
+    date, `organizations`) failed, or the specific `slotId`/`organizationId`
+    from the URL just wasn't in the result (e.g. someone else booked the
+    slot in the few seconds since it was selected), the screen's only
+    fallback was `if (!slot || !organization) return <AppText>Loading...</AppText>`
+    — permanently, with no back button, no retry, no way out short of a
+    hard app restart. Split into three real states: still loading, a load
+    error with retry, and "this slot is no longer available" with a way
+    back — all with a working Back button, which the stuck-forever branch
+    never had.
+
+  Verified via `pnpm --filter @bloodchain/mobile typecheck` (clean) and
+  the full mobile test suite (31/31, unchanged — no existing render-test
+  coverage exists for the booking screens to extend; these are static
+  analysis + logic-reading fixes verified by reading every call site,
+  matching the API's actual reschedule DTO shape
+  (`RescheduleAppointmentDto.newSlotId`) against the mobile client's
+  `RescheduleAppointmentInput`, and confirming no other screen still reads
+  the old dead `reschedule` param name).
+  - Files: `apps/mobile/app/(app)/appointment/[id].tsx`,
+    `apps/mobile/app/(booking)/date.tsx`, `apps/mobile/app/(booking)/time.tsx`,
+    `apps/mobile/app/(booking)/review.tsx`, `apps/mobile/app/(booking)/organizations.tsx`,
+    `apps/mobile/app/(booking)/confirmation.tsx`.
+
 ## 🟠 P1 — Major gaps (feature exists but disconnected, or missing entirely)
 
 - [x] **P1-1. Booking race conditions (double-booking) in appointments and lab slots.** — Fixed:

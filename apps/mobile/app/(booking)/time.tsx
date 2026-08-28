@@ -11,9 +11,16 @@ export default function SelectTime() {
     organizationId: string;
     type: string;
     date: string;
+    rescheduleAppointmentId?: string;
   }>();
 
-  const { data: slots = [], isLoading } = useAvailability({
+  const {
+    data: slots = [],
+    isLoading,
+    isError,
+    refetch,
+    isRefetching,
+  } = useAvailability({
     organizationId: params.organizationId,
     appointmentType: params.type,
     date: params.date,
@@ -54,6 +61,9 @@ export default function SelectTime() {
         organizationId: params.organizationId,
         type: params.type,
         date: params.date,
+        ...(params.rescheduleAppointmentId && {
+          rescheduleAppointmentId: params.rescheduleAppointmentId,
+        }),
       },
     });
   };
@@ -100,14 +110,31 @@ export default function SelectTime() {
     <Screen>
       <ScrollView contentContainerStyle={styles.content}>
         <AppText variant="title" style={styles.title}>
-          Select Time
+          {params.rescheduleAppointmentId ? 'Reschedule Appointment' : 'Select Time'}
         </AppText>
         <AppText muted style={styles.subtitle}>
-          Choose an available time for your appointment.
+          {params.rescheduleAppointmentId
+            ? 'Choose a new time for your appointment.'
+            : 'Choose an available time for your appointment.'}
         </AppText>
 
         {isLoading ? (
           <AppText muted>Loading available times...</AppText>
+        ) : isError ? (
+          <Card style={styles.emptyCard}>
+            <EmptyState
+              title="Couldn't load times"
+              description="Something went wrong reaching the server. Check your connection and try again."
+            />
+            <AppButton
+              variant="secondary"
+              onPress={() => refetch()}
+              disabled={isRefetching}
+              style={styles.retryButton}
+            >
+              {isRefetching ? 'Retrying...' : 'Retry'}
+            </AppButton>
+          </Card>
         ) : slots.length === 0 ? (
           <Card style={styles.emptyCard}>
             <EmptyState
@@ -145,6 +172,10 @@ const styles = StyleSheet.create({
   },
   emptyCard: {
     paddingVertical: spacing.xl,
+  },
+  retryButton: {
+    marginTop: spacing.md,
+    alignSelf: 'center',
   },
   slotGroup: {
     marginBottom: spacing.xl,

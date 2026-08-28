@@ -24,13 +24,20 @@ export default function SelectDate() {
   const params = useLocalSearchParams<{
     organizationId: string;
     type: string;
+    rescheduleAppointmentId?: string;
   }>();
 
   const [viewDate, setViewDate] = useState(new Date());
   const year = viewDate.getFullYear();
   const month = viewDate.getMonth();
 
-  const { data: availableSlots = [], isLoading } = useAvailability({
+  const {
+    data: availableSlots = [],
+    isLoading,
+    isError,
+    refetch,
+    isRefetching,
+  } = useAvailability({
     organizationId: params.organizationId,
     appointmentType: params.type,
     startDate: new Date(year, month, 1).toISOString().split('T')[0],
@@ -76,6 +83,9 @@ export default function SelectDate() {
         organizationId: params.organizationId,
         type: params.type,
         date: selectedDate.toISOString().split('T')[0],
+        ...(params.rescheduleAppointmentId && {
+          rescheduleAppointmentId: params.rescheduleAppointmentId,
+        }),
       },
     });
   };
@@ -96,11 +106,35 @@ export default function SelectDate() {
     <Screen>
       <ScrollView contentContainerStyle={styles.content}>
         <AppText variant="title" style={styles.title}>
-          Select Date
+          {params.rescheduleAppointmentId ? 'Reschedule Appointment' : 'Select Date'}
         </AppText>
         <AppText muted style={styles.subtitle}>
-          Choose a date for your appointment.
+          {params.rescheduleAppointmentId
+            ? 'Choose a new date for your appointment.'
+            : 'Choose a date for your appointment.'}
         </AppText>
+
+        {isLoading && (
+          <AppText muted style={styles.statusText}>
+            Loading availability...
+          </AppText>
+        )}
+
+        {isError && (
+          <Card style={styles.errorCard}>
+            <AppText style={{ color: colors.danger }}>
+              Couldn't load availability. Check your connection and try again.
+            </AppText>
+            <AppButton
+              variant="secondary"
+              onPress={() => refetch()}
+              disabled={isRefetching}
+              style={styles.retryButton}
+            >
+              {isRefetching ? 'Retrying...' : 'Retry'}
+            </AppButton>
+          </Card>
+        )}
 
         <GlassCard style={styles.calendarCard}>
           <View style={styles.monthNav}>
@@ -199,6 +233,17 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     marginBottom: spacing.xl,
+  },
+  statusText: {
+    marginBottom: spacing.md,
+  },
+  errorCard: {
+    marginBottom: spacing.lg,
+    alignItems: 'center',
+  },
+  retryButton: {
+    marginTop: spacing.md,
+    alignSelf: 'center',
   },
   calendarCard: {
     padding: spacing.md,
