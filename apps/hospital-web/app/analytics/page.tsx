@@ -109,7 +109,7 @@ export default function AnalyticsPage() {
       setInventory(inventoryData);
       setEmergencies(emergencyData);
       setAppointments(appointmentData);
-      setAlerts(alertsData);
+      setAlerts(alertsData.alerts);
     } catch (err) {
       console.error('Failed to load analytics:', err);
     } finally {
@@ -183,8 +183,9 @@ export default function AnalyticsPage() {
     );
   }
 
-  const criticalAlerts = alerts.filter((a) => a.severity === 'critical' && !a.acknowledged);
-  const highAlerts = alerts.filter((a) => a.severity === 'high' && !a.acknowledged);
+  // getAlerts already queries acknowledged: false, so every entry here is open.
+  const criticalAlerts = alerts.filter((a) => a.priority === 'CRITICAL');
+  const highAlerts = alerts.filter((a) => a.priority === 'HIGH');
 
   return (
     <AppShell
@@ -541,7 +542,7 @@ export default function AnalyticsPage() {
             />
             <StatCard
               label="No Shows"
-              value={appointments.summary.noShows.toString()}
+              value={appointments.summary.noShow.toString()}
               variant="warning"
             />
             <StatCard

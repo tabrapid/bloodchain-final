@@ -39,14 +39,15 @@ export class AnalyticsService {
     await this.validateOrganizationAccess(organizationId, userId);
     const { startDate, endDate } = this.getDateRange(filters.range, filters.startDate, filters.endDate, filters.timezone);
 
-    const [summary, byBloodGroup, trends, movements] = await Promise.all([
+    const [summary, byBloodGroup, byComponent, trends, movements] = await Promise.all([
       this.getInventorySummary(organizationId),
       this.getInventoryByBloodGroup(organizationId),
+      this.getInventoryByComponent(organizationId),
       this.getInventoryTrends(organizationId, startDate, endDate),
       this.getInventoryMovements(organizationId, startDate, endDate),
     ]);
 
-    return { summary, byBloodGroup, trends, movements };
+    return { summary, byBloodGroup, byComponent, trends, movements };
   }
 
   async getDonationAnalytics(organizationId: string, userId: string, filters: any) {
@@ -67,14 +68,15 @@ export class AnalyticsService {
     await this.validateOrganizationAccess(organizationId, userId);
     const { startDate, endDate } = this.getDateRange(filters.range, filters.startDate, filters.endDate, filters.timezone);
 
-    const [summary, byStatus, byUrgency, trends] = await Promise.all([
+    const [summary, byStatus, byUrgency, byBloodGroup, trends] = await Promise.all([
       this.getEmergencySummary(organizationId, startDate, endDate),
       this.getEmergenciesByStatus(organizationId, startDate, endDate),
       this.getEmergenciesByUrgency(organizationId, startDate, endDate),
+      this.getEmergenciesByBloodGroup(organizationId, startDate, endDate),
       this.getEmergencyTrends(organizationId, startDate, endDate),
     ]);
 
-    return { summary, byStatus, byUrgency, trends };
+    return { summary, byStatus, byUrgency, byBloodGroup, trends };
   }
 
   async getRequestAnalytics(organizationId: string, userId: string, filters: any) {
@@ -311,6 +313,7 @@ export class AnalyticsService {
     const available = units.filter((u: any) => u.status === 'AVAILABLE').length;
     const reserved = units.filter((u: any) => u.status === 'RESERVED').length;
     const quarantined = units.filter((u: any) => u.status === 'QUARANTINED').length;
+    const expired = units.filter((u: any) => u.status === 'EXPIRED').length;
 
     const bloodGroupCounts = new Map<string, number>();
     units.forEach((u: any) => {
@@ -339,12 +342,21 @@ export class AnalyticsService {
       availableUnits: available,
       reservedUnits: reserved,
       quarantinedUnits: quarantined,
+      expiredUnits: expired,
       lowStockGroups: lowStock,
       criticalGroups: criticalStock,
       lastUpdated: new Date().toISOString(),
     };
   }
 
+  /**
+   * Matches BloodGroupCountDto's {bloodGroup, rhFactor, fullName, count,
+   * percent} shape, the same as getDonationsByBloodGroup and
+   * getEmergenciesByBloodGroup below -- this one previously returned a
+   * different, one-off shape (available/reserved/inTransit/status, with
+   * reserved and inTransit hardcoded to 0) that the frontend's shared DTO
+   * was never written to expect.
+   */
   private async getInventoryByBloodGroup(organizationId: string) {
     const units = await this.prisma.bloodUnit.groupBy({
       by: ['bloodType', 'rhFactor'],
@@ -352,14 +364,44 @@ export class AnalyticsService {
       _count: { id: true },
     });
 
+    const total = units.reduce((sum: number, u: any) => sum + u._count.id, 0);
     return units.map((u: any) => ({
       bloodGroup: u.bloodType,
       rhFactor: u.rhFactor,
       fullName: `${u.bloodType}${u.rhFactor === 'NEGATIVE' ? '-' : '+'}`,
-      available: u._count.id,
-      reserved: 0,
-      inTransit: 0,
-      status: u._count.id === 0 ? 'OUT_OF_STOCK' : u._count.id < 5 ? 'LOW' : 'HEALTHY',
+      count: u._count.id,
+      percent: total > 0 ? Math.round((u._count.id / total) * 1000) / 10 : 0,
+    }));
+  }
+
+  /** Backs the inventory analytics page's "Inventory by Component" card. */
+  private async getInventoryByComponent(organizationId: string) {
+    const [byComponent, byComponentAvailable, byComponentReserved] = await Promise.all([
+      this.prisma.bloodUnit.groupBy({
+        by: ['componentType'],
+        where: { organizationId },
+        _count: { id: true },
+      }),
+      this.prisma.bloodUnit.groupBy({
+        by: ['componentType'],
+        where: { organizationId, status: 'AVAILABLE' },
+        _count: { id: true },
+      }),
+      this.prisma.bloodUnit.groupBy({
+        by: ['componentType'],
+        where: { organizationId, status: 'RESERVED' },
+        _count: { id: true },
+      }),
+    ]);
+
+    const availableByType = new Map(byComponentAvailable.map((c: any) => [c.componentType, c._count.id]));
+    const reservedByType = new Map(byComponentReserved.map((c: any) => [c.componentType, c._count.id]));
+
+    return byComponent.map((c: any) => ({
+      componentType: c.componentType,
+      count: c._count.id,
+      available: availableByType.get(c.componentType) ?? 0,
+      reserved: reservedByType.get(c.componentType) ?? 0,
     }));
   }
 
@@ -408,9 +450,10 @@ export class AnalyticsService {
   }
 
   private async getDonationSummary(organizationId: string, startDate: Date, endDate: Date) {
-    const [total, completed, units] = await Promise.all([
+    const [total, completed, noShow, units] = await Promise.all([
       this.prisma.donation.count({ where: { organizationId, createdAt: { gte: startDate, lte: endDate } } }),
       this.prisma.donation.count({ where: { organizationId, status: 'COMPLETED', createdAt: { gte: startDate, lte: endDate } } }),
+      this.prisma.donation.count({ where: { organizationId, status: 'NO_SHOW', createdAt: { gte: startDate, lte: endDate } } }),
       this.prisma.donation.findMany({
         where: { organizationId, createdAt: { gte: startDate, lte: endDate }, status: 'COMPLETED' },
         select: { volumeMl: true },
@@ -422,6 +465,8 @@ export class AnalyticsService {
       total,
       completed,
       cancelled: total - completed,
+      noShows: noShow,
+      completionRate: completed > 0 && total > 0 ? Math.round((completed / total) * 100) : null,
       totalVolumeMl: totalVolume,
       avgVolumeMl: units.length > 0 ? Math.round(totalVolume / units.length) : 0,
     };
@@ -527,6 +572,24 @@ export class AnalyticsService {
     });
 
     return emergencies.map((e: any) => ({ urgencyLevel: e.urgencyLevel || 'NORMAL', count: e._count.id }));
+  }
+
+  /** Matches BloodGroupCountDto, same as getInventoryByBloodGroup / getDonationsByBloodGroup. */
+  private async getEmergenciesByBloodGroup(organizationId: string, startDate: Date, endDate: Date) {
+    const emergencies = await this.prisma.emergencyRequest.groupBy({
+      by: ['bloodType', 'rhFactor'],
+      where: { hospitalId: organizationId, createdAt: { gte: startDate, lte: endDate } },
+      _count: { id: true },
+    });
+
+    const total = emergencies.reduce((sum: number, e: any) => sum + e._count.id, 0);
+    return emergencies.map((e: any) => ({
+      bloodGroup: e.bloodType,
+      rhFactor: e.rhFactor,
+      fullName: `${e.bloodType}${e.rhFactor === 'NEGATIVE' ? '-' : '+'}`,
+      count: e._count.id,
+      percent: total > 0 ? Math.round((e._count.id / total) * 1000) / 10 : 0,
+    }));
   }
 
   private async getEmergencyTrends(organizationId: string, startDate: Date, endDate: Date) {

@@ -106,7 +106,7 @@ export default function AnalyticsPage() {
       setDonations(donationData);
       setLaboratory(labData);
       setShipments(shipmentData);
-      setAlerts(alertsData);
+      setAlerts(alertsData.alerts);
     } catch (err) {
       console.error('Failed to load analytics:', err);
     } finally {
@@ -182,8 +182,9 @@ export default function AnalyticsPage() {
     );
   }
 
-  const criticalAlerts = alerts.filter((a) => a.severity === 'critical' && !a.acknowledged);
-  const highAlerts = alerts.filter((a) => a.severity === 'high' && !a.acknowledged);
+  // getAlerts already queries acknowledged: false, so every entry here is open.
+  const criticalAlerts = alerts.filter((a) => a.priority === 'CRITICAL');
+  const highAlerts = alerts.filter((a) => a.priority === 'HIGH');
 
   return (
     <AppShell
@@ -505,57 +506,38 @@ export default function AnalyticsPage() {
 
       {activeSection === 'laboratory' && laboratory && (
         <>
-          <div className="mb-6 grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+          <div className="mb-6 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <StatCard
               label="Total Tests"
-              value={laboratory.summary.total.toString()}
+              value={laboratory.summary.totalTests.toString()}
               icon={TestTube}
             />
             <StatCard
               label="Pending"
-              value={laboratory.summary.pending.toString()}
-              variant={laboratory.summary.pending > 0 ? 'warning' : 'success'}
+              value={laboratory.summary.pendingTests.toString()}
+              variant={laboratory.summary.pendingTests > 0 ? 'warning' : 'success'}
             />
             <StatCard
               label="Completed"
-              value={laboratory.summary.completed.toString()}
+              value={laboratory.summary.completedTests.toString()}
               variant="success"
             />
             <StatCard
-              label="Rejected"
-              value={laboratory.summary.rejected.toString()}
-              variant="danger"
-            />
-            <StatCard
               label="Avg Turnaround"
-              value={laboratory.summary.avgTurnaroundHours ? `${laboratory.summary.avgTurnaroundHours.toFixed(1)}h` : 'N/A'}
+              value={laboratory.summary.avgProcessingTimeHours ? `${laboratory.summary.avgProcessingTimeHours.toFixed(1)}h` : 'N/A'}
               icon={Clock}
             />
           </div>
 
-          <div className="mb-6 grid gap-4 md:grid-cols-2">
-            <div className="rounded-2xl border border-donor-border bg-donor-surface p-5">
-              <h3 className="mb-4 text-sm font-semibold text-donor-text">By Status</h3>
-              <div className="space-y-2">
-                {laboratory.byStatus.map((s) => (
-                  <div key={s.status} className="flex justify-between rounded-lg bg-donor-border p-3">
-                    <span className="text-sm text-donor-muted">{s.status}</span>
-                    <span className="font-semibold text-donor-text">{s.count} ({s.percent.toFixed(1)}%)</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-donor-border bg-donor-surface p-5">
-              <h3 className="mb-4 text-sm font-semibold text-donor-text">By Blood Type</h3>
-              <div className="grid gap-3 md:grid-cols-4 lg:grid-cols-8">
-                {laboratory.byBloodType.map((bg) => (
-                  <div key={bg.fullName} className="rounded-lg bg-donor-border p-3 text-center">
-                    <p className="text-lg font-bold text-donor-text">{bg.fullName}</p>
-                    <p className="text-2xl font-bold text-blue-400">{bg.count}</p>
-                  </div>
-                ))}
-              </div>
+          <div className="rounded-2xl border border-donor-border bg-donor-surface p-5">
+            <h3 className="mb-4 text-sm font-semibold text-donor-text">By Status</h3>
+            <div className="space-y-2">
+              {laboratory.byStatus.map((s) => (
+                <div key={s.status} className="flex justify-between rounded-lg bg-donor-border p-3">
+                  <span className="text-sm text-donor-muted">{s.status}</span>
+                  <span className="font-semibold text-donor-text">{s.count} ({s.percent.toFixed(1)}%)</span>
+                </div>
+              ))}
             </div>
           </div>
         </>
@@ -570,8 +552,8 @@ export default function AnalyticsPage() {
               icon={Truck}
             />
             <StatCard
-              label="In Transit"
-              value={shipments.summary.inTransit.toString()}
+              label="Active"
+              value={shipments.summary.active.toString()}
               variant="info"
             />
             <StatCard
@@ -585,8 +567,8 @@ export default function AnalyticsPage() {
               variant="warning"
             />
             <StatCard
-              label="Returned"
-              value={shipments.summary.returned.toString()}
+              label="Failed"
+              value={shipments.summary.failed.toString()}
               variant="danger"
             />
           </div>

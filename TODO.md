@@ -381,6 +381,149 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   - Files: `apps/blood-center-web/lib/api-client.ts`,
     `apps/blood-center-web/lib/inventory.ts`.
 
+- [x] **P0-14. Live browser sweep of every hospital-web/blood-center-web
+  page (per the user's explicit "check every page and menu, prove it with
+  screenshots" instruction) found four more independent bugs: hospital-web's
+  `/emergency` crashed on the same fictional-double-unwrap pattern as
+  P0-12/P0-13 but via a generic-parameter call site neither of those greps
+  matched; `AnalyticsController`'s 10 routes send no envelope at all
+  (P0-10's bug, not P0-12/13's); both web apps' analytics pages had drifted
+  from what the backend actually returns across five tabs each; and
+  admin-web's `/ai-analytics` sent every request with `Authorization:
+  Bearer null`.** — Fixed all four, each confirmed independently against
+  its actual backend pairing before touching frontend code, then verified
+  live with Playwright (Chromium, seeded users, full-page screenshots,
+  checked for the Next.js dev error overlay and `pageerror` console
+  events) rather than assumed from a sibling app's fix.
+
+  **1. `hospital-web/lib/emergency.ts` `getEmergencies`.** Same root cause
+  as P0-12 — `EmergencyController` has no interceptor, `EmergencyService
+  .getEmergencies` hand-wraps `{ data: emergencies }`, so `apiRequest`
+  already resolves to the bare array — but expressed as
+  `apiRequest<{ data: EmergencyRequest[] }>(endpoint)` then
+  `return response.data`, a generic-parameter variant P0-12's grep for the
+  literal `Promise<{ data:` return-type pattern never matched. This is why
+  the user hit a *new* crash (`/emergency`) immediately after P0-12 shipped
+  instead of confirming it fixed: the bug class was broader than the
+  original static sweep could find, which is what motivated moving to live
+  browser automation for everything from here on. Fixed the function to
+  return `EmergencyRequest[]` directly.
+
+  **2. `AnalyticsController` sent no envelope on any of its 10 routes.**
+  Verified mechanically rather than assumed: extracted every one of
+  `AnalyticsService`'s 10 public methods' final `return` statement and
+  confirmed all 10 (`getOverview`, `getInventoryAnalytics`,
+  `getDonationAnalytics`, `getEmergencyAnalytics`, `getRequestAnalytics`,
+  `getAppointmentAnalytics`, `getLaboratoryAnalytics`,
+  `getShipmentAnalytics`, `getActivityFeed`, `getAlerts`) return bare
+  domain objects with no `{ data: ... }` wrap, and the controller had no
+  `@UseInterceptors` at all — unlike P0-13's `InventoryController`, where
+  adding a controller-wide interceptor would have broken 14 of 17 routes,
+  here it was safe for all 10. Added `@UseInterceptors(WrapResponseInterceptor)`
+  at the controller level.
+
+  While fixing the resulting frontend type drift (below), also closed real
+  backend gaps rather than papering over them with optional chaining:
+  `getInventorySummary` never counted `EXPIRED` units even though the enum
+  value exists (`expiredUnits` added); `getInventoryByBloodGroup` returned
+  a one-off `{ available, reserved: 0, inTransit: 0, status }` shape
+  instead of the shared `BloodGroupCountDto` (`{ bloodGroup, rhFactor,
+  fullName, count, percent }`) every sibling `*ByBloodGroup` helper uses —
+  rewritten to match; added `getInventoryByComponent` (groupBy
+  `componentType` for total/available/reserved) and
+  `getEmergenciesByBloodGroup` (groupBy `bloodType`/`rhFactor` on
+  `emergencyRequest`, same `BloodGroupCountDto` shape), neither of which
+  existed before; `getDonationSummary` never counted `NO_SHOW` donations or
+  computed a completion rate (`noShow`/`completionRate` added). Added 8 new
+  Jest cases in `analytics.service.spec.ts` covering all of the above
+  (`expiredUnits`, `getInventoryByBloodGroup`'s corrected shape,
+  `getInventoryByComponent`, `getDonationSummary`'s `noShows`/
+  `completionRate` including the empty-range → `null` case, and
+  `getEmergenciesByBloodGroup`), and updated the two existing
+  `getInventoryAnalytics`/`getInventoryByBloodGroup` tests that asserted
+  the old, now-removed shape. 37/37 pass.
+
+  Where the backend genuinely has no data to give — `LaboratoryResult
+  .status` is a plain `String` with no `REJECTED` value ever written by any
+  code path, and a `byBloodType` breakdown would need an unimplemented
+  join from `laboratoryResult` through `donorId → User → donorProfile` —
+  the frontend was aligned to reality (fields renamed/removed) instead of
+  either faked with placeholder data or crash-suppressed with optional
+  chaining; the join was scoped out as a genuine backend gap, not silently
+  built as an unplanned feature.
+
+  **3. Both web apps' `lib/analytics.ts` had drifted from the real backend
+  shapes across every tab**, independently in each app (confirmed via
+  `diff` that the two files are not identical — different domain tabs per
+  app) — this is why fixing hospital-web's copy did not also fix
+  blood-center-web's `alerts.filter is not a function` crash found on the
+  next live re-check. In both: `getAlerts`/`AlertItem` used
+  `severity`/`acknowledged` fields that don't exist (real shape is
+  `priority: 'CRITICAL' | 'HIGH'` plus `sourceType`/`sourceId`/`status`)
+  and the page called `.filter` directly on the response instead of
+  `response.alerts`; `getActivityFeed` was typed as a bare array instead
+  of `{ items, total }`; every `get*Trends`-shaped nested field was typed
+  as a bare array instead of the real `{ data, period, total }`. Rewrote
+  both `lib/analytics.ts` files' interfaces and the two `app/analytics
+  /page.tsx` files' consuming code to match. Blood-center-web additionally
+  had two tabs asserting fields the backend never computes: Laboratory's
+  `rejected` count and `byBloodType` breakdown (same non-existent-status/
+  unimplemented-join gap as above — removed, not faked) and Shipments'
+  `inTransit`/`returned` field names (renamed to the real `active`/
+  `failed`).
+
+  Verified live end-to-end with real seeded data, not just typecheck:
+  hospital-web's `/emergency`, `/requests`, and all 3 analytics tabs
+  (Inventory/Emergencies/Appointments) — zero dev-overlay errors, zero
+  `pageerror` events, screenshots confirm real numbers render. Blood-center
+  -web's all 5 analytics tabs (Overview/Inventory/Donations/Laboratory
+  /Shipments) — same zero-error result; screenshots confirm e.g. Laboratory
+  showing "Total Tests: 1, Completed: 1, By Status: PUBLISHED 1 (100.0%)"
+  and Donations showing "Total: 10, Completed: 10, No Shows: 0, Completion
+  Rate: 100.0%" plus all 8 real blood-group counts.
+
+  **4. `admin-web/lib/ai-api.tsx` read the wrong localStorage key.** Its
+  own hand-rolled `authFetch` read `localStorage.getItem('accessToken')`,
+  but every other admin-web module stores the token under
+  `admin_access_token` (`lib/client.tsx`) — so every AI-analytics request
+  sent `Authorization: Bearer null` and the API correctly answered 401.
+  This was not a feature-flag or RBAC issue: checked `AI_ENABLED` in
+  `.env` (it is `false`) and `checkFeatureEnabled()` (throws
+  `ForbiddenException` → 403), neither of which matches an observed 401,
+  which is what pointed at auth instead. Verified the backend routes
+  first, before touching the frontend: `AIAdminController`
+  (`@Controller('admin/ai')`, `@Roles(RoleCode.SUPER_ADMIN)`, matching the
+  seeded `admin@donor.local` user) hand-wraps `{ data: result }` on both
+  `GET analytics` and `GET insight-stats` with no interceptor — a correct
+  single wrap that `apiRequest` was already built to consume correctly.
+  Rewrote `ai-api.tsx` to use the shared `apiRequest` from `./client`
+  instead of its own fetch wrapper (also gets this page the token-refresh
+  -and-retry behavior every other admin-web page already has), and moved
+  the `AIAnalytics`/`AIInsightStats` interfaces here as exports so
+  `app/ai-analytics/page.tsx` consumes the same types the fetcher declares
+  instead of a disconnected local copy. Verified live: logged in as
+  `admin@donor.local`, navigated to `/ai-analytics` — zero dev-overlay
+  errors, zero console/page errors, page renders its real (all-zero, since
+  no AI requests have been seeded) metrics instead of falling back to the
+  "data not available" empty state, confirming the 401 is gone.
+
+  Verification for this entire batch: `pnpm -r typecheck` (all 10
+  workspace projects clean), `pnpm --filter @bloodchain/api lint` (0
+  errors), `pnpm --filter {admin,hospital,blood-center}-web lint` (0
+  errors, each is a `tsc --noEmit` alias), `pnpm --filter @bloodchain/api
+  test -- analytics` (37/37 passing), plus the live Playwright checks
+  described above for every touched page.
+  - Files: `apps/hospital-web/lib/emergency.ts`,
+    `apps/api/src/modules/analytics/analytics.controller.ts`,
+    `apps/api/src/modules/analytics/services/analytics.service.ts`,
+    `apps/api/src/modules/analytics/services/analytics.service.spec.ts`,
+    `apps/hospital-web/lib/analytics.ts`,
+    `apps/hospital-web/app/analytics/page.tsx`,
+    `apps/blood-center-web/lib/analytics.ts`,
+    `apps/blood-center-web/app/analytics/page.tsx`,
+    `apps/admin-web/lib/ai-api.tsx`,
+    `apps/admin-web/app/ai-analytics/page.tsx`.
+
 ## 🟠 P1 — Major gaps (feature exists but disconnected, or missing entirely)
 
 - [x] **P1-1. Booking race conditions (double-booking) in appointments and lab slots.** — Fixed:
