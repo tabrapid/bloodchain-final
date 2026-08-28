@@ -21,6 +21,9 @@ import { colors } from '../theme';
  * colors are actually present in the resolved styles.
  */
 
+jest.mock('expo-router', () => ({
+  router: { push: jest.fn() },
+}));
 jest.mock('../api/community', () => ({
   getFeed: jest.fn(),
   getImpactStats: jest.fn(),
@@ -41,6 +44,7 @@ jest.mock('../api/education', () => ({
   completeContent: jest.fn(),
 }));
 
+import { router } from 'expo-router';
 import { getFeed, getImpactStats } from '../api/community';
 import { getActiveChallenges } from '../api/challenges';
 import { getCampaigns } from '../api/campaigns';
@@ -217,6 +221,25 @@ function styleFingerprint(nodes: ReactTestRendererJSON[]): string {
   return JSON.stringify(nodes.map((node) => node.props?.style ?? null));
 }
 
+/**
+ * Finds the pressable test *instance* (not JSON node) whose rendered text
+ * contains `text`. `onPress` is a prop TouchableOpacity/Pressable consume
+ * internally -- it never reaches the host node in `tree.toJSON()`, only the
+ * component-tree `ReactTestInstance` sees it, so this walks that tree
+ * instead of the JSON one the other helpers use.
+ */
+function findPressableByText(tree: renderer.ReactTestRenderer, text: string) {
+  return tree.root.findAll((node) => {
+    if (typeof node.props.onPress !== 'function') return false;
+    const ownText = node
+      .findAll((n) => typeof n.type === 'string' && (n.type as string) === 'Text')
+      .flatMap((n) => (Array.isArray(n.props.children) ? n.props.children : [n.props.children]))
+      .filter((c): c is string => typeof c === 'string')
+      .join(' ');
+    return ownText.includes(text);
+  })[0];
+}
+
 const screens: Array<[string, React.ComponentType]> = [
   ['community', CommunityScreen],
   ['campaigns', CampaignsScreen],
@@ -255,6 +278,30 @@ describe('P3-9: the four screens that used className render with real styles', (
     expect(text).toContain(postFixture.title);
     expect(text).toContain(challengeFixture.title);
     expect(text).toContain(campaignFixture.title);
+  });
+
+  it('community feed: tapping a challenge card navigates to the challenges list (there is no per-challenge detail route)', async () => {
+    const tree = await renderScreen(CommunityScreen);
+    const card = findPressableByText(tree, challengeFixture.title);
+    expect(card).toBeDefined();
+
+    act(() => {
+      (card!.props.onPress as () => void)();
+    });
+
+    expect(router.push).toHaveBeenCalledWith('/challenges');
+  });
+
+  it('community feed: tapping a campaign card navigates to the campaigns list (there is no per-campaign detail route)', async () => {
+    const tree = await renderScreen(CommunityScreen);
+    const card = findPressableByText(tree, campaignFixture.title);
+    expect(card).toBeDefined();
+
+    act(() => {
+      (card!.props.onPress as () => void)();
+    });
+
+    expect(router.push).toHaveBeenCalledWith('/campaigns');
   });
 
   it('campaigns renders campaign detail rows with themed muted text', async () => {

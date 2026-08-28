@@ -18,6 +18,7 @@ import { colors, spacing, radius } from '../../../src/theme';
 
 export default function ChallengesScreen() {
   const [refreshing, setRefreshing] = useState(false);
+  const [joinError, setJoinError] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   const { data: challenges, isLoading, refetch } = useQuery({
@@ -28,8 +29,12 @@ export default function ChallengesScreen() {
   const joinMutation = useMutation({
     mutationFn: joinChallenge,
     onSuccess: () => {
+      setJoinError(null);
       queryClient.invalidateQueries({ queryKey: ['active-challenges'] });
       queryClient.invalidateQueries({ queryKey: ['my-challenges'] });
+    },
+    onError: (err: any) => {
+      setJoinError(err.message || 'Failed to join challenge. Please try again.');
     },
   });
 
@@ -63,6 +68,12 @@ export default function ChallengesScreen() {
           Complete challenges to earn XP and badges
         </AppText>
       </View>
+
+      {joinError && (
+        <Card style={styles.errorCard}>
+          <AppText style={{ color: colors.danger }}>{joinError}</AppText>
+        </Card>
+      )}
 
       {challenges?.length === 0 ? (
         <Card>
@@ -172,6 +183,11 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     marginTop: spacing.xs,
+  },
+  errorCard: {
+    padding: spacing.md,
+    marginBottom: spacing.lg,
+    backgroundColor: colors.danger + '15',
   },
   list: {
     gap: spacing.md,

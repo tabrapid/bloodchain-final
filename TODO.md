@@ -1117,6 +1117,58 @@ These make the product unusable or unsafe for real users. Fix first, in order.
     `apps/mobile/app/(app)/laboratory/index.tsx`,
     `apps/mobile/app/(app)/health-trends/index.tsx`.
 
+- [x] **P0-23. Community feed's challenge/campaign cards were dead taps
+  (`TouchableOpacity` with no `onPress` at all), and join/start/complete
+  actions across campaigns, challenges, and education silently swallowed
+  failures with zero user feedback.** — Fixed, continuing the same audit
+  (gamification, community, campaigns, challenges, education).
+
+  **Dead taps in the community feed.** `community/index.tsx`'s
+  `ChallengeCard` and `CampaignCard` (the compact cards shown in the
+  "Active Challenges" / "Active Campaigns" sections of the feed) were both
+  wrapped in a `TouchableOpacity` with `activeOpacity={0.8}` — visually
+  signaling they're tappable — but neither passed an `onPress` prop.
+  Tapping either did nothing. There's no per-item detail route for either
+  (`challenges/index.tsx` and `campaigns/index.tsx` are flat lists with
+  the full card, including the Join button, inline — no `[id].tsx`), so
+  the correct fix is routing to those list screens rather than inventing
+  a detail route that doesn't exist: both cards now navigate to
+  `/challenges` and `/campaigns` respectively.
+
+  **Join/start/complete actions had no error path.** `campaigns/index.tsx`,
+  `challenges/index.tsx`, and `education/index.tsx` each drive a
+  `useMutation` (`joinCampaign` / `joinChallenge` / `startContent` /
+  `completeContent`) with an `onSuccess` that invalidates the relevant
+  queries — but no `onError` at all. A failure (network error, a campaign
+  that expired between page load and tap, the backend's "must start before
+  completing" rule if progress state goes stale) just silently stopped the
+  button's spinner with nothing shown — same silent-failure pattern as
+  P0-20 through P0-22, just on `useMutation`'s `onError` instead of a bare
+  `try/catch`. Added an error state to all three screens, surfaced in a
+  card above the list, cleared on the next successful action.
+
+  (Checked whether "Join Campaign" needed an already-joined guard, since
+  `Campaign` has no `hasJoined`/participation field for the client to key
+  off of: the backend's `joinCampaign` is idempotent — a second join just
+  returns the existing `CampaignParticipant` row, no conflict thrown — so
+  this is a UI polish gap, not a functional bug, and out of scope here.)
+
+  Verified via `pnpm --filter @bloodchain/mobile typecheck` (clean) and
+  the mobile test suite, now 33/33: added 2 tests to the existing
+  `community-screens.spec.tsx` asserting the challenge/campaign card taps
+  call `router.push('/challenges')` / `router.push('/campaigns')`
+  (via `tree.root.findAll` over the component-instance tree, since
+  `onPress` is a prop `TouchableOpacity` consumes internally and never
+  reaches the host node in `tree.toJSON()` — the file's other assertions
+  walk the JSON tree, which doesn't see it), plus a mock for `expo-router`
+  that the suite didn't previously need (`community/index.tsx` didn't
+  import it before this fix).
+  - Files: `apps/mobile/app/(app)/community/index.tsx`,
+    `apps/mobile/app/(app)/campaigns/index.tsx`,
+    `apps/mobile/app/(app)/challenges/index.tsx`,
+    `apps/mobile/app/(app)/education/index.tsx`,
+    `apps/mobile/src/__tests__/community-screens.spec.tsx`.
+
 ## 🟠 P1 — Major gaps (feature exists but disconnected, or missing entirely)
 
 - [x] **P1-1. Booking race conditions (double-booking) in appointments and lab slots.** — Fixed:

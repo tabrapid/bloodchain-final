@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Image, RefreshControl, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { Trophy, Users, Calendar, BookOpen, TrendingUp, Award } from 'lucide-react-native';
 import {
@@ -192,7 +193,11 @@ function ChallengeCard({ challenge }: { challenge: Challenge }) {
   const progress = current / challenge.goal;
 
   return (
-    <TouchableOpacity style={styles.nestedCard} activeOpacity={0.8}>
+    <TouchableOpacity
+      style={styles.nestedCard}
+      activeOpacity={0.8}
+      onPress={() => router.push('/challenges')}
+    >
       <AppText style={styles.nestedTitle}>{challenge.title}</AppText>
       <AppText muted variant="bodySmall" style={styles.nestedDescription} numberOfLines={2}>
         {challenge.description}
@@ -222,7 +227,11 @@ function ChallengeCard({ challenge }: { challenge: Challenge }) {
 
 function CampaignCard({ campaign }: { campaign: Campaign }) {
   return (
-    <TouchableOpacity style={styles.nestedCard} activeOpacity={0.8}>
+    <TouchableOpacity
+      style={styles.nestedCard}
+      activeOpacity={0.8}
+      onPress={() => router.push('/campaigns')}
+    >
       <AppText style={styles.nestedTitle}>{campaign.title}</AppText>
       <AppText muted variant="bodySmall" style={styles.nestedDescription} numberOfLines={2}>
         {campaign.description}

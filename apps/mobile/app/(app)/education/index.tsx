@@ -24,6 +24,7 @@ import { colors, spacing } from '../../../src/theme';
 
 export default function EducationScreen() {
   const [refreshing, setRefreshing] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   const { data: content, isLoading, refetch } = useQuery({
@@ -51,8 +52,12 @@ export default function EducationScreen() {
   const startMutation = useMutation({
     mutationFn: startContent,
     onSuccess: () => {
+      setActionError(null);
       queryClient.invalidateQueries({ queryKey: ['education-progress'] });
       queryClient.invalidateQueries({ queryKey: ['education-stats'] });
+    },
+    onError: (err: any) => {
+      setActionError(err.message || 'Failed to start content. Please try again.');
     },
   });
 
@@ -61,9 +66,13 @@ export default function EducationScreen() {
   const completeMutation = useMutation({
     mutationFn: completeContent,
     onSuccess: () => {
+      setActionError(null);
       queryClient.invalidateQueries({ queryKey: ['educational-content'] });
       queryClient.invalidateQueries({ queryKey: ['education-progress'] });
       queryClient.invalidateQueries({ queryKey: ['education-stats'] });
+    },
+    onError: (err: any) => {
+      setActionError(err.message || 'Failed to complete content. Please try again.');
     },
   });
 
@@ -112,6 +121,12 @@ export default function EducationScreen() {
       <AppText variant="heading" style={styles.sectionTitle}>
         Available Content
       </AppText>
+
+      {actionError && (
+        <Card style={styles.errorCard}>
+          <AppText style={{ color: colors.danger }}>{actionError}</AppText>
+        </Card>
+      )}
 
       {content?.items.length === 0 ? (
         <Card>
@@ -238,6 +253,11 @@ const styles = StyleSheet.create({
   statsCard: {
     padding: spacing.lg,
     marginBottom: spacing.lg,
+  },
+  errorCard: {
+    padding: spacing.md,
+    marginBottom: spacing.lg,
+    backgroundColor: colors.danger + '15',
   },
   statsRow: {
     flexDirection: 'row',

@@ -17,6 +17,7 @@ import { colors, spacing } from '../../../src/theme';
 
 export default function CampaignsScreen() {
   const [refreshing, setRefreshing] = useState(false);
+  const [joinError, setJoinError] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   const { data, isLoading, refetch } = useQuery({
@@ -27,8 +28,12 @@ export default function CampaignsScreen() {
   const joinMutation = useMutation({
     mutationFn: joinCampaign,
     onSuccess: () => {
+      setJoinError(null);
       queryClient.invalidateQueries({ queryKey: ['campaigns'] });
       queryClient.invalidateQueries({ queryKey: ['my-campaigns'] });
+    },
+    onError: (err: any) => {
+      setJoinError(err.message || 'Failed to join campaign. Please try again.');
     },
   });
 
@@ -62,6 +67,12 @@ export default function CampaignsScreen() {
           Join campaigns to help save lives in your community
         </AppText>
       </View>
+
+      {joinError && (
+        <Card style={styles.errorCard}>
+          <AppText style={{ color: colors.danger }}>{joinError}</AppText>
+        </Card>
+      )}
 
       {data?.items.length === 0 ? (
         <Card>
@@ -168,6 +179,11 @@ function CampaignCard({
 const styles = StyleSheet.create({
   header: {
     marginBottom: spacing.lg,
+  },
+  errorCard: {
+    padding: spacing.md,
+    marginBottom: spacing.lg,
+    backgroundColor: colors.danger + '15',
   },
   subtitle: {
     marginTop: spacing.xs,
