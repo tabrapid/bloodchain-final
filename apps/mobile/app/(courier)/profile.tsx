@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, TextInput, View } from 'react-native';
-import { Building2, LogOut, Moon, Sun } from 'lucide-react-native';
-import { AppButton, AppText, Badge, Card, LoadingState, Screen } from '../../src/components';
+import { AlertTriangle, Building2, LogOut, Moon, Sun } from 'lucide-react-native';
+import { AppButton, AppText, Badge, Card, EmptyState, LoadingState, Screen } from '../../src/components';
 import { useLogout } from '../../src/hooks/useAuth';
 import { colors, spacing } from '../../src/theme';
 import {
@@ -76,11 +76,27 @@ export default function CourierProfileScreen() {
     }
   };
 
-  if (isLoading || !profile) {
+  if (isLoading) {
     return (
       <Screen>
         <AppText variant="title" style={{ marginBottom: spacing.lg }}>Profile</AppText>
         <LoadingState />
+      </Screen>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <Screen>
+        <AppText variant="title" style={{ marginBottom: spacing.lg }}>Profile</AppText>
+        <EmptyState
+          icon={AlertTriangle}
+          title="Couldn't load your profile"
+          description="Something went wrong reaching the server. Check your connection and try again."
+        />
+        <AppButton variant="secondary" onPress={load} style={{ marginTop: spacing.md }}>
+          Retry
+        </AppButton>
       </Screen>
     );
   }

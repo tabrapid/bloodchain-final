@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { RefreshControl, ScrollView, View } from 'react-native';
-import { CheckCircle, Clock3, Droplet, Package, XCircle } from 'lucide-react-native';
-import { AppText, Badge, Card, EmptyState, LoadingState, Screen, StatCard } from '../../src/components';
+import { AlertTriangle, CheckCircle, Clock3, Droplet, Package, XCircle } from 'lucide-react-native';
+import { AppButton, AppText, Badge, Card, EmptyState, LoadingState, Screen, StatCard } from '../../src/components';
 import { colors, spacing } from '../../src/theme';
 import { getCourierShipments, getCourierStats, type CourierStats, type Shipment } from '../../src/api/courier';
 
@@ -23,6 +23,7 @@ export default function CourierHistory() {
   const [stats, setStats] = useState<CourierStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -32,8 +33,10 @@ export default function CourierHistory() {
       ]);
       setShipments(shipmentsRes.data);
       setStats(statsRes);
+      setLoadError(false);
     } catch (err) {
       console.error('Failed to load courier history:', err);
+      setLoadError(true);
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -86,7 +89,20 @@ export default function CourierHistory() {
         )}
 
         {shipments.length === 0 ? (
-          <EmptyState icon={Package} title="No deliveries yet" description="Completed and past deliveries will appear here." />
+          loadError ? (
+            <>
+              <EmptyState
+                icon={AlertTriangle}
+                title="Couldn't load your history"
+                description="Something went wrong reaching the server. Check your connection and try again."
+              />
+              <AppButton variant="secondary" onPress={load} style={{ marginTop: spacing.md }}>
+                Retry
+              </AppButton>
+            </>
+          ) : (
+            <EmptyState icon={Package} title="No deliveries yet" description="Completed and past deliveries will appear here." />
+          )
         ) : (
           shipments.map((shipment) => (
             <Card key={shipment.id} style={{ marginBottom: spacing.md }}>

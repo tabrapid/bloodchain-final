@@ -1221,6 +1221,45 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   - Files: `apps/mobile/app/settings.tsx` (deleted),
     `apps/mobile/app/sos.tsx`, `apps/mobile/app/(app)/security.tsx`.
 
+- [x] **P0-25. Courier's own profile screen spun on "Loading..." forever
+  on any fetch failure, with no error and no way out; active.tsx and
+  history.tsx had the same error-swallowed-as-empty gap already fixed
+  elsewhere this session.** — Fixed, closing out the audit's screen sweep
+  (courier: active, history, profile).
+
+  **`(courier)/profile.tsx` was a genuine, permanent dead end.** Its
+  guard was `if (isLoading || !profile) return <LoadingState />`. Once the
+  initial fetch settles, `isLoading` is always `false` — but if
+  `getCourierProfile()` failed, the `catch` block only `console.error`'d,
+  so `profile` stayed `null` forever, and `!profile` kept the condition
+  true. The screen never leaves the loading spinner: no error message, no
+  retry, no way for a working courier to reach their own availability
+  toggle short of a hard app restart — and if the underlying failure is
+  systemic (backend down, bad auth), a restart doesn't fix it either. This
+  is the same "stuck forever" class as P0-21's `review.tsx` fix, just with
+  a spinner standing in for the earlier bare "Loading..." text. Split the
+  guard into a real loading branch and a separate not-found/error branch
+  with a Retry button.
+
+  **`active.tsx` and `history.tsx`**: both `console.error`'d a failed
+  fetch and left their list/shipment state at its initial empty value,
+  which both screens then rendered identically to "you have no active
+  delivery" / "no delivery history yet" — the same error-indistinguishable-
+  from-empty pattern fixed in `laboratory/index.tsx` and
+  `health-trends/index.tsx` under P0-22. Added a `loadError` flag to both,
+  with distinct copy and an explicit Retry button (both already had
+  `RefreshControl`, but a courier mid-delivery reading "No active
+  delivery" when the real answer is "the request failed" is exactly the
+  wrong message to give someone who needs to know whether they're still
+  on the hook for a shipment).
+
+  Verified via `pnpm --filter @bloodchain/mobile typecheck` (clean) and
+  the full mobile test suite (33/33, unchanged — no existing render-test
+  coverage for the courier screens).
+  - Files: `apps/mobile/app/(courier)/active.tsx`,
+    `apps/mobile/app/(courier)/history.tsx`,
+    `apps/mobile/app/(courier)/profile.tsx`.
+
 ## 🟠 P1 — Major gaps (feature exists but disconnected, or missing entirely)
 
 - [x] **P1-1. Booking race conditions (double-booking) in appointments and lab slots.** — Fixed:

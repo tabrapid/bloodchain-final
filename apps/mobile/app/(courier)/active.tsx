@@ -55,6 +55,7 @@ export default function CourierActive() {
   const [shipment, setShipment] = useState<Shipment | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [showDecline, setShowDecline] = useState(false);
   const [declineReason, setDeclineReason] = useState('');
@@ -68,8 +69,10 @@ export default function CourierActive() {
     try {
       const active = await getActiveShipment();
       setShipment(active);
+      setLoadError(false);
     } catch (err) {
       console.error('Failed to load active shipment:', err);
+      setLoadError(true);
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -284,11 +287,24 @@ export default function CourierActive() {
         }
       >
         {!shipment ? (
-          <EmptyState
-            icon={Package}
-            title="No active delivery"
-            description="When a blood center assigns you a shipment, it will show up here."
-          />
+          loadError ? (
+            <>
+              <EmptyState
+                icon={AlertTriangle}
+                title="Couldn't load your delivery"
+                description="Something went wrong reaching the server. Check your connection and try again."
+              />
+              <AppButton variant="secondary" onPress={load} style={{ marginTop: spacing.md }}>
+                Retry
+              </AppButton>
+            </>
+          ) : (
+            <EmptyState
+              icon={Package}
+              title="No active delivery"
+              description="When a blood center assigns you a shipment, it will show up here."
+            />
+          )
         ) : (
           <>
             <Card style={{ marginBottom: spacing.lg }}>
