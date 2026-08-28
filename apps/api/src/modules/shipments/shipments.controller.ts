@@ -25,7 +25,6 @@ import {
   CreateShipmentDto,
   DeclineShipmentDto,
   FailShipmentDto,
-  GetCourierShipmentsDto,
   GetRequestsDto,
   GetShipmentsDto,
   UpdateLocationDto,
@@ -45,12 +44,12 @@ export class ShipmentsController {
   @Post('organizations/:organizationId/blood-requests')
   @Roles(RoleCode.HOSPITAL_ADMIN, RoleCode.HOSPITAL_STAFF, RoleCode.SUPER_ADMIN)
   @ApiOperation({ summary: 'Create blood request' })
-  createRequest(
+  async createRequest(
     @Param('organizationId') organizationId: string,
     @Body() dto: CreateBloodRequestDto,
     @CurrentUser('sub') userId: string,
   ) {
-    return this.shipments.createRequest(organizationId, userId, dto);
+    return { data: await this.shipments.createRequest(organizationId, userId, dto) };
   }
 
   @Get('organizations/:organizationId/blood-requests')
@@ -67,37 +66,37 @@ export class ShipmentsController {
   @Get('organizations/:organizationId/blood-requests/:requestId')
   @Roles(RoleCode.SUPER_ADMIN, RoleCode.HOSPITAL_ADMIN, RoleCode.HOSPITAL_STAFF, RoleCode.BLOOD_CENTER_ADMIN, RoleCode.BLOOD_CENTER_STAFF)
   @ApiOperation({ summary: 'Get blood request details' })
-  getRequest(
+  async getRequest(
     @Param('organizationId') organizationId: string,
     @Param('requestId') requestId: string,
     @CurrentUser('sub') userId: string,
   ) {
-    return this.shipments.getRequest(organizationId, userId, requestId);
+    return { data: await this.shipments.getRequest(organizationId, userId, requestId) };
   }
 
   @Post('organizations/:organizationId/blood-requests/:requestId/approve')
   @Roles(RoleCode.BLOOD_CENTER_ADMIN, RoleCode.BLOOD_CENTER_STAFF, RoleCode.SUPER_ADMIN)
   @ApiOperation({ summary: 'Approve blood request' })
-  approveRequest(
+  async approveRequest(
     @Param('organizationId') organizationId: string,
     @Param('requestId') requestId: string,
     @Body() dto: ApproveRequestDto,
     @CurrentUser('sub') userId: string,
     @Req() req: Request,
   ) {
-    return this.shipments.approveRequest(organizationId, userId, requestId, dto);
+    return { data: await this.shipments.approveRequest(organizationId, userId, requestId, dto) };
   }
 
   @Post('organizations/:organizationId/blood-requests/:requestId/ready-for-pickup')
   @Roles(RoleCode.BLOOD_CENTER_ADMIN, RoleCode.BLOOD_CENTER_STAFF, RoleCode.SUPER_ADMIN)
   @ApiOperation({ summary: 'Mark request as ready for pickup' })
-  markReadyForPickup(
+  async markReadyForPickup(
     @Param('organizationId') organizationId: string,
     @Param('requestId') requestId: string,
     @CurrentUser('sub') userId: string,
     @Req() req: Request,
   ) {
-    return this.shipments.markReadyForPickup(organizationId, userId, requestId);
+    return { data: await this.shipments.markReadyForPickup(organizationId, userId, requestId) };
   }
 
   @Post('organizations/:organizationId/blood-requests/:requestId/shipments')
@@ -105,14 +104,16 @@ export class ShipmentsController {
   @Idempotent('shipment.create')
   @UseInterceptors(IdempotencyInterceptor)
   @ApiOperation({ summary: 'Create shipment for request' })
-  createShipment(
+  async createShipment(
     @Param('organizationId') organizationId: string,
     @Param('requestId') requestId: string,
     @Body() dto: CreateShipmentDto,
     @CurrentUser('sub') userId: string,
     @Req() req: Request,
   ) {
-    return this.shipments.createShipment(organizationId, userId, requestId, dto, req.headers['x-forwarded-for'] as string);
+    return {
+      data: await this.shipments.createShipment(organizationId, userId, requestId, dto, req.headers['x-forwarded-for'] as string),
+    };
   }
 
   @Get('organizations/:organizationId/shipments')
@@ -129,22 +130,22 @@ export class ShipmentsController {
   @Get('organizations/:organizationId/shipments/:shipmentId')
   @Roles(RoleCode.SUPER_ADMIN, RoleCode.HOSPITAL_ADMIN, RoleCode.HOSPITAL_STAFF, RoleCode.BLOOD_CENTER_ADMIN, RoleCode.BLOOD_CENTER_STAFF)
   @ApiOperation({ summary: 'Get shipment details' })
-  getShipment(
+  async getShipment(
     @Param('organizationId') organizationId: string,
     @Param('shipmentId') shipmentId: string,
     @CurrentUser('sub') userId: string,
   ) {
-    return this.shipments.getShipment(organizationId, userId, shipmentId);
+    return { data: await this.shipments.getShipment(organizationId, userId, shipmentId) };
   }
 
   @Get('organizations/:organizationId/couriers')
   @Roles(RoleCode.BLOOD_CENTER_ADMIN, RoleCode.BLOOD_CENTER_STAFF, RoleCode.SUPER_ADMIN)
   @ApiOperation({ summary: 'Get available couriers' })
-  getAvailableCouriers(
+  async getAvailableCouriers(
     @Param('organizationId') organizationId: string,
     @CurrentUser('sub') userId: string,
   ) {
-    return this.shipments.getAvailableCouriers(organizationId, userId);
+    return { data: await this.shipments.getAvailableCouriers(organizationId, userId) };
   }
 
   @Get('organizations/:organizationId/couriers/roster')
@@ -160,171 +161,167 @@ export class ShipmentsController {
   @Post('organizations/:organizationId/shipments/:shipmentId/assign')
   @Roles(RoleCode.BLOOD_CENTER_ADMIN, RoleCode.BLOOD_CENTER_STAFF, RoleCode.SUPER_ADMIN)
   @ApiOperation({ summary: 'Assign courier to shipment' })
-  assignCourier(
+  async assignCourier(
     @Param('organizationId') organizationId: string,
     @Param('shipmentId') shipmentId: string,
     @Body() dto: AssignCourierDto,
     @CurrentUser('sub') userId: string,
     @Req() req: Request,
   ) {
-    return this.shipments.assignCourier(organizationId, userId, shipmentId, dto.courierId, req.headers['x-forwarded-for'] as string);
+    return {
+      data: await this.shipments.assignCourier(organizationId, userId, shipmentId, dto.courierId, req.headers['x-forwarded-for'] as string),
+    };
   }
 
   @Post('courier/shipments/:shipmentId/accept')
   @Roles(RoleCode.COURIER, RoleCode.SUPER_ADMIN)
   @ApiOperation({ summary: 'Courier accepts shipment' })
-  acceptShipment(
+  async acceptShipment(
     @Param('shipmentId') shipmentId: string,
     @CurrentUser('sub') userId: string,
     @Req() req: Request,
   ) {
-    return this.shipments.acceptShipment(userId, shipmentId, req.headers['x-forwarded-for'] as string);
+    return { data: await this.shipments.acceptShipment(userId, shipmentId, req.headers['x-forwarded-for'] as string) };
   }
 
   @Post('courier/shipments/:shipmentId/decline')
   @Roles(RoleCode.COURIER, RoleCode.SUPER_ADMIN)
   @ApiOperation({ summary: 'Courier declines shipment' })
-  declineShipment(
+  async declineShipment(
     @Param('shipmentId') shipmentId: string,
     @CurrentUser('sub') userId: string,
     @Body() dto: DeclineShipmentDto,
     @Req() req: Request,
   ) {
-    return this.shipments.declineShipment(userId, shipmentId, dto.reason, req.headers['x-forwarded-for'] as string);
+    return { data: await this.shipments.declineShipment(userId, shipmentId, dto.reason, req.headers['x-forwarded-for'] as string) };
   }
 
   @Post('courier/shipments/:shipmentId/start-pickup')
   @Roles(RoleCode.COURIER, RoleCode.SUPER_ADMIN)
   @ApiOperation({ summary: 'Start pickup' })
-  startPickup(
+  async startPickup(
     @Param('shipmentId') shipmentId: string,
     @CurrentUser('sub') userId: string,
     @Req() req: Request,
   ) {
-    return this.shipments.startPickup(userId, shipmentId, req.headers['x-forwarded-for'] as string);
+    return { data: await this.shipments.startPickup(userId, shipmentId, req.headers['x-forwarded-for'] as string) };
   }
 
   @Post('courier/shipments/:shipmentId/confirm-pickup')
   @Roles(RoleCode.COURIER, RoleCode.SUPER_ADMIN)
   @ApiOperation({ summary: 'Confirm pickup' })
-  confirmPickup(
+  async confirmPickup(
     @Param('shipmentId') shipmentId: string,
     @CurrentUser('sub') userId: string,
     @Req() req: Request,
   ) {
-    return this.shipments.confirmPickup(userId, shipmentId, req.headers['x-forwarded-for'] as string);
+    return { data: await this.shipments.confirmPickup(userId, shipmentId, req.headers['x-forwarded-for'] as string) };
   }
 
   @Post('courier/shipments/:shipmentId/start-delivery')
   @Roles(RoleCode.COURIER, RoleCode.SUPER_ADMIN)
   @ApiOperation({ summary: 'Start delivery' })
-  startDelivery(
+  async startDelivery(
     @Param('shipmentId') shipmentId: string,
     @CurrentUser('sub') userId: string,
     @Req() req: Request,
   ) {
-    return this.shipments.startDelivery(userId, shipmentId, req.headers['x-forwarded-for'] as string);
+    return { data: await this.shipments.startDelivery(userId, shipmentId, req.headers['x-forwarded-for'] as string) };
   }
 
   @Post('courier/shipments/:shipmentId/update-location')
   @Roles(RoleCode.COURIER, RoleCode.SUPER_ADMIN)
   @ApiOperation({ summary: 'Update courier location' })
-  updateLocation(
+  async updateLocation(
     @Param('shipmentId') shipmentId: string,
     @Body() dto: UpdateLocationDto,
     @CurrentUser('sub') userId: string,
     @Req() req: Request,
   ) {
-    return this.shipments.updateLocation(userId, shipmentId, dto, req.headers['x-forwarded-for'] as string);
+    return { data: await this.shipments.updateLocation(userId, shipmentId, dto, req.headers['x-forwarded-for'] as string) };
   }
 
   @Post('courier/shipments/:shipmentId/arrive')
   @Roles(RoleCode.COURIER, RoleCode.SUPER_ADMIN)
   @ApiOperation({ summary: 'Arrived at hospital' })
-  arriveAtHospital(
+  async arriveAtHospital(
     @Param('shipmentId') shipmentId: string,
     @CurrentUser('sub') userId: string,
     @Req() req: Request,
   ) {
-    return this.shipments.arriveAtHospital(userId, shipmentId, req.headers['x-forwarded-for'] as string);
+    return { data: await this.shipments.arriveAtHospital(userId, shipmentId, req.headers['x-forwarded-for'] as string) };
   }
 
   @Post('courier/shipments/:shipmentId/fail')
   @Roles(RoleCode.COURIER, RoleCode.SUPER_ADMIN)
   @ApiOperation({ summary: 'Fail shipment' })
-  failShipment(
+  async failShipment(
     @Param('shipmentId') shipmentId: string,
     @Body() dto: FailShipmentDto,
     @CurrentUser('sub') userId: string,
     @Req() req: Request,
   ) {
-    return this.shipments.failShipment(userId, shipmentId, dto, req.headers['x-forwarded-for'] as string);
+    return { data: await this.shipments.failShipment(userId, shipmentId, dto, req.headers['x-forwarded-for'] as string) };
   }
 
   @Get('shipments/:shipmentId/locations')
   @Roles(RoleCode.SUPER_ADMIN, RoleCode.HOSPITAL_ADMIN, RoleCode.HOSPITAL_STAFF, RoleCode.BLOOD_CENTER_ADMIN, RoleCode.BLOOD_CENTER_STAFF, RoleCode.COURIER)
   @ApiOperation({ summary: 'Get shipment location history' })
-  getShipmentLocations(
+  async getShipmentLocations(
     @Param('shipmentId') shipmentId: string,
     @CurrentUser('sub') userId: string,
   ) {
-    return this.shipments.getShipmentLocations(shipmentId, userId);
-  }
-
-  @Get('courier/shipments')
-  @Roles(RoleCode.COURIER, RoleCode.SUPER_ADMIN)
-  @ApiOperation({ summary: 'Get courier shipments' })
-  getCourierShipments(
-    @CurrentUser('sub') userId: string,
-    @Query() filters: GetCourierShipmentsDto,
-  ) {
-    return this.shipments.getCourierShipments(userId, filters);
+    return { data: await this.shipments.getShipmentLocations(shipmentId, userId) };
   }
 
   @Get('shipments/:shipmentId/timeline')
   @Roles(RoleCode.SUPER_ADMIN, RoleCode.HOSPITAL_ADMIN, RoleCode.HOSPITAL_STAFF, RoleCode.BLOOD_CENTER_ADMIN, RoleCode.BLOOD_CENTER_STAFF, RoleCode.COURIER)
   @ApiOperation({ summary: 'Get shipment timeline' })
-  getShipmentTimeline(
+  async getShipmentTimeline(
     @Param('shipmentId') shipmentId: string,
     @CurrentUser('sub') userId: string,
   ) {
-    return this.shipments.getShipmentTimeline(shipmentId, userId);
+    return { data: await this.shipments.getShipmentTimeline(shipmentId, userId) };
   }
 
   @Get('shipments/:shipmentId/tracking')
   @Roles(RoleCode.SUPER_ADMIN, RoleCode.HOSPITAL_ADMIN, RoleCode.HOSPITAL_STAFF, RoleCode.BLOOD_CENTER_ADMIN, RoleCode.BLOOD_CENTER_STAFF, RoleCode.COURIER)
   @ApiOperation({ summary: 'Get shipment tracking info' })
-  getShipmentTracking(
+  async getShipmentTracking(
     @Param('shipmentId') shipmentId: string,
     @CurrentUser('sub') userId: string,
   ) {
-    return this.shipments.getShipmentTracking(shipmentId, userId);
+    return { data: await this.shipments.getShipmentTracking(shipmentId, userId) };
   }
 
   @Post('organizations/:organizationId/shipments/:shipmentId/cancel')
   @Roles(RoleCode.BLOOD_CENTER_ADMIN, RoleCode.BLOOD_CENTER_STAFF, RoleCode.SUPER_ADMIN)
   @ApiOperation({ summary: 'Cancel shipment' })
-  cancelShipment(
+  async cancelShipment(
     @Param('organizationId') organizationId: string,
     @Param('shipmentId') shipmentId: string,
     @Body() dto: CancelShipmentDto,
     @CurrentUser('sub') userId: string,
     @Req() req: Request,
   ) {
-    return this.shipments.cancelShipment(organizationId, userId, shipmentId, dto.reason, req.headers['x-forwarded-for'] as string);
+    return {
+      data: await this.shipments.cancelShipment(organizationId, userId, shipmentId, dto.reason, req.headers['x-forwarded-for'] as string),
+    };
   }
 
   @Post('organizations/:organizationId/shipments/:shipmentId/reassign')
   @Roles(RoleCode.BLOOD_CENTER_ADMIN, RoleCode.BLOOD_CENTER_STAFF, RoleCode.SUPER_ADMIN)
   @ApiOperation({ summary: 'Reassign shipment to different courier' })
-  reassignShipment(
+  async reassignShipment(
     @Param('organizationId') organizationId: string,
     @Param('shipmentId') shipmentId: string,
     @Body() dto: ReassignCourierDto,
     @CurrentUser('sub') userId: string,
     @Req() req: Request,
   ) {
-    return this.shipments.reassignCourier(organizationId, userId, shipmentId, dto.courierId, req.headers['x-forwarded-for'] as string);
+    return {
+      data: await this.shipments.reassignCourier(organizationId, userId, shipmentId, dto.courierId, req.headers['x-forwarded-for'] as string),
+    };
   }
 
   @Post('organizations/:organizationId/shipments/:shipmentId/confirm-delivery')
@@ -332,13 +329,15 @@ export class ShipmentsController {
   @Idempotent('shipment.confirm-delivery')
   @UseInterceptors(IdempotencyInterceptor)
   @ApiOperation({ summary: 'Hospital confirms delivery with details' })
-  confirmDelivery(
+  async confirmDelivery(
     @Param('organizationId') organizationId: string,
     @Param('shipmentId') shipmentId: string,
     @Body() dto: DeliveryConfirmationDto,
     @CurrentUser('sub') userId: string,
     @Req() req: Request,
   ) {
-    return this.shipments.confirmDeliveryFull(organizationId, userId, shipmentId, dto, req.headers['x-forwarded-for'] as string);
+    return {
+      data: await this.shipments.confirmDeliveryFull(organizationId, userId, shipmentId, dto, req.headers['x-forwarded-for'] as string),
+    };
   }
 }

@@ -651,6 +651,125 @@ These make the product unusable or unsafe for real users. Fix first, in order.
     `apps/api/src/modules/donors/donors.service.spec.ts`,
     `apps/api/src/modules/courier/courier.controller.ts`.
 
+- [x] **P0-16. The user asked for a menu-and-button pass over the mobile app
+  specifically (the same audit already done for the three web apps in
+  P0-14). Code-level review — no simulator is available in this sandbox to
+  click through it live — found a crash on the app's highest-stakes
+  screen, plus two more instances of patterns already seen this session.**
+  — Fixed.
+
+  **The crash**: `app/sos.tsx` (the Emergency SOS screen every donor
+  lands on to accept/decline/track a live blood emergency) threw
+  `TypeError: Cannot read properties of undefined (reading 'active')` on
+  every single load. `getDonorEmergencies()`'s mobile type baked in an
+  extra `{ data: ... }` layer that `apiRequest` already strips, the exact
+  P0-12 pattern — but chasing why led to `EmergencyController` itself:
+  of its 15 routes, only `getEmergencies` (the one P0-14 already checked,
+  for hospital-web) hand-wraps its response. The other 14 — all 8
+  donor-facing accept/decline/start-journey/update-location/arrive/
+  cancel/view-match/tracking routes `sos.tsx` depends on, plus 6
+  hospital-facing single-emergency routes — returned bare payloads with
+  no envelope at all. `apiRequest` resolved every one of them to
+  `undefined`. Hand-wrapped all 14 at the controller level (matching
+  `getEmergencies`' existing convention; a controller-wide interceptor
+  would have double-wrapped it). This turned out to also silently repair
+  hospital-web's `getEmergency`/`createEmergency`/`activateEmergency`/
+  `cancelEmergency`/`confirmArrival`/`completeEmergencyDonation`/
+  `getEmergencyTracking` — all six were resolving to `undefined` too, just
+  never visibly broken because their one caller (`app/emergency/page.tsx`)
+  only ever `await`s them and refetches, never reads the result. Caught
+  only by checking every route on the controller instead of assuming
+  P0-14's fix to `getEmergencies` covered its neighbors — the same mistake
+  P0-14 itself was catching P0-12 for making.
+
+  **Two more instances of already-seen patterns**: `app/(app)/privacy.tsx`
+  had 9 of 11 settings rows carrying a chevron and press-feedback
+  (`ListItem`'s affordance was unconditional) while doing nothing on tap —
+  3 were literal `onPress={() => {}}` no-ops, 6 had no handler at all. No
+  backend supports any of them: no privacy-preference schema fields, no
+  data-export/account-deletion endpoints, no policy content anywhere in
+  the repo, so wiring them up would mean fabricating a feature rather than
+  fixing one — the same call made for Laboratory's `rejected`/`byBloodType`
+  in P0-14. Fixed `ListItem` to render the chevron and press affordance
+  only when `onPress` is actually provided, so rows that lead nowhere stop
+  implying they do. Separately, `app/(app)/security.tsx`'s Change Password
+  called a raw `fetch('http://localhost:3001/...')` instead of the shared
+  `apiRequest` client — hardcoded to `localhost` (unreachable from a real
+  device) and missing the Authorization header entirely, so the backend's
+  `JwtAuthGuard` rejected every attempt regardless of whether the password
+  was right. Routed through `apiRequest` instead.
+
+  Verified via `pnpm -r typecheck` (all 11 workspace projects clean),
+  `pnpm --filter @bloodchain/api test -- emergency` (39/39 passing,
+  untouched service tests), and live requests against the running dev API
+  with real seeded donor/hospital-admin tokens confirming every affected
+  route — `getDonorEmergencies`, `viewEmergencyMatch`, `getEmergency` — now
+  returns a correctly enveloped body, plus a live Playwright re-check of
+  hospital-web's `/emergency` page confirming the shared-controller change
+  didn't regress it.
+  - Files: `apps/api/src/modules/emergency/emergency.controller.ts`,
+    `apps/mobile/app/(app)/privacy.tsx`, `apps/mobile/app/(app)/security.tsx`,
+    `apps/mobile/app/sos.tsx`, `apps/mobile/src/api/emergency.ts`,
+    `apps/mobile/src/components/ListItem.tsx`.
+
+- [x] **P0-17. Continuing the mobile audit into `courier.ts` (P0-15's initial
+  pass silently stopped 170 lines into a 280-line file and never checked
+  the other 10 functions) found a genuine route collision plus the same
+  missing-envelope gap across nearly the entirety of `ShipmentsController`
+  — 21 of its 24 routes.** — Fixed.
+
+  **The route collision**: `CourierController` (`@Get('shipments')` under
+  prefix `courier`) and `ShipmentsController` (`@Get('courier/shipments')`)
+  both register the literal same path, `GET /courier/shipments`, backed by
+  two different service methods with two different shapes —
+  `CourierService.getCourierShipments` returns `{ data, meta }` with
+  limit/offset pagination; `ShipmentsService`'s version returns bare
+  `{ data }`, no pagination support at all, and doesn't accept the `limit`
+  mobile's `history.tsx` sends. `ShipmentsModule` is registered before
+  `CourierModule` in `app.module.ts`, so Express's first-match routing
+  always resolved to the less-capable, non-paginated duplicate — confirmed
+  live (`{"data":[]}` , no `meta` key). This is exactly the shape P0-15's
+  `apiRequestEnvelope` fix for mobile's `getCourierShipments` was built
+  around, so verifying that fix earlier actually exercised the wrong
+  service without anyone noticing, since both return `{ data: [...] }` for
+  an empty result. Removed the shadowed duplicate — the route, its now-dead
+  `ShipmentsService.getCourierShipments` method, and its single-use DTO —
+  leaving `CourierController`'s pagination-aware version as the sole
+  implementation. Confirmed live: `/courier/shipments` now returns `meta`.
+
+  **The missing envelope**: with the duplicate gone, checked every
+  remaining `ShipmentsController` route the same way P0-16 checked
+  `EmergencyController` — 21 of 24 (everything except `getRequests`/
+  `getShipments`/`getCourierRoster`, hand-wrapped since P0-12) returned
+  bare payloads with no envelope, resolving to `undefined` for every
+  client. None of these routes are parameterless GETs (every one nests
+  under `:organizationId` or `:shipmentId`), so `test/response-envelope
+  .e2e-spec.ts` — built specifically to catch exactly this gap — never had
+  a chance to see them; its own filter (`!path.includes('{')`) excludes
+  every route in this entire controller by construction. Hand-wrapped all
+  21 at the controller level, matching the three siblings' existing
+  convention. Checked every consumer across all three apps before assuming
+  anything needed a client-side change: hospital-web's and blood-center-web's
+  `shipments.ts`/`couriers.ts`, and mobile's `courier.ts`, already declared
+  every one of these 21 functions' return types as the bare payload with no
+  `{ data: ... }` wrapper — because nobody writes client code that expects
+  `undefined`, every client had already converged on the *correct*
+  eventual-state type while the backend silently failed to deliver it. Zero
+  client-side changes were needed; the fix is backend-only.
+
+  Verified via `pnpm -r typecheck` (clean), `pnpm --filter @bloodchain/api
+  test -- shipments` and `-- courier` (70 and 20 passing, both suites
+  untouched — they test the service layer directly, not the controller
+  wrapping), and live requests against the running dev API: `POST
+  /organizations/:id/blood-requests` (a mutation, not just a GET) now
+  returns `{ data: {...new request} }` where it previously returned the
+  bare object with no envelope at all; `GET /organizations/:id/couriers`
+  likewise now enveloped; `GET /courier/shipments` now includes the `meta`
+  the collision had been hiding.
+  - Files: `apps/api/src/modules/shipments/shipments.controller.ts`,
+    `apps/api/src/modules/shipments/shipments.service.ts`,
+    `apps/api/src/modules/shipments/dto/shipment.dto.ts`.
+
 ## 🟠 P1 — Major gaps (feature exists but disconnected, or missing entirely)
 
 - [x] **P1-1. Booking race conditions (double-booking) in appointments and lab slots.** — Fixed:
