@@ -16,6 +16,7 @@ import {
 export default function LaboratoryScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const [appointments, setAppointments] = useState<LaboratoryAppointment[]>([]);
   const [results, setResults] = useState<LaboratoryResult[]>([]);
   const [testTypes, setTestTypes] = useState<TestType[]>([]);
@@ -30,8 +31,10 @@ export default function LaboratoryScreen() {
       setAppointments(appts);
       setResults(res);
       setTestTypes(tests);
+      setLoadError(false);
     } catch (err) {
       console.error('Failed to load laboratory data:', err);
+      setLoadError(true);
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -251,21 +254,35 @@ export default function LaboratoryScreen() {
           </>
         )}
 
-        {upcomingAppointments.length === 0 && publishedResults.length === 0 && (
-          <>
-            <SectionHeader>GET STARTED</SectionHeader>
-            <GlassCard>
-              <View style={{ alignItems: 'center', padding: spacing.lg }}>
-                <FlaskConical size={48} color={colors.secondary} />
-                <AppText variant="heading" style={{ marginTop: spacing.md, textAlign: 'center' }}>
-                  No tests yet
-                </AppText>
-                <AppText muted style={{ marginTop: spacing.sm, textAlign: 'center' }}>
-                  Book your first blood test to start tracking your health markers.
-                </AppText>
-              </View>
-            </GlassCard>
-          </>
+        {loadError && upcomingAppointments.length === 0 && publishedResults.length === 0 ? (
+          <GlassCard>
+            <View style={{ alignItems: 'center', padding: spacing.lg }}>
+              <AppText variant="heading" style={{ textAlign: 'center' }}>
+                Couldn't load your lab data
+              </AppText>
+              <AppText muted style={{ marginTop: spacing.sm, textAlign: 'center' }}>
+                Pull down to refresh and try again.
+              </AppText>
+            </View>
+          </GlassCard>
+        ) : (
+          upcomingAppointments.length === 0 &&
+          publishedResults.length === 0 && (
+            <>
+              <SectionHeader>GET STARTED</SectionHeader>
+              <GlassCard>
+                <View style={{ alignItems: 'center', padding: spacing.lg }}>
+                  <FlaskConical size={48} color={colors.secondary} />
+                  <AppText variant="heading" style={{ marginTop: spacing.md, textAlign: 'center' }}>
+                    No tests yet
+                  </AppText>
+                  <AppText muted style={{ marginTop: spacing.sm, textAlign: 'center' }}>
+                    Book your first blood test to start tracking your health markers.
+                  </AppText>
+                </View>
+              </GlassCard>
+            </>
+          )
         )}
       </ScrollView>
     </Screen>

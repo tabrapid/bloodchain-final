@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
-import { View, StyleSheet, ScrollView, Alert } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert, TextInput } from 'react-native';
 import {
   Calendar,
   Clock,
@@ -130,6 +130,11 @@ export default function AppointmentDetail() {
     return (
       <Screen>
         <AppText>Appointment not found</AppText>
+        <View style={styles.footer}>
+          <AppButton variant="secondary" onPress={() => router.back()}>
+            Go Back
+          </AppButton>
+        </View>
       </Screen>
     );
   }
@@ -255,11 +260,14 @@ export default function AppointmentDetail() {
             <AppText variant="heading" style={styles.cancelTitle}>
               Cancellation Reason
             </AppText>
-            <View style={styles.cancelInput}>
-              <AppText muted style={{ fontSize: 14 }}>
-                Please provide a reason for cancellation (optional)...
-              </AppText>
-            </View>
+            <TextInput
+              style={styles.cancelInput}
+              placeholder="Please provide a reason for cancellation (optional)..."
+              placeholderTextColor={colors.textMuted}
+              value={cancelReason}
+              onChangeText={setCancelReason}
+              multiline
+            />
           </Card>
         )}
       </ScrollView>
@@ -398,6 +406,10 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     backgroundColor: colors.surfaceElevated,
     borderRadius: 8,
+    color: colors.text,
+    fontSize: 14,
+    minHeight: 72,
+    textAlignVertical: 'top',
   },
   footer: {
     paddingTop: spacing.lg,

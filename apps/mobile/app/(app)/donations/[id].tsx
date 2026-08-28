@@ -53,6 +53,11 @@ export default function DonationDetailScreen() {
     return (
       <Screen>
         <AppText>Donation not found</AppText>
+        <View style={styles.footer}>
+          <AppButton variant="secondary" onPress={() => router.back()}>
+            Go Back
+          </AppButton>
+        </View>
       </Screen>
     );
   }

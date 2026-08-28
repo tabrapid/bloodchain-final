@@ -1070,6 +1070,53 @@ These make the product unusable or unsafe for real users. Fix first, in order.
     `apps/mobile/app/(booking)/review.tsx`, `apps/mobile/app/(booking)/organizations.tsx`,
     `apps/mobile/app/(booking)/confirmation.tsx`.
 
+- [x] **P0-22. Appointment cancellation reason box was decorative text, not
+  a real input — cancellations always sent `undefined` regardless of what
+  the user typed; two more "not found" dead ends and two more
+  error-swallowed-as-empty screens.** — Fixed, continuing the same audit
+  (donations, appointment detail, laboratory, health-trends).
+
+  **Cancellation reason field was fake.** `appointment/[id].tsx`'s
+  "Cancellation Reason" card, shown after tapping "Cancel Appointment",
+  rendered a `<View>` containing static `<AppText>` placeholder copy
+  ("Please provide a reason for cancellation (optional)...") — not a
+  `TextInput`. The `cancelReason` state it was meant to feed
+  (`useState('')`, sent as `reason: cancelReason.trim() || undefined` to
+  the cancel mutation) had no `setCancelReason` call anywhere in the file,
+  so it was permanently `''` no matter what a user believed they'd typed
+  — every cancellation silently discarded the reason. Replaced the fake
+  `View` with a real multiline `TextInput` bound to `cancelReason`/
+  `setCancelReason`.
+
+  **Two more "not found" dead ends**, same class as review.tsx's fix in
+  P0-21: `appointment/[id].tsx`'s `if (!appointment)` branch and
+  `donations/[id].tsx`'s `if (!donation)` branch both rendered a bare
+  "not found" message with no footer, no back button — a hard-restart-only
+  dead end if a deep link or stale list item pointed at an id that 404'd.
+  Both now render a working "Go Back" button.
+
+  **Fetch failures rendering identically to "genuinely nothing here"**,
+  same pattern as P0-20/P0-21's `isError`-less queries, but here on plain
+  `try/catch` state instead of React Query: `laboratory/index.tsx` and
+  `health-trends/index.tsx` both `console.error`'d a failed fetch and left
+  their state arrays empty, which both screens then rendered exactly like
+  "you have no lab tests / no health trends yet" — indistinguishable from
+  a real empty state, with no way to tell it actually failed.
+  `health-trends/index.tsx` was the worse of the two: its empty/error
+  branch returns before the `ScrollView`+`RefreshControl` even mounts, so
+  on a fetch failure there was no pull-to-refresh either — a fully static
+  dead screen. Added a `loadError` flag to both, with distinct copy and
+  (since health-trends has no `RefreshControl` in that branch) an explicit
+  Retry button that re-runs `loadSummary()`.
+
+  Verified via `pnpm --filter @bloodchain/mobile typecheck` (clean) and
+  the full mobile test suite (31/31, unchanged — no existing render-test
+  coverage for these screens).
+  - Files: `apps/mobile/app/(app)/appointment/[id].tsx`,
+    `apps/mobile/app/(app)/donations/[id].tsx`,
+    `apps/mobile/app/(app)/laboratory/index.tsx`,
+    `apps/mobile/app/(app)/health-trends/index.tsx`.
+
 ## 🟠 P1 — Major gaps (feature exists but disconnected, or missing entirely)
 
 - [x] **P1-1. Booking race conditions (double-booking) in appointments and lab slots.** — Fixed:
