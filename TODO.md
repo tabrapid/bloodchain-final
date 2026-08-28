@@ -1315,6 +1315,74 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   clean; mobile tests now 34/34.
   - Files: `apps/mobile/src/api/client.ts`, `apps/mobile/src/api/client.spec.ts`.
 
+- [x] **P0-27. A `FAILED` shipment (a courier reported a problem
+  mid-delivery) had zero recovery action anywhere in blood-center-web —
+  no button, of any kind, except cancelling the whole shipment outright —
+  even though the backend already fully supports retrying it with a new
+  courier.** — Fixed, closing out the audit's final task: re-checking the
+  web apps' shipment/courier workflows this session's mobile fixes and
+  P0-17's backend fix both touch.
+
+  **Environment note**: this remote session has no Docker daemon and no
+  local Postgres, so the live Playwright verification this task's earlier
+  entries describe (real browser, real dev API, real seeded data) wasn't
+  possible here — `docker compose ps` fails immediately
+  (`JWT_ACCESS_SECRET is missing a value`), there's no `.env`, and no
+  `postgres`/`pg_ctl` binary on the machine. Substituted a full static
+  audit instead: read every blood-center-web/admin-web page that calls a
+  P0-17-touched shipment/courier route end to end against the actual
+  current backend service code (transitions, guards, what each endpoint
+  actually does), the same rigor as a live check, just without a running
+  browser to click through. This finding is exactly the kind a live click-
+  through would have caught immediately (an operator would hit a shipment
+  stuck at FAILED status with nothing to press) — worth flagging clearly
+  since the depth of verification here differs from earlier entries.
+
+  **The actual finding**: `shipments/[id]/page.tsx`'s only courier-related
+  action button is gated by `canAssignCourier = status === 'CREATED' ||
+  status === 'COURIER_DECLINED'`. `FAILED` is a real, reachable status —
+  the mobile courier app's `active.tsx` has a working "Report a Problem"
+  flow that calls `failShipment`, which the backend accepts and correctly
+  releases the old courier back to `AVAILABLE`. But nothing in
+  `ShipmentStateMachine`'s transition map is checked against the page's
+  own gate: the map lists `FAILED` right alongside `CREATED`/
+  `COURIER_DECLINED` as a valid source for the `COURIER_ASSIGNED`
+  transition (`assignCourier` and `reassignCourier` both call the exact
+  same `assertTransition(status, COURIER_ASSIGNED)` internally), so the
+  backend was always willing to let an operator retry a failed shipment
+  — the frontend just never offered the button. A `reassignShipment`
+  client function already existed in `lib/shipments.ts`, already correctly
+  typed and already imported into this exact page — genuinely dead code,
+  never called from anywhere.
+
+  Extended `canAssignCourier` to include `FAILED`, and branched
+  `handleAssignCourier` to call `reassignShipment` (not `assignCourier`)
+  when the shipment's current status is `FAILED`: `reassignCourier`
+  additionally records `previousCourierId` on the shipment event and logs
+  a distinct `SHIPMENT_REASSIGNED` audit action instead of the generic
+  `SHIPMENT_COURIER_ASSIGNED`, which matters for the operational history
+  of a shipment that failed once already — `assignCourier` would work
+  functionally (the old courier is already freed by the time `FAILED` is
+  reached) but would silently lose that context. Relabeled the button and
+  modal copy to "Reassign Courier" for this case so the UI doesn't claim
+  to be doing a first assignment when it isn't.
+
+  Also checked `admin-web`'s shipments page (list-only, no detail route,
+  no action buttons at all — filtering `FAILED` correctly but nothing to
+  fix there) and blood-center-web's `couriers/page.tsx` (read-only roster,
+  already correctly consuming the hand-wrapped `getCourierRoster`, no
+  issues) and confirmed hospital-web's `confirmDelivery` (destination-side,
+  distinct from blood-center-web's unused `confirmDeliveryFull`) is
+  correctly wired — left `confirmDeliveryFull` alone since it's unused
+  dead code with no evidence of what UI flow it was meant for, not a
+  regression from anything touched this session.
+
+  Verified via `pnpm --filter @bloodchain/blood-center-web typecheck`
+  (clean) and its full test suite (24/24, unchanged — no existing
+  component-level test harness for Next.js pages in this app to extend,
+  only for `lib/*.ts` API client functions, which weren't touched).
+  - Files: `apps/blood-center-web/app/shipments/[id]/page.tsx`.
+
 ## 🟠 P1 — Major gaps (feature exists but disconnected, or missing entirely)
 
 - [x] **P1-1. Booking race conditions (double-booking) in appointments and lab slots.** — Fixed:
