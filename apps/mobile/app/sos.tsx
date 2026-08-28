@@ -415,7 +415,7 @@ export default function SosScreen() {
         <Stack.Screen
           options={{
             title: 'Emergency Details',
-            headerStyle: { backgroundColor: '#26119F' },
+            headerStyle: { backgroundColor: '#26191F' },
             headerTintColor: colors.danger,
             headerLeft: () => (
               <AppButton variant="ghost" onPress={() => setStatus('idle')}>
@@ -540,7 +540,7 @@ export default function SosScreen() {
         <Stack.Screen
           options={{
             title: 'Your Response',
-            headerStyle: { backgroundColor: '#26119F' },
+            headerStyle: { backgroundColor: '#26191F' },
             headerTintColor: colors.danger,
             headerLeft: () => (
               <AppButton
@@ -691,7 +691,7 @@ export default function SosScreen() {
       <Stack.Screen
         options={{
           title: 'Emergency SOS',
-          headerStyle: { backgroundColor: '#26119F' },
+          headerStyle: { backgroundColor: '#26191F' },
           headerTintColor: colors.danger,
         }}
       />

@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { View, TextInput, StyleSheet, ScrollView, Alert } from 'react-native';
+import { View, TextInput, StyleSheet, ScrollView, Alert, Pressable } from 'react-native';
 import { router } from 'expo-router';
+import { Eye, EyeOff } from 'lucide-react-native';
 import { AppButton, AppText, Card, Screen, SectionHeader, ListItem, Divider } from '../../src/components';
 import { colors, spacing, radius } from '../../src/theme';
 import { useRevokeAllSessions } from '../../src/hooks/useSessions';
@@ -19,6 +20,9 @@ export default function Security() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleChangePassword = async () => {
     if (newPassword !== confirmPassword) {
@@ -84,26 +88,52 @@ export default function Security() {
         <Card>
           <View style={styles.field}>
             <AppText muted style={styles.label}>Current Password</AppText>
-            <TextInput
-              style={styles.input}
-              placeholder="Enter current password"
-              placeholderTextColor={colors.textMuted}
-              secureTextEntry
-              value={currentPassword}
-              onChangeText={setCurrentPassword}
-            />
+            <View>
+              <TextInput
+                style={[styles.input, styles.inputWithToggle]}
+                placeholder="Enter current password"
+                placeholderTextColor={colors.textMuted}
+                secureTextEntry={!showCurrentPassword}
+                value={currentPassword}
+                onChangeText={setCurrentPassword}
+              />
+              <Pressable
+                onPress={() => setShowCurrentPassword((v) => !v)}
+                style={styles.toggleButton}
+                hitSlop={8}
+              >
+                {showCurrentPassword ? (
+                  <EyeOff size={20} color={colors.textMuted} />
+                ) : (
+                  <Eye size={20} color={colors.textMuted} />
+                )}
+              </Pressable>
+            </View>
           </View>
 
           <View style={styles.field}>
             <AppText muted style={styles.label}>New Password</AppText>
-            <TextInput
-              style={styles.input}
-              placeholder="Enter new password"
-              placeholderTextColor={colors.textMuted}
-              secureTextEntry
-              value={newPassword}
-              onChangeText={setNewPassword}
-            />
+            <View>
+              <TextInput
+                style={[styles.input, styles.inputWithToggle]}
+                placeholder="Enter new password"
+                placeholderTextColor={colors.textMuted}
+                secureTextEntry={!showNewPassword}
+                value={newPassword}
+                onChangeText={setNewPassword}
+              />
+              <Pressable
+                onPress={() => setShowNewPassword((v) => !v)}
+                style={styles.toggleButton}
+                hitSlop={8}
+              >
+                {showNewPassword ? (
+                  <EyeOff size={20} color={colors.textMuted} />
+                ) : (
+                  <Eye size={20} color={colors.textMuted} />
+                )}
+              </Pressable>
+            </View>
             <AppText muted style={styles.hint}>
               Must be at least 12 characters
             </AppText>
@@ -111,14 +141,27 @@ export default function Security() {
 
           <View style={styles.field}>
             <AppText muted style={styles.label}>Confirm New Password</AppText>
-            <TextInput
-              style={styles.input}
-              placeholder="Confirm new password"
-              placeholderTextColor={colors.textMuted}
-              secureTextEntry
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-            />
+            <View>
+              <TextInput
+                style={[styles.input, styles.inputWithToggle]}
+                placeholder="Confirm new password"
+                placeholderTextColor={colors.textMuted}
+                secureTextEntry={!showConfirmPassword}
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+              />
+              <Pressable
+                onPress={() => setShowConfirmPassword((v) => !v)}
+                style={styles.toggleButton}
+                hitSlop={8}
+              >
+                {showConfirmPassword ? (
+                  <EyeOff size={20} color={colors.textMuted} />
+                ) : (
+                  <Eye size={20} color={colors.textMuted} />
+                )}
+              </Pressable>
+            </View>
           </View>
 
           <AppButton
@@ -178,6 +221,16 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     color: colors.text,
     fontSize: 16,
+  },
+  inputWithToggle: {
+    paddingRight: 48,
+  },
+  toggleButton: {
+    position: 'absolute',
+    right: 14,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
   },
   hint: {
     fontSize: 12,

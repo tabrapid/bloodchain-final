@@ -1169,6 +1169,58 @@ These make the product unusable or unsafe for real users. Fix first, in order.
     `apps/mobile/app/(app)/education/index.tsx`,
     `apps/mobile/src/__tests__/community-screens.spec.tsx`.
 
+- [x] **P0-24. A second dead, unreachable stub screen (`app/settings.tsx`,
+  same class as P0-20's `notifications.tsx`); the SOS emergency-response
+  header was the wrong color on 3 of its 5 screens from a digit
+  transposition typo; security.tsx's password fields lacked the show/hide
+  toggle every other password field in the app now has.** — Fixed,
+  continuing the audit (notifications, security, privacy, sos.tsx,
+  settings).
+
+  **Dead stub screen, unreachable from anywhere.** `app/settings.tsx`
+  (top-level, not `(app)/settings.tsx`) was a placeholder — two `Card`s of
+  static text ("Theme, language, and notification preferences will be
+  configurable here" / "Manage consent for location sharing and data
+  visibility") with zero interactive elements. No route anywhere in the
+  app pushes `/settings`; `profile.tsx`'s real "Account" section already
+  covers everything it stubbed out with working links to Personal
+  Information, Donor Profile, Notifications, Privacy, and Security.
+  Unlike P0-20's `notifications.tsx` stub, this one didn't collide with
+  another route (nothing else claims `/settings`), so it was inert rather
+  than a routing hazard — but still confirmed-orphaned dead code
+  superseded by a real screen. Deleted.
+
+  (`notifications.tsx`, `security.tsx`, and `privacy.tsx` were all
+  otherwise fine: `notifications.tsx`'s deep-link handling now benefits
+  from P0-20's fixes, and `privacy.tsx`'s all-`onPress`-less rows were
+  already a deliberate, previously-documented call in P0-16 — no backend
+  support exists for any of those settings, so `ListItem` already renders
+  them as inert instead of falsely implying they're tappable. Confirmed
+  both still hold; no changes needed to either beyond `security.tsx`'s
+  fixes below.)
+
+  **Header color typo across most of the SOS flow.** `sos.tsx` sets a dark
+  maroon header background (`#26191F`, matching the app's emergency-red
+  theme used elsewhere, e.g. `home.tsx`'s SOS card) on its loading and
+  error states — but a transposed-digit typo, `#26119F` (a jarring
+  blue-purple, nothing else in the app uses it), on the other 3 of 5
+  states: viewing an emergency's details, actively responding/en
+  route/arrived, and the default emergency list. A donor tapping into an
+  active emergency response — the single highest-stakes screen in the
+  app — saw the header color change to something visually unrelated to
+  the emergency theme partway through the flow. Fixed all 3 to match.
+
+  **`security.tsx`'s 3 password fields had no show/hide toggle**, the one
+  screen in the app that didn't get this after P0-19 added it to login and
+  P0-20 added it to register. Added the same `Eye`/`EyeOff` pattern to
+  Current/New/Confirm Password.
+
+  Verified via `pnpm --filter @bloodchain/mobile typecheck` (clean) and
+  the full mobile test suite (33/33, unchanged — no existing render-test
+  coverage for these screens).
+  - Files: `apps/mobile/app/settings.tsx` (deleted),
+    `apps/mobile/app/sos.tsx`, `apps/mobile/app/(app)/security.tsx`.
+
 ## 🟠 P1 — Major gaps (feature exists but disconnected, or missing entirely)
 
 - [x] **P1-1. Booking race conditions (double-booking) in appointments and lab slots.** — Fixed:
