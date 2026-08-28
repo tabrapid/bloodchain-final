@@ -30,7 +30,7 @@ export default function CouriersPage() {
     try {
       setRefreshing(true);
       const data = await getCourierRoster(organizationId);
-      setCouriers(data);
+      setCouriers(data.data);
     } catch (err) {
       console.error('Failed to load couriers:', err);
     } finally {

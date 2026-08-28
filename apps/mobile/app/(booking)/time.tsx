@@ -13,11 +13,13 @@ export default function SelectTime() {
     date: string;
   }>();
 
-  const { data: slots = [], isLoading } = useAvailability({
+  const { data: availabilityData, isLoading } = useAvailability({
     organizationId: params.organizationId,
     appointmentType: params.type,
     date: params.date,
   });
+
+  const slots = availabilityData?.data || [];
 
   const groupedSlots = useMemo(() => {
     const morning: typeof slots = [];

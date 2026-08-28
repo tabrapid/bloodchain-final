@@ -89,32 +89,7 @@ export async function refreshAccessToken(): Promise<string | null> {
   }
 }
 
-interface Envelope<T> {
-  data?: T;
-  meta?: unknown;
-  statusCode?: number;
-  code?: string;
-  message?: string;
-  details?: unknown;
-}
-
-/**
- * Does the actual fetch, auth header, 401-refresh-and-retry, and error
- * mapping. Returns the whole parsed body rather than unwrapping it, so
- * callers can get at `meta` (pagination totals) as well as `data`.
- *
- * `apiRequest` below is `apiRequestEnvelope(...).then(e => e.data)` and stays
- * the default for the ~30 call sites here that only want the payload.
- * `apiRequestEnvelope` itself exists for endpoints whose response also
- * carries `meta` — e.g. `inventory.ts`'s paginated list endpoints, none of
- * which sit behind `WrapResponseInterceptor`, so their `{ data, meta }` is
- * the *entire* response body rather than something nested one level deeper
- * under `data` the way admin-web's endpoints are (see P0-12).
- */
-export async function apiRequestEnvelope<T>(
-  endpoint: string,
-  options: RequestInit = {},
-): Promise<Envelope<T>> {
+export async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const token = getAuthToken();
   if (!token) {
     throw new ApiRequestError({ statusCode: 401, code: 'NO_TOKEN', message: 'Not authenticated' });
@@ -147,7 +122,13 @@ export async function apiRequestEnvelope<T>(
     response = await send(refreshed);
   }
 
-  const json = (await response.json().catch(() => ({}))) as Envelope<T>;
+  const json = (await response.json().catch(() => ({}))) as {
+    data?: T;
+    statusCode?: number;
+    code?: string;
+    message?: string;
+    details?: unknown;
+  };
 
   if (!response.ok) {
     throw new ApiRequestError({
@@ -158,12 +139,7 @@ export async function apiRequestEnvelope<T>(
     });
   }
 
-  return json;
-}
-
-export async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   // Every route answers `{ data: ... }` — see P0-10, where seven controllers
   // did not and every call against them silently produced undefined.
-  const { data } = await apiRequestEnvelope<T>(endpoint, options);
-  return data as T;
+  return json.data as T;
 }

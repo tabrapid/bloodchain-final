@@ -68,7 +68,7 @@ export async function login(input: LoginInput): Promise<AuthResponse> {
 
 export async function register(
   input: RegisterInput,
-): Promise<{ id: string; email: string }> {
+): Promise<{ data: { id: string; email: string } }> {
   return apiRequest(`${apiBasePath}/auth/register`, {
     method: 'POST',
     body: JSON.stringify(input),
@@ -118,7 +118,7 @@ export async function refreshTokens(): Promise<{ accessToken: string; refreshTok
   const refreshToken = await getRefreshToken();
   if (!refreshToken) throw new Error('No refresh token');
 
-  const data = await apiRequest<{ accessToken: string; refreshToken: string }>(
+  const data = await apiRequest<{ data: { accessToken: string; refreshToken: string } }>(
     `${apiBasePath}/auth/refresh`,
     {
       method: 'POST',
@@ -127,8 +127,8 @@ export async function refreshTokens(): Promise<{ accessToken: string; refreshTok
     },
   );
 
-  await setTokens(data);
-  return data;
+  await setTokens(data.data);
+  return data.data;
 }
 
 async function setTokens(

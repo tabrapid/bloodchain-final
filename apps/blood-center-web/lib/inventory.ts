@@ -1,4 +1,4 @@
-import { ApiRequestError, apiRequest, apiRequestEnvelope } from './api-client';
+import { ApiRequestError, apiRequest } from './api-client';
 
 export { ApiRequestError };
 
@@ -112,7 +112,7 @@ export function getInventorySummary(organizationId: string): Promise<InventorySu
   return apiRequest(`/organizations/${organizationId}/inventory/summary`);
 }
 
-export async function getInventory(
+export function getInventory(
   organizationId: string,
   params: GetInventoryParams = {},
 ): Promise<PaginatedResponse<InventoryUnit>> {
@@ -127,15 +127,7 @@ export async function getInventory(
   if (params.limit) searchParams.set('limit', String(params.limit));
 
   const query = searchParams.toString();
-  // Not apiRequest: InventoryController carries no WrapResponseInterceptor,
-  // so its service's own `{ data, meta }` return *is* the whole response
-  // body — apiRequest's `.data`-only unwrap would silently discard `meta`
-  // (the pagination totals this page's "N of M units" and page controls
-  // need), the way it already discarded `data` itself before P0-12.
-  const envelope = await apiRequestEnvelope<InventoryUnit[]>(
-    `/organizations/${organizationId}/inventory${query ? `?${query}` : ''}`,
-  );
-  return { data: envelope.data ?? [], meta: envelope.meta as PaginatedResponse<InventoryUnit>['meta'] };
+  return apiRequest(`/organizations/${organizationId}/inventory${query ? `?${query}` : ''}`);
 }
 
 export function getUnit(organizationId: string, unitId: string): Promise<InventoryUnit> {
@@ -240,7 +232,7 @@ export function updateLocation(
   });
 }
 
-export async function getMovements(
+export function getMovements(
   organizationId: string,
   params: { bloodUnitId?: string; page?: number; limit?: number } = {},
 ): Promise<PaginatedResponse<InventoryMovement>> {
@@ -250,14 +242,10 @@ export async function getMovements(
   if (params.limit) searchParams.set('limit', String(params.limit));
 
   const query = searchParams.toString();
-  // See getInventory above: not apiRequest, for the same reason.
-  const envelope = await apiRequestEnvelope<InventoryMovement[]>(
-    `/organizations/${organizationId}/inventory/movements${query ? `?${query}` : ''}`,
-  );
-  return { data: envelope.data ?? [], meta: envelope.meta as PaginatedResponse<InventoryMovement>['meta'] };
+  return apiRequest(`/organizations/${organizationId}/inventory/movements${query ? `?${query}` : ''}`);
 }
 
-export async function getReservations(
+export function getReservations(
   organizationId: string,
   params: { status?: string; page?: number; limit?: number } = {},
 ): Promise<PaginatedResponse<InventoryReservation>> {
@@ -267,11 +255,7 @@ export async function getReservations(
   if (params.limit) searchParams.set('limit', String(params.limit));
 
   const query = searchParams.toString();
-  // See getInventory above: not apiRequest, for the same reason.
-  const envelope = await apiRequestEnvelope<InventoryReservation[]>(
-    `/organizations/${organizationId}/inventory/reservations${query ? `?${query}` : ''}`,
-  );
-  return { data: envelope.data ?? [], meta: envelope.meta as PaginatedResponse<InventoryReservation>['meta'] };
+  return apiRequest(`/organizations/${organizationId}/inventory/reservations${query ? `?${query}` : ''}`);
 }
 
 export function getAlerts(organizationId: string): Promise<InventoryAlert[]> {

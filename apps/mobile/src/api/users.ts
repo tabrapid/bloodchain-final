@@ -47,13 +47,13 @@ export interface UpdateUserProfileInput {
   dateOfBirth?: string;
 }
 
-export async function getUserProfile(): Promise<UserProfile> {
+export async function getUserProfile(): Promise<{ data: UserProfile }> {
   return apiRequest(`${apiBasePath}/users/me`);
 }
 
 export async function updateUserProfile(
   input: UpdateUserProfileInput,
-): Promise<UserProfile> {
+): Promise<{ data: UserProfile }> {
   return apiRequest(`${apiBasePath}/users/me`, {
     method: 'PATCH',
     body: JSON.stringify(input),

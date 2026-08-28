@@ -99,19 +99,23 @@ export interface ParameterTrend {
 
 export async function getTestTypes(category?: string): Promise<TestType[]> {
   const params = category ? `?category=${category}` : '';
-  return apiRequest<TestType[]>(`/test-types${params}`);
+  const response = await apiRequest<{ data: TestType[] }>(`/test-types${params}`);
+  return response.data;
 }
 
 export async function getTestType(testTypeId: string): Promise<TestType> {
-  return apiRequest<TestType>(`/test-types/${testTypeId}`);
+  const response = await apiRequest<{ data: TestType }>(`/test-types/${testTypeId}`);
+  return response.data;
 }
 
 export async function getLaboratories(): Promise<Laboratory[]> {
-  return apiRequest<Laboratory[]>('/laboratories');
+  const response = await apiRequest<{ data: Laboratory[] }>('/laboratories');
+  return response.data;
 }
 
 export async function getLaboratory(laboratoryId: string): Promise<Laboratory> {
-  return apiRequest<Laboratory>(`/laboratories/${laboratoryId}`);
+  const response = await apiRequest<{ data: Laboratory }>(`/laboratories/${laboratoryId}`);
+  return response.data;
 }
 
 export async function getAvailableSlots(
@@ -119,9 +123,10 @@ export async function getAvailableSlots(
   testTypeId: string,
   date: string
 ): Promise<AppointmentSlot[]> {
-  return apiRequest<AppointmentSlot[]>(
+  const response = await apiRequest<{ data: AppointmentSlot[] }>(
     `/laboratories/${laboratoryId}/slots?testTypeId=${testTypeId}&date=${date}`
   );
+  return response.data;
 }
 
 export async function bookLaboratoryAppointment(data: {
@@ -130,10 +135,11 @@ export async function bookLaboratoryAppointment(data: {
   slotId: string;
   notes?: string;
 }): Promise<LaboratoryAppointment> {
-  return apiRequest<LaboratoryAppointment>('/laboratory-appointments', {
+  const response = await apiRequest<{ data: LaboratoryAppointment }>('/laboratory-appointments', {
     method: 'POST',
     body: JSON.stringify(data),
   });
+  return response.data;
 }
 
 export async function getDonorAppointments(filters?: {
@@ -144,26 +150,31 @@ export async function getDonorAppointments(filters?: {
   if (filters?.status) params.append('status', filters.status);
   if (filters?.laboratoryId) params.append('laboratoryId', filters.laboratoryId);
   const queryString = params.toString();
-  return apiRequest<LaboratoryAppointment[]>(
+  const response = await apiRequest<{ data: LaboratoryAppointment[] }>(
     `/me/laboratory-appointments${queryString ? `?${queryString}` : ''}`
   );
+  return response.data;
 }
 
 export async function getDonorAppointment(appointmentId: string): Promise<LaboratoryAppointment> {
-  return apiRequest<LaboratoryAppointment>(`/me/laboratory-appointments/${appointmentId}`);
+  const response = await apiRequest<{ data: LaboratoryAppointment }>(
+    `/me/laboratory-appointments/${appointmentId}`
+  );
+  return response.data;
 }
 
 export async function cancelDonorAppointment(
   appointmentId: string,
   reason?: string
 ): Promise<LaboratoryAppointment> {
-  return apiRequest<LaboratoryAppointment>(
+  const response = await apiRequest<{ data: LaboratoryAppointment }>(
     `/me/laboratory-appointments/${appointmentId}/cancel`,
     {
       method: 'POST',
       body: JSON.stringify({ reason }),
     }
   );
+  return response.data;
 }
 
 export async function getDonorResults(filters?: {
@@ -172,13 +183,15 @@ export async function getDonorResults(filters?: {
   const params = new URLSearchParams();
   if (filters?.testTypeId) params.append('testTypeId', filters.testTypeId);
   const queryString = params.toString();
-  return apiRequest<LaboratoryResult[]>(
+  const response = await apiRequest<{ data: LaboratoryResult[] }>(
     `/me/laboratory-results${queryString ? `?${queryString}` : ''}`
   );
+  return response.data;
 }
 
 export async function getDonorResult(resultId: string): Promise<LaboratoryResult> {
-  return apiRequest<LaboratoryResult>(`/me/laboratory-results/${resultId}`);
+  const response = await apiRequest<{ data: LaboratoryResult }>(`/me/laboratory-results/${resultId}`);
+  return response.data;
 }
 
 export async function getParameterTrend(
@@ -188,7 +201,8 @@ export async function getParameterTrend(
   const params = new URLSearchParams();
   if (options?.limit) params.append('limit', String(options.limit));
   const queryString = params.toString();
-  return apiRequest<ParameterTrend[]>(
+  const response = await apiRequest<{ data: ParameterTrend[] }>(
     `/me/laboratory-results/parameter/${parameterId}/trend${queryString ? `?${queryString}` : ''}`
   );
+  return response.data;
 }

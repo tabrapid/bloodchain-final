@@ -7,7 +7,8 @@ import { colors, spacing, radius } from '../../src/theme';
 
 export default function SelectOrganization() {
   const params = useLocalSearchParams<{ type: string }>();
-  const { data: organizations = [], isLoading } = useOrganizations(params.type ? { type: params.type } : undefined);
+  const { data, isLoading } = useOrganizations(params.type ? { type: params.type } : undefined);
+  const organizations = data?.data || [];
 
   const handleSelect = (organizationId: string) => {
     router.push({

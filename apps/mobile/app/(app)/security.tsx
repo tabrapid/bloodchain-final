@@ -7,8 +7,6 @@ import { useRevokeAllSessions } from '../../src/hooks/useSessions';
 import { useLogout } from '../../src/hooks/useAuth';
 import { clearAuthTokens } from '../../src/auth/storage';
 import { useAuthStore } from '../../src/stores/auth.store';
-import { apiRequest, ApiRequestError } from '../../src/api/client';
-import { apiBasePath } from '../../src/api/config';
 
 export default function Security() {
   const logout = useLogout();
@@ -33,21 +31,28 @@ export default function Security() {
 
     setIsChangingPassword(true);
     try {
-      await apiRequest(`${apiBasePath}/auth/change-password`, {
+      const response = await fetch('http://localhost:3001/api/v1/auth/change-password', {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({ currentPassword, newPassword }),
       });
 
-      Alert.alert('Success', 'Password changed successfully. Please log in again.');
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
-      await clearAuthTokens();
-      clearAuth();
-      router.replace('/(auth)/login');
+      if (response.ok) {
+        Alert.alert('Success', 'Password changed successfully. Please log in again.');
+        setCurrentPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+        await clearAuthTokens();
+        clearAuth();
+        router.replace('/(auth)/login');
+      } else {
+        const error = await response.json();
+        Alert.alert('Error', error.message || 'Failed to change password');
+      }
     } catch (error) {
-      const message = error instanceof ApiRequestError ? error.error.message : 'Something went wrong';
-      Alert.alert('Error', message || 'Failed to change password');
+      Alert.alert('Error', 'Something went wrong');
     } finally {
       setIsChangingPassword(false);
     }

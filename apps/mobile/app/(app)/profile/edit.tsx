@@ -7,8 +7,9 @@ import { useUserProfile } from '../../../src/hooks/useUsers';
 import { colors, spacing, radius } from '../../../src/theme';
 
 export default function EditProfile() {
-  const { data: user } = useUserProfile();
+  const { data } = useUserProfile();
   const updateProfile = useUpdateUserProfile();
+  const user = data?.data;
 
   const [formData, setFormData] = useState({
     firstName: user?.firstName || '',

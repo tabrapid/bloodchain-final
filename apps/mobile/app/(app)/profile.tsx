@@ -21,10 +21,12 @@ import { Droplet } from 'lucide-react-native';
 
 export default function Profile() {
   const logout = useLogout();
-  const { data: user } = useUserProfile();
-  const { data: donor } = useDonorProfile();
+  const { data: userData } = useUserProfile();
+  const { data: donorData } = useDonorProfile();
   const { data: completionData } = useProfileCompletion();
 
+  const user = userData?.data;
+  const donor = donorData?.data;
   const completion = completionData?.data;
 
   const fullName = user

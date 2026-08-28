@@ -115,7 +115,7 @@ export class DonorsService {
     return { data: updated };
   }
 
-  async getProfileCompletion(userId: string): Promise<{ data: ProfileCompletion }> {
+  async getProfileCompletion(userId: string): Promise<ProfileCompletion> {
     const user = await this.db.user.findUnique({
       where: { id: userId },
       include: { donorProfile: true },
@@ -177,7 +177,7 @@ export class DonorsService {
     const totalFields = completed.length + missing.length;
     const percentage = Math.round((completed.length / totalFields) * 100);
 
-    return { data: { percentage, completed, missing } };
+    return { percentage, completed, missing };
   }
 
   async verifyBloodType(

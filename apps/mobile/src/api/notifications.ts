@@ -156,13 +156,13 @@ export async function deleteNotification(id: string): Promise<void> {
   return apiRequest(`${apiBasePath}/notifications/${id}`, { method: 'DELETE' });
 }
 
-export async function getNotificationPreferences(): Promise<NotificationPreferences> {
+export async function getNotificationPreferences(): Promise<{ data: NotificationPreferences }> {
   return apiRequest(`${apiBasePath}/notifications/preferences`);
 }
 
 export async function updateNotificationPreferences(
   input: UpdateNotificationPreferencesInput,
-): Promise<NotificationPreferences> {
+): Promise<{ data: NotificationPreferences }> {
   return apiRequest(`${apiBasePath}/notifications/preferences`, {
     method: 'PATCH',
     body: JSON.stringify(input),

@@ -13,6 +13,6 @@ export interface CourierRosterEntry {
   createdAt: string;
 }
 
-export function getCourierRoster(organizationId: string): Promise<CourierRosterEntry[]> {
+export function getCourierRoster(organizationId: string): Promise<{ data: CourierRosterEntry[] }> {
   return apiRequest(`/organizations/${organizationId}/couriers/roster`);
 }

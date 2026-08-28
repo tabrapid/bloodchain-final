@@ -56,7 +56,7 @@ export async function getAvailability(params?: {
   date?: string;
   startDate?: string;
   endDate?: string;
-}): Promise<AppointmentSlot[]> {
+}): Promise<{ data: AppointmentSlot[] }> {
   const queryParams = new URLSearchParams();
   if (params?.organizationId) queryParams.set('organizationId', params.organizationId);
   if (params?.appointmentType) queryParams.set('appointmentType', params.appointmentType);
@@ -70,7 +70,7 @@ export async function getAvailability(params?: {
 
 export async function getOrganizations(params?: {
   type?: string;
-}): Promise<Organization[]> {
+}): Promise<{ data: Organization[] }> {
   const queryParams = new URLSearchParams();
   if (params?.type) queryParams.set('type', params.type);
   const query = queryParams.toString();
@@ -83,7 +83,7 @@ export async function getMyAppointments(params?: {
   upcoming?: boolean;
   past?: boolean;
   date?: string;
-}): Promise<Appointment[]> {
+}): Promise<{ data: Appointment[] }> {
   const queryParams = new URLSearchParams();
   if (params?.status) queryParams.set('status', params.status);
   if (params?.appointmentType) queryParams.set('appointmentType', params.appointmentType);
@@ -95,29 +95,29 @@ export async function getMyAppointments(params?: {
   return apiRequest(`${apiBasePath}/appointments/me${query ? `?${query}` : ''}`);
 }
 
-export async function getNextAppointment(): Promise<Appointment | null> {
+export async function getNextAppointment(): Promise<{ data: Appointment | null }> {
   return apiRequest(`${apiBasePath}/appointments/me/next`);
 }
 
-export async function getAppointment(id: string): Promise<Appointment> {
+export async function getAppointment(id: string): Promise<{ data: Appointment }> {
   return apiRequest(`${apiBasePath}/appointments/${id}`);
 }
 
-export async function bookAppointment(input: BookAppointmentInput): Promise<Appointment> {
+export async function bookAppointment(input: BookAppointmentInput): Promise<{ data: Appointment }> {
   return apiRequest(`${apiBasePath}/appointments`, {
     method: 'POST',
     body: JSON.stringify(input),
   });
 }
 
-export async function cancelAppointment(id: string, input?: CancelAppointmentInput): Promise<{ id: string; status: string }> {
+export async function cancelAppointment(id: string, input?: CancelAppointmentInput): Promise<{ data: { id: string; status: string } }> {
   return apiRequest(`${apiBasePath}/appointments/${id}/cancel`, {
     method: 'POST',
     body: JSON.stringify(input || {}),
   });
 }
 
-export async function rescheduleAppointment(id: string, input: RescheduleAppointmentInput): Promise<Appointment> {
+export async function rescheduleAppointment(id: string, input: RescheduleAppointmentInput): Promise<{ data: Appointment }> {
   return apiRequest(`${apiBasePath}/appointments/${id}/reschedule`, {
     method: 'POST',
     body: JSON.stringify(input),

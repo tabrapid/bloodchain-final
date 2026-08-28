@@ -161,6 +161,13 @@ export class FailShipmentDto {
   notes?: string;
 }
 
+export class GetCourierShipmentsDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  status?: string;
+}
+
 export class CancelShipmentDto {
   @ApiPropertyOptional()
   @IsOptional()

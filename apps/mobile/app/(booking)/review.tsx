@@ -17,11 +17,11 @@ export default function ReviewBooking() {
   const [notes, setNotes] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  const { data: slots } = useAvailability({ date: params.date });
-  const slot = slots?.find((s) => s.id === params.slotId);
+  const { data: slotsData } = useAvailability({ date: params.date });
+  const slot = slotsData?.data.find((s) => s.id === params.slotId);
 
-  const { data: organizations } = useOrganizations();
-  const organization = organizations?.find((o) => o.id === params.organizationId);
+  const { data: orgsData } = useOrganizations();
+  const organization = orgsData?.data.find((o) => o.id === params.organizationId);
 
   const bookMutation = useBookAppointment();
 
@@ -65,7 +65,7 @@ export default function ReviewBooking() {
       });
       router.replace({
         pathname: '/(booking)/confirmation',
-        params: { appointmentId: result.id },
+        params: { appointmentId: result.data.id },
       });
     } catch (err: any) {
       setError(err.message || 'Failed to book appointment. Please try again.');

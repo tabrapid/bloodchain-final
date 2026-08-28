@@ -22,7 +22,8 @@ import { colors, spacing } from '../../../src/theme';
 
 export default function AppointmentDetail() {
   const params = useLocalSearchParams<{ id: string }>();
-  const { data: appointment, isLoading } = useAppointment(params.id);
+  const { data, isLoading } = useAppointment(params.id);
+  const appointment = data?.data;
 
   const [showCancelReason, setShowCancelReason] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
@@ -106,7 +107,7 @@ export default function AppointmentDetail() {
 
   const handleReschedule = () => {
     router.push({
-      pathname: '/(booking)/select-type' as const,
+      pathname: '/(booking)' as const,
       params: { reschedule: params.id },
     });
   };

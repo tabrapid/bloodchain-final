@@ -102,31 +102,31 @@ export interface DonationStats {
   totalBloodVolume?: number;
 }
 
-export async function getGamificationProfile(): Promise<GamificationProfile> {
+export async function getGamificationProfile(): Promise<{ data: GamificationProfile }> {
   return apiRequest(`${apiBasePath}/me/gamification`);
 }
 
-export async function getLevelProgress(): Promise<LevelProgress> {
+export async function getLevelProgress(): Promise<{ data: LevelProgress }> {
   return apiRequest(`${apiBasePath}/me/gamification/progress`);
 }
 
-export async function getXpHistory(page = 1, limit = 20): Promise<XpHistory> {
+export async function getXpHistory(page = 1, limit = 20): Promise<{ data: XpHistory }> {
   return apiRequest(`${apiBasePath}/me/gamification/xp?page=${page}&limit=${limit}`);
 }
 
-export async function getAchievements(): Promise<AchievementList> {
+export async function getAchievements(): Promise<{ data: AchievementList }> {
   return apiRequest(`${apiBasePath}/me/gamification/achievements`);
 }
 
-export async function getBadges(): Promise<Badge[]> {
+export async function getBadges(): Promise<{ data: Badge[] }> {
   return apiRequest(`${apiBasePath}/me/gamification/badges`);
 }
 
-export async function getDonationStats(): Promise<DonationStats> {
+export async function getDonationStats(): Promise<{ data: DonationStats }> {
   return apiRequest(`${apiBasePath}/me/gamification/stats`);
 }
 
-export async function updateLeaderboardVisibility(visible: boolean): Promise<{ success: boolean }> {
+export async function updateLeaderboardVisibility(visible: boolean): Promise<{ data: { success: boolean } }> {
   return apiRequest(`${apiBasePath}/me/gamification/leaderboard-visibility`, {
     method: 'POST',
     body: JSON.stringify({ visible }),
@@ -137,12 +137,12 @@ export async function getLeaderboard(
   timeRange: 'ALL_TIME' | 'THIS_YEAR' | 'THIS_MONTH' = 'ALL_TIME',
   page = 1,
   limit = 10,
-): Promise<LeaderboardResponse> {
+): Promise<{ data: LeaderboardResponse }> {
   return apiRequest(`${apiBasePath}/leaderboard?timeRange=${timeRange}&page=${page}&limit=${limit}`);
 }
 
 export async function getUserRank(
   timeRange: 'ALL_TIME' | 'THIS_YEAR' | 'THIS_MONTH' = 'ALL_TIME',
-): Promise<UserRank> {
+): Promise<{ data: UserRank }> {
   return apiRequest(`${apiBasePath}/leaderboard/me?timeRange=${timeRange}`);
 }

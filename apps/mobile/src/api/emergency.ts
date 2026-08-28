@@ -67,8 +67,10 @@ export interface EmergencyRequest {
 }
 
 export interface DonorEmergenciesResponse {
-  active: EmergencyRequest[];
-  myResponses: EmergencyRequest[];
+  data: {
+    active: EmergencyRequest[];
+    myResponses: EmergencyRequest[];
+  };
 }
 
 export async function getDonorEmergencies(): Promise<DonorEmergenciesResponse> {

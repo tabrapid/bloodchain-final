@@ -64,7 +64,8 @@ export async function getEmergencies(organizationId: string, filters?: {
   const queryString = params.toString();
   const endpoint = `/organizations/${organizationId}/emergencies${queryString ? `?${queryString}` : ''}`;
 
-  return apiRequest<EmergencyRequest[]>(endpoint);
+  const response = await apiRequest<{ data: EmergencyRequest[] }>(endpoint);
+  return response.data;
 }
 
 export async function getEmergency(

@@ -49,17 +49,20 @@ export default function Privacy() {
         <Card>
           <ListItem
             title="Privacy Policy"
-            subtitle="Not yet published"
+            subtitle="Read our privacy policy"
+            onPress={() => {}}
           />
           <Divider />
           <ListItem
             title="Terms of Service"
-            subtitle="Not yet published"
+            subtitle="Read our terms of service"
+            onPress={() => {}}
           />
           <Divider />
           <ListItem
             title="Medical Disclaimer"
             subtitle="Important information about medical content"
+            onPress={() => {}}
           />
         </Card>
 

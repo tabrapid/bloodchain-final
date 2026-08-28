@@ -3,7 +3,7 @@ import { getSessions, revokeSession, revokeAllSessions } from '../api/sessions';
 import type { Session } from '../api/sessions';
 
 export function useSessions() {
-  return useQuery<Session[]>({
+  return useQuery<{ data: Session[] }>({
     queryKey: ['sessions'],
     queryFn: getSessions,
   });

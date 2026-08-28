@@ -47,18 +47,6 @@ export interface TimeSeriesDataPointDto {
   value: number;
 }
 
-/**
- * What every `get*Trends` backend method actually returns — a day-bucketed
- * series plus its own total, not a bare array. `AnalyticsController` has no
- * route currently rendering this on the hospital dashboard, so this shape
- * was never exercised and had drifted from reality (see P0-14).
- */
-export interface TrendsDto {
-  data: TimeSeriesDataPointDto[];
-  period: string;
-  total: number;
-}
-
 export interface StatusCountDto {
   status: string;
   count: number;
@@ -112,30 +100,30 @@ export interface OverviewAnalytics {
 export interface InventoryAnalytics {
   byBloodGroup: BloodGroupCountDto[];
   byComponent: Array<{ componentType: string; count: number; available: number; reserved: number }>;
-  trends: TrendsDto;
+  byStatus: StatusCountDto[];
+  timeSeries: TimeSeriesDataPointDto[];
   summary: {
     totalUnits: number;
     availableUnits: number;
     reservedUnits: number;
     quarantinedUnits: number;
     expiredUnits: number;
-    lowStockGroups: string[];
-    criticalGroups: string[];
+    lowStockThreshold: number;
+    criticalThreshold: number;
   };
 }
 
 export interface DonationAnalytics {
   byBloodGroup: BloodGroupCountDto[];
   byStatus: StatusCountDto[];
-  trends: TrendsDto;
+  byAppointmentType: Array<{ type: string; count: number }>;
+  timeSeries: TimeSeriesDataPointDto[];
   summary: {
     total: number;
     completed: number;
     cancelled: number;
     noShows: number;
     completionRate: number | null;
-    totalVolumeMl: number;
-    avgVolumeMl: number;
   };
 }
 
@@ -143,7 +131,7 @@ export interface EmergencyAnalytics {
   byStatus: StatusCountDto[];
   byUrgency: Array<{ urgencyLevel: string; count: number }>;
   byBloodGroup: BloodGroupCountDto[];
-  trends: TrendsDto;
+  timeSeries: TimeSeriesDataPointDto[];
   summary: {
     total: number;
     active: number;
@@ -158,31 +146,28 @@ export interface EmergencyAnalytics {
 export interface AppointmentAnalytics {
   byStatus: StatusCountDto[];
   byType: Array<{ appointmentType: string; count: number }>;
-  trends: TrendsDto;
+  byBloodType: BloodGroupCountDto[];
+  timeSeries: TimeSeriesDataPointDto[];
   summary: {
     total: number;
-    booked: number;
-    confirmed: number;
     completed: number;
     cancelled: number;
-    noShow: number;
+    noShows: number;
     completionRate: number | null;
-    cancellationRate: number | null;
-    noShowRate: number | null;
   };
 }
 
 export interface RequestAnalytics {
   byStatus: StatusCountDto[];
-  byPriority: Array<{ priority: string; count: number }>;
-  trends: TrendsDto;
+  byBloodGroup: BloodGroupCountDto[];
+  byUrgency: Array<{ urgencyLevel: string; count: number }>;
+  timeSeries: TimeSeriesDataPointDto[];
   summary: {
     total: number;
     pending: number;
-    approved: number;
-    rejected: number;
     fulfilled: number;
-    partialFulfilled: number;
+    partial: number;
+    cancelled: number;
     fulfillmentRate: number | null;
   };
 }
@@ -199,28 +184,11 @@ export interface ActivityItem {
 export interface AlertItem {
   id: string;
   type: string;
-  priority: 'CRITICAL' | 'HIGH';
+  severity: 'critical' | 'high' | 'medium' | 'low';
   title: string;
   message: string;
-  sourceType: string;
-  sourceId: string;
-  status: 'OPEN' | 'ACKNOWLEDGED';
   createdAt: string;
-}
-
-/**
- * `getAlerts` always queries `acknowledged: false`, so `alerts` is already
- * every open alert; `critical`/`high`/`medium`/`low`/`total` are its own
- * pre-computed counts (`medium`/`low` are hardcoded 0 today — there is no
- * inventory alert type mapped to either priority yet).
- */
-export interface AlertsResponse {
-  alerts: AlertItem[];
-  critical: number;
-  high: number;
-  medium: number;
-  low: number;
-  total: number;
+  acknowledged: boolean;
 }
 
 export async function getOverviewAnalytics(
@@ -322,25 +290,20 @@ export async function getRequestAnalytics(
   return apiRequest<RequestAnalytics>(endpoint);
 }
 
-export interface ActivityFeedResponse {
-  items: ActivityItem[];
-  total: number;
-}
-
 export async function getActivityFeed(
   organizationId: string,
   limit = 20,
   offset = 0
-): Promise<ActivityFeedResponse> {
+): Promise<ActivityItem[]> {
   const params = new URLSearchParams();
   params.append('limit', limit.toString());
   params.append('offset', offset.toString());
 
   const endpoint = `/organizations/${organizationId}/analytics/activity?${params.toString()}`;
-  return apiRequest<ActivityFeedResponse>(endpoint);
+  return apiRequest<ActivityItem[]>(endpoint);
 }
 
-export async function getAlerts(organizationId: string): Promise<AlertsResponse> {
+export async function getAlerts(organizationId: string): Promise<AlertItem[]> {
   const endpoint = `/organizations/${organizationId}/analytics/alerts`;
-  return apiRequest<AlertsResponse>(endpoint);
+  return apiRequest<AlertItem[]>(endpoint);
 }

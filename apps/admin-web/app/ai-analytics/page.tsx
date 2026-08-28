@@ -4,9 +4,41 @@ import { useEffect, useState } from 'react';
 import { Brain, TrendingUp, TrendingDown, CheckCircle, XCircle, AlertTriangle, BarChart3, Clock, MessageSquare, ThumbsUp, ThumbsDown, Flag, RefreshCw, LayoutDashboard, Users, Building2, Ship, Package, Droplet, TestTube, Bell, FileText, Activity, Settings } from 'lucide-react';
 import { LoadingState } from '@bloodchain/ui/components';
 import { isAuthenticated, me } from '@lib/auth';
-import { getAIPatformAnalytics, getAIInsightStats, type AIAnalytics, type AIInsightStats } from '@lib/ai-api';
+import { getAIPatformAnalytics, getAIInsightStats } from '@lib/ai-api';
 import { StatusBadgeWrapper } from '@lib/status';
 import { AppShell } from '../../components/AppShell';
+
+interface AIAnalytics {
+  totalRequests: number;
+  successfulRequests: number;
+  failedRequests: number;
+  successRate: number;
+  averageLatencyMs: number;
+  totalTokens: number;
+  estimatedCost: number;
+  requestsByType: Record<string, number>;
+  requestsByModel: Record<string, number>;
+  fallbackCount: number;
+  safetyBlocks: number;
+  feedbackAnalytics: {
+    total: number;
+    helpful: number;
+    notHelpful: number;
+    reportIssue: number;
+    helpfulRate: number;
+  };
+  recentTrend: {
+    last7Days: number[];
+    labels: string[];
+  };
+}
+
+interface AIInsightStats {
+  totalInsights: number;
+  insightsByType: Record<string, number>;
+  insightsBySafetyLevel: Record<string, number>;
+  averageInsightsPerUser: number;
+}
 
 export default function AIAnalyticsPage() {
   const [currentUser, setCurrentUser] = useState<any>(null);

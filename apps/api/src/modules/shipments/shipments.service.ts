@@ -1563,6 +1563,28 @@ export class ShipmentsService {
     return locations;
   }
 
+  async getCourierShipments(courierId: string, filters?: { status?: string }) {
+    const courier = await this.checkCourierAccess(courierId);
+
+    const where: Prisma.ShipmentWhereInput = { courierId: courier.id };
+    if (filters?.status) {
+      where.status = filters.status as ShipmentStatus;
+    }
+
+    const shipments = await this.db.shipment.findMany({
+      where,
+      include: {
+        bloodRequest: { select: { requestReference: true, priority: true } },
+        sourceOrganization: { select: { name: true } },
+        destinationOrganization: { select: { name: true } },
+        locations: { orderBy: { recordedAt: 'desc' }, take: 1 },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return { data: shipments };
+  }
+
   async getShipmentTimeline(shipmentId: string, userId: string) {
     const shipment = await this.db.shipment.findUnique({
       where: { id: shipmentId },

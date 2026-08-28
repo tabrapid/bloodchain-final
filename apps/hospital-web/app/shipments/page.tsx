@@ -55,7 +55,7 @@ export default function ShipmentsPage() {
       const filters: { status?: string } = {};
       if (statusFilter) filters.status = statusFilter;
       const data = await getIncomingShipments(organizationId, filters);
-      setShipments(data);
+      setShipments(data.data);
     } catch (err) {
       console.error('Failed to load shipments:', err);
     } finally {
