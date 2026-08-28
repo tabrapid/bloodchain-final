@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import {
   deleteAccessToken,
   deleteRefreshToken,
@@ -6,6 +7,7 @@ import {
   setAccessToken,
 } from '../auth/storage';
 import { apiBaseUrl } from './config';
+import { useAuthStore } from '../stores/auth.store';
 
 export interface ApiError {
   statusCode: number;
@@ -130,6 +132,15 @@ export async function apiRequestEnvelope<T>(
     } else {
       await deleteAccessToken();
       await deleteRefreshToken();
+      // Deleting the tokens alone leaves the app thinking it's still
+      // logged in: nothing else watches storage, and none of the
+      // protected (app)/(courier) tab layouts re-check auth once mounted
+      // -- only the cold-start entry point does. Without this, a session
+      // that dies mid-use (expired or revoked refresh token) leaves the
+      // user stuck on their current screen seeing generic request-failed
+      // errors on every action, with no path back to login.
+      useAuthStore.getState().clearAuth();
+      router.replace('/(auth)/login');
     }
   }
 

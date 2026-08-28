@@ -1260,6 +1260,61 @@ These make the product unusable or unsafe for real users. Fix first, in order.
     `apps/mobile/app/(courier)/history.tsx`,
     `apps/mobile/app/(courier)/profile.tsx`.
 
+- [x] **P0-26. A session that died mid-use (expired or revoked refresh
+  token) left the user permanently stuck on whatever screen they were on,
+  seeing generic "request failed" errors forever, with no path back to
+  login.** — Fixed. Specifically checked for this while auditing whether
+  the protected `(app)`/`(courier)` route groups have any auth guard
+  beyond the cold-start redirect.
+
+  Confirmed neither `(app)/_layout.tsx` nor `(courier)/_layout.tsx` (both
+  plain `Tabs` navigators, no auth logic at all) nor anything else re-
+  checks auth once mounted — the *only* place session validity is ever
+  checked is `app/index.tsx`'s cold-start redirect (P0-18) and
+  `useAuthBootstrap`'s one-time effect on app launch. Neither runs again
+  once the user is inside the app.
+
+  Then found the actual failure path: `apiRequestEnvelope` in
+  `api/client.ts` already handled a 401 correctly up to a point — it
+  tries `refreshAccessToken()`, and on failure calls
+  `deleteAccessToken()`/`deleteRefreshToken()` to wipe the now-invalid
+  tokens from storage. But nothing else in the app watches SecureStore.
+  The Zustand `useAuthStore`'s `isAuthenticated`/`user` state — the only
+  thing any screen actually reads to decide what to show — was never
+  touched, so it stayed exactly as it was before the session died. Every
+  subsequent request from any screen would 401, fail to refresh again
+  (already-deleted tokens), and throw the same generic `ApiRequestError`
+  the screen's existing `catch` block shows as an ordinary error message
+  — with no indication the real problem is "you're not logged in anymore"
+  and no way to get back to login short of a manual app restart followed
+  by, if the restart made it far enough for `app/index.tsx` to actually
+  run its redirect, landing back at login (a device left open on a
+  protected screen wouldn't even get that, since nothing in that flow
+  re-runs while the app stays foregrounded).
+
+  Fixed by making the refresh-failure branch also call
+  `useAuthStore.getState().clearAuth()` and `router.replace('/(auth)/login')`
+  directly from `client.ts` — the one place that actually observes the
+  failure as it happens, regardless of which screen triggered it. Confirmed
+  safe against `client.ts`'s existing `skipAuth` convention: every
+  unauthenticated call (login, register, refresh itself, etc.) already
+  passes `skipAuth: true`, so this branch can only ever fire for a call
+  that was genuinely relying on a stored session, never during an
+  unauthenticated flow. Checked for a circular-import risk from `client.ts`
+  now importing the Zustand store (`auth.store.ts` in turn imports a
+  *type* from `api/auth.ts`, which imports `client.ts`) — that edge is
+  `import type`, erased at compile time, so no runtime cycle.
+
+  Verified via a new test in `client.spec.ts`: seeds the store as
+  authenticated, mocks the original request and the refresh attempt both
+  returning 401, and asserts `isAuthenticated`/`user` are cleared and
+  `router.replace('/(auth)/login')` was called. Required mocking
+  `expo-router` in that spec file (same issue as P0-23's fix to
+  `community-screens.spec.tsx`: the real package isn't transformable by
+  this project's jest config). `pnpm --filter @bloodchain/mobile typecheck`
+  clean; mobile tests now 34/34.
+  - Files: `apps/mobile/src/api/client.ts`, `apps/mobile/src/api/client.spec.ts`.
+
 ## 🟠 P1 — Major gaps (feature exists but disconnected, or missing entirely)
 
 - [x] **P1-1. Booking race conditions (double-booking) in appointments and lab slots.** — Fixed:

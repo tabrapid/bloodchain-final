@@ -5,8 +5,13 @@ jest.mock('../auth/storage', () => ({
   deleteAccessToken: jest.fn().mockResolvedValue(undefined),
   deleteRefreshToken: jest.fn().mockResolvedValue(undefined),
 }));
+jest.mock('expo-router', () => ({
+  router: { push: jest.fn(), replace: jest.fn() },
+}));
 
+import { router } from 'expo-router';
 import { apiRequest, apiRequestEnvelope, ApiRequestError } from './client';
+import { useAuthStore } from '../stores/auth.store';
 
 function mockFetchOnce(body: unknown, status = 200) {
   (global.fetch as jest.Mock).mockResolvedValueOnce({
@@ -133,5 +138,29 @@ describe('apiRequest / apiRequestEnvelope', () => {
     await expect(apiRequest('/auth/login', { skipAuth: true, method: 'POST' })).rejects.toMatchObject({
       error: { code: 'NETWORK_ERROR' },
     });
+  });
+
+  /**
+   * Deleting the stored tokens on a failed refresh isn't enough by itself:
+   * nothing else watches SecureStore, and none of the (app)/(courier) tab
+   * layouts re-check auth once mounted -- only the cold-start entry point
+   * does. Without also clearing the Zustand store and redirecting here, a
+   * session that dies mid-use (expired or revoked refresh token) leaves the
+   * user stuck on their current screen with no path back to login.
+   */
+  it('clears the auth store and redirects to login when the refresh token itself is rejected', async () => {
+    useAuthStore.getState().setUser({ id: 'user-1', email: 'donor@donor.local' } as never);
+    expect(useAuthStore.getState().isAuthenticated).toBe(true);
+
+    // First call: the original request comes back 401.
+    mockFetchOnce({ statusCode: 401, code: 'UNAUTHORIZED', message: 'Access token expired.' }, 401);
+    // Second call: the refresh attempt itself is rejected (refresh token expired/revoked too).
+    mockFetchOnce({ statusCode: 401, code: 'UNAUTHORIZED', message: 'Invalid refresh token.' }, 401);
+
+    await expect(apiRequest('/donors/profile')).rejects.toBeInstanceOf(ApiRequestError);
+
+    expect(useAuthStore.getState().isAuthenticated).toBe(false);
+    expect(useAuthStore.getState().user).toBeNull();
+    expect(router.replace).toHaveBeenCalledWith('/(auth)/login');
   });
 });
