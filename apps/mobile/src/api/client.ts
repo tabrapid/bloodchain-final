@@ -24,6 +24,38 @@ interface RequestOptions extends RequestInit {
   skipAuth?: boolean;
 }
 
+const REQUEST_TIMEOUT_MS = 15000;
+
+/**
+ * Plain fetch() never times out on its own -- a request to an unreachable
+ * host (wrong LAN IP, a firewall silently dropping packets, a dead dev
+ * server) just hangs forever, with no error and no way for the UI to
+ * recover from its loading state. Race it against an abort instead, so a
+ * dead network surfaces as a real, catchable error.
+ */
+async function fetchWithTimeout(url: string, options: RequestInit): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } catch (err) {
+    if (err instanceof Error && err.name === 'AbortError') {
+      throw new ApiRequestError({
+        statusCode: 0,
+        code: 'REQUEST_TIMEOUT',
+        message: 'The server took too long to respond. Check your connection and try again.',
+      });
+    }
+    throw new ApiRequestError({
+      statusCode: 0,
+      code: 'NETWORK_ERROR',
+      message: 'Could not reach the server. Check your connection and try again.',
+    });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 let isRefreshing = false;
 let refreshPromise: Promise<string | null> | null = null;
 
@@ -34,7 +66,7 @@ async function refreshAccessToken(): Promise<string | null> {
       try {
         const refreshToken = await getRefreshToken();
         if (!refreshToken) return null;
-        const response = await fetch(`${apiBaseUrl}/auth/refresh`, {
+        const response = await fetchWithTimeout(`${apiBaseUrl}/auth/refresh`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ refreshToken }),
@@ -88,13 +120,13 @@ export async function apiRequestEnvelope<T>(
     }
   }
 
-  let response = await fetch(url, { ...options, headers });
+  let response = await fetchWithTimeout(url, { ...options, headers });
 
   if (response.status === 401 && !options.skipAuth) {
     const newToken = await refreshAccessToken();
     if (newToken) {
       headers.set('Authorization', `Bearer ${newToken}`);
-      response = await fetch(url, { ...options, headers });
+      response = await fetchWithTimeout(url, { ...options, headers });
     } else {
       await deleteAccessToken();
       await deleteRefreshToken();

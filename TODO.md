@@ -847,6 +847,48 @@ These make the product unusable or unsafe for real users. Fix first, in order.
     `apps/mobile/.gitignore`, `apps/mobile/src/__tests__/root-index.spec.tsx`
     (new).
 
+- [x] **P0-19. `apiRequest` had no timeout — a request to an unreachable
+  API hung forever with no error, leaving the UI stuck on its loading
+  state permanently.** — Fixed. Found live, same device-testing session
+  as P0-18: after fixing the routing collision, the login screen reached
+  correctly but "Sign in" got stuck on "Signing in..." indefinitely with
+  no error message. Root cause wasn't app logic — `login.tsx`'s
+  `onSubmit` already has a correct `try/catch` that clears the pending
+  state and shows `serverError` on failure — it's that `apiRequestEnvelope`
+  called bare `fetch()` with no `AbortController`/timeout at all, so a
+  request to an unreachable host (wrong LAN IP, a firewall silently
+  dropping packets, a dead dev server) never resolves *or* rejects.
+  `login.isPending` stays `true` forever because the promise it's watching
+  never settles — there was no way for the UI to recover short of force-
+  quitting the app, and no signal telling the user *why*.
+
+  Added `fetchWithTimeout` to `mobile/src/api/client.ts`: races every
+  request against a 15s `AbortController` timeout, and — since a genuinely
+  unreachable host can also reject `fetch()` immediately with a
+  `TypeError` rather than hanging — catches that case too. Both now throw
+  a real, catchable `ApiRequestError` (`REQUEST_TIMEOUT` /
+  `NETWORK_ERROR`) instead of leaving the caller's promise unsettled,
+  which every existing call site already knows how to handle (they all
+  already catch `ApiRequestError` for server-side failures; this just
+  makes connectivity failures arrive the same way instead of never
+  arriving at all).
+
+  Verified via 2 new unit tests in `client.spec.ts`: one uses fake timers
+  and a mock `fetch` that only rejects when its `AbortSignal` actually
+  fires, advances 15s, and asserts the promise rejects with
+  `REQUEST_TIMEOUT` instead of hanging; the other mocks an immediate
+  `TypeError` (matching React Native's real "Network request failed") and
+  asserts `NETWORK_ERROR`. 8/8 `client.spec.ts` tests and 31/31 mobile
+  tests overall passing. `pnpm --filter @bloodchain/mobile typecheck`
+  clean.
+
+  Also added a show/hide toggle to the login screen's password field
+  (`Eye`/`EyeOff` from `lucide-react-native`, already a dependency) per
+  direct user request during the same testing session — unrelated to the
+  timeout fix, bundled here since it touches the same file.
+  - Files: `apps/mobile/src/api/client.ts`, `apps/mobile/src/api/client.spec.ts`,
+    `apps/mobile/app/(auth)/login.tsx`.
+
 ## 🟠 P1 — Major gaps (feature exists but disconnected, or missing entirely)
 
 - [x] **P1-1. Booking race conditions (double-booking) in appointments and lab slots.** — Fixed:

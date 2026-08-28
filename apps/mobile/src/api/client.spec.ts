@@ -97,4 +97,41 @@ describe('apiRequest / apiRequestEnvelope', () => {
     const [, options] = (global.fetch as jest.Mock).mock.calls[0];
     expect(options.headers.has('Authorization')).toBe(false);
   });
+
+  /**
+   * The bug a real user hit on a real device: a request to an unreachable
+   * API (wrong LAN IP, a firewall silently dropping packets) has nothing
+   * built into fetch() that ever gives up. Before this fix, "Signing
+   * in..." just spun forever with no error and no way to recover.
+   */
+  it('times out and throws a catchable error instead of hanging forever', async () => {
+    jest.useFakeTimers();
+    (global.fetch as jest.Mock).mockImplementationOnce(
+      (_url: string, options: { signal: AbortSignal }) =>
+        new Promise((_resolve, reject) => {
+          options.signal.addEventListener('abort', () => {
+            const err = new Error('Aborted');
+            err.name = 'AbortError';
+            reject(err);
+          });
+        }),
+    );
+
+    const pending = apiRequest('/auth/login', { skipAuth: true, method: 'POST' });
+    const assertion = expect(pending).rejects.toMatchObject({
+      error: { code: 'REQUEST_TIMEOUT' },
+    });
+
+    await jest.advanceTimersByTimeAsync(15000);
+    await assertion;
+    jest.useRealTimers();
+  });
+
+  it('surfaces an unreachable host as a network error, not a silent hang', async () => {
+    (global.fetch as jest.Mock).mockRejectedValueOnce(new TypeError('Network request failed'));
+
+    await expect(apiRequest('/auth/login', { skipAuth: true, method: 'POST' })).rejects.toMatchObject({
+      error: { code: 'NETWORK_ERROR' },
+    });
+  });
 });
