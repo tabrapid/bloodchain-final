@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { View, TextInput, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { AppButton, AppText, Card, Screen } from '../../../src/components';
 import { useUpdateDonorProfile } from '../../../src/hooks/useDonors';
 import { useDonorProfile } from '../../../src/hooks/useDonors';
 import { colors, spacing, radius } from '../../../src/theme';
+import { ApiRequestError } from '../../../src/api/client';
 
 const BLOOD_TYPES = ['A', 'B', 'AB', 'O'] as const;
 const RH_FACTORS = [
@@ -15,6 +16,7 @@ const RH_FACTORS = [
 export default function EditDonorProfile() {
   const { data: donor } = useDonorProfile();
   const updateProfile = useUpdateDonorProfile();
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     bloodType: donor?.bloodType || '',
@@ -23,11 +25,25 @@ export default function EditDonorProfile() {
     district: donor?.district || '',
   });
 
+  // See profile/edit.tsx's identical fix: useState's initializer only runs
+  // once, so a screen reached before `donor` is cached would otherwise
+  // show blank fields forever.
+  useEffect(() => {
+    if (!donor) return;
+    setFormData({
+      bloodType: donor.bloodType || '',
+      rhFactor: donor.rhFactor || '',
+      city: donor.city || '',
+      district: donor.district || '',
+    });
+  }, [donor]);
+
   const handleChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleSave = async () => {
+    setSaveError(null);
     try {
       await updateProfile.mutateAsync({
         bloodType: formData.bloodType as any || undefined,
@@ -37,7 +53,11 @@ export default function EditDonorProfile() {
       });
       router.back();
     } catch (error) {
-      console.error('Failed to update donor profile:', error);
+      setSaveError(
+        error instanceof ApiRequestError
+          ? error.error.message
+          : 'Something went wrong saving your changes. Please try again.',
+      );
     }
   };
 
@@ -130,6 +150,10 @@ export default function EditDonorProfile() {
               />
             </View>
           </View>
+
+          {saveError && (
+            <AppText style={{ color: colors.danger, marginTop: spacing.lg }}>{saveError}</AppText>
+          )}
         </ScrollView>
 
         <View style={styles.footer}>

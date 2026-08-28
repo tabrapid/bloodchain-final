@@ -26,7 +26,14 @@ export default function Welcome() {
           DONOR gives you a clearer, more confident way to stay connected to your health journey.
         </AppText>
         <View style={{ marginTop: spacing['2xl'] }}>
-          <AppButton onPress={() => router.push('/(auth)/login')}>Continue</AppButton>
+          <AppButton onPress={() => router.push('/(auth)/login')}>Sign in</AppButton>
+          <AppButton
+            variant="ghost"
+            onPress={() => router.push('/(auth)/register')}
+            style={{ marginTop: spacing.md }}
+          >
+            Create an account
+          </AppButton>
         </View>
       </View>
     </Screen>

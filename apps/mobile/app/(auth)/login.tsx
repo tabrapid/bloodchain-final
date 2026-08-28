@@ -118,6 +118,14 @@ export default function Login() {
             Resend verification email
           </AppButton>
         )}
+
+        <AppButton
+          variant="ghost"
+          style={{ marginTop: spacing.md }}
+          onPress={() => router.push('/(auth)/register')}
+        >
+          Don't have an account? Create one
+        </AppButton>
       </View>
     </Screen>
   );

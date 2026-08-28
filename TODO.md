@@ -889,6 +889,113 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   - Files: `apps/mobile/src/api/client.ts`, `apps/mobile/src/api/client.spec.ts`,
     `apps/mobile/app/(auth)/login.tsx`.
 
+- [x] **P0-20. First line-by-line audit pass: no path to Register, unwired
+  onboarding notification preferences, silent-error/stale-form-state bugs
+  on two profile screens, a duplicate `/notifications` route, and every
+  push-notification deep link except one pointed at a mobile route that
+  doesn't exist.** — Fixed, all found during the full-codebase audit
+  requested after P0-18/P0-19 ("check everything line by line, integration
+  included, until the app is 100% working").
+
+  **No way to create an account.** `welcome.tsx` only had a "Continue"
+  button to Login; nothing anywhere in the reachable navigation graph
+  pointed at `/(auth)/register`. A new user could never sign up from the
+  app. Added a "Create an account" button on the welcome screen and a
+  "Don't have an account? Create one" link on the login screen.
+
+  **Onboarding's notification step was pure UI theater.** The "Complete
+  Your Profile" wizard's Notifications step collected 4 toggle values
+  (`emergencyRequests`, `appointments`, `donationReminders`, `system`) that
+  were never sent anywhere — `handleFinish` only called the profile/donor
+  update mutations. Wired it to `useUpdateNotificationPreferences`, and
+  invalidated the `notification-preferences` query alongside the existing
+  profile/donor invalidations. Also removed a dead `promotional` field that
+  was tracked in state but never rendered as a toggle or read by any API
+  call.
+
+  **Silent error swallowing + stale initial form state**, the same two-bug
+  pattern found independently on `complete-profile.tsx`, `profile/edit.tsx`,
+  and `profile/donor.tsx`: (1) save/finish handlers caught failures with
+  only `console.error(...)`, so a failed save just silently stopped
+  spinning with zero explanation; (2) each screen's `useState` form
+  initializer read from a `useQuery` hook's data only once, at mount — a
+  screen reached before that query resolved showed permanently blank
+  fields even after the fetch completed, since nothing re-synced. Fixed by
+  adding an `ApiRequestError`-aware error state (shown near the submit
+  button) and a `useEffect` that re-syncs form state whenever the query
+  data changes, in all three screens.
+
+  **Duplicate route collision at `/notifications`, same bug class as
+  P0-18.** `app/notifications.tsx` (a dead placeholder stub — hardcoded
+  "No notifications" `EmptyState`, no data fetching) and
+  `app/(app)/notifications.tsx` (the real notification center) both strip
+  to the same `/notifications` URL, since Expo Router drops group-folder
+  names. Nothing in-app pushes the bare path (the one caller,
+  `profile.tsx`, already used the fully-qualified `/(app)/notifications`),
+  so this wasn't yet user-visible, but it was a live collision waiting for
+  the next caller — and dead code besides. Deleted the stub.
+
+  **Push-notification deep links were broken for almost every notification
+  type.** `notification.deepLink` is read by exactly two places in the
+  whole codebase, both in the mobile app only: the push-notification tap
+  handler (`usePushNotifications.ts`) and the in-app notification list
+  (`(app)/notifications.tsx`) — both call `router.push(deepLink)` directly.
+  Checked every `deepLink` the backend emits against the real mobile route
+  tree; all but two (`/donations/:id`, the level-up `/profile`) pointed at
+  routes that don't exist:
+  - SOS (`routeSosNotification` and the donor-accepted handler in
+    `notification-event.handler.ts`): `/sos/${id}` — `sos.tsx` has no
+    per-request detail route or `useLocalSearchParams` at all. → `/sos`.
+  - Appointments: `/calendar/appointment/${id}` — no such route exists
+    anywhere; the real screen is `(app)/appointment/[id].tsx`. →
+    `/(app)/appointment/${id}`.
+  - Lab results: `/health/tests/${id}` — no per-result detail screen
+    exists. → `/(app)/laboratory` (the results list).
+  - Achievements: `/profile/achievements/${id}` — no per-achievement
+    detail screen exists. → `/(app)/gamification/achievements`.
+  - Shipments: `/shipments/${id}` — the mobile app (couriers) has no
+    shipment detail screen, only `/active` and `/history`. →
+    `/(courier)/active`.
+  - Inventory alerts: `/inventory/${id}` — the mobile app has no inventory
+    concept at all (web-only feature); recipients are blood-center staff,
+    who don't have a mobile client. → `/(app)/home` as a harmless fallback
+    in case it's ever reached.
+  - Security: `/profile/security` — the real screen is the top-level
+    `(app)/security.tsx`, not nested under profile. → `/(app)/security`.
+  - Level-up and AI insights (`/profile`, `/insights`): technically valid
+    but ambiguous/inconsistent — `(app)/profile.tsx` and
+    `(courier)/profile.tsx` both strip to `/profile`, so an unqualified
+    path could resolve to either. Fully qualified both to `/(app)/profile`
+    and `/(app)/insights` to remove the ambiguity, matching the pattern
+    every other fix here now follows: always emit a group-qualified path
+    for anything inside a route group.
+  - AI insight notifications (`ai-notification.service.ts`) never had a
+    working deep link at all in either case: `deepLink` was nested inside
+    the `data: {...}` blob instead of passed as `CreateNotificationDto`'s
+    actual top-level `deepLink` field, so `notification.deepLink` was
+    always `undefined` on the client no matter what string was in there.
+    Moved both call sites to set the real top-level field.
+
+  Verified with 19 new/expanded tests in
+  `notification-router.service.spec.ts` (one per notification type,
+  asserting the exact `deepLink` string emitted) and 4 new tests in a new
+  `ai-notification.service.spec.ts` (asserting `deepLink` lands as a
+  top-level field, not under `data`, for both the insight-ready and
+  analysis-failed paths). `pnpm --filter @bloodchain/api test` (notifications
+  + ai-health: 100/100) and `pnpm --filter @bloodchain/mobile test` (31/31)
+  both green; `typecheck` clean on both `@bloodchain/api` and
+  `@bloodchain/mobile`.
+  - Files: `apps/mobile/app/(auth)/welcome.tsx`, `apps/mobile/app/(auth)/login.tsx`,
+    `apps/mobile/app/(auth)/register.tsx` (password show/hide toggle, same
+    pattern as P0-19's login fix), `apps/mobile/app/(onboarding)/complete-profile.tsx`,
+    `apps/mobile/app/(app)/profile/edit.tsx`, `apps/mobile/app/(app)/profile/donor.tsx`,
+    `apps/mobile/app/notifications.tsx` (deleted),
+    `apps/api/src/modules/notifications/services/notification-router.service.ts`,
+    `apps/api/src/modules/notifications/services/notification-router.service.spec.ts`,
+    `apps/api/src/modules/notifications/handlers/notification-event.handler.ts`,
+    `apps/api/src/modules/ai-health/ai-notification.service.ts`,
+    `apps/api/src/modules/ai-health/ai-notification.service.spec.ts` (new).
+
 ## 🟠 P1 — Major gaps (feature exists but disconnected, or missing entirely)
 
 - [x] **P1-1. Booking race conditions (double-booking) in appointments and lab slots.** — Fixed:

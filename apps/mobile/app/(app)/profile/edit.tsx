@@ -1,14 +1,16 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { View, TextInput, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { AppButton, AppText, Screen } from '../../../src/components';
 import { useUpdateUserProfile } from '../../../src/hooks/useUsers';
 import { useUserProfile } from '../../../src/hooks/useUsers';
 import { colors, spacing, radius } from '../../../src/theme';
+import { ApiRequestError } from '../../../src/api/client';
 
 export default function EditProfile() {
   const { data: user } = useUserProfile();
   const updateProfile = useUpdateUserProfile();
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     firstName: user?.firstName || '',
@@ -17,11 +19,26 @@ export default function EditProfile() {
     phone: user?.phone || '',
   });
 
+  // useState's initializer only runs on first render -- if this screen is
+  // reached before `user` is cached (e.g. a deep link straight here), the
+  // form would otherwise show blank fields forever, even after the fetch
+  // resolves.
+  useEffect(() => {
+    if (!user) return;
+    setFormData({
+      firstName: user.firstName || '',
+      lastName: user.lastName || '',
+      displayName: user.displayName || '',
+      phone: user.phone || '',
+    });
+  }, [user]);
+
   const handleChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleSave = async () => {
+    setSaveError(null);
     try {
       await updateProfile.mutateAsync({
         firstName: formData.firstName || undefined,
@@ -31,7 +48,11 @@ export default function EditProfile() {
       });
       router.back();
     } catch (error) {
-      console.error('Failed to update profile:', error);
+      setSaveError(
+        error instanceof ApiRequestError
+          ? error.error.message
+          : 'Something went wrong saving your changes. Please try again.',
+      );
     }
   };
 
@@ -99,6 +120,10 @@ export default function EditProfile() {
               />
             </View>
           </View>
+
+          {saveError && (
+            <AppText style={{ color: colors.danger, marginTop: spacing.lg }}>{saveError}</AppText>
+          )}
         </ScrollView>
 
         <View style={styles.footer}>

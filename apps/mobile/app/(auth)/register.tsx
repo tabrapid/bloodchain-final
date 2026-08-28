@@ -1,7 +1,8 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { TextInput, View } from 'react-native';
+import { Pressable, TextInput, View } from 'react-native';
+import { Eye, EyeOff } from 'lucide-react-native';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { registerSchema, type RegisterInput } from '@bloodchain/validation';
 import { AppButton, AppText, Screen } from '../../src/components';
@@ -11,6 +12,7 @@ import { colors, spacing } from '../../src/theme';
 export default function Register() {
   const registerUser = useRegister();
   const [serverError, setServerError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
   const { control, handleSubmit, formState } = useForm<RegisterInput>({
     resolver: zodResolver(registerSchema),
     defaultValues: { email: '', password: '', firstName: '', lastName: '' },
@@ -82,18 +84,31 @@ export default function Register() {
           control={control}
           name="password"
           render={({ field, fieldState }) => (
-            <TextInput
-              placeholder="Password (min 12 characters)"
-              placeholderTextColor={colors.textMuted}
-              secureTextEntry
-              style={[
-                inputStyle,
-                { marginBottom: spacing.lg },
-                fieldState.error && { borderColor: colors.danger },
-              ]}
-              value={field.value}
-              onChangeText={field.onChange}
-            />
+            <View style={{ marginBottom: spacing.lg }}>
+              <TextInput
+                placeholder="Password (min 12 characters)"
+                placeholderTextColor={colors.textMuted}
+                secureTextEntry={!showPassword}
+                style={[
+                  inputStyle,
+                  { marginBottom: 0, paddingRight: 48 },
+                  fieldState.error && { borderColor: colors.danger },
+                ]}
+                value={field.value}
+                onChangeText={field.onChange}
+              />
+              <Pressable
+                onPress={() => setShowPassword((v) => !v)}
+                style={{ position: 'absolute', right: 14, top: 0, bottom: 0, justifyContent: 'center' }}
+                hitSlop={8}
+              >
+                {showPassword ? (
+                  <EyeOff size={20} color={colors.textMuted} />
+                ) : (
+                  <Eye size={20} color={colors.textMuted} />
+                )}
+              </Pressable>
+            </View>
           )}
         />
 
