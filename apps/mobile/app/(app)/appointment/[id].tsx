@@ -106,7 +106,7 @@ export default function AppointmentDetail() {
 
   const handleReschedule = () => {
     router.push({
-      pathname: '/(booking)' as const,
+      pathname: '/(booking)/select-type' as const,
       params: { reschedule: params.id },
     });
   };

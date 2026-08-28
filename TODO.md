@@ -770,6 +770,83 @@ These make the product unusable or unsafe for real users. Fix first, in order.
     `apps/api/src/modules/shipments/shipments.service.ts`,
     `apps/api/src/modules/shipments/dto/shipment.dto.ts`.
 
+- [x] **P0-18. The mobile app had no real entry point — every cold start
+  skipped the welcome/login screen entirely, landing directly in the
+  booking flow regardless of whether the user was authenticated.** —
+  Fixed. Found live by the user, on a real device, the first time they
+  actually opened the app: it opened straight into "Book an Appointment"
+  instead of a login screen.
+
+  Root cause: Expo Router strips group-folder names (`(x)`) from the URL,
+  so a group's `index.tsx` maps to the *literal root* `/`, not a path
+  under the group's name. Two unrelated groups each had one —
+  `(booking)/index.tsx` (the appointment-type picker) and
+  `(onboarding)/index.tsx` (a "complete your profile" screen, itself
+  already unreachable — nothing ever navigated to it automatically either)
+  — so both silently resolved to `/`. There was also no auth-aware
+  redirect anywhere: `app/_layout.tsx`'s `AuthBootstrap` component tracks
+  `isLoading`/`isAuthenticated` in the Zustand store and renders a loading
+  spinner, but never calls `router.replace(...)` or renders a `<Redirect>`
+  based on that state — it only gates the spinner's visibility, not
+  navigation. With no route deliberately owning `/`, the app fell back to
+  whichever group's `index.tsx` the router resolved first, which the
+  Expo Router-generated `.expo/types/router.d.ts` proved directly: it
+  listed *two* separate route entries both claiming `pathname: '/'` (one
+  per group) — mechanical confirmation, not just live-app symptom.
+
+  Fixed by giving the app a real, singular entry point: added
+  `app/index.tsx` (ungrouped, alongside the existing top-level
+  `notifications.tsx`/`settings.tsx`/`sos.tsx`), which reads
+  `isLoading`/`isAuthenticated`/`user` from the auth store and renders a
+  `<Redirect>` to `/(auth)/welcome` when unauthenticated, or to
+  `getPostAuthRoute(user.roles)` (the same helper `login.tsx`/
+  `verify-email.tsx` already use post-authentication) when authenticated
+  — reusing the existing role-based landing logic instead of duplicating
+  it. Renamed the two colliding files out of the way of `/` —
+  `(booking)/index.tsx` → `(booking)/select-type.tsx`,
+  `(onboarding)/index.tsx` → `(onboarding)/complete-profile.tsx` — and
+  updated the three call sites that navigated to the old bare group paths
+  (`calendar.tsx`'s "Book Appointment" button, `home.tsx`'s "Complete
+  Your Profile" banner, `appointment/[id].tsx`'s reschedule handler).
+
+  While fixing this, found `apps/mobile/.expo/` — including the
+  `router.d.ts` typed-routes file this whole bug was diagnosed through —
+  was accidentally committed to git; Expo's own generated README inside
+  that folder says explicitly it should never be shared, and normally
+  ships pre-gitignored. A committed, stale copy is actively worse than
+  none: it's exactly what let this route collision go undetected by
+  typecheck for as long as it did, since `tsc` trusted the checked-in
+  file instead of a freshly regenerated one. Untracked the whole directory
+  and added `.expo/` to `apps/mobile/.gitignore` so it can't happen again;
+  regenerated a fresh copy locally (via `expo start --offline`, since this
+  sandbox has no route to Expo's version-check API) to verify the rename
+  actually resolved the collision before untracking it.
+
+  Not fixed, noted for follow-up: `appointment/[id].tsx`'s "Reschedule"
+  button passes a `reschedule` query param through to the booking flow,
+  but nothing in `(booking)/*` ever reads it — tapping Reschedule silently
+  starts an ordinary new booking instead of calling the `rescheduleAppointment`
+  API function that already exists and works (`src/api/appointments.ts`).
+  Out of scope for this fix; flagged rather than bundled in since it's an
+  unrelated gap, not part of the routing collision.
+
+  Verified via `pnpm --filter @bloodchain/mobile typecheck` (clean —
+  confirms the regenerated route types actually agree with every
+  navigation call site in the app) and 4 new unit tests in
+  `src/__tests__/root-index.spec.tsx` (renders nothing while loading;
+  redirects to welcome when unauthenticated; redirects a courier to
+  `/(courier)/active` and a donor to `/(app)/home` when authenticated —
+  29/29 mobile tests passing overall). No simulator is available in this
+  sandbox to confirm the redirect renders correctly on-device; that
+  remains for the user's own phone, which is how this bug was found in
+  the first place.
+  - Files: `apps/mobile/app/index.tsx` (new),
+    `apps/mobile/app/(booking)/select-type.tsx` (renamed from `index.tsx`),
+    `apps/mobile/app/(onboarding)/complete-profile.tsx` (renamed from
+    `index.tsx`), `apps/mobile/app/(app)/{calendar,home,appointment/[id]}.tsx`,
+    `apps/mobile/.gitignore`, `apps/mobile/src/__tests__/root-index.spec.tsx`
+    (new).
+
 ## 🟠 P1 — Major gaps (feature exists but disconnected, or missing entirely)
 
 - [x] **P1-1. Booking race conditions (double-booking) in appointments and lab slots.** — Fixed:

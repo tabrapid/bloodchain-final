@@ -135,7 +135,7 @@ export default function Calendar() {
           <TouchableOpacity onPress={goToToday} style={styles.todayButton}>
             <AppText style={styles.todayText}>Today</AppText>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => router.push('/(booking)')} style={styles.bookButton}>
+          <TouchableOpacity onPress={() => router.push('/(booking)/select-type')} style={styles.bookButton}>
             <Plus size={18} color={colors.white} />
           </TouchableOpacity>
         </View>

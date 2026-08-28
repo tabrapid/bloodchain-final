@@ -52,7 +52,7 @@ export default function Home() {
 
   const handleCompleteProfile = () => {
     if (needsOnboarding) {
-      router.push('/(onboarding)');
+      router.push('/(onboarding)/complete-profile');
     }
   };
 
