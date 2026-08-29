@@ -1552,6 +1552,52 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   - Files: `apps/blood-center-web/app/inventory/page.tsx`,
     `apps/blood-center-web/app/page.tsx`.
 
+- [x] **P0-31. Two stale-closure bugs where a filter/period `<select>`'s
+  `onChange` called its data-reload function in the same tick as the
+  `setState` that was supposed to change what it loads — reading the
+  *previous* selection instead of the one just picked.** — Fixed, closing
+  out the full web-app sweep (admin-web: dashboard, organizations, users,
+  roles, emergencies, alerts, inventory, moderation, ai-analytics, audit,
+  health, settings, shipments, couriers all checked).
+
+  Both bugs share one root cause: `setState` in React doesn't apply
+  before the current event handler finishes, so a function defined in
+  this render still closes over the *old* value even after `setState` is
+  called earlier in the same handler.
+
+  - `alerts/page.tsx`: the "Acknowledged" filter's `onChange` called
+    `setAcknowledgedFilter(e.target.value)` immediately followed by
+    `loadAlerts(1)` — but `loadAlerts` read `acknowledgedFilter` from the
+    render's closure, which was still the *previous* selection. Picking
+    "Active" fetched with whatever was selected before; the just-picked
+    value only took effect on the *next* change. Every other filtered
+    list page in the app avoids this by pairing filters with an explicit
+    submit button, so the fetch happens in a fresh event after the state
+    update has already committed — `alerts/page.tsx` was the one page
+    that reloaded inline instead.
+  - `ai-analytics/page.tsx`: the date-range `<select>` only called
+    `setDays(...)` with no reload at all — worse than the alerts bug, not
+    off-by-one but entirely stale until the separate "Refresh" button was
+    clicked, with nothing indicating the currently-displayed metrics
+    didn't match the selected period.
+
+  Fixed both the same way: `loadAlerts`/`loadData` now accept the
+  filter/period value as an explicit parameter (defaulting to the current
+  state value for existing callers like the initial mount and
+  pagination), and the `onChange` handlers pass `e.target.value` directly
+  instead of relying on state to have already updated.
+
+  The rest of admin-web checked clean: dashboard, organizations, users,
+  roles, emergencies, inventory, moderation, audit, health, settings,
+  shipments, and couriers all correctly wired, no dead buttons, no
+  double-unwrap, no other stale-closure reloads.
+
+  Verified via `pnpm --filter @bloodchain/admin-web typecheck` (clean)
+  and its full test suite (14/14, unchanged — no existing component-level
+  test harness for these Next.js pages to extend).
+  - Files: `apps/admin-web/app/alerts/page.tsx`,
+    `apps/admin-web/app/ai-analytics/page.tsx`.
+
 ## 🟠 P1 — Major gaps (feature exists but disconnected, or missing entirely)
 
 - [x] **P1-1. Booking race conditions (double-booking) in appointments and lab slots.** — Fixed:
