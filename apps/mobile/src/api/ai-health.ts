@@ -125,43 +125,38 @@ export interface AIConversationSummary {
 }
 
 export async function generateInsight(request: GenerateInsightRequest): Promise<AiInsight> {
-  const response = await apiRequest<{ data: AiInsight }>('/api/v1/me/ai/insights', {
+  return apiRequest<AiInsight>('/api/v1/me/ai/insights', {
     method: 'POST',
     body: JSON.stringify(request),
   });
-  return response.data;
 }
 
 export async function explainResult(request: ExplainResultRequest): Promise<AiInsight> {
-  const response = await apiRequest<{ data: AiInsight }>('/api/v1/me/ai/explain-result', {
+  return apiRequest<AiInsight>('/api/v1/me/ai/explain-result', {
     method: 'POST',
     body: JSON.stringify(request),
   });
-  return response.data;
 }
 
 export async function analyzeTrend(request: AnalyzeTrendRequest): Promise<AiInsight> {
-  const response = await apiRequest<{ data: AiInsight }>('/api/v1/me/ai/analyze-trend', {
+  return apiRequest<AiInsight>('/api/v1/me/ai/analyze-trend', {
     method: 'POST',
     body: JSON.stringify(request),
   });
-  return response.data;
 }
 
 export async function sendChatMessage(request: SendChatRequest): Promise<ChatResponse> {
-  const response = await apiRequest<{ data: ChatResponse }>('/api/v1/me/ai/chat', {
+  return apiRequest<ChatResponse>('/api/v1/me/ai/chat', {
     method: 'POST',
     body: JSON.stringify(request),
   });
-  return response.data;
 }
 
 export async function submitFeedback(request: SubmitFeedbackRequest): Promise<FeedbackResponse> {
-  const response = await apiRequest<{ data: FeedbackResponse }>('/api/v1/me/ai/feedback', {
+  return apiRequest<FeedbackResponse>('/api/v1/me/ai/feedback', {
     method: 'POST',
     body: JSON.stringify(request),
   });
-  return response.data;
 }
 
 export async function getInsightHistory(options?: {
@@ -174,15 +169,13 @@ export async function getInsightHistory(options?: {
   if (options?.limit) params.set('limit', String(options.limit));
   if (options?.offset) params.set('offset', String(options.offset));
 
-  const response = await apiRequest<{ data: { insights: AiInsight[]; total: number } }>(
+  return apiRequest<{ insights: AiInsight[]; total: number }>(
     `/api/v1/me/ai/history${params.toString() ? `?${params.toString()}` : ''}`,
   );
-  return response.data;
 }
 
 export async function getInsight(id: string): Promise<AiInsight> {
-  const response = await apiRequest<{ data: AiInsight }>(`/api/v1/me/ai/history/${id}`);
-  return response.data;
+  return apiRequest<AiInsight>(`/api/v1/me/ai/history/${id}`);
 }
 
 export async function deleteInsight(id: string): Promise<void> {
@@ -197,10 +190,9 @@ export async function getConversations(options?: {
   if (options?.limit) params.set('limit', String(options.limit));
   if (options?.offset) params.set('offset', String(options.offset));
 
-  const response = await apiRequest<{ data: AIConversationSummary[] }>(
+  return apiRequest<AIConversationSummary[]>(
     `/api/v1/me/ai/conversations${params.toString() ? `?${params.toString()}` : ''}`,
   );
-  return response.data;
 }
 
 export async function getConversationDetail(id: string): Promise<{
@@ -216,8 +208,7 @@ export async function getConversationDetail(id: string): Promise<{
     createdAt: string;
   }>;
 }> {
-  const response = await apiRequest<{ data: any }>(`/api/v1/me/ai/conversations/${id}`);
-  return response.data;
+  return apiRequest(`/api/v1/me/ai/conversations/${id}`);
 }
 
 export async function deleteConversation(id: string): Promise<void> {

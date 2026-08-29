@@ -567,6 +567,22 @@ export default function InsightsScreen() {
                   {isGenerating ? 'Sending...' : 'Send'}
                 </AppText>
               </TouchableOpacity>
+
+              {chatResponse && (
+                <View
+                  style={{
+                    marginTop: spacing.md,
+                    paddingTop: spacing.md,
+                    borderTopWidth: 1,
+                    borderTopColor: colors.border,
+                  }}
+                >
+                  <AppText muted style={{ fontSize: 12, marginBottom: spacing.xs }}>
+                    Response
+                  </AppText>
+                  <AppText>{chatResponse.message.content}</AppText>
+                </View>
+              )}
             </Card>
           </>
         )}

@@ -1383,6 +1383,90 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   only for `lib/*.ts` API client functions, which weren't touched).
   - Files: `apps/blood-center-web/app/shipments/[id]/page.tsx`.
 
+- [x] **P0-28. The entire AI Health Insights feature and the entire Health
+  Trends feature were completely non-functional for every user, always —
+  every single API call in `ai-health.ts` and `health-trends.ts`
+  double-unwrapped an already-unwrapped response, silently resolving to
+  `undefined` on every call.** — Fixed. Found continuing the sweep past
+  the original 9 planned tasks, auditing the mobile screens that hadn't
+  been read yet (`calendar.tsx`, `donate.tsx`, `insights/index.tsx`) —
+  reading `insights/index.tsx` led straight into this.
+
+  **The bug, mechanically**: `apiRequest<T>` (in `api/client.ts`) already
+  strips exactly one `{ data: ... }` envelope and resolves to `T` — this
+  is the single, consistent contract every other client file in the app
+  follows (confirmed as far back as P0-12/13/14/15/17 this session, and
+  it's literally what `client.spec.ts`'s very first test exists to pin
+  down). But every function in `ai-health.ts` (9 of them) and
+  `health-trends.ts` (5 of them) called `apiRequest<{ data: T }>(url)` and
+  then returned `response.data` — asking `apiRequest` to strip a second
+  layer that was never there. At runtime, `response` was already the real
+  `T` (an insight, a trend summary, an array — none of which have a
+  `.data` field), so `response.data` was `undefined` on literally every
+  successful call, unconditionally, for every user, since whenever these
+  files were written.
+
+  **Why nothing caught it for so long**: the two files failed in
+  different, equally silent ways.
+  - `ai-health.ts`'s callers (`insights/index.tsx`'s
+    `handleExplainLatest`/`handleGenerateTrendInsight`/
+    `handleGenerateQuestions`/`handleChat`) each immediately read a field
+    off the `undefined` result (`insight.title`, `response.message.insight`)
+    inside a `try` block, which threw and landed in the existing `catch`,
+    showing "Insights are temporarily unavailable." — a message that reads
+    as a plausible, ordinary backend hiccup. Every single tap of "Analyze
+    My Results," "Summarize Trends," "Questions to Discuss," or sending a
+    chat message failed this way, always, with no way to tell it was a
+    client bug rather than a real outage.
+  - `health-trends.ts`'s callers (`health-trends/index.tsx`,
+    `health.tsx`) never even threw: `setSummary(undefined)` and
+    `setAvailableParams(undefined)` are perfectly legal `useState` calls
+    (React doesn't validate against the declared generic at runtime), and
+    the screens' own empty-state guard is `if (!summary || ...)` —
+    `!undefined` short-circuits to `true` before `availableParams.length`
+    is ever evaluated, so the screen quietly rendered "No health trends
+    yet," identical to a real empty state, for every user regardless of
+    whether they actually had lab results. P0-22 earlier this session
+    added a `loadError` distinction to this exact screen for a different
+    reason (a genuine fetch failure looking like empty data) — that fix
+    is still correct and necessary, but it couldn't have caught this,
+    since this failure mode never throws at all; the promise always
+    resolves, just to the wrong value.
+
+  Fixed by removing the fabricated intermediate envelope type and letting
+  `apiRequest<T>` return `T` directly, matching every other client file's
+  actual pattern in the codebase — the fix is mechanical and identical
+  across all 14 functions. Checked every other file under
+  `apps/mobile/src/api/` for the same shape
+  (`apiRequest(Envelope)?<\{\s*data`) and confirmed these were the only
+  two; the two legitimate remaining `.data` accesses in `courier.ts` and
+  `donations.ts` are on `apiRequestEnvelope`'s actual `{ data, meta }`
+  return value (the meta-preserving variant, correct by design, unrelated
+  to this bug).
+
+  Also fixed a second, independent bug found while reading
+  `insights/index.tsx` for this: `handleChat`'s `chatResponse` state was
+  set on every chat reply but never rendered anywhere in the JSX — a
+  plain conversational answer with no attached structured insight (the
+  common case) vanished into state with nothing shown to the user, even
+  once the double-unwrap fix made the underlying call actually succeed.
+  Added a response block under the chat input that renders
+  `chatResponse.message.content`.
+
+  Verified with 13 new tests (`ai-health.spec.ts`, new; `health-trends.spec.ts`,
+  new) mocking a correctly single-enveloped `{ data: ... }` fetch response
+  for every one of the 14 fixed functions and asserting the resolved
+  value is the real payload, not `undefined` — these tests would have
+  failed against the pre-fix code (every one of them would have asserted
+  `undefined` equals the expected payload and failed). `pnpm --filter
+  @bloodchain/mobile typecheck` clean; mobile tests now 47/47 (34 + 13
+  new).
+  - Files: `apps/mobile/src/api/ai-health.ts`,
+    `apps/mobile/src/api/ai-health.spec.ts` (new),
+    `apps/mobile/src/api/health-trends.ts`,
+    `apps/mobile/src/api/health-trends.spec.ts` (new),
+    `apps/mobile/app/(app)/insights/index.tsx`.
+
 ## 🟠 P1 — Major gaps (feature exists but disconnected, or missing entirely)
 
 - [x] **P1-1. Booking race conditions (double-booking) in appointments and lab slots.** — Fixed:
