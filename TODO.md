@@ -1507,6 +1507,51 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   - Files: `apps/hospital-web/app/emergency/page.tsx`,
     `apps/hospital-web/app/page.tsx`.
 
+- [x] **P0-30. `inventory/page.tsx` shipped a one-click "Sign in as Blood
+  Center Admin" button with the seeded admin password hardcoded directly
+  in client-side JavaScript — anyone who loaded the page, signed in or
+  not, could become a Blood Center Admin with a single click, no
+  credentials needed. Plus the same stale "module not enabled" dashboard
+  copy as hospital-web's P0-29.** — Fixed, continuing the web app sweep
+  into blood-center-web (dashboard, requests list/detail, shipments —
+  already covered by P0-27 — inventory, laboratory, appointments,
+  analytics, register all checked).
+
+  **The credential bypass**: `inventory/page.tsx`'s `!user` branch, unlike
+  every other page in the app (`page.tsx`'s real email/password form,
+  every other page's plain "please sign in" message with no button at
+  all), rendered a "Sign in as Blood Center Admin" button whose
+  `onClick` called `login('blood.center.admin@donor.local',
+  'DevelopmentOnly!123')` — the seeded dev account's actual email and
+  password, typed directly into the page's source, shipping to every
+  browser that loads the bundle. Reaching `/inventory` without a session
+  didn't ask for credentials at all; it handed out admin access in one
+  click. This is exactly the kind of thing that's easy to miss in a dev
+  environment (it "just works" for testing) and catastrophic if it ever
+  reaches a real deployment with the seed password unchanged. Removed the
+  button, the `handleLogin`/`handleLogout` functions it was the only
+  caller of (now genuinely dead), and the unused `login`/`logout` imports
+  — replaced with the same credential-free "Sign In Required" message
+  every other page already uses correctly. Grepped every `.ts`/`.tsx`
+  file across all three web apps for the seeded credentials string and
+  confirmed this was the only occurrence.
+
+  **The stale dashboard copy**: same pattern as P0-29 — `app/page.tsx`'s
+  "No hospital requests... will appear here when the transfer module is
+  enabled" claimed a feature didn't exist when `/requests` is a fully
+  built, working page already linked in the sidebar; the "WORKSPACE" panel
+  similarly claimed "Inventory, donor, and shipment modules are
+  intentionally staged for future implementation" when Inventory,
+  Laboratory, Shipments, and Couriers are all real, working, already-
+  linked pages. Both replaced with copy that reflects what's actually
+  there.
+
+  Verified via `pnpm --filter @bloodchain/blood-center-web typecheck`
+  (clean) and its full test suite (24/24, unchanged — no existing
+  component-level test harness for these Next.js pages to extend).
+  - Files: `apps/blood-center-web/app/inventory/page.tsx`,
+    `apps/blood-center-web/app/page.tsx`.
+
 ## 🟠 P1 — Major gaps (feature exists but disconnected, or missing entirely)
 
 - [x] **P1-1. Booking race conditions (double-booking) in appointments and lab slots.** — Fixed:

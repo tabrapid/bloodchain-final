@@ -255,8 +255,9 @@ export default function BloodCenterDashboard() {
             Operational clarity starts here
           </h3>
           <p className="mt-3 text-sm leading-relaxed text-donor-muted">
-            Inventory, donor, and shipment modules are intentionally staged for future
-            implementation. This workspace contains no fabricated clinical data.
+            Use Blood Requests, Inventory, Laboratory, Shipments, and Couriers in the
+            sidebar to manage day-to-day operations. This dashboard is a summary view and
+            doesn&apos;t yet surface live totals here.
           </p>
         </div>
 
@@ -280,10 +281,12 @@ export default function BloodCenterDashboard() {
       </div>
 
       <div className="mt-6">
-        <EmptyState
-          title="No hospital requests"
-          description="Inbound blood requests from hospitals will appear here when the transfer module is enabled."
-        />
+        <Link href="/requests" className="block">
+          <EmptyState
+            title="View blood requests"
+            description="Review and fulfill inbound blood requests from hospitals on the Blood Requests page."
+          />
+        </Link>
       </div>
     </AppShell>
   );
