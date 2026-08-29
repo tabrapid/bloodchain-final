@@ -847,6 +847,66 @@ These make the product unusable or unsafe for real users. Fix first, in order.
     `apps/mobile/.gitignore`, `apps/mobile/src/__tests__/root-index.spec.tsx`
     (new).
 
+- [x] P0-32: Mobile app launched to a screen that was roughly half-covered by
+  a stuck loading spinner, with a broken tab bar showing ~19 tiny unlabeled
+  squares instead of the 6 real tabs — live screenshot from the user.
+  — Fixed: two independent bugs, both in the root/tab layout files, neither
+  caught by typecheck or the existing test suite because layout-composition
+  bugs like these don't surface as type errors.
+
+  1. **Root layout rendered the loading spinner and the navigator as
+     siblings instead of one replacing the other.**
+     `app/_layout.tsx` had:
+     ```tsx
+     <AuthBootstrap />   {/* flex:1 spinner View while isLoading, else null */}
+     <Stack ... />        {/* always rendered, unconditionally */}
+     ```
+     Both are direct children of `SafeAreaProvider`'s root View, which uses
+     React Native's default column flex layout. When `isLoading` was true,
+     the spinner View (`flex: 1`) and the Stack navigator (also `flex: 1`
+     internally) each claimed a share of the screen height instead of the
+     spinner replacing the navigator — the spinner ate roughly half the
+     screen, permanently, on top of the real screen content, exactly
+     matching the user's screenshot (a large blank/spinner area sitting
+     above a cut-off "Good morning" header). Fixed by merging the two into
+     one `AppContent` component that returns *either* the spinner *or* the
+     `<Stack>`, never both, while still calling `useAuthBootstrap()` and
+     `usePushNotifications()` unconditionally on every render so bootstrap
+     keeps working.
+
+  2. **The donor tab bar auto-registered every route file under `(app)/`
+     as a tab, not just the 6 intended ones.** Expo Router's `<Tabs>`
+     navigator shows a tab bar item for every route in its directory
+     unless the route is explicitly excluded with `href: null`. Only 6 of
+     the ~19 routes under `app/(app)/` were declared in
+     `_layout.tsx` (home, health, donate, community, calendar, profile);
+     the rest — `notifications.tsx`, `privacy.tsx`, `security.tsx`, and
+     the `appointment/`, `campaigns/`, `challenges/`, `donations/`,
+     `education/`, `gamification/`, `health-trends/`, `insights/`,
+     `laboratory/`, `profile/donor.tsx`, `profile/edit.tsx` routes (all of
+     which are correctly navigated to via `router.push(...)` from
+     elsewhere in the app, never meant to be tabs) — got silently pulled
+     into the tab bar with no icon or title, rendering as a long row of
+     tiny empty squares that overflowed the screen width. Fixed by adding
+     explicit `<Tabs.Screen name="..." options={{ href: null }} />` entries
+     for all of them, so they stay navigable but don't show as tab items.
+
+  Added a regression test (`src/__tests__/root-layout.spec.tsx`) asserting
+  the spinner and the navigator are mutually exclusive — mounts
+  `RootLayout` with mocked auth/push hooks, asserts zero `<Stack>` markers
+  while `isLoading` is true and zero spinners once it's false, which fails
+  under the old sibling-rendering code. No equivalent automated check
+  exists for the tab-registration bug (would require rendering the real
+  `expo-router` `<Tabs>` navigator, which isn't exercised anywhere in this
+  suite); verified instead by enumerating every file/directory under
+  `app/(app)/` and cross-checking each one has a corresponding
+  `<Tabs.Screen>` entry (visible or `href: null`) in `_layout.tsx`.
+  Verified via `pnpm --filter mobile typecheck` (clean) and
+  `pnpm --filter mobile test` (6/6 suites, 49/49 tests, including the 2 new
+  regression tests).
+  - Files: `apps/mobile/app/_layout.tsx`, `apps/mobile/app/(app)/_layout.tsx`,
+    `apps/mobile/src/__tests__/root-layout.spec.tsx` (new).
+
 ## 🟠 P1 — Major gaps (feature exists but disconnected, or missing entirely)
 
 - [x] **P1-1. Booking race conditions (double-booking) in appointments and lab slots.** — Fixed:
