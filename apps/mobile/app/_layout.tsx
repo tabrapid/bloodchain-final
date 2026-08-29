@@ -9,11 +9,10 @@ import { usePushNotifications } from '../src/hooks/usePushNotifications';
 import { useAuthStore } from '../src/stores/auth.store';
 import { ActivityIndicator, View } from 'react-native';
 
-function AuthBootstrap() {
+function AppContent() {
   useAuthBootstrap();
   usePushNotifications();
   const isLoading = useAuthStore((s) => s.isLoading);
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
   if (isLoading) {
     return (
@@ -30,7 +29,14 @@ function AuthBootstrap() {
     );
   }
 
-  return null;
+  return (
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        contentStyle: { backgroundColor: colors.background },
+      }}
+    />
+  );
 }
 
 export default function RootLayout() {
@@ -38,13 +44,7 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <QueryProvider>
         <StatusBar style="light" />
-        <AuthBootstrap />
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: colors.background },
-          }}
-        />
+        <AppContent />
       </QueryProvider>
     </SafeAreaProvider>
   );
