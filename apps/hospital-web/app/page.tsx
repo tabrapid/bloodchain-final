@@ -292,10 +292,12 @@ export default function HospitalDashboard() {
       </div>
 
       <div className="mt-6">
-        <EmptyState
-          title="No emergency requests"
-          description="SOS blood requests will appear here when the emergency module is enabled."
-        />
+        <Link href="/emergency" className="block">
+          <EmptyState
+            title="View emergency requests"
+            description="Track active SOS blood requests and donor matches on the Emergency page."
+          />
+        </Link>
       </div>
     </AppShell>
   );

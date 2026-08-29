@@ -1467,6 +1467,46 @@ These make the product unusable or unsafe for real users. Fix first, in order.
     `apps/mobile/src/api/health-trends.spec.ts` (new),
     `apps/mobile/app/(app)/insights/index.tsx`.
 
+- [x] **P0-29. Confirming Arrival / Completing Donation on a hospital's
+  Emergency page always acted on whichever donor response happened to be
+  first in the array, not the one that actually reached that status —
+  wrong donor's response could be confirmed when multiple people
+  responded to the same SOS request.** — Fixed, continuing the sweep into
+  the web apps' remaining pages (hospital-web fully audited: dashboard,
+  emergency, requests list/detail/new, shipments list/detail, analytics,
+  register).
+
+  `emergency.responses` can hold multiple donor responses to one SOS
+  request (each with its own `status`: `ACCEPTED`/`EN_ROUTE`/`ARRIVED`/
+  `DONATION_STARTED`/etc.) — the emergency's own aggregate `status` field
+  reflects whichever response is currently furthest along, but
+  `emergency/page.tsx`'s "Confirm Arrival" and "Complete Donation" buttons
+  both grabbed `emergency.responses[0]` unconditionally — whichever donor
+  happened to respond first, regardless of whether *that* response was
+  the one that actually reached `ARRIVED` or `DONATION_STARTED`. With more
+  than one responder (a realistic scenario for a CRITICAL request that
+  matches several compatible donors), confirming arrival could act on a
+  response that never arrived at all, while the one that did remains
+  unconfirmed. Fixed both to find the response whose own `status` field
+  actually matches (`responses.find(r => r.status === 'ARRIVED')` /
+  `'DONATION_STARTED'`), instead of trusting array order.
+
+  Also fixed the dashboard's (`app/page.tsx`) "No emergency requests...
+  will appear here when the emergency module is enabled" — stale copy
+  claiming a feature doesn't exist when it does: the sidebar already has
+  a working "Emergency" link to `/emergency`, confirmed live in P0-16/17
+  this session. Replaced with an honest link to the real page.
+
+  The rest of hospital-web checked clean: requests list/detail/new,
+  shipments list/detail, analytics, and register all correctly wired,
+  no dead buttons, no stale envelope handling.
+
+  Verified via `pnpm --filter @bloodchain/hospital-web typecheck` (clean)
+  and its full test suite (19/19, unchanged — no existing component-level
+  test harness for these Next.js pages to extend).
+  - Files: `apps/hospital-web/app/emergency/page.tsx`,
+    `apps/hospital-web/app/page.tsx`.
+
 ## 🟠 P1 — Major gaps (feature exists but disconnected, or missing entirely)
 
 - [x] **P1-1. Booking race conditions (double-booking) in appointments and lab slots.** — Fixed:
