@@ -907,6 +907,66 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   - Files: `apps/mobile/app/_layout.tsx`, `apps/mobile/app/(app)/_layout.tsx`,
     `apps/mobile/src/__tests__/root-layout.spec.tsx` (new).
 
+- [x] P0-33: `GET /users/:id` had no role or ownership check at all — any
+  authenticated user (a donor, a courier, anyone with a valid access
+  token) could fetch any other user's full profile by ID, including
+  email, phone, date of birth, and last-login timestamp.
+  — Fixed: found during a systematic sweep of every controller in
+  `apps/api/src/modules` for route handlers with no `@Roles`/
+  `@RequirePermissions`/`@Public()` decorator (the app applies
+  `JwtAuthGuard`, `RolesGuard`, and `PermissionsGuard` globally via
+  `APP_GUARD`, and both `RolesGuard`/`PermissionsGuard` default to
+  *allow* when a route carries no decorator — so a route missing one
+  isn't rejected, it's silently open to every authenticated user
+  regardless of role).
+
+  `users.controller.ts`'s `findOne` (`GET /:id`) called
+  `this.users.findById(id)`, which does a plain `findUnique` with no
+  ownership filter and selects `email`, `phone`, `dateOfBirth`,
+  `lastLoginAt`, `emailVerified`, `phoneVerified` alongside the public
+  fields — a straight IDOR. Every sibling `:id` lookup in this codebase
+  (`appointments.controller.ts`'s `getAppointment`,
+  `donations.controller.ts`'s `getDonation`) passes the requesting
+  user's ID into the service and throws `ForbiddenException` unless the
+  caller owns the record or holds staff/admin membership on the relevant
+  organization — `findOne` was the one place that pattern was missing.
+  No client in the repo calls this route at all (admin-web's user detail
+  page uses the separately-guarded `/admin/users/:id` instead), so
+  nothing depended on the open access.
+
+  Restricted it the same way as `list()` two lines above it in the same
+  controller (also an admin-only user lookup): added
+  `@UseGuards(RolesGuard)` and
+  `@Roles(RoleCode.SUPER_ADMIN, RoleCode.HOSPITAL_ADMIN, RoleCode.BLOOD_CENTER_ADMIN)`.
+
+  Also audited every other unguarded route the same sweep surfaced —
+  `ai-health`, `auth` (logout/me/sessions), `campaigns`, `challenges`,
+  `community`, `donations` (`me`, `me/statistics`, `:id`), `education`,
+  `gamification`, `health-trends`, `laboratory` (reference data),
+  `notifications`, `organizations` (`discover`, `:id`),
+  `appointments` (`:id`) — every one of these is either genuinely public
+  reference/discovery content, a `@CurrentUser`-scoped self-service
+  endpoint, or (for the `:id` lookups on `appointments`, `donations`,
+  `notifications`) already enforces ownership inside the service layer
+  the same way `appointments`/`donations` do above. `users.controller.ts`
+  was the only real gap.
+
+  Added `users.controller.spec.ts`: drives the real `RolesGuard` against
+  the controller's real decorator metadata (the same mechanism Nest uses
+  at request time) and asserts a `DONOR` and a `COURIER` are rejected
+  while `SUPER_ADMIN`/`HOSPITAL_ADMIN`/`BLOOD_CENTER_ADMIN` are allowed —
+  fails under the old undecorated handler, since `RolesGuard` returns
+  `true` for every role when a route carries no `@Roles` metadata.
+  Verified via `pnpm --filter @bloodchain/api typecheck` (clean) and its
+  full unit suite (`pnpm --filter @bloodchain/api test`: 58/58 suites,
+  684/684 tests, including the 5 new ones). Live e2e verification against
+  a running Postgres instance was not possible in this environment (see
+  P0-27's note on the missing Docker/Postgres in this sandbox); the fix
+  and its test were verified statically against the real guard
+  implementation instead.
+  - Files: `apps/api/src/modules/users/users.controller.ts`,
+    `apps/api/src/modules/users/users.controller.spec.ts` (new).
+
 ## 🟠 P1 — Major gaps (feature exists but disconnected, or missing entirely)
 
 - [x] **P1-1. Booking race conditions (double-booking) in appointments and lab slots.** — Fixed:
