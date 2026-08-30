@@ -20,6 +20,6 @@ export const sidebarItems: SidebarItem[] = [
   { id: 'couriers', label: 'Couriers', icon: Users, href: '/couriers' },
   { id: 'appointments', label: 'Appointments', icon: CalendarDays, href: '/appointments' },
   { id: 'analytics', label: 'Analytics', icon: BarChart3, href: '/analytics' },
-  { id: 'donors', label: 'Donors', icon: Users, disabled: true },
+  { id: 'donors', label: 'Donors', icon: Users, href: '/donors' },
   { id: 'settings', label: 'Settings', icon: Settings, disabled: true },
 ];
