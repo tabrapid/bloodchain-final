@@ -233,7 +233,7 @@ export default function BloodRequestDetailPage() {
           {request.shipment && (
             <a
               href={`/shipments/${request.shipment.id}`}
-              className="flex items-center gap-2 rounded-lg border border-donor-border px-4 py-2 text-sm font-semibold text-donor-text transition-colors hover:bg-donor-border"
+              className="flex items-center gap-2 rounded-lg border border-donor-border px-4 py-2 text-sm font-semibold text-donor-text transition-colors hover:bg-donor-elevated"
             >
               <Truck size={16} />
               View Shipment
@@ -407,7 +407,7 @@ export default function BloodRequestDetailPage() {
                         [item.id]: Math.max(0, Math.min(item.unitsRequested, Number(e.target.value) || 0)),
                       }))
                     }
-                    className="w-20 rounded-lg border border-donor-border bg-donor-bg px-2 py-1 text-sm text-donor-text"
+                    className="w-20 rounded-lg border border-donor-border bc-solid px-2 py-1 text-sm text-donor-text"
                   />
                 </div>
               ))}
@@ -419,7 +419,7 @@ export default function BloodRequestDetailPage() {
                 value={reviewNotes}
                 onChange={(e) => setReviewNotes(e.target.value)}
                 rows={2}
-                className="w-full rounded-lg border border-donor-border bg-donor-bg px-3 py-2 text-sm text-donor-text"
+                className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-sm text-donor-text"
               />
             </div>
 

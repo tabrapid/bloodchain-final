@@ -489,7 +489,7 @@ export default function ShipmentDetailPage() {
               <select
                 value={selectedCourierId}
                 onChange={(e) => setSelectedCourierId(e.target.value)}
-                className="w-full rounded-lg border border-donor-border bg-donor-bg px-3 py-2 text-donor-text"
+                className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-donor-text"
               >
                 <option value="">Choose a courier...</option>
                 {availableCouriers.map((courier) => (
@@ -529,7 +529,7 @@ export default function ShipmentDetailPage() {
               <textarea
                 value={cancelReason}
                 onChange={(e) => setCancelReason(e.target.value)}
-                className="w-full rounded-lg border border-donor-border bg-donor-bg px-3 py-2 text-donor-text"
+                className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-donor-text"
                 rows={3}
               />
             </div>

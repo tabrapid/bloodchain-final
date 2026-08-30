@@ -114,7 +114,7 @@ export default function BloodCenterDashboard() {
                 autoComplete="username"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full rounded-lg border border-donor-border bg-donor-background px-3 py-2.5 text-sm text-donor-text focus:outline-none focus:ring-2 focus:ring-donor-secondary"
+                className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2.5 text-sm text-donor-text focus:outline-none focus:ring-2 focus:ring-donor-secondary"
               />
             </div>
             <div>
@@ -128,7 +128,7 @@ export default function BloodCenterDashboard() {
                 autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-lg border border-donor-border bg-donor-background px-3 py-2.5 text-sm text-donor-text focus:outline-none focus:ring-2 focus:ring-donor-secondary"
+                className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2.5 text-sm text-donor-text focus:outline-none focus:ring-2 focus:ring-donor-secondary"
               />
             </div>
             <button
@@ -178,7 +178,7 @@ export default function BloodCenterDashboard() {
           </p>
           <button
             onClick={handleLogout}
-            className="rounded-lg bg-donor-surface px-6 py-3 font-semibold text-donor-text border border-donor-border transition-colors hover:bg-donor-border"
+            className="bc-solid rounded-lg px-6 py-3 font-semibold text-donor-text transition-colors hover:bg-donor-elevated"
           >
             Sign out
           </button>
@@ -206,7 +206,7 @@ export default function BloodCenterDashboard() {
           </p>
           <button
             onClick={handleLogout}
-            className="rounded-lg bg-donor-surface px-6 py-3 font-semibold text-donor-text border border-donor-border transition-colors hover:bg-donor-border"
+            className="bc-solid rounded-lg px-6 py-3 font-semibold text-donor-text transition-colors hover:bg-donor-elevated"
           >
             Sign out
           </button>

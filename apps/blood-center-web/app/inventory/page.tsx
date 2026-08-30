@@ -375,19 +375,19 @@ export default function InventoryPage() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-            className="w-full rounded-lg border border-donor-border bg-donor-surface px-10 py-2 text-sm text-donor-text placeholder:text-donor-muted focus:border-donor-secondary focus:outline-none"
+            className="w-full rounded-lg bc-solid px-10 py-2 text-sm text-donor-text placeholder:text-donor-muted focus:border-donor-secondary focus:outline-none"
           />
         </div>
         <button
           onClick={() => setShowFilters(!showFilters)}
-          className="flex items-center gap-2 rounded-lg border border-donor-border bg-donor-surface px-4 py-2 text-sm text-donor-text transition-colors hover:bg-donor-border"
+          className="flex items-center gap-2 rounded-lg bc-solid px-4 py-2 text-sm text-donor-text transition-colors hover:bg-donor-elevated"
         >
           <Filter size={16} />
           Filters
         </button>
         <button
           onClick={() => setShowLocationModal(true)}
-          className="flex items-center gap-2 rounded-lg border border-donor-border bg-donor-surface px-4 py-2 text-sm text-donor-text transition-colors hover:bg-donor-border"
+          className="flex items-center gap-2 rounded-lg bc-solid px-4 py-2 text-sm text-donor-text transition-colors hover:bg-donor-elevated"
         >
           <Plus size={16} />
           Add Location
@@ -395,14 +395,14 @@ export default function InventoryPage() {
       </div>
 
       {showFilters && (
-        <div className="mb-6 rounded-lg border border-donor-border bg-donor-surface p-4">
+        <div className="bc-glass mb-6 rounded-card p-4">
           <div className="grid gap-4 md:grid-cols-4">
             <div>
               <label className="mb-1 block text-xs font-semibold text-donor-muted">Blood Type</label>
               <select
                 value={filters.bloodType ?? ''}
                 onChange={(e) => handleFilterChange('bloodType', e.target.value)}
-                className="w-full rounded-lg border border-donor-border bg-donor-bg px-3 py-2 text-sm text-donor-text"
+                className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-sm text-donor-text"
               >
                 <option value="">All</option>
                 {BLOOD_TYPES.map((bt) => (
@@ -415,7 +415,7 @@ export default function InventoryPage() {
               <select
                 value={filters.rhFactor ?? ''}
                 onChange={(e) => handleFilterChange('rhFactor', e.target.value)}
-                className="w-full rounded-lg border border-donor-border bg-donor-bg px-3 py-2 text-sm text-donor-text"
+                className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-sm text-donor-text"
               >
                 <option value="">All</option>
                 {RH_FACTORS.map((rh) => (
@@ -428,7 +428,7 @@ export default function InventoryPage() {
               <select
                 value={filters.componentType ?? ''}
                 onChange={(e) => handleFilterChange('componentType', e.target.value)}
-                className="w-full rounded-lg border border-donor-border bg-donor-bg px-3 py-2 text-sm text-donor-text"
+                className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-sm text-donor-text"
               >
                 <option value="">All</option>
                 {COMPONENT_TYPES.map((ct) => (
@@ -441,7 +441,7 @@ export default function InventoryPage() {
               <select
                 value={filters.status ?? ''}
                 onChange={(e) => handleFilterChange('status', e.target.value)}
-                className="w-full rounded-lg border border-donor-border bg-donor-bg px-3 py-2 text-sm text-donor-text"
+                className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-sm text-donor-text"
               >
                 <option value="">All</option>
                 {STATUSES.map((s) => (
@@ -479,14 +479,14 @@ export default function InventoryPage() {
                 <button
                   onClick={() => handlePageChange((filters.page ?? 1) - 1)}
                   disabled={(filters.page ?? 1) <= 1}
-                  className="rounded-lg border border-donor-border bg-donor-surface px-3 py-1.5 text-sm text-donor-text transition-colors hover:bg-donor-border disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="rounded-lg bc-solid px-3 py-1.5 text-sm text-donor-text transition-colors hover:bg-donor-elevated disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Previous
                 </button>
                 <button
                   onClick={() => handlePageChange((filters.page ?? 1) + 1)}
                   disabled={(filters.page ?? 1) >= totalPages}
-                  className="rounded-lg border border-donor-border bg-donor-surface px-3 py-1.5 text-sm text-donor-text transition-colors hover:bg-donor-border disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="rounded-lg bc-solid px-3 py-1.5 text-sm text-donor-text transition-colors hover:bg-donor-elevated disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Next
                 </button>
@@ -551,7 +551,7 @@ export default function InventoryPage() {
                     setShowUnitModal(false);
                     setShowMovementModal(true);
                   }}
-                  className="flex items-center gap-2 rounded-lg border border-donor-border bg-donor-surface px-4 py-2 text-sm text-donor-text transition-colors hover:bg-donor-border"
+                  className="flex items-center gap-2 rounded-lg bc-solid px-4 py-2 text-sm text-donor-text transition-colors hover:bg-donor-elevated"
                 >
                   <ArrowRightLeft size={16} />
                   Move
@@ -561,7 +561,7 @@ export default function InventoryPage() {
                     setShowUnitModal(false);
                     setShowAdjustModal(true);
                   }}
-                  className="flex items-center gap-2 rounded-lg border border-donor-border bg-donor-surface px-4 py-2 text-sm text-donor-text transition-colors hover:bg-donor-border"
+                  className="flex items-center gap-2 rounded-lg bc-solid px-4 py-2 text-sm text-donor-text transition-colors hover:bg-donor-elevated"
                 >
                   <Settings size={16} />
                   Adjust
@@ -596,7 +596,7 @@ export default function InventoryPage() {
                     setShowUnitModal(false);
                     setShowMovementModal(true);
                   }}
-                  className="flex items-center gap-2 rounded-lg border border-donor-border bg-donor-surface px-4 py-2 text-sm text-donor-text transition-colors hover:bg-donor-border"
+                  className="flex items-center gap-2 rounded-lg bc-solid px-4 py-2 text-sm text-donor-text transition-colors hover:bg-donor-elevated"
                 >
                   <ArrowRightLeft size={16} />
                   Move
@@ -606,7 +606,7 @@ export default function InventoryPage() {
                     setShowUnitModal(false);
                     setShowAdjustModal(true);
                   }}
-                  className="flex items-center gap-2 rounded-lg border border-donor-border bg-donor-surface px-4 py-2 text-sm text-donor-text transition-colors hover:bg-donor-border"
+                  className="flex items-center gap-2 rounded-lg bc-solid px-4 py-2 text-sm text-donor-text transition-colors hover:bg-donor-elevated"
                 >
                   <Settings size={16} />
                   Adjust
@@ -641,7 +641,7 @@ export default function InventoryPage() {
                     setShowUnitModal(false);
                     setShowAdjustModal(true);
                   }}
-                  className="flex items-center gap-2 rounded-lg border border-donor-border bg-donor-surface px-4 py-2 text-sm text-donor-text transition-colors hover:bg-donor-border"
+                  className="flex items-center gap-2 rounded-lg bc-solid px-4 py-2 text-sm text-donor-text transition-colors hover:bg-donor-elevated"
                 >
                   <Settings size={16} />
                   Adjust
@@ -666,7 +666,7 @@ export default function InventoryPage() {
               <label className="mb-1 block text-xs font-semibold text-donor-muted">To Location</label>
               <select
                 id="move-location"
-                className="w-full rounded-lg border border-donor-border bg-donor-bg px-3 py-2 text-sm text-donor-text"
+                className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-sm text-donor-text"
               >
                 <option value="">Select location</option>
                 {locations.filter((l) => l.active).map((loc) => (
@@ -680,7 +680,7 @@ export default function InventoryPage() {
                 type="text"
                 id="move-reason"
                 placeholder="e.g., Quality control transfer"
-                className="w-full rounded-lg border border-donor-border bg-donor-bg px-3 py-2 text-sm text-donor-text placeholder:text-donor-muted"
+                className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-sm text-donor-text placeholder:text-donor-muted"
               />
             </div>
             <div className="flex gap-2 pt-4">
@@ -697,7 +697,7 @@ export default function InventoryPage() {
               </button>
               <button
                 onClick={() => { setShowMovementModal(false); setSelectedUnit(null); }}
-                className="rounded-lg border border-donor-border bg-donor-surface px-4 py-2 text-sm text-donor-text transition-colors hover:bg-donor-border"
+                className="rounded-lg bc-solid px-4 py-2 text-sm text-donor-text transition-colors hover:bg-donor-elevated"
               >
                 Cancel
               </button>
@@ -730,7 +730,7 @@ export default function InventoryPage() {
                 id="adjust-volume"
                 min={1}
                 placeholder={String(selectedUnit.volumeMl)}
-                className="w-full rounded-lg border border-donor-border bg-donor-bg px-3 py-2 text-sm text-donor-text placeholder:text-donor-muted"
+                className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-sm text-donor-text placeholder:text-donor-muted"
               />
             </div>
             <div>
@@ -740,7 +740,7 @@ export default function InventoryPage() {
               <select
                 id="adjust-component"
                 defaultValue=""
-                className="w-full rounded-lg border border-donor-border bg-donor-bg px-3 py-2 text-sm text-donor-text"
+                className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-sm text-donor-text"
               >
                 <option value="">Keep current</option>
                 {COMPONENT_TYPES.map((ct) => (
@@ -755,7 +755,7 @@ export default function InventoryPage() {
               <input
                 type="date"
                 id="adjust-expires"
-                className="w-full rounded-lg border border-donor-border bg-donor-bg px-3 py-2 text-sm text-donor-text"
+                className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-sm text-donor-text"
               />
             </div>
             <div>
@@ -764,7 +764,7 @@ export default function InventoryPage() {
                 type="text"
                 id="adjust-reason"
                 placeholder="e.g., Correcting clerical volume entry error"
-                className="w-full rounded-lg border border-donor-border bg-donor-bg px-3 py-2 text-sm text-donor-text placeholder:text-donor-muted"
+                className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-sm text-donor-text placeholder:text-donor-muted"
               />
             </div>
             <div className="flex gap-2 pt-4">
@@ -790,7 +790,7 @@ export default function InventoryPage() {
               </button>
               <button
                 onClick={() => { setShowAdjustModal(false); setSelectedUnit(null); }}
-                className="rounded-lg border border-donor-border bg-donor-surface px-4 py-2 text-sm text-donor-text transition-colors hover:bg-donor-border"
+                className="rounded-lg bc-solid px-4 py-2 text-sm text-donor-text transition-colors hover:bg-donor-elevated"
               >
                 Cancel
               </button>
@@ -812,7 +812,7 @@ export default function InventoryPage() {
               value={newLocation.name}
               onChange={(e) => setNewLocation({ ...newLocation, name: e.target.value })}
               placeholder="e.g., Main Storage Freezer A"
-              className="w-full rounded-lg border border-donor-border bg-donor-bg px-3 py-2 text-sm text-donor-text placeholder:text-donor-muted"
+              className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-sm text-donor-text placeholder:text-donor-muted"
             />
           </div>
           <div>
@@ -822,7 +822,7 @@ export default function InventoryPage() {
               value={newLocation.code}
               onChange={(e) => setNewLocation({ ...newLocation, code: e.target.value.toUpperCase() })}
               placeholder="e.g., MSA-01"
-              className="w-full rounded-lg border border-donor-border bg-donor-bg px-3 py-2 text-sm text-donor-text placeholder:text-donor-muted"
+              className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-sm text-donor-text placeholder:text-donor-muted"
             />
           </div>
           <div>
@@ -830,7 +830,7 @@ export default function InventoryPage() {
             <select
               value={newLocation.type}
               onChange={(e) => setNewLocation({ ...newLocation, type: e.target.value })}
-              className="w-full rounded-lg border border-donor-border bg-donor-bg px-3 py-2 text-sm text-donor-text"
+              className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-sm text-donor-text"
             >
               <option value="STORAGE">Storage</option>
               <option value="QUARANTINE">Quarantine</option>
@@ -848,7 +848,7 @@ export default function InventoryPage() {
             </button>
             <button
               onClick={() => { setShowLocationModal(false); setNewLocation({ name: '', code: '', type: 'STORAGE' }); }}
-              className="rounded-lg border border-donor-border bg-donor-surface px-4 py-2 text-sm text-donor-text transition-colors hover:bg-donor-border"
+              className="rounded-lg bc-solid px-4 py-2 text-sm text-donor-text transition-colors hover:bg-donor-elevated"
             >
               Cancel
             </button>

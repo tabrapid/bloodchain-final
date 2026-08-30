@@ -237,7 +237,7 @@ export default function AIAnalyticsPage() {
                     <span className="text-sm text-donor-muted w-16">{label}</span>
                     <div className="flex-1 bg-donor-elevated rounded-full h-4 overflow-hidden">
                       <div
-                        className="bg-donor-secondaryMuted0 h-full rounded-full"
+                        className="bg-donor-secondary h-full rounded-full"
                         style={{ width: `${width}%` }}
                       />
                     </div>

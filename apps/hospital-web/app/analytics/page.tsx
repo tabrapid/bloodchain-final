@@ -207,7 +207,7 @@ export default function AnalyticsPage() {
           </div>
           <button
             onClick={loadAnalytics}
-            className="flex items-center gap-2 rounded-lg border border-donor-border bg-donor-surface px-3 py-2 text-sm text-donor-text transition-colors hover:bg-donor-border"
+            className="flex items-center gap-2 rounded-lg bc-solid px-3 py-2 text-sm text-donor-text transition-colors hover:bg-donor-elevated"
           >
             <RefreshCw size={14} />
             Refresh
@@ -220,7 +220,7 @@ export default function AnalyticsPage() {
             <select
               value={dateRange}
               onChange={(e) => setDateRange(e.target.value as DateRangeType)}
-              className="rounded-lg border border-donor-border bg-donor-surface px-2 py-1 text-xs text-donor-text"
+              className="rounded-lg bc-solid px-2 py-1 text-xs text-donor-text"
             >
               {DATE_RANGE_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -235,7 +235,7 @@ export default function AnalyticsPage() {
             <select
               value={bloodType}
               onChange={(e) => setBloodType(e.target.value)}
-              className="rounded-lg border border-donor-border bg-donor-surface px-2 py-1 text-xs text-donor-text"
+              className="rounded-lg bc-solid px-2 py-1 text-xs text-donor-text"
             >
               <option value="">All Types</option>
               {BLOOD_GROUPS.map((bt) => (
@@ -245,7 +245,7 @@ export default function AnalyticsPage() {
             <select
               value={rhFactor}
               onChange={(e) => setRhFactor(e.target.value)}
-              className="rounded-lg border border-donor-border bg-donor-surface px-2 py-1 text-xs text-donor-text"
+              className="rounded-lg bc-solid px-2 py-1 text-xs text-donor-text"
             >
               <option value="">All Rh</option>
               {RH_FACTORS.map((rh) => (
@@ -264,7 +264,7 @@ export default function AnalyticsPage() {
             className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
               activeSection === section
                 ? 'bg-donor-primary text-white'
-                : 'border border-donor-border bg-donor-surface text-donor-text hover:bg-donor-border'
+                : 'bc-solid text-donor-text hover:bg-donor-elevated'
             }`}
           >
             {section.charAt(0).toUpperCase() + section.slice(1)}
@@ -353,7 +353,7 @@ export default function AnalyticsPage() {
                 <p className="mb-2 text-xs font-semibold text-donor-muted">By Blood Group</p>
                 <div className="flex flex-wrap gap-2">
                   {overview.donations.byBloodGroup.map((bg) => (
-                    <span key={bg.fullName} className="rounded-full bg-donor-border px-2 py-1 text-xs text-donor-text">
+                    <span key={bg.fullName} className="rounded-full bg-donor-elevated px-2 py-1 text-xs text-donor-text">
                       {bg.fullName}: {bg.count}
                     </span>
                   ))}
@@ -426,7 +426,7 @@ export default function AnalyticsPage() {
             <h3 className="mb-4 text-sm font-semibold text-donor-text">Inventory by Blood Group</h3>
             <div className="grid gap-3 md:grid-cols-4 lg:grid-cols-8">
               {inventory.byBloodGroup.map((bg) => (
-                <div key={bg.fullName} className="rounded-lg bg-donor-border p-3 text-center">
+                <div key={bg.fullName} className="rounded-lg bg-donor-elevated p-3 text-center">
                   <p className="text-lg font-bold text-donor-text">{bg.fullName}</p>
                   <p className="text-2xl font-bold text-donor-primary">{bg.count}</p>
                   <p className="text-xs text-donor-muted">{bg.percent.toFixed(1)}%</p>
@@ -439,7 +439,7 @@ export default function AnalyticsPage() {
             <h3 className="mb-4 text-sm font-semibold text-donor-text">Inventory by Component</h3>
             <div className="space-y-3">
               {inventory.byComponent.map((comp) => (
-                <div key={comp.componentType} className="flex items-center justify-between rounded-lg bg-donor-border p-3">
+                <div key={comp.componentType} className="flex items-center justify-between rounded-lg bg-donor-elevated p-3">
                   <span className="text-sm font-medium text-donor-text">{comp.componentType}</span>
                   <div className="flex items-center gap-4">
                     <span className="text-xs text-donor-success">Avail: {comp.available}</span>
@@ -512,7 +512,7 @@ export default function AnalyticsPage() {
             <h3 className="mb-4 text-sm font-semibold text-donor-text">By Blood Group</h3>
             <div className="grid gap-3 md:grid-cols-4 lg:grid-cols-8">
               {emergencies.byBloodGroup.map((bg) => (
-                <div key={bg.fullName} className="rounded-lg bg-donor-border p-3 text-center">
+                <div key={bg.fullName} className="rounded-lg bg-donor-elevated p-3 text-center">
                   <p className="text-lg font-bold text-donor-text">{bg.fullName}</p>
                   <p className="text-2xl font-bold text-donor-danger">{bg.count}</p>
                 </div>
@@ -556,7 +556,7 @@ export default function AnalyticsPage() {
             <h3 className="mb-4 text-sm font-semibold text-donor-text">By Status</h3>
             <div className="space-y-2">
               {appointments.byStatus.map((s) => (
-                <div key={s.status} className="flex justify-between rounded-lg bg-donor-border p-3">
+                <div key={s.status} className="flex justify-between rounded-lg bg-donor-elevated p-3">
                   <span className="text-sm text-donor-muted">{s.status}</span>
                   <span className="font-semibold text-donor-text">{s.count} ({s.percent.toFixed(1)}%)</span>
                 </div>

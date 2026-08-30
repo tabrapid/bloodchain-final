@@ -139,7 +139,7 @@ export default function NewBloodRequestPage() {
             <h3 className="text-sm font-semibold text-donor-text">Units Needed</h3>
             <button
               onClick={addItem}
-              className="flex items-center gap-1 rounded-lg border border-donor-border px-3 py-1.5 text-xs font-semibold text-donor-text hover:bg-donor-border"
+              className="flex items-center gap-1 rounded-lg border border-donor-border px-3 py-1.5 text-xs font-semibold text-donor-text hover:bg-donor-elevated"
             >
               <Plus size={14} />
               Add Line
@@ -154,7 +154,7 @@ export default function NewBloodRequestPage() {
                   <select
                     value={item.bloodType}
                     onChange={(e) => updateItem(index, { bloodType: e.target.value })}
-                    className="w-full rounded-lg border border-donor-border bg-donor-bg px-2 py-2 text-sm text-donor-text"
+                    className="w-full rounded-lg border border-donor-border bc-solid px-2 py-2 text-sm text-donor-text"
                   >
                     {BLOOD_TYPES.map((t) => (
                       <option key={t} value={t}>{t}</option>
@@ -166,7 +166,7 @@ export default function NewBloodRequestPage() {
                   <select
                     value={item.rhFactor}
                     onChange={(e) => updateItem(index, { rhFactor: e.target.value })}
-                    className="w-full rounded-lg border border-donor-border bg-donor-bg px-2 py-2 text-sm text-donor-text"
+                    className="w-full rounded-lg border border-donor-border bc-solid px-2 py-2 text-sm text-donor-text"
                   >
                     {RH_FACTORS.map((r) => (
                       <option key={r} value={r}>{r === 'POSITIVE' ? '+' : '-'}</option>
@@ -178,7 +178,7 @@ export default function NewBloodRequestPage() {
                   <select
                     value={item.componentType}
                     onChange={(e) => updateItem(index, { componentType: e.target.value })}
-                    className="w-full rounded-lg border border-donor-border bg-donor-bg px-2 py-2 text-sm text-donor-text"
+                    className="w-full rounded-lg border border-donor-border bc-solid px-2 py-2 text-sm text-donor-text"
                   >
                     {COMPONENT_TYPES.map((c) => (
                       <option key={c} value={c}>{c.replace('_', ' ')}</option>
@@ -192,7 +192,7 @@ export default function NewBloodRequestPage() {
                     min={1}
                     value={item.unitsRequested}
                     onChange={(e) => updateItem(index, { unitsRequested: Math.max(1, Number(e.target.value) || 1) })}
-                    className="w-full rounded-lg border border-donor-border bg-donor-bg px-2 py-2 text-sm text-donor-text"
+                    className="w-full rounded-lg border border-donor-border bc-solid px-2 py-2 text-sm text-donor-text"
                   />
                 </div>
                 <button
@@ -216,7 +216,7 @@ export default function NewBloodRequestPage() {
               <select
                 value={priority}
                 onChange={(e) => setPriority(e.target.value)}
-                className="w-full rounded-lg border border-donor-border bg-donor-bg px-3 py-2 text-sm text-donor-text"
+                className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-sm text-donor-text"
               >
                 {PRIORITIES.map((p) => (
                   <option key={p} value={p}>{p}</option>
@@ -229,7 +229,7 @@ export default function NewBloodRequestPage() {
                 type="date"
                 value={expectedDeliveryDate}
                 onChange={(e) => setExpectedDeliveryDate(e.target.value)}
-                className="w-full rounded-lg border border-donor-border bg-donor-bg px-3 py-2 text-sm text-donor-text"
+                className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-sm text-donor-text"
               />
             </div>
             <div>
@@ -239,7 +239,7 @@ export default function NewBloodRequestPage() {
                 value={deliveryAddress}
                 onChange={(e) => setDeliveryAddress(e.target.value)}
                 placeholder="Defaults to hospital address"
-                className="w-full rounded-lg border border-donor-border bg-donor-bg px-3 py-2 text-sm text-donor-text"
+                className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-sm text-donor-text"
               />
             </div>
             <div>
@@ -248,7 +248,7 @@ export default function NewBloodRequestPage() {
                 type="text"
                 value={deliveryPhone}
                 onChange={(e) => setDeliveryPhone(e.target.value)}
-                className="w-full rounded-lg border border-donor-border bg-donor-bg px-3 py-2 text-sm text-donor-text"
+                className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-sm text-donor-text"
               />
             </div>
           </div>
@@ -258,7 +258,7 @@ export default function NewBloodRequestPage() {
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
-              className="w-full rounded-lg border border-donor-border bg-donor-bg px-3 py-2 text-sm text-donor-text"
+              className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-sm text-donor-text"
               placeholder="Any context that would help the blood center prioritize this request"
             />
           </div>

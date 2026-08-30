@@ -429,7 +429,7 @@ export default function ShipmentDetailPage() {
                   max={totalUnits}
                   value={unitsReceived}
                   onChange={(e) => setUnitsReceived(parseInt(e.target.value) || 0)}
-                  className="w-full rounded-lg border border-donor-border bg-donor-bg px-3 py-2 text-donor-text"
+                  className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-donor-text"
                 />
                 <p className="mt-1 text-xs text-donor-muted">
                   Total units shipped: {totalUnits}
@@ -440,7 +440,7 @@ export default function ShipmentDetailPage() {
                 <select
                   value={deliveryCondition}
                   onChange={(e) => setDeliveryCondition(e.target.value)}
-                  className="w-full rounded-lg border border-donor-border bg-donor-bg px-3 py-2 text-donor-text"
+                  className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-donor-text"
                 >
                   <option value="GOOD">Good</option>
                   <option value="DAMAGED">Damaged</option>
@@ -453,7 +453,7 @@ export default function ShipmentDetailPage() {
                 <textarea
                   value={deliveryNotes}
                   onChange={(e) => setDeliveryNotes(e.target.value)}
-                  className="w-full rounded-lg border border-donor-border bg-donor-bg px-3 py-2 text-donor-text"
+                  className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-donor-text"
                   rows={2}
                 />
               </div>
@@ -465,7 +465,7 @@ export default function ShipmentDetailPage() {
                   <textarea
                     value={discrepancyReason}
                     onChange={(e) => setDiscrepancyReason(e.target.value)}
-                    className="w-full rounded-lg border border-donor-border bg-donor-bg px-3 py-2 text-donor-text"
+                    className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-donor-text"
                     rows={2}
                     placeholder="Explain why fewer units were received..."
                   />
