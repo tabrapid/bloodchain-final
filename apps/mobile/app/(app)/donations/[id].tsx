@@ -331,7 +331,7 @@ function createStyles(colors: ThemeColors) {
       marginBottom: spacing.xs,
     },
     nextDateValue: {
-      color: colors.success,
+      color: colors.onMuted.success,
     },
     reasonCard: {
       padding: spacing.lg,
@@ -346,7 +346,7 @@ function createStyles(colors: ThemeColors) {
     },
     reasonTitle: {
       fontWeight: '600',
-      color: colors.danger,
+      color: colors.onMuted.danger,
     },
     reasonText: {
       fontSize: 14,

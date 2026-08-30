@@ -1,4 +1,4 @@
-import { Pressable, View } from 'react-native';
+import { Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
@@ -15,6 +15,26 @@ export function GlassTabBar({ state, descriptors, navigation }: BottomTabBarProp
   const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
 
+  // `state.routes` is EVERY route registered in the navigator, including the
+  // ones marked `href: null` to keep them out of the tab bar. Expo Router
+  // implements `href: null` as `tabBarButton: () => null` plus
+  // `tabBarItemStyle: { display: 'none' }` -- and both of those are honored
+  // only by React Navigation's *default* bar. A custom `tabBar` like this one
+  // gets the unfiltered list, so iterating it directly lays out a flex cell
+  // for all ~19 routes and renders the 13 hidden ones as blank gaps, which is
+  // what shipped: six icons squeezed into the left edge with dead space after
+  // them. Filtering here is what actually honors `href: null`.
+  const visibleRoutes = state.routes.filter((route) => {
+    const options = descriptors[route.key]?.options;
+    if (!options) return false;
+    const itemStyle = StyleSheet.flatten(options.tabBarItemStyle) as ViewStyle | undefined;
+    if (itemStyle?.display === 'none') return false;
+    // An icon-only bar has nothing to draw for a route with no icon.
+    return Boolean(options.tabBarIcon);
+  });
+
+  const focusedKey = state.routes[state.index]?.key;
+
   const bar = (
     <View
       style={{
@@ -28,9 +48,12 @@ export function GlassTabBar({ state, descriptors, navigation }: BottomTabBarProp
         overflow: 'hidden',
       }}
     >
-      {state.routes.map((route, index) => {
+      {visibleRoutes.map((route) => {
         const { options } = descriptors[route.key]!;
-        const focused = state.index === index;
+        // Compared by key, not by array index: `state.index` indexes the full
+        // route list, so an index comparison against the filtered list would
+        // highlight the wrong tab.
+        const focused = focusedKey === route.key;
         const color = focused ? colors.primary : colors.textMuted;
 
         const onPress = () => {

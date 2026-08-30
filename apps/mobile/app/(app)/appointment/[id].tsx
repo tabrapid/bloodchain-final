@@ -379,7 +379,7 @@ function createStyles(colors: ThemeColors) {
       marginBottom: spacing.sm,
     },
     cancellationTitle: {
-      color: colors.danger,
+      color: colors.onMuted.danger,
       fontWeight: '600',
     },
     cancellationReason: {
@@ -395,7 +395,7 @@ function createStyles(colors: ThemeColors) {
       marginBottom: spacing.lg,
     },
     errorText: {
-      color: colors.danger,
+      color: colors.onMuted.danger,
       flex: 1,
     },
     cancelReasonCard: {
