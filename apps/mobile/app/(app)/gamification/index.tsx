@@ -9,7 +9,7 @@ import {
 import { useRouter } from 'expo-router';
 import { useGamificationProfile, useLevelProgress, useAchievements, useBadges } from '../../../src/hooks/useGamification';
 import { Screen } from '../../../src/components/Screen';
-import { GlassCard, GradientCard } from '../../../src/components';
+import { GlassCard, GradientCard, ScreenHeader } from '../../../src/components';
 import { AppText } from '../../../src/components/AppText';
 import { XpProgressBar } from '../../../src/components/gamification/XpProgressBar';
 import { AchievementCard } from '../../../src/components/gamification/AchievementCard';
@@ -46,6 +46,7 @@ export default function GamificationScreen() {
   if (isLoading && !profile) {
     return (
       <Screen>
+        <ScreenHeader title="Gamification" />
         <View style={styles.loadingContainer}>
           <AppText variant="body" muted>Loading...</AppText>
         </View>
@@ -54,7 +55,11 @@ export default function GamificationScreen() {
   }
 
   return (
-    <Screen>
+    <Screen scroll={false}>
+      <ScreenHeader
+        title="Gamification"
+        subtitle="Track your progress and achievements"
+      />
       <ScrollView
         style={styles.container}
         refreshControl={
@@ -62,14 +67,6 @@ export default function GamificationScreen() {
         }
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.header}>
-          <AppText variant="display">
-            Gamification
-          </AppText>
-          <AppText variant="body" muted>
-            Track your progress and achievements
-          </AppText>
-        </View>
 
         <GradientCard
           colors={[colors.primary, colors.ai]}
@@ -235,11 +232,6 @@ function createStyles(colors: ThemeColors) {
       flex: 1,
       justifyContent: 'center',
       alignItems: 'center',
-    },
-    header: {
-      paddingHorizontal: spacing.lg,
-      paddingTop: spacing.lg,
-      paddingBottom: spacing.md,
     },
     profileCard: {
       marginHorizontal: spacing.lg,

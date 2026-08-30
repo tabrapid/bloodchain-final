@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { View, TextInput, StyleSheet, ScrollView, Alert, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import { Eye, EyeOff } from 'lucide-react-native';
-import { AppButton, AppText, Card, Screen, SectionHeader, ListItem, Divider } from '../../src/components';
+import { AppButton, AppText, Card, Screen, ScreenHeader, SectionHeader, ListItem, Divider } from '../../src/components';
 import { spacing, radius, useTheme, ThemeColors } from '../../src/theme';
 import { useRevokeAllSessions } from '../../src/hooks/useSessions';
 import { useLogout } from '../../src/hooks/useAuth';
@@ -82,9 +82,9 @@ export default function Security() {
   };
 
   return (
-    <Screen>
+    <Screen scroll={false}>
+      <ScreenHeader title="Security" />
       <ScrollView contentContainerStyle={styles.content}>
-        <AppText variant="title">Security</AppText>
 
         <SectionHeader>PASSWORD</SectionHeader>
         <Card>

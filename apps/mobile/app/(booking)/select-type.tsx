@@ -118,6 +118,13 @@ export default function Booking() {
         >
           Continue
         </AppButton>
+        <AppButton
+          variant="secondary"
+          onPress={() => router.back()}
+          style={styles.backButton}
+        >
+          Back
+        </AppButton>
       </View>
     </Screen>
   );
@@ -174,6 +181,9 @@ function createStyles(colors: ThemeColors) {
     footer: {
       paddingTop: spacing.lg,
       paddingBottom: spacing.lg,
+    },
+    backButton: {
+      marginTop: spacing.md,
     },
   });
 }

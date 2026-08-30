@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Dimensions, ScrollView, View, TouchableOpacity, RefreshControl } from 'react-native';
-import { Stack } from 'expo-router';
 import {
   TrendingUp,
   TrendingDown,
@@ -12,7 +11,7 @@ import {
   FlaskConical,
 } from 'lucide-react-native';
 import { LineChart } from 'react-native-chart-kit';
-import { AppButton, AppText, Card, GlassCard, LoadingState, Screen, SectionHeader, StatCard } from '../../../src/components';
+import { AppButton, AppText, Card, GlassCard, LoadingState, Screen, ScreenHeader, SectionHeader, StatCard } from '../../../src/components';
 import { spacing, useTheme } from '../../../src/theme';
 import {
   getTrendSummary,
@@ -176,7 +175,7 @@ export default function HealthTrendsScreen() {
   if (isLoading) {
     return (
       <Screen>
-        <Stack.Screen options={{ title: 'Health Trends' }} />
+        <ScreenHeader title="Health Trends" />
         <LoadingState />
       </Screen>
     );
@@ -185,7 +184,7 @@ export default function HealthTrendsScreen() {
   if (!summary || availableParams.length === 0) {
     return (
       <Screen>
-        <Stack.Screen options={{ title: 'Health Trends' }} />
+        <ScreenHeader title="Health Trends" />
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: spacing.xl }}>
           <FlaskConical size={64} color={colors.textMuted} />
           <AppText variant="heading" style={{ marginTop: spacing.lg, textAlign: 'center' }}>
@@ -215,7 +214,7 @@ export default function HealthTrendsScreen() {
 
   return (
     <Screen>
-      <Stack.Screen options={{ title: 'Health Trends' }} />
+      <ScreenHeader title="Health Trends" />
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{ padding: spacing.lg }}

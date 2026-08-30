@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
 import { router } from 'expo-router';
 import { Droplet, Calendar, Building2, ChevronRight } from 'lucide-react-native';
-import { AppText, Card, EmptyState, GlassCard, Screen } from '../../../src/components';
+import { AppText, Card, EmptyState, GlassCard, Screen, ScreenHeader } from '../../../src/components';
 import { useMyDonations } from '../../../src/hooks/useDonations';
 import { type Donation } from '../../../src/api/donations';
 import { spacing, radius, useTheme, ThemeColors } from '../../../src/theme';
@@ -43,9 +43,7 @@ export default function DonationsScreen() {
 
   return (
     <Screen>
-      <View style={styles.header}>
-        <AppText variant="title">Donation History</AppText>
-      </View>
+      <ScreenHeader title="Donation History" />
 
       <View style={styles.filterTabs}>
         {(['all', 'completed', 'cancelled'] as const).map((tab) => (
@@ -163,9 +161,6 @@ export default function DonationsScreen() {
 
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
-    header: {
-      marginBottom: spacing.lg,
-    },
     filterTabs: {
       flexDirection: 'row',
       backgroundColor: colors.surfaceSolid,

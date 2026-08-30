@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, View, TouchableOpacity, TextInput, RefreshControl, Alert } from 'react-native';
-import { Stack } from 'expo-router';
 import {
   Brain,
   ChevronRight,
@@ -16,7 +15,7 @@ import {
   ThumbsDown,
   History,
 } from 'lucide-react-native';
-import { AppText, Card, GlassCard, LoadingState, Screen, SectionHeader } from '../../../src/components';
+import { AppText, Card, GlassCard, LoadingState, Screen, ScreenHeader, SectionHeader } from '../../../src/components';
 import { spacing, useTheme } from '../../../src/theme';
 import {
   generateInsight,
@@ -191,7 +190,7 @@ export default function InsightsScreen() {
   if (isLoading) {
     return (
       <Screen>
-        <Stack.Screen options={{ title: 'AI Health Insights' }} />
+        <ScreenHeader title="AI Health Insights" />
         <LoadingState />
       </Screen>
     );
@@ -200,7 +199,7 @@ export default function InsightsScreen() {
   if (showHistory) {
     return (
       <Screen>
-        <Stack.Screen options={{ title: 'AI Insight History' }} />
+        <ScreenHeader title="AI Insight History" onBack={() => setShowHistory(false)} />
         <ScrollView
           style={{ flex: 1 }}
           contentContainerStyle={{ padding: spacing.lg }}
@@ -263,7 +262,7 @@ export default function InsightsScreen() {
 
   return (
     <Screen>
-      <Stack.Screen options={{ title: 'AI Health Insights' }} />
+      <ScreenHeader title="AI Health Insights" />
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{ padding: spacing.lg }}

@@ -1,15 +1,15 @@
 import { useMemo } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
-import { AppText, Card, Screen, SectionHeader, ListItem, Divider } from '../../src/components';
+import { AppText, Card, Screen, ScreenHeader, SectionHeader, ListItem, Divider } from '../../src/components';
 import { spacing, useTheme, ThemeColors } from '../../src/theme';
 
 export default function Privacy() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   return (
-    <Screen>
+    <Screen scroll={false}>
+      <ScreenHeader title="Privacy" />
       <ScrollView contentContainerStyle={styles.content}>
-        <AppText variant="title">Privacy</AppText>
 
         <SectionHeader>DATA SHARING</SectionHeader>
         <Card>

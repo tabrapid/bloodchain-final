@@ -12,6 +12,7 @@ import {
   GlassCard,
   LoadingState,
   Screen,
+  ScreenHeader,
 } from '../../../src/components';
 import { spacing, useTheme, ThemeColors } from '../../../src/theme';
 
@@ -48,6 +49,7 @@ export default function CampaignsScreen() {
   if (isLoading) {
     return (
       <Screen>
+        <ScreenHeader title="Blood Donation Campaigns" />
         <LoadingState message="Loading campaigns..." />
       </Screen>
     );
@@ -63,12 +65,10 @@ export default function CampaignsScreen() {
         />
       }
     >
-      <View style={styles.header}>
-        <AppText variant="title">Blood Donation Campaigns</AppText>
-        <AppText muted variant="bodySmall" style={styles.subtitle}>
-          Join campaigns to help save lives in your community
-        </AppText>
-      </View>
+      <ScreenHeader
+        title="Blood Donation Campaigns"
+        subtitle="Join campaigns to help save lives in your community"
+      />
 
       {joinError && (
         <Card style={styles.errorCard}>
@@ -182,16 +182,10 @@ function CampaignCard({
 
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
-    header: {
-      marginBottom: spacing.lg,
-    },
     errorCard: {
       padding: spacing.md,
       marginBottom: spacing.lg,
       backgroundColor: colors.dangerMuted,
-    },
-    subtitle: {
-      marginTop: spacing.xs,
     },
     list: {
       gap: spacing.md,
