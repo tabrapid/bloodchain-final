@@ -1,20 +1,27 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
 
+/* Shared Bloodchainga Liquid Glass tokens (light + dark) and materials. */
+@import '@bloodchain/ui/styles/glass.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: #081018;
-  --foreground: #f2f5f7;
-}
-
 body {
-  background-color: var(--background);
-  color: var(--foreground);
-  font-family: 'DM Sans', sans-serif;
+  background-color: rgb(var(--bc-bg));
+  color: rgb(var(--bc-text));
+  font-family: 'DM Sans', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
 * {
   box-sizing: border-box;
+}
+
+/* Keyboard focus stays visible on glass, where a default outline can vanish
+   against a translucent surface. */
+:focus-visible {
+  outline: 2px solid #d85360;
+  outline-offset: 2px;
+  border-radius: 4px;
 }

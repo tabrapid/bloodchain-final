@@ -298,7 +298,7 @@ function createStyles(colors: ThemeColors) {
     },
     dayText: {
       fontSize: 14,
-      color: colors.success,
+      color: colors.onMuted.success,
     },
     dayTextDisabled: {
       color: colors.textMuted,

@@ -270,7 +270,7 @@ function createStyles(colors: ThemeColors) {
     volumeText: {
       fontSize: 12,
       fontWeight: '600',
-      color: colors.primary,
+      color: colors.onMuted.primary,
     },
   });
 }

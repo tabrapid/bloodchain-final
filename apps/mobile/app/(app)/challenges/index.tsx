@@ -249,7 +249,7 @@ function createStyles(colors: ThemeColors) {
     },
     completedText: {
       fontWeight: '700',
-      color: colors.success,
+      color: colors.onMuted.success,
     },
   });
 }

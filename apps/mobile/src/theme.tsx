@@ -53,6 +53,22 @@ export interface ThemeColors {
   warningMuted: string;
   dangerMuted: string;
   aiMuted: string;
+  /**
+   * Text/icon color to use *on top of* the matching `*Muted` tint.
+   *
+   * The raw accent is a mid-tone, so it fails contrast against its own tint
+   * in both directions: on dark it lands ~1.9:1, on light ~3.0:1, where small
+   * text needs 4.5:1. These are shifted per mode -- lighter on dark, darker
+   * on light -- to clear it.
+   */
+  onMuted: {
+    primary: string;
+    secondary: string;
+    success: string;
+    warning: string;
+    danger: string;
+    ai: string;
+  };
 }
 
 const darkColors: ThemeColors = {
@@ -77,12 +93,25 @@ const darkColors: ThemeColors = {
   borderSubtle: 'rgba(255,255,255,0.06)',
   overlay: 'rgba(0,0,0,0.6)',
   blurTint: 'dark',
-  primaryMuted: '#8A3A42',
-  secondaryMuted: '#10202A',
-  successMuted: '#10221F',
-  warningMuted: '#1F1A12',
-  dangerMuted: '#26191F',
-  aiMuted: '#201C36',
+  // Alpha tints rather than opaque swatches: these sit *inside* glass panels,
+  // and a solid fill reads as a sticker pasted onto the glass instead of part
+  // of it. They also restore the subtlety of the `accent + '15'` tints these
+  // replaced -- swapping those for the old opaque `#8A3A42` turned every
+  // icon chip into a solid red blob.
+  primaryMuted: 'rgba(216,83,96,0.18)',
+  secondaryMuted: 'rgba(104,183,209,0.16)',
+  successMuted: 'rgba(99,194,155,0.16)',
+  warningMuted: 'rgba(229,184,109,0.16)',
+  dangerMuted: 'rgba(216,83,96,0.18)',
+  aiMuted: 'rgba(142,130,223,0.18)',
+  onMuted: {
+    primary: '#F2919A',
+    secondary: '#A8DCEE',
+    success: '#8FDCBC',
+    warning: '#F2D49B',
+    danger: '#F2919A',
+    ai: '#B3AAEE',
+  },
 };
 
 const lightColors: ThemeColors = {
@@ -107,12 +136,20 @@ const lightColors: ThemeColors = {
   borderSubtle: 'rgba(15,23,42,0.05)',
   overlay: 'rgba(15,23,42,0.45)',
   blurTint: 'light',
-  primaryMuted: '#FBE1E4',
-  secondaryMuted: '#E1F0F6',
-  successMuted: '#E1F5EC',
-  warningMuted: '#FBF0DD',
-  dangerMuted: '#FBE1E4',
-  aiMuted: '#ECE9FB',
+  primaryMuted: 'rgba(216,83,96,0.14)',
+  secondaryMuted: 'rgba(104,183,209,0.18)',
+  successMuted: 'rgba(99,194,155,0.18)',
+  warningMuted: 'rgba(229,184,109,0.22)',
+  dangerMuted: 'rgba(216,83,96,0.14)',
+  aiMuted: 'rgba(142,130,223,0.16)',
+  onMuted: {
+    primary: '#A32C38',
+    secondary: '#1F6A83',
+    success: '#1F7355',
+    warning: '#8A6318',
+    danger: '#A32C38',
+    ai: '#4E42A8',
+  },
 };
 
 export const spacing = {

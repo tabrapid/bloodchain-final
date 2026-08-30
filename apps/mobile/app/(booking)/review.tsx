@@ -340,7 +340,7 @@ function createStyles(colors: ThemeColors) {
       marginBottom: spacing.lg,
     },
     errorText: {
-      color: colors.danger,
+      color: colors.onMuted.danger,
       flex: 1,
     },
     infoCard: {
