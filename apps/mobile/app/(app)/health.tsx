@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { router } from 'expo-router';
 import type { RelativePathString } from 'expo-router';
 import { TouchableOpacity, View, RefreshControl, ScrollView } from 'react-native';
-import { Activity, ChevronRight, FlaskConical, TrendingUp } from 'lucide-react-native';
+import { Activity, Brain, ChevronRight, FlaskConical, TrendingUp } from 'lucide-react-native';
 import { AppText, Card, GlassCard, LoadingState, Screen, SectionHeader, StatCard } from '../../src/components';
 import { spacing, useTheme } from '../../src/theme';
 import { getTrendSummary, TrendSummary } from '../../src/api/health-trends';
@@ -168,6 +168,38 @@ export default function Health() {
                 <AppText variant="heading">Blood Tests</AppText>
                 <AppText muted style={{ fontSize: 13 }}>
                   Book appointments and view results
+                </AppText>
+              </View>
+              <ChevronRight size={20} color={colors.textMuted} />
+            </View>
+          </Card>
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={() => router.push('/insights' as RelativePathString)}>
+          <Card style={{ marginTop: spacing.md }}>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: spacing.md,
+              }}
+            >
+              <View
+                style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 12,
+                  backgroundColor: colors.aiMuted,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Brain size={24} color={colors.onMuted.ai} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <AppText variant="heading">AI Insights</AppText>
+                <AppText muted style={{ fontSize: 13 }}>
+                  Get AI-powered explanations of your results
                 </AppText>
               </View>
               <ChevronRight size={20} color={colors.textMuted} />

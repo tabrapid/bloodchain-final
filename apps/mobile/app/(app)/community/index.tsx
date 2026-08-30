@@ -98,6 +98,7 @@ export default function CommunityScreen() {
               icon={<BookOpen size={20} color={colors.primary} />}
               label="Education"
               value={impactStats.educationCompletions}
+              onPress={() => router.push('/education')}
             />
           </View>
 
@@ -170,15 +171,17 @@ function ImpactStat({
   icon,
   label,
   value,
+  onPress,
 }: {
   icon: React.ReactNode;
   label: string;
   value: number;
+  onPress?: () => void;
 }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  return (
-    <View style={styles.impactStat}>
+  const content = (
+    <>
       <View style={styles.impactStatLabel}>
         {icon}
         <AppText muted variant="bodySmall">
@@ -188,8 +191,18 @@ function ImpactStat({
       <AppText variant="heading" style={styles.impactStatValue}>
         {value}
       </AppText>
-    </View>
+    </>
   );
+
+  if (onPress) {
+    return (
+      <TouchableOpacity style={styles.impactStat} activeOpacity={0.7} onPress={onPress}>
+        {content}
+      </TouchableOpacity>
+    );
+  }
+
+  return <View style={styles.impactStat}>{content}</View>;
 }
 
 function ChallengeCard({ challenge }: { challenge: Challenge }) {
