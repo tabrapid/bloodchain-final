@@ -65,17 +65,17 @@ export default function BloodRequestsPage() {
     <AppShell title="Blood Requests" userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
       <div className="p-6">
         <div className="mb-6">
-          <h1 className="text-2xl font-semibold text-gray-900">Blood Request Monitoring</h1>
-          <p className="text-sm text-gray-500 mt-1">Monitor all blood requests across the platform</p>
+          <h1 className="text-2xl font-semibold text-donor-text">Blood Request Monitoring</h1>
+          <p className="text-sm text-donor-muted mt-1">Monitor all blood requests across the platform</p>
         </div>
 
-        <div className="bg-white rounded-xl border border-gray-200 mb-6">
-          <div className="p-4 border-b border-gray-100">
+        <div className="bc-glass rounded-card mb-6">
+          <div className="p-4 border-b border-donor-border/40">
             <form onSubmit={handleSearch} className="flex gap-4">
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+                className="border border-donor-border/60 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-donor-primary"
               >
                 <option value="">All Status</option>
                 <option value="SUBMITTED">Submitted</option>
@@ -90,7 +90,7 @@ export default function BloodRequestsPage() {
               <select
                 value={priorityFilter}
                 onChange={(e) => setPriorityFilter(e.target.value)}
-                className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+                className="border border-donor-border/60 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-donor-primary"
               >
                 <option value="">All Priority</option>
                 <option value="ROUTINE">Routine</option>
@@ -99,7 +99,7 @@ export default function BloodRequestsPage() {
               </select>
               <button
                 type="submit"
-                className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700"
+                className="bg-donor-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-donor-primary/85"
               >
                 Filter
               </button>
@@ -109,51 +109,51 @@ export default function BloodRequestsPage() {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="bg-gray-50 border-b border-gray-100">
-                  <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">Reference</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">Status</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">Priority</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">Requesting</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">Fulfilling</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">Items</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">Created</th>
+                <tr className="bg-donor-elevated border-b border-donor-border/40">
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Reference</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Status</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Priority</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Requesting</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Fulfilling</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Items</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Created</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-donor-border/40">
                 {requests.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-4 py-8 text-center text-sm text-gray-500">
+                    <td colSpan={7} className="px-4 py-8 text-center text-sm text-donor-muted">
                       No blood requests found
                     </td>
                   </tr>
                 ) : (
                   requests.map((request) => (
-                    <tr key={request.id} className="hover:bg-gray-50">
+                    <tr key={request.id} className="hover:bg-donor-elevated">
                       <td className="px-4 py-3">
-                        <p className="font-medium text-gray-900">{request.requestReference}</p>
+                        <p className="font-medium text-donor-text">{request.requestReference}</p>
                       </td>
                       <td className="px-4 py-3">
                         <StatusBadgeWrapper status={request.status} />
                       </td>
                       <td className="px-4 py-3">
                         <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                          request.priority === 'CRITICAL' ? 'bg-red-100 text-red-700' :
-                          request.priority === 'URGENT' ? 'bg-amber-100 text-amber-700' :
-                          'bg-gray-100 text-gray-700'
+                          request.priority === 'CRITICAL' ? 'bg-donor-dangerMuted text-donor-onDangerMuted' :
+                          request.priority === 'URGENT' ? 'bg-donor-warningMuted text-donor-onWarningMuted' :
+                          'bg-donor-elevated text-donor-text'
                         }`}>
                           {request.priority}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-600">
+                      <td className="px-4 py-3 text-sm text-donor-muted">
                         {request.requestingOrganization?.name || '-'}
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-600">
+                      <td className="px-4 py-3 text-sm text-donor-muted">
                         {request.fulfillingOrganization?.name || '-'}
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-600">
+                      <td className="px-4 py-3 text-sm text-donor-muted">
                         {request.itemsCount}
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-600">
+                      <td className="px-4 py-3 text-sm text-donor-muted">
                         {new Date(request.createdAt).toLocaleDateString()}
                       </td>
                     </tr>
@@ -164,22 +164,22 @@ export default function BloodRequestsPage() {
           </div>
 
           {meta.totalPages > 1 && (
-            <div className="px-4 py-3 border-t border-gray-100 flex items-center justify-between">
-              <p className="text-sm text-gray-500">
+            <div className="px-4 py-3 border-t border-donor-border/40 flex items-center justify-between">
+              <p className="text-sm text-donor-muted">
                 Showing {(meta.page - 1) * meta.limit + 1} to {Math.min(meta.page * meta.limit, meta.total)} of {meta.total}
               </p>
               <div className="flex gap-2">
                 <button
                   onClick={() => loadRequests(meta.page - 1)}
                   disabled={meta.page === 1}
-                  className="px-3 py-1 border border-gray-200 rounded text-sm disabled:opacity-50"
+                  className="px-3 py-1 border border-donor-border/60 rounded text-sm disabled:opacity-50"
                 >
                   Previous
                 </button>
                 <button
                   onClick={() => loadRequests(meta.page + 1)}
                   disabled={meta.page === meta.totalPages}
-                  className="px-3 py-1 border border-gray-200 rounded text-sm disabled:opacity-50"
+                  className="px-3 py-1 border border-donor-border/60 rounded text-sm disabled:opacity-50"
                 >
                   Next
                 </button>

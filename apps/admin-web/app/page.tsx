@@ -144,29 +144,29 @@ export default function AdminDashboard() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 w-full max-w-md">
+      <div className="min-h-screen bc-app-bg flex items-center justify-center">
+        <div className="bc-glass rounded-card p-8 w-full max-w-md">
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 bg-red-600 rounded-lg flex items-center justify-center">
+            <div className="w-10 h-10 bg-donor-primary rounded-lg flex items-center justify-center">
               <Shield className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-semibold text-gray-900">Admin Portal</h1>
-              <p className="text-sm text-gray-500">BloodChain Management</p>
+              <h1 className="text-xl font-semibold text-donor-text">Admin Portal</h1>
+              <p className="text-sm text-donor-muted">BloodChain Management</p>
             </div>
           </div>
 
-          <h2 className="text-lg font-medium text-gray-900 mb-4">Sign in to continue</h2>
+          <h2 className="text-lg font-medium text-donor-text mb-4">Sign in to continue</h2>
 
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+            <div className="mb-4 p-3 bg-donor-dangerMuted border border-donor-danger/30 rounded-lg text-sm text-donor-onDangerMuted">
               {error}
             </div>
           )}
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="email" className="block text-sm font-medium text-donor-text mb-1">
                 Email
               </label>
               <input
@@ -176,11 +176,11 @@ export default function AdminDashboard() {
                 autoComplete="username"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                className="w-full rounded-lg border border-donor-border/80 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-donor-primary focus:border-transparent"
               />
             </div>
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="password" className="block text-sm font-medium text-donor-text mb-1">
                 Password
               </label>
               <input
@@ -190,13 +190,13 @@ export default function AdminDashboard() {
                 autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                className="w-full rounded-lg border border-donor-border/80 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-donor-primary focus:border-transparent"
               />
             </div>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full bg-red-600 text-white py-2.5 px-4 rounded-lg font-medium hover:bg-red-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full bg-donor-primary text-white py-2.5 px-4 rounded-lg font-medium hover:bg-donor-primary/85 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {isSubmitting ? 'Signing in...' : 'Sign in'}
             </button>
@@ -210,16 +210,16 @@ export default function AdminDashboard() {
     <AppShell title="Admin Dashboard" userName={user ? `${user.firstName} ${user.lastName}` : undefined}>
       <div className="p-6">
         <div className="mb-8">
-          <h1 className="text-2xl font-semibold text-gray-900">Platform Dashboard</h1>
-          <p className="text-sm text-gray-500 mt-1">Real-time overview of the BloodChain</p>
+          <h1 className="text-2xl font-semibold text-donor-text">Platform Dashboard</h1>
+          <p className="text-sm text-donor-muted mt-1">Real-time overview of the BloodChain</p>
         </div>
 
         {error && (
-          <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-3">
-            <AlertTriangle className="w-5 h-5 text-amber-600" />
-            <p className="text-sm text-amber-800">{error}</p>
+          <div className="mb-6 p-4 bg-donor-warningMuted border border-donor-warning/30 rounded-lg flex items-center gap-3">
+            <AlertTriangle className="w-5 h-5 text-donor-warning" />
+            <p className="text-sm text-donor-onWarningMuted">{error}</p>
             <button onClick={() => setError(null)} className="ml-auto">
-              <X className="w-4 h-4 text-amber-600" />
+              <X className="w-4 h-4 text-donor-warning" />
             </button>
           </div>
         )}
@@ -300,20 +300,20 @@ export default function AdminDashboard() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-              <h3 className="font-medium text-gray-900">Pending Organizations</h3>
-              <span className="text-sm text-amber-600 font-medium">{pendingOrgs.length}</span>
+          <div className="bc-glass rounded-card overflow-hidden">
+            <div className="px-4 py-3 border-b border-donor-border/40 flex items-center justify-between">
+              <h3 className="font-medium text-donor-text">Pending Organizations</h3>
+              <span className="text-sm text-donor-warning font-medium">{pendingOrgs.length}</span>
             </div>
-            <div className="divide-y divide-gray-100">
+            <div className="divide-y divide-donor-border/40">
               {pendingOrgs.length === 0 ? (
-                <div className="p-4 text-sm text-gray-500 text-center">No pending organizations</div>
+                <div className="p-4 text-sm text-donor-muted text-center">No pending organizations</div>
               ) : (
                 pendingOrgs.map((org) => (
                   <div key={org.id} className="p-4 flex items-center justify-between">
                     <div>
-                      <p className="font-medium text-gray-900">{org.name}</p>
-                      <p className="text-sm text-gray-500">{org.type}</p>
+                      <p className="font-medium text-donor-text">{org.name}</p>
+                      <p className="text-sm text-donor-muted">{org.type}</p>
                     </div>
                     <StatusBadgeWrapper status="PENDING_APPROVAL" />
                   </div>
@@ -322,22 +322,22 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-              <h3 className="font-medium text-gray-900">Active Emergencies</h3>
-              <span className="text-sm text-red-600 font-medium">{activeEmergencies.length}</span>
+          <div className="bc-glass rounded-card overflow-hidden">
+            <div className="px-4 py-3 border-b border-donor-border/40 flex items-center justify-between">
+              <h3 className="font-medium text-donor-text">Active Emergencies</h3>
+              <span className="text-sm text-donor-danger font-medium">{activeEmergencies.length}</span>
             </div>
-            <div className="divide-y divide-gray-100">
+            <div className="divide-y divide-donor-border/40">
               {activeEmergencies.length === 0 ? (
-                <div className="p-4 text-sm text-gray-500 text-center">No active emergencies</div>
+                <div className="p-4 text-sm text-donor-muted text-center">No active emergencies</div>
               ) : (
                 activeEmergencies.map((emergency) => (
                   <div key={emergency.id} className="p-4 flex items-center justify-between">
                     <div>
-                      <p className="font-medium text-gray-900">
+                      <p className="font-medium text-donor-text">
                         {emergency.bloodType}{emergency.rhFactor} - {emergency.unitsRequired} units
                       </p>
-                      <p className="text-sm text-gray-500">{emergency.hospital?.name}</p>
+                      <p className="text-sm text-donor-muted">{emergency.hospital?.name}</p>
                     </div>
                     <StatusBadgeWrapper status={emergency.status} />
                   </div>
@@ -346,20 +346,20 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-              <h3 className="font-medium text-gray-900">Active Alerts</h3>
-              <span className="text-sm text-red-600 font-medium">{activeAlerts.length}</span>
+          <div className="bc-glass rounded-card overflow-hidden">
+            <div className="px-4 py-3 border-b border-donor-border/40 flex items-center justify-between">
+              <h3 className="font-medium text-donor-text">Active Alerts</h3>
+              <span className="text-sm text-donor-danger font-medium">{activeAlerts.length}</span>
             </div>
-            <div className="divide-y divide-gray-100">
+            <div className="divide-y divide-donor-border/40">
               {activeAlerts.length === 0 ? (
-                <div className="p-4 text-sm text-gray-500 text-center">No active alerts</div>
+                <div className="p-4 text-sm text-donor-muted text-center">No active alerts</div>
               ) : (
                 activeAlerts.slice(0, 5).map((alert) => (
                   <div key={alert.id} className="p-4 flex items-center justify-between">
                     <div>
-                      <p className="font-medium text-gray-900">{alert.message}</p>
-                      <p className="text-sm text-gray-500">{alert.type}</p>
+                      <p className="font-medium text-donor-text">{alert.message}</p>
+                      <p className="text-sm text-donor-muted">{alert.type}</p>
                     </div>
                     <StatusBadgeWrapper status={alert.type === 'LOW_STOCK' ? 'WARNING' : 'INFO'} />
                   </div>
@@ -369,26 +369,26 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        <div className="mt-6 bg-white rounded-xl border border-gray-200 p-4">
-          <h3 className="font-medium text-gray-900 mb-4">System Health</h3>
+        <div className="mt-6 bc-glass rounded-card p-4">
+          <h3 className="font-medium text-donor-text mb-4">System Health</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full ${health?.status === 'healthy' ? 'bg-green-500' : 'bg-red-500'}`} />
-              <span className="text-sm text-gray-600">API Status</span>
-              <span className="text-sm font-medium text-gray-900 ml-auto">{health?.status ?? '-'}</span>
+              <div className={`w-2 h-2 rounded-full ${health?.status === 'healthy' ? 'bg-donor-successMuted0' : 'bg-donor-dangerMuted0'}`} />
+              <span className="text-sm text-donor-muted">API Status</span>
+              <span className="text-sm font-medium text-donor-text ml-auto">{health?.status ?? '-'}</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full ${health?.database === 'up' ? 'bg-green-500' : 'bg-red-500'}`} />
-              <span className="text-sm text-gray-600">Database</span>
-              <span className="text-sm font-medium text-gray-900 ml-auto">{health?.database ?? '-'}</span>
+              <div className={`w-2 h-2 rounded-full ${health?.database === 'up' ? 'bg-donor-successMuted0' : 'bg-donor-dangerMuted0'}`} />
+              <span className="text-sm text-donor-muted">Database</span>
+              <span className="text-sm font-medium text-donor-text ml-auto">{health?.database ?? '-'}</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600">Pending Orgs</span>
-              <span className="text-sm font-medium text-gray-900 ml-auto">{health?.pending?.organizations ?? '-'}</span>
+              <span className="text-sm text-donor-muted">Pending Orgs</span>
+              <span className="text-sm font-medium text-donor-text ml-auto">{health?.pending?.organizations ?? '-'}</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600">Active Alerts</span>
-              <span className="text-sm font-medium text-gray-900 ml-auto">{health?.alerts ?? '-'}</span>
+              <span className="text-sm text-donor-muted">Active Alerts</span>
+              <span className="text-sm font-medium text-donor-text ml-auto">{health?.alerts ?? '-'}</span>
             </div>
           </div>
         </div>

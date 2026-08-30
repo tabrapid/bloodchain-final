@@ -71,19 +71,19 @@ export default function AlertsPage() {
     <AppShell title="Alert Center" userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
       <div className="p-6">
         <div className="mb-6">
-          <h1 className="text-2xl font-semibold text-gray-900">Alert Center</h1>
-          <p className="text-sm text-gray-500 mt-1">Manage platform alerts and notifications</p>
+          <h1 className="text-2xl font-semibold text-donor-text">Alert Center</h1>
+          <p className="text-sm text-donor-muted mt-1">Manage platform alerts and notifications</p>
         </div>
 
-        <div className="bg-white rounded-xl border border-gray-200 mb-6">
-          <div className="p-4 border-b border-gray-100">
+        <div className="bc-glass rounded-card mb-6">
+          <div className="p-4 border-b border-donor-border/40">
             <select
               value={acknowledgedFilter}
               onChange={(e) => {
                 setAcknowledgedFilter(e.target.value);
                 loadAlerts(1, e.target.value);
               }}
-              className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+              className="border border-donor-border/60 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-donor-primary"
             >
               <option value="">All Alerts</option>
               <option value="false">Active</option>
@@ -91,52 +91,52 @@ export default function AlertsPage() {
             </select>
           </div>
 
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-donor-border/40">
             {alerts.length === 0 ? (
               <div className="p-8 text-center">
-                <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
-                <p className="text-sm text-gray-500">No alerts to display</p>
+                <CheckCircle className="w-12 h-12 text-donor-success mx-auto mb-4" />
+                <p className="text-sm text-donor-muted">No alerts to display</p>
               </div>
             ) : (
               alerts.map((alert) => (
                 <div key={alert.id} className="p-4 flex items-center justify-between">
                   <div className="flex items-center gap-4">
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                      alert.type === 'LOW_STOCK' ? 'bg-amber-100' :
-                      alert.type === 'EXPIRING_SOON' ? 'bg-orange-100' :
-                      'bg-blue-100'
+                      alert.type === 'LOW_STOCK' ? 'bg-donor-warningMuted' :
+                      alert.type === 'EXPIRING_SOON' ? 'bg-donor-warningMuted' :
+                      'bg-donor-secondaryMuted'
                     }`}>
                       <AlertTriangle className={`w-5 h-5 ${
-                        alert.type === 'LOW_STOCK' ? 'text-amber-600' :
-                        alert.type === 'EXPIRING_SOON' ? 'text-orange-600' :
-                        'text-blue-600'
+                        alert.type === 'LOW_STOCK' ? 'text-donor-warning' :
+                        alert.type === 'EXPIRING_SOON' ? 'text-donor-warning' :
+                        'text-donor-secondary'
                       }`} />
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-gray-900">{alert.message}</p>
+                      <p className="text-sm font-medium text-donor-text">{alert.message}</p>
                       <div className="flex items-center gap-2 mt-1">
-                        <span className="text-xs text-gray-500">{alert.type}</span>
+                        <span className="text-xs text-donor-muted">{alert.type}</span>
                         {alert.bloodType && (
                           <>
-                            <span className="text-xs text-gray-400">-</span>
-                            <span className="text-xs text-gray-500">{alert.bloodType}{alert.rhFactor}</span>
+                            <span className="text-xs text-donor-muted">-</span>
+                            <span className="text-xs text-donor-muted">{alert.bloodType}{alert.rhFactor}</span>
                           </>
                         )}
                         {alert.organization && (
                           <>
-                            <span className="text-xs text-gray-400">-</span>
-                            <span className="text-xs text-gray-500">{alert.organization.name}</span>
+                            <span className="text-xs text-donor-muted">-</span>
+                            <span className="text-xs text-donor-muted">{alert.organization.name}</span>
                           </>
                         )}
                       </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
-                    <span className="text-xs text-gray-400">
+                    <span className="text-xs text-donor-muted">
                       {new Date(alert.createdAt).toLocaleString()}
                     </span>
                     {alert.acknowledged ? (
-                      <span className="inline-flex items-center gap-1 text-xs text-green-600">
+                      <span className="inline-flex items-center gap-1 text-xs text-donor-success">
                         <CheckCircle className="w-4 h-4" />
                         Acknowledged
                       </span>
@@ -144,7 +144,7 @@ export default function AlertsPage() {
                       <button
                         onClick={() => handleAcknowledge(alert.id)}
                         disabled={actionLoading === alert.id}
-                        className="text-xs bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 disabled:opacity-50"
+                        className="text-xs bg-donor-primary text-white px-3 py-1 rounded hover:bg-donor-primary/85 disabled:opacity-50"
                       >
                         {actionLoading === alert.id ? '...' : 'Acknowledge'}
                       </button>

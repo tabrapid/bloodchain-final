@@ -96,27 +96,27 @@ export default function ModerationPage() {
     <AppShell title="Content Moderation" userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
       <div className="p-6">
         <div className="mb-6">
-          <h1 className="text-2xl font-semibold text-gray-900">Content Moderation</h1>
-          <p className="text-sm text-gray-500 mt-1">Review reports filed against community posts</p>
+          <h1 className="text-2xl font-semibold text-donor-text">Content Moderation</h1>
+          <p className="text-sm text-donor-muted mt-1">Review reports filed against community posts</p>
         </div>
 
         {error && (
-          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center justify-between">
-            <p className="text-sm text-red-800">{error}</p>
+          <div className="mb-4 p-4 bg-donor-dangerMuted border border-donor-danger/30 rounded-lg flex items-center justify-between">
+            <p className="text-sm text-donor-onDangerMuted">{error}</p>
             <button onClick={() => setError(null)}>
-              <X className="w-4 h-4 text-red-600" />
+              <X className="w-4 h-4 text-donor-danger" />
             </button>
           </div>
         )}
 
-        <div className="bg-white rounded-xl border border-gray-200 mb-6">
-          <div className="p-4 border-b border-gray-100 flex gap-4">
+        <div className="bc-glass rounded-card mb-6">
+          <div className="p-4 border-b border-donor-border/40 flex gap-4">
             <select
               value={statusFilter}
               onChange={(e) => {
                 setStatusFilter(e.target.value);
               }}
-              className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+              className="border border-donor-border/60 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-donor-primary"
             >
               <option value="">All Status</option>
               <option value="PENDING">Pending</option>
@@ -129,7 +129,7 @@ export default function ModerationPage() {
               onChange={(e) => {
                 setReasonFilter(e.target.value);
               }}
-              className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+              className="border border-donor-border/60 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-donor-primary"
             >
               <option value="">All Reasons</option>
               <option value="SPAM">Spam</option>
@@ -140,7 +140,7 @@ export default function ModerationPage() {
             </select>
             <button
               onClick={() => loadReports(1)}
-              className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700"
+              className="bg-donor-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-donor-primary/85"
             >
               Filter
             </button>
@@ -149,54 +149,54 @@ export default function ModerationPage() {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="bg-gray-50 border-b border-gray-100">
-                  <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">Post</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">Reason</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">Reporter</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">Status</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">Reported</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">Actions</th>
+                <tr className="bg-donor-elevated border-b border-donor-border/40">
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Post</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Reason</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Reporter</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Status</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Reported</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-donor-border/40">
                 {reports.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-8 text-center text-sm text-gray-500">
+                    <td colSpan={6} className="px-4 py-8 text-center text-sm text-donor-muted">
                       No content reports found
                     </td>
                   </tr>
                 ) : (
                   reports.map((report) => (
-                    <tr key={report.id} className="hover:bg-gray-50">
+                    <tr key={report.id} className="hover:bg-donor-elevated">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 bg-gray-100 rounded flex items-center justify-center">
-                            <Flag className="w-4 h-4 text-gray-600" />
+                          <div className="w-8 h-8 bg-donor-elevated rounded flex items-center justify-center">
+                            <Flag className="w-4 h-4 text-donor-muted" />
                           </div>
                           <div>
-                            <p className="font-medium text-gray-900 max-w-xs truncate">{report.post.title}</p>
-                            <p className="text-xs text-gray-500">Post status: {report.post.status}</p>
+                            <p className="font-medium text-donor-text max-w-xs truncate">{report.post.title}</p>
+                            <p className="text-xs text-donor-muted">Post status: {report.post.status}</p>
                           </div>
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-donor-secondaryMuted text-donor-onSecondaryMuted">
                           {report.reason}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-600">
+                      <td className="px-4 py-3 text-sm text-donor-muted">
                         {report.reporter.firstName} {report.reporter.lastName}
                       </td>
                       <td className="px-4 py-3">
                         <StatusBadgeWrapper status={report.status} />
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-600">
+                      <td className="px-4 py-3 text-sm text-donor-muted">
                         {new Date(report.createdAt).toLocaleDateString()}
                       </td>
                       <td className="px-4 py-3">
                         <button
                           onClick={() => openReport(report.id)}
-                          className="text-red-600 hover:text-red-700 text-sm font-medium"
+                          className="text-donor-danger hover:text-donor-onDangerMuted text-sm font-medium"
                         >
                           Review
                         </button>
@@ -209,22 +209,22 @@ export default function ModerationPage() {
           </div>
 
           {meta.totalPages > 1 && (
-            <div className="px-4 py-3 border-t border-gray-100 flex items-center justify-between">
-              <p className="text-sm text-gray-500">
+            <div className="px-4 py-3 border-t border-donor-border/40 flex items-center justify-between">
+              <p className="text-sm text-donor-muted">
                 Showing {(meta.page - 1) * meta.limit + 1} to {Math.min(meta.page * meta.limit, meta.total)} of {meta.total}
               </p>
               <div className="flex gap-2">
                 <button
                   onClick={() => loadReports(meta.page - 1)}
                   disabled={meta.page === 1}
-                  className="px-3 py-1 border border-gray-200 rounded text-sm disabled:opacity-50"
+                  className="px-3 py-1 border border-donor-border/60 rounded text-sm disabled:opacity-50"
                 >
                   Previous
                 </button>
                 <button
                   onClick={() => loadReports(meta.page + 1)}
                   disabled={meta.page === meta.totalPages}
-                  className="px-3 py-1 border border-gray-200 rounded text-sm disabled:opacity-50"
+                  className="px-3 py-1 border border-donor-border/60 rounded text-sm disabled:opacity-50"
                 >
                   Next
                 </button>
@@ -235,20 +235,20 @@ export default function ModerationPage() {
       </div>
 
       {selectedReport && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
-            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white">
-              <h3 className="text-lg font-semibold text-gray-900">Report Details</h3>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bc-glass-elevated bc-rise rounded-panel w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="px-6 py-4 border-b border-donor-border/40 flex items-center justify-between sticky top-0 bg-donor-surface">
+              <h3 className="text-lg font-semibold text-donor-text">Report Details</h3>
               <button onClick={() => setSelectedReport(null)}>
-                <X className="w-5 h-5 text-gray-400" />
+                <X className="w-5 h-5 text-donor-muted" />
               </button>
             </div>
             <div className="p-6 space-y-4">
               <div>
-                <p className="text-sm text-gray-500">Post</p>
-                <p className="font-semibold text-gray-900">{selectedReport.post.title}</p>
-                <p className="mt-1 text-sm text-gray-700 whitespace-pre-wrap">{selectedReport.post.body}</p>
-                <p className="mt-1 text-xs text-gray-500">
+                <p className="text-sm text-donor-muted">Post</p>
+                <p className="font-semibold text-donor-text">{selectedReport.post.title}</p>
+                <p className="mt-1 text-sm text-donor-text whitespace-pre-wrap">{selectedReport.post.body}</p>
+                <p className="mt-1 text-xs text-donor-muted">
                   By {selectedReport.post.author?.firstName} {selectedReport.post.author?.lastName} ·
                   Post status: {selectedReport.post.status}
                 </p>
@@ -256,22 +256,22 @@ export default function ModerationPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-gray-500">Reason</p>
-                  <p className="text-sm font-medium text-gray-900">{selectedReport.reason}</p>
+                  <p className="text-sm text-donor-muted">Reason</p>
+                  <p className="text-sm font-medium text-donor-text">{selectedReport.reason}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Status</p>
+                  <p className="text-sm text-donor-muted">Status</p>
                   <StatusBadgeWrapper status={selectedReport.status} />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Reporter</p>
-                  <p className="text-sm font-medium text-gray-900">
+                  <p className="text-sm text-donor-muted">Reporter</p>
+                  <p className="text-sm font-medium text-donor-text">
                     {selectedReport.reporter.firstName} {selectedReport.reporter.lastName}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Reported</p>
-                  <p className="text-sm font-medium text-gray-900">
+                  <p className="text-sm text-donor-muted">Reported</p>
+                  <p className="text-sm font-medium text-donor-text">
                     {new Date(selectedReport.createdAt).toLocaleString()}
                   </p>
                 </div>
@@ -279,19 +279,19 @@ export default function ModerationPage() {
 
               {selectedReport.description && (
                 <div>
-                  <p className="text-sm text-gray-500 mb-1">Reporter&apos;s notes</p>
-                  <p className="text-sm text-gray-700">{selectedReport.description}</p>
+                  <p className="text-sm text-donor-muted mb-1">Reporter&apos;s notes</p>
+                  <p className="text-sm text-donor-text">{selectedReport.description}</p>
                 </div>
               )}
 
               {selectedReport.otherReportsOnPost.length > 0 && (
-                <div className="border-t border-gray-100 pt-4">
-                  <p className="text-sm font-medium text-gray-900 mb-2">
+                <div className="border-t border-donor-border/40 pt-4">
+                  <p className="text-sm font-medium text-donor-text mb-2">
                     {selectedReport.otherReportsOnPost.length} other report(s) on this post
                   </p>
                   <div className="space-y-1">
                     {selectedReport.otherReportsOnPost.map((r) => (
-                      <div key={r.id} className="text-xs text-gray-500 flex justify-between">
+                      <div key={r.id} className="text-xs text-donor-muted flex justify-between">
                         <span>{r.reason}</span>
                         <span>{r.status}</span>
                       </div>
@@ -302,41 +302,41 @@ export default function ModerationPage() {
 
               {selectedReport.status === 'PENDING' || selectedReport.status === 'REVIEWED' ? (
                 <div>
-                  <label className="text-sm text-gray-500 mb-1 block">Resolution note (optional)</label>
+                  <label className="text-sm text-donor-muted mb-1 block">Resolution note (optional)</label>
                   <textarea
                     value={resolution}
                     onChange={(e) => setResolution(e.target.value)}
                     rows={2}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+                    className="w-full border border-donor-border/60 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-donor-primary"
                   />
                 </div>
               ) : (
-                <div className="border-t border-gray-100 pt-4">
-                  <p className="text-sm text-gray-500">Resolution</p>
-                  <p className="text-sm text-gray-900">{selectedReport.resolution || '-'}</p>
+                <div className="border-t border-donor-border/40 pt-4">
+                  <p className="text-sm text-donor-muted">Resolution</p>
+                  <p className="text-sm text-donor-text">{selectedReport.resolution || '-'}</p>
                 </div>
               )}
             </div>
             {(selectedReport.status === 'PENDING' || selectedReport.status === 'REVIEWED') && (
-              <div className="px-6 py-4 border-t border-gray-100 flex gap-2">
+              <div className="px-6 py-4 border-t border-donor-border/40 flex gap-2">
                 <button
                   onClick={() => handleResolve('DISMISS')}
                   disabled={actionLoading}
-                  className="flex-1 bg-gray-600 text-white py-2 px-3 rounded-lg text-sm font-medium hover:bg-gray-700 disabled:opacity-50"
+                  className="flex-1 bg-donor-muted text-white py-2 px-3 rounded-lg text-sm font-medium hover:bg-donor-muted disabled:opacity-50"
                 >
                   Dismiss
                 </button>
                 <button
                   onClick={() => handleResolve('HIDE')}
                   disabled={actionLoading}
-                  className="flex-1 bg-amber-600 text-white py-2 px-3 rounded-lg text-sm font-medium hover:bg-amber-700 disabled:opacity-50"
+                  className="flex-1 bg-donor-warning text-white py-2 px-3 rounded-lg text-sm font-medium hover:bg-donor-warning disabled:opacity-50"
                 >
                   Hide Post
                 </button>
                 <button
                   onClick={() => handleResolve('REMOVE')}
                   disabled={actionLoading}
-                  className="flex-1 bg-red-600 text-white py-2 px-3 rounded-lg text-sm font-medium hover:bg-red-700 disabled:opacity-50"
+                  className="flex-1 bg-donor-primary text-white py-2 px-3 rounded-lg text-sm font-medium hover:bg-donor-primary/85 disabled:opacity-50"
                 >
                   Remove Post
                 </button>

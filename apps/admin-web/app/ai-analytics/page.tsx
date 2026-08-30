@@ -64,7 +64,7 @@ export default function AIAnalyticsPage() {
     return (
       <AppShell title="AI Analytics" userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
         <div className="p-6">
-          <p className="text-gray-500">AI analytics data not available.</p>
+          <p className="text-donor-muted">AI analytics data not available.</p>
         </div>
       </AppShell>
     );
@@ -75,8 +75,8 @@ export default function AIAnalyticsPage() {
       <div className="p-6">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-semibold text-gray-900">AI Health Intelligence</h1>
-            <p className="text-sm text-gray-500 mt-1">Platform AI usage, performance, and safety metrics</p>
+            <h1 className="text-2xl font-semibold text-donor-text">AI Health Intelligence</h1>
+            <p className="text-sm text-donor-muted mt-1">Platform AI usage, performance, and safety metrics</p>
           </div>
           <div className="flex items-center gap-3">
             <select
@@ -86,7 +86,7 @@ export default function AIAnalyticsPage() {
                 setDays(value);
                 loadData(value);
               }}
-              className="bg-gray-100 text-gray-700 px-3 py-2 rounded-lg text-sm font-medium"
+              className="bg-donor-elevated text-donor-text px-3 py-2 rounded-lg text-sm font-medium"
             >
               <option value={7}>Last 7 days</option>
               <option value={30}>Last 30 days</option>
@@ -95,7 +95,7 @@ export default function AIAnalyticsPage() {
             <button
               onClick={handleRefresh}
               disabled={refreshing}
-              className="flex items-center gap-2 bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-200 disabled:opacity-50"
+              className="flex items-center gap-2 bg-donor-elevated text-donor-text px-4 py-2 rounded-lg text-sm font-medium hover:bg-donor-elevated disabled:opacity-50"
             >
               <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
               {refreshing ? 'Refreshing...' : 'Refresh'}
@@ -104,129 +104,129 @@ export default function AIAnalyticsPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <div className="bc-glass rounded-card p-6">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-blue-100">
-                <BarChart3 className="w-6 h-6 text-blue-600" />
+              <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-donor-secondaryMuted">
+                <BarChart3 className="w-6 h-6 text-donor-secondary" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">Total Requests</p>
-                <p className="text-xl font-semibold text-gray-900">{analytics.totalRequests}</p>
+                <p className="text-sm text-donor-muted">Total Requests</p>
+                <p className="text-xl font-semibold text-donor-text">{analytics.totalRequests}</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <div className="bc-glass rounded-card p-6">
             <div className="flex items-center gap-4">
-              <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${analytics.successRate >= 95 ? 'bg-green-100' : analytics.successRate >= 80 ? 'bg-yellow-100' : 'bg-red-100'}`}>
-                <CheckCircle className="w-6 h-6 text-green-600" />
+              <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${analytics.successRate >= 95 ? 'bg-donor-successMuted' : analytics.successRate >= 80 ? 'bg-donor-warningMuted' : 'bg-donor-dangerMuted'}`}>
+                <CheckCircle className="w-6 h-6 text-donor-success" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">Success Rate</p>
-                <p className="text-xl font-semibold text-gray-900">{analytics.successRate}%</p>
+                <p className="text-sm text-donor-muted">Success Rate</p>
+                <p className="text-xl font-semibold text-donor-text">{analytics.successRate}%</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <div className="bc-glass rounded-card p-6">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-purple-100">
-                <Clock className="w-6 h-6 text-purple-600" />
+              <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-donor-aiMuted">
+                <Clock className="w-6 h-6 text-donor-ai" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">Avg Latency</p>
-                <p className="text-xl font-semibold text-gray-900">{analytics.averageLatencyMs}ms</p>
+                <p className="text-sm text-donor-muted">Avg Latency</p>
+                <p className="text-xl font-semibold text-donor-text">{analytics.averageLatencyMs}ms</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <div className="bc-glass rounded-card p-6">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-orange-100">
-                <AlertTriangle className="w-6 h-6 text-orange-600" />
+              <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-donor-warningMuted">
+                <AlertTriangle className="w-6 h-6 text-donor-warning" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">Safety Blocks</p>
-                <p className="text-xl font-semibold text-gray-900">{analytics.safetyBlocks}</p>
+                <p className="text-sm text-donor-muted">Safety Blocks</p>
+                <p className="text-xl font-semibold text-donor-text">{analytics.safetyBlocks}</p>
               </div>
             </div>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <h3 className="font-medium text-gray-900 mb-4">Requests by Feature</h3>
+          <div className="bc-glass rounded-card p-6">
+            <h3 className="font-medium text-donor-text mb-4">Requests by Feature</h3>
             <div className="space-y-3">
               {Object.entries(analytics.requestsByType).map(([type, count]) => (
-                <div key={type} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <span className="text-sm text-gray-700">{type.replace(/_/g, ' ')}</span>
-                  <span className="font-semibold text-gray-900">{count}</span>
+                <div key={type} className="flex items-center justify-between p-3 bg-donor-elevated rounded-lg">
+                  <span className="text-sm text-donor-text">{type.replace(/_/g, ' ')}</span>
+                  <span className="font-semibold text-donor-text">{count}</span>
                 </div>
               ))}
               {Object.keys(analytics.requestsByType).length === 0 && (
-                <p className="text-sm text-gray-400 text-center py-4">No data available</p>
+                <p className="text-sm text-donor-muted text-center py-4">No data available</p>
               )}
             </div>
           </div>
 
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <h3 className="font-medium text-gray-900 mb-4">Feedback Analytics</h3>
+          <div className="bc-glass rounded-card p-6">
+            <h3 className="font-medium text-donor-text mb-4">Feedback Analytics</h3>
             <div className="space-y-3">
-              <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+              <div className="flex items-center justify-between p-3 bg-donor-successMuted rounded-lg">
                 <div className="flex items-center gap-3">
-                  <ThumbsUp className="w-5 h-5 text-green-600" />
-                  <span className="text-sm text-gray-700">Helpful</span>
+                  <ThumbsUp className="w-5 h-5 text-donor-success" />
+                  <span className="text-sm text-donor-text">Helpful</span>
                 </div>
-                <span className="font-semibold text-gray-900">{analytics.feedbackAnalytics.helpful}</span>
+                <span className="font-semibold text-donor-text">{analytics.feedbackAnalytics.helpful}</span>
               </div>
-              <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
+              <div className="flex items-center justify-between p-3 bg-donor-warningMuted rounded-lg">
                 <div className="flex items-center gap-3">
-                  <ThumbsDown className="w-5 h-5 text-yellow-600" />
-                  <span className="text-sm text-gray-700">Not Helpful</span>
+                  <ThumbsDown className="w-5 h-5 text-donor-warning" />
+                  <span className="text-sm text-donor-text">Not Helpful</span>
                 </div>
-                <span className="font-semibold text-gray-900">{analytics.feedbackAnalytics.notHelpful}</span>
+                <span className="font-semibold text-donor-text">{analytics.feedbackAnalytics.notHelpful}</span>
               </div>
-              <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
+              <div className="flex items-center justify-between p-3 bg-donor-dangerMuted rounded-lg">
                 <div className="flex items-center gap-3">
-                  <Flag className="w-5 h-5 text-red-600" />
-                  <span className="text-sm text-gray-700">Reported Issues</span>
+                  <Flag className="w-5 h-5 text-donor-danger" />
+                  <span className="text-sm text-donor-text">Reported Issues</span>
                 </div>
-                <span className="font-semibold text-gray-900">{analytics.feedbackAnalytics.reportIssue}</span>
+                <span className="font-semibold text-donor-text">{analytics.feedbackAnalytics.reportIssue}</span>
               </div>
-              <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-                <span className="text-sm text-gray-700">Helpful Rate</span>
-                <span className="font-semibold text-gray-900">{analytics.feedbackAnalytics.helpfulRate}%</span>
+              <div className="flex items-center justify-between p-3 bg-donor-secondaryMuted rounded-lg">
+                <span className="text-sm text-donor-text">Helpful Rate</span>
+                <span className="font-semibold text-donor-text">{analytics.feedbackAnalytics.helpfulRate}%</span>
               </div>
             </div>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <h3 className="font-medium text-gray-900 mb-4">Insight Statistics</h3>
+          <div className="bc-glass rounded-card p-6">
+            <h3 className="font-medium text-donor-text mb-4">Insight Statistics</h3>
             <div className="grid grid-cols-2 gap-4">
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <p className="text-sm text-gray-500">Total Insights</p>
-                <p className="text-xl font-semibold text-gray-900">{insightStats.totalInsights}</p>
+              <div className="p-4 bg-donor-elevated rounded-lg">
+                <p className="text-sm text-donor-muted">Total Insights</p>
+                <p className="text-xl font-semibold text-donor-text">{insightStats.totalInsights}</p>
               </div>
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <p className="text-sm text-gray-500">Avg per User</p>
-                <p className="text-xl font-semibold text-gray-900">{insightStats.averageInsightsPerUser}</p>
+              <div className="p-4 bg-donor-elevated rounded-lg">
+                <p className="text-sm text-donor-muted">Avg per User</p>
+                <p className="text-xl font-semibold text-donor-text">{insightStats.averageInsightsPerUser}</p>
               </div>
             </div>
             <div className="mt-4 space-y-2">
-              <h4 className="text-sm font-medium text-gray-700">By Type</h4>
+              <h4 className="text-sm font-medium text-donor-text">By Type</h4>
               {Object.entries(insightStats.insightsByType).map(([type, count]) => (
                 <div key={type} className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600">{type.replace(/_/g, ' ')}</span>
-                  <span className="font-medium text-gray-900">{count}</span>
+                  <span className="text-donor-muted">{type.replace(/_/g, ' ')}</span>
+                  <span className="font-medium text-donor-text">{count}</span>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <h3 className="font-medium text-gray-900 mb-4">7-Day Trend</h3>
+          <div className="bc-glass rounded-card p-6">
+            <h3 className="font-medium text-donor-text mb-4">7-Day Trend</h3>
             <div className="space-y-2">
               {analytics.recentTrend.labels.map((label, idx) => {
                 const count = analytics.recentTrend.last7Days[idx] || 0;
@@ -234,14 +234,14 @@ export default function AIAnalyticsPage() {
                 const width = Math.round((count / maxCount) * 100);
                 return (
                   <div key={label} className="flex items-center gap-3">
-                    <span className="text-sm text-gray-500 w-16">{label}</span>
-                    <div className="flex-1 bg-gray-100 rounded-full h-4 overflow-hidden">
+                    <span className="text-sm text-donor-muted w-16">{label}</span>
+                    <div className="flex-1 bg-donor-elevated rounded-full h-4 overflow-hidden">
                       <div
-                        className="bg-blue-500 h-full rounded-full"
+                        className="bg-donor-secondaryMuted0 h-full rounded-full"
                         style={{ width: `${width}%` }}
                       />
                     </div>
-                    <span className="text-sm font-medium text-gray-900 w-8">{count}</span>
+                    <span className="text-sm font-medium text-donor-text w-8">{count}</span>
                   </div>
                 );
               })}
@@ -249,24 +249,24 @@ export default function AIAnalyticsPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h3 className="font-medium text-gray-900 mb-4">Performance Summary</h3>
+        <div className="bc-glass rounded-card p-6">
+          <h3 className="font-medium text-donor-text mb-4">Performance Summary</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="p-4 bg-gray-50 rounded-lg">
-              <p className="text-sm text-gray-500">Failed Requests</p>
-              <p className="text-xl font-semibold text-gray-900">{analytics.failedRequests}</p>
+            <div className="p-4 bg-donor-elevated rounded-lg">
+              <p className="text-sm text-donor-muted">Failed Requests</p>
+              <p className="text-xl font-semibold text-donor-text">{analytics.failedRequests}</p>
             </div>
-            <div className="p-4 bg-gray-50 rounded-lg">
-              <p className="text-sm text-gray-500">Fallback Uses</p>
-              <p className="text-xl font-semibold text-gray-900">{analytics.fallbackCount}</p>
+            <div className="p-4 bg-donor-elevated rounded-lg">
+              <p className="text-sm text-donor-muted">Fallback Uses</p>
+              <p className="text-xl font-semibold text-donor-text">{analytics.fallbackCount}</p>
             </div>
-            <div className="p-4 bg-gray-50 rounded-lg">
-              <p className="text-sm text-gray-500">Total Tokens</p>
-              <p className="text-xl font-semibold text-gray-900">{analytics.totalTokens.toLocaleString()}</p>
+            <div className="p-4 bg-donor-elevated rounded-lg">
+              <p className="text-sm text-donor-muted">Total Tokens</p>
+              <p className="text-xl font-semibold text-donor-text">{analytics.totalTokens.toLocaleString()}</p>
             </div>
-            <div className="p-4 bg-gray-50 rounded-lg">
-              <p className="text-sm text-gray-500">Est. Cost</p>
-              <p className="text-xl font-semibold text-gray-900">${analytics.estimatedCost.toFixed(2)}</p>
+            <div className="p-4 bg-donor-elevated rounded-lg">
+              <p className="text-sm text-donor-muted">Est. Cost</p>
+              <p className="text-xl font-semibold text-donor-text">${analytics.estimatedCost.toFixed(2)}</p>
             </div>
           </div>
         </div>

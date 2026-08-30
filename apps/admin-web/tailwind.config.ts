@@ -1,52 +1,20 @@
 import type { Config } from 'tailwindcss';
 import { bloodchaingaPreset } from '@bloodchain/ui/tailwind-preset';
 
+// This used to also extend a second, shadcn-shaped color/radius layer
+// (border/input/ring/background/foreground/primary/secondary/destructive/
+// muted/accent/card, all reading `var(--x)`) left over from a starter
+// template. Nothing in this app ever rendered those class names -- admin-web
+// used raw gray-*/white/red-* literals instead -- and the CSS variables they
+// pointed at were never defined, so it was dead weight sitting alongside the
+// bloodchaingaPreset donor-* tokens as a second, unused design language.
+// Removed now that every page has been moved onto the shared token system.
 const config: Config = {
   presets: [bloodchaingaPreset],
   content: [
     './app/**/*.{js,ts,jsx,tsx,mdx}',
     '../../packages/ui/src/**/*.{js,ts,jsx,tsx,mdx}',
   ],
-  theme: {
-    extend: {
-      colors: {
-        border: 'var(--border)',
-        input: 'var(--input)',
-        ring: 'var(--ring)',
-        background: 'var(--background)',
-        foreground: 'var(--foreground)',
-        primary: {
-          DEFAULT: 'var(--primary)',
-          foreground: 'var(--primary-foreground)',
-        },
-        secondary: {
-          DEFAULT: 'var(--secondary)',
-          foreground: 'var(--secondary-foreground)',
-        },
-        destructive: {
-          DEFAULT: 'var(--destructive)',
-          foreground: 'var(--destructive-foreground)',
-        },
-        muted: {
-          DEFAULT: 'var(--muted)',
-          foreground: 'var(--muted-foreground)',
-        },
-        accent: {
-          DEFAULT: 'var(--accent)',
-          foreground: 'var(--accent-foreground)',
-        },
-        card: {
-          DEFAULT: 'var(--card)',
-          foreground: 'var(--card-foreground)',
-        },
-      },
-      borderRadius: {
-        lg: 'var(--radius)',
-        md: 'calc(var(--radius) - 2px)',
-        sm: 'calc(var(--radius) - 4px)',
-      },
-    },
-  },
   plugins: [],
 };
 export default config;

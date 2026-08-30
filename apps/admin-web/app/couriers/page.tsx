@@ -95,36 +95,36 @@ export default function CouriersPage() {
     <AppShell title="Courier Management" userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
       <div className="p-6">
         <div className="mb-6">
-          <h1 className="text-2xl font-semibold text-gray-900">Courier Management</h1>
-          <p className="text-sm text-gray-500 mt-1">Manage delivery couriers and their status</p>
+          <h1 className="text-2xl font-semibold text-donor-text">Courier Management</h1>
+          <p className="text-sm text-donor-muted mt-1">Manage delivery couriers and their status</p>
         </div>
 
         {error && (
-          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center justify-between">
-            <p className="text-sm text-red-800">{error}</p>
+          <div className="mb-4 p-4 bg-donor-dangerMuted border border-donor-danger/30 rounded-lg flex items-center justify-between">
+            <p className="text-sm text-donor-onDangerMuted">{error}</p>
             <button onClick={() => setError(null)}>
-              <X className="w-4 h-4 text-red-600" />
+              <X className="w-4 h-4 text-donor-danger" />
             </button>
           </div>
         )}
 
-        <div className="bg-white rounded-xl border border-gray-200 mb-6">
-          <div className="p-4 border-b border-gray-100">
+        <div className="bc-glass rounded-card mb-6">
+          <div className="p-4 border-b border-donor-border/40">
             <form onSubmit={handleSearch} className="flex gap-4">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-donor-muted" />
                 <input
                   type="text"
                   placeholder="Search by name or phone..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+                  className="w-full pl-10 pr-4 py-2 border border-donor-border/60 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-donor-primary"
                 />
               </div>
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+                className="border border-donor-border/60 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-donor-primary"
               >
                 <option value="">All Status</option>
                 <option value="AVAILABLE">Available</option>
@@ -134,7 +134,7 @@ export default function CouriersPage() {
               </select>
               <button
                 type="submit"
-                className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700"
+                className="bg-donor-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-donor-primary/85"
               >
                 Search
               </button>
@@ -144,46 +144,46 @@ export default function CouriersPage() {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="bg-gray-50 border-b border-gray-100">
-                  <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">Courier</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">Status</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">Organization</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">Shipments</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">Created</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">Actions</th>
+                <tr className="bg-donor-elevated border-b border-donor-border/40">
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Courier</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Status</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Organization</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Shipments</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Created</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-donor-border/40">
                 {couriers.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-8 text-center text-sm text-gray-500">
+                    <td colSpan={6} className="px-4 py-8 text-center text-sm text-donor-muted">
                       No couriers found
                     </td>
                   </tr>
                 ) : (
                   couriers.map((courier) => (
-                    <tr key={courier.id} className="hover:bg-gray-50">
+                    <tr key={courier.id} className="hover:bg-donor-elevated">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                            <Ship className="w-4 h-4 text-blue-600" />
+                          <div className="w-8 h-8 bg-donor-secondaryMuted rounded-full flex items-center justify-center">
+                            <Ship className="w-4 h-4 text-donor-secondary" />
                           </div>
                           <div>
-                            <p className="font-medium text-gray-900">{courier.displayName}</p>
-                            <p className="text-sm text-gray-500">{courier.phone || 'No phone'}</p>
+                            <p className="font-medium text-donor-text">{courier.displayName}</p>
+                            <p className="text-sm text-donor-muted">{courier.phone || 'No phone'}</p>
                           </div>
                         </div>
                       </td>
                       <td className="px-4 py-3">
                         <StatusBadgeWrapper status={courier.status} />
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-600">
+                      <td className="px-4 py-3 text-sm text-donor-muted">
                         {courier.organization?.name || '-'}
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-600">
+                      <td className="px-4 py-3 text-sm text-donor-muted">
                         {courier.totalShipments}
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-600">
+                      <td className="px-4 py-3 text-sm text-donor-muted">
                         {new Date(courier.createdAt).toLocaleDateString()}
                       </td>
                       <td className="px-4 py-3">
@@ -193,7 +193,7 @@ export default function CouriersPage() {
                             const data = await getCourier(courier.id);
                             setSelectedCourier(data);
                           }}
-                          className="text-red-600 hover:text-red-700 text-sm font-medium"
+                          className="text-donor-danger hover:text-donor-onDangerMuted text-sm font-medium"
                         >
                           View
                         </button>
@@ -206,22 +206,22 @@ export default function CouriersPage() {
           </div>
 
           {meta.totalPages > 1 && (
-            <div className="px-4 py-3 border-t border-gray-100 flex items-center justify-between">
-              <p className="text-sm text-gray-500">
+            <div className="px-4 py-3 border-t border-donor-border/40 flex items-center justify-between">
+              <p className="text-sm text-donor-muted">
                 Showing {(meta.page - 1) * meta.limit + 1} to {Math.min(meta.page * meta.limit, meta.total)} of {meta.total}
               </p>
               <div className="flex gap-2">
                 <button
                   onClick={() => loadCouriers(meta.page - 1)}
                   disabled={meta.page === 1}
-                  className="px-3 py-1 border border-gray-200 rounded text-sm disabled:opacity-50"
+                  className="px-3 py-1 border border-donor-border/60 rounded text-sm disabled:opacity-50"
                 >
                   Previous
                 </button>
                 <button
                   onClick={() => loadCouriers(meta.page + 1)}
                   disabled={meta.page === meta.totalPages}
-                  className="px-3 py-1 border border-gray-200 rounded text-sm disabled:opacity-50"
+                  className="px-3 py-1 border border-donor-border/60 rounded text-sm disabled:opacity-50"
                 >
                   Next
                 </button>
@@ -232,62 +232,62 @@ export default function CouriersPage() {
       </div>
 
       {selectedCourier && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4">
-            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900">Courier Details</h3>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bc-glass-elevated bc-rise rounded-panel w-full max-w-lg mx-4">
+            <div className="px-6 py-4 border-b border-donor-border/40 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-donor-text">Courier Details</h3>
               <button onClick={() => setSelectedCourier(null)}>
-                <X className="w-5 h-5 text-gray-400" />
+                <X className="w-5 h-5 text-donor-muted" />
               </button>
             </div>
             <div className="p-6 space-y-4">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                  <Ship className="w-6 h-6 text-blue-600" />
+                <div className="w-12 h-12 bg-donor-secondaryMuted rounded-full flex items-center justify-center">
+                  <Ship className="w-6 h-6 text-donor-secondary" />
                 </div>
                 <div>
-                  <p className="font-semibold text-gray-900">{selectedCourier.displayName}</p>
-                  <p className="text-sm text-gray-500">{selectedCourier.organization?.name}</p>
+                  <p className="font-semibold text-donor-text">{selectedCourier.displayName}</p>
+                  <p className="text-sm text-donor-muted">{selectedCourier.organization?.name}</p>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-gray-500">Status</p>
+                  <p className="text-sm text-donor-muted">Status</p>
                   <StatusBadgeWrapper status={selectedCourier.status} />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Phone</p>
-                  <p className="text-sm font-medium text-gray-900">{selectedCourier.phone || '-'}</p>
+                  <p className="text-sm text-donor-muted">Phone</p>
+                  <p className="text-sm font-medium text-donor-text">{selectedCourier.phone || '-'}</p>
                 </div>
               </div>
 
               {selectedCourier.stats && (
-                <div className="border-t border-gray-100 pt-4">
-                  <p className="text-sm font-medium text-gray-900 mb-2">Performance</p>
+                <div className="border-t border-donor-border/40 pt-4">
+                  <p className="text-sm font-medium text-donor-text mb-2">Performance</p>
                   <div className="grid grid-cols-3 gap-2 text-sm">
-                    <div className="bg-gray-50 p-2 rounded text-center">
-                      <p className="text-gray-500">Total</p>
+                    <div className="bg-donor-elevated p-2 rounded text-center">
+                      <p className="text-donor-muted">Total</p>
                       <p className="font-semibold">{selectedCourier.stats.totalShipments}</p>
                     </div>
-                    <div className="bg-green-50 p-2 rounded text-center">
-                      <p className="text-gray-500">Completed</p>
-                      <p className="font-semibold text-green-600">{selectedCourier.stats.completedShipments}</p>
+                    <div className="bg-donor-successMuted p-2 rounded text-center">
+                      <p className="text-donor-muted">Completed</p>
+                      <p className="font-semibold text-donor-success">{selectedCourier.stats.completedShipments}</p>
                     </div>
-                    <div className="bg-red-50 p-2 rounded text-center">
-                      <p className="text-gray-500">Failed</p>
-                      <p className="font-semibold text-red-600">{selectedCourier.stats.failedShipments}</p>
+                    <div className="bg-donor-dangerMuted p-2 rounded text-center">
+                      <p className="text-donor-muted">Failed</p>
+                      <p className="font-semibold text-donor-danger">{selectedCourier.stats.failedShipments}</p>
                     </div>
                   </div>
                 </div>
               )}
             </div>
-            <div className="px-6 py-4 border-t border-gray-100 flex gap-3">
+            <div className="px-6 py-4 border-t border-donor-border/40 flex gap-3">
               {selectedCourier.status === 'SUSPENDED' ? (
                 <button
                   onClick={() => handleRestore(selectedCourier.id)}
                   disabled={actionLoading}
-                  className="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50"
+                  className="flex-1 bg-donor-success text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-donor-success disabled:opacity-50"
                 >
                   {actionLoading ? 'Restoring...' : 'Restore Courier'}
                 </button>
@@ -295,7 +295,7 @@ export default function CouriersPage() {
                 <button
                   onClick={() => handleSuspend(selectedCourier.id)}
                   disabled={actionLoading}
-                  className="flex-1 bg-red-600 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-red-700 disabled:opacity-50"
+                  className="flex-1 bg-donor-primary text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-donor-primary/85 disabled:opacity-50"
                 >
                   {actionLoading ? 'Suspending...' : 'Suspend Courier'}
                 </button>

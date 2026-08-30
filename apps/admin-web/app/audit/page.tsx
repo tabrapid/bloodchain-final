@@ -65,17 +65,17 @@ export default function AuditLogsPage() {
     <AppShell title="Audit Logs" userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
       <div className="p-6">
         <div className="mb-6">
-          <h1 className="text-2xl font-semibold text-gray-900">Audit Logs</h1>
-          <p className="text-sm text-gray-500 mt-1">Platform activity and security events</p>
+          <h1 className="text-2xl font-semibold text-donor-text">Audit Logs</h1>
+          <p className="text-sm text-donor-muted mt-1">Platform activity and security events</p>
         </div>
 
-        <div className="bg-white rounded-xl border border-gray-200 mb-6">
-          <div className="p-4 border-b border-gray-100">
+        <div className="bc-glass rounded-card mb-6">
+          <div className="p-4 border-b border-donor-border/40">
             <form onSubmit={handleSearch} className="flex gap-4">
               <select
                 value={actionFilter}
                 onChange={(e) => setActionFilter(e.target.value)}
-                className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+                className="border border-donor-border/60 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-donor-primary"
               >
                 <option value="">All Actions</option>
                 <option value="USER_SUSPENDED">User Suspended</option>
@@ -89,7 +89,7 @@ export default function AuditLogsPage() {
               <select
                 value={entityFilter}
                 onChange={(e) => setEntityFilter(e.target.value)}
-                className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+                className="border border-donor-border/60 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-donor-primary"
               >
                 <option value="">All Entities</option>
                 <option value="User">User</option>
@@ -99,7 +99,7 @@ export default function AuditLogsPage() {
               </select>
               <button
                 type="submit"
-                className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700"
+                className="bg-donor-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-donor-primary/85"
               >
                 Filter
               </button>
@@ -109,29 +109,29 @@ export default function AuditLogsPage() {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="bg-gray-50 border-b border-gray-100">
-                  <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">Timestamp</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">Actor</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">Action</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">Entity</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">Details</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">IP Address</th>
+                <tr className="bg-donor-elevated border-b border-donor-border/40">
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Timestamp</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Actor</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Action</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Entity</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Details</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">IP Address</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-donor-border/40">
                 {logs.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-8 text-center text-sm text-gray-500">
+                    <td colSpan={6} className="px-4 py-8 text-center text-sm text-donor-muted">
                       No audit logs found
                     </td>
                   </tr>
                 ) : (
                   logs.map((log) => (
-                    <tr key={log.id} className="hover:bg-gray-50">
+                    <tr key={log.id} className="hover:bg-donor-elevated">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
-                          <Clock className="w-4 h-4 text-gray-400" />
-                          <span className="text-sm text-gray-900">
+                          <Clock className="w-4 h-4 text-donor-muted" />
+                          <span className="text-sm text-donor-text">
                             {new Date(log.createdAt).toLocaleString()}
                           </span>
                         </div>
@@ -139,28 +139,28 @@ export default function AuditLogsPage() {
                       <td className="px-4 py-3">
                         {log.actor ? (
                           <div>
-                            <p className="text-sm font-medium text-gray-900">{log.actor.name}</p>
-                            <p className="text-xs text-gray-500">{log.actor.email}</p>
+                            <p className="text-sm font-medium text-donor-text">{log.actor.name}</p>
+                            <p className="text-xs text-donor-muted">{log.actor.email}</p>
                           </div>
                         ) : (
-                          <span className="text-sm text-gray-400">System</span>
+                          <span className="text-sm text-donor-muted">System</span>
                         )}
                       </td>
                       <td className="px-4 py-3">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-donor-elevated text-donor-text">
                           {log.action}
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="text-sm text-gray-600">{log.entityType}</span>
+                        <span className="text-sm text-donor-muted">{log.entityType}</span>
                         {log.entityId && (
-                          <p className="text-xs text-gray-400 truncate max-w-[100px]">{log.entityId}</p>
+                          <p className="text-xs text-donor-muted truncate max-w-[100px]">{log.entityId}</p>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-600 max-w-[200px] truncate">
+                      <td className="px-4 py-3 text-sm text-donor-muted max-w-[200px] truncate">
                         {log.metadata ? JSON.stringify(log.metadata) : '-'}
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-400">
+                      <td className="px-4 py-3 text-sm text-donor-muted">
                         {log.ipAddress || '-'}
                       </td>
                     </tr>
@@ -171,22 +171,22 @@ export default function AuditLogsPage() {
           </div>
 
           {meta.totalPages > 1 && (
-            <div className="px-4 py-3 border-t border-gray-100 flex items-center justify-between">
-              <p className="text-sm text-gray-500">
+            <div className="px-4 py-3 border-t border-donor-border/40 flex items-center justify-between">
+              <p className="text-sm text-donor-muted">
                 Showing {(meta.page - 1) * meta.limit + 1} to {Math.min(meta.page * meta.limit, meta.total)} of {meta.total}
               </p>
               <div className="flex gap-2">
                 <button
                   onClick={() => loadLogs(meta.page - 1)}
                   disabled={meta.page === 1}
-                  className="px-3 py-1 border border-gray-200 rounded text-sm disabled:opacity-50"
+                  className="px-3 py-1 border border-donor-border/60 rounded text-sm disabled:opacity-50"
                 >
                   Previous
                 </button>
                 <button
                   onClick={() => loadLogs(meta.page + 1)}
                   disabled={meta.page === meta.totalPages}
-                  className="px-3 py-1 border border-gray-200 rounded text-sm disabled:opacity-50"
+                  className="px-3 py-1 border border-donor-border/60 rounded text-sm disabled:opacity-50"
                 >
                   Next
                 </button>

@@ -64,13 +64,13 @@ export default function SystemHealthPage() {
       <div className="p-6">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-semibold text-gray-900">System Health</h1>
-            <p className="text-sm text-gray-500 mt-1">Platform infrastructure status</p>
+            <h1 className="text-2xl font-semibold text-donor-text">System Health</h1>
+            <p className="text-sm text-donor-muted mt-1">Platform infrastructure status</p>
           </div>
           <button
             onClick={handleRefresh}
             disabled={refreshing}
-            className="flex items-center gap-2 bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-200 disabled:opacity-50"
+            className="flex items-center gap-2 bg-donor-elevated text-donor-text px-4 py-2 rounded-lg text-sm font-medium hover:bg-donor-elevated disabled:opacity-50"
           >
             <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
             {refreshing ? 'Refreshing...' : 'Refresh'}
@@ -78,46 +78,46 @@ export default function SystemHealthPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <div className="bc-glass rounded-card p-6">
             <div className="flex items-center gap-4">
               <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                health?.status === 'healthy' ? 'bg-green-100' : 'bg-red-100'
+                health?.status === 'healthy' ? 'bg-donor-successMuted' : 'bg-donor-dangerMuted'
               }`}>
                 {health?.status === 'healthy' ? (
-                  <CheckCircle className="w-6 h-6 text-green-600" />
+                  <CheckCircle className="w-6 h-6 text-donor-success" />
                 ) : (
-                  <XCircle className="w-6 h-6 text-red-600" />
+                  <XCircle className="w-6 h-6 text-donor-danger" />
                 )}
               </div>
               <div>
-                <p className="text-sm text-gray-500">Overall Status</p>
-                <p className="text-xl font-semibold text-gray-900 capitalize">{health?.status || 'Unknown'}</p>
+                <p className="text-sm text-donor-muted">Overall Status</p>
+                <p className="text-xl font-semibold text-donor-text capitalize">{health?.status || 'Unknown'}</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <div className="bc-glass rounded-card p-6">
             <div className="flex items-center gap-4">
               <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                health?.database === 'up' ? 'bg-green-100' : 'bg-red-100'
+                health?.database === 'up' ? 'bg-donor-successMuted' : 'bg-donor-dangerMuted'
               }`}>
-                <Database className="w-6 h-6 text-green-600" />
+                <Database className="w-6 h-6 text-donor-success" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">Database</p>
-                <p className="text-xl font-semibold text-gray-900 capitalize">{health?.database || 'Unknown'}</p>
+                <p className="text-sm text-donor-muted">Database</p>
+                <p className="text-xl font-semibold text-donor-text capitalize">{health?.database || 'Unknown'}</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <div className="bc-glass rounded-card p-6">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-blue-100">
-                <Server className="w-6 h-6 text-blue-600" />
+              <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-donor-secondaryMuted">
+                <Server className="w-6 h-6 text-donor-secondary" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">Last Updated</p>
-                <p className="text-sm font-semibold text-gray-900">
+                <p className="text-sm text-donor-muted">Last Updated</p>
+                <p className="text-sm font-semibold text-donor-text">
                   {health?.timestamp ? new Date(health.timestamp).toLocaleTimeString() : '-'}
                 </p>
               </div>
@@ -126,63 +126,63 @@ export default function SystemHealthPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <h3 className="font-medium text-gray-900 mb-4">Pending Items</h3>
+          <div className="bc-glass rounded-card p-6">
+            <h3 className="font-medium text-donor-text mb-4">Pending Items</h3>
             <div className="space-y-3">
-              <div className="flex items-center justify-between p-3 bg-amber-50 rounded-lg">
+              <div className="flex items-center justify-between p-3 bg-donor-warningMuted rounded-lg">
                 <div className="flex items-center gap-3">
-                  <AlertTriangle className="w-5 h-5 text-amber-600" />
-                  <span className="text-sm text-gray-700">Pending Organizations</span>
+                  <AlertTriangle className="w-5 h-5 text-donor-warning" />
+                  <span className="text-sm text-donor-text">Pending Organizations</span>
                 </div>
-                <span className="font-semibold text-gray-900">{health?.pending?.organizations || 0}</span>
+                <span className="font-semibold text-donor-text">{health?.pending?.organizations || 0}</span>
               </div>
-              <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+              <div className="flex items-center justify-between p-3 bg-donor-secondaryMuted rounded-lg">
                 <div className="flex items-center gap-3">
-                  <Server className="w-5 h-5 text-blue-600" />
-                  <span className="text-sm text-gray-700">Pending Couriers</span>
+                  <Server className="w-5 h-5 text-donor-secondary" />
+                  <span className="text-sm text-donor-text">Pending Couriers</span>
                 </div>
-                <span className="font-semibold text-gray-900">{health?.pending?.couriers || 0}</span>
+                <span className="font-semibold text-donor-text">{health?.pending?.couriers || 0}</span>
               </div>
-              <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
+              <div className="flex items-center justify-between p-3 bg-donor-dangerMuted rounded-lg">
                 <div className="flex items-center gap-3">
-                  <AlertTriangle className="w-5 h-5 text-red-600" />
-                  <span className="text-sm text-gray-700">Active Alerts</span>
+                  <AlertTriangle className="w-5 h-5 text-donor-danger" />
+                  <span className="text-sm text-donor-text">Active Alerts</span>
                 </div>
-                <span className="font-semibold text-gray-900">{health?.alerts || 0}</span>
+                <span className="font-semibold text-donor-text">{health?.alerts || 0}</span>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <h3 className="font-medium text-gray-900 mb-4">Recent Errors</h3>
-            <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
+          <div className="bc-glass rounded-card p-6">
+            <h3 className="font-medium text-donor-text mb-4">Recent Errors</h3>
+            <div className="flex items-center justify-between p-3 bg-donor-dangerMuted rounded-lg">
               <div className="flex items-center gap-3">
-                <XCircle className="w-5 h-5 text-red-600" />
-                <span className="text-sm text-gray-700">Failed Jobs (24h)</span>
+                <XCircle className="w-5 h-5 text-donor-danger" />
+                <span className="text-sm text-donor-text">Failed Jobs (24h)</span>
               </div>
-              <span className="font-semibold text-gray-900">{health?.recentErrors || 0}</span>
+              <span className="font-semibold text-donor-text">{health?.recentErrors || 0}</span>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h3 className="font-medium text-gray-900 mb-4">Platform Summary</h3>
+        <div className="bc-glass rounded-card p-6">
+          <h3 className="font-medium text-donor-text mb-4">Platform Summary</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="p-4 bg-gray-50 rounded-lg">
-              <p className="text-sm text-gray-500">Total Users</p>
-              <p className="text-xl font-semibold text-gray-900">{stats?.users?.total || 0}</p>
+            <div className="p-4 bg-donor-elevated rounded-lg">
+              <p className="text-sm text-donor-muted">Total Users</p>
+              <p className="text-xl font-semibold text-donor-text">{stats?.users?.total || 0}</p>
             </div>
-            <div className="p-4 bg-gray-50 rounded-lg">
-              <p className="text-sm text-gray-500">Active Shipments</p>
-              <p className="text-xl font-semibold text-gray-900">{stats?.shipments?.active || 0}</p>
+            <div className="p-4 bg-donor-elevated rounded-lg">
+              <p className="text-sm text-donor-muted">Active Shipments</p>
+              <p className="text-xl font-semibold text-donor-text">{stats?.shipments?.active || 0}</p>
             </div>
-            <div className="p-4 bg-gray-50 rounded-lg">
-              <p className="text-sm text-gray-500">Active Emergencies</p>
-              <p className="text-xl font-semibold text-gray-900">{stats?.emergencies?.active || 0}</p>
+            <div className="p-4 bg-donor-elevated rounded-lg">
+              <p className="text-sm text-donor-muted">Active Emergencies</p>
+              <p className="text-xl font-semibold text-donor-text">{stats?.emergencies?.active || 0}</p>
             </div>
-            <div className="p-4 bg-gray-50 rounded-lg">
-              <p className="text-sm text-gray-500">Critical Requests</p>
-              <p className="text-xl font-semibold text-gray-900">{stats?.bloodRequests?.critical || 0}</p>
+            <div className="p-4 bg-donor-elevated rounded-lg">
+              <p className="text-sm text-donor-muted">Critical Requests</p>
+              <p className="text-xl font-semibold text-donor-text">{stats?.bloodRequests?.critical || 0}</p>
             </div>
           </div>
         </div>
