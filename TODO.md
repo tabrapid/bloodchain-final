@@ -1894,6 +1894,83 @@ These make the product unusable or unsafe for real users. Fix first, in order.
     `apps/mobile/src/components/Card.spec.tsx` (new),
     `apps/mobile/src/__tests__/community-screens.spec.tsx`.
 
+- [x] P0-36: Two more bugs found by tracing code against a home-screen
+  screenshot (stuck spinner, tab bar showing ~19 tiny broken squares
+  clustered left with dead space) rather than pixels, since this environment
+  cannot render React Native.
+  1. **The custom `GlassTabBar` ignored Expo Router's `href: null`
+     convention.** `href: null` compiles to `tabBarItemStyle: {display:
+     'none'}` + `tabBarButton: () => null`, which only React Navigation's
+     *default* tab bar honors natively — a custom `tabBar` render prop
+     receives the raw, unfiltered `state.routes` and has to filter itself.
+     `GlassTabBar` didn't, so every hidden route still rendered a button.
+     Fixed by filtering to `visibleRoutes` before rendering and matching
+     focus by route `key` instead of the now-mismatched array index.
+  2. **Accent text on its own muted-tint background failed contrast.** Badge
+     variant text read the raw brand accent color (e.g. `colors.success`) on
+     that same color's low-alpha tint background — a mid-tone-on-near-black
+     combination in dark mode, well under 4.5:1 for small text. Added
+     `colors.onMuted.*`, a per-mode shade shifted lighter (dark) or darker
+     (light) than the raw accent, and switched `Badge` and 6 screens'
+     inline muted-tint text to read from it.
+  - Verified: `GlassTabBar.spec.tsx` extended with 3 new tests, confirmed to
+    genuinely fail against the old unfiltered/index-based code before the
+    fix (temporary revert-and-rerun). Full monorepo typecheck/test clean.
+  - Files: `apps/mobile/src/components/GlassTabBar.tsx` (+`.spec.tsx`),
+    `apps/mobile/src/theme.tsx`, `apps/mobile/src/components/Badge.tsx`,
+    6 screen files under `apps/mobile/app/`.
+
+- [x] P0-37 to P0-40: Web ecosystem (hospital-web, blood-center-web,
+  admin-web) had no Liquid Glass design language at all — flat, dark-only
+  (admin-web light-only) hardcoded hex panels with no blur, no light mode,
+  and no shared vocabulary with the mobile app or each other, directly
+  contradicting the "one visual language across the whole ecosystem"
+  requirement.
+  - **P0-37 — shared token layer.** Added `packages/ui/src/styles/glass.css`
+    (CSS-variable surface/text/border tokens in light + dark, an ambient
+    page-wash gradient, a 3-level glass material hierarchy —
+    `.bc-glass`/`.bc-glass-elevated`/`.bc-glass-chrome`/`.bc-solid` — plus
+    `prefers-reduced-transparency`/`prefers-reduced-motion` fallbacks) and
+    `packages/ui/src/tokens/tailwind-preset.ts` (a `bloodchaingaPreset` that
+    re-points the ~630 already-in-use `donor-*` Tailwind class names at
+    those variables via `rgb(var(--x) / <alpha-value>)`, so existing markup
+    restyles without being rewritten). Verified end-to-end with real
+    production builds, not just typecheck, grepping the compiled CSS output
+    for the tokens.
+  - **P0-38 — shared component library.** Restyled the 14 shared web
+    dashboard components (Sidebar, Topbar, DashboardShell, StatCard,
+    StatusBadge, DataTable, EmptyState, ErrorState, LoadingState, FilterBar,
+    SearchInput, Modal, Drawer, LocationMap) from hardcoded hex onto the
+    token system, applying the glass hierarchy by role (chrome vs. content
+    vs. elevated vs. solid-for-inputs). Added matching `onXMuted` contrast
+    tokens (same fix and same values as P0-36's mobile `onMuted`) so
+    StatusBadge/StatCard's tinted variants keep 4.5:1 text contrast.
+  - **P0-39 — hospital-web / blood-center-web pages.** The shell restyle
+    alone wasn't enough: every page-level card was `bg-donor-surface`
+    (correctly theme-aware color, but no `backdrop-filter`) rather than
+    `bc-glass` — translucent color with nothing to blur reads as a flat
+    panel, the same root cause as P0-35 on mobile. Converted 82 card
+    instances across 20 page files, and unified the danger color (pages
+    mixed Tailwind's stock `red-*` palette with the brand's `donor-danger`
+    — two different reds in one app) across 41 occurrences.
+  - **P0-40 — admin-web.** The one app using an entirely separate, raw
+    Tailwind gray/white/red/green/amber/blue/purple/orange palette with no
+    `donor-*` usage and no dark mode. Remapped all raw color classes across
+    its 15 pages (782 substitutions) onto the shared tokens, converted its
+    36 flat white cards and 5 inline modals to glass materials, and removed
+    a dead, unused shadcn-shaped color/radius block from its Tailwind config
+    (a second, unused design language sitting beside the real one).
+  - Verified: full monorepo `pnpm -r typecheck` and `pnpm -r test` clean
+    (all 10 projects; mobile 8/8 suites/60 tests, api 58/58 suites/684
+    tests, ui 13/13 spec files/73 tests), and real production `next build`
+    for all three web apps after every change, not just after the final one.
+  - Files: `packages/ui/src/styles/glass.css` (new),
+    `packages/ui/src/tokens/tailwind-preset.ts` (new),
+    `packages/ui/src/components/**` (data/feedback/form/layout/overlay/map),
+    `apps/{hospital,blood-center,admin}-web/tailwind.config.ts`,
+    `apps/{hospital,blood-center,admin}-web/app/globals.css`,
+    ~35 page files under `apps/{hospital,blood-center,admin}-web/app/`.
+
 ## 🟠 P1 — Major gaps (feature exists but disconnected, or missing entirely)
 
 - [x] **P1-1. Booking race conditions (double-booking) in appointments and lab slots.** — Fixed:
