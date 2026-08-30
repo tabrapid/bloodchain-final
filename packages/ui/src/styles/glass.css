@@ -22,9 +22,9 @@
   --bc-bg: 244 245 250;
   --bc-bg-gradient-from: #f5f2fb;
   --bc-bg-gradient-to: #eef3fb;
-  --bc-orb-1: rgba(216, 83, 96, 0.1);
-  --bc-orb-2: rgba(104, 183, 209, 0.12);
-  --bc-orb-3: rgba(142, 130, 223, 0.1);
+  --bc-orb-1: rgba(216, 83, 96, 0.16);
+  --bc-orb-2: rgba(104, 183, 209, 0.16);
+  --bc-orb-3: rgba(142, 130, 223, 0.16);
 
   /* Layered surfaces. Translucent so the wash shows through. */
   --bc-surface: 255 255 255;
@@ -71,9 +71,9 @@
   --bc-bg: 8 11 18;
   --bc-bg-gradient-from: #0d1420;
   --bc-bg-gradient-to: #05080d;
-  --bc-orb-1: rgba(216, 83, 96, 0.18);
-  --bc-orb-2: rgba(104, 183, 209, 0.14);
-  --bc-orb-3: rgba(142, 130, 223, 0.16);
+  --bc-orb-1: rgba(216, 83, 96, 0.24);
+  --bc-orb-2: rgba(104, 183, 209, 0.24);
+  --bc-orb-3: rgba(142, 130, 223, 0.24);
 
   --bc-surface: 255 255 255;
   --bc-surface-alpha: 0.07;
@@ -109,9 +109,9 @@
     --bc-bg: 8 11 18;
     --bc-bg-gradient-from: #0d1420;
     --bc-bg-gradient-to: #05080d;
-    --bc-orb-1: rgba(216, 83, 96, 0.18);
-    --bc-orb-2: rgba(104, 183, 209, 0.14);
-    --bc-orb-3: rgba(142, 130, 223, 0.16);
+    --bc-orb-1: rgba(216, 83, 96, 0.24);
+    --bc-orb-2: rgba(104, 183, 209, 0.24);
+    --bc-orb-3: rgba(142, 130, 223, 0.24);
 
     --bc-surface-alpha: 0.07;
     --bc-surface-elevated-alpha: 0.11;

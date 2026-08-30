@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { router } from 'expo-router';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
-import { Activity, Calendar, Droplet, HeartPulse, ChevronRight, Clock } from 'lucide-react-native';
+import { Calendar, Droplet, TrendingUp, Zap, ChevronRight, Clock } from 'lucide-react-native';
 import {
   AppButton,
   AppText,
@@ -10,13 +10,13 @@ import {
   GradientCard,
   Screen,
   SectionHeader,
-  StatCard,
 } from '../../src/components';
 import { useUserProfile } from '../../src/hooks/useUsers';
 import { useDonorProfile } from '../../src/hooks/useDonors';
 import { useProfileCompletion } from '../../src/hooks/useDonors';
 import { useNextAppointment } from '../../src/hooks/useAppointments';
 import { useDonationStatistics } from '../../src/hooks/useDonations';
+import { useGamificationProfile } from '../../src/hooks/useGamification';
 import { useAuthStore } from '../../src/stores/auth.store';
 import { spacing, radius, useTheme, ThemeColors } from '../../src/theme';
 
@@ -29,6 +29,7 @@ export default function Home() {
   const { data: completionData } = useProfileCompletion();
   const { data: nextAppointment } = useNextAppointment();
   const { data: donationStats } = useDonationStatistics();
+  const { data: gamificationProfile } = useGamificationProfile();
 
   const completion = completionData?.data;
 
@@ -85,12 +86,14 @@ export default function Home() {
       )}
 
       <GradientCard
-        colors={[colors.dangerMuted, colors.surfaceSolid]}
+        colors={[colors.primary, colors.ai]}
         style={styles.bloodTypeCard}
       >
         <View style={styles.bloodTypeHeader}>
-          <Droplet size={24} color={colors.primary} />
-          <AppText variant="heading">BLOOD TYPE</AppText>
+          <Droplet size={24} color="#FFFFFF" />
+          <AppText variant="heading" style={styles.bloodTypeLabel}>
+            BLOOD TYPE
+          </AppText>
         </View>
         <View style={styles.bloodTypeContent}>
           <AppText variant="numeric" style={styles.bloodTypeValue}>
@@ -103,7 +106,7 @@ export default function Home() {
           </View>
         </View>
         {donorProfile?.city && (
-          <AppText muted style={styles.locationText}>
+          <AppText style={styles.locationText}>
             {donorProfile.city}
             {donorProfile.district ? `, ${donorProfile.district}` : ''}
           </AppText>
@@ -192,27 +195,50 @@ export default function Home() {
           style={styles.donationStatCard}
         >
           <GlassCard style={styles.statGlassCard}>
-            <View style={styles.statIconContainer}>
-              <Droplet size={20} color={colors.primary} />
+            <View style={[styles.statIconContainer, { backgroundColor: colors.primaryMuted }]}>
+              <Droplet size={18} color={colors.primary} />
             </View>
             <AppText variant="numeric" style={styles.statValue}>
               {donationStats?.completedCount ?? 0}
             </AppText>
             <AppText muted style={styles.statNote}>
-              {donationStats?.totalVolumeMl
-                ? `${(donationStats.totalVolumeMl / 1000).toFixed(1)}L donated`
-                : 'No donations yet'}
+              Donations
             </AppText>
           </GlassCard>
         </TouchableOpacity>
-        <StatCard
-          label="Health"
-          value="—"
-          note="No data yet"
-          icon={Activity}
-          variant="success"
-          style={styles.statCard}
-        />
+        <View style={styles.donationStatCard}>
+          <GlassCard style={styles.statGlassCard}>
+            <View style={[styles.statIconContainer, { backgroundColor: colors.secondaryMuted }]}>
+              <TrendingUp size={18} color={colors.secondary} />
+            </View>
+            <AppText variant="numeric" style={styles.statValue}>
+              {donationStats?.totalVolumeMl
+                ? (donationStats.totalVolumeMl / 1000).toFixed(1)
+                : '0'}
+              <AppText style={styles.statUnit}>L</AppText>
+            </AppText>
+            <AppText muted style={styles.statNote}>
+              Total volume
+            </AppText>
+          </GlassCard>
+        </View>
+        <TouchableOpacity
+          onPress={() => router.push('/(app)/gamification')}
+          activeOpacity={0.8}
+          style={styles.donationStatCard}
+        >
+          <GlassCard style={styles.statGlassCard}>
+            <View style={[styles.statIconContainer, { backgroundColor: colors.warningMuted }]}>
+              <Zap size={18} color={colors.warning} />
+            </View>
+            <AppText variant="numeric" style={styles.statValue}>
+              {gamificationProfile?.totalXp ?? 0}
+            </AppText>
+            <AppText muted style={styles.statNote}>
+              XP points
+            </AppText>
+          </GlassCard>
+        </TouchableOpacity>
       </View>
 
       <SectionHeader>PROFILE</SectionHeader>
@@ -316,8 +342,15 @@ function createStyles(colors: ThemeColors) {
       alignItems: 'center',
       gap: spacing.md,
     },
+    // The blood type card is a vivid, saturated brand gradient rather than a
+    // theme surface, so its text is fixed white in both themes -- the same
+    // choice the reference design makes -- instead of `colors.text`, which
+    // would go near-black and vanish in light mode.
+    bloodTypeLabel: {
+      color: 'rgba(255,255,255,0.85)',
+    },
     bloodTypeValue: {
-      color: colors.text,
+      color: '#FFFFFF',
     },
     statusBadge: {
       paddingHorizontal: spacing.sm,
@@ -333,14 +366,12 @@ function createStyles(colors: ThemeColors) {
     locationText: {
       marginTop: spacing.sm,
       fontSize: 13,
+      color: 'rgba(255,255,255,0.75)',
     },
     statsRow: {
       flexDirection: 'row',
       gap: spacing.md,
       marginBottom: spacing.lg,
-    },
-    statCard: {
-      flex: 1,
     },
     profileStat: {
       flexDirection: 'row',
@@ -431,8 +462,7 @@ function createStyles(colors: ThemeColors) {
     statIconContainer: {
       width: 40,
       height: 40,
-      borderRadius: 20,
-      backgroundColor: colors.primaryMuted,
+      borderRadius: 12,
       alignItems: 'center',
       justifyContent: 'center',
       marginBottom: spacing.sm,
@@ -442,6 +472,11 @@ function createStyles(colors: ThemeColors) {
       fontWeight: '700',
       color: colors.text,
       marginBottom: spacing.xs,
+    },
+    statUnit: {
+      fontSize: 12,
+      fontWeight: '500',
+      color: colors.textMuted,
     },
     statNote: {
       fontSize: 12,
