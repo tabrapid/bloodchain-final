@@ -49,22 +49,22 @@ export function Modal({
         aria-label={title ? undefined : 'Dialog'}
         aria-labelledby={title ? titleId : undefined}
         className={cn(
-          'relative z-10 w-full max-w-lg overflow-hidden rounded-2xl border border-[#253442] bg-[#111A24] p-6 shadow-2xl',
+          'bc-glass-elevated bc-rise relative z-10 w-full max-w-lg overflow-hidden rounded-panel p-6',
           className,
         )}
       >
         <div className="flex items-start justify-between">
           <div>
             {title && (
-              <h2 id={titleId} className="text-lg font-semibold text-[#F2F5F7]">
+              <h2 id={titleId} className="text-lg font-semibold text-donor-text">
                 {title}
               </h2>
             )}
-            {description && <p className="mt-1 text-sm text-[#8495A3]">{description}</p>}
+            {description && <p className="mt-1 text-sm text-donor-muted">{description}</p>}
           </div>
           <button
             onClick={onClose}
-            className="rounded-md p-1 text-[#8495A3] transition-colors hover:bg-[#182431] hover:text-[#F2F5F7]"
+            className="rounded-md p-1 text-donor-muted transition-colors hover:bg-donor-elevated hover:text-donor-text"
             aria-label="Close"
           >
             <X size={18} />

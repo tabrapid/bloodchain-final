@@ -83,10 +83,7 @@ export function LocationMap({ markers, showRoute = false, height = 320, classNam
   if (markers.length === 0) {
     return (
       <div
-        className={cn(
-          'flex items-center justify-center rounded-xl border border-donor-border bg-donor-background text-sm text-donor-muted',
-          className,
-        )}
+        className={cn('bc-glass flex items-center justify-center rounded-card text-sm text-donor-muted', className)}
         style={{ height }}
       >
         No location data yet
@@ -95,7 +92,7 @@ export function LocationMap({ markers, showRoute = false, height = 320, classNam
   }
 
   return (
-    <div className={cn('overflow-hidden rounded-xl border border-donor-border', className)} style={{ height }}>
+    <div className={cn('overflow-hidden rounded-card border border-donor-border/60', className)} style={{ height }}>
       <MapContainer
         center={center}
         zoom={13}

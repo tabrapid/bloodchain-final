@@ -43,6 +43,25 @@
   --bc-shadow: 0 8px 32px rgba(15, 23, 42, 0.08);
   --bc-shadow-lg: 0 16px 48px rgba(15, 23, 42, 0.12);
   --bc-blur: 20px;
+
+  /* Muted tint backgrounds for badges/stat cards (variant surface, not the
+     brand color itself) and the text color that sits on top of them. A raw
+     mid-tone brand accent fails 4.5:1 small-text contrast against its own
+     tint in both themes, so "on" gets a shade shifted darker (light mode) or
+     lighter (dark mode) than the accent -- identical fix, and identical
+     values, to the mobile app's `onMuted` tokens. */
+  --bc-tint-primary: rgba(216, 83, 96, 0.14);
+  --bc-tint-secondary: rgba(104, 183, 209, 0.18);
+  --bc-tint-success: rgba(99, 194, 155, 0.18);
+  --bc-tint-warning: rgba(229, 184, 109, 0.22);
+  --bc-tint-danger: rgba(216, 83, 96, 0.14);
+  --bc-tint-ai: rgba(142, 130, 223, 0.16);
+  --bc-on-primary: 163 44 56;
+  --bc-on-secondary: 31 106 131;
+  --bc-on-success: 31 115 85;
+  --bc-on-warning: 138 99 24;
+  --bc-on-danger: 163 44 56;
+  --bc-on-ai: 78 66 168;
 }
 
 /* Dark is opt-in via a class on <html>, and also follows the OS when the
@@ -70,6 +89,19 @@
   --bc-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
   --bc-shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.5);
   --bc-blur: 24px;
+
+  --bc-tint-primary: rgba(216, 83, 96, 0.18);
+  --bc-tint-secondary: rgba(104, 183, 209, 0.16);
+  --bc-tint-success: rgba(99, 194, 155, 0.16);
+  --bc-tint-warning: rgba(229, 184, 109, 0.16);
+  --bc-tint-danger: rgba(216, 83, 96, 0.18);
+  --bc-tint-ai: rgba(142, 130, 223, 0.18);
+  --bc-on-primary: 242 145 154;
+  --bc-on-secondary: 168 220 238;
+  --bc-on-success: 143 220 188;
+  --bc-on-warning: 242 212 155;
+  --bc-on-danger: 242 145 154;
+  --bc-on-ai: 179 170 238;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -93,6 +125,19 @@
     --bc-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
     --bc-shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.5);
     --bc-blur: 24px;
+
+    --bc-tint-primary: rgba(216, 83, 96, 0.18);
+    --bc-tint-secondary: rgba(104, 183, 209, 0.16);
+    --bc-tint-success: rgba(99, 194, 155, 0.16);
+    --bc-tint-warning: rgba(229, 184, 109, 0.16);
+    --bc-tint-danger: rgba(216, 83, 96, 0.18);
+    --bc-tint-ai: rgba(142, 130, 223, 0.18);
+    --bc-on-primary: 242 145 154;
+    --bc-on-secondary: 168 220 238;
+    --bc-on-success: 143 220 188;
+    --bc-on-warning: 242 212 155;
+    --bc-on-danger: 242 145 154;
+    --bc-on-ai: 179 170 238;
   }
 }
 

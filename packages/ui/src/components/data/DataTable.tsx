@@ -26,10 +26,10 @@ export function DataTable<T>({
 }: DataTableProps<T>) {
   if (loading) {
     return (
-      <div className={cn('rounded-2xl border border-[#253442] bg-[#111A24] p-6', className)}>
+      <div className={cn('bc-glass rounded-card p-6', className)}>
         <div className="space-y-3">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-10 animate-pulse rounded-lg bg-[#182431]" />
+            <div key={i} className="h-10 animate-pulse rounded-lg bg-donor-elevated" />
           ))}
         </div>
       </div>
@@ -38,29 +38,24 @@ export function DataTable<T>({
 
   if (rows.length === 0) {
     return (
-      <div
-        className={cn(
-          'rounded-2xl border border-[#253442] bg-[#111A24] p-10 text-center',
-          className,
-        )}
-      >
-        <p className="text-sm text-[#8495A3]">{emptyMessage ?? 'No data available.'}</p>
+      <div className={cn('bc-glass rounded-card p-10 text-center', className)}>
+        <p className="text-sm text-donor-muted">{emptyMessage ?? 'No data available.'}</p>
       </div>
     );
   }
 
   return (
-    <div
-      className={cn('overflow-hidden rounded-2xl border border-[#253442] bg-[#111A24]', className)}
-    >
+    <div className={cn('bc-glass overflow-hidden rounded-card', className)}>
       <table className="w-full text-left text-sm">
-        <thead className="bg-[#182431]">
+        {/* Solid, not glass -- a translucent sticky header would let scrolled
+            rows show through and blur the column labels along with them. */}
+        <thead className="bc-solid border-0 border-b border-donor-border/60">
           <tr>
             {columns.map((col) => (
               <th
                 key={col.key}
                 className={cn(
-                  'px-5 py-3 text-xs font-semibold uppercase tracking-wider text-[#8495A3]',
+                  'px-5 py-3 text-xs font-semibold uppercase tracking-wider text-donor-muted',
                   col.className,
                 )}
               >
@@ -69,11 +64,11 @@ export function DataTable<T>({
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-[#253442]">
+        <tbody className="divide-y divide-donor-border/60">
           {rows.map((row) => (
-            <tr key={keyExtractor(row)} className="hover:bg-[#182431]/50">
+            <tr key={keyExtractor(row)} className="transition-colors hover:bg-donor-elevated/60">
               {columns.map((col) => (
-                <td key={col.key} className={cn('px-5 py-3.5 text-[#F2F5F7]', col.className)}>
+                <td key={col.key} className={cn('px-5 py-3.5 text-donor-text', col.className)}>
                   {col.render
                     ? col.render(row)
                     : String((row as Record<string, unknown>)[col.key] ?? '-')}

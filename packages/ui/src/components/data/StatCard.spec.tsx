@@ -19,8 +19,10 @@ describe('StatCard', () => {
     expect(screen.getByText('+12% vs last week')).toBeInTheDocument();
   });
 
-  it('applies danger-variant border styling', () => {
+  it('applies danger-variant tint styling', () => {
     const { container } = render(<StatCard label="Critical stock" value="0" variant="danger" />);
-    expect(container.firstElementChild).toHaveClass('border-[#5B3038]');
+    // Variants tint the glass surface with the muted brand color rather than
+    // swapping the border, so the card still reads as glass in every state.
+    expect(container.firstElementChild).toHaveClass('bg-donor-dangerMuted');
   });
 });

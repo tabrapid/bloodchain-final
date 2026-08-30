@@ -23,33 +23,33 @@ export function Topbar({
   return (
     <header
       className={cn(
-        'flex items-center justify-between border-b border-[#1B2B34] bg-[#081018]/80 px-6 py-5 backdrop-blur lg:px-10',
+        'bc-glass-chrome relative z-10 flex items-center justify-between border-b border-donor-border/60 px-6 py-5 lg:px-10',
         className,
       )}
     >
       <div>
-        <p className="text-[10px] font-bold uppercase tracking-[0.17em] text-[#8495A3]">
+        <p className="text-[10px] font-bold uppercase tracking-[0.17em] text-donor-muted">
           {subtitle}
         </p>
-        <h1 className="font-semibold text-[#F2F5F7]">{title}</h1>
+        <h1 className="font-semibold text-donor-text">{title}</h1>
       </div>
 
       <div className="flex items-center gap-4">
         {onSearch && (
-          <div className="hidden items-center gap-2 rounded-lg border border-[#253442] bg-[#111A24] px-3 py-2 md:flex">
-            <Search size={16} className="text-[#8495A3]" />
+          <div className="bc-solid hidden items-center gap-2 rounded-lg px-3 py-2 focus-within:border-donor-secondary md:flex">
+            <Search size={16} className="text-donor-muted" />
             <input
               type="text"
               placeholder="Search..."
               onChange={(e) => onSearch(e.target.value)}
-              className="bg-transparent text-sm text-[#F2F5F7] placeholder:text-[#8495A3] focus:outline-none"
+              className="bg-transparent text-sm text-donor-text placeholder:text-donor-muted focus:outline-none"
             />
           </div>
         )}
         {onNotifications && (
           <button
             onClick={onNotifications}
-            className="rounded-lg border border-[#253442] bg-[#111A24] p-2.5 text-[#BACAD0] transition-colors hover:bg-[#182431]"
+            className="bc-solid rounded-lg p-2.5 text-donor-text transition-colors hover:bg-donor-elevated"
             aria-label="Notifications"
           >
             <Bell size={18} />
@@ -57,16 +57,16 @@ export function Topbar({
         )}
         {userName && (
           <div className="hidden items-center gap-3 md:flex">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#253442] text-sm font-semibold text-[#F2F5F7]">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-donor-primary/15 text-sm font-semibold text-donor-primary">
               {userName.charAt(0).toUpperCase()}
             </div>
-            <span className="hidden text-sm text-[#F2F5F7] lg:block">{userName}</span>
+            <span className="hidden text-sm text-donor-text lg:block">{userName}</span>
           </div>
         )}
         {onLogout && (
           <button
             onClick={onLogout}
-            className="rounded-lg border border-[#253442] bg-[#111A24] p-2.5 text-[#BACAD0] transition-colors hover:bg-[#182431]"
+            className="bc-solid rounded-lg p-2.5 text-donor-text transition-colors hover:bg-donor-elevated"
             aria-label="Log out"
           >
             <LogOut size={18} />

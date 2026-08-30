@@ -17,17 +17,12 @@ export function EmptyState({
   className,
 }: EmptyStateProps) {
   return (
-    <div
-      className={cn(
-        'flex flex-col items-center justify-center rounded-2xl border border-[#253442] bg-[#111A24] p-10 text-center',
-        className,
-      )}
-    >
-      <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#182431] text-[#8495A3]">
+    <div className={cn('bc-glass bc-rise flex flex-col items-center justify-center rounded-card p-10 text-center', className)}>
+      <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-donor-elevated text-donor-muted">
         <Icon size={24} />
       </div>
-      <h3 className="text-base font-semibold text-[#F2F5F7]">{title}</h3>
-      <p className="mt-1 max-w-xs text-sm text-[#8495A3]">{description}</p>
+      <h3 className="text-base font-semibold text-donor-text">{title}</h3>
+      <p className="mt-1 max-w-xs text-sm text-donor-muted">{description}</p>
       {action && <div className="mt-5">{action}</div>}
     </div>
   );
