@@ -472,7 +472,11 @@ export default function EmergencyPage() {
                     {emergency.status === 'DONOR_ARRIVED' && (
                       <button
                         onClick={() => {
-                          const response = emergency.responses[0];
+                          // Multiple donors can respond to one emergency; only the
+                          // one whose own response reached ARRIVED is the one
+                          // actually at reception -- responses[0] is whoever
+                          // responded first, not necessarily them.
+                          const response = emergency.responses.find((r) => r.status === 'ARRIVED');
                           if (response) {
                             handleConfirmArrival(response.id);
                           }
@@ -486,7 +490,7 @@ export default function EmergencyPage() {
                     {emergency.status === 'DONATION_STARTED' && (
                       <button
                         onClick={() => {
-                          const response = emergency.responses[0];
+                          const response = emergency.responses.find((r) => r.status === 'DONATION_STARTED');
                           if (response) {
                             handleCompleteDonation(response.id);
                           }

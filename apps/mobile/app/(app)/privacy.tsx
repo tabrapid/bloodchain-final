@@ -1,8 +1,11 @@
+import { useMemo } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { AppText, Card, Screen, SectionHeader, ListItem, Divider } from '../../src/components';
-import { colors, spacing } from '../../src/theme';
+import { spacing, useTheme, ThemeColors } from '../../src/theme';
 
 export default function Privacy() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.content}>
@@ -87,25 +90,27 @@ export default function Privacy() {
   );
 }
 
-const styles = StyleSheet.create({
-  content: {
-    paddingBottom: spacing['2xl'],
-  },
-  aboutItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: spacing.sm,
-  },
-  disclaimer: {
-    marginTop: spacing.xl,
-    padding: spacing.lg,
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-  },
-  disclaimerText: {
-    fontSize: 13,
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    content: {
+      paddingBottom: spacing['2xl'],
+    },
+    aboutItem: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: spacing.sm,
+    },
+    disclaimer: {
+      marginTop: spacing.xl,
+      padding: spacing.lg,
+      backgroundColor: colors.surfaceSolid,
+      borderRadius: 12,
+    },
+    disclaimerText: {
+      fontSize: 13,
+      textAlign: 'center',
+      lineHeight: 20,
+    },
+  });
+}

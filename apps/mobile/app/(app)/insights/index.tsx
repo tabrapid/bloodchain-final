@@ -17,7 +17,7 @@ import {
   History,
 } from 'lucide-react-native';
 import { AppText, Card, GlassCard, LoadingState, Screen, SectionHeader } from '../../../src/components';
-import { colors, spacing } from '../../../src/theme';
+import { spacing, useTheme } from '../../../src/theme';
 import {
   generateInsight,
   analyzeTrend,
@@ -35,6 +35,7 @@ import { getAvailableParameters, getTrendSummary, AvailableParameter } from '../
 const TIME_RANGES = ['1M', '3M', '6M', '1Y', '2Y', 'ALL'] as const;
 
 export default function InsightsScreen() {
+  const { colors } = useTheme();
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -452,7 +453,7 @@ export default function InsightsScreen() {
                   {latestInsight.dataPoints && latestInsight.dataPoints.length > 0 && (
                     <View
                       style={{
-                        backgroundColor: colors.surface,
+                        backgroundColor: colors.surfaceElevated,
                         borderRadius: 8,
                         padding: spacing.md,
                         marginBottom: spacing.md,
@@ -535,7 +536,7 @@ export default function InsightsScreen() {
                 placeholder="Ask a question about your health data..."
                 placeholderTextColor={colors.textMuted}
                 style={{
-                  backgroundColor: colors.surface,
+                  backgroundColor: colors.surfaceSolid,
                   borderRadius: 8,
                   padding: spacing.md,
                   color: colors.text,
@@ -554,7 +555,7 @@ export default function InsightsScreen() {
                   marginTop: spacing.md,
                   padding: spacing.md,
                   borderRadius: 8,
-                  backgroundColor: chatMessage.trim() && !isGenerating ? colors.primary : colors.surface,
+                  backgroundColor: chatMessage.trim() && !isGenerating ? colors.primary : colors.surfaceElevated,
                   alignItems: 'center',
                 }}
               >
@@ -567,6 +568,22 @@ export default function InsightsScreen() {
                   {isGenerating ? 'Sending...' : 'Send'}
                 </AppText>
               </TouchableOpacity>
+
+              {chatResponse && (
+                <View
+                  style={{
+                    marginTop: spacing.md,
+                    paddingTop: spacing.md,
+                    borderTopWidth: 1,
+                    borderTopColor: colors.border,
+                  }}
+                >
+                  <AppText muted style={{ fontSize: 12, marginBottom: spacing.xs }}>
+                    Response
+                  </AppText>
+                  <AppText>{chatResponse.message.content}</AppText>
+                </View>
+              )}
             </Card>
           </>
         )}

@@ -181,7 +181,8 @@ export class NotificationEventHandler {
         title: 'Donor Accepted SOS',
         body: `${payload.donorName} has accepted the emergency blood request`,
         data: { requestId: payload.requestId, donorId: payload.donorId },
-        deepLink: `/sos/${payload.requestId}`,
+        // sos.tsx has no per-request detail route; see routeSosNotification.
+        deepLink: '/sos',
         sourceType: 'SOS_RESPONSE',
         sourceId: `SOS_RESPONSE_${payload.requestId}_${payload.donorId}`,
         recipientIds: payload.hospitalRecipientIds || [],

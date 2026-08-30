@@ -4,7 +4,7 @@ import { router } from 'expo-router';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react-native';
 import { AppText, Card, EmptyState, GlassCard, Screen } from '../../src/components';
 import { useMyAppointments } from '../../src/hooks/useAppointments';
-import { colors, spacing, radius } from '../../src/theme';
+import { spacing, radius, useTheme, ThemeColors } from '../../src/theme';
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTHS = [
@@ -21,6 +21,8 @@ function getFirstDayOfMonth(year: number, month: number): number {
 }
 
 export default function Calendar() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [viewDate, setViewDate] = useState<{ year: number; month: number }>({
     year: new Date().getFullYear(),
@@ -258,135 +260,137 @@ export default function Calendar() {
   );
 }
 
-const styles = StyleSheet.create({
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.lg,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  todayButton: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    backgroundColor: colors.surface,
-    borderRadius: radius.sm,
-  },
-  todayText: {
-    color: colors.primary,
-    fontWeight: '600',
-  },
-  bookButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  calendarCard: {
-    padding: spacing.md,
-    marginBottom: spacing.lg,
-  },
-  monthNav: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.md,
-  },
-  navButton: {
-    padding: spacing.sm,
-  },
-  weekdayRow: {
-    flexDirection: 'row',
-    marginBottom: spacing.sm,
-  },
-  weekdayCell: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  weekdayText: {
-    fontSize: 11,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-  },
-  daysGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  dayCell: {
-    width: '14.28%',
-    aspectRatio: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: spacing.xs,
-  },
-  dayWithAppointment: {},
-  dayCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  dayToday: {
-    borderWidth: 1,
-    borderColor: colors.primary,
-  },
-  daySelected: {
-    backgroundColor: colors.primary,
-  },
-  dayText: {
-    fontSize: 14,
-  },
-  dayTextToday: {
-    color: colors.primary,
-  },
-  dayTextSelected: {
-    color: colors.white,
-  },
-  appointmentDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: colors.primary,
-    marginTop: 2,
-  },
-  appointmentsSection: {
-    flex: 1,
-  },
-  selectedDateTitle: {
-    marginBottom: spacing.md,
-  },
-  emptyCard: {
-    paddingVertical: spacing.xl,
-  },
-  appointmentCard: {
-    marginBottom: spacing.md,
-  },
-  appointmentTime: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.xs,
-  },
-  statusBadge: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: radius.sm,
-  },
-  statusText: {
-    fontSize: 11,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-  },
-  appointmentType: {
-    fontSize: 13,
-    marginTop: 2,
-    textTransform: 'capitalize',
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: spacing.lg,
+    },
+    headerActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
+    todayButton: {
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      backgroundColor: colors.surfaceSolid,
+      borderRadius: radius.sm,
+    },
+    todayText: {
+      color: colors.primary,
+      fontWeight: '600',
+    },
+    bookButton: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: colors.primary,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    calendarCard: {
+      padding: spacing.md,
+      marginBottom: spacing.lg,
+    },
+    monthNav: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: spacing.md,
+    },
+    navButton: {
+      padding: spacing.sm,
+    },
+    weekdayRow: {
+      flexDirection: 'row',
+      marginBottom: spacing.sm,
+    },
+    weekdayCell: {
+      flex: 1,
+      alignItems: 'center',
+    },
+    weekdayText: {
+      fontSize: 11,
+      fontWeight: '600',
+      textTransform: 'uppercase',
+    },
+    daysGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+    },
+    dayCell: {
+      width: '14.28%',
+      aspectRatio: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: spacing.xs,
+    },
+    dayWithAppointment: {},
+    dayCircle: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    dayToday: {
+      borderWidth: 1,
+      borderColor: colors.primary,
+    },
+    daySelected: {
+      backgroundColor: colors.primary,
+    },
+    dayText: {
+      fontSize: 14,
+    },
+    dayTextToday: {
+      color: colors.primary,
+    },
+    dayTextSelected: {
+      color: colors.white,
+    },
+    appointmentDot: {
+      width: 4,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: colors.primary,
+      marginTop: 2,
+    },
+    appointmentsSection: {
+      flex: 1,
+    },
+    selectedDateTitle: {
+      marginBottom: spacing.md,
+    },
+    emptyCard: {
+      paddingVertical: spacing.xl,
+    },
+    appointmentCard: {
+      marginBottom: spacing.md,
+    },
+    appointmentTime: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: spacing.xs,
+    },
+    statusBadge: {
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
+      borderRadius: radius.sm,
+    },
+    statusText: {
+      fontSize: 11,
+      fontWeight: '600',
+      textTransform: 'uppercase',
+    },
+    appointmentType: {
+      fontSize: 13,
+      marginTop: 2,
+      textTransform: 'capitalize',
+    },
+  });
+}

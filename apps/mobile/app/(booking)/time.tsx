@@ -4,16 +4,25 @@ import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { Sun, Sunrise } from 'lucide-react-native';
 import { AppButton, AppText, Card, EmptyState, GlassCard, Screen } from '../../src/components';
 import { useAvailability } from '../../src/hooks/useAppointments';
-import { colors, spacing, radius } from '../../src/theme';
+import { spacing, useTheme, ThemeColors } from '../../src/theme';
 
 export default function SelectTime() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const params = useLocalSearchParams<{
     organizationId: string;
     type: string;
     date: string;
+    rescheduleAppointmentId?: string;
   }>();
 
-  const { data: slots = [], isLoading } = useAvailability({
+  const {
+    data: slots = [],
+    isLoading,
+    isError,
+    refetch,
+    isRefetching,
+  } = useAvailability({
     organizationId: params.organizationId,
     appointmentType: params.type,
     date: params.date,
@@ -54,6 +63,9 @@ export default function SelectTime() {
         organizationId: params.organizationId,
         type: params.type,
         date: params.date,
+        ...(params.rescheduleAppointmentId && {
+          rescheduleAppointmentId: params.rescheduleAppointmentId,
+        }),
       },
     });
   };
@@ -100,14 +112,31 @@ export default function SelectTime() {
     <Screen>
       <ScrollView contentContainerStyle={styles.content}>
         <AppText variant="title" style={styles.title}>
-          Select Time
+          {params.rescheduleAppointmentId ? 'Reschedule Appointment' : 'Select Time'}
         </AppText>
         <AppText muted style={styles.subtitle}>
-          Choose an available time for your appointment.
+          {params.rescheduleAppointmentId
+            ? 'Choose a new time for your appointment.'
+            : 'Choose an available time for your appointment.'}
         </AppText>
 
         {isLoading ? (
           <AppText muted>Loading available times...</AppText>
+        ) : isError ? (
+          <Card style={styles.emptyCard}>
+            <EmptyState
+              title="Couldn't load times"
+              description="Something went wrong reaching the server. Check your connection and try again."
+            />
+            <AppButton
+              variant="secondary"
+              onPress={() => refetch()}
+              disabled={isRefetching}
+              style={styles.retryButton}
+            >
+              {isRefetching ? 'Retrying...' : 'Retry'}
+            </AppButton>
+          </Card>
         ) : slots.length === 0 ? (
           <Card style={styles.emptyCard}>
             <EmptyState
@@ -133,53 +162,59 @@ export default function SelectTime() {
   );
 }
 
-const styles = StyleSheet.create({
-  content: {
-    paddingBottom: spacing.xl,
-  },
-  title: {
-    marginBottom: spacing.xs,
-  },
-  subtitle: {
-    marginBottom: spacing.xl,
-  },
-  emptyCard: {
-    paddingVertical: spacing.xl,
-  },
-  slotGroup: {
-    marginBottom: spacing.xl,
-  },
-  groupHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  groupTitle: {
-    fontSize: 13,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  slotsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  slotCard: {
-    width: '30%',
-    padding: spacing.md,
-    alignItems: 'center',
-  },
-  slotDuration: {
-    fontSize: 12,
-    marginTop: 2,
-  },
-  slotAvailability: {
-    fontSize: 11,
-    marginTop: 2,
-    color: colors.success,
-  },
-  footer: {
-    paddingTop: spacing.lg,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    content: {
+      paddingBottom: spacing.xl,
+    },
+    title: {
+      marginBottom: spacing.xs,
+    },
+    subtitle: {
+      marginBottom: spacing.xl,
+    },
+    emptyCard: {
+      paddingVertical: spacing.xl,
+    },
+    retryButton: {
+      marginTop: spacing.md,
+      alignSelf: 'center',
+    },
+    slotGroup: {
+      marginBottom: spacing.xl,
+    },
+    groupHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      marginBottom: spacing.md,
+    },
+    groupTitle: {
+      fontSize: 13,
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+    },
+    slotsGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing.sm,
+    },
+    slotCard: {
+      width: '30%',
+      padding: spacing.md,
+      alignItems: 'center',
+    },
+    slotDuration: {
+      fontSize: 12,
+      marginTop: 2,
+    },
+    slotAvailability: {
+      fontSize: 11,
+      marginTop: 2,
+      color: colors.success,
+    },
+    footer: {
+      paddingTop: spacing.lg,
+    },
+  });
+}

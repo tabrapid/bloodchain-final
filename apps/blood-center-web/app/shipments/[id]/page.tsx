@@ -153,7 +153,16 @@ export default function ShipmentDetailPage() {
     if (!organizationId || !shipmentId || !selectedCourierId) return;
     setActionLoading(true);
     try {
-      await assignCourier(organizationId, shipmentId, selectedCourierId);
+      // A shipment that already had a courier (FAILED -- the courier
+      // reported a problem and was released back to AVAILABLE) needs
+      // reassignCourier, which records the retry against the shipment's
+      // history (previousCourierId, a REASSIGNED event); assignCourier is
+      // for a shipment that has never had one (CREATED / COURIER_DECLINED).
+      if (shipment?.status === 'FAILED') {
+        await reassignShipment(organizationId, shipmentId, selectedCourierId);
+      } else {
+        await assignCourier(organizationId, shipmentId, selectedCourierId);
+      }
       setShowAssignModal(false);
       setSelectedCourierId('');
       await loadShipment();
@@ -181,7 +190,16 @@ export default function ShipmentDetailPage() {
     }
   };
 
-  const canAssignCourier = shipment?.status === 'CREATED' || shipment?.status === 'COURIER_DECLINED';
+  // FAILED is a real, reachable state (a courier reports a problem mid-delivery
+  // via the mobile app's "Report a Problem" flow) and the backend explicitly
+  // allows retrying it with a new courier -- ShipmentStateMachine's transition
+  // map lists FAILED alongside CREATED/COURIER_DECLINED as valid sources for
+  // COURIER_ASSIGNED. Without this, a failed delivery had no recovery path in
+  // this UI at all except cancelling it outright.
+  const canAssignCourier =
+    shipment?.status === 'CREATED' ||
+    shipment?.status === 'COURIER_DECLINED' ||
+    shipment?.status === 'FAILED';
   const canCancel = shipment && !['DELIVERED', 'CANCELLED'].includes(shipment.status);
 
   if (isLoading) {
@@ -263,7 +281,7 @@ export default function ShipmentDetailPage() {
                 className="flex items-center gap-2 rounded-lg bg-donor-primary px-4 py-2 font-semibold text-white transition-colors hover:bg-donor-primary/80"
               >
                 <Users size={16} />
-                Assign Courier
+                {shipment?.status === 'FAILED' ? 'Reassign Courier' : 'Assign Courier'}
               </button>
             )}
             {canCancel && (
@@ -463,7 +481,9 @@ export default function ShipmentDetailPage() {
       {showAssignModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="w-full max-w-md rounded-2xl border border-donor-border bg-donor-surface p-6">
-            <h3 className="mb-4 font-display text-lg font-semibold text-donor-text">Assign Courier</h3>
+            <h3 className="mb-4 font-display text-lg font-semibold text-donor-text">
+              {shipment?.status === 'FAILED' ? 'Reassign Courier' : 'Assign Courier'}
+            </h3>
             <div className="mb-4">
               <label className="mb-2 block text-sm text-donor-muted">Select Courier</label>
               <select
@@ -491,7 +511,9 @@ export default function ShipmentDetailPage() {
                 disabled={!selectedCourierId || actionLoading}
                 className="rounded-lg bg-donor-primary px-4 py-2 font-semibold text-white disabled:opacity-50"
               >
-                {actionLoading ? 'Assigning...' : 'Assign'}
+                {actionLoading
+                  ? shipment?.status === 'FAILED' ? 'Reassigning...' : 'Assigning...'
+                  : shipment?.status === 'FAILED' ? 'Reassign' : 'Assign'}
               </button>
             </div>
           </div>

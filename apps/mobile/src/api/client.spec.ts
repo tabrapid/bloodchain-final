@@ -5,8 +5,13 @@ jest.mock('../auth/storage', () => ({
   deleteAccessToken: jest.fn().mockResolvedValue(undefined),
   deleteRefreshToken: jest.fn().mockResolvedValue(undefined),
 }));
+jest.mock('expo-router', () => ({
+  router: { push: jest.fn(), replace: jest.fn() },
+}));
 
+import { router } from 'expo-router';
 import { apiRequest, apiRequestEnvelope, ApiRequestError } from './client';
+import { useAuthStore } from '../stores/auth.store';
 
 function mockFetchOnce(body: unknown, status = 200) {
   (global.fetch as jest.Mock).mockResolvedValueOnce({
@@ -96,5 +101,66 @@ describe('apiRequest / apiRequestEnvelope', () => {
 
     const [, options] = (global.fetch as jest.Mock).mock.calls[0];
     expect(options.headers.has('Authorization')).toBe(false);
+  });
+
+  /**
+   * The bug a real user hit on a real device: a request to an unreachable
+   * API (wrong LAN IP, a firewall silently dropping packets) has nothing
+   * built into fetch() that ever gives up. Before this fix, "Signing
+   * in..." just spun forever with no error and no way to recover.
+   */
+  it('times out and throws a catchable error instead of hanging forever', async () => {
+    jest.useFakeTimers();
+    (global.fetch as jest.Mock).mockImplementationOnce(
+      (_url: string, options: { signal: AbortSignal }) =>
+        new Promise((_resolve, reject) => {
+          options.signal.addEventListener('abort', () => {
+            const err = new Error('Aborted');
+            err.name = 'AbortError';
+            reject(err);
+          });
+        }),
+    );
+
+    const pending = apiRequest('/auth/login', { skipAuth: true, method: 'POST' });
+    const assertion = expect(pending).rejects.toMatchObject({
+      error: { code: 'REQUEST_TIMEOUT' },
+    });
+
+    await jest.advanceTimersByTimeAsync(15000);
+    await assertion;
+    jest.useRealTimers();
+  });
+
+  it('surfaces an unreachable host as a network error, not a silent hang', async () => {
+    (global.fetch as jest.Mock).mockRejectedValueOnce(new TypeError('Network request failed'));
+
+    await expect(apiRequest('/auth/login', { skipAuth: true, method: 'POST' })).rejects.toMatchObject({
+      error: { code: 'NETWORK_ERROR' },
+    });
+  });
+
+  /**
+   * Deleting the stored tokens on a failed refresh isn't enough by itself:
+   * nothing else watches SecureStore, and none of the (app)/(courier) tab
+   * layouts re-check auth once mounted -- only the cold-start entry point
+   * does. Without also clearing the Zustand store and redirecting here, a
+   * session that dies mid-use (expired or revoked refresh token) leaves the
+   * user stuck on their current screen with no path back to login.
+   */
+  it('clears the auth store and redirects to login when the refresh token itself is rejected', async () => {
+    useAuthStore.getState().setUser({ id: 'user-1', email: 'donor@donor.local' } as never);
+    expect(useAuthStore.getState().isAuthenticated).toBe(true);
+
+    // First call: the original request comes back 401.
+    mockFetchOnce({ statusCode: 401, code: 'UNAUTHORIZED', message: 'Access token expired.' }, 401);
+    // Second call: the refresh attempt itself is rejected (refresh token expired/revoked too).
+    mockFetchOnce({ statusCode: 401, code: 'UNAUTHORIZED', message: 'Invalid refresh token.' }, 401);
+
+    await expect(apiRequest('/donors/profile')).rejects.toBeInstanceOf(ApiRequestError);
+
+    expect(useAuthStore.getState().isAuthenticated).toBe(false);
+    expect(useAuthStore.getState().user).toBeNull();
+    expect(router.replace).toHaveBeenCalledWith('/(auth)/login');
   });
 });

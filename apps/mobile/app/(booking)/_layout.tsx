@@ -1,11 +1,13 @@
 import { Stack } from 'expo-router';
+import { useTheme } from '../../src/theme';
 
 export default function BookingLayout() {
+  const { colors } = useTheme();
   return (
     <Stack
       screenOptions={{
         headerShown: false,
-        contentStyle: { backgroundColor: '#080D14' },
+        contentStyle: { backgroundColor: colors.background },
         animation: 'slide_from_right',
       }}
     />

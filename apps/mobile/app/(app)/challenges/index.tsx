@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { RefreshControl, StyleSheet, View } from 'react-native';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Trophy, Clock, Award } from 'lucide-react-native';
@@ -14,10 +14,13 @@ import {
   ProgressBar,
   Screen,
 } from '../../../src/components';
-import { colors, spacing, radius } from '../../../src/theme';
+import { spacing, radius, useTheme, ThemeColors } from '../../../src/theme';
 
 export default function ChallengesScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [refreshing, setRefreshing] = useState(false);
+  const [joinError, setJoinError] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   const { data: challenges, isLoading, refetch } = useQuery({
@@ -28,8 +31,12 @@ export default function ChallengesScreen() {
   const joinMutation = useMutation({
     mutationFn: joinChallenge,
     onSuccess: () => {
+      setJoinError(null);
       queryClient.invalidateQueries({ queryKey: ['active-challenges'] });
       queryClient.invalidateQueries({ queryKey: ['my-challenges'] });
+    },
+    onError: (err: any) => {
+      setJoinError(err.message || 'Failed to join challenge. Please try again.');
     },
   });
 
@@ -64,6 +71,12 @@ export default function ChallengesScreen() {
         </AppText>
       </View>
 
+      {joinError && (
+        <Card style={styles.errorCard}>
+          <AppText style={{ color: colors.danger }}>{joinError}</AppText>
+        </Card>
+      )}
+
       {challenges?.length === 0 ? (
         <Card>
           <EmptyState
@@ -97,6 +110,8 @@ function ChallengeCard({
   onJoin: () => void;
   isJoining: boolean;
 }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const current = challenge.userProgress || 0;
   const progress = current / challenge.goal;
   const hasJoined = challenge.userProgress !== undefined;
@@ -166,68 +181,75 @@ function ChallengeCard({
   );
 }
 
-const styles = StyleSheet.create({
-  header: {
-    marginBottom: spacing.lg,
-  },
-  subtitle: {
-    marginTop: spacing.xs,
-  },
-  list: {
-    gap: spacing.md,
-    paddingBottom: spacing.xl,
-  },
-  card: {
-    padding: spacing.lg,
-  },
-  badgeRow: {
-    flexDirection: 'row',
-    marginBottom: spacing.sm,
-  },
-  description: {
-    marginTop: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-  progressSection: {
-    marginTop: spacing.md,
-    marginBottom: spacing.md,
-  },
-  progressLabels: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: spacing.xs,
-  },
-  progressValue: {
-    fontWeight: '600',
-  },
-  rewards: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.sm,
-  },
-  xpReward: {
-    fontWeight: '700',
-    color: colors.primary,
-  },
-  action: {
-    marginTop: spacing.md,
-  },
-  completed: {
-    marginTop: spacing.md,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
-    borderRadius: radius.sm,
-    alignItems: 'center',
-    backgroundColor: '#10221F',
-  },
-  completedText: {
-    fontWeight: '700',
-    color: colors.success,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    header: {
+      marginBottom: spacing.lg,
+    },
+    subtitle: {
+      marginTop: spacing.xs,
+    },
+    errorCard: {
+      padding: spacing.md,
+      marginBottom: spacing.lg,
+      backgroundColor: colors.dangerMuted,
+    },
+    list: {
+      gap: spacing.md,
+      paddingBottom: spacing.xl,
+    },
+    card: {
+      padding: spacing.lg,
+    },
+    badgeRow: {
+      flexDirection: 'row',
+      marginBottom: spacing.sm,
+    },
+    description: {
+      marginTop: spacing.sm,
+      marginBottom: spacing.md,
+    },
+    detailRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+    },
+    progressSection: {
+      marginTop: spacing.md,
+      marginBottom: spacing.md,
+    },
+    progressLabels: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: spacing.xs,
+    },
+    progressValue: {
+      fontWeight: '600',
+    },
+    rewards: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: spacing.sm,
+    },
+    xpReward: {
+      fontWeight: '700',
+      color: colors.primary,
+    },
+    action: {
+      marginTop: spacing.md,
+    },
+    completed: {
+      marginTop: spacing.md,
+      paddingVertical: spacing.md,
+      paddingHorizontal: spacing.lg,
+      borderRadius: radius.sm,
+      alignItems: 'center',
+      backgroundColor: colors.successMuted,
+    },
+    completedText: {
+      fontWeight: '700',
+      color: colors.success,
+    },
+  });
+}

@@ -1,5 +1,5 @@
 import { Pressable, PressableProps, StyleSheet } from 'react-native';
-import { colors, radius } from '../theme';
+import { radius, useTheme } from '../theme';
 import { LucideIcon } from '../types/icons';
 
 export interface IconButtonProps extends PressableProps {
@@ -11,11 +11,13 @@ export interface IconButtonProps extends PressableProps {
 export function IconButton({
   icon: Icon,
   size = 22,
-  color = colors.text,
+  color,
   style,
   ...props
 }: IconButtonProps) {
+  const { colors } = useTheme();
   const flattenedStyle = StyleSheet.flatten(style);
+  const resolvedColor = color ?? colors.text;
 
   return (
     <Pressable
@@ -31,7 +33,7 @@ export function IconButton({
       })}
       {...props}
     >
-      <Icon size={size} color={color} />
+      <Icon size={size} color={resolvedColor} />
     </Pressable>
   );
 }

@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, TextInput, View } from 'react-native';
-import { Building2, LogOut, Moon, Sun } from 'lucide-react-native';
-import { AppButton, AppText, Badge, Card, LoadingState, Screen } from '../../src/components';
+import { AlertTriangle, Building2, LogOut, Moon, Sun } from 'lucide-react-native';
+import { AppButton, AppText, Badge, Card, EmptyState, LoadingState, Screen } from '../../src/components';
 import { useLogout } from '../../src/hooks/useAuth';
-import { colors, spacing } from '../../src/theme';
+import { spacing, useTheme } from '../../src/theme';
 import {
   getCourierProfile,
   updateCourierProfile,
@@ -19,6 +19,7 @@ const STATUS_VARIANT: Record<string, 'default' | 'primary' | 'secondary' | 'succ
 };
 
 export default function CourierProfileScreen() {
+  const { colors } = useTheme();
   const logout = useLogout();
   const [profile, setProfile] = useState<CourierProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -76,11 +77,27 @@ export default function CourierProfileScreen() {
     }
   };
 
-  if (isLoading || !profile) {
+  if (isLoading) {
     return (
       <Screen>
         <AppText variant="title" style={{ marginBottom: spacing.lg }}>Profile</AppText>
         <LoadingState />
+      </Screen>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <Screen>
+        <AppText variant="title" style={{ marginBottom: spacing.lg }}>Profile</AppText>
+        <EmptyState
+          icon={AlertTriangle}
+          title="Couldn't load your profile"
+          description="Something went wrong reaching the server. Check your connection and try again."
+        />
+        <AppButton variant="secondary" onPress={load} style={{ marginTop: spacing.md }}>
+          Retry
+        </AppButton>
       </Screen>
     );
   }
@@ -127,7 +144,7 @@ export default function CourierProfileScreen() {
             onChangeText={setDisplayName}
             placeholderTextColor={colors.textMuted}
             style={{
-              backgroundColor: colors.surfaceElevated,
+              backgroundColor: colors.surfaceSolid,
               borderColor: colors.border,
               borderWidth: 1,
               borderRadius: 10,
@@ -144,7 +161,7 @@ export default function CourierProfileScreen() {
             keyboardType="phone-pad"
             placeholderTextColor={colors.textMuted}
             style={{
-              backgroundColor: colors.surfaceElevated,
+              backgroundColor: colors.surfaceSolid,
               borderColor: colors.border,
               borderWidth: 1,
               borderRadius: 10,

@@ -1,22 +1,28 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Alert, View, TextInput, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import * as Location from 'expo-location';
 import { AppButton, AppText, Screen, ProgressBar } from '../../src/components';
-import { colors, spacing, radius } from '../../src/theme';
+import { spacing, radius, useTheme, ThemeColors } from '../../src/theme';
 import { useUpdateDonorProfile } from '../../src/hooks/useDonors';
 import { useUpdateUserProfile } from '../../src/hooks/useUsers';
+import { useUpdateNotificationPreferences } from '../../src/hooks/useNotifications';
 import { useAuthStore } from '../../src/stores/auth.store';
+import { ApiRequestError } from '../../src/api/client';
 
 const STEPS = ['Welcome', 'Personal', 'Blood Type', 'Location', 'Notifications', 'Review'];
 
 export default function OnboardingWelcome() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [currentStep, setCurrentStep] = useState(0);
   const queryClient = useQueryClient();
   const updateDonorProfile = useUpdateDonorProfile();
   const updateUserProfile = useUpdateUserProfile();
+  const updateNotificationPreferences = useUpdateNotificationPreferences();
   const setNeedsOnboarding = useAuthStore((s) => s.setNeedsOnboarding);
+  const [finishError, setFinishError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     firstName: '',
@@ -33,7 +39,6 @@ export default function OnboardingWelcome() {
     appointments: true,
     donationReminders: true,
     system: true,
-    promotional: false,
   });
   const [isLocating, setIsLocating] = useState(false);
 
@@ -84,6 +89,7 @@ export default function OnboardingWelcome() {
   };
 
   const handleFinish = async () => {
+    setFinishError(null);
     try {
       await updateUserProfile.mutateAsync({
         firstName: formData.firstName,
@@ -101,14 +107,26 @@ export default function OnboardingWelcome() {
         longitude: formData.longitude,
       });
 
+      await updateNotificationPreferences.mutateAsync({
+        emergencyRequests: formData.emergencyRequests,
+        appointments: formData.appointments,
+        donationReminders: formData.donationReminders,
+        system: formData.system,
+      });
+
       await queryClient.invalidateQueries({ queryKey: ['user-profile'] });
       await queryClient.invalidateQueries({ queryKey: ['donor-profile'] });
       await queryClient.invalidateQueries({ queryKey: ['profile-completion'] });
+      await queryClient.invalidateQueries({ queryKey: ['notification-preferences'] });
 
       setNeedsOnboarding(false);
       router.replace('/(app)/home');
     } catch (error) {
-      console.error('Failed to complete onboarding:', error);
+      setFinishError(
+        error instanceof ApiRequestError
+          ? error.error.message
+          : 'Something went wrong saving your profile. Please try again.',
+      );
     }
   };
 
@@ -342,7 +360,8 @@ export default function OnboardingWelcome() {
   };
 
   const isLastStep = currentStep === STEPS.length - 1;
-  const isLoading = updateUserProfile.isPending || updateDonorProfile.isPending;
+  const isLoading =
+    updateUserProfile.isPending || updateDonorProfile.isPending || updateNotificationPreferences.isPending;
 
   return (
     <Screen>
@@ -354,6 +373,10 @@ export default function OnboardingWelcome() {
       </View>
 
       <View style={styles.content}>{renderStep()}</View>
+
+      {finishError && (
+        <AppText style={{ color: colors.danger, marginBottom: spacing.md }}>{finishError}</AppText>
+      )}
 
       <View style={styles.footer}>
         {currentStep > 0 && (
@@ -378,6 +401,8 @@ export default function OnboardingWelcome() {
 }
 
 function FeatureItem({ text }: { text: string }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <View style={styles.featureItem}>
       <View style={styles.featureDot} />
@@ -399,7 +424,7 @@ function BloodTypeButton({
     <AppButton
       variant={selected ? 'primary' : 'secondary'}
       onPress={onPress}
-      style={styles.bloodTypeButton}
+      style={{ flex: 1, height: 80 }}
     >
       {type}
     </AppButton>
@@ -419,7 +444,7 @@ function RhButton({
     <AppButton
       variant={selected ? 'primary' : 'secondary'}
       onPress={onPress}
-      style={styles.rhButton}
+      style={{ flex: 1 }}
     >
       {label}
     </AppButton>
@@ -437,6 +462,8 @@ function NotificationToggle({
   value: boolean;
   onValueChange: (value: boolean) => void;
 }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <View style={styles.notificationItem}>
       <View style={styles.notificationText}>
@@ -458,14 +485,15 @@ function NotificationToggle({
 
 function ReviewItem({ label, value }: { label: string; value: string }) {
   return (
-    <View style={styles.reviewItem}>
+    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
       <AppText muted>{label}</AppText>
       <AppText variant="heading">{value}</AppText>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
   header: {
     marginBottom: spacing.lg,
   },
@@ -501,7 +529,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
   },
   input: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceSolid,
     borderColor: colors.border,
     borderWidth: 1,
     borderRadius: radius.sm,
@@ -554,15 +582,10 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   reviewCard: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceSolid,
     borderRadius: radius.md,
     padding: spacing.lg,
     gap: spacing.md,
-  },
-  reviewItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
   },
   footer: {
     flexDirection: 'row',
@@ -575,4 +598,5 @@ const styles = StyleSheet.create({
   nextButton: {
     flex: 2,
   },
-});
+  });
+}

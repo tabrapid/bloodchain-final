@@ -1,29 +1,53 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { Calendar, Clock, Building2, Droplet, AlertCircle } from 'lucide-react-native';
 import { AppButton, AppText, Card, GlassCard, Screen } from '../../src/components';
-import { useAvailability, useBookAppointment, useOrganizations } from '../../src/hooks/useAppointments';
-import { colors, spacing } from '../../src/theme';
+import {
+  useAvailability,
+  useBookAppointment,
+  useOrganizations,
+  useRescheduleAppointment,
+} from '../../src/hooks/useAppointments';
+import { spacing, useTheme, ThemeColors } from '../../src/theme';
 
 export default function ReviewBooking() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const params = useLocalSearchParams<{
     slotId: string;
     organizationId: string;
     type: string;
     date: string;
+    rescheduleAppointmentId?: string;
   }>();
+  const isRescheduling = Boolean(params.rescheduleAppointmentId);
 
   const [notes, setNotes] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  const { data: slots } = useAvailability({ date: params.date });
+  const {
+    data: slots,
+    isLoading: slotsLoading,
+    isError: slotsError,
+    refetch: refetchSlots,
+  } = useAvailability({ date: params.date });
   const slot = slots?.find((s) => s.id === params.slotId);
 
-  const { data: organizations } = useOrganizations();
+  const {
+    data: organizations,
+    isLoading: orgsLoading,
+    isError: orgsError,
+    refetch: refetchOrgs,
+  } = useOrganizations();
   const organization = organizations?.find((o) => o.id === params.organizationId);
 
+  const isLoading = slotsLoading || orgsLoading;
+  const hasLoadError = slotsError || orgsError;
+  const notFound = !isLoading && !hasLoadError && (!slot || !organization);
+
   const bookMutation = useBookAppointment();
+  const rescheduleMutation = useRescheduleAppointment();
 
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString('en-US', {
@@ -58,36 +82,91 @@ export default function ReviewBooking() {
   const handleConfirm = async () => {
     setError(null);
     try {
-      const result = await bookMutation.mutateAsync({
-        slotId: params.slotId,
-        appointmentType: params.type,
-        notes: notes.trim() || undefined,
-      });
+      const result = params.rescheduleAppointmentId
+        ? await rescheduleMutation.mutateAsync({
+            id: params.rescheduleAppointmentId,
+            input: { newSlotId: params.slotId },
+          })
+        : await bookMutation.mutateAsync({
+            slotId: params.slotId,
+            appointmentType: params.type,
+            notes: notes.trim() || undefined,
+          });
       router.replace({
         pathname: '/(booking)/confirmation',
-        params: { appointmentId: result.id },
+        params: {
+          appointmentId: result.id,
+          ...(isRescheduling && { rescheduled: '1' }),
+        },
       });
     } catch (err: any) {
-      setError(err.message || 'Failed to book appointment. Please try again.');
+      setError(
+        err.message ||
+          (isRescheduling
+            ? 'Failed to reschedule appointment. Please try again.'
+            : 'Failed to book appointment. Please try again.'),
+      );
     }
   };
 
-  if (!slot || !organization) {
+  const isSaving = isRescheduling ? rescheduleMutation.isPending : bookMutation.isPending;
+
+  if (isLoading) {
     return (
       <Screen>
-        <AppText>Loading...</AppText>
+        <AppText muted>Loading...</AppText>
       </Screen>
     );
+  }
+
+  if (hasLoadError || notFound) {
+    return (
+      <Screen>
+        <Card style={styles.errorCard}>
+          <AlertCircle size={20} color={colors.danger} />
+          <AppText style={styles.errorText}>
+            {hasLoadError
+              ? "Couldn't load your booking details. Check your connection and try again."
+              : 'This time slot is no longer available. Please choose another time.'}
+          </AppText>
+        </Card>
+        <View style={styles.footer}>
+          {hasLoadError && (
+            <AppButton
+              onPress={() => {
+                refetchSlots();
+                refetchOrgs();
+              }}
+            >
+              Retry
+            </AppButton>
+          )}
+          <AppButton
+            variant="secondary"
+            onPress={() => router.back()}
+            style={styles.backButton}
+          >
+            Back
+          </AppButton>
+        </View>
+      </Screen>
+    );
+  }
+
+  if (!slot || !organization) {
+    return null;
   }
 
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.content}>
         <AppText variant="title" style={styles.title}>
-          Review Booking
+          {isRescheduling ? 'Review Reschedule' : 'Review Booking'}
         </AppText>
         <AppText muted style={styles.subtitle}>
-          Please review your appointment details before confirming.
+          {isRescheduling
+            ? 'Please review your new appointment time before confirming.'
+            : 'Please review your appointment details before confirming.'}
         </AppText>
 
         <GlassCard style={styles.summaryCard}>
@@ -180,16 +259,16 @@ export default function ReviewBooking() {
       <View style={styles.footer}>
         <AppButton
           onPress={handleConfirm}
-          loading={bookMutation.isPending}
-          disabled={bookMutation.isPending}
+          loading={isSaving}
+          disabled={isSaving}
         >
-          Confirm Booking
+          {isRescheduling ? 'Confirm Reschedule' : 'Confirm Booking'}
         </AppButton>
         <AppButton
           variant="secondary"
           onPress={() => router.back()}
           style={styles.backButton}
-          disabled={bookMutation.isPending}
+          disabled={isSaving}
         >
           Back
         </AppButton>
@@ -198,83 +277,85 @@ export default function ReviewBooking() {
   );
 }
 
-const styles = StyleSheet.create({
-  content: {
-    paddingBottom: spacing.xl,
-  },
-  title: {
-    marginBottom: spacing.xs,
-  },
-  subtitle: {
-    marginBottom: spacing.xl,
-  },
-  summaryCard: {
-    padding: spacing.lg,
-    marginBottom: spacing.lg,
-  },
-  sectionTitle: {
-    marginBottom: spacing.lg,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: spacing.md,
-  },
-  detailIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    backgroundColor: colors.primary + '15',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing.md,
-  },
-  detailInfo: {
-    flex: 1,
-  },
-  detailLabel: {
-    fontSize: 12,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 2,
-  },
-  addressText: {
-    fontSize: 13,
-    marginTop: 2,
-  },
-  notesCard: {
-    padding: spacing.lg,
-    marginBottom: spacing.lg,
-  },
-  notesInput: {
-    padding: spacing.md,
-    backgroundColor: colors.surfaceElevated,
-    borderRadius: 8,
-  },
-  errorCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    padding: spacing.md,
-    backgroundColor: colors.danger + '15',
-    marginBottom: spacing.lg,
-  },
-  errorText: {
-    color: colors.danger,
-    flex: 1,
-  },
-  infoCard: {
-    padding: spacing.md,
-    backgroundColor: colors.surfaceElevated,
-  },
-  infoText: {
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  footer: {
-    paddingTop: spacing.lg,
-  },
-  backButton: {
-    marginTop: spacing.md,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    content: {
+      paddingBottom: spacing.xl,
+    },
+    title: {
+      marginBottom: spacing.xs,
+    },
+    subtitle: {
+      marginBottom: spacing.xl,
+    },
+    summaryCard: {
+      padding: spacing.lg,
+      marginBottom: spacing.lg,
+    },
+    sectionTitle: {
+      marginBottom: spacing.lg,
+    },
+    detailRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      marginBottom: spacing.md,
+    },
+    detailIcon: {
+      width: 40,
+      height: 40,
+      borderRadius: 10,
+      backgroundColor: colors.primaryMuted,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: spacing.md,
+    },
+    detailInfo: {
+      flex: 1,
+    },
+    detailLabel: {
+      fontSize: 12,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+      marginBottom: 2,
+    },
+    addressText: {
+      fontSize: 13,
+      marginTop: 2,
+    },
+    notesCard: {
+      padding: spacing.lg,
+      marginBottom: spacing.lg,
+    },
+    notesInput: {
+      padding: spacing.md,
+      backgroundColor: colors.surfaceElevated,
+      borderRadius: 8,
+    },
+    errorCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      padding: spacing.md,
+      backgroundColor: colors.dangerMuted,
+      marginBottom: spacing.lg,
+    },
+    errorText: {
+      color: colors.danger,
+      flex: 1,
+    },
+    infoCard: {
+      padding: spacing.md,
+      backgroundColor: colors.surfaceElevated,
+    },
+    infoText: {
+      fontSize: 13,
+      lineHeight: 18,
+    },
+    footer: {
+      paddingTop: spacing.lg,
+    },
+    backButton: {
+      marginTop: spacing.md,
+    },
+  });
+}

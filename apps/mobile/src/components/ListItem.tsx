@@ -1,5 +1,5 @@
 import { Pressable, View } from 'react-native';
-import { colors, spacing } from '../theme';
+import { spacing, useTheme } from '../theme';
 import { AppText } from './AppText';
 import { ChevronRight, LucideIcon } from 'lucide-react-native';
 
@@ -18,6 +18,7 @@ export function ListItem({
   onPress,
   destructive = false,
 }: ListItemProps) {
+  const { colors } = useTheme();
   const content = (
     <>
       {Icon && (

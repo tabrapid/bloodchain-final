@@ -93,7 +93,7 @@ export class NotificationRouterService {
       title: 'Emergency Blood Request',
       body: `Urgent: ${sosRequest.bloodType} blood needed${sosRequest.urgency ? ` - ${sosRequest.urgency}` : ''}`,
       data: sanitizedData,
-      deepLink: `/sos/${sosRequest.id}`,
+      deepLink: '/sos',
       sourceType: 'SOS_REQUEST',
       sourceId: sosRequest.id,
       recipientIds: compatibleDonorIds,
@@ -109,7 +109,7 @@ export class NotificationRouterService {
       title: 'Donation Confirmed',
       body: `Your blood donation has been recorded successfully. Thank you for saving lives!`,
       data: { donationId: donation.id },
-      deepLink: `/donations/${donation.id}`,
+      deepLink: `/(app)/donations/${donation.id}`,
       sourceType: 'DONATION',
       sourceId: donation.id,
       recipientIds: [donorId],
@@ -133,7 +133,7 @@ export class NotificationRouterService {
       title: template.title,
       body: template.body,
       data: { appointmentId: appointment.id, action },
-      deepLink: `/calendar/appointment/${appointment.id}`,
+      deepLink: `/(app)/appointment/${appointment.id}`,
       sourceType: 'APPOINTMENT',
       sourceId: appointment.id,
       recipientIds,
@@ -148,7 +148,9 @@ export class NotificationRouterService {
       title: 'Lab Results Available',
       body: 'Your blood test results are now available. Tap to view.',
       data: { resultId: labResult.id },
-      deepLink: `/health/tests/${labResult.id}`,
+      // No per-result detail screen exists in the mobile app; route to the
+      // laboratory results list, which is the nearest real screen.
+      deepLink: '/(app)/laboratory',
       sourceType: 'LAB_RESULT',
       sourceId: labResult.id,
       recipientIds: [recipientId],
@@ -163,7 +165,9 @@ export class NotificationRouterService {
       title: 'Achievement Unlocked!',
       body: `You've earned: ${achievement.name}`,
       data: { achievementId: achievement.id, achievementName: achievement.name },
-      deepLink: `/profile/achievements/${achievement.id}`,
+      // No per-achievement detail screen exists in the mobile app; route to
+      // the achievements list, which is the nearest real screen.
+      deepLink: '/(app)/gamification/achievements',
       sourceType: 'ACHIEVEMENT',
       sourceId: achievement.id,
       recipientIds: [recipientId],
@@ -178,7 +182,10 @@ export class NotificationRouterService {
       title: 'Level Up!',
       body: `Congratulations! You've reached Level ${newLevel}!`,
       data: { level: newLevel },
-      deepLink: `/profile`,
+      // Fully qualified: the mobile app has both an (app)/profile and a
+      // (courier)/profile screen, which both strip to the same bare "/profile"
+      // URL -- an unqualified path here is ambiguous.
+      deepLink: '/(app)/profile',
       sourceType: 'LEVEL_UP',
       sourceId: `LEVEL_${newLevel}_${userId}`,
       recipientIds: [userId],
@@ -207,7 +214,10 @@ export class NotificationRouterService {
       title: template.title,
       body: template.body,
       data: { shipmentId: shipment.id, event },
-      deepLink: `/shipments/${shipment.id}`,
+      // No per-shipment detail screen exists in the mobile app; route
+      // couriers (the only mobile recipients of this notification) to their
+      // active-deliveries list, the nearest real screen.
+      deepLink: '/(courier)/active',
       sourceType: 'SHIPMENT',
       sourceId: shipment.id,
       recipientIds,
@@ -222,7 +232,9 @@ export class NotificationRouterService {
       title: level === 'CRITICAL' ? 'Critical Inventory Alert' : 'Low Inventory Alert',
       body: `${inventory.bloodType} inventory is ${level === 'CRITICAL' ? 'critically low' : 'running low'}`,
       data: { inventoryId: inventory.id, bloodType: inventory.bloodType, level },
-      deepLink: `/inventory/${inventory.id}`,
+      // The mobile app has no inventory screen (inventory management is
+      // web-only); fall back to home so a stray tap never hits a dead route.
+      deepLink: '/(app)/home',
       sourceType: 'INVENTORY',
       sourceId: inventory.id,
       recipientIds,
@@ -236,7 +248,7 @@ export class NotificationRouterService {
       title: 'Security Alert',
       body: details,
       data: { event, timestamp: new Date().toISOString() },
-      deepLink: '/profile/security',
+      deepLink: '/(app)/security',
       sourceType: 'SECURITY',
       sourceId: `SEC_${event}_${Date.now()}`,
       recipientIds: [userId],

@@ -27,8 +27,6 @@ import {
   Modal,
 } from '@bloodchain/ui/components';
 import {
-  login,
-  logout as logoutApi,
   me,
   isAuthenticated,
   MeResponse,
@@ -148,28 +146,6 @@ export default function InventoryPage() {
       loadUnits();
     }
   }, [organizationId, loadUnits]);
-
-  const handleLogin = async () => {
-    setError(null);
-    try {
-      await login('blood.center.admin@donor.local', 'DevelopmentOnly!123');
-      const userData = await me();
-      setUser(userData);
-      const org = userData.organizations.find((o: { type: string }) => o.type === 'BLOOD_CENTER');
-      if (org) {
-        setOrganizationId((org as { organizationId: string }).organizationId);
-      }
-    } catch (err: unknown) {
-      setError((err as Error).message ?? 'Login failed');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleLogout = async () => {
-    await logoutApi();
-    setUser(null);
-  };
 
   const handleSearch = () => {
     setFilters((prev) => ({ ...prev, page: 1 }));
@@ -358,18 +334,11 @@ export default function InventoryPage() {
         <div className="flex flex-col items-center justify-center rounded-2xl border border-donor-border bg-donor-surface p-12">
           <Activity className="mb-4 text-donor-secondary" size={48} />
           <h2 className="mb-2 font-display text-2xl font-semibold text-donor-text">
-            Blood Center Portal
+            Sign In Required
           </h2>
           <p className="mb-6 text-center text-donor-muted">
-            Sign in to access the inventory dashboard
+            Please sign in to access the inventory dashboard
           </p>
-          {error && <p className="mb-4 text-sm text-red-400">{error}</p>}
-          <button
-            onClick={handleLogin}
-            className="rounded-lg bg-donor-secondary px-6 py-3 font-semibold text-white transition-colors hover:bg-donor-secondary/80"
-          >
-            Sign in as Blood Center Admin
-          </button>
         </div>
       </AppShell>
     );

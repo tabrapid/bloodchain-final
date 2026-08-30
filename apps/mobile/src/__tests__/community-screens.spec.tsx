@@ -3,7 +3,7 @@ import renderer, { act, type ReactTestRendererJSON } from 'react-test-renderer';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import { colors } from '../theme';
+import { colors, ThemeProvider } from '../theme';
 
 /**
  * P3-9 regression tests.
@@ -21,6 +21,16 @@ import { colors } from '../theme';
  * colors are actually present in the resolved styles.
  */
 
+jest.mock('expo-router', () => ({
+  router: { push: jest.fn() },
+}));
+// Pin the resolved theme to dark so assertions against the static `colors`
+// export (the dark palette) stay meaningful regardless of what the test
+// environment's own system color scheme happens to report.
+jest.mock('react-native/Libraries/Utilities/useColorScheme', () => ({
+  __esModule: true,
+  default: () => 'dark',
+}));
 jest.mock('../api/community', () => ({
   getFeed: jest.fn(),
   getImpactStats: jest.fn(),
@@ -41,6 +51,7 @@ jest.mock('../api/education', () => ({
   completeContent: jest.fn(),
 }));
 
+import { router } from 'expo-router';
 import { getFeed, getImpactStats } from '../api/community';
 import { getActiveChallenges } from '../api/challenges';
 import { getCampaigns } from '../api/campaigns';
@@ -143,16 +154,18 @@ async function renderScreen(Screen: React.ComponentType) {
   });
 
   const element = (
-    <SafeAreaProvider
-      initialMetrics={{
-        frame: { x: 0, y: 0, width: 390, height: 844 },
-        insets: { top: 47, left: 0, right: 0, bottom: 34 },
-      }}
-    >
-      <QueryClientProvider client={queryClient}>
-        <Screen />
-      </QueryClientProvider>
-    </SafeAreaProvider>
+    <ThemeProvider>
+      <SafeAreaProvider
+        initialMetrics={{
+          frame: { x: 0, y: 0, width: 390, height: 844 },
+          insets: { top: 47, left: 0, right: 0, bottom: 34 },
+        }}
+      >
+        <QueryClientProvider client={queryClient}>
+          <Screen />
+        </QueryClientProvider>
+      </SafeAreaProvider>
+    </ThemeProvider>
   );
 
   // Mount inside a synchronous act, then flush in a separate async one. Doing the
@@ -217,6 +230,25 @@ function styleFingerprint(nodes: ReactTestRendererJSON[]): string {
   return JSON.stringify(nodes.map((node) => node.props?.style ?? null));
 }
 
+/**
+ * Finds the pressable test *instance* (not JSON node) whose rendered text
+ * contains `text`. `onPress` is a prop TouchableOpacity/Pressable consume
+ * internally -- it never reaches the host node in `tree.toJSON()`, only the
+ * component-tree `ReactTestInstance` sees it, so this walks that tree
+ * instead of the JSON one the other helpers use.
+ */
+function findPressableByText(tree: renderer.ReactTestRenderer, text: string) {
+  return tree.root.findAll((node) => {
+    if (typeof node.props.onPress !== 'function') return false;
+    const ownText = node
+      .findAll((n) => typeof n.type === 'string' && (n.type as string) === 'Text')
+      .flatMap((n) => (Array.isArray(n.props.children) ? n.props.children : [n.props.children]))
+      .filter((c): c is string => typeof c === 'string')
+      .join(' ');
+    return ownText.includes(text);
+  })[0];
+}
+
 const screens: Array<[string, React.ComponentType]> = [
   ['community', CommunityScreen],
   ['campaigns', CampaignsScreen],
@@ -240,11 +272,14 @@ describe('P3-9: the four screens that used className render with real styles', (
   it.each(screens)('%s applies the app theme rather than rendering unstyled', async (_name, Screen) => {
     const fingerprint = styleFingerprint(allNodes(await renderTree(Screen)));
 
-    // The dark background and the app's real text color must both be present —
-    // these come from src/theme.ts, so a screen rendering unstyled (or reverting
-    // to light-mode Tailwind strings) fails here.
-    expect(fingerprint).toContain(colors.background);
+    // The app's real text color and surface border must be present — these
+    // come from src/theme.tsx, so a screen rendering unstyled (or reverting
+    // to light-mode Tailwind strings) fails here. (The screen background
+    // itself now paints via a LinearGradient `colors` prop, which React
+    // Native serializes to processed native color ints rather than the
+    // original hex string, so it isn't substring-matchable here.)
     expect(fingerprint).toContain(colors.text);
+    expect(fingerprint).toContain(colors.border);
   });
 
   it('community renders real content from the API, not just chrome', async () => {
@@ -255,6 +290,30 @@ describe('P3-9: the four screens that used className render with real styles', (
     expect(text).toContain(postFixture.title);
     expect(text).toContain(challengeFixture.title);
     expect(text).toContain(campaignFixture.title);
+  });
+
+  it('community feed: tapping a challenge card navigates to the challenges list (there is no per-challenge detail route)', async () => {
+    const tree = await renderScreen(CommunityScreen);
+    const card = findPressableByText(tree, challengeFixture.title);
+    expect(card).toBeDefined();
+
+    act(() => {
+      (card!.props.onPress as () => void)();
+    });
+
+    expect(router.push).toHaveBeenCalledWith('/challenges');
+  });
+
+  it('community feed: tapping a campaign card navigates to the campaigns list (there is no per-campaign detail route)', async () => {
+    const tree = await renderScreen(CommunityScreen);
+    const card = findPressableByText(tree, campaignFixture.title);
+    expect(card).toBeDefined();
+
+    act(() => {
+      (card!.props.onPress as () => void)();
+    });
+
+    expect(router.push).toHaveBeenCalledWith('/campaigns');
   });
 
   it('campaigns renders campaign detail rows with themed muted text', async () => {

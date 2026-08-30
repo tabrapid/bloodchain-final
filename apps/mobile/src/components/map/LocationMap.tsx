@@ -1,8 +1,8 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
 import MapView, { Marker, Polyline, PROVIDER_DEFAULT, type Region } from 'react-native-maps';
 import { AppText } from '../AppText';
-import { colors, radius } from '../../theme';
+import { radius, useTheme, ThemeColors } from '../../theme';
 
 // Deliberately NOT re-exported through '../index' - react-native-maps links a
 // native module that Expo Go doesn't ship, so importing it anywhere in the
@@ -26,14 +26,6 @@ export interface LocationMapProps {
   showRoute?: boolean;
   height?: number;
 }
-
-const VARIANT_COLOR: Record<MapMarkerVariant, string> = {
-  origin: colors.textMuted,
-  destination: colors.success,
-  courier: colors.secondary,
-  donor: colors.primary,
-  hospital: colors.success,
-};
 
 function regionFor(markers: MapMarkerPoint[]): Region {
   const lats = markers.map((m) => m.latitude);
@@ -64,6 +56,18 @@ function regionFor(markers: MapMarkerPoint[]): Region {
  * build to run - it is not available inside Expo Go.
  */
 export function LocationMap({ markers, showRoute = false, height = 220 }: LocationMapProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  const variantColor: Record<MapMarkerVariant, string> = useMemo(
+    () => ({
+      origin: colors.textMuted,
+      destination: colors.success,
+      courier: colors.secondary,
+      donor: colors.primary,
+      hospital: colors.success,
+    }),
+    [colors],
+  );
   const mapRef = useRef<MapView>(null);
 
   useEffect(() => {
@@ -105,7 +109,7 @@ export function LocationMap({ markers, showRoute = false, height = 220 }: Locati
             title={marker.label}
             description={marker.sublabel}
           >
-            <View style={[styles.dot, { backgroundColor: VARIANT_COLOR[marker.variant] }]} />
+            <View style={[styles.dot, { backgroundColor: variantColor[marker.variant] }]} />
           </Marker>
         ))}
       </MapView>
@@ -113,26 +117,28 @@ export function LocationMap({ markers, showRoute = false, height = 220 }: Locati
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    borderRadius: radius.md,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  empty: {
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  dot: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: colors.surface,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: {
+      borderRadius: radius.md,
+      overflow: 'hidden',
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    empty: {
+      borderRadius: radius.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surfaceSolid,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    dot: {
+      width: 16,
+      height: 16,
+      borderRadius: 8,
+      borderWidth: 2,
+      borderColor: colors.surfaceSolid,
+    },
+  });
+}

@@ -5,9 +5,11 @@ import { Screen } from '../../../../src/components/Screen';
 import { GlassCard } from '../../../../src/components';
 import { AppText } from '../../../../src/components/AppText';
 import { BadgeDisplay } from '../../../../src/components/gamification/BadgeDisplay';
-import { colors, spacing } from '../../../../src/theme';
+import { spacing, useTheme, ThemeColors } from '../../../../src/theme';
 
 export default function BadgesScreen() {
+  const { colors } = useTheme();
+  const styles = React.useMemo(() => createStyles(colors), [colors]);
   const { data: badges, isLoading, refetch } = useBadges();
   const [refreshing, setRefreshing] = React.useState(false);
 
@@ -100,49 +102,51 @@ export default function BadgesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  header: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.md,
-  },
-  section: {
-    paddingHorizontal: spacing.lg,
-    marginBottom: spacing.lg,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing.md,
-  },
-  countBadge: {
-    backgroundColor: 'rgba(99, 194, 155, 0.15)',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    borderRadius: 10,
-    marginLeft: spacing.sm,
-  },
-  lockedBadge: {
-    backgroundColor: colors.surfaceHighlight,
-  },
-  badgesGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginHorizontal: -spacing.sm,
-  },
-  badgeItem: {
-    marginHorizontal: spacing.xs,
-    marginBottom: spacing.md,
-  },
-  bottomPadding: {
-    height: spacing.xl,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    header: {
+      paddingHorizontal: spacing.lg,
+      paddingTop: spacing.lg,
+      paddingBottom: spacing.md,
+    },
+    section: {
+      paddingHorizontal: spacing.lg,
+      marginBottom: spacing.lg,
+    },
+    sectionHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: spacing.md,
+    },
+    countBadge: {
+      backgroundColor: colors.successMuted,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: 2,
+      borderRadius: 10,
+      marginLeft: spacing.sm,
+    },
+    lockedBadge: {
+      backgroundColor: colors.surfaceHighlight,
+    },
+    badgesGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      marginHorizontal: -spacing.sm,
+    },
+    badgeItem: {
+      marginHorizontal: spacing.xs,
+      marginBottom: spacing.md,
+    },
+    bottomPadding: {
+      height: spacing.xl,
+    },
+  });
+}

@@ -1,5 +1,5 @@
 import { DimensionValue, View } from 'react-native';
-import { colors, radius } from '../theme';
+import { radius, useTheme } from '../theme';
 
 export interface SkeletonProps {
   width?: number | string;
@@ -8,6 +8,7 @@ export interface SkeletonProps {
 }
 
 export function Skeleton({ width = '100%', height = 16, borderRadius = radius.sm }: SkeletonProps) {
+  const { colors } = useTheme();
   return (
     <View
       style={{

@@ -13,7 +13,7 @@ import {
 } from 'lucide-react-native';
 import { AppButton, AppText, Badge, Card, EmptyState, LoadingState, Screen } from '../../src/components';
 import { LocationMap, type MapMarkerPoint } from '../../src/components/map/LocationMap';
-import { colors, spacing } from '../../src/theme';
+import { spacing, useTheme } from '../../src/theme';
 import {
   acceptShipment,
   arriveAtHospital,
@@ -52,9 +52,11 @@ function unitsSummary(shipment: Shipment): string {
 }
 
 export default function CourierActive() {
+  const { colors } = useTheme();
   const [shipment, setShipment] = useState<Shipment | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [showDecline, setShowDecline] = useState(false);
   const [declineReason, setDeclineReason] = useState('');
@@ -68,8 +70,10 @@ export default function CourierActive() {
     try {
       const active = await getActiveShipment();
       setShipment(active);
+      setLoadError(false);
     } catch (err) {
       console.error('Failed to load active shipment:', err);
+      setLoadError(true);
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -284,11 +288,24 @@ export default function CourierActive() {
         }
       >
         {!shipment ? (
-          <EmptyState
-            icon={Package}
-            title="No active delivery"
-            description="When a blood center assigns you a shipment, it will show up here."
-          />
+          loadError ? (
+            <>
+              <EmptyState
+                icon={AlertTriangle}
+                title="Couldn't load your delivery"
+                description="Something went wrong reaching the server. Check your connection and try again."
+              />
+              <AppButton variant="secondary" onPress={load} style={{ marginTop: spacing.md }}>
+                Retry
+              </AppButton>
+            </>
+          ) : (
+            <EmptyState
+              icon={Package}
+              title="No active delivery"
+              description="When a blood center assigns you a shipment, it will show up here."
+            />
+          )
         ) : (
           <>
             <Card style={{ marginBottom: spacing.lg }}>
@@ -355,7 +372,7 @@ export default function CourierActive() {
                   value={declineReason}
                   onChangeText={setDeclineReason}
                   style={{
-                    backgroundColor: colors.surfaceElevated,
+                    backgroundColor: colors.surfaceSolid,
                     borderColor: colors.border,
                     borderWidth: 1,
                     borderRadius: 10,
@@ -437,7 +454,7 @@ export default function CourierActive() {
                   onChangeText={setFailReason}
                   multiline
                   style={{
-                    backgroundColor: colors.surfaceElevated,
+                    backgroundColor: colors.surfaceSolid,
                     borderColor: colors.border,
                     borderWidth: 1,
                     borderRadius: 10,

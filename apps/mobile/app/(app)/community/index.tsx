@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Image, RefreshControl, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { Trophy, Users, Calendar, BookOpen, TrendingUp, Award } from 'lucide-react-native';
 import {
@@ -19,9 +20,11 @@ import {
   ProgressBar,
   Screen,
 } from '../../../src/components';
-import { colors, radius, spacing } from '../../../src/theme';
+import { radius, spacing, useTheme, ThemeColors } from '../../../src/theme';
 
 export default function CommunityScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [refreshing, setRefreshing] = useState(false);
 
   const { data: feed, isLoading: feedLoading, refetch: refetchFeed } = useQuery({
@@ -172,6 +175,8 @@ function ImpactStat({
   label: string;
   value: number;
 }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <View style={styles.impactStat}>
       <View style={styles.impactStatLabel}>
@@ -188,11 +193,17 @@ function ImpactStat({
 }
 
 function ChallengeCard({ challenge }: { challenge: Challenge }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const current = challenge.userProgress || 0;
   const progress = current / challenge.goal;
 
   return (
-    <TouchableOpacity style={styles.nestedCard} activeOpacity={0.8}>
+    <TouchableOpacity
+      style={styles.nestedCard}
+      activeOpacity={0.8}
+      onPress={() => router.push('/challenges')}
+    >
       <AppText style={styles.nestedTitle}>{challenge.title}</AppText>
       <AppText muted variant="bodySmall" style={styles.nestedDescription} numberOfLines={2}>
         {challenge.description}
@@ -221,8 +232,14 @@ function ChallengeCard({ challenge }: { challenge: Challenge }) {
 }
 
 function CampaignCard({ campaign }: { campaign: Campaign }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
-    <TouchableOpacity style={styles.nestedCard} activeOpacity={0.8}>
+    <TouchableOpacity
+      style={styles.nestedCard}
+      activeOpacity={0.8}
+      onPress={() => router.push('/campaigns')}
+    >
       <AppText style={styles.nestedTitle}>{campaign.title}</AppText>
       <AppText muted variant="bodySmall" style={styles.nestedDescription} numberOfLines={2}>
         {campaign.description}
@@ -249,6 +266,8 @@ function CampaignCard({ campaign }: { campaign: Campaign }) {
 }
 
 function FeedPostCard({ post }: { post: CommunityPost }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const authorName =
     post.author?.displayName || `${post.author?.firstName} ${post.author?.lastName}`;
 
@@ -283,113 +302,115 @@ function FeedPostCard({ post }: { post: CommunityPost }) {
   );
 }
 
-const styles = StyleSheet.create({
-  section: {
-    padding: spacing.lg,
-    marginBottom: spacing.md,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  impactStat: {
-    width: '50%',
-    marginBottom: spacing.md,
-  },
-  impactStatLabel: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-  impactStatValue: {
-    marginTop: spacing.xs,
-  },
-  totalsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: spacing.md,
-  },
-  itemList: {
-    gap: spacing.md,
-  },
-  nestedCard: {
-    backgroundColor: colors.surfaceElevated,
-    borderRadius: radius.sm,
-    padding: spacing.md,
-  },
-  nestedTitle: {
-    fontWeight: '600',
-  },
-  nestedDescription: {
-    marginTop: spacing.xs,
-  },
-  progressSection: {
-    marginTop: spacing.md,
-  },
-  progressLabels: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: spacing.xs,
-  },
-  iconRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    marginTop: spacing.sm,
-  },
-  tinyText: {
-    fontSize: 11,
-    lineHeight: 16,
-  },
-  tinyTextStrong: {
-    fontWeight: '600',
-  },
-  xpReward: {
-    fontWeight: '600',
-    color: colors.primary,
-  },
-  feedList: {
-    marginTop: spacing.md,
-    gap: spacing.md,
-  },
-  feedPost: {
-    paddingBottom: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderSubtle,
-  },
-  feedPostHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginBottom: spacing.sm,
-  },
-  avatarImage: {
-    width: 32,
-    height: 32,
-    borderRadius: radius.pill,
-  },
-  feedPostAuthor: {
-    flex: 1,
-  },
-  feedPostAuthorName: {
-    fontWeight: '600',
-  },
-  feedPostTitle: {
-    fontWeight: '600',
-  },
-  feedPostBody: {
-    marginTop: spacing.xs,
-  },
-  feedPostImage: {
-    width: '100%',
-    height: 192,
-    borderRadius: radius.sm,
-    marginTop: spacing.sm,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    section: {
+      padding: spacing.lg,
+      marginBottom: spacing.md,
+    },
+    sectionHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      marginBottom: spacing.md,
+    },
+    statsGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+    },
+    impactStat: {
+      width: '50%',
+      marginBottom: spacing.md,
+    },
+    impactStatLabel: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+    },
+    impactStatValue: {
+      marginTop: spacing.xs,
+    },
+    totalsRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginTop: spacing.md,
+    },
+    itemList: {
+      gap: spacing.md,
+    },
+    nestedCard: {
+      backgroundColor: colors.surfaceElevated,
+      borderRadius: radius.sm,
+      padding: spacing.md,
+    },
+    nestedTitle: {
+      fontWeight: '600',
+    },
+    nestedDescription: {
+      marginTop: spacing.xs,
+    },
+    progressSection: {
+      marginTop: spacing.md,
+    },
+    progressLabels: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: spacing.xs,
+    },
+    iconRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+      marginTop: spacing.sm,
+    },
+    tinyText: {
+      fontSize: 11,
+      lineHeight: 16,
+    },
+    tinyTextStrong: {
+      fontWeight: '600',
+    },
+    xpReward: {
+      fontWeight: '600',
+      color: colors.primary,
+    },
+    feedList: {
+      marginTop: spacing.md,
+      gap: spacing.md,
+    },
+    feedPost: {
+      paddingBottom: spacing.md,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderSubtle,
+    },
+    feedPostHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      marginBottom: spacing.sm,
+    },
+    avatarImage: {
+      width: 32,
+      height: 32,
+      borderRadius: radius.pill,
+    },
+    feedPostAuthor: {
+      flex: 1,
+    },
+    feedPostAuthorName: {
+      fontWeight: '600',
+    },
+    feedPostTitle: {
+      fontWeight: '600',
+    },
+    feedPostBody: {
+      marginTop: spacing.xs,
+    },
+    feedPostImage: {
+      width: '100%',
+      height: 192,
+      borderRadius: radius.sm,
+      marginTop: spacing.sm,
+    },
+  });
+}

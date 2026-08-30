@@ -1,5 +1,5 @@
 import { View, ActivityIndicator } from 'react-native';
-import { colors, spacing } from '../theme';
+import { spacing, useTheme } from '../theme';
 import { AppText } from './AppText';
 
 export interface LoadingStateProps {
@@ -7,6 +7,7 @@ export interface LoadingStateProps {
 }
 
 export function LoadingState({ message = 'Loading...' }: LoadingStateProps) {
+  const { colors } = useTheme();
   return (
     <View style={{ alignItems: 'center', paddingVertical: spacing.xl }}>
       <ActivityIndicator size="large" color={colors.secondary} />

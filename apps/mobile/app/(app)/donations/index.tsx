@@ -1,13 +1,15 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
 import { router } from 'expo-router';
 import { Droplet, Calendar, Building2, ChevronRight } from 'lucide-react-native';
 import { AppText, Card, EmptyState, GlassCard, Screen } from '../../../src/components';
 import { useMyDonations } from '../../../src/hooks/useDonations';
 import { type Donation } from '../../../src/api/donations';
-import { colors, spacing, radius } from '../../../src/theme';
+import { spacing, radius, useTheme, ThemeColors } from '../../../src/theme';
 
 export default function DonationsScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [filter, setFilter] = useState<'all' | 'completed' | 'cancelled'>('all');
 
   const { data, isLoading, refetch, isRefetching } = useMyDonations(
@@ -159,114 +161,116 @@ export default function DonationsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  header: {
-    marginBottom: spacing.lg,
-  },
-  filterTabs: {
-    flexDirection: 'row',
-    backgroundColor: colors.surface,
-    borderRadius: radius.sm,
-    padding: spacing.xs,
-    marginBottom: spacing.lg,
-  },
-  filterTab: {
-    flex: 1,
-    paddingVertical: spacing.sm,
-    alignItems: 'center',
-    borderRadius: radius.sm - 2,
-  },
-  filterTabActive: {
-    backgroundColor: colors.primary,
-  },
-  filterTabText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.textMuted,
-  },
-  filterTabTextActive: {
-    color: colors.white,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  loadingCard: {
-    paddingVertical: spacing.xl,
-    alignItems: 'center',
-  },
-  emptyCard: {
-    paddingVertical: spacing.xl,
-  },
-  donationsList: {
-    gap: spacing.md,
-    paddingBottom: spacing.xl,
-  },
-  donationCard: {
-    padding: spacing.lg,
-  },
-  donationHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-  },
-  donationType: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-  donationTypeText: {
-    fontSize: 15,
-    fontWeight: '600',
-    textTransform: 'capitalize',
-  },
-  statusBadge: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: radius.sm,
-  },
-  statusText: {
-    fontSize: 10,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  donationDetails: {
-    gap: spacing.xs,
-    marginBottom: spacing.md,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-  detailText: {
-    fontSize: 13,
-  },
-  donationFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  refLabel: {
-    fontSize: 10,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  refText: {
-    fontSize: 12,
-    fontWeight: '600',
-    letterSpacing: 0.5,
-  },
-  volumeBadge: {
-    backgroundColor: colors.primary + '20',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: radius.sm,
-  },
-  volumeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.primary,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    header: {
+      marginBottom: spacing.lg,
+    },
+    filterTabs: {
+      flexDirection: 'row',
+      backgroundColor: colors.surfaceSolid,
+      borderRadius: radius.sm,
+      padding: spacing.xs,
+      marginBottom: spacing.lg,
+    },
+    filterTab: {
+      flex: 1,
+      paddingVertical: spacing.sm,
+      alignItems: 'center',
+      borderRadius: radius.sm - 2,
+    },
+    filterTabActive: {
+      backgroundColor: colors.primary,
+    },
+    filterTabText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: colors.textMuted,
+    },
+    filterTabTextActive: {
+      color: colors.white,
+    },
+    scrollView: {
+      flex: 1,
+    },
+    loadingCard: {
+      paddingVertical: spacing.xl,
+      alignItems: 'center',
+    },
+    emptyCard: {
+      paddingVertical: spacing.xl,
+    },
+    donationsList: {
+      gap: spacing.md,
+      paddingBottom: spacing.xl,
+    },
+    donationCard: {
+      padding: spacing.lg,
+    },
+    donationHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: spacing.sm,
+    },
+    donationType: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+    },
+    donationTypeText: {
+      fontSize: 15,
+      fontWeight: '600',
+      textTransform: 'capitalize',
+    },
+    statusBadge: {
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
+      borderRadius: radius.sm,
+    },
+    statusText: {
+      fontSize: 10,
+      fontWeight: '600',
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
+    donationDetails: {
+      gap: spacing.xs,
+      marginBottom: spacing.md,
+    },
+    detailRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+    },
+    detailText: {
+      fontSize: 13,
+    },
+    donationFooter: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    refLabel: {
+      fontSize: 10,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
+    refText: {
+      fontSize: 12,
+      fontWeight: '600',
+      letterSpacing: 0.5,
+    },
+    volumeBadge: {
+      backgroundColor: colors.primaryMuted,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
+      borderRadius: radius.sm,
+    },
+    volumeText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: colors.primary,
+    },
+  });
+}

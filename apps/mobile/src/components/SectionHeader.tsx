@@ -1,7 +1,8 @@
 import { AppText } from './AppText';
-import { colors, spacing, typography } from '../theme';
+import { spacing, typography, useTheme } from '../theme';
 
 export function SectionHeader({ children }: { children: string }) {
+  const { colors } = useTheme();
   return (
     <AppText
       style={{

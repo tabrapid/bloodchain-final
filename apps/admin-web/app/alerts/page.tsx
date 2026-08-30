@@ -33,12 +33,12 @@ export default function AlertsPage() {
     load();
   }, []);
 
-  async function loadAlerts(page = 1) {
+  async function loadAlerts(page = 1, acknowledged = acknowledgedFilter) {
     try {
       const data = await listAlerts({
         page,
         limit: 50,
-        acknowledged: acknowledgedFilter || undefined,
+        acknowledged: acknowledged || undefined,
       });
       setAlerts(data.data);
       setMeta(data.meta);
@@ -81,7 +81,7 @@ export default function AlertsPage() {
               value={acknowledgedFilter}
               onChange={(e) => {
                 setAcknowledgedFilter(e.target.value);
-                loadAlerts(1);
+                loadAlerts(1, e.target.value);
               }}
               className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
             >

@@ -43,8 +43,11 @@ export class AINotificationService {
       data: {
         insightType,
         sourceId,
-        deepLink: '/insights',
       },
+      // `deepLink` must be a top-level field (see CreateNotificationDto) --
+      // nesting it inside `data` means the mobile app's notification tap
+      // handler, which reads `notification.deepLink`, never sees it.
+      deepLink: '/(app)/insights',
     });
 
     this.logger.log(`AI notification sent to user ${userId}: ${title}`);
@@ -60,8 +63,8 @@ export class AINotificationService {
         body: 'AI analysis is temporarily unavailable. Please try again later.',
         data: {
           insightType,
-          deepLink: '/insights',
         },
+        deepLink: '/(app)/insights',
       });
     }
   }

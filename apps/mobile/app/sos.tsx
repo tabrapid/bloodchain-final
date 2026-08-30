@@ -13,7 +13,7 @@ import {
 } from 'lucide-react-native';
 import { AppButton, AppText, Card, LoadingState, Screen } from '../src/components';
 import { LocationMap, type MapMarkerPoint } from '../src/components/map/LocationMap';
-import { colors, spacing } from '../src/theme';
+import { spacing, useTheme } from '../src/theme';
 import {
   acceptEmergency,
   arriveAtHospital,
@@ -35,6 +35,7 @@ const LOCATION_UPDATE_DISTANCE_M = 50;
 type EmergencyStatus = 'idle' | 'loading' | 'viewing' | 'responding' | 'en_route' | 'arrived' | 'error';
 
 export default function SosScreen() {
+  const { colors } = useTheme();
   const [status, setStatus] = useState<EmergencyStatus>('idle');
   const [emergencies, setEmergencies] = useState<EmergencyRequest[]>([]);
   const [myResponses, setMyResponses] = useState<EmergencyRequest[]>([]);
@@ -372,7 +373,7 @@ export default function SosScreen() {
         <Stack.Screen
           options={{
             title: 'Emergency SOS',
-            headerStyle: { backgroundColor: '#26191F' },
+            headerStyle: { backgroundColor: colors.dangerMuted },
             headerTintColor: colors.danger,
           }}
         />
@@ -387,7 +388,7 @@ export default function SosScreen() {
         <Stack.Screen
           options={{
             title: 'Emergency SOS',
-            headerStyle: { backgroundColor: '#26191F' },
+            headerStyle: { backgroundColor: colors.dangerMuted },
             headerTintColor: colors.danger,
           }}
         />
@@ -415,7 +416,7 @@ export default function SosScreen() {
         <Stack.Screen
           options={{
             title: 'Emergency Details',
-            headerStyle: { backgroundColor: '#26119F' },
+            headerStyle: { backgroundColor: colors.dangerMuted },
             headerTintColor: colors.danger,
             headerLeft: () => (
               <AppButton variant="ghost" onPress={() => setStatus('idle')}>
@@ -540,7 +541,7 @@ export default function SosScreen() {
         <Stack.Screen
           options={{
             title: 'Your Response',
-            headerStyle: { backgroundColor: '#26119F' },
+            headerStyle: { backgroundColor: colors.dangerMuted },
             headerTintColor: colors.danger,
             headerLeft: () => (
               <AppButton
@@ -691,7 +692,7 @@ export default function SosScreen() {
       <Stack.Screen
         options={{
           title: 'Emergency SOS',
-          headerStyle: { backgroundColor: '#26119F' },
+          headerStyle: { backgroundColor: colors.dangerMuted },
           headerTintColor: colors.danger,
         }}
       />

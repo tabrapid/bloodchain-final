@@ -57,3 +57,94 @@ describe('NotificationRouterService.routeShipmentNotification', () => {
     expect(notificationsService.create).toHaveBeenCalledWith(expect.objectContaining({ priority: 'HIGH' }));
   });
 });
+
+// The mobile app is the only consumer of `deepLink` (push-notification taps
+// and the in-app notification list both call `router.push(deepLink)`
+// directly). A deepLink that doesn't match a real mobile route silently
+// fails to navigate, so every value emitted here is pinned against the
+// actual route it must resolve to in apps/mobile/app.
+describe('NotificationRouterService deepLinks (must resolve to a real mobile route)', () => {
+  let service: NotificationRouterService;
+  let notificationsService: { create: jest.Mock };
+
+  beforeEach(async () => {
+    notificationsService = { create: jest.fn().mockResolvedValue({ id: 'notif-1' }) };
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        NotificationRouterService,
+        { provide: PrismaService, useValue: {} },
+        { provide: NotificationsService, useValue: notificationsService },
+      ],
+    }).compile();
+
+    service = module.get<NotificationRouterService>(NotificationRouterService);
+  });
+
+  async function deepLinkOf(fn: () => Promise<unknown>): Promise<string> {
+    await fn();
+    const call = notificationsService.create.mock.calls[notificationsService.create.mock.calls.length - 1][0];
+    return call.deepLink;
+  }
+
+  it('routes SOS notifications to /sos (sos.tsx has no per-request detail route)', async () => {
+    const deepLink = await deepLinkOf(() =>
+      service.routeSosNotification({ id: 'sos-1', bloodType: 'O_NEG' }, ['donor-1']),
+    );
+    expect(deepLink).toBe('/sos');
+  });
+
+  it('routes donation confirmations to the real donation detail route', async () => {
+    const deepLink = await deepLinkOf(() =>
+      service.routeDonationConfirmation({ id: 'don-1' }, 'donor-1'),
+    );
+    expect(deepLink).toBe('/(app)/donations/don-1');
+  });
+
+  it('routes appointment notifications to /(app)/appointment/:id, not the nonexistent /calendar/appointment/:id', async () => {
+    const deepLink = await deepLinkOf(() =>
+      service.routeAppointmentNotification({ id: 'appt-1', scheduledAt: new Date() }, ['donor-1'], 'created'),
+    );
+    expect(deepLink).toBe('/(app)/appointment/appt-1');
+  });
+
+  it('routes lab result notifications to the laboratory list (no per-result detail screen exists)', async () => {
+    const deepLink = await deepLinkOf(() =>
+      service.routeLabResultNotification({ id: 'lab-1' }, 'donor-1'),
+    );
+    expect(deepLink).toBe('/(app)/laboratory');
+  });
+
+  it('routes achievement notifications to the achievements list (no per-achievement detail screen exists)', async () => {
+    const deepLink = await deepLinkOf(() =>
+      service.routeAchievementNotification({ id: 'ach-1', name: 'First Donation' }, 'donor-1'),
+    );
+    expect(deepLink).toBe('/(app)/gamification/achievements');
+  });
+
+  it('routes level-up notifications to the fully-qualified donor profile (bare /profile collides with (courier)/profile)', async () => {
+    const deepLink = await deepLinkOf(() => service.routeLevelUpNotification('donor-1', 3));
+    expect(deepLink).toBe('/(app)/profile');
+  });
+
+  it('routes shipment notifications to the courier active-deliveries list (no per-shipment detail screen exists)', async () => {
+    const deepLink = await deepLinkOf(() =>
+      service.routeShipmentNotification({ id: 'shp-1' }, ['courier-1'], 'courier_assigned'),
+    );
+    expect(deepLink).toBe('/(courier)/active');
+  });
+
+  it('routes inventory alerts to home (the mobile app has no inventory screen)', async () => {
+    const deepLink = await deepLinkOf(() =>
+      service.routeInventoryAlert({ id: 'inv-1', bloodType: 'O_NEG' }, ['staff-1'], 'CRITICAL'),
+    );
+    expect(deepLink).toBe('/(app)/home');
+  });
+
+  it('routes security notifications to /(app)/security, not the nonexistent /profile/security', async () => {
+    const deepLink = await deepLinkOf(() =>
+      service.routeSecurityNotification('donor-1', 'PASSWORD_CHANGED', 'Your password was changed'),
+    );
+    expect(deepLink).toBe('/(app)/security');
+  });
+});

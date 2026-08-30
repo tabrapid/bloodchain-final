@@ -2,9 +2,10 @@ import { router } from 'expo-router';
 import { View } from 'react-native';
 import { Activity } from 'lucide-react-native';
 import { AppButton, AppText, Screen } from '../../src/components';
-import { colors, spacing, typography } from '../../src/theme';
+import { spacing, useTheme } from '../../src/theme';
 
 export default function Welcome() {
+  const { colors } = useTheme();
   return (
     <Screen>
       <View style={{ flex: 1, justifyContent: 'center' }}>
@@ -26,7 +27,14 @@ export default function Welcome() {
           DONOR gives you a clearer, more confident way to stay connected to your health journey.
         </AppText>
         <View style={{ marginTop: spacing['2xl'] }}>
-          <AppButton onPress={() => router.push('/(auth)/login')}>Continue</AppButton>
+          <AppButton onPress={() => router.push('/(auth)/login')}>Sign in</AppButton>
+          <AppButton
+            variant="ghost"
+            onPress={() => router.push('/(auth)/register')}
+            style={{ marginTop: spacing.md }}
+          >
+            Create an account
+          </AppButton>
         </View>
       </View>
     </Screen>

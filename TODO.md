@@ -847,6 +847,757 @@ These make the product unusable or unsafe for real users. Fix first, in order.
     `apps/mobile/.gitignore`, `apps/mobile/src/__tests__/root-index.spec.tsx`
     (new).
 
+- [x] **P0-19. `apiRequest` had no timeout — a request to an unreachable
+  API hung forever with no error, leaving the UI stuck on its loading
+  state permanently.** — Fixed. Found live, same device-testing session
+  as P0-18: after fixing the routing collision, the login screen reached
+  correctly but "Sign in" got stuck on "Signing in..." indefinitely with
+  no error message. Root cause wasn't app logic — `login.tsx`'s
+  `onSubmit` already has a correct `try/catch` that clears the pending
+  state and shows `serverError` on failure — it's that `apiRequestEnvelope`
+  called bare `fetch()` with no `AbortController`/timeout at all, so a
+  request to an unreachable host (wrong LAN IP, a firewall silently
+  dropping packets, a dead dev server) never resolves *or* rejects.
+  `login.isPending` stays `true` forever because the promise it's watching
+  never settles — there was no way for the UI to recover short of force-
+  quitting the app, and no signal telling the user *why*.
+
+  Added `fetchWithTimeout` to `mobile/src/api/client.ts`: races every
+  request against a 15s `AbortController` timeout, and — since a genuinely
+  unreachable host can also reject `fetch()` immediately with a
+  `TypeError` rather than hanging — catches that case too. Both now throw
+  a real, catchable `ApiRequestError` (`REQUEST_TIMEOUT` /
+  `NETWORK_ERROR`) instead of leaving the caller's promise unsettled,
+  which every existing call site already knows how to handle (they all
+  already catch `ApiRequestError` for server-side failures; this just
+  makes connectivity failures arrive the same way instead of never
+  arriving at all).
+
+  Verified via 2 new unit tests in `client.spec.ts`: one uses fake timers
+  and a mock `fetch` that only rejects when its `AbortSignal` actually
+  fires, advances 15s, and asserts the promise rejects with
+  `REQUEST_TIMEOUT` instead of hanging; the other mocks an immediate
+  `TypeError` (matching React Native's real "Network request failed") and
+  asserts `NETWORK_ERROR`. 8/8 `client.spec.ts` tests and 31/31 mobile
+  tests overall passing. `pnpm --filter @bloodchain/mobile typecheck`
+  clean.
+
+  Also added a show/hide toggle to the login screen's password field
+  (`Eye`/`EyeOff` from `lucide-react-native`, already a dependency) per
+  direct user request during the same testing session — unrelated to the
+  timeout fix, bundled here since it touches the same file.
+  - Files: `apps/mobile/src/api/client.ts`, `apps/mobile/src/api/client.spec.ts`,
+    `apps/mobile/app/(auth)/login.tsx`.
+
+- [x] **P0-20. First line-by-line audit pass: no path to Register, unwired
+  onboarding notification preferences, silent-error/stale-form-state bugs
+  on two profile screens, a duplicate `/notifications` route, and every
+  push-notification deep link except one pointed at a mobile route that
+  doesn't exist.** — Fixed, all found during the full-codebase audit
+  requested after P0-18/P0-19 ("check everything line by line, integration
+  included, until the app is 100% working").
+
+  **No way to create an account.** `welcome.tsx` only had a "Continue"
+  button to Login; nothing anywhere in the reachable navigation graph
+  pointed at `/(auth)/register`. A new user could never sign up from the
+  app. Added a "Create an account" button on the welcome screen and a
+  "Don't have an account? Create one" link on the login screen.
+
+  **Onboarding's notification step was pure UI theater.** The "Complete
+  Your Profile" wizard's Notifications step collected 4 toggle values
+  (`emergencyRequests`, `appointments`, `donationReminders`, `system`) that
+  were never sent anywhere — `handleFinish` only called the profile/donor
+  update mutations. Wired it to `useUpdateNotificationPreferences`, and
+  invalidated the `notification-preferences` query alongside the existing
+  profile/donor invalidations. Also removed a dead `promotional` field that
+  was tracked in state but never rendered as a toggle or read by any API
+  call.
+
+  **Silent error swallowing + stale initial form state**, the same two-bug
+  pattern found independently on `complete-profile.tsx`, `profile/edit.tsx`,
+  and `profile/donor.tsx`: (1) save/finish handlers caught failures with
+  only `console.error(...)`, so a failed save just silently stopped
+  spinning with zero explanation; (2) each screen's `useState` form
+  initializer read from a `useQuery` hook's data only once, at mount — a
+  screen reached before that query resolved showed permanently blank
+  fields even after the fetch completed, since nothing re-synced. Fixed by
+  adding an `ApiRequestError`-aware error state (shown near the submit
+  button) and a `useEffect` that re-syncs form state whenever the query
+  data changes, in all three screens.
+
+  **Duplicate route collision at `/notifications`, same bug class as
+  P0-18.** `app/notifications.tsx` (a dead placeholder stub — hardcoded
+  "No notifications" `EmptyState`, no data fetching) and
+  `app/(app)/notifications.tsx` (the real notification center) both strip
+  to the same `/notifications` URL, since Expo Router drops group-folder
+  names. Nothing in-app pushes the bare path (the one caller,
+  `profile.tsx`, already used the fully-qualified `/(app)/notifications`),
+  so this wasn't yet user-visible, but it was a live collision waiting for
+  the next caller — and dead code besides. Deleted the stub.
+
+  **Push-notification deep links were broken for almost every notification
+  type.** `notification.deepLink` is read by exactly two places in the
+  whole codebase, both in the mobile app only: the push-notification tap
+  handler (`usePushNotifications.ts`) and the in-app notification list
+  (`(app)/notifications.tsx`) — both call `router.push(deepLink)` directly.
+  Checked every `deepLink` the backend emits against the real mobile route
+  tree; all but two (`/donations/:id`, the level-up `/profile`) pointed at
+  routes that don't exist:
+  - SOS (`routeSosNotification` and the donor-accepted handler in
+    `notification-event.handler.ts`): `/sos/${id}` — `sos.tsx` has no
+    per-request detail route or `useLocalSearchParams` at all. → `/sos`.
+  - Appointments: `/calendar/appointment/${id}` — no such route exists
+    anywhere; the real screen is `(app)/appointment/[id].tsx`. →
+    `/(app)/appointment/${id}`.
+  - Lab results: `/health/tests/${id}` — no per-result detail screen
+    exists. → `/(app)/laboratory` (the results list).
+  - Achievements: `/profile/achievements/${id}` — no per-achievement
+    detail screen exists. → `/(app)/gamification/achievements`.
+  - Shipments: `/shipments/${id}` — the mobile app (couriers) has no
+    shipment detail screen, only `/active` and `/history`. →
+    `/(courier)/active`.
+  - Inventory alerts: `/inventory/${id}` — the mobile app has no inventory
+    concept at all (web-only feature); recipients are blood-center staff,
+    who don't have a mobile client. → `/(app)/home` as a harmless fallback
+    in case it's ever reached.
+  - Security: `/profile/security` — the real screen is the top-level
+    `(app)/security.tsx`, not nested under profile. → `/(app)/security`.
+  - Level-up and AI insights (`/profile`, `/insights`): technically valid
+    but ambiguous/inconsistent — `(app)/profile.tsx` and
+    `(courier)/profile.tsx` both strip to `/profile`, so an unqualified
+    path could resolve to either. Fully qualified both to `/(app)/profile`
+    and `/(app)/insights` to remove the ambiguity, matching the pattern
+    every other fix here now follows: always emit a group-qualified path
+    for anything inside a route group.
+  - AI insight notifications (`ai-notification.service.ts`) never had a
+    working deep link at all in either case: `deepLink` was nested inside
+    the `data: {...}` blob instead of passed as `CreateNotificationDto`'s
+    actual top-level `deepLink` field, so `notification.deepLink` was
+    always `undefined` on the client no matter what string was in there.
+    Moved both call sites to set the real top-level field.
+
+  Verified with 19 new/expanded tests in
+  `notification-router.service.spec.ts` (one per notification type,
+  asserting the exact `deepLink` string emitted) and 4 new tests in a new
+  `ai-notification.service.spec.ts` (asserting `deepLink` lands as a
+  top-level field, not under `data`, for both the insight-ready and
+  analysis-failed paths). `pnpm --filter @bloodchain/api test` (notifications
+  + ai-health: 100/100) and `pnpm --filter @bloodchain/mobile test` (31/31)
+  both green; `typecheck` clean on both `@bloodchain/api` and
+  `@bloodchain/mobile`.
+  - Files: `apps/mobile/app/(auth)/welcome.tsx`, `apps/mobile/app/(auth)/login.tsx`,
+    `apps/mobile/app/(auth)/register.tsx` (password show/hide toggle, same
+    pattern as P0-19's login fix), `apps/mobile/app/(onboarding)/complete-profile.tsx`,
+    `apps/mobile/app/(app)/profile/edit.tsx`, `apps/mobile/app/(app)/profile/donor.tsx`,
+    `apps/mobile/app/notifications.tsx` (deleted),
+    `apps/api/src/modules/notifications/services/notification-router.service.ts`,
+    `apps/api/src/modules/notifications/services/notification-router.service.spec.ts`,
+    `apps/api/src/modules/notifications/handlers/notification-event.handler.ts`,
+    `apps/api/src/modules/ai-health/ai-notification.service.ts`,
+    `apps/api/src/modules/ai-health/ai-notification.service.spec.ts` (new).
+
+- [x] **P0-21. Booking flow audit: "Reschedule" silently created a
+  duplicate appointment instead of rescheduling, and three of the five
+  booking screens went permanently blank/stuck with zero explanation on a
+  network error or an expired slot.** — Fixed, continuing the same
+  line-by-line audit as P0-20.
+
+  **"Reschedule" didn't reschedule.** `appointment/[id].tsx`'s
+  `handleReschedule` pushed into the full new-booking flow
+  (`select-type` → `organizations` → `date` → `time` → `review`) carrying a
+  `reschedule` param that nothing downstream ever read — every booking
+  screen's `router.push` calls only forwarded `organizationId`/`type`/
+  `date`/`slotId`, dropping it at the first hop. Meanwhile
+  `useRescheduleAppointment()` (which calls the real, already-correct
+  `POST /appointments/:id/reschedule` backend endpoint — ownership check,
+  RESCHEDULED-status handling, past-slot rejection, all already in place)
+  was instantiated in `appointment/[id].tsx` and never called. Net effect:
+  tapping "Reschedule" created a brand-new appointment and left the
+  original one untouched and still on the calendar — a silent duplicate
+  booking, not a reschedule.
+
+  Fixed by making `handleReschedule` skip straight to `/(booking)/date`
+  with the existing appointment's `organizationId`/`appointmentType`
+  pre-filled (no need to re-pick type or organization for a reschedule)
+  plus a `rescheduleAppointmentId` param, threaded through `date.tsx` →
+  `time.tsx` → `review.tsx`'s subsequent `router.push` calls. In
+  `review.tsx`, `handleConfirm` now branches: when
+  `rescheduleAppointmentId` is present it calls
+  `rescheduleMutation.mutateAsync({ id, input: { newSlotId } })` instead of
+  `bookMutation`, and the removed dead `rescheduleMutation` from
+  `appointment/[id].tsx` is now the one actually doing the work. Screen
+  titles/button labels ("Reschedule Appointment" / "Confirm Reschedule" /
+  "Appointment Rescheduled!") switch based on the same flag so the flow
+  doesn't claim to be creating a new booking when it isn't.
+
+  **Three booking screens had no error or not-found state at all.**
+  - `organizations.tsx` and `time.tsx`: destructured `isLoading` from their
+    `useQuery` hooks but never checked `isError` — a failed fetch (network
+    error, unreachable API) resolved `isLoading` to `false` with empty
+    data, which both screens rendered identically to "genuinely zero
+    results" (a misleading "No organizations found" / "No available
+    times" with no way to tell the difference or retry). Added an
+    `isError` branch with a real retry button calling `refetch()`.
+  - `date.tsx`: worse — `isLoading` was destructured but never referenced
+    anywhere in the component at all. While the availability query was in
+    flight (or had failed), the calendar rendered immediately with every
+    day looking permanently disabled/grayed-out, no loading indicator, no
+    error, nothing — this is the exact "app looks broken on open" failure
+    mode the user hit live on their device with this same screen before
+    P0-18/P0-19. Added a loading line and an `isError` + retry card above
+    the calendar.
+  - `review.tsx`: if either of its two independent queries (`slots` by
+    date, `organizations`) failed, or the specific `slotId`/`organizationId`
+    from the URL just wasn't in the result (e.g. someone else booked the
+    slot in the few seconds since it was selected), the screen's only
+    fallback was `if (!slot || !organization) return <AppText>Loading...</AppText>`
+    — permanently, with no back button, no retry, no way out short of a
+    hard app restart. Split into three real states: still loading, a load
+    error with retry, and "this slot is no longer available" with a way
+    back — all with a working Back button, which the stuck-forever branch
+    never had.
+
+  Verified via `pnpm --filter @bloodchain/mobile typecheck` (clean) and
+  the full mobile test suite (31/31, unchanged — no existing render-test
+  coverage exists for the booking screens to extend; these are static
+  analysis + logic-reading fixes verified by reading every call site,
+  matching the API's actual reschedule DTO shape
+  (`RescheduleAppointmentDto.newSlotId`) against the mobile client's
+  `RescheduleAppointmentInput`, and confirming no other screen still reads
+  the old dead `reschedule` param name).
+  - Files: `apps/mobile/app/(app)/appointment/[id].tsx`,
+    `apps/mobile/app/(booking)/date.tsx`, `apps/mobile/app/(booking)/time.tsx`,
+    `apps/mobile/app/(booking)/review.tsx`, `apps/mobile/app/(booking)/organizations.tsx`,
+    `apps/mobile/app/(booking)/confirmation.tsx`.
+
+- [x] **P0-22. Appointment cancellation reason box was decorative text, not
+  a real input — cancellations always sent `undefined` regardless of what
+  the user typed; two more "not found" dead ends and two more
+  error-swallowed-as-empty screens.** — Fixed, continuing the same audit
+  (donations, appointment detail, laboratory, health-trends).
+
+  **Cancellation reason field was fake.** `appointment/[id].tsx`'s
+  "Cancellation Reason" card, shown after tapping "Cancel Appointment",
+  rendered a `<View>` containing static `<AppText>` placeholder copy
+  ("Please provide a reason for cancellation (optional)...") — not a
+  `TextInput`. The `cancelReason` state it was meant to feed
+  (`useState('')`, sent as `reason: cancelReason.trim() || undefined` to
+  the cancel mutation) had no `setCancelReason` call anywhere in the file,
+  so it was permanently `''` no matter what a user believed they'd typed
+  — every cancellation silently discarded the reason. Replaced the fake
+  `View` with a real multiline `TextInput` bound to `cancelReason`/
+  `setCancelReason`.
+
+  **Two more "not found" dead ends**, same class as review.tsx's fix in
+  P0-21: `appointment/[id].tsx`'s `if (!appointment)` branch and
+  `donations/[id].tsx`'s `if (!donation)` branch both rendered a bare
+  "not found" message with no footer, no back button — a hard-restart-only
+  dead end if a deep link or stale list item pointed at an id that 404'd.
+  Both now render a working "Go Back" button.
+
+  **Fetch failures rendering identically to "genuinely nothing here"**,
+  same pattern as P0-20/P0-21's `isError`-less queries, but here on plain
+  `try/catch` state instead of React Query: `laboratory/index.tsx` and
+  `health-trends/index.tsx` both `console.error`'d a failed fetch and left
+  their state arrays empty, which both screens then rendered exactly like
+  "you have no lab tests / no health trends yet" — indistinguishable from
+  a real empty state, with no way to tell it actually failed.
+  `health-trends/index.tsx` was the worse of the two: its empty/error
+  branch returns before the `ScrollView`+`RefreshControl` even mounts, so
+  on a fetch failure there was no pull-to-refresh either — a fully static
+  dead screen. Added a `loadError` flag to both, with distinct copy and
+  (since health-trends has no `RefreshControl` in that branch) an explicit
+  Retry button that re-runs `loadSummary()`.
+
+  Verified via `pnpm --filter @bloodchain/mobile typecheck` (clean) and
+  the full mobile test suite (31/31, unchanged — no existing render-test
+  coverage for these screens).
+  - Files: `apps/mobile/app/(app)/appointment/[id].tsx`,
+    `apps/mobile/app/(app)/donations/[id].tsx`,
+    `apps/mobile/app/(app)/laboratory/index.tsx`,
+    `apps/mobile/app/(app)/health-trends/index.tsx`.
+
+- [x] **P0-23. Community feed's challenge/campaign cards were dead taps
+  (`TouchableOpacity` with no `onPress` at all), and join/start/complete
+  actions across campaigns, challenges, and education silently swallowed
+  failures with zero user feedback.** — Fixed, continuing the same audit
+  (gamification, community, campaigns, challenges, education).
+
+  **Dead taps in the community feed.** `community/index.tsx`'s
+  `ChallengeCard` and `CampaignCard` (the compact cards shown in the
+  "Active Challenges" / "Active Campaigns" sections of the feed) were both
+  wrapped in a `TouchableOpacity` with `activeOpacity={0.8}` — visually
+  signaling they're tappable — but neither passed an `onPress` prop.
+  Tapping either did nothing. There's no per-item detail route for either
+  (`challenges/index.tsx` and `campaigns/index.tsx` are flat lists with
+  the full card, including the Join button, inline — no `[id].tsx`), so
+  the correct fix is routing to those list screens rather than inventing
+  a detail route that doesn't exist: both cards now navigate to
+  `/challenges` and `/campaigns` respectively.
+
+  **Join/start/complete actions had no error path.** `campaigns/index.tsx`,
+  `challenges/index.tsx`, and `education/index.tsx` each drive a
+  `useMutation` (`joinCampaign` / `joinChallenge` / `startContent` /
+  `completeContent`) with an `onSuccess` that invalidates the relevant
+  queries — but no `onError` at all. A failure (network error, a campaign
+  that expired between page load and tap, the backend's "must start before
+  completing" rule if progress state goes stale) just silently stopped the
+  button's spinner with nothing shown — same silent-failure pattern as
+  P0-20 through P0-22, just on `useMutation`'s `onError` instead of a bare
+  `try/catch`. Added an error state to all three screens, surfaced in a
+  card above the list, cleared on the next successful action.
+
+  (Checked whether "Join Campaign" needed an already-joined guard, since
+  `Campaign` has no `hasJoined`/participation field for the client to key
+  off of: the backend's `joinCampaign` is idempotent — a second join just
+  returns the existing `CampaignParticipant` row, no conflict thrown — so
+  this is a UI polish gap, not a functional bug, and out of scope here.)
+
+  Verified via `pnpm --filter @bloodchain/mobile typecheck` (clean) and
+  the mobile test suite, now 33/33: added 2 tests to the existing
+  `community-screens.spec.tsx` asserting the challenge/campaign card taps
+  call `router.push('/challenges')` / `router.push('/campaigns')`
+  (via `tree.root.findAll` over the component-instance tree, since
+  `onPress` is a prop `TouchableOpacity` consumes internally and never
+  reaches the host node in `tree.toJSON()` — the file's other assertions
+  walk the JSON tree, which doesn't see it), plus a mock for `expo-router`
+  that the suite didn't previously need (`community/index.tsx` didn't
+  import it before this fix).
+  - Files: `apps/mobile/app/(app)/community/index.tsx`,
+    `apps/mobile/app/(app)/campaigns/index.tsx`,
+    `apps/mobile/app/(app)/challenges/index.tsx`,
+    `apps/mobile/app/(app)/education/index.tsx`,
+    `apps/mobile/src/__tests__/community-screens.spec.tsx`.
+
+- [x] **P0-24. A second dead, unreachable stub screen (`app/settings.tsx`,
+  same class as P0-20's `notifications.tsx`); the SOS emergency-response
+  header was the wrong color on 3 of its 5 screens from a digit
+  transposition typo; security.tsx's password fields lacked the show/hide
+  toggle every other password field in the app now has.** — Fixed,
+  continuing the audit (notifications, security, privacy, sos.tsx,
+  settings).
+
+  **Dead stub screen, unreachable from anywhere.** `app/settings.tsx`
+  (top-level, not `(app)/settings.tsx`) was a placeholder — two `Card`s of
+  static text ("Theme, language, and notification preferences will be
+  configurable here" / "Manage consent for location sharing and data
+  visibility") with zero interactive elements. No route anywhere in the
+  app pushes `/settings`; `profile.tsx`'s real "Account" section already
+  covers everything it stubbed out with working links to Personal
+  Information, Donor Profile, Notifications, Privacy, and Security.
+  Unlike P0-20's `notifications.tsx` stub, this one didn't collide with
+  another route (nothing else claims `/settings`), so it was inert rather
+  than a routing hazard — but still confirmed-orphaned dead code
+  superseded by a real screen. Deleted.
+
+  (`notifications.tsx`, `security.tsx`, and `privacy.tsx` were all
+  otherwise fine: `notifications.tsx`'s deep-link handling now benefits
+  from P0-20's fixes, and `privacy.tsx`'s all-`onPress`-less rows were
+  already a deliberate, previously-documented call in P0-16 — no backend
+  support exists for any of those settings, so `ListItem` already renders
+  them as inert instead of falsely implying they're tappable. Confirmed
+  both still hold; no changes needed to either beyond `security.tsx`'s
+  fixes below.)
+
+  **Header color typo across most of the SOS flow.** `sos.tsx` sets a dark
+  maroon header background (`#26191F`, matching the app's emergency-red
+  theme used elsewhere, e.g. `home.tsx`'s SOS card) on its loading and
+  error states — but a transposed-digit typo, `#26119F` (a jarring
+  blue-purple, nothing else in the app uses it), on the other 3 of 5
+  states: viewing an emergency's details, actively responding/en
+  route/arrived, and the default emergency list. A donor tapping into an
+  active emergency response — the single highest-stakes screen in the
+  app — saw the header color change to something visually unrelated to
+  the emergency theme partway through the flow. Fixed all 3 to match.
+
+  **`security.tsx`'s 3 password fields had no show/hide toggle**, the one
+  screen in the app that didn't get this after P0-19 added it to login and
+  P0-20 added it to register. Added the same `Eye`/`EyeOff` pattern to
+  Current/New/Confirm Password.
+
+  Verified via `pnpm --filter @bloodchain/mobile typecheck` (clean) and
+  the full mobile test suite (33/33, unchanged — no existing render-test
+  coverage for these screens).
+  - Files: `apps/mobile/app/settings.tsx` (deleted),
+    `apps/mobile/app/sos.tsx`, `apps/mobile/app/(app)/security.tsx`.
+
+- [x] **P0-25. Courier's own profile screen spun on "Loading..." forever
+  on any fetch failure, with no error and no way out; active.tsx and
+  history.tsx had the same error-swallowed-as-empty gap already fixed
+  elsewhere this session.** — Fixed, closing out the audit's screen sweep
+  (courier: active, history, profile).
+
+  **`(courier)/profile.tsx` was a genuine, permanent dead end.** Its
+  guard was `if (isLoading || !profile) return <LoadingState />`. Once the
+  initial fetch settles, `isLoading` is always `false` — but if
+  `getCourierProfile()` failed, the `catch` block only `console.error`'d,
+  so `profile` stayed `null` forever, and `!profile` kept the condition
+  true. The screen never leaves the loading spinner: no error message, no
+  retry, no way for a working courier to reach their own availability
+  toggle short of a hard app restart — and if the underlying failure is
+  systemic (backend down, bad auth), a restart doesn't fix it either. This
+  is the same "stuck forever" class as P0-21's `review.tsx` fix, just with
+  a spinner standing in for the earlier bare "Loading..." text. Split the
+  guard into a real loading branch and a separate not-found/error branch
+  with a Retry button.
+
+  **`active.tsx` and `history.tsx`**: both `console.error`'d a failed
+  fetch and left their list/shipment state at its initial empty value,
+  which both screens then rendered identically to "you have no active
+  delivery" / "no delivery history yet" — the same error-indistinguishable-
+  from-empty pattern fixed in `laboratory/index.tsx` and
+  `health-trends/index.tsx` under P0-22. Added a `loadError` flag to both,
+  with distinct copy and an explicit Retry button (both already had
+  `RefreshControl`, but a courier mid-delivery reading "No active
+  delivery" when the real answer is "the request failed" is exactly the
+  wrong message to give someone who needs to know whether they're still
+  on the hook for a shipment).
+
+  Verified via `pnpm --filter @bloodchain/mobile typecheck` (clean) and
+  the full mobile test suite (33/33, unchanged — no existing render-test
+  coverage for the courier screens).
+  - Files: `apps/mobile/app/(courier)/active.tsx`,
+    `apps/mobile/app/(courier)/history.tsx`,
+    `apps/mobile/app/(courier)/profile.tsx`.
+
+- [x] **P0-26. A session that died mid-use (expired or revoked refresh
+  token) left the user permanently stuck on whatever screen they were on,
+  seeing generic "request failed" errors forever, with no path back to
+  login.** — Fixed. Specifically checked for this while auditing whether
+  the protected `(app)`/`(courier)` route groups have any auth guard
+  beyond the cold-start redirect.
+
+  Confirmed neither `(app)/_layout.tsx` nor `(courier)/_layout.tsx` (both
+  plain `Tabs` navigators, no auth logic at all) nor anything else re-
+  checks auth once mounted — the *only* place session validity is ever
+  checked is `app/index.tsx`'s cold-start redirect (P0-18) and
+  `useAuthBootstrap`'s one-time effect on app launch. Neither runs again
+  once the user is inside the app.
+
+  Then found the actual failure path: `apiRequestEnvelope` in
+  `api/client.ts` already handled a 401 correctly up to a point — it
+  tries `refreshAccessToken()`, and on failure calls
+  `deleteAccessToken()`/`deleteRefreshToken()` to wipe the now-invalid
+  tokens from storage. But nothing else in the app watches SecureStore.
+  The Zustand `useAuthStore`'s `isAuthenticated`/`user` state — the only
+  thing any screen actually reads to decide what to show — was never
+  touched, so it stayed exactly as it was before the session died. Every
+  subsequent request from any screen would 401, fail to refresh again
+  (already-deleted tokens), and throw the same generic `ApiRequestError`
+  the screen's existing `catch` block shows as an ordinary error message
+  — with no indication the real problem is "you're not logged in anymore"
+  and no way to get back to login short of a manual app restart followed
+  by, if the restart made it far enough for `app/index.tsx` to actually
+  run its redirect, landing back at login (a device left open on a
+  protected screen wouldn't even get that, since nothing in that flow
+  re-runs while the app stays foregrounded).
+
+  Fixed by making the refresh-failure branch also call
+  `useAuthStore.getState().clearAuth()` and `router.replace('/(auth)/login')`
+  directly from `client.ts` — the one place that actually observes the
+  failure as it happens, regardless of which screen triggered it. Confirmed
+  safe against `client.ts`'s existing `skipAuth` convention: every
+  unauthenticated call (login, register, refresh itself, etc.) already
+  passes `skipAuth: true`, so this branch can only ever fire for a call
+  that was genuinely relying on a stored session, never during an
+  unauthenticated flow. Checked for a circular-import risk from `client.ts`
+  now importing the Zustand store (`auth.store.ts` in turn imports a
+  *type* from `api/auth.ts`, which imports `client.ts`) — that edge is
+  `import type`, erased at compile time, so no runtime cycle.
+
+  Verified via a new test in `client.spec.ts`: seeds the store as
+  authenticated, mocks the original request and the refresh attempt both
+  returning 401, and asserts `isAuthenticated`/`user` are cleared and
+  `router.replace('/(auth)/login')` was called. Required mocking
+  `expo-router` in that spec file (same issue as P0-23's fix to
+  `community-screens.spec.tsx`: the real package isn't transformable by
+  this project's jest config). `pnpm --filter @bloodchain/mobile typecheck`
+  clean; mobile tests now 34/34.
+  - Files: `apps/mobile/src/api/client.ts`, `apps/mobile/src/api/client.spec.ts`.
+
+- [x] **P0-27. A `FAILED` shipment (a courier reported a problem
+  mid-delivery) had zero recovery action anywhere in blood-center-web —
+  no button, of any kind, except cancelling the whole shipment outright —
+  even though the backend already fully supports retrying it with a new
+  courier.** — Fixed, closing out the audit's final task: re-checking the
+  web apps' shipment/courier workflows this session's mobile fixes and
+  P0-17's backend fix both touch.
+
+  **Environment note**: this remote session has no Docker daemon and no
+  local Postgres, so the live Playwright verification this task's earlier
+  entries describe (real browser, real dev API, real seeded data) wasn't
+  possible here — `docker compose ps` fails immediately
+  (`JWT_ACCESS_SECRET is missing a value`), there's no `.env`, and no
+  `postgres`/`pg_ctl` binary on the machine. Substituted a full static
+  audit instead: read every blood-center-web/admin-web page that calls a
+  P0-17-touched shipment/courier route end to end against the actual
+  current backend service code (transitions, guards, what each endpoint
+  actually does), the same rigor as a live check, just without a running
+  browser to click through. This finding is exactly the kind a live click-
+  through would have caught immediately (an operator would hit a shipment
+  stuck at FAILED status with nothing to press) — worth flagging clearly
+  since the depth of verification here differs from earlier entries.
+
+  **The actual finding**: `shipments/[id]/page.tsx`'s only courier-related
+  action button is gated by `canAssignCourier = status === 'CREATED' ||
+  status === 'COURIER_DECLINED'`. `FAILED` is a real, reachable status —
+  the mobile courier app's `active.tsx` has a working "Report a Problem"
+  flow that calls `failShipment`, which the backend accepts and correctly
+  releases the old courier back to `AVAILABLE`. But nothing in
+  `ShipmentStateMachine`'s transition map is checked against the page's
+  own gate: the map lists `FAILED` right alongside `CREATED`/
+  `COURIER_DECLINED` as a valid source for the `COURIER_ASSIGNED`
+  transition (`assignCourier` and `reassignCourier` both call the exact
+  same `assertTransition(status, COURIER_ASSIGNED)` internally), so the
+  backend was always willing to let an operator retry a failed shipment
+  — the frontend just never offered the button. A `reassignShipment`
+  client function already existed in `lib/shipments.ts`, already correctly
+  typed and already imported into this exact page — genuinely dead code,
+  never called from anywhere.
+
+  Extended `canAssignCourier` to include `FAILED`, and branched
+  `handleAssignCourier` to call `reassignShipment` (not `assignCourier`)
+  when the shipment's current status is `FAILED`: `reassignCourier`
+  additionally records `previousCourierId` on the shipment event and logs
+  a distinct `SHIPMENT_REASSIGNED` audit action instead of the generic
+  `SHIPMENT_COURIER_ASSIGNED`, which matters for the operational history
+  of a shipment that failed once already — `assignCourier` would work
+  functionally (the old courier is already freed by the time `FAILED` is
+  reached) but would silently lose that context. Relabeled the button and
+  modal copy to "Reassign Courier" for this case so the UI doesn't claim
+  to be doing a first assignment when it isn't.
+
+  Also checked `admin-web`'s shipments page (list-only, no detail route,
+  no action buttons at all — filtering `FAILED` correctly but nothing to
+  fix there) and blood-center-web's `couriers/page.tsx` (read-only roster,
+  already correctly consuming the hand-wrapped `getCourierRoster`, no
+  issues) and confirmed hospital-web's `confirmDelivery` (destination-side,
+  distinct from blood-center-web's unused `confirmDeliveryFull`) is
+  correctly wired — left `confirmDeliveryFull` alone since it's unused
+  dead code with no evidence of what UI flow it was meant for, not a
+  regression from anything touched this session.
+
+  Verified via `pnpm --filter @bloodchain/blood-center-web typecheck`
+  (clean) and its full test suite (24/24, unchanged — no existing
+  component-level test harness for Next.js pages in this app to extend,
+  only for `lib/*.ts` API client functions, which weren't touched).
+  - Files: `apps/blood-center-web/app/shipments/[id]/page.tsx`.
+
+- [x] **P0-28. The entire AI Health Insights feature and the entire Health
+  Trends feature were completely non-functional for every user, always —
+  every single API call in `ai-health.ts` and `health-trends.ts`
+  double-unwrapped an already-unwrapped response, silently resolving to
+  `undefined` on every call.** — Fixed. Found continuing the sweep past
+  the original 9 planned tasks, auditing the mobile screens that hadn't
+  been read yet (`calendar.tsx`, `donate.tsx`, `insights/index.tsx`) —
+  reading `insights/index.tsx` led straight into this.
+
+  **The bug, mechanically**: `apiRequest<T>` (in `api/client.ts`) already
+  strips exactly one `{ data: ... }` envelope and resolves to `T` — this
+  is the single, consistent contract every other client file in the app
+  follows (confirmed as far back as P0-12/13/14/15/17 this session, and
+  it's literally what `client.spec.ts`'s very first test exists to pin
+  down). But every function in `ai-health.ts` (9 of them) and
+  `health-trends.ts` (5 of them) called `apiRequest<{ data: T }>(url)` and
+  then returned `response.data` — asking `apiRequest` to strip a second
+  layer that was never there. At runtime, `response` was already the real
+  `T` (an insight, a trend summary, an array — none of which have a
+  `.data` field), so `response.data` was `undefined` on literally every
+  successful call, unconditionally, for every user, since whenever these
+  files were written.
+
+  **Why nothing caught it for so long**: the two files failed in
+  different, equally silent ways.
+  - `ai-health.ts`'s callers (`insights/index.tsx`'s
+    `handleExplainLatest`/`handleGenerateTrendInsight`/
+    `handleGenerateQuestions`/`handleChat`) each immediately read a field
+    off the `undefined` result (`insight.title`, `response.message.insight`)
+    inside a `try` block, which threw and landed in the existing `catch`,
+    showing "Insights are temporarily unavailable." — a message that reads
+    as a plausible, ordinary backend hiccup. Every single tap of "Analyze
+    My Results," "Summarize Trends," "Questions to Discuss," or sending a
+    chat message failed this way, always, with no way to tell it was a
+    client bug rather than a real outage.
+  - `health-trends.ts`'s callers (`health-trends/index.tsx`,
+    `health.tsx`) never even threw: `setSummary(undefined)` and
+    `setAvailableParams(undefined)` are perfectly legal `useState` calls
+    (React doesn't validate against the declared generic at runtime), and
+    the screens' own empty-state guard is `if (!summary || ...)` —
+    `!undefined` short-circuits to `true` before `availableParams.length`
+    is ever evaluated, so the screen quietly rendered "No health trends
+    yet," identical to a real empty state, for every user regardless of
+    whether they actually had lab results. P0-22 earlier this session
+    added a `loadError` distinction to this exact screen for a different
+    reason (a genuine fetch failure looking like empty data) — that fix
+    is still correct and necessary, but it couldn't have caught this,
+    since this failure mode never throws at all; the promise always
+    resolves, just to the wrong value.
+
+  Fixed by removing the fabricated intermediate envelope type and letting
+  `apiRequest<T>` return `T` directly, matching every other client file's
+  actual pattern in the codebase — the fix is mechanical and identical
+  across all 14 functions. Checked every other file under
+  `apps/mobile/src/api/` for the same shape
+  (`apiRequest(Envelope)?<\{\s*data`) and confirmed these were the only
+  two; the two legitimate remaining `.data` accesses in `courier.ts` and
+  `donations.ts` are on `apiRequestEnvelope`'s actual `{ data, meta }`
+  return value (the meta-preserving variant, correct by design, unrelated
+  to this bug).
+
+  Also fixed a second, independent bug found while reading
+  `insights/index.tsx` for this: `handleChat`'s `chatResponse` state was
+  set on every chat reply but never rendered anywhere in the JSX — a
+  plain conversational answer with no attached structured insight (the
+  common case) vanished into state with nothing shown to the user, even
+  once the double-unwrap fix made the underlying call actually succeed.
+  Added a response block under the chat input that renders
+  `chatResponse.message.content`.
+
+  Verified with 13 new tests (`ai-health.spec.ts`, new; `health-trends.spec.ts`,
+  new) mocking a correctly single-enveloped `{ data: ... }` fetch response
+  for every one of the 14 fixed functions and asserting the resolved
+  value is the real payload, not `undefined` — these tests would have
+  failed against the pre-fix code (every one of them would have asserted
+  `undefined` equals the expected payload and failed). `pnpm --filter
+  @bloodchain/mobile typecheck` clean; mobile tests now 47/47 (34 + 13
+  new).
+  - Files: `apps/mobile/src/api/ai-health.ts`,
+    `apps/mobile/src/api/ai-health.spec.ts` (new),
+    `apps/mobile/src/api/health-trends.ts`,
+    `apps/mobile/src/api/health-trends.spec.ts` (new),
+    `apps/mobile/app/(app)/insights/index.tsx`.
+
+- [x] **P0-29. Confirming Arrival / Completing Donation on a hospital's
+  Emergency page always acted on whichever donor response happened to be
+  first in the array, not the one that actually reached that status —
+  wrong donor's response could be confirmed when multiple people
+  responded to the same SOS request.** — Fixed, continuing the sweep into
+  the web apps' remaining pages (hospital-web fully audited: dashboard,
+  emergency, requests list/detail/new, shipments list/detail, analytics,
+  register).
+
+  `emergency.responses` can hold multiple donor responses to one SOS
+  request (each with its own `status`: `ACCEPTED`/`EN_ROUTE`/`ARRIVED`/
+  `DONATION_STARTED`/etc.) — the emergency's own aggregate `status` field
+  reflects whichever response is currently furthest along, but
+  `emergency/page.tsx`'s "Confirm Arrival" and "Complete Donation" buttons
+  both grabbed `emergency.responses[0]` unconditionally — whichever donor
+  happened to respond first, regardless of whether *that* response was
+  the one that actually reached `ARRIVED` or `DONATION_STARTED`. With more
+  than one responder (a realistic scenario for a CRITICAL request that
+  matches several compatible donors), confirming arrival could act on a
+  response that never arrived at all, while the one that did remains
+  unconfirmed. Fixed both to find the response whose own `status` field
+  actually matches (`responses.find(r => r.status === 'ARRIVED')` /
+  `'DONATION_STARTED'`), instead of trusting array order.
+
+  Also fixed the dashboard's (`app/page.tsx`) "No emergency requests...
+  will appear here when the emergency module is enabled" — stale copy
+  claiming a feature doesn't exist when it does: the sidebar already has
+  a working "Emergency" link to `/emergency`, confirmed live in P0-16/17
+  this session. Replaced with an honest link to the real page.
+
+  The rest of hospital-web checked clean: requests list/detail/new,
+  shipments list/detail, analytics, and register all correctly wired,
+  no dead buttons, no stale envelope handling.
+
+  Verified via `pnpm --filter @bloodchain/hospital-web typecheck` (clean)
+  and its full test suite (19/19, unchanged — no existing component-level
+  test harness for these Next.js pages to extend).
+  - Files: `apps/hospital-web/app/emergency/page.tsx`,
+    `apps/hospital-web/app/page.tsx`.
+
+- [x] **P0-30. `inventory/page.tsx` shipped a one-click "Sign in as Blood
+  Center Admin" button with the seeded admin password hardcoded directly
+  in client-side JavaScript — anyone who loaded the page, signed in or
+  not, could become a Blood Center Admin with a single click, no
+  credentials needed. Plus the same stale "module not enabled" dashboard
+  copy as hospital-web's P0-29.** — Fixed, continuing the web app sweep
+  into blood-center-web (dashboard, requests list/detail, shipments —
+  already covered by P0-27 — inventory, laboratory, appointments,
+  analytics, register all checked).
+
+  **The credential bypass**: `inventory/page.tsx`'s `!user` branch, unlike
+  every other page in the app (`page.tsx`'s real email/password form,
+  every other page's plain "please sign in" message with no button at
+  all), rendered a "Sign in as Blood Center Admin" button whose
+  `onClick` called `login('blood.center.admin@donor.local',
+  'DevelopmentOnly!123')` — the seeded dev account's actual email and
+  password, typed directly into the page's source, shipping to every
+  browser that loads the bundle. Reaching `/inventory` without a session
+  didn't ask for credentials at all; it handed out admin access in one
+  click. This is exactly the kind of thing that's easy to miss in a dev
+  environment (it "just works" for testing) and catastrophic if it ever
+  reaches a real deployment with the seed password unchanged. Removed the
+  button, the `handleLogin`/`handleLogout` functions it was the only
+  caller of (now genuinely dead), and the unused `login`/`logout` imports
+  — replaced with the same credential-free "Sign In Required" message
+  every other page already uses correctly. Grepped every `.ts`/`.tsx`
+  file across all three web apps for the seeded credentials string and
+  confirmed this was the only occurrence.
+
+  **The stale dashboard copy**: same pattern as P0-29 — `app/page.tsx`'s
+  "No hospital requests... will appear here when the transfer module is
+  enabled" claimed a feature didn't exist when `/requests` is a fully
+  built, working page already linked in the sidebar; the "WORKSPACE" panel
+  similarly claimed "Inventory, donor, and shipment modules are
+  intentionally staged for future implementation" when Inventory,
+  Laboratory, Shipments, and Couriers are all real, working, already-
+  linked pages. Both replaced with copy that reflects what's actually
+  there.
+
+  Verified via `pnpm --filter @bloodchain/blood-center-web typecheck`
+  (clean) and its full test suite (24/24, unchanged — no existing
+  component-level test harness for these Next.js pages to extend).
+  - Files: `apps/blood-center-web/app/inventory/page.tsx`,
+    `apps/blood-center-web/app/page.tsx`.
+
+- [x] **P0-31. Two stale-closure bugs where a filter/period `<select>`'s
+  `onChange` called its data-reload function in the same tick as the
+  `setState` that was supposed to change what it loads — reading the
+  *previous* selection instead of the one just picked.** — Fixed, closing
+  out the full web-app sweep (admin-web: dashboard, organizations, users,
+  roles, emergencies, alerts, inventory, moderation, ai-analytics, audit,
+  health, settings, shipments, couriers all checked).
+
+  Both bugs share one root cause: `setState` in React doesn't apply
+  before the current event handler finishes, so a function defined in
+  this render still closes over the *old* value even after `setState` is
+  called earlier in the same handler.
+
+  - `alerts/page.tsx`: the "Acknowledged" filter's `onChange` called
+    `setAcknowledgedFilter(e.target.value)` immediately followed by
+    `loadAlerts(1)` — but `loadAlerts` read `acknowledgedFilter` from the
+    render's closure, which was still the *previous* selection. Picking
+    "Active" fetched with whatever was selected before; the just-picked
+    value only took effect on the *next* change. Every other filtered
+    list page in the app avoids this by pairing filters with an explicit
+    submit button, so the fetch happens in a fresh event after the state
+    update has already committed — `alerts/page.tsx` was the one page
+    that reloaded inline instead.
+  - `ai-analytics/page.tsx`: the date-range `<select>` only called
+    `setDays(...)` with no reload at all — worse than the alerts bug, not
+    off-by-one but entirely stale until the separate "Refresh" button was
+    clicked, with nothing indicating the currently-displayed metrics
+    didn't match the selected period.
+
+  Fixed both the same way: `loadAlerts`/`loadData` now accept the
+  filter/period value as an explicit parameter (defaulting to the current
+  state value for existing callers like the initial mount and
+  pagination), and the `onChange` handlers pass `e.target.value` directly
+  instead of relying on state to have already updated.
+
+  The rest of admin-web checked clean: dashboard, organizations, users,
+  roles, emergencies, inventory, moderation, audit, health, settings,
+  shipments, and couriers all correctly wired, no dead buttons, no
+  double-unwrap, no other stale-closure reloads.
+
+  Verified via `pnpm --filter @bloodchain/admin-web typecheck` (clean)
+  and its full test suite (14/14, unchanged — no existing component-level
+  test harness for these Next.js pages to extend).
+  - Files: `apps/admin-web/app/alerts/page.tsx`,
+    `apps/admin-web/app/ai-analytics/page.tsx`.
+
 - [x] P0-32: Mobile app launched to a screen that was roughly half-covered by
   a stuck loading spinner, with a broken tab bar showing ~19 tiny unlabeled
   squares instead of the 6 real tabs — live screenshot from the user.
@@ -966,6 +1717,119 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   implementation instead.
   - Files: `apps/api/src/modules/users/users.controller.ts`,
     `apps/api/src/modules/users/users.controller.spec.ts` (new).
+
+- [x] P0-34: Mobile app's entire visual design was hardcoded to a single
+  flat dark palette with no light-mode support and no real glass/blur
+  treatment anywhere — a full "Apple Liquid Glass" redesign with working
+  light and dark themes, requested directly by the user with a reference
+  mockup.
+  — Fixed: this is a large, cross-cutting change touching the theme
+  system, every shared UI component, both tab bars, and all ~40 screens.
+  Summary of the work:
+
+  **New theme system** (`src/theme.tsx`, replacing the old static
+  `src/theme.ts`): defines a light and a dark color palette that share
+  the same brand accent hues (primary/secondary/ai/success/warning/
+  danger — unchanged, since they already read cleanly on both a
+  near-black and a near-white background) but differ on every surface
+  token — background, backgroundGradient (a soft two-stop wash instead
+  of a flat color, matching the reference mockup's ambient gradient),
+  surface/surfaceElevated/surfaceHighlight (translucent, for real glass
+  cards), surfaceSolid/surfaceSolidElevated (opaque, for text inputs and
+  non-blur fallbacks), text/textMuted, border/borderSubtle, and a full
+  set of *Muted tint tokens per accent color for badges. A `ThemeProvider`
+  wraps the app, resolving the active scheme from `useColorScheme()`
+  (so both light and dark work automatically, following the system
+  setting the way Apple's own apps do) with a manual override capability
+  already wired in (`setPreference('light' | 'dark' | 'system')`,
+  persisted via `expo-secure-store`) for a future in-app toggle. A
+  `useTheme()` hook exposes `{ colors, scheme, isDark, setPreference }`
+  to every component. `spacing`/`typography` are unchanged; `radius` was
+  softened slightly (`md` 16→18, `lg` 24→26, `xl` 32→34) for a rounder,
+  more "liquid" look that applies everywhere automatically.
+
+  **Real glass components**: `GlassCard` now wraps its content in a real
+  `expo-blur` `BlurView` on iOS (native `UIVisualEffectView` blur) with a
+  theme-correct tint and a soft shadow; Android renders the same
+  translucent tinted surface without the native blur layer, since
+  `expo-blur`'s Android blur path is still marked experimental upstream
+  (perf/rendering issues warned in its own type definitions) and
+  unverifiable without a physical device in this environment — rather
+  than ship an untested rendering path, Android gets the reliable
+  translucent-tint fallback. `Screen` now paints its background with the
+  ambient `backgroundGradient` via `expo-linear-gradient` instead of a
+  flat color. `Modal` got the same iOS blur treatment. `Card` got a
+  proper elevation shadow (subtle in light mode, stronger in dark).
+
+  **New glass tab bar** (`src/components/GlassTabBar.tsx`): replaces
+  React Navigation's default flat bar entirely via the `tabBar` render
+  prop (added `@react-navigation/bottom-tabs` as a direct dependency —
+  it already existed transitively through `expo-router` at the exact
+  same version, `7.18.17`, confirmed in the lockfile, so this resolved
+  from the local pnpm store with no network access needed). Icon-only
+  (no labels, matching the reference image), with a colored pill
+  backdrop behind the focused icon, a blurred/tinted rounded container,
+  and a soft shadow. Deliberately docked (not `position: absolute`) so
+  scroll content never needs manual bottom-inset padding to avoid being
+  hidden behind a floating bar — it still reads as a rounded, inset
+  "glass pill" without the overlap risk. Used by both `(app)/_layout.tsx`
+  (6 tabs) and `(courier)/_layout.tsx` (3 tabs).
+
+  **All ~40 screens migrated** from the old static `import { colors } from
+  '../../src/theme'` to `useTheme()`. Where a screen had a module-scope
+  `StyleSheet.create({...})` referencing colors (which can't be reactive,
+  since it's evaluated once at import time), it was converted to a
+  `createStyles(colors: ThemeColors)` function called inside the
+  component via `useMemo(() => createStyles(colors), [colors])`; helper
+  components declared outside the main component (e.g. `ChallengeCard`,
+  `CampaignCard`, `FeedPostCard` in the community screens) each call
+  `useTheme()` independently since they don't have access to the parent's
+  closure. Also swept for and fixed hardcoded hex literals that bypassed
+  the theme entirely and would have stayed dark-only in light mode —
+  `#26191F`/`#111A24`/`#1a1f2e` gradient pairs (profile, home screens),
+  `#5B3038` danger borders (home, donate screens), `#080D14` transition
+  backdrops (booking/onboarding layout screenOptions). Text input
+  backgrounds specifically use `colors.surfaceSolid` rather than the
+  translucent `colors.surface`, since a glass-tinted input field would be
+  illegible against the app's own background, especially on Android with
+  no blur. Genuinely theme-invariant accent literals (urgency-level
+  colors in the SOS screen, badge-rarity colors in gamification) were
+  left as-is, matching the same reasoning as the brand accent colors.
+
+  **Tests**: `src/components/GlassTabBar.spec.tsx` (new, 4 tests) drives
+  the real component with fake React Navigation props and asserts it
+  renders exactly one button per route handed to it (regression coverage
+  for the exact class of bug P0-32 was — a navigator silently showing
+  more tabs than intended), and that tapping an unfocused vs. focused tab
+  fires navigation correctly. `src/__tests__/community-screens.spec.tsx`
+  needed updates: added a `useColorScheme` mock pinning the resolved
+  theme to dark so its existing assertions against the static dark
+  `colors` export stay meaningful regardless of the test environment's
+  own system scheme (which resolved to light by default, unrelated to
+  the app) — jest-expo's `useColorScheme` default isn't something the
+  app controls; and the `colors.background` hex-string assertion was
+  replaced with `colors.text`/`colors.border`, since `Screen`'s
+  background now paints via a `LinearGradient` `colors` prop, which
+  React Native serializes to processed native color integers rather than
+  the original hex string, so it can no longer be substring-matched.
+
+  Live visual verification was not possible in this environment (no
+  simulator, no device, no rendering capability of any kind for React
+  Native) — every claim about how this looks is inference from the
+  properties passed to real native APIs (`BlurView`, `LinearGradient`),
+  not a screenshot. Verified via `pnpm --filter mobile typecheck`
+  (clean) and `pnpm --filter mobile test` (7/7 suites, 53/53 tests) plus
+  a full `pnpm -r typecheck` and `pnpm -r test` across all 10 workspace
+  projects (all clean, including the unrelated apps unaffected by this
+  change) to confirm nothing else regressed.
+  - Files: `apps/mobile/src/theme.tsx` (new, replaces `src/theme.ts`),
+    `apps/mobile/src/components/*.tsx` (all ~20, including 2 new:
+    `GlassTabBar.tsx`, `GlassTabBar.spec.tsx`), `apps/mobile/app/_layout.tsx`,
+    `apps/mobile/app/(app)/_layout.tsx`, `apps/mobile/app/(courier)/_layout.tsx`,
+    `apps/mobile/app/(booking)/_layout.tsx`, `apps/mobile/app/(onboarding)/_layout.tsx`,
+    all ~40 screen files under `apps/mobile/app/`,
+    `apps/mobile/src/__tests__/community-screens.spec.tsx`,
+    `apps/mobile/package.json`, `pnpm-lock.yaml`.
 
 ## 🟠 P1 — Major gaps (feature exists but disconnected, or missing entirely)
 

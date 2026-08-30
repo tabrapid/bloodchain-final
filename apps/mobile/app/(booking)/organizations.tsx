@@ -1,13 +1,22 @@
+import { useMemo } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
 import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { MapPin, Building2 } from 'lucide-react-native';
 import { AppButton, AppText, Card, EmptyState, GlassCard, Screen } from '../../src/components';
 import { useOrganizations } from '../../src/hooks/useAppointments';
-import { colors, spacing, radius } from '../../src/theme';
+import { spacing, useTheme, ThemeColors } from '../../src/theme';
 
 export default function SelectOrganization() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const params = useLocalSearchParams<{ type: string }>();
-  const { data: organizations = [], isLoading } = useOrganizations(params.type ? { type: params.type } : undefined);
+  const {
+    data: organizations = [],
+    isLoading,
+    isError,
+    refetch,
+    isRefetching,
+  } = useOrganizations(params.type ? { type: params.type } : undefined);
 
   const handleSelect = (organizationId: string) => {
     router.push({
@@ -31,6 +40,21 @@ export default function SelectOrganization() {
 
         {isLoading ? (
           <AppText muted>Loading organizations...</AppText>
+        ) : isError ? (
+          <Card style={styles.emptyCard}>
+            <EmptyState
+              title="Couldn't load organizations"
+              description="Something went wrong reaching the server. Check your connection and try again."
+            />
+            <AppButton
+              variant="secondary"
+              onPress={() => refetch()}
+              disabled={isRefetching}
+              style={styles.retryButton}
+            >
+              {isRefetching ? 'Retrying...' : 'Retry'}
+            </AppButton>
+          </Card>
         ) : organizations.length === 0 ? (
           <Card style={styles.emptyCard}>
             <EmptyState
@@ -90,49 +114,55 @@ export default function SelectOrganization() {
   );
 }
 
-const styles = StyleSheet.create({
-  content: {
-    paddingBottom: spacing.xl,
-  },
-  title: {
-    marginBottom: spacing.xs,
-  },
-  subtitle: {
-    marginBottom: spacing.xl,
-  },
-  emptyCard: {
-    paddingVertical: spacing.xl,
-  },
-  organizationsList: {
-    gap: spacing.md,
-  },
-  orgCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: spacing.lg,
-  },
-  iconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing.md,
-  },
-  orgInfo: {
-    flex: 1,
-  },
-  addressRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginTop: 4,
-  },
-  address: {
-    fontSize: 13,
-    flex: 1,
-  },
-  footer: {
-    paddingTop: spacing.lg,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    content: {
+      paddingBottom: spacing.xl,
+    },
+    title: {
+      marginBottom: spacing.xs,
+    },
+    subtitle: {
+      marginBottom: spacing.xl,
+    },
+    emptyCard: {
+      paddingVertical: spacing.xl,
+    },
+    retryButton: {
+      marginTop: spacing.md,
+      alignSelf: 'center',
+    },
+    organizationsList: {
+      gap: spacing.md,
+    },
+    orgCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: spacing.lg,
+    },
+    iconContainer: {
+      width: 48,
+      height: 48,
+      borderRadius: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: spacing.md,
+    },
+    orgInfo: {
+      flex: 1,
+    },
+    addressRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      marginTop: 4,
+    },
+    address: {
+      fontSize: 13,
+      flex: 1,
+    },
+    footer: {
+      paddingTop: spacing.lg,
+    },
+  });
+}

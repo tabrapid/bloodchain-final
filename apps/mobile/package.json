@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@babel/runtime": "^8.0.0",
+    "@react-navigation/bottom-tabs": "7.18.17",
     "@bloodchain/config": "workspace:*",
     "@bloodchain/types": "workspace:*",
     "@bloodchain/utils": "workspace:*",

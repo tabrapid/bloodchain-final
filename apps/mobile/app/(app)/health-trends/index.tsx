@@ -12,8 +12,8 @@ import {
   FlaskConical,
 } from 'lucide-react-native';
 import { LineChart } from 'react-native-chart-kit';
-import { AppText, Card, GlassCard, LoadingState, Screen, SectionHeader, StatCard } from '../../../src/components';
-import { colors, spacing } from '../../../src/theme';
+import { AppButton, AppText, Card, GlassCard, LoadingState, Screen, SectionHeader, StatCard } from '../../../src/components';
+import { spacing, useTheme } from '../../../src/theme';
 import {
   getTrendSummary,
   getAvailableParameters,
@@ -37,8 +37,10 @@ const TIME_RANGE_LABELS: Record<string, string> = {
 const screenWidth = Dimensions.get('window').width;
 
 export default function HealthTrendsScreen() {
+  const { colors } = useTheme();
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const [summary, setSummary] = useState<Awaited<ReturnType<typeof getTrendSummary>> | null>(null);
   const [availableParams, setAvailableParams] = useState<AvailableParameter[]>([]);
   const [selectedParam, setSelectedParam] = useState<string | null>(null);
@@ -58,8 +60,10 @@ export default function HealthTrendsScreen() {
       if (params.length > 0 && !selectedParam && params[0]) {
         setSelectedParam(params[0].code);
       }
+      setLoadError(false);
     } catch (err) {
       console.error('Failed to load trend summary:', err);
+      setLoadError(true);
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -153,9 +157,9 @@ export default function HealthTrendsScreen() {
     : null;
 
   const chartOptions = {
-    backgroundColor: colors.surface,
-    backgroundGradientFrom: colors.surface,
-    backgroundGradientTo: colors.surface,
+    backgroundColor: colors.surfaceSolid,
+    backgroundGradientFrom: colors.surfaceSolid,
+    backgroundGradientTo: colors.surfaceSolid,
     decimalPlaces: 1,
     color: () => colors.primary,
     labelColor: () => colors.textMuted,
@@ -185,11 +189,25 @@ export default function HealthTrendsScreen() {
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: spacing.xl }}>
           <FlaskConical size={64} color={colors.textMuted} />
           <AppText variant="heading" style={{ marginTop: spacing.lg, textAlign: 'center' }}>
-            No health trends yet
+            {loadError ? "Couldn't load health trends" : 'No health trends yet'}
           </AppText>
           <AppText muted style={{ marginTop: spacing.sm, textAlign: 'center' }}>
-            Complete a blood test to start tracking your results over time.
+            {loadError
+              ? 'Something went wrong reaching the server. Check your connection and try again.'
+              : 'Complete a blood test to start tracking your results over time.'}
           </AppText>
+          {loadError && (
+            <AppButton
+              variant="secondary"
+              onPress={() => {
+                setIsLoading(true);
+                loadSummary();
+              }}
+              style={{ marginTop: spacing.lg }}
+            >
+              Retry
+            </AppButton>
+          )}
         </View>
       </Screen>
     );

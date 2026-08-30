@@ -1,12 +1,11 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   withTiming,
   useSharedValue,
-  withSpring,
 } from 'react-native-reanimated';
-import { colors, spacing, radius } from '../../theme';
+import { spacing, useTheme, ThemeColors } from '../../theme';
 import { AppText } from '../../components/AppText';
 
 interface XpProgressBarProps {
@@ -22,6 +21,8 @@ export function XpProgressBar({
   progress,
   size = 'medium',
 }: XpProgressBarProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const animatedWidth = useSharedValue(0);
 
   React.useEffect(() => {
@@ -60,20 +61,22 @@ export function XpProgressBar({
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    width: '100%',
-  },
-  track: {
-    backgroundColor: colors.surfaceHighlight,
-    overflow: 'hidden',
-  },
-  fill: {
-    backgroundColor: colors.primary,
-  },
-  labelContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: spacing.xs,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: {
+      width: '100%',
+    },
+    track: {
+      backgroundColor: colors.surfaceHighlight,
+      overflow: 'hidden',
+    },
+    fill: {
+      backgroundColor: colors.primary,
+    },
+    labelContainer: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginTop: spacing.xs,
+    },
+  });
+}

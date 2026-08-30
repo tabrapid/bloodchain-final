@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import { View, StyleSheet, FlatList, TouchableOpacity, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { AppButton, AppText, Card, Screen, EmptyState, LoadingState } from '../../src/components';
@@ -8,7 +8,7 @@ import {
   useMarkAllNotificationsAsRead,
   useMarkNotificationAsRead,
 } from '../../src/hooks/useNotifications';
-import { colors, spacing, radius } from '../../src/theme';
+import { spacing, radius, useTheme, ThemeColors } from '../../src/theme';
 import type { Notification, NotificationType } from '../../src/api/notifications';
 
 const TYPE_ICONS: Record<NotificationType, string> = {
@@ -25,19 +25,21 @@ const TYPE_ICONS: Record<NotificationType, string> = {
   SYSTEM: 'settings',
 };
 
-const TYPE_COLORS: Record<NotificationType, string> = {
-  EMERGENCY: colors.danger,
-  DONATION: colors.primary,
-  APPOINTMENT: colors.secondary,
-  LABORATORY: colors.secondary,
-  AI: colors.ai,
-  GAMIFICATION: colors.ai,
-  BLOOD_REQUEST: colors.danger,
-  SHIPMENT: colors.secondary,
-  INVENTORY: colors.warning,
-  SECURITY: colors.warning,
-  SYSTEM: colors.textMuted,
-};
+function getTypeColors(colors: ThemeColors): Record<NotificationType, string> {
+  return {
+    EMERGENCY: colors.danger,
+    DONATION: colors.primary,
+    APPOINTMENT: colors.secondary,
+    LABORATORY: colors.secondary,
+    AI: colors.ai,
+    GAMIFICATION: colors.ai,
+    BLOOD_REQUEST: colors.danger,
+    SHIPMENT: colors.secondary,
+    INVENTORY: colors.warning,
+    SECURITY: colors.warning,
+    SYSTEM: colors.textMuted,
+  };
+}
 
 interface NotificationItemProps {
   notification: Notification;
@@ -46,8 +48,10 @@ interface NotificationItemProps {
 }
 
 function NotificationItem({ notification, onPress, onMarkRead }: NotificationItemProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const isUnread = !notification.readAt;
-  const typeColor = TYPE_COLORS[notification.type] || colors.textMuted;
+  const typeColor = getTypeColors(colors)[notification.type] || colors.textMuted;
   const timeAgo = formatTimeAgo(new Date(notification.createdAt));
 
   return (
@@ -95,6 +99,8 @@ function formatTimeAgo(date: Date): string {
 }
 
 export default function NotificationsCenter() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'all' | 'unread' | NotificationType>('all');
   const [refreshing, setRefreshing] = useState(false);
@@ -195,112 +201,114 @@ export default function NotificationsCenter() {
   );
 }
 
-const styles = StyleSheet.create({
-  listContent: {
-    paddingBottom: spacing['2xl'],
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  tabs: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  tab: {
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.sm,
-  },
-  activeTab: {
-    borderBottomWidth: 2,
-    borderBottomColor: colors.primary,
-  },
-  tabText: {
-    fontSize: 14,
-  },
-  activeTabText: {
-    color: colors.primary,
-  },
-  notificationCard: {
-    marginHorizontal: spacing.md,
-    marginTop: spacing.sm,
-    padding: spacing.md,
-  },
-  unreadCard: {
-    backgroundColor: colors.surfaceHighlight,
-    borderLeftWidth: 3,
-    borderLeftColor: colors.primary,
-  },
-  notificationHeader: {
-    flexDirection: 'row',
-  },
-  typeIndicator: {
-    width: 4,
-    borderRadius: 2,
-    marginRight: spacing.sm,
-  },
-  notificationContent: {
-    flex: 1,
-  },
-  notificationTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-  notificationTitle: {
-    flex: 1,
-    fontSize: 15,
-  },
-  unreadDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: colors.primary,
-  },
-  notificationBody: {
-    fontSize: 14,
-    marginTop: 2,
-    lineHeight: 20,
-  },
-  notificationMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: spacing.xs,
-    gap: spacing.sm,
-  },
-  timeAgo: {
-    fontSize: 12,
-  },
-  priorityBadge: {
-    backgroundColor: colors.danger,
-    paddingHorizontal: spacing.xs,
-    paddingVertical: 2,
-    borderRadius: radius.sm,
-  },
-  priorityText: {
-    fontSize: 10,
-    color: colors.white,
-    fontWeight: '600',
-  },
-  toggleItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderSubtle,
-  },
-  toggleText: {
-    flex: 1,
-    marginRight: spacing.md,
-  },
-  toggleDescription: {
-    fontSize: 13,
-    marginTop: 2,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    listContent: {
+      paddingBottom: spacing['2xl'],
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    tabs: {
+      flexDirection: 'row',
+      gap: spacing.sm,
+    },
+    tab: {
+      paddingVertical: spacing.xs,
+      paddingHorizontal: spacing.sm,
+    },
+    activeTab: {
+      borderBottomWidth: 2,
+      borderBottomColor: colors.primary,
+    },
+    tabText: {
+      fontSize: 14,
+    },
+    activeTabText: {
+      color: colors.primary,
+    },
+    notificationCard: {
+      marginHorizontal: spacing.md,
+      marginTop: spacing.sm,
+      padding: spacing.md,
+    },
+    unreadCard: {
+      backgroundColor: colors.surfaceHighlight,
+      borderLeftWidth: 3,
+      borderLeftColor: colors.primary,
+    },
+    notificationHeader: {
+      flexDirection: 'row',
+    },
+    typeIndicator: {
+      width: 4,
+      borderRadius: 2,
+      marginRight: spacing.sm,
+    },
+    notificationContent: {
+      flex: 1,
+    },
+    notificationTitleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+    },
+    notificationTitle: {
+      flex: 1,
+      fontSize: 15,
+    },
+    unreadDot: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      backgroundColor: colors.primary,
+    },
+    notificationBody: {
+      fontSize: 14,
+      marginTop: 2,
+      lineHeight: 20,
+    },
+    notificationMeta: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: spacing.xs,
+      gap: spacing.sm,
+    },
+    timeAgo: {
+      fontSize: 12,
+    },
+    priorityBadge: {
+      backgroundColor: colors.danger,
+      paddingHorizontal: spacing.xs,
+      paddingVertical: 2,
+      borderRadius: radius.sm,
+    },
+    priorityText: {
+      fontSize: 10,
+      color: colors.white,
+      fontWeight: '600',
+    },
+    toggleItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: spacing.md,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderSubtle,
+    },
+    toggleText: {
+      flex: 1,
+      marginRight: spacing.md,
+    },
+    toggleDescription: {
+      fontSize: 13,
+      marginTop: 2,
+    },
+  });
+}

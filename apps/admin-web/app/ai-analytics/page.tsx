@@ -33,11 +33,11 @@ export default function AIAnalyticsPage() {
     load();
   }, []);
 
-  async function loadData() {
+  async function loadData(rangeDays = days) {
     try {
       const [analyticsData, insightData] = await Promise.all([
-        getAIPatformAnalytics(days),
-        getAIInsightStats(days),
+        getAIPatformAnalytics(rangeDays),
+        getAIInsightStats(rangeDays),
       ]);
       setAnalytics(analyticsData);
       setInsightStats(insightData);
@@ -81,7 +81,11 @@ export default function AIAnalyticsPage() {
           <div className="flex items-center gap-3">
             <select
               value={days}
-              onChange={(e) => setDays(Number(e.target.value))}
+              onChange={(e) => {
+                const value = Number(e.target.value);
+                setDays(value);
+                loadData(value);
+              }}
               className="bg-gray-100 text-gray-700 px-3 py-2 rounded-lg text-sm font-medium"
             >
               <option value={7}>Last 7 days</option>

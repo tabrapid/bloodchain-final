@@ -1,8 +1,9 @@
-import { useState } from 'react';
-import { View, TextInput, StyleSheet, ScrollView, Alert } from 'react-native';
+import { useMemo, useState } from 'react';
+import { View, TextInput, StyleSheet, ScrollView, Alert, Pressable } from 'react-native';
 import { router } from 'expo-router';
+import { Eye, EyeOff } from 'lucide-react-native';
 import { AppButton, AppText, Card, Screen, SectionHeader, ListItem, Divider } from '../../src/components';
-import { colors, spacing, radius } from '../../src/theme';
+import { spacing, radius, useTheme, ThemeColors } from '../../src/theme';
 import { useRevokeAllSessions } from '../../src/hooks/useSessions';
 import { useLogout } from '../../src/hooks/useAuth';
 import { clearAuthTokens } from '../../src/auth/storage';
@@ -11,6 +12,8 @@ import { apiRequest, ApiRequestError } from '../../src/api/client';
 import { apiBasePath } from '../../src/api/config';
 
 export default function Security() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const logout = useLogout();
   const revokeAllSessions = useRevokeAllSessions();
   const clearAuth = useAuthStore((s) => s.clearAuth);
@@ -19,6 +22,9 @@ export default function Security() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleChangePassword = async () => {
     if (newPassword !== confirmPassword) {
@@ -84,26 +90,52 @@ export default function Security() {
         <Card>
           <View style={styles.field}>
             <AppText muted style={styles.label}>Current Password</AppText>
-            <TextInput
-              style={styles.input}
-              placeholder="Enter current password"
-              placeholderTextColor={colors.textMuted}
-              secureTextEntry
-              value={currentPassword}
-              onChangeText={setCurrentPassword}
-            />
+            <View>
+              <TextInput
+                style={[styles.input, styles.inputWithToggle]}
+                placeholder="Enter current password"
+                placeholderTextColor={colors.textMuted}
+                secureTextEntry={!showCurrentPassword}
+                value={currentPassword}
+                onChangeText={setCurrentPassword}
+              />
+              <Pressable
+                onPress={() => setShowCurrentPassword((v) => !v)}
+                style={styles.toggleButton}
+                hitSlop={8}
+              >
+                {showCurrentPassword ? (
+                  <EyeOff size={20} color={colors.textMuted} />
+                ) : (
+                  <Eye size={20} color={colors.textMuted} />
+                )}
+              </Pressable>
+            </View>
           </View>
 
           <View style={styles.field}>
             <AppText muted style={styles.label}>New Password</AppText>
-            <TextInput
-              style={styles.input}
-              placeholder="Enter new password"
-              placeholderTextColor={colors.textMuted}
-              secureTextEntry
-              value={newPassword}
-              onChangeText={setNewPassword}
-            />
+            <View>
+              <TextInput
+                style={[styles.input, styles.inputWithToggle]}
+                placeholder="Enter new password"
+                placeholderTextColor={colors.textMuted}
+                secureTextEntry={!showNewPassword}
+                value={newPassword}
+                onChangeText={setNewPassword}
+              />
+              <Pressable
+                onPress={() => setShowNewPassword((v) => !v)}
+                style={styles.toggleButton}
+                hitSlop={8}
+              >
+                {showNewPassword ? (
+                  <EyeOff size={20} color={colors.textMuted} />
+                ) : (
+                  <Eye size={20} color={colors.textMuted} />
+                )}
+              </Pressable>
+            </View>
             <AppText muted style={styles.hint}>
               Must be at least 12 characters
             </AppText>
@@ -111,14 +143,27 @@ export default function Security() {
 
           <View style={styles.field}>
             <AppText muted style={styles.label}>Confirm New Password</AppText>
-            <TextInput
-              style={styles.input}
-              placeholder="Confirm new password"
-              placeholderTextColor={colors.textMuted}
-              secureTextEntry
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-            />
+            <View>
+              <TextInput
+                style={[styles.input, styles.inputWithToggle]}
+                placeholder="Confirm new password"
+                placeholderTextColor={colors.textMuted}
+                secureTextEntry={!showConfirmPassword}
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+              />
+              <Pressable
+                onPress={() => setShowConfirmPassword((v) => !v)}
+                style={styles.toggleButton}
+                hitSlop={8}
+              >
+                {showConfirmPassword ? (
+                  <EyeOff size={20} color={colors.textMuted} />
+                ) : (
+                  <Eye size={20} color={colors.textMuted} />
+                )}
+              </Pressable>
+            </View>
           </View>
 
           <AppButton
@@ -159,36 +204,48 @@ export default function Security() {
   );
 }
 
-const styles = StyleSheet.create({
-  content: {
-    paddingBottom: spacing['2xl'],
-  },
-  field: {
-    marginBottom: spacing.lg,
-  },
-  label: {
-    fontSize: 13,
-    marginBottom: spacing.xs,
-  },
-  input: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: radius.sm,
-    padding: spacing.md,
-    color: colors.text,
-    fontSize: 16,
-  },
-  hint: {
-    fontSize: 12,
-    marginTop: spacing.xs,
-  },
-  changePasswordButton: {
-    marginTop: spacing.sm,
-  },
-  statusItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    content: {
+      paddingBottom: spacing['2xl'],
+    },
+    field: {
+      marginBottom: spacing.lg,
+    },
+    label: {
+      fontSize: 13,
+      marginBottom: spacing.xs,
+    },
+    input: {
+      backgroundColor: colors.surfaceSolid,
+      borderColor: colors.border,
+      borderWidth: 1,
+      borderRadius: radius.sm,
+      padding: spacing.md,
+      color: colors.text,
+      fontSize: 16,
+    },
+    inputWithToggle: {
+      paddingRight: 48,
+    },
+    toggleButton: {
+      position: 'absolute',
+      right: 14,
+      top: 0,
+      bottom: 0,
+      justifyContent: 'center',
+    },
+    hint: {
+      fontSize: 12,
+      marginTop: spacing.xs,
+    },
+    changePasswordButton: {
+      marginTop: spacing.sm,
+    },
+    statusItem: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+  });
+}

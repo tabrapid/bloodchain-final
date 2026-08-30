@@ -4,7 +4,7 @@ import { useLeaderboard, useUserRank } from '../../../../src/hooks/useGamificati
 import { Screen, GlassCard } from '../../../../src/components';
 import { AppText } from '../../../../src/components/AppText';
 import { LeaderboardItem } from '../../../../src/components/gamification/LeaderboardItem';
-import { colors, spacing, radius } from '../../../../src/theme';
+import { spacing, radius, useTheme, ThemeColors } from '../../../../src/theme';
 
 type TimeRange = 'ALL_TIME' | 'THIS_YEAR' | 'THIS_MONTH';
 
@@ -15,6 +15,8 @@ const timeRangeOptions: { label: string; value: TimeRange }[] = [
 ];
 
 export default function LeaderboardScreen() {
+  const { colors } = useTheme();
+  const styles = React.useMemo(() => createStyles(colors), [colors]);
   const [timeRange, setTimeRange] = React.useState<TimeRange>('ALL_TIME');
   const [currentPage, setCurrentPage] = React.useState(1);
 
@@ -151,75 +153,77 @@ export default function LeaderboardScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  header: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.md,
-  },
-  timeRangeContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: spacing.lg,
-    marginBottom: spacing.lg,
-  },
-  timeRangeButton: {
-    flex: 1,
-    paddingVertical: spacing.sm,
-    alignItems: 'center',
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
-  },
-  timeRangeButtonActive: {
-    borderBottomColor: colors.primary,
-  },
-  yourRankCard: {
-    marginHorizontal: spacing.lg,
-    marginBottom: spacing.lg,
-  },
-  yourRankContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  rankRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-  },
-  totalUsers: {
-    marginLeft: spacing.sm,
-  },
-  yourRankStats: {
-    flexDirection: 'row',
-    gap: spacing.lg,
-  },
-  yourRankStat: {
-    alignItems: 'flex-end',
-  },
-  leaderboardList: {
-    paddingHorizontal: spacing.lg,
-  },
-  emptyCard: {
-    padding: spacing.xl,
-    alignItems: 'center',
-  },
-  emptyText: {
-    textAlign: 'center',
-  },
-  loadMoreButton: {
-    marginHorizontal: spacing.lg,
-    marginTop: spacing.lg,
-    padding: spacing.md,
-    alignItems: 'center',
-  },
-  bottomPadding: {
-    height: spacing.xl,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    header: {
+      paddingHorizontal: spacing.lg,
+      paddingTop: spacing.lg,
+      paddingBottom: spacing.md,
+    },
+    timeRangeContainer: {
+      flexDirection: 'row',
+      paddingHorizontal: spacing.lg,
+      marginBottom: spacing.lg,
+    },
+    timeRangeButton: {
+      flex: 1,
+      paddingVertical: spacing.sm,
+      alignItems: 'center',
+      borderBottomWidth: 2,
+      borderBottomColor: 'transparent',
+    },
+    timeRangeButtonActive: {
+      borderBottomColor: colors.primary,
+    },
+    yourRankCard: {
+      marginHorizontal: spacing.lg,
+      marginBottom: spacing.lg,
+    },
+    yourRankContent: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    rankRow: {
+      flexDirection: 'row',
+      alignItems: 'baseline',
+    },
+    totalUsers: {
+      marginLeft: spacing.sm,
+    },
+    yourRankStats: {
+      flexDirection: 'row',
+      gap: spacing.lg,
+    },
+    yourRankStat: {
+      alignItems: 'flex-end',
+    },
+    leaderboardList: {
+      paddingHorizontal: spacing.lg,
+    },
+    emptyCard: {
+      padding: spacing.xl,
+      alignItems: 'center',
+    },
+    emptyText: {
+      textAlign: 'center',
+    },
+    loadMoreButton: {
+      marginHorizontal: spacing.lg,
+      marginTop: spacing.lg,
+      padding: spacing.md,
+      alignItems: 'center',
+    },
+    bottomPadding: {
+      height: spacing.xl,
+    },
+  });
+}
