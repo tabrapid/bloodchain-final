@@ -574,12 +574,12 @@ export default function SosScreen() {
                   width: 80,
                   height: 80,
                   borderRadius: 40,
-                  backgroundColor: colors.success + '20',
+                  backgroundColor: colors.successMuted,
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
               >
-                <CheckCircle size={40} color={colors.success} />
+                <CheckCircle size={40} color={colors.onMuted.success} />
               </View>
               <AppText variant="heading" style={{ marginTop: spacing.md, textAlign: 'center' }}>
                 Response Accepted
@@ -633,12 +633,12 @@ export default function SosScreen() {
                       alignItems: 'center',
                       gap: spacing.sm,
                       padding: spacing.md,
-                      backgroundColor: colors.primary + '10',
+                      backgroundColor: colors.primaryMuted,
                       borderRadius: 8,
                     }}
                   >
-                    <Navigation size={20} color={colors.primary} />
-                    <AppText variant="body" style={{ color: colors.primary, flex: 1 }}>
+                    <Navigation size={20} color={colors.onMuted.primary} />
+                    <AppText variant="body" style={{ color: colors.onMuted.primary, flex: 1 }}>
                       You are on your way to the hospital
                     </AppText>
                   </View>
@@ -657,11 +657,11 @@ export default function SosScreen() {
                   style={{
                     alignItems: 'center',
                     padding: spacing.lg,
-                    backgroundColor: colors.success + '10',
+                    backgroundColor: colors.successMuted,
                     borderRadius: 8,
                   }}
                 >
-                  <CheckCircle size={40} color={colors.success} />
+                  <CheckCircle size={40} color={colors.onMuted.success} />
                   <AppText variant="heading" style={{ marginTop: spacing.md }}>
                     Please check in at the reception
                   </AppText>

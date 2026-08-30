@@ -61,16 +61,16 @@ export default function LaboratoryScreen() {
     switch (status) {
       case 'PENDING':
       case 'CONFIRMED':
-        return colors.secondary;
+        return { bg: colors.secondaryMuted, text: colors.onMuted.secondary };
       case 'CHECKED_IN':
       case 'IN_PROGRESS':
-        return colors.warning;
+        return { bg: colors.warningMuted, text: colors.onMuted.warning };
       case 'RESULT_PENDING':
-        return colors.warning;
+        return { bg: colors.warningMuted, text: colors.onMuted.warning };
       case 'RESULT_PUBLISHED':
-        return colors.success;
+        return { bg: colors.successMuted, text: colors.onMuted.success };
       default:
-        return colors.textMuted;
+        return { bg: colors.surfaceElevated, text: colors.textMuted };
     }
   };
 
@@ -128,12 +128,12 @@ export default function LaboratoryScreen() {
                   width: 48,
                   height: 48,
                   borderRadius: 12,
-                  backgroundColor: colors.secondary + '20',
+                  backgroundColor: colors.secondaryMuted,
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
               >
-                <FlaskConical size={24} color={colors.secondary} />
+                <FlaskConical size={24} color={colors.onMuted.secondary} />
               </View>
               <View style={{ flex: 1 }}>
                 <AppText variant="heading">Book Blood Test</AppText>
@@ -162,12 +162,12 @@ export default function LaboratoryScreen() {
                       width: 40,
                       height: 40,
                       borderRadius: 10,
-                      backgroundColor: getStatusColor(appointment.status) + '20',
+                      backgroundColor: getStatusColor(appointment.status).bg,
                       alignItems: 'center',
                       justifyContent: 'center',
                     }}
                   >
-                    <Activity size={20} color={getStatusColor(appointment.status)} />
+                    <Activity size={20} color={getStatusColor(appointment.status).text} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
@@ -189,7 +189,7 @@ export default function LaboratoryScreen() {
                         paddingHorizontal: spacing.sm,
                         paddingVertical: 2,
                         borderRadius: 4,
-                        backgroundColor: getStatusColor(appointment.status) + '20',
+                        backgroundColor: getStatusColor(appointment.status).bg,
                         alignSelf: 'flex-start',
                       }}
                     >
@@ -197,7 +197,7 @@ export default function LaboratoryScreen() {
                         style={{
                           fontSize: 11,
                           fontWeight: '600',
-                          color: getStatusColor(appointment.status),
+                          color: getStatusColor(appointment.status).text,
                         }}
                       >
                         {appointment.status.replace('_', ' ')}
@@ -222,12 +222,12 @@ export default function LaboratoryScreen() {
                       width: 40,
                       height: 40,
                       borderRadius: 10,
-                      backgroundColor: colors.success + '20',
+                      backgroundColor: colors.successMuted,
                       alignItems: 'center',
                       justifyContent: 'center',
                     }}
                   >
-                    <Beaker size={20} color={colors.success} />
+                    <Beaker size={20} color={colors.onMuted.success} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <AppText variant="heading">{result.testType.name}</AppText>

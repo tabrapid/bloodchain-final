@@ -100,14 +100,14 @@ export default function BookingConfirmation() {
                   {
                     backgroundColor:
                       appointment.status === 'CONFIRMED'
-                        ? colors.success + '20'
-                        : colors.warning + '20',
+                        ? colors.successMuted
+                        : colors.warningMuted,
                   },
                 ]}
               >
                 <AppText
                   style={{
-                    color: appointment.status === 'CONFIRMED' ? colors.success : colors.warning,
+                    color: appointment.status === 'CONFIRMED' ? colors.onMuted.success : colors.onMuted.warning,
                     fontSize: 12,
                     fontWeight: '600',
                   }}

@@ -16,6 +16,8 @@ export default function Booking() {
         description: 'Donate blood to help those in need',
         icon: Droplet,
         color: colors.primary,
+        bg: colors.primaryMuted,
+        iconColor: colors.onMuted.primary,
       },
       {
         id: 'BLOOD_TEST',
@@ -23,6 +25,8 @@ export default function Booking() {
         description: 'Get your blood tested for various parameters',
         icon: HeartPulse,
         color: colors.success,
+        bg: colors.successMuted,
+        iconColor: colors.onMuted.success,
       },
       {
         id: 'CONSULTATION',
@@ -30,6 +34,8 @@ export default function Booking() {
         description: 'Speak with a healthcare professional',
         icon: Stethoscope,
         color: colors.secondary,
+        bg: colors.secondaryMuted,
+        iconColor: colors.onMuted.secondary,
       },
     ],
     [colors],
@@ -75,10 +81,10 @@ export default function Booking() {
                   <View
                     style={[
                       styles.iconContainer,
-                      { backgroundColor: type.color + '20' },
+                      { backgroundColor: type.bg },
                     ]}
                   >
-                    <Icon size={28} color={type.color} />
+                    <Icon size={28} color={type.iconColor} />
                   </View>
                   <View style={styles.typeInfo}>
                     <AppText variant="heading">{type.title}</AppText>

@@ -119,13 +119,13 @@ export default function Calendar() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'CONFIRMED':
-        return colors.success;
+        return { bg: colors.successMuted, text: colors.onMuted.success };
       case 'PENDING':
-        return colors.warning;
+        return { bg: colors.warningMuted, text: colors.onMuted.warning };
       case 'CANCELLED':
-        return colors.danger;
+        return { bg: colors.dangerMuted, text: colors.onMuted.danger };
       default:
-        return colors.textMuted;
+        return { bg: colors.surfaceElevated, text: colors.textMuted };
     }
   };
 
@@ -237,11 +237,11 @@ export default function Calendar() {
                   <View
                     style={[
                       styles.statusBadge,
-                      { backgroundColor: getStatusColor(apt.status) + '20' },
+                      { backgroundColor: getStatusColor(apt.status).bg },
                     ]}
                   >
                     <AppText
-                      style={[styles.statusText, { color: getStatusColor(apt.status) }]}
+                      style={[styles.statusText, { color: getStatusColor(apt.status).text }]}
                     >
                       {apt.status}
                     </AppText>

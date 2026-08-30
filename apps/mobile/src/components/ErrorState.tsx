@@ -31,7 +31,7 @@ export function ErrorState({
           marginBottom: spacing.md,
         }}
       >
-        <Icon size={28} color={colors.danger} />
+        <Icon size={28} color={colors.onMuted.danger} />
       </View>
       <AppText style={{ textAlign: 'center' }}>{title}</AppText>
       <AppText

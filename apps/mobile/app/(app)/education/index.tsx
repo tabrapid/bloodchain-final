@@ -126,7 +126,7 @@ export default function EducationScreen() {
 
       {actionError && (
         <Card style={styles.errorCard}>
-          <AppText style={{ color: colors.danger }}>{actionError}</AppText>
+          <AppText style={{ color: colors.onMuted.danger }}>{actionError}</AppText>
         </Card>
       )}
 

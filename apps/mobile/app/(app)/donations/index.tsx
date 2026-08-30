@@ -29,15 +29,15 @@ export default function DonationsScreen() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'COMPLETED':
-        return colors.success;
+        return { bg: colors.successMuted, text: colors.onMuted.success };
       case 'CANCELLED':
       case 'ABORTED':
       case 'REJECTED':
-        return colors.danger;
+        return { bg: colors.dangerMuted, text: colors.onMuted.danger };
       case 'IN_PROGRESS':
-        return colors.warning;
+        return { bg: colors.warningMuted, text: colors.onMuted.warning };
       default:
-        return colors.textMuted;
+        return { bg: colors.surfaceElevated, text: colors.textMuted };
     }
   };
 
@@ -107,11 +107,11 @@ export default function DonationsScreen() {
                     <View
                       style={[
                         styles.statusBadge,
-                        { backgroundColor: getStatusColor(donation.status) + '20' },
+                        { backgroundColor: getStatusColor(donation.status).bg },
                       ]}
                     >
                       <AppText
-                        style={[styles.statusText, { color: getStatusColor(donation.status) }]}
+                        style={[styles.statusText, { color: getStatusColor(donation.status).text }]}
                       >
                         {donation.status}
                       </AppText>

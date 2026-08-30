@@ -268,10 +268,10 @@ export default function HealthTrendsScreen() {
                 style={{
                   padding: spacing.md,
                   borderRadius: 8,
-                  backgroundColor: param.code === selectedParam ? colors.primary + '20' : 'transparent',
+                  backgroundColor: param.code === selectedParam ? colors.primaryMuted : 'transparent',
                 }}
               >
-                <AppText variant="heading" style={{ color: param.code === selectedParam ? colors.primary : colors.text }}>
+                <AppText variant="heading" style={{ color: param.code === selectedParam ? colors.onMuted.primary : colors.text }}>
                   {param.name}
                 </AppText>
                 <AppText muted style={{ fontSize: 12 }}>
@@ -365,12 +365,12 @@ export default function HealthTrendsScreen() {
                       width: 40,
                       height: 40,
                       borderRadius: 10,
-                      backgroundColor: colors.success + '20',
+                      backgroundColor: colors.successMuted,
                       alignItems: 'center',
                       justifyContent: 'center',
                     }}
                   >
-                    <Activity size={20} color={colors.success} />
+                    <Activity size={20} color={colors.onMuted.success} />
                   </View>
                   <View>
                     <AppText variant="heading">
@@ -446,10 +446,10 @@ export default function HealthTrendsScreen() {
                           paddingHorizontal: spacing.sm,
                           paddingVertical: 2,
                           borderRadius: 4,
-                          backgroundColor: colors.warning + '20',
+                          backgroundColor: colors.warningMuted,
                         }}
                       >
-                        <AppText style={{ fontSize: 11, color: colors.warning }}>
+                        <AppText style={{ fontSize: 11, color: colors.onMuted.warning }}>
                           {item.flag}
                         </AppText>
                       </View>

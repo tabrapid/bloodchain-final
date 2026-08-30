@@ -58,7 +58,7 @@ export default function AchievementsScreen() {
                 Unlocked
               </AppText>
               <View style={styles.countBadge}>
-                <AppText variant="caption" style={{ color: colors.success }}>
+                <AppText variant="caption" style={{ color: colors.onMuted.success }}>
                   {unlockedCount}
                 </AppText>
               </View>
@@ -77,7 +77,7 @@ export default function AchievementsScreen() {
                 In Progress
               </AppText>
               <View style={[styles.countBadge, styles.inProgressBadge]}>
-                <AppText variant="caption" style={{ color: colors.warning }}>
+                <AppText variant="caption" style={{ color: colors.onMuted.warning }}>
                   {inProgressCount}
                 </AppText>
               </View>

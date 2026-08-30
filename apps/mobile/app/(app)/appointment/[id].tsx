@@ -52,15 +52,15 @@ export default function AppointmentDetail() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'CONFIRMED':
-        return colors.success;
+        return { bg: colors.successMuted, text: colors.onMuted.success };
       case 'PENDING':
-        return colors.warning;
+        return { bg: colors.warningMuted, text: colors.onMuted.warning };
       case 'CANCELLED':
-        return colors.danger;
+        return { bg: colors.dangerMuted, text: colors.onMuted.danger };
       case 'COMPLETED':
-        return colors.primary;
+        return { bg: colors.primaryMuted, text: colors.onMuted.primary };
       default:
-        return colors.textMuted;
+        return { bg: colors.surfaceElevated, text: colors.textMuted };
     }
   };
 
@@ -148,11 +148,11 @@ export default function AppointmentDetail() {
           <View
             style={[
               styles.statusBadge,
-              { backgroundColor: getStatusColor(appointment.status) + '20' },
+              { backgroundColor: getStatusColor(appointment.status).bg },
             ]}
           >
             <AppText
-              style={[styles.statusText, { color: getStatusColor(appointment.status) }]}
+              style={[styles.statusText, { color: getStatusColor(appointment.status).text }]}
             >
               {appointment.status}
             </AppText>

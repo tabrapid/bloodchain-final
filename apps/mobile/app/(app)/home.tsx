@@ -47,9 +47,14 @@ export default function Home() {
     : 'Unverified';
 
   const bloodTypeColor = donorProfile?.verificationStatus === 'VERIFIED'
-    ? colors.success
+    ? colors.successMuted
     : donorProfile?.verificationStatus === 'REQUIRES_REVIEW'
-    ? colors.warning
+    ? colors.warningMuted
+    : colors.surfaceElevated;
+  const bloodTypeTextColor = donorProfile?.verificationStatus === 'VERIFIED'
+    ? colors.onMuted.success
+    : donorProfile?.verificationStatus === 'REQUIRES_REVIEW'
+    ? colors.onMuted.warning
     : colors.textMuted;
 
   const needsOnboarding = completion && completion.percentage < 50;
@@ -99,8 +104,8 @@ export default function Home() {
           <AppText variant="numeric" style={styles.bloodTypeValue}>
             {bloodTypeDisplay}
           </AppText>
-          <View style={[styles.statusBadge, { backgroundColor: bloodTypeColor + '20' }]}>
-            <AppText style={[styles.statusText, { color: bloodTypeColor }]}>
+          <View style={[styles.statusBadge, { backgroundColor: bloodTypeColor }]}>
+            <AppText style={[styles.statusText, { color: bloodTypeTextColor }]}>
               {bloodTypeStatus}
             </AppText>
           </View>
@@ -134,8 +139,8 @@ export default function Home() {
                     {
                       backgroundColor:
                         nextAppointment.status === 'CONFIRMED'
-                          ? colors.success + '20'
-                          : colors.warning + '20',
+                          ? colors.successMuted
+                          : colors.warningMuted,
                     },
                   ]}
                 >
@@ -146,8 +151,8 @@ export default function Home() {
                       textTransform: 'uppercase',
                       color:
                         nextAppointment.status === 'CONFIRMED'
-                          ? colors.success
-                          : colors.warning,
+                          ? colors.onMuted.success
+                          : colors.onMuted.warning,
                     }}
                   >
                     {nextAppointment.status}

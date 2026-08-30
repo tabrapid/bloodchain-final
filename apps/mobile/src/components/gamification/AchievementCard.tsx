@@ -2,19 +2,13 @@ import React, { useMemo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { spacing, radius, useTheme, ThemeColors } from '../../theme';
 import { AppText } from '../../components/AppText';
+import { GlassCard } from '../GlassCard';
 import { Achievement } from '../../api/gamification';
 
 interface AchievementCardProps {
   achievement: Achievement;
   showProgress?: boolean;
 }
-
-const rarityGlow = {
-  COMMON: 'transparent',
-  RARE: 'rgba(59, 130, 246, 0.3)',
-  EPIC: 'rgba(139, 92, 246, 0.3)',
-  LEGENDARY: 'rgba(245, 158, 11, 0.4)',
-};
 
 const iconMap: Record<string, string> = {
   droplet: 'D',
@@ -38,7 +32,7 @@ export function AchievementCard({ achievement, showProgress = true }: Achievemen
   const isInProgress = achievement.status === 'IN_PROGRESS';
 
   return (
-    <View style={[styles.card, { shadowColor: rarityGlow[achievement.rarity] }]}>
+    <GlassCard style={styles.card}>
       <View style={styles.iconContainer}>
         <AppText style={styles.iconText} variant="title">
           {iconMap[achievement.icon] || '?'}
@@ -51,7 +45,7 @@ export function AchievementCard({ achievement, showProgress = true }: Achievemen
           </AppText>
           {isUnlocked && (
             <View style={styles.unlockedBadge}>
-              <AppText variant="caption" style={{ color: colors.success }}>
+              <AppText variant="caption" style={{ color: colors.onMuted.success }}>
                 UNLOCKED
               </AppText>
             </View>
@@ -86,7 +80,7 @@ export function AchievementCard({ achievement, showProgress = true }: Achievemen
           </AppText>
         </View>
       </View>
-    </View>
+    </GlassCard>
   );
 }
 
@@ -94,16 +88,7 @@ function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
     card: {
       flexDirection: 'row',
-      backgroundColor: colors.surfaceSolid,
-      borderRadius: radius.md,
-      padding: spacing.md,
       marginBottom: spacing.sm,
-      borderWidth: 1,
-      borderColor: colors.border,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
-      elevation: 2,
     },
     iconContainer: {
       width: 48,

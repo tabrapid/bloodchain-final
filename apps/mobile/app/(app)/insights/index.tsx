@@ -166,17 +166,17 @@ export default function InsightsScreen() {
   const getSafetyBadge = (level: SafetyLevel) => {
     switch (level) {
       case SafetyLevel.SAFE_INFORMATIONAL:
-        return { color: colors.success, label: 'Informational' };
+        return { bg: colors.successMuted, color: colors.onMuted.success, label: 'Informational' };
       case SafetyLevel.NEEDS_CONTEXT:
-        return { color: colors.warning, label: 'Context needed' };
+        return { bg: colors.warningMuted, color: colors.onMuted.warning, label: 'Context needed' };
       case SafetyLevel.PROFESSIONAL_REVIEW_SUGGESTED:
-        return { color: colors.warning, label: 'Professional review suggested' };
+        return { bg: colors.warningMuted, color: colors.onMuted.warning, label: 'Professional review suggested' };
       case SafetyLevel.EMERGENCY_REDIRECT:
-        return { color: colors.danger, label: 'Seek help' };
+        return { bg: colors.dangerMuted, color: colors.onMuted.danger, label: 'Seek help' };
       case SafetyLevel.OUT_OF_SCOPE:
-        return { color: colors.textMuted, label: 'Outside scope' };
+        return { bg: colors.surfaceElevated, color: colors.textMuted, label: 'Outside scope' };
       default:
-        return { color: colors.textMuted, label: 'Unknown' };
+        return { bg: colors.surfaceElevated, color: colors.textMuted, label: 'Unknown' };
     }
   };
 
@@ -233,12 +233,12 @@ export default function InsightsScreen() {
                         width: 40,
                         height: 40,
                         borderRadius: 10,
-                        backgroundColor: colors.ai + '20',
+                        backgroundColor: colors.aiMuted,
                         alignItems: 'center',
                         justifyContent: 'center',
                       }}
                     >
-                      <Brain size={20} color={colors.ai} />
+                      <Brain size={20} color={colors.onMuted.ai} />
                     </View>
                     <View style={{ flex: 1 }}>
                       <AppText variant="heading" style={{ fontSize: 14 }}>{insight.title}</AppText>
@@ -321,12 +321,12 @@ export default function InsightsScreen() {
                       width: 48,
                       height: 48,
                       borderRadius: 12,
-                      backgroundColor: colors.ai + '20',
+                      backgroundColor: colors.aiMuted,
                       alignItems: 'center',
                       justifyContent: 'center',
                     }}
                   >
-                    <Brain size={24} color={colors.ai} />
+                    <Brain size={24} color={colors.onMuted.ai} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <AppText variant="heading">Analyze My Results</AppText>
@@ -351,12 +351,12 @@ export default function InsightsScreen() {
                       width: 48,
                       height: 48,
                       borderRadius: 12,
-                      backgroundColor: colors.success + '20',
+                      backgroundColor: colors.successMuted,
                       alignItems: 'center',
                       justifyContent: 'center',
                     }}
                   >
-                    <TrendingUp size={24} color={colors.success} />
+                    <TrendingUp size={24} color={colors.onMuted.success} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <AppText variant="heading">Summarize Trends</AppText>
@@ -381,12 +381,12 @@ export default function InsightsScreen() {
                       width: 48,
                       height: 48,
                       borderRadius: 12,
-                      backgroundColor: colors.secondary + '20',
+                      backgroundColor: colors.secondaryMuted,
                       alignItems: 'center',
                       justifyContent: 'center',
                     }}
                   >
-                    <MessageSquare size={24} color={colors.secondary} />
+                    <MessageSquare size={24} color={colors.onMuted.secondary} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <AppText variant="heading">Questions to Discuss</AppText>
@@ -424,7 +424,7 @@ export default function InsightsScreen() {
                           paddingHorizontal: spacing.sm,
                           paddingVertical: 2,
                           borderRadius: 4,
-                          backgroundColor: getSafetyBadge(latestInsight.safetyLevel).color + '20',
+                          backgroundColor: getSafetyBadge(latestInsight.safetyLevel).bg,
                         }}
                       >
                         <AppText style={{ fontSize: 10, color: getSafetyBadge(latestInsight.safetyLevel).color }}>

@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { View, StyleSheet, Image } from 'react-native';
 import { spacing, radius, useTheme, ThemeColors } from '../../theme';
 import { AppText } from '../../components/AppText';
+import { GlassCard } from '../GlassCard';
 import { LeaderboardEntry } from '../../api/gamification';
 
 interface LeaderboardItemProps {
@@ -15,7 +16,7 @@ export function LeaderboardItem({ entry, isCurrentUser = false }: LeaderboardIte
   const showRankNumber = entry.rank <= 3;
 
   return (
-    <View
+    <GlassCard
       style={[
         styles.container,
         isCurrentUser && styles.currentUserContainer,
@@ -51,7 +52,7 @@ export function LeaderboardItem({ entry, isCurrentUser = false }: LeaderboardIte
         </AppText>
         <View style={styles.statsRow}>
           <View style={styles.levelBadge}>
-            <AppText variant="caption" style={{ color: colors.primary }}>
+            <AppText variant="caption" style={{ color: colors.onMuted.primary }}>
               Lv.{entry.level}
             </AppText>
           </View>
@@ -69,7 +70,7 @@ export function LeaderboardItem({ entry, isCurrentUser = false }: LeaderboardIte
           XP
         </AppText>
       </View>
-    </View>
+    </GlassCard>
   );
 }
 
@@ -78,12 +79,7 @@ function createStyles(colors: ThemeColors) {
     container: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: colors.surfaceSolid,
-      borderRadius: radius.md,
-      padding: spacing.md,
       marginBottom: spacing.sm,
-      borderWidth: 1,
-      borderColor: colors.border,
     },
     currentUserContainer: {
       borderColor: colors.primary,

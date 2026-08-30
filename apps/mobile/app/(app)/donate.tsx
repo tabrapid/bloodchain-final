@@ -42,7 +42,7 @@ export default function Donate() {
               justifyContent: 'center',
             }}
           >
-            <CalendarPlus size={22} color={colors.primary} />
+            <CalendarPlus size={22} color={colors.onMuted.danger} />
           </View>
           <AppText variant="heading">Book a donation</AppText>
         </View>

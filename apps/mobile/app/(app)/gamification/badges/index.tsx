@@ -57,7 +57,7 @@ export default function BadgesScreen() {
                 Earned
               </AppText>
               <View style={styles.countBadge}>
-                <AppText variant="caption" style={{ color: colors.success }}>
+                <AppText variant="caption" style={{ color: colors.onMuted.success }}>
                   {earnedBadges.length}
                 </AppText>
               </View>
