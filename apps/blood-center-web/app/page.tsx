@@ -1,11 +1,22 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Activity, Clock } from 'lucide-react';
-import { EmptyState, StatCard, StatusBadge } from '@bloodchain/ui/components';
+import { Activity, AlertTriangle, Beaker, Clock, Droplet, Truck } from 'lucide-react';
+import { EmptyState, StatCard } from '@bloodchain/ui/components';
 import { login, logout as logoutApi, me, isAuthenticated, MeResponse } from '../lib/auth';
 import { AppShell } from '../components/AppShell';
+import {
+  DateRangeType,
+  OverviewAnalytics,
+  LaboratoryAnalytics,
+  ShipmentAnalytics,
+  AlertsResponse,
+  getOverviewAnalytics,
+  getLaboratoryAnalytics,
+  getShipmentAnalytics,
+  getAlerts,
+} from '../lib/analytics';
 
 interface User {
   firstName: string;
@@ -21,6 +32,33 @@ export default function BloodCenterDashboard() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [organizationId, setOrganizationId] = useState<string>('');
+  const [overview, setOverview] = useState<OverviewAnalytics | null>(null);
+  const [laboratory, setLaboratory] = useState<LaboratoryAnalytics | null>(null);
+  const [shipments, setShipments] = useState<ShipmentAnalytics | null>(null);
+  const [alerts, setAlerts] = useState<AlertsResponse | null>(null);
+  const [isLoadingStats, setIsLoadingStats] = useState(false);
+
+  const loadDashboardData = useCallback(async () => {
+    if (!organizationId) return;
+    setIsLoadingStats(true);
+    try {
+      const [overviewData, laboratoryData, shipmentData, alertsData] = await Promise.all([
+        getOverviewAnalytics(organizationId, { range: DateRangeType.TODAY }),
+        getLaboratoryAnalytics(organizationId, { range: DateRangeType.TODAY }),
+        getShipmentAnalytics(organizationId, { range: DateRangeType.TODAY }),
+        getAlerts(organizationId),
+      ]);
+      setOverview(overviewData);
+      setLaboratory(laboratoryData);
+      setShipments(shipmentData);
+      setAlerts(alertsData);
+    } catch (err) {
+      console.error('Failed to load dashboard data:', err);
+    } finally {
+      setIsLoadingStats(false);
+    }
+  }, [organizationId]);
 
   useEffect(() => {
     async function checkAuth() {
@@ -33,6 +71,10 @@ export default function BloodCenterDashboard() {
             roles: userData.roles,
             organizations: userData.organizations,
           });
+          const bloodCenterOrg = userData.organizations.find((org) => org.type === 'BLOOD_CENTER');
+          if (bloodCenterOrg) {
+            setOrganizationId(bloodCenterOrg.organizationId);
+          }
         }
       } catch (err) {
         console.error('Auth check failed:', err);
@@ -42,6 +84,12 @@ export default function BloodCenterDashboard() {
     }
     checkAuth();
   }, []);
+
+  useEffect(() => {
+    if (organizationId) {
+      loadDashboardData();
+    }
+  }, [organizationId, loadDashboardData]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -235,46 +283,107 @@ export default function BloodCenterDashboard() {
             A precise operational foundation for a safer blood supply.
           </p>
         </div>
-        <div className="hidden bc-glass rounded-card border-donor-secondary/30 bg-donor-secondaryMuted p-5 md:block">
-          <Activity className="mb-2 text-donor-secondary" size={24} />
-          <p className="text-sm font-semibold text-donor-text">System healthy</p>
-          <p className="text-xs text-donor-muted">All services operational</p>
+        <div
+          className={`hidden bc-glass rounded-card p-5 md:block ${
+            alerts && alerts.critical > 0
+              ? 'border-donor-danger/30 bg-donor-dangerMuted'
+              : 'border-donor-secondary/30 bg-donor-secondaryMuted'
+          }`}
+        >
+          {alerts && alerts.critical > 0 ? (
+            <>
+              <AlertTriangle className="mb-2 text-donor-danger" size={24} />
+              <p className="text-sm font-semibold text-donor-text">
+                {alerts.critical} critical alert{alerts.critical === 1 ? '' : 's'}
+              </p>
+              <p className="text-xs text-donor-muted">Needs attention</p>
+            </>
+          ) : (
+            <>
+              <Activity className="mb-2 text-donor-secondary" size={24} />
+              <p className="text-sm font-semibold text-donor-text">No critical alerts</p>
+              <p className="text-xs text-donor-muted">Everything is under control</p>
+            </>
+          )}
         </div>
       </div>
 
       <div className="mb-6 grid gap-4 md:grid-cols-3">
-        <StatCard label="Units available" value="—" note="Connect your API to view" />
-        <StatCard label="Pending tests" value="—" note="No data loaded" />
-        <StatCard label="Open shipments" value="Ready" note="Foundation workspace" variant="info" />
+        <StatCard
+          label="Units available"
+          value={isLoadingStats || !overview ? '—' : overview.inventory.availableUnits.toString()}
+          note={
+            isLoadingStats || !overview
+              ? 'Loading...'
+              : overview.inventory.criticalGroups.length > 0
+              ? `Critical: ${overview.inventory.criticalGroups.join(', ')}`
+              : 'units on hand'
+          }
+          icon={Droplet}
+          variant={overview && overview.inventory.criticalGroups.length > 0 ? 'danger' : 'success'}
+        />
+        <StatCard
+          label="Pending tests"
+          value={isLoadingStats || !laboratory ? '—' : laboratory.summary.pendingTests.toString()}
+          note={isLoadingStats || !laboratory ? 'Loading...' : 'Awaiting results'}
+          icon={Beaker}
+          variant={laboratory && laboratory.summary.pendingTests > 0 ? 'warning' : 'success'}
+        />
+        <StatCard
+          label="Open shipments"
+          value={isLoadingStats || !shipments ? '—' : shipments.summary.active.toString()}
+          note={isLoadingStats || !shipments ? 'Loading...' : 'In transit'}
+          icon={Truck}
+          variant="info"
+        />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="bc-glass rounded-card p-6 lg:col-span-2">
-          <p className="text-xs font-bold uppercase tracking-widest text-donor-muted">WORKSPACE</p>
-          <h3 className="mt-1 font-display text-xl font-semibold text-donor-text">
-            Operational clarity starts here
-          </h3>
-          <p className="mt-3 text-sm leading-relaxed text-donor-muted">
-            Use Blood Requests, Inventory, Laboratory, Shipments, and Couriers in the
-            sidebar to manage day-to-day operations. This dashboard is a summary view and
-            doesn&apos;t yet surface live totals here.
+          <p className="text-xs font-bold uppercase tracking-widest text-donor-muted">
+            INVENTORY STATUS
           </p>
+          {overview && (
+            <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
+              <div>
+                <p className="text-2xl font-semibold text-donor-text">{overview.inventory.totalUnits}</p>
+                <p className="text-xs text-donor-muted">Total units</p>
+              </div>
+              <div>
+                <p className="text-2xl font-semibold text-donor-text">{overview.inventory.availableUnits}</p>
+                <p className="text-xs text-donor-muted">Available</p>
+              </div>
+              <div>
+                <p className="text-2xl font-semibold text-donor-text">{overview.inventory.reservedUnits}</p>
+                <p className="text-xs text-donor-muted">Reserved</p>
+              </div>
+              <div>
+                <p className="text-2xl font-semibold text-donor-text">{overview.inventory.quarantinedUnits}</p>
+                <p className="text-xs text-donor-muted">Quarantined</p>
+              </div>
+            </div>
+          )}
+          {overview && overview.inventory.lowStockGroups.length > 0 && (
+            <p className="mt-4 text-sm text-donor-onWarningMuted">
+              Low stock: {overview.inventory.lowStockGroups.join(', ')}
+            </p>
+          )}
         </div>
 
         <div className="bc-glass rounded-card p-6">
-          <p className="text-xs font-bold uppercase tracking-widest text-donor-muted">STATUS</p>
+          <p className="text-xs font-bold uppercase tracking-widest text-donor-muted">ALERTS</p>
           <div className="mt-4 space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-donor-text">Cold chain</span>
-              <StatusBadge variant="success">Active</StatusBadge>
+              <span className="text-sm text-donor-text">Critical</span>
+              <span className="text-sm font-semibold text-donor-onDangerMuted">
+                {alerts?.critical ?? '—'}
+              </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-donor-text">Test lab link</span>
-              <StatusBadge variant="success">Connected</StatusBadge>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-donor-text">Courier network</span>
-              <StatusBadge>Standby</StatusBadge>
+              <span className="text-sm text-donor-text">High</span>
+              <span className="text-sm font-semibold text-donor-onWarningMuted">
+                {alerts?.high ?? '—'}
+              </span>
             </div>
           </div>
         </div>

@@ -1,11 +1,18 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Activity, ChevronRight, Clock } from 'lucide-react';
-import { EmptyState, StatCard, StatusBadge } from '@bloodchain/ui/components';
+import { Activity, AlertTriangle, Calendar, Clock, Droplet, Package } from 'lucide-react';
+import { EmptyState, StatCard } from '@bloodchain/ui/components';
 import { login, logout as logoutApi, me, isAuthenticated, MeResponse } from '../lib/auth';
 import { AppShell } from '../components/AppShell';
+import {
+  DateRangeType,
+  OverviewAnalytics,
+  AlertsResponse,
+  getOverviewAnalytics,
+  getAlerts,
+} from '../lib/analytics';
 
 interface User {
   firstName: string;
@@ -21,6 +28,27 @@ export default function HospitalDashboard() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [organizationId, setOrganizationId] = useState<string>('');
+  const [overview, setOverview] = useState<OverviewAnalytics | null>(null);
+  const [alerts, setAlerts] = useState<AlertsResponse | null>(null);
+  const [isLoadingStats, setIsLoadingStats] = useState(false);
+
+  const loadDashboardData = useCallback(async () => {
+    if (!organizationId) return;
+    setIsLoadingStats(true);
+    try {
+      const [overviewData, alertsData] = await Promise.all([
+        getOverviewAnalytics(organizationId, { range: DateRangeType.TODAY }),
+        getAlerts(organizationId),
+      ]);
+      setOverview(overviewData);
+      setAlerts(alertsData);
+    } catch (err) {
+      console.error('Failed to load dashboard data:', err);
+    } finally {
+      setIsLoadingStats(false);
+    }
+  }, [organizationId]);
 
   useEffect(() => {
     async function checkAuth() {
@@ -33,6 +61,10 @@ export default function HospitalDashboard() {
             roles: userData.roles,
             organizations: userData.organizations,
           });
+          const hospitalOrg = userData.organizations.find((org) => org.type === 'HOSPITAL');
+          if (hospitalOrg) {
+            setOrganizationId(hospitalOrg.organizationId);
+          }
         }
       } catch (err) {
         console.error('Auth check failed:', err);
@@ -42,6 +74,12 @@ export default function HospitalDashboard() {
     }
     checkAuth();
   }, []);
+
+  useEffect(() => {
+    if (organizationId) {
+      loadDashboardData();
+    }
+  }, [organizationId, loadDashboardData]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -235,57 +273,107 @@ export default function HospitalDashboard() {
             A clear view of your donor network and today&apos;s priorities.
           </p>
         </div>
-        <div className="hidden bc-glass rounded-card border-donor-success/30 bg-donor-successMuted p-5 md:block">
-          <Activity className="mb-2 text-donor-success" size={24} />
-          <p className="text-sm font-semibold text-donor-text">System healthy</p>
-          <p className="text-xs text-donor-muted">All services operational</p>
+        <div
+          className={`hidden bc-glass rounded-card p-5 md:block ${
+            alerts && alerts.critical > 0
+              ? 'border-donor-danger/30 bg-donor-dangerMuted'
+              : 'border-donor-success/30 bg-donor-successMuted'
+          }`}
+        >
+          {alerts && alerts.critical > 0 ? (
+            <>
+              <AlertTriangle className="mb-2 text-donor-danger" size={24} />
+              <p className="text-sm font-semibold text-donor-text">
+                {alerts.critical} critical alert{alerts.critical === 1 ? '' : 's'}
+              </p>
+              <p className="text-xs text-donor-muted">Needs attention</p>
+            </>
+          ) : (
+            <>
+              <Activity className="mb-2 text-donor-success" size={24} />
+              <p className="text-sm font-semibold text-donor-text">No critical alerts</p>
+              <p className="text-xs text-donor-muted">Everything is under control</p>
+            </>
+          )}
         </div>
       </div>
 
       <div className="mb-6 grid gap-4 md:grid-cols-3">
-        <StatCard label="Active donors" value="—" note="Connect your API to view" />
-        <StatCard label="Today's appointments" value="—" note="No data loaded" />
         <StatCard
-          label="Inventory status"
-          value="Ready"
-          note="Foundation workspace"
-          variant="success"
+          label="Pending requests"
+          value={isLoadingStats || !overview ? '—' : overview.requests.pending.value.toString()}
+          note={isLoadingStats || !overview ? 'Loading...' : 'Awaiting review'}
+          icon={Package}
+          variant={overview && overview.requests.pending.value > 0 ? 'warning' : 'success'}
+        />
+        <StatCard
+          label="Today's appointments"
+          value={isLoadingStats || !overview ? '—' : overview.appointments.total.value.toString()}
+          note={isLoadingStats || !overview ? 'Loading...' : 'Scheduled today'}
+          icon={Calendar}
+          variant="info"
+        />
+        <StatCard
+          label="Available inventory"
+          value={isLoadingStats || !overview ? '—' : overview.inventory.availableUnits.toString()}
+          note={
+            isLoadingStats || !overview
+              ? 'Loading...'
+              : overview.inventory.criticalGroups.length > 0
+              ? `Critical: ${overview.inventory.criticalGroups.join(', ')}`
+              : 'units on hand'
+          }
+          icon={Droplet}
+          variant={overview && overview.inventory.criticalGroups.length > 0 ? 'danger' : 'success'}
         />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="bc-glass rounded-card p-6 lg:col-span-2">
-          <div className="mb-4 flex items-center justify-between">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-widest text-donor-muted">
-                WORKSPACE
-              </p>
-              <h3 className="mt-1 font-display text-xl font-semibold text-donor-text">
-                Build on a trusted foundation
-              </h3>
-            </div>
-            <ChevronRight className="text-donor-muted" size={20} />
-          </div>
-          <p className="text-sm leading-relaxed text-donor-muted">
-            Clinical workflows, permissions, and auditability are ready for the next product phase.
-            No patient data is shown in this development workspace.
+          <p className="text-xs font-bold uppercase tracking-widest text-donor-muted">
+            INVENTORY STATUS
           </p>
+          {overview && (
+            <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
+              <div>
+                <p className="text-2xl font-semibold text-donor-text">{overview.inventory.totalUnits}</p>
+                <p className="text-xs text-donor-muted">Total units</p>
+              </div>
+              <div>
+                <p className="text-2xl font-semibold text-donor-text">{overview.inventory.availableUnits}</p>
+                <p className="text-xs text-donor-muted">Available</p>
+              </div>
+              <div>
+                <p className="text-2xl font-semibold text-donor-text">{overview.inventory.reservedUnits}</p>
+                <p className="text-xs text-donor-muted">Reserved</p>
+              </div>
+              <div>
+                <p className="text-2xl font-semibold text-donor-text">{overview.inventory.quarantinedUnits}</p>
+                <p className="text-xs text-donor-muted">Quarantined</p>
+              </div>
+            </div>
+          )}
+          {overview && overview.inventory.lowStockGroups.length > 0 && (
+            <p className="mt-4 text-sm text-donor-onWarningMuted">
+              Low stock: {overview.inventory.lowStockGroups.join(', ')}
+            </p>
+          )}
         </div>
 
         <div className="bc-glass rounded-card p-6">
-          <p className="text-xs font-bold uppercase tracking-widest text-donor-muted">STATUS</p>
+          <p className="text-xs font-bold uppercase tracking-widest text-donor-muted">ALERTS</p>
           <div className="mt-4 space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-donor-text">API connection</span>
-              <StatusBadge variant="success">Operational</StatusBadge>
+              <span className="text-sm text-donor-text">Critical</span>
+              <span className="text-sm font-semibold text-donor-onDangerMuted">
+                {alerts?.critical ?? '—'}
+              </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-donor-text">Database</span>
-              <StatusBadge variant="success">Connected</StatusBadge>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-donor-text">Notifications</span>
-              <StatusBadge>Standby</StatusBadge>
+              <span className="text-sm text-donor-text">High</span>
+              <span className="text-sm font-semibold text-donor-onWarningMuted">
+                {alerts?.high ?? '—'}
+              </span>
             </div>
           </div>
         </div>

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
-import { View, StyleSheet, ScrollView } from 'react-native';
+import { View, StyleSheet, ScrollView, TextInput } from 'react-native';
 import { Calendar, Clock, Building2, Droplet, AlertCircle } from 'lucide-react-native';
 import { AppButton, AppText, Card, GlassCard, Screen } from '../../src/components';
 import {
@@ -234,11 +234,16 @@ export default function ReviewBooking() {
           <AppText variant="heading" style={styles.sectionTitle}>
             Notes (Optional)
           </AppText>
-          <View style={styles.notesInput}>
-            <AppText muted style={{ fontSize: 14 }}>
-              Add any notes or special requirements for your appointment...
-            </AppText>
-          </View>
+          <TextInput
+            style={styles.notesInput}
+            placeholder="Add any notes or special requirements for your appointment..."
+            placeholderTextColor={colors.textMuted}
+            value={notes}
+            onChangeText={setNotes}
+            multiline
+            numberOfLines={3}
+            textAlignVertical="top"
+          />
         </Card>
 
         {error && (
@@ -330,6 +335,9 @@ function createStyles(colors: ThemeColors) {
       padding: spacing.md,
       backgroundColor: colors.surfaceElevated,
       borderRadius: 8,
+      minHeight: 80,
+      fontSize: 14,
+      color: colors.text,
     },
     errorCard: {
       flexDirection: 'row',
