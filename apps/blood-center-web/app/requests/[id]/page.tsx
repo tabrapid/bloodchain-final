@@ -176,7 +176,7 @@ export default function BloodRequestDetailPage() {
         organizationType="Blood Center workspace"
         userName={user ? `${user.firstName} ${user.lastName}` : 'Guest'}
       >
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-donor-border bg-donor-surface p-12">
+        <div className="flex flex-col items-center justify-center bc-glass rounded-card p-12">
           <XCircle className="mb-4 text-donor-primary" size={48} />
           <h2 className="mb-2 font-display text-2xl font-semibold text-donor-text">
             Request Not Found
@@ -272,7 +272,7 @@ export default function BloodRequestDetailPage() {
       </div>
 
       {actionError && (
-        <div className="mb-4 flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+        <div className="mb-4 flex items-center gap-2 rounded-lg border border-donor-danger/30 bg-donor-dangerMuted px-4 py-3 text-sm text-donor-onDangerMuted">
           <AlertCircle size={16} />
           {actionError}
         </div>
@@ -280,7 +280,7 @@ export default function BloodRequestDetailPage() {
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
-          <div className="rounded-2xl border border-donor-border bg-donor-surface p-5">
+          <div className="bc-glass rounded-card p-5">
             <h3 className="mb-4 text-sm font-semibold text-donor-text">Requested Units</h3>
             <div className="space-y-3">
               {request.items.map((item) => (
@@ -312,7 +312,7 @@ export default function BloodRequestDetailPage() {
           </div>
 
           {request.events && request.events.length > 0 && (
-            <div className="rounded-2xl border border-donor-border bg-donor-surface p-5">
+            <div className="bc-glass rounded-card p-5">
               <h3 className="mb-4 text-sm font-semibold text-donor-text">History</h3>
               <div className="space-y-4">
                 {request.events.map((event) => (
@@ -334,7 +334,7 @@ export default function BloodRequestDetailPage() {
         </div>
 
         <div className="space-y-6">
-          <div className="rounded-2xl border border-donor-border bg-donor-surface p-5">
+          <div className="bc-glass rounded-card p-5">
             <h3 className="mb-4 text-sm font-semibold text-donor-text">Details</h3>
             <div className="space-y-3 text-sm">
               <div>
@@ -380,7 +380,7 @@ export default function BloodRequestDetailPage() {
 
       {showReviewModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="w-full max-w-lg rounded-2xl border border-donor-border bg-donor-surface p-6">
+          <div className="w-full max-w-lg bc-glass rounded-card p-6">
             <h3 className="mb-1 font-display text-lg font-semibold text-donor-text">Review Request</h3>
             <p className="mb-4 text-sm text-donor-muted">
               Set how many units of each type you can approve. Approving 0 for every line rejects the request.
@@ -424,7 +424,7 @@ export default function BloodRequestDetailPage() {
             </div>
 
             {actionError && (
-              <div className="mt-3 flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-400">
+              <div className="mt-3 flex items-center gap-2 rounded-lg border border-donor-danger/30 bg-donor-dangerMuted px-3 py-2 text-xs text-donor-onDangerMuted">
                 <AlertCircle size={14} />
                 {actionError}
               </div>
@@ -441,7 +441,7 @@ export default function BloodRequestDetailPage() {
               <button
                 onClick={() => submitReview('reject')}
                 disabled={actionLoading}
-                className="rounded-lg border border-red-500/50 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-400 transition-colors hover:bg-red-500/20 disabled:opacity-50"
+                className="rounded-lg border border-donor-danger/50 bg-donor-dangerMuted px-4 py-2 text-sm font-semibold text-donor-onDangerMuted transition-colors hover:bg-donor-dangerMuted/70 disabled:opacity-50"
               >
                 Reject
               </button>

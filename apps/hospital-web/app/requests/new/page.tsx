@@ -134,7 +134,7 @@ export default function NewBloodRequestPage() {
       </div>
 
       <div className="max-w-3xl space-y-6">
-        <div className="rounded-2xl border border-donor-border bg-donor-surface p-5">
+        <div className="bc-glass rounded-card p-5">
           <div className="mb-4 flex items-center justify-between">
             <h3 className="text-sm font-semibold text-donor-text">Units Needed</h3>
             <button
@@ -198,7 +198,7 @@ export default function NewBloodRequestPage() {
                 <button
                   onClick={() => removeItem(index)}
                   disabled={items.length === 1}
-                  className="rounded-lg p-2 text-donor-muted hover:bg-red-500/10 hover:text-red-400 disabled:opacity-30"
+                  className="rounded-lg p-2 text-donor-muted hover:bg-donor-dangerMuted hover:text-donor-onDangerMuted disabled:opacity-30"
                   title="Remove line"
                 >
                   <Trash2 size={16} />
@@ -208,7 +208,7 @@ export default function NewBloodRequestPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-donor-border bg-donor-surface p-5">
+        <div className="bc-glass rounded-card p-5">
           <h3 className="mb-4 text-sm font-semibold text-donor-text">Request Details</h3>
           <div className="grid gap-4 md:grid-cols-2">
             <div>
@@ -265,7 +265,7 @@ export default function NewBloodRequestPage() {
         </div>
 
         {error && (
-          <div className="flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+          <div className="flex items-center gap-2 rounded-lg border border-donor-danger/30 bg-donor-dangerMuted px-4 py-3 text-sm text-donor-onDangerMuted">
             <AlertCircle size={16} />
             {error}
           </div>

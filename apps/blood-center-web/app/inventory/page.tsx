@@ -331,7 +331,7 @@ export default function InventoryPage() {
         organizationType="Operations workspace"
         userName="Guest"
       >
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-donor-border bg-donor-surface p-12">
+        <div className="flex flex-col items-center justify-center bc-glass rounded-card p-12">
           <Activity className="mb-4 text-donor-secondary" size={48} />
           <h2 className="mb-2 font-display text-2xl font-semibold text-donor-text">
             Sign In Required
@@ -353,7 +353,7 @@ export default function InventoryPage() {
       userName={`${user.firstName} ${user.lastName}`}
     >
       {error && (
-        <div className="mb-4 rounded-lg border border-red-900/50 bg-red-950/20 p-4 text-red-400">
+        <div className="mb-4 rounded-lg border border-donor-danger/30 bg-donor-dangerMuted p-4 text-donor-onDangerMuted">
           {error}
           <button onClick={() => setError(null)} className="ml-2 underline">Dismiss</button>
         </div>
@@ -571,7 +571,7 @@ export default function InventoryPage() {
                     const reason = prompt('Enter discard reason:');
                     if (reason) handleDiscardUnit(selectedUnit.id, reason);
                   }}
-                  className="flex items-center gap-2 rounded-lg border border-red-900/50 bg-red-950/20 px-4 py-2 text-sm text-red-400 transition-colors hover:bg-red-950/40"
+                  className="flex items-center gap-2 rounded-lg border border-donor-danger/30 bg-donor-dangerMuted px-4 py-2 text-sm text-donor-onDangerMuted transition-colors hover:bg-donor-danger/20"
                 >
                   <XCircle size={16} />
                   Discard

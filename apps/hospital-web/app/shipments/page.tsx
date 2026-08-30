@@ -116,7 +116,7 @@ export default function ShipmentsPage() {
         organizationType="Hospital workspace"
         userName="Guest"
       >
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-donor-border bg-donor-surface p-12">
+        <div className="flex flex-col items-center justify-center bc-glass rounded-card p-12">
           <Truck className="mb-4 text-donor-primary" size={48} />
           <h2 className="mb-2 font-display text-2xl font-semibold text-donor-text">
             Sign In Required
@@ -224,7 +224,7 @@ export default function ShipmentsPage() {
               <a
                 key={shipment.id}
                 href={`/shipments/${shipment.id}`}
-                className="block rounded-xl border border-donor-border bg-donor-surface p-5 transition-colors hover:bg-donor-border/50"
+                className="block bc-glass rounded-card p-5 transition-colors hover:bg-donor-border/50"
               >
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-4">

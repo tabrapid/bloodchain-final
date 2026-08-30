@@ -53,7 +53,7 @@ export default function RegisterBloodCenterPage() {
         organizationType="Operations workspace"
         userName="Guest"
       >
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-donor-border bg-donor-surface p-12 text-center">
+        <div className="flex flex-col items-center justify-center bc-glass rounded-card p-12 text-center">
           <CheckCircle className="mb-4 text-donor-secondary" size={48} />
           <h2 className="mb-2 font-display text-2xl font-semibold text-donor-text">
             Registration submitted
@@ -82,7 +82,7 @@ export default function RegisterBloodCenterPage() {
       organizationType="Operations workspace"
       userName="Guest"
     >
-      <div className="mx-auto max-w-lg rounded-2xl border border-donor-border bg-donor-surface p-8">
+      <div className="mx-auto max-w-lg bc-glass rounded-card p-8">
         <Building2 className="mb-4 text-donor-secondary" size={40} />
         <h2 className="mb-2 font-display text-2xl font-semibold text-donor-text">
           Register your blood center
@@ -92,7 +92,7 @@ export default function RegisterBloodCenterPage() {
           review and approve your organization before you can start using the dashboard.
         </p>
 
-        {error && <p className="mb-4 text-sm text-red-400">{error}</p>}
+        {error && <p className="mb-4 text-sm text-donor-danger">{error}</p>}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
