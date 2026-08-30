@@ -9,12 +9,15 @@ export interface StatusBadgeProps {
 }
 
 export function StatusBadge({ children, variant = 'default', className }: StatusBadgeProps) {
+  // Text reads from the theme-shifted onXMuted token, not the raw brand
+  // accent, so small badge text keeps 4.5:1 contrast against its own tint in
+  // both light and dark mode.
   const variants: Record<StatusVariant, string> = {
-    default: 'border-[#253442] bg-[#182431] text-[#8495A3]',
-    success: 'border-[#28413B] bg-[#10221F] text-[#63C29B]',
-    warning: 'border-[#4A3B22] bg-[#1F1A12] text-[#E5B86D]',
-    danger: 'border-[#5B3038] bg-[#26191F] text-[#D85360]',
-    info: 'border-[#29404D] bg-[#10202A] text-[#68B7D1]',
+    default: 'border-donor-border/60 bg-donor-surface text-donor-muted',
+    success: 'border-transparent bg-donor-successMuted text-donor-onSuccessMuted',
+    warning: 'border-transparent bg-donor-warningMuted text-donor-onWarningMuted',
+    danger: 'border-transparent bg-donor-dangerMuted text-donor-onDangerMuted',
+    info: 'border-transparent bg-donor-secondaryMuted text-donor-onSecondaryMuted',
   };
 
   return (

@@ -36,7 +36,7 @@ export function DashboardShell({
   className,
 }: DashboardShellProps) {
   return (
-    <div className={cn('flex min-h-screen bg-[#081018] text-[#F2F5F7]', className)}>
+    <div className={cn('bc-app-bg flex min-h-screen text-donor-text', className)}>
       <Sidebar
         items={sidebarItems}
         activeItem={activeItem}

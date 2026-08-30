@@ -45,6 +45,24 @@ export const bloodchaingaPreset = {
           success: '#63C29B',
           warning: '#E5B86D',
           danger: '#D85360',
+
+          // Muted variant surfaces (badges, stat cards) and the text color
+          // that sits on top of them. The raw accent above fails 4.5:1 small
+          // text contrast against its own tint in both themes, so "on*"
+          // reads from a per-theme-shifted CSS variable instead — same fix
+          // as the mobile app's `onMuted` tokens, same values.
+          primaryMuted: 'var(--bc-tint-primary)',
+          secondaryMuted: 'var(--bc-tint-secondary)',
+          successMuted: 'var(--bc-tint-success)',
+          warningMuted: 'var(--bc-tint-warning)',
+          dangerMuted: 'var(--bc-tint-danger)',
+          aiMuted: 'var(--bc-tint-ai)',
+          onPrimaryMuted: surface('--bc-on-primary'),
+          onSecondaryMuted: surface('--bc-on-secondary'),
+          onSuccessMuted: surface('--bc-on-success'),
+          onWarningMuted: surface('--bc-on-warning'),
+          onDangerMuted: surface('--bc-on-danger'),
+          onAiMuted: surface('--bc-on-ai'),
         },
       },
       fontFamily: {

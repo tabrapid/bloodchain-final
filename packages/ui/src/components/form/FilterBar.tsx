@@ -8,13 +8,8 @@ export interface FilterBarProps {
 
 export function FilterBar({ children, className }: FilterBarProps) {
   return (
-    <div
-      className={cn(
-        'flex flex-wrap items-center gap-3 rounded-2xl border border-[#253442] bg-[#111A24] p-3',
-        className,
-      )}
-    >
-      <SlidersHorizontal size={16} className="text-[#8495A3]" />
+    <div className={cn('bc-glass flex flex-wrap items-center gap-3 rounded-card p-3', className)}>
+      <SlidersHorizontal size={16} className="text-donor-muted" />
       {children}
     </div>
   );

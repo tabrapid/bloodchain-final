@@ -10,15 +10,17 @@ export function SearchInput({ className, onClear, wrapperClassName, ...props }: 
   return (
     <div
       className={cn(
-        'flex items-center gap-2 rounded-lg border border-[#253442] bg-[#111A24] px-3 py-2 focus-within:border-[#68B7D1]',
+        // Solid, not glass: an input the user is about to type into needs a
+        // stable, opaque field, not scrolled content showing through it.
+        'bc-solid flex items-center gap-2 rounded-lg px-3 py-2 focus-within:border-donor-secondary',
         wrapperClassName,
       )}
     >
-      <Search size={16} className="text-[#8495A3]" />
+      <Search size={16} className="text-donor-muted" />
       <input
         type="text"
         className={cn(
-          'flex-1 bg-transparent text-sm text-[#F2F5F7] placeholder:text-[#8495A3] focus:outline-none',
+          'flex-1 bg-transparent text-sm text-donor-text placeholder:text-donor-muted focus:outline-none',
           className,
         )}
         {...props}
@@ -28,7 +30,7 @@ export function SearchInput({ className, onClear, wrapperClassName, ...props }: 
           type="button"
           onClick={onClear}
           aria-label="Clear search"
-          className="text-[#8495A3] hover:text-[#F2F5F7]"
+          className="text-donor-muted hover:text-donor-text"
         >
           <X size={14} />
         </button>

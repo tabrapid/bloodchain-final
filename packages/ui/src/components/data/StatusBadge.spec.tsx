@@ -10,12 +10,14 @@ describe('StatusBadge', () => {
 
   it('defaults to the "default" variant styling', () => {
     render(<StatusBadge>Pending</StatusBadge>);
-    expect(screen.getByText('Pending')).toHaveClass('text-[#8495A3]');
+    expect(screen.getByText('Pending')).toHaveClass('text-donor-muted');
   });
 
   it('applies danger-variant styling when requested', () => {
     render(<StatusBadge variant="danger">Failed</StatusBadge>);
-    expect(screen.getByText('Failed')).toHaveClass('text-[#D85360]');
+    // Text reads from the theme-shifted "on muted" token, not the raw brand
+    // accent, so small badge text keeps 4.5:1 contrast against its own tint.
+    expect(screen.getByText('Failed')).toHaveClass('text-donor-onDangerMuted');
   });
 
   it('merges a custom className alongside the variant classes', () => {
@@ -26,6 +28,6 @@ describe('StatusBadge', () => {
     );
     const badge = screen.getByText('Delivered');
     expect(badge).toHaveClass('ml-2');
-    expect(badge).toHaveClass('text-[#63C29B]');
+    expect(badge).toHaveClass('text-donor-onSuccessMuted');
   });
 });

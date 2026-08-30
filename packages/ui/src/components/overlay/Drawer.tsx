@@ -40,19 +40,19 @@ export function Drawer({ open, onClose, title, children, footer, className }: Dr
         aria-label={title ? undefined : 'Panel'}
         aria-labelledby={title ? titleId : undefined}
         className={cn(
-          'relative z-10 flex w-full max-w-md flex-col border-l border-[#253442] bg-[#111A24] p-6 shadow-2xl',
+          'bc-glass-elevated bc-rise relative z-10 flex w-full max-w-md flex-col border-y-0 border-r-0 p-6',
           className,
         )}
       >
         <div className="flex items-center justify-between">
           {title && (
-            <h2 id={titleId} className="text-lg font-semibold text-[#F2F5F7]">
+            <h2 id={titleId} className="text-lg font-semibold text-donor-text">
               {title}
             </h2>
           )}
           <button
             onClick={onClose}
-            className="rounded-md p-1 text-[#8495A3] transition-colors hover:bg-[#182431] hover:text-[#F2F5F7]"
+            className="rounded-md p-1 text-donor-muted transition-colors hover:bg-donor-elevated hover:text-donor-text"
             aria-label="Close"
           >
             <X size={20} />
@@ -60,7 +60,7 @@ export function Drawer({ open, onClose, title, children, footer, className }: Dr
         </div>
         <div className="flex-1 overflow-auto py-6">{children}</div>
         {footer && (
-          <div className="flex justify-end gap-3 border-t border-[#253442] pt-5">{footer}</div>
+          <div className="flex justify-end gap-3 border-t border-donor-border/60 pt-5">{footer}</div>
         )}
       </div>
     </div>

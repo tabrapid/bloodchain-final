@@ -18,24 +18,34 @@ export function StatCard({
   variant = 'default',
   className,
 }: StatCardProps) {
+  // Default is the plain glass surface; the other variants tint that same
+  // surface with the muted brand color so a card reads as "this stat is
+  // good/bad" without dropping to a flat, non-glass block.
   const variants = {
-    default: 'border-[#253442] bg-[#111A24]',
-    success: 'border-[#28413B] bg-[#10221F] text-[#B7D3CA]',
-    warning: 'border-[#4A3B22] bg-[#1F1A12]',
-    danger: 'border-[#5B3038] bg-[#26191F]',
-    info: 'border-[#29404D] bg-[#10202A]',
+    default: 'bc-glass',
+    success: 'bc-glass bg-donor-successMuted',
+    warning: 'bc-glass bg-donor-warningMuted',
+    danger: 'bc-glass bg-donor-dangerMuted',
+    info: 'bc-glass bg-donor-secondaryMuted',
+  };
+  const iconColor = {
+    default: 'text-donor-muted',
+    success: 'text-donor-onSuccessMuted',
+    warning: 'text-donor-onWarningMuted',
+    danger: 'text-donor-onDangerMuted',
+    info: 'text-donor-onSecondaryMuted',
   };
 
   return (
-    <div className={cn('rounded-2xl border p-5', variants[variant], className)}>
+    <div className={cn('bc-rise rounded-card p-5', variants[variant], className)}>
       <div className="mb-3 flex items-center justify-between">
-        <span className="text-xs font-semibold uppercase tracking-wider text-[#8495A3]">
+        <span className="text-xs font-semibold uppercase tracking-wider text-donor-muted">
           {label}
         </span>
-        {Icon && <Icon size={18} className="text-[#8495A3]" />}
+        {Icon && <Icon size={18} className={iconColor[variant]} />}
       </div>
-      <p className="text-3xl font-bold tracking-tight text-[#F2F5F7]">{value}</p>
-      {note && <p className="mt-1 text-xs text-[#8495A3]">{note}</p>}
+      <p className="text-3xl font-bold tracking-tight text-donor-text">{value}</p>
+      {note && <p className="mt-1 text-xs text-donor-muted">{note}</p>}
     </div>
   );
 }
