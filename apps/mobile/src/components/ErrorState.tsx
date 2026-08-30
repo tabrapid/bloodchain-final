@@ -1,6 +1,6 @@
 import { View } from 'react-native';
 import { AlertTriangle, LucideIcon } from 'lucide-react-native';
-import { colors, spacing } from '../theme';
+import { spacing, useTheme } from '../theme';
 import { AppText } from './AppText';
 import { AppButton } from './AppButton';
 
@@ -17,6 +17,7 @@ export function ErrorState({
   icon: Icon = AlertTriangle,
   onRetry,
 }: ErrorStateProps) {
+  const { colors } = useTheme();
   return (
     <View style={{ alignItems: 'center', paddingVertical: spacing.xl }}>
       <View
@@ -24,7 +25,7 @@ export function ErrorState({
           width: 56,
           height: 56,
           borderRadius: 28,
-          backgroundColor: '#26191F',
+          backgroundColor: colors.dangerMuted,
           alignItems: 'center',
           justifyContent: 'center',
           marginBottom: spacing.md,

@@ -13,7 +13,7 @@ import {
 } from 'lucide-react-native';
 import { LineChart } from 'react-native-chart-kit';
 import { AppButton, AppText, Card, GlassCard, LoadingState, Screen, SectionHeader, StatCard } from '../../../src/components';
-import { colors, spacing } from '../../../src/theme';
+import { spacing, useTheme } from '../../../src/theme';
 import {
   getTrendSummary,
   getAvailableParameters,
@@ -37,6 +37,7 @@ const TIME_RANGE_LABELS: Record<string, string> = {
 const screenWidth = Dimensions.get('window').width;
 
 export default function HealthTrendsScreen() {
+  const { colors } = useTheme();
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [loadError, setLoadError] = useState(false);
@@ -156,9 +157,9 @@ export default function HealthTrendsScreen() {
     : null;
 
   const chartOptions = {
-    backgroundColor: colors.surface,
-    backgroundGradientFrom: colors.surface,
-    backgroundGradientTo: colors.surface,
+    backgroundColor: colors.surfaceSolid,
+    backgroundGradientFrom: colors.surfaceSolid,
+    backgroundGradientTo: colors.surfaceSolid,
     decimalPlaces: 1,
     color: () => colors.primary,
     labelColor: () => colors.textMuted,

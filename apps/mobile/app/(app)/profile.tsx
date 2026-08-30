@@ -16,10 +16,13 @@ import { useLogout } from '../../src/hooks/useAuth';
 import { useUserProfile } from '../../src/hooks/useUsers';
 import { useDonorProfile } from '../../src/hooks/useDonors';
 import { useProfileCompletion } from '../../src/hooks/useDonors';
-import { colors, spacing } from '../../src/theme';
+import { spacing, useTheme, ThemeColors } from '../../src/theme';
 import { Droplet } from 'lucide-react-native';
+import { useMemo } from 'react';
 
 export default function Profile() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const logout = useLogout();
   const { data: user } = useUserProfile();
   const { data: donor } = useDonorProfile();
@@ -69,7 +72,7 @@ export default function Profile() {
 
       {completion && (
         <GradientCard
-          colors={['#1a1f2e', '#111A24']}
+          colors={[colors.surfaceSolidElevated, colors.surfaceSolid]}
           style={styles.completionCard}
         >
           <View style={styles.completionHeader}>
@@ -95,7 +98,7 @@ export default function Profile() {
       )}
 
       <GradientCard
-        colors={['#26191F', '#111A24']}
+        colors={[colors.dangerMuted, colors.surfaceSolid]}
         style={styles.bloodTypeCard}
       >
         <View style={styles.bloodTypeHeader}>
@@ -168,92 +171,94 @@ export default function Profile() {
   );
 }
 
-const styles = StyleSheet.create({
-  profileHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    marginTop: spacing.xl,
-    marginBottom: spacing.lg,
-  },
-  profileInfo: {
-    flex: 1,
-  },
-  statusBadge: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: spacing.xs,
-    marginTop: spacing.xs,
-  },
-  statusText: {
-    fontSize: 11,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  completionCard: {
-    marginBottom: spacing.lg,
-  },
-  completionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-  },
-  progressBar: {
-    height: 6,
-    backgroundColor: colors.surfaceElevated,
-    borderRadius: 3,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: colors.primary,
-    borderRadius: 3,
-  },
-  missingText: {
-    fontSize: 12,
-    marginTop: spacing.sm,
-    textTransform: 'capitalize',
-  },
-  bloodTypeCard: {
-    marginBottom: spacing.lg,
-  },
-  bloodTypeHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  bloodTypeValue: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  bloodTypeText: {
-    color: colors.text,
-  },
-  verificationBadge: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: spacing.xs,
-  },
-  verificationText: {
-    fontSize: 11,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  sourceText: {
-    fontSize: 12,
-    marginTop: spacing.sm,
-  },
-  footer: {
-    marginTop: spacing.xl,
-    paddingVertical: spacing.lg,
-  },
-  version: {
-    textAlign: 'center',
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    profileHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.md,
+      marginTop: spacing.xl,
+      marginBottom: spacing.lg,
+    },
+    profileInfo: {
+      flex: 1,
+    },
+    statusBadge: {
+      alignSelf: 'flex-start',
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
+      borderRadius: spacing.xs,
+      marginTop: spacing.xs,
+    },
+    statusText: {
+      fontSize: 11,
+      fontWeight: '600',
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
+    completionCard: {
+      marginBottom: spacing.lg,
+    },
+    completionHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: spacing.sm,
+    },
+    progressBar: {
+      height: 6,
+      backgroundColor: colors.surfaceElevated,
+      borderRadius: 3,
+      overflow: 'hidden',
+    },
+    progressFill: {
+      height: '100%',
+      backgroundColor: colors.primary,
+      borderRadius: 3,
+    },
+    missingText: {
+      fontSize: 12,
+      marginTop: spacing.sm,
+      textTransform: 'capitalize',
+    },
+    bloodTypeCard: {
+      marginBottom: spacing.lg,
+    },
+    bloodTypeHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      marginBottom: spacing.md,
+    },
+    bloodTypeValue: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.md,
+    },
+    bloodTypeText: {
+      color: colors.text,
+    },
+    verificationBadge: {
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
+      borderRadius: spacing.xs,
+    },
+    verificationText: {
+      fontSize: 11,
+      fontWeight: '600',
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
+    sourceText: {
+      fontSize: 12,
+      marginTop: spacing.sm,
+    },
+    footer: {
+      marginTop: spacing.xl,
+      paddingVertical: spacing.lg,
+    },
+    version: {
+      textAlign: 'center',
+    },
+  });
+}

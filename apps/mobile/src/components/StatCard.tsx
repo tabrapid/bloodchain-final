@@ -1,5 +1,5 @@
 import { View } from 'react-native';
-import { colors, radius, spacing, typography } from '../theme';
+import { radius, spacing, typography, useTheme, ThemeColors } from '../theme';
 import { AppText } from './AppText';
 import { LucideIcon } from '../types/icons';
 
@@ -12,13 +12,15 @@ export interface StatCardProps {
   style?: object;
 }
 
-const variants: Record<string, { border: string; bg: string; icon: string }> = {
-  default: { border: colors.border, bg: colors.surface, icon: colors.textMuted },
-  secondary: { border: '#29404D', bg: '#10202A', icon: colors.secondary },
-  success: { border: '#28413B', bg: '#10221F', icon: colors.success },
-  warning: { border: '#4A3B22', bg: '#1F1A12', icon: colors.warning },
-  danger: { border: '#5B3038', bg: '#26191F', icon: colors.danger },
-};
+function getVariants(colors: ThemeColors): Record<string, { border: string; bg: string; icon: string }> {
+  return {
+    default: { border: colors.border, bg: colors.surface, icon: colors.textMuted },
+    secondary: { border: colors.border, bg: colors.secondaryMuted, icon: colors.secondary },
+    success: { border: colors.border, bg: colors.successMuted, icon: colors.success },
+    warning: { border: colors.border, bg: colors.warningMuted, icon: colors.warning },
+    danger: { border: colors.border, bg: colors.dangerMuted, icon: colors.danger },
+  };
+}
 
 export function StatCard({
   label,
@@ -28,7 +30,8 @@ export function StatCard({
   variant = 'default',
   style,
 }: StatCardProps) {
-  const theme = variants[variant]!;
+  const { colors } = useTheme();
+  const theme = getVariants(colors)[variant]!;
   return (
     <View
       style={{

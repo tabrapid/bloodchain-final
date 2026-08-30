@@ -3,7 +3,7 @@ import renderer, { act, type ReactTestRendererJSON } from 'react-test-renderer';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import { colors } from '../theme';
+import { colors, ThemeProvider } from '../theme';
 
 /**
  * P3-9 regression tests.
@@ -23,6 +23,13 @@ import { colors } from '../theme';
 
 jest.mock('expo-router', () => ({
   router: { push: jest.fn() },
+}));
+// Pin the resolved theme to dark so assertions against the static `colors`
+// export (the dark palette) stay meaningful regardless of what the test
+// environment's own system color scheme happens to report.
+jest.mock('react-native/Libraries/Utilities/useColorScheme', () => ({
+  __esModule: true,
+  default: () => 'dark',
 }));
 jest.mock('../api/community', () => ({
   getFeed: jest.fn(),
@@ -147,16 +154,18 @@ async function renderScreen(Screen: React.ComponentType) {
   });
 
   const element = (
-    <SafeAreaProvider
-      initialMetrics={{
-        frame: { x: 0, y: 0, width: 390, height: 844 },
-        insets: { top: 47, left: 0, right: 0, bottom: 34 },
-      }}
-    >
-      <QueryClientProvider client={queryClient}>
-        <Screen />
-      </QueryClientProvider>
-    </SafeAreaProvider>
+    <ThemeProvider>
+      <SafeAreaProvider
+        initialMetrics={{
+          frame: { x: 0, y: 0, width: 390, height: 844 },
+          insets: { top: 47, left: 0, right: 0, bottom: 34 },
+        }}
+      >
+        <QueryClientProvider client={queryClient}>
+          <Screen />
+        </QueryClientProvider>
+      </SafeAreaProvider>
+    </ThemeProvider>
   );
 
   // Mount inside a synchronous act, then flush in a separate async one. Doing the
@@ -263,11 +272,14 @@ describe('P3-9: the four screens that used className render with real styles', (
   it.each(screens)('%s applies the app theme rather than rendering unstyled', async (_name, Screen) => {
     const fingerprint = styleFingerprint(allNodes(await renderTree(Screen)));
 
-    // The dark background and the app's real text color must both be present —
-    // these come from src/theme.ts, so a screen rendering unstyled (or reverting
-    // to light-mode Tailwind strings) fails here.
-    expect(fingerprint).toContain(colors.background);
+    // The app's real text color and surface border must be present — these
+    // come from src/theme.tsx, so a screen rendering unstyled (or reverting
+    // to light-mode Tailwind strings) fails here. (The screen background
+    // itself now paints via a LinearGradient `colors` prop, which React
+    // Native serializes to processed native color ints rather than the
+    // original hex string, so it isn't substring-matchable here.)
     expect(fingerprint).toContain(colors.text);
+    expect(fingerprint).toContain(colors.border);
   });
 
   it('community renders real content from the API, not just chrome', async () => {

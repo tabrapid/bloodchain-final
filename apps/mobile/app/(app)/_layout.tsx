@@ -1,19 +1,13 @@
 import { Tabs } from 'expo-router';
 import { CalendarDays, Droplet, HeartPulse, Home, UserRound, Users } from 'lucide-react-native';
-import { colors } from '../../src/theme';
+import { GlassTabBar } from '../../src/components/GlassTabBar';
 
 export default function AppLayout() {
   return (
     <Tabs
+      tabBar={(props) => <GlassTabBar {...props} />}
       screenOptions={{
         headerShown: false,
-        tabBarStyle: {
-          backgroundColor: colors.surface,
-          borderTopColor: colors.border,
-          borderTopWidth: 1,
-        },
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.textMuted,
       }}
     >
       <Tabs.Screen

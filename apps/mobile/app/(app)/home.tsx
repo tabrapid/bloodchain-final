@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { router } from 'expo-router';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Activity, Calendar, Droplet, HeartPulse, ChevronRight, Clock } from 'lucide-react-native';
@@ -17,9 +18,11 @@ import { useProfileCompletion } from '../../src/hooks/useDonors';
 import { useNextAppointment } from '../../src/hooks/useAppointments';
 import { useDonationStatistics } from '../../src/hooks/useDonations';
 import { useAuthStore } from '../../src/stores/auth.store';
-import { colors, spacing, radius } from '../../src/theme';
+import { spacing, radius, useTheme, ThemeColors } from '../../src/theme';
 
 export default function Home() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const user = useAuthStore((s) => s.user);
   const { data: userProfile } = useUserProfile();
   const { data: donorProfile } = useDonorProfile();
@@ -82,7 +85,7 @@ export default function Home() {
       )}
 
       <GradientCard
-        colors={['#26191F', '#111A24']}
+        colors={[colors.dangerMuted, colors.surfaceSolid]}
         style={styles.bloodTypeCard}
       >
         <View style={styles.bloodTypeHeader}>
@@ -278,169 +281,171 @@ function getGreeting(name: string): string {
   return `${timeGreeting}, ${name}`;
 }
 
-const styles = StyleSheet.create({
-  dateLabel: {
-    letterSpacing: 1,
-    marginBottom: spacing.xs,
-  },
-  greeting: {
-    marginBottom: spacing.xl,
-  },
-  onboardingPrompt: {
-    marginBottom: spacing.xl,
-    borderColor: colors.primary,
-    borderWidth: 1,
-  },
-  onboardingText: {
-    marginTop: spacing.xs,
-    marginBottom: spacing.md,
-  },
-  onboardingButton: {
-    alignSelf: 'flex-start',
-  },
-  bloodTypeCard: {
-    marginBottom: spacing.lg,
-  },
-  bloodTypeHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  bloodTypeContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  bloodTypeValue: {
-    color: colors.text,
-  },
-  statusBadge: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: spacing.xs,
-  },
-  statusText: {
-    fontSize: 11,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  locationText: {
-    marginTop: spacing.sm,
-    fontSize: 13,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    gap: spacing.md,
-    marginBottom: spacing.lg,
-  },
-  statCard: {
-    flex: 1,
-  },
-  profileStat: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  completionNote: {
-    fontSize: 13,
-    marginTop: 2,
-  },
-  completionBadge: {
-    backgroundColor: colors.surfaceElevated,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: spacing.sm,
-  },
-  quickActions: {
-    flexDirection: 'row',
-    gap: spacing.md,
-    marginBottom: spacing.lg,
-  },
-  quickAction: {
-    flex: 1,
-  },
-  sosCard: {
-    borderColor: '#5B3038',
-  },
-  sosText: {
-    marginTop: spacing.xs,
-    marginBottom: spacing.md,
-  },
-  appointmentCard: {
-    padding: spacing.lg,
-    marginBottom: spacing.md,
-  },
-  appointmentHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-  },
-  appointmentType: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-  appointmentTypeText: {
-    fontSize: 14,
-    fontWeight: '600',
-    textTransform: 'capitalize',
-  },
-  appointmentStatus: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: radius.sm,
-  },
-  appointmentDetails: {
-    flexDirection: 'row',
-    gap: spacing.lg,
-    marginBottom: spacing.sm,
-  },
-  appointmentInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-  appointmentInfoText: {
-    fontSize: 13,
-  },
-  appointmentFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  appointmentOrg: {
-    fontSize: 13,
-    flex: 1,
-    marginRight: spacing.sm,
-  },
-  donationStatCard: {
-    flex: 1,
-  },
-  statGlassCard: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: spacing.lg,
-  },
-  statIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.primary + '15',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.sm,
-  },
-  statValue: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: colors.text,
-    marginBottom: spacing.xs,
-  },
-  statNote: {
-    fontSize: 12,
-    textAlign: 'center',
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    dateLabel: {
+      letterSpacing: 1,
+      marginBottom: spacing.xs,
+    },
+    greeting: {
+      marginBottom: spacing.xl,
+    },
+    onboardingPrompt: {
+      marginBottom: spacing.xl,
+      borderColor: colors.primary,
+      borderWidth: 1,
+    },
+    onboardingText: {
+      marginTop: spacing.xs,
+      marginBottom: spacing.md,
+    },
+    onboardingButton: {
+      alignSelf: 'flex-start',
+    },
+    bloodTypeCard: {
+      marginBottom: spacing.lg,
+    },
+    bloodTypeHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      marginBottom: spacing.md,
+    },
+    bloodTypeContent: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.md,
+    },
+    bloodTypeValue: {
+      color: colors.text,
+    },
+    statusBadge: {
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
+      borderRadius: spacing.xs,
+    },
+    statusText: {
+      fontSize: 11,
+      fontWeight: '600',
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
+    locationText: {
+      marginTop: spacing.sm,
+      fontSize: 13,
+    },
+    statsRow: {
+      flexDirection: 'row',
+      gap: spacing.md,
+      marginBottom: spacing.lg,
+    },
+    statCard: {
+      flex: 1,
+    },
+    profileStat: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    completionNote: {
+      fontSize: 13,
+      marginTop: 2,
+    },
+    completionBadge: {
+      backgroundColor: colors.surfaceElevated,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      borderRadius: spacing.sm,
+    },
+    quickActions: {
+      flexDirection: 'row',
+      gap: spacing.md,
+      marginBottom: spacing.lg,
+    },
+    quickAction: {
+      flex: 1,
+    },
+    sosCard: {
+      borderColor: colors.danger,
+    },
+    sosText: {
+      marginTop: spacing.xs,
+      marginBottom: spacing.md,
+    },
+    appointmentCard: {
+      padding: spacing.lg,
+      marginBottom: spacing.md,
+    },
+    appointmentHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: spacing.sm,
+    },
+    appointmentType: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+    },
+    appointmentTypeText: {
+      fontSize: 14,
+      fontWeight: '600',
+      textTransform: 'capitalize',
+    },
+    appointmentStatus: {
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
+      borderRadius: radius.sm,
+    },
+    appointmentDetails: {
+      flexDirection: 'row',
+      gap: spacing.lg,
+      marginBottom: spacing.sm,
+    },
+    appointmentInfo: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+    },
+    appointmentInfoText: {
+      fontSize: 13,
+    },
+    appointmentFooter: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    appointmentOrg: {
+      fontSize: 13,
+      flex: 1,
+      marginRight: spacing.sm,
+    },
+    donationStatCard: {
+      flex: 1,
+    },
+    statGlassCard: {
+      flex: 1,
+      alignItems: 'center',
+      paddingVertical: spacing.lg,
+    },
+    statIconContainer: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: colors.primaryMuted,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: spacing.sm,
+    },
+    statValue: {
+      fontSize: 28,
+      fontWeight: '700',
+      color: colors.text,
+      marginBottom: spacing.xs,
+    },
+    statNote: {
+      fontSize: 12,
+      textAlign: 'center',
+    },
+  });
+}

@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { colors, spacing, radius } from '../../theme';
+import { spacing, useTheme, ThemeColors } from '../../theme';
 import { AppText } from '../../components/AppText';
 import { Badge } from '../../api/gamification';
 
@@ -9,12 +9,12 @@ interface BadgeDisplayProps {
   size?: 'small' | 'medium' | 'large';
 }
 
-const rarityColors = {
-  COMMON: colors.textMuted,
+const rarityColorKey = {
+  COMMON: 'textMuted',
   RARE: '#3B82F6',
   EPIC: '#8B5CF6',
   LEGENDARY: '#F59E0B',
-};
+} as const;
 
 const iconMap: Record<string, string> = {
   droplet: 'D',
@@ -27,9 +27,13 @@ const iconMap: Record<string, string> = {
 };
 
 export function BadgeDisplay({ badge, size = 'medium' }: BadgeDisplayProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const isEarned = !!badge.earnedAt;
   const iconSize = size === 'small' ? 24 : size === 'large' ? 48 : 36;
   const containerSize = iconSize + 16;
+  const rarityKey = rarityColorKey[badge.rarity];
+  const rarityColor = rarityKey === 'textMuted' ? colors.textMuted : rarityKey;
 
   return (
     <View style={styles.container}>
@@ -49,7 +53,7 @@ export function BadgeDisplay({ badge, size = 'medium' }: BadgeDisplayProps) {
             styles.icon,
             {
               fontSize: iconSize * 0.5,
-              color: isEarned ? rarityColors[badge.rarity] : colors.border,
+              color: isEarned ? rarityColor : colors.border,
             },
           ]}
         >
@@ -73,24 +77,26 @@ export function BadgeDisplay({ badge, size = 'medium' }: BadgeDisplayProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    alignItems: 'center',
-    width: 80,
-    marginRight: spacing.md,
-  },
-  badgeCircle: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: colors.border,
-    marginBottom: spacing.xs,
-  },
-  icon: {
-    fontWeight: '700',
-  },
-  name: {
-    textAlign: 'center',
-    marginBottom: 2,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: {
+      alignItems: 'center',
+      width: 80,
+      marginRight: spacing.md,
+    },
+    badgeCircle: {
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderWidth: 2,
+      borderColor: colors.border,
+      marginBottom: spacing.xs,
+    },
+    icon: {
+      fontWeight: '700',
+    },
+    name: {
+      textAlign: 'center',
+      marginBottom: 2,
+    },
+  });
+}

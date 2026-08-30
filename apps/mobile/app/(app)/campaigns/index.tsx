@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { RefreshControl, StyleSheet, View } from 'react-native';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Calendar, Users, MapPin, Droplet } from 'lucide-react-native';
@@ -13,9 +13,11 @@ import {
   LoadingState,
   Screen,
 } from '../../../src/components';
-import { colors, spacing } from '../../../src/theme';
+import { spacing, useTheme, ThemeColors } from '../../../src/theme';
 
 export default function CampaignsScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [refreshing, setRefreshing] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);
   const queryClient = useQueryClient();
@@ -107,6 +109,8 @@ function CampaignCard({
   onJoin: () => void;
   isJoining: boolean;
 }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const startDate = new Date(campaign.startDate);
   const endDate = new Date(campaign.endDate);
   const now = new Date();
@@ -176,48 +180,50 @@ function CampaignCard({
   );
 }
 
-const styles = StyleSheet.create({
-  header: {
-    marginBottom: spacing.lg,
-  },
-  errorCard: {
-    padding: spacing.md,
-    marginBottom: spacing.lg,
-    backgroundColor: colors.danger + '15',
-  },
-  subtitle: {
-    marginTop: spacing.xs,
-  },
-  list: {
-    gap: spacing.md,
-    paddingBottom: spacing.xl,
-  },
-  card: {
-    padding: spacing.lg,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: spacing.sm,
-    marginBottom: spacing.sm,
-  },
-  cardHeading: {
-    flex: 1,
-  },
-  organization: {
-    marginTop: spacing.xs,
-  },
-  description: {
-    marginBottom: spacing.md,
-  },
-  details: {
-    gap: spacing.xs,
-    marginBottom: spacing.md,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    header: {
+      marginBottom: spacing.lg,
+    },
+    errorCard: {
+      padding: spacing.md,
+      marginBottom: spacing.lg,
+      backgroundColor: colors.dangerMuted,
+    },
+    subtitle: {
+      marginTop: spacing.xs,
+    },
+    list: {
+      gap: spacing.md,
+      paddingBottom: spacing.xl,
+    },
+    card: {
+      padding: spacing.lg,
+    },
+    cardHeader: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
+      gap: spacing.sm,
+      marginBottom: spacing.sm,
+    },
+    cardHeading: {
+      flex: 1,
+    },
+    organization: {
+      marginTop: spacing.xs,
+    },
+    description: {
+      marginBottom: spacing.md,
+    },
+    details: {
+      gap: spacing.xs,
+      marginBottom: spacing.md,
+    },
+    detailRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+    },
+  });
+}

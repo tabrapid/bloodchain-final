@@ -3,7 +3,7 @@ import { ScrollView, View, RefreshControl, TouchableOpacity } from 'react-native
 import { router, Stack } from 'expo-router';
 import { Activity, Beaker, Calendar, ChevronRight, Clock, FlaskConical, TestTube2 } from 'lucide-react-native';
 import { AppText, Card, GlassCard, LoadingState, Screen, SectionHeader, StatCard } from '../../../src/components';
-import { colors, spacing } from '../../../src/theme';
+import { spacing, useTheme } from '../../../src/theme';
 import {
   getDonorAppointments,
   getDonorResults,
@@ -14,6 +14,7 @@ import {
 } from '../../../src/api/laboratory';
 
 export default function LaboratoryScreen() {
+  const { colors } = useTheme();
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [loadError, setLoadError] = useState(false);

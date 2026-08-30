@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { RefreshControl, ScrollView, View } from 'react-native';
 import { AlertTriangle, CheckCircle, Clock3, Droplet, Package, XCircle } from 'lucide-react-native';
 import { AppButton, AppText, Badge, Card, EmptyState, LoadingState, Screen, StatCard } from '../../src/components';
-import { colors, spacing } from '../../src/theme';
+import { spacing, useTheme } from '../../src/theme';
 import { getCourierShipments, getCourierStats, type CourierStats, type Shipment } from '../../src/api/courier';
 
 const STATUS_VARIANT: Record<string, 'default' | 'primary' | 'secondary' | 'success' | 'warning' | 'danger'> = {
@@ -19,6 +19,7 @@ const STATUS_VARIANT: Record<string, 'default' | 'primary' | 'secondary' | 'succ
 };
 
 export default function CourierHistory() {
+  const { colors } = useTheme();
   const [shipments, setShipments] = useState<Shipment[]>([]);
   const [stats, setStats] = useState<CourierStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);

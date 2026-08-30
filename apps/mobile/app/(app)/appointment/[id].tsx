@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
 import { View, StyleSheet, ScrollView, Alert, TextInput } from 'react-native';
 import {
@@ -18,9 +18,11 @@ import {
   Screen,
 } from '../../../src/components';
 import { useAppointment, useCancelAppointment } from '../../../src/hooks/useAppointments';
-import { colors, spacing } from '../../../src/theme';
+import { spacing, useTheme, ThemeColors } from '../../../src/theme';
 
 export default function AppointmentDetail() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const params = useLocalSearchParams<{ id: string }>();
   const { data: appointment, isLoading } = useAppointment(params.id);
 
@@ -303,119 +305,121 @@ export default function AppointmentDetail() {
   );
 }
 
-const styles = StyleSheet.create({
-  content: {
-    paddingBottom: spacing.xl,
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: spacing.xl,
-  },
-  statusBadge: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: 8,
-    marginBottom: spacing.sm,
-  },
-  statusText: {
-    fontSize: 14,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  refNumber: {
-    fontSize: 13,
-    letterSpacing: 1,
-  },
-  detailsCard: {
-    padding: spacing.lg,
-    marginBottom: spacing.lg,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: spacing.md,
-  },
-  detailIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    backgroundColor: colors.primary + '15',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing.md,
-  },
-  detailInfo: {
-    flex: 1,
-  },
-  detailLabel: {
-    fontSize: 12,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 2,
-  },
-  notesCard: {
-    padding: spacing.lg,
-    marginBottom: spacing.lg,
-  },
-  notesLabel: {
-    fontSize: 12,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: spacing.sm,
-  },
-  cancellationCard: {
-    padding: spacing.lg,
-    backgroundColor: colors.danger + '10',
-    marginBottom: spacing.lg,
-  },
-  cancellationHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginBottom: spacing.sm,
-  },
-  cancellationTitle: {
-    color: colors.danger,
-    fontWeight: '600',
-  },
-  cancellationReason: {
-    fontSize: 14,
-    marginTop: spacing.xs,
-  },
-  errorCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    padding: spacing.md,
-    backgroundColor: colors.danger + '15',
-    marginBottom: spacing.lg,
-  },
-  errorText: {
-    color: colors.danger,
-    flex: 1,
-  },
-  cancelReasonCard: {
-    padding: spacing.lg,
-    marginBottom: spacing.lg,
-  },
-  cancelTitle: {
-    marginBottom: spacing.md,
-  },
-  cancelInput: {
-    padding: spacing.md,
-    backgroundColor: colors.surfaceElevated,
-    borderRadius: 8,
-    color: colors.text,
-    fontSize: 14,
-    minHeight: 72,
-    textAlignVertical: 'top',
-  },
-  footer: {
-    paddingTop: spacing.lg,
-    gap: spacing.md,
-  },
-  cancelButton: {
-    marginTop: spacing.sm,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    content: {
+      paddingBottom: spacing.xl,
+    },
+    header: {
+      alignItems: 'center',
+      marginBottom: spacing.xl,
+    },
+    statusBadge: {
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      borderRadius: 8,
+      marginBottom: spacing.sm,
+    },
+    statusText: {
+      fontSize: 14,
+      fontWeight: '600',
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+    },
+    refNumber: {
+      fontSize: 13,
+      letterSpacing: 1,
+    },
+    detailsCard: {
+      padding: spacing.lg,
+      marginBottom: spacing.lg,
+    },
+    detailRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      marginBottom: spacing.md,
+    },
+    detailIcon: {
+      width: 40,
+      height: 40,
+      borderRadius: 10,
+      backgroundColor: colors.primaryMuted,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: spacing.md,
+    },
+    detailInfo: {
+      flex: 1,
+    },
+    detailLabel: {
+      fontSize: 12,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+      marginBottom: 2,
+    },
+    notesCard: {
+      padding: spacing.lg,
+      marginBottom: spacing.lg,
+    },
+    notesLabel: {
+      fontSize: 12,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+      marginBottom: spacing.sm,
+    },
+    cancellationCard: {
+      padding: spacing.lg,
+      backgroundColor: colors.dangerMuted,
+      marginBottom: spacing.lg,
+    },
+    cancellationHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      marginBottom: spacing.sm,
+    },
+    cancellationTitle: {
+      color: colors.danger,
+      fontWeight: '600',
+    },
+    cancellationReason: {
+      fontSize: 14,
+      marginTop: spacing.xs,
+    },
+    errorCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      padding: spacing.md,
+      backgroundColor: colors.dangerMuted,
+      marginBottom: spacing.lg,
+    },
+    errorText: {
+      color: colors.danger,
+      flex: 1,
+    },
+    cancelReasonCard: {
+      padding: spacing.lg,
+      marginBottom: spacing.lg,
+    },
+    cancelTitle: {
+      marginBottom: spacing.md,
+    },
+    cancelInput: {
+      padding: spacing.md,
+      backgroundColor: colors.surfaceElevated,
+      borderRadius: 8,
+      color: colors.text,
+      fontSize: 14,
+      minHeight: 72,
+      textAlignVertical: 'top',
+    },
+    footer: {
+      paddingTop: spacing.lg,
+      gap: spacing.md,
+    },
+    cancelButton: {
+      marginTop: spacing.sm,
+    },
+  });
+}

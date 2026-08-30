@@ -4,9 +4,11 @@ import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { Sun, Sunrise } from 'lucide-react-native';
 import { AppButton, AppText, Card, EmptyState, GlassCard, Screen } from '../../src/components';
 import { useAvailability } from '../../src/hooks/useAppointments';
-import { colors, spacing, radius } from '../../src/theme';
+import { spacing, useTheme, ThemeColors } from '../../src/theme';
 
 export default function SelectTime() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const params = useLocalSearchParams<{
     organizationId: string;
     type: string;
@@ -160,57 +162,59 @@ export default function SelectTime() {
   );
 }
 
-const styles = StyleSheet.create({
-  content: {
-    paddingBottom: spacing.xl,
-  },
-  title: {
-    marginBottom: spacing.xs,
-  },
-  subtitle: {
-    marginBottom: spacing.xl,
-  },
-  emptyCard: {
-    paddingVertical: spacing.xl,
-  },
-  retryButton: {
-    marginTop: spacing.md,
-    alignSelf: 'center',
-  },
-  slotGroup: {
-    marginBottom: spacing.xl,
-  },
-  groupHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  groupTitle: {
-    fontSize: 13,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  slotsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  slotCard: {
-    width: '30%',
-    padding: spacing.md,
-    alignItems: 'center',
-  },
-  slotDuration: {
-    fontSize: 12,
-    marginTop: 2,
-  },
-  slotAvailability: {
-    fontSize: 11,
-    marginTop: 2,
-    color: colors.success,
-  },
-  footer: {
-    paddingTop: spacing.lg,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    content: {
+      paddingBottom: spacing.xl,
+    },
+    title: {
+      marginBottom: spacing.xs,
+    },
+    subtitle: {
+      marginBottom: spacing.xl,
+    },
+    emptyCard: {
+      paddingVertical: spacing.xl,
+    },
+    retryButton: {
+      marginTop: spacing.md,
+      alignSelf: 'center',
+    },
+    slotGroup: {
+      marginBottom: spacing.xl,
+    },
+    groupHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      marginBottom: spacing.md,
+    },
+    groupTitle: {
+      fontSize: 13,
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+    },
+    slotsGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing.sm,
+    },
+    slotCard: {
+      width: '30%',
+      padding: spacing.md,
+      alignItems: 'center',
+    },
+    slotDuration: {
+      fontSize: 12,
+      marginTop: 2,
+    },
+    slotAvailability: {
+      fontSize: 11,
+      marginTop: 2,
+      color: colors.success,
+    },
+    footer: {
+      paddingTop: spacing.lg,
+    },
+  });
+}

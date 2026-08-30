@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { Calendar, Clock, Building2, Droplet, AlertCircle } from 'lucide-react-native';
@@ -9,9 +9,11 @@ import {
   useOrganizations,
   useRescheduleAppointment,
 } from '../../src/hooks/useAppointments';
-import { colors, spacing } from '../../src/theme';
+import { spacing, useTheme, ThemeColors } from '../../src/theme';
 
 export default function ReviewBooking() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const params = useLocalSearchParams<{
     slotId: string;
     organizationId: string;
@@ -275,83 +277,85 @@ export default function ReviewBooking() {
   );
 }
 
-const styles = StyleSheet.create({
-  content: {
-    paddingBottom: spacing.xl,
-  },
-  title: {
-    marginBottom: spacing.xs,
-  },
-  subtitle: {
-    marginBottom: spacing.xl,
-  },
-  summaryCard: {
-    padding: spacing.lg,
-    marginBottom: spacing.lg,
-  },
-  sectionTitle: {
-    marginBottom: spacing.lg,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: spacing.md,
-  },
-  detailIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    backgroundColor: colors.primary + '15',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing.md,
-  },
-  detailInfo: {
-    flex: 1,
-  },
-  detailLabel: {
-    fontSize: 12,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 2,
-  },
-  addressText: {
-    fontSize: 13,
-    marginTop: 2,
-  },
-  notesCard: {
-    padding: spacing.lg,
-    marginBottom: spacing.lg,
-  },
-  notesInput: {
-    padding: spacing.md,
-    backgroundColor: colors.surfaceElevated,
-    borderRadius: 8,
-  },
-  errorCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    padding: spacing.md,
-    backgroundColor: colors.danger + '15',
-    marginBottom: spacing.lg,
-  },
-  errorText: {
-    color: colors.danger,
-    flex: 1,
-  },
-  infoCard: {
-    padding: spacing.md,
-    backgroundColor: colors.surfaceElevated,
-  },
-  infoText: {
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  footer: {
-    paddingTop: spacing.lg,
-  },
-  backButton: {
-    marginTop: spacing.md,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    content: {
+      paddingBottom: spacing.xl,
+    },
+    title: {
+      marginBottom: spacing.xs,
+    },
+    subtitle: {
+      marginBottom: spacing.xl,
+    },
+    summaryCard: {
+      padding: spacing.lg,
+      marginBottom: spacing.lg,
+    },
+    sectionTitle: {
+      marginBottom: spacing.lg,
+    },
+    detailRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      marginBottom: spacing.md,
+    },
+    detailIcon: {
+      width: 40,
+      height: 40,
+      borderRadius: 10,
+      backgroundColor: colors.primaryMuted,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: spacing.md,
+    },
+    detailInfo: {
+      flex: 1,
+    },
+    detailLabel: {
+      fontSize: 12,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+      marginBottom: 2,
+    },
+    addressText: {
+      fontSize: 13,
+      marginTop: 2,
+    },
+    notesCard: {
+      padding: spacing.lg,
+      marginBottom: spacing.lg,
+    },
+    notesInput: {
+      padding: spacing.md,
+      backgroundColor: colors.surfaceElevated,
+      borderRadius: 8,
+    },
+    errorCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      padding: spacing.md,
+      backgroundColor: colors.dangerMuted,
+      marginBottom: spacing.lg,
+    },
+    errorText: {
+      color: colors.danger,
+      flex: 1,
+    },
+    infoCard: {
+      padding: spacing.md,
+      backgroundColor: colors.surfaceElevated,
+    },
+    infoText: {
+      fontSize: 13,
+      lineHeight: 18,
+    },
+    footer: {
+      paddingTop: spacing.lg,
+    },
+    backButton: {
+      marginTop: spacing.md,
+    },
+  });
+}

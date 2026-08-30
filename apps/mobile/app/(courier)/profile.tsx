@@ -3,7 +3,7 @@ import { ScrollView, TextInput, View } from 'react-native';
 import { AlertTriangle, Building2, LogOut, Moon, Sun } from 'lucide-react-native';
 import { AppButton, AppText, Badge, Card, EmptyState, LoadingState, Screen } from '../../src/components';
 import { useLogout } from '../../src/hooks/useAuth';
-import { colors, spacing } from '../../src/theme';
+import { spacing, useTheme } from '../../src/theme';
 import {
   getCourierProfile,
   updateCourierProfile,
@@ -19,6 +19,7 @@ const STATUS_VARIANT: Record<string, 'default' | 'primary' | 'secondary' | 'succ
 };
 
 export default function CourierProfileScreen() {
+  const { colors } = useTheme();
   const logout = useLogout();
   const [profile, setProfile] = useState<CourierProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -143,7 +144,7 @@ export default function CourierProfileScreen() {
             onChangeText={setDisplayName}
             placeholderTextColor={colors.textMuted}
             style={{
-              backgroundColor: colors.surfaceElevated,
+              backgroundColor: colors.surfaceSolid,
               borderColor: colors.border,
               borderWidth: 1,
               borderRadius: 10,
@@ -160,7 +161,7 @@ export default function CourierProfileScreen() {
             keyboardType="phone-pad"
             placeholderTextColor={colors.textMuted}
             style={{
-              backgroundColor: colors.surfaceElevated,
+              backgroundColor: colors.surfaceSolid,
               borderColor: colors.border,
               borderWidth: 1,
               borderRadius: 10,

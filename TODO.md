@@ -1718,6 +1718,119 @@ These make the product unusable or unsafe for real users. Fix first, in order.
   - Files: `apps/api/src/modules/users/users.controller.ts`,
     `apps/api/src/modules/users/users.controller.spec.ts` (new).
 
+- [x] P0-34: Mobile app's entire visual design was hardcoded to a single
+  flat dark palette with no light-mode support and no real glass/blur
+  treatment anywhere — a full "Apple Liquid Glass" redesign with working
+  light and dark themes, requested directly by the user with a reference
+  mockup.
+  — Fixed: this is a large, cross-cutting change touching the theme
+  system, every shared UI component, both tab bars, and all ~40 screens.
+  Summary of the work:
+
+  **New theme system** (`src/theme.tsx`, replacing the old static
+  `src/theme.ts`): defines a light and a dark color palette that share
+  the same brand accent hues (primary/secondary/ai/success/warning/
+  danger — unchanged, since they already read cleanly on both a
+  near-black and a near-white background) but differ on every surface
+  token — background, backgroundGradient (a soft two-stop wash instead
+  of a flat color, matching the reference mockup's ambient gradient),
+  surface/surfaceElevated/surfaceHighlight (translucent, for real glass
+  cards), surfaceSolid/surfaceSolidElevated (opaque, for text inputs and
+  non-blur fallbacks), text/textMuted, border/borderSubtle, and a full
+  set of *Muted tint tokens per accent color for badges. A `ThemeProvider`
+  wraps the app, resolving the active scheme from `useColorScheme()`
+  (so both light and dark work automatically, following the system
+  setting the way Apple's own apps do) with a manual override capability
+  already wired in (`setPreference('light' | 'dark' | 'system')`,
+  persisted via `expo-secure-store`) for a future in-app toggle. A
+  `useTheme()` hook exposes `{ colors, scheme, isDark, setPreference }`
+  to every component. `spacing`/`typography` are unchanged; `radius` was
+  softened slightly (`md` 16→18, `lg` 24→26, `xl` 32→34) for a rounder,
+  more "liquid" look that applies everywhere automatically.
+
+  **Real glass components**: `GlassCard` now wraps its content in a real
+  `expo-blur` `BlurView` on iOS (native `UIVisualEffectView` blur) with a
+  theme-correct tint and a soft shadow; Android renders the same
+  translucent tinted surface without the native blur layer, since
+  `expo-blur`'s Android blur path is still marked experimental upstream
+  (perf/rendering issues warned in its own type definitions) and
+  unverifiable without a physical device in this environment — rather
+  than ship an untested rendering path, Android gets the reliable
+  translucent-tint fallback. `Screen` now paints its background with the
+  ambient `backgroundGradient` via `expo-linear-gradient` instead of a
+  flat color. `Modal` got the same iOS blur treatment. `Card` got a
+  proper elevation shadow (subtle in light mode, stronger in dark).
+
+  **New glass tab bar** (`src/components/GlassTabBar.tsx`): replaces
+  React Navigation's default flat bar entirely via the `tabBar` render
+  prop (added `@react-navigation/bottom-tabs` as a direct dependency —
+  it already existed transitively through `expo-router` at the exact
+  same version, `7.18.17`, confirmed in the lockfile, so this resolved
+  from the local pnpm store with no network access needed). Icon-only
+  (no labels, matching the reference image), with a colored pill
+  backdrop behind the focused icon, a blurred/tinted rounded container,
+  and a soft shadow. Deliberately docked (not `position: absolute`) so
+  scroll content never needs manual bottom-inset padding to avoid being
+  hidden behind a floating bar — it still reads as a rounded, inset
+  "glass pill" without the overlap risk. Used by both `(app)/_layout.tsx`
+  (6 tabs) and `(courier)/_layout.tsx` (3 tabs).
+
+  **All ~40 screens migrated** from the old static `import { colors } from
+  '../../src/theme'` to `useTheme()`. Where a screen had a module-scope
+  `StyleSheet.create({...})` referencing colors (which can't be reactive,
+  since it's evaluated once at import time), it was converted to a
+  `createStyles(colors: ThemeColors)` function called inside the
+  component via `useMemo(() => createStyles(colors), [colors])`; helper
+  components declared outside the main component (e.g. `ChallengeCard`,
+  `CampaignCard`, `FeedPostCard` in the community screens) each call
+  `useTheme()` independently since they don't have access to the parent's
+  closure. Also swept for and fixed hardcoded hex literals that bypassed
+  the theme entirely and would have stayed dark-only in light mode —
+  `#26191F`/`#111A24`/`#1a1f2e` gradient pairs (profile, home screens),
+  `#5B3038` danger borders (home, donate screens), `#080D14` transition
+  backdrops (booking/onboarding layout screenOptions). Text input
+  backgrounds specifically use `colors.surfaceSolid` rather than the
+  translucent `colors.surface`, since a glass-tinted input field would be
+  illegible against the app's own background, especially on Android with
+  no blur. Genuinely theme-invariant accent literals (urgency-level
+  colors in the SOS screen, badge-rarity colors in gamification) were
+  left as-is, matching the same reasoning as the brand accent colors.
+
+  **Tests**: `src/components/GlassTabBar.spec.tsx` (new, 4 tests) drives
+  the real component with fake React Navigation props and asserts it
+  renders exactly one button per route handed to it (regression coverage
+  for the exact class of bug P0-32 was — a navigator silently showing
+  more tabs than intended), and that tapping an unfocused vs. focused tab
+  fires navigation correctly. `src/__tests__/community-screens.spec.tsx`
+  needed updates: added a `useColorScheme` mock pinning the resolved
+  theme to dark so its existing assertions against the static dark
+  `colors` export stay meaningful regardless of the test environment's
+  own system scheme (which resolved to light by default, unrelated to
+  the app) — jest-expo's `useColorScheme` default isn't something the
+  app controls; and the `colors.background` hex-string assertion was
+  replaced with `colors.text`/`colors.border`, since `Screen`'s
+  background now paints via a `LinearGradient` `colors` prop, which
+  React Native serializes to processed native color integers rather than
+  the original hex string, so it can no longer be substring-matched.
+
+  Live visual verification was not possible in this environment (no
+  simulator, no device, no rendering capability of any kind for React
+  Native) — every claim about how this looks is inference from the
+  properties passed to real native APIs (`BlurView`, `LinearGradient`),
+  not a screenshot. Verified via `pnpm --filter mobile typecheck`
+  (clean) and `pnpm --filter mobile test` (7/7 suites, 53/53 tests) plus
+  a full `pnpm -r typecheck` and `pnpm -r test` across all 10 workspace
+  projects (all clean, including the unrelated apps unaffected by this
+  change) to confirm nothing else regressed.
+  - Files: `apps/mobile/src/theme.tsx` (new, replaces `src/theme.ts`),
+    `apps/mobile/src/components/*.tsx` (all ~20, including 2 new:
+    `GlassTabBar.tsx`, `GlassTabBar.spec.tsx`), `apps/mobile/app/_layout.tsx`,
+    `apps/mobile/app/(app)/_layout.tsx`, `apps/mobile/app/(courier)/_layout.tsx`,
+    `apps/mobile/app/(booking)/_layout.tsx`, `apps/mobile/app/(onboarding)/_layout.tsx`,
+    all ~40 screen files under `apps/mobile/app/`,
+    `apps/mobile/src/__tests__/community-screens.spec.tsx`,
+    `apps/mobile/package.json`, `pnpm-lock.yaml`.
+
 ## 🟠 P1 — Major gaps (feature exists but disconnected, or missing entirely)
 
 - [x] **P1-1. Booking race conditions (double-booking) in appointments and lab slots.** — Fixed:

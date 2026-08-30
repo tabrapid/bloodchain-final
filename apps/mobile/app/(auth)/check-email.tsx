@@ -4,9 +4,10 @@ import { View } from 'react-native';
 import { Mail } from 'lucide-react-native';
 import { AppButton, AppText, Screen } from '../../src/components';
 import { useResendVerification, getAuthErrorMessage } from '../../src/hooks/useAuth';
-import { colors, spacing } from '../../src/theme';
+import { spacing, useTheme } from '../../src/theme';
 
 export default function CheckEmail() {
+  const { colors } = useTheme();
   const params = useLocalSearchParams<{ email?: string }>();
   const resend = useResendVerification();
   const [sent, setSent] = useState(false);

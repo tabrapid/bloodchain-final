@@ -5,9 +5,10 @@ import { CheckCircle, XCircle } from 'lucide-react-native';
 import { AppButton, AppText, Screen } from '../../src/components';
 import { useVerifyEmail, getAuthErrorMessage } from '../../src/hooks/useAuth';
 import { getPostAuthRoute } from '../../src/utils/postAuthRoute';
-import { colors, spacing } from '../../src/theme';
+import { spacing, useTheme } from '../../src/theme';
 
 export default function VerifyEmail() {
+  const { colors } = useTheme();
   const params = useLocalSearchParams<{ token?: string }>();
   const verifyEmail = useVerifyEmail();
   const [error, setError] = useState<string | null>(null);

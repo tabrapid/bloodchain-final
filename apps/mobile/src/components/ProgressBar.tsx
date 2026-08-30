@@ -1,5 +1,5 @@
 import { View } from 'react-native';
-import { colors, radius } from '../theme';
+import { radius, useTheme } from '../theme';
 
 export interface ProgressBarProps {
   progress: number;
@@ -7,7 +7,8 @@ export interface ProgressBarProps {
   height?: number;
 }
 
-export function ProgressBar({ progress, color = colors.primary, height = 6 }: ProgressBarProps) {
+export function ProgressBar({ progress, color, height = 6 }: ProgressBarProps) {
+  const { colors } = useTheme();
   const clamped = Math.min(100, Math.max(0, progress));
   return (
     <View
@@ -23,7 +24,7 @@ export function ProgressBar({ progress, color = colors.primary, height = 6 }: Pr
           width: `${clamped}%`,
           height: '100%',
           borderRadius: radius.pill,
-          backgroundColor: color,
+          backgroundColor: color ?? colors.primary,
         }}
       />
     </View>

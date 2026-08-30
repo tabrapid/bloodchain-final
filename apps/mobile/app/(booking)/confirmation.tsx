@@ -1,11 +1,14 @@
+import { useMemo } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
 import { View, StyleSheet } from 'react-native';
 import { CheckCircle } from 'lucide-react-native';
 import { AppButton, AppText, Card, GlassCard, Screen } from '../../src/components';
 import { useAppointment } from '../../src/hooks/useAppointments';
-import { colors, spacing } from '../../src/theme';
+import { spacing, useTheme, ThemeColors } from '../../src/theme';
 
 export default function BookingConfirmation() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const params = useLocalSearchParams<{ appointmentId: string; rescheduled?: string }>();
   const { data: appointment, isLoading } = useAppointment(params.appointmentId);
   const isRescheduled = params.rescheduled === '1';
@@ -140,70 +143,72 @@ export default function BookingConfirmation() {
   );
 }
 
-const styles = StyleSheet.create({
-  content: {
-    flex: 1,
-  },
-  successIcon: {
-    alignItems: 'center',
-    marginBottom: spacing.xl,
-    marginTop: spacing.xl,
-  },
-  title: {
-    textAlign: 'center',
-    marginBottom: spacing.xs,
-  },
-  subtitle: {
-    textAlign: 'center',
-    marginBottom: spacing.xl,
-  },
-  detailsCard: {
-    padding: spacing.lg,
-    marginBottom: spacing.lg,
-  },
-  refRow: {
-    alignItems: 'center',
-    marginBottom: spacing.lg,
-  },
-  refNumber: {
-    fontSize: 20,
-    letterSpacing: 1,
-    marginTop: spacing.xs,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: colors.border,
-    marginBottom: spacing.lg,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.md,
-  },
-  detailLabel: {
-    fontSize: 13,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  statusBadge: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: 4,
-  },
-  reminderCard: {
-    padding: spacing.md,
-    backgroundColor: colors.surfaceElevated,
-  },
-  reminderText: {
-    fontSize: 13,
-    textAlign: 'center',
-    lineHeight: 18,
-  },
-  footer: {
-    paddingTop: spacing.lg,
-  },
-  homeButton: {
-    marginTop: spacing.md,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    content: {
+      flex: 1,
+    },
+    successIcon: {
+      alignItems: 'center',
+      marginBottom: spacing.xl,
+      marginTop: spacing.xl,
+    },
+    title: {
+      textAlign: 'center',
+      marginBottom: spacing.xs,
+    },
+    subtitle: {
+      textAlign: 'center',
+      marginBottom: spacing.xl,
+    },
+    detailsCard: {
+      padding: spacing.lg,
+      marginBottom: spacing.lg,
+    },
+    refRow: {
+      alignItems: 'center',
+      marginBottom: spacing.lg,
+    },
+    refNumber: {
+      fontSize: 20,
+      letterSpacing: 1,
+      marginTop: spacing.xs,
+    },
+    divider: {
+      height: 1,
+      backgroundColor: colors.border,
+      marginBottom: spacing.lg,
+    },
+    detailRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: spacing.md,
+    },
+    detailLabel: {
+      fontSize: 13,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
+    statusBadge: {
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
+      borderRadius: 4,
+    },
+    reminderCard: {
+      padding: spacing.md,
+      backgroundColor: colors.surfaceElevated,
+    },
+    reminderText: {
+      fontSize: 13,
+      textAlign: 'center',
+      lineHeight: 18,
+    },
+    footer: {
+      paddingTop: spacing.lg,
+    },
+    homeButton: {
+      marginTop: spacing.md,
+    },
+  });
+}

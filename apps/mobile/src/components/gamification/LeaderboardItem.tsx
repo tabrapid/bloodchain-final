@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, StyleSheet, Image } from 'react-native';
-import { colors, spacing, radius } from '../../theme';
+import { spacing, radius, useTheme, ThemeColors } from '../../theme';
 import { AppText } from '../../components/AppText';
 import { LeaderboardEntry } from '../../api/gamification';
 
@@ -9,13 +9,9 @@ interface LeaderboardItemProps {
   isCurrentUser?: boolean;
 }
 
-const rankEmoji: Record<number, string> = {
-  1: '1st',
-  2: '2nd',
-  3: '3rd',
-};
-
 export function LeaderboardItem({ entry, isCurrentUser = false }: LeaderboardItemProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const showRankNumber = entry.rank <= 3;
 
   return (
@@ -77,57 +73,59 @@ export function LeaderboardItem({ entry, isCurrentUser = false }: LeaderboardIte
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  currentUserContainer: {
-    borderColor: colors.primary,
-    backgroundColor: 'rgba(216, 83, 96, 0.08)',
-  },
-  rankContainer: {
-    width: 40,
-    alignItems: 'center',
-  },
-  avatarContainer: {
-    marginRight: spacing.md,
-  },
-  avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-  },
-  avatarPlaceholder: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.surfaceHighlight,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  infoContainer: {
-    flex: 1,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: spacing.xs,
-  },
-  levelBadge: {
-    backgroundColor: 'rgba(216, 83, 96, 0.15)',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    borderRadius: radius.sm,
-    marginRight: spacing.sm,
-  },
-  xpContainer: {
-    alignItems: 'flex-end',
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.surfaceSolid,
+      borderRadius: radius.md,
+      padding: spacing.md,
+      marginBottom: spacing.sm,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    currentUserContainer: {
+      borderColor: colors.primary,
+      backgroundColor: 'rgba(216, 83, 96, 0.08)',
+    },
+    rankContainer: {
+      width: 40,
+      alignItems: 'center',
+    },
+    avatarContainer: {
+      marginRight: spacing.md,
+    },
+    avatar: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+    },
+    avatarPlaceholder: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      backgroundColor: colors.surfaceHighlight,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    infoContainer: {
+      flex: 1,
+    },
+    statsRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: spacing.xs,
+    },
+    levelBadge: {
+      backgroundColor: colors.primaryMuted,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: 2,
+      borderRadius: radius.sm,
+      marginRight: spacing.sm,
+    },
+    xpContainer: {
+      alignItems: 'flex-end',
+    },
+  });
+}

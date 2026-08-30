@@ -4,7 +4,7 @@ import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { AppButton, AppText, Card, GlassCard, Screen } from '../../src/components';
 import { useAvailability } from '../../src/hooks/useAppointments';
-import { colors, spacing, radius } from '../../src/theme';
+import { spacing, useTheme, ThemeColors } from '../../src/theme';
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTHS = [
@@ -21,6 +21,8 @@ function getFirstDayOfMonth(year: number, month: number): number {
 }
 
 export default function SelectDate() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const params = useLocalSearchParams<{
     organizationId: string;
     type: string;
@@ -224,100 +226,102 @@ export default function SelectDate() {
   );
 }
 
-const styles = StyleSheet.create({
-  content: {
-    paddingBottom: spacing.xl,
-  },
-  title: {
-    marginBottom: spacing.xs,
-  },
-  subtitle: {
-    marginBottom: spacing.xl,
-  },
-  statusText: {
-    marginBottom: spacing.md,
-  },
-  errorCard: {
-    marginBottom: spacing.lg,
-    alignItems: 'center',
-  },
-  retryButton: {
-    marginTop: spacing.md,
-    alignSelf: 'center',
-  },
-  calendarCard: {
-    padding: spacing.md,
-    marginBottom: spacing.lg,
-  },
-  monthNav: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.md,
-  },
-  navButton: {
-    padding: spacing.sm,
-  },
-  weekdayRow: {
-    flexDirection: 'row',
-    marginBottom: spacing.sm,
-  },
-  weekdayCell: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  weekdayText: {
-    fontSize: 11,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-  },
-  daysGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  dayCell: {
-    width: '14.28%',
-    aspectRatio: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: spacing.xs,
-  },
-  dayCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.success + '20',
-  },
-  dayDisabled: {
-    backgroundColor: colors.surfaceElevated,
-  },
-  dayText: {
-    fontSize: 14,
-    color: colors.success,
-  },
-  dayTextDisabled: {
-    color: colors.textMuted,
-  },
-  legendCard: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-  },
-  legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  legendDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  legendText: {
-    fontSize: 13,
-  },
-  footer: {
-    paddingTop: spacing.lg,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    content: {
+      paddingBottom: spacing.xl,
+    },
+    title: {
+      marginBottom: spacing.xs,
+    },
+    subtitle: {
+      marginBottom: spacing.xl,
+    },
+    statusText: {
+      marginBottom: spacing.md,
+    },
+    errorCard: {
+      marginBottom: spacing.lg,
+      alignItems: 'center',
+    },
+    retryButton: {
+      marginTop: spacing.md,
+      alignSelf: 'center',
+    },
+    calendarCard: {
+      padding: spacing.md,
+      marginBottom: spacing.lg,
+    },
+    monthNav: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: spacing.md,
+    },
+    navButton: {
+      padding: spacing.sm,
+    },
+    weekdayRow: {
+      flexDirection: 'row',
+      marginBottom: spacing.sm,
+    },
+    weekdayCell: {
+      flex: 1,
+      alignItems: 'center',
+    },
+    weekdayText: {
+      fontSize: 11,
+      fontWeight: '600',
+      textTransform: 'uppercase',
+    },
+    daysGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+    },
+    dayCell: {
+      width: '14.28%',
+      aspectRatio: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: spacing.xs,
+    },
+    dayCircle: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.successMuted,
+    },
+    dayDisabled: {
+      backgroundColor: colors.surfaceElevated,
+    },
+    dayText: {
+      fontSize: 14,
+      color: colors.success,
+    },
+    dayTextDisabled: {
+      color: colors.textMuted,
+    },
+    legendCard: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+    },
+    legendItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
+    legendDot: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+    },
+    legendText: {
+      fontSize: 13,
+    },
+    footer: {
+      paddingTop: spacing.lg,
+    },
+  });
+}

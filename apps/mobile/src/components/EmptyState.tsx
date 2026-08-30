@@ -1,6 +1,6 @@
 import { View } from 'react-native';
 import { Inbox, LucideIcon } from 'lucide-react-native';
-import { colors, spacing } from '../theme';
+import { spacing, useTheme } from '../theme';
 import { AppText } from './AppText';
 
 export interface EmptyStateProps {
@@ -14,6 +14,7 @@ export function EmptyState({
   description = 'When data is available, it will appear here.',
   icon: Icon = Inbox,
 }: EmptyStateProps) {
+  const { colors } = useTheme();
   return (
     <View style={{ alignItems: 'center', paddingVertical: spacing.xl }}>
       <View

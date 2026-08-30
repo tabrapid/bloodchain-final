@@ -4,10 +4,11 @@ import type { RelativePathString } from 'expo-router';
 import { TouchableOpacity, View, RefreshControl, ScrollView } from 'react-native';
 import { Activity, ChevronRight, FlaskConical, TrendingUp } from 'lucide-react-native';
 import { AppText, Card, GlassCard, LoadingState, Screen, SectionHeader, StatCard } from '../../src/components';
-import { colors, spacing } from '../../src/theme';
+import { spacing, useTheme } from '../../src/theme';
 import { getTrendSummary, TrendSummary } from '../../src/api/health-trends';
 
 export default function Health() {
+  const { colors } = useTheme();
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [summary, setSummary] = useState<TrendSummary | null>(null);

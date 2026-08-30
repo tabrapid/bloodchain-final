@@ -1,6 +1,6 @@
 import { Children, PropsWithChildren } from 'react';
 import { Pressable, PressableProps, StyleSheet, View, ViewStyle } from 'react-native';
-import { colors, radius, spacing, typography } from '../theme';
+import { radius, spacing, typography, useTheme, ThemeColors } from '../theme';
 import { AppText } from './AppText';
 
 export interface AppButtonProps extends PressableProps {
@@ -9,16 +9,18 @@ export interface AppButtonProps extends PressableProps {
   loading?: boolean;
 }
 
-const variants: Record<string, ViewStyle> = {
-  primary: { backgroundColor: colors.primary },
-  secondary: {
-    backgroundColor: colors.surfaceElevated,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  danger: { backgroundColor: colors.danger },
-  ghost: { backgroundColor: 'transparent' },
-};
+function getVariants(colors: ThemeColors): Record<string, ViewStyle> {
+  return {
+    primary: { backgroundColor: colors.primary },
+    secondary: {
+      backgroundColor: colors.surfaceElevated,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    danger: { backgroundColor: colors.danger },
+    ghost: { backgroundColor: 'transparent' },
+  };
+}
 
 export function AppButton({
   children,
@@ -29,6 +31,8 @@ export function AppButton({
   style,
   ...props
 }: PropsWithChildren<AppButtonProps>) {
+  const { colors } = useTheme();
+  const variants = getVariants(colors);
   const flattenedStyle = StyleSheet.flatten(style);
   const isDisabled = disabled || loading;
   const textColor = variant === 'secondary' || variant === 'ghost' ? colors.text : colors.white;

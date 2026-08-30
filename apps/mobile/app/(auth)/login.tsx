@@ -9,9 +9,11 @@ import { AppButton, AppText, Screen } from '../../src/components';
 import { useLogin, getAuthErrorMessage } from '../../src/hooks/useAuth';
 import { useAuthStore } from '../../src/stores/auth.store';
 import { getPostAuthRoute } from '../../src/utils/postAuthRoute';
-import { colors, spacing } from '../../src/theme';
+import { spacing, useTheme, ThemeColors } from '../../src/theme';
 
 export default function Login() {
+  const { colors } = useTheme();
+  const inputStyle = getInputStyle(colors);
   const login = useLogin();
   const setLoading = useAuthStore((s) => s.setLoading);
   const [serverError, setServerError] = useState<string | null>(null);
@@ -131,12 +133,14 @@ export default function Login() {
   );
 }
 
-const inputStyle = {
-  backgroundColor: colors.surface,
-  borderColor: colors.border,
-  borderWidth: 1,
-  borderRadius: 10,
-  padding: 16,
-  color: colors.text,
-  marginBottom: 12,
-};
+function getInputStyle(colors: ThemeColors) {
+  return {
+    backgroundColor: colors.surfaceSolid,
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 16,
+    color: colors.text,
+    marginBottom: 12,
+  };
+}

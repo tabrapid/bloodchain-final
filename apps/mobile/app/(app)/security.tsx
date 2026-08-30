@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { View, TextInput, StyleSheet, ScrollView, Alert, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import { Eye, EyeOff } from 'lucide-react-native';
 import { AppButton, AppText, Card, Screen, SectionHeader, ListItem, Divider } from '../../src/components';
-import { colors, spacing, radius } from '../../src/theme';
+import { spacing, radius, useTheme, ThemeColors } from '../../src/theme';
 import { useRevokeAllSessions } from '../../src/hooks/useSessions';
 import { useLogout } from '../../src/hooks/useAuth';
 import { clearAuthTokens } from '../../src/auth/storage';
@@ -12,6 +12,8 @@ import { apiRequest, ApiRequestError } from '../../src/api/client';
 import { apiBasePath } from '../../src/api/config';
 
 export default function Security() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const logout = useLogout();
   const revokeAllSessions = useRevokeAllSessions();
   const clearAuth = useAuthStore((s) => s.clearAuth);
@@ -202,46 +204,48 @@ export default function Security() {
   );
 }
 
-const styles = StyleSheet.create({
-  content: {
-    paddingBottom: spacing['2xl'],
-  },
-  field: {
-    marginBottom: spacing.lg,
-  },
-  label: {
-    fontSize: 13,
-    marginBottom: spacing.xs,
-  },
-  input: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: radius.sm,
-    padding: spacing.md,
-    color: colors.text,
-    fontSize: 16,
-  },
-  inputWithToggle: {
-    paddingRight: 48,
-  },
-  toggleButton: {
-    position: 'absolute',
-    right: 14,
-    top: 0,
-    bottom: 0,
-    justifyContent: 'center',
-  },
-  hint: {
-    fontSize: 12,
-    marginTop: spacing.xs,
-  },
-  changePasswordButton: {
-    marginTop: spacing.sm,
-  },
-  statusItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    content: {
+      paddingBottom: spacing['2xl'],
+    },
+    field: {
+      marginBottom: spacing.lg,
+    },
+    label: {
+      fontSize: 13,
+      marginBottom: spacing.xs,
+    },
+    input: {
+      backgroundColor: colors.surfaceSolid,
+      borderColor: colors.border,
+      borderWidth: 1,
+      borderRadius: radius.sm,
+      padding: spacing.md,
+      color: colors.text,
+      fontSize: 16,
+    },
+    inputWithToggle: {
+      paddingRight: 48,
+    },
+    toggleButton: {
+      position: 'absolute',
+      right: 14,
+      top: 0,
+      bottom: 0,
+      justifyContent: 'center',
+    },
+    hint: {
+      fontSize: 12,
+      marginTop: spacing.xs,
+    },
+    changePasswordButton: {
+      marginTop: spacing.sm,
+    },
+    statusItem: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+  });
+}

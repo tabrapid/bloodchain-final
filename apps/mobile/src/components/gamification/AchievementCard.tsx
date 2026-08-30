@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { colors, spacing, radius } from '../../theme';
+import { spacing, radius, useTheme, ThemeColors } from '../../theme';
 import { AppText } from '../../components/AppText';
 import { Achievement } from '../../api/gamification';
 
@@ -8,13 +8,6 @@ interface AchievementCardProps {
   achievement: Achievement;
   showProgress?: boolean;
 }
-
-const rarityColors = {
-  COMMON: [colors.surfaceHighlight, colors.surfaceHighlight],
-  RARE: ['#3B82F6', '#1D4ED8'],
-  EPIC: ['#8B5CF6', '#6D28D9'],
-  LEGENDARY: ['#F59E0B', '#D97706'],
-};
 
 const rarityGlow = {
   COMMON: 'transparent',
@@ -39,6 +32,8 @@ const iconMap: Record<string, string> = {
 };
 
 export function AchievementCard({ achievement, showProgress = true }: AchievementCardProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const isUnlocked = achievement.status === 'UNLOCKED';
   const isInProgress = achievement.status === 'IN_PROGRESS';
 
@@ -95,77 +90,79 @@ export function AchievementCard({ achievement, showProgress = true }: Achievemen
   );
 }
 
-const styles = StyleSheet.create({
-  card: {
-    flexDirection: 'row',
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  iconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: radius.sm,
-    backgroundColor: colors.surfaceHighlight,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: spacing.md,
-  },
-  iconText: {
-    color: colors.primary,
-    fontSize: 20,
-    fontWeight: '700',
-  },
-  content: {
-    flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.xs,
-  },
-  unlockedBadge: {
-    backgroundColor: 'rgba(99, 194, 155, 0.15)',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    borderRadius: radius.sm,
-  },
-  progressContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: spacing.sm,
-  },
-  progressBar: {
-    flex: 1,
-    height: 4,
-    backgroundColor: colors.surfaceHighlight,
-    borderRadius: 2,
-    marginRight: spacing.sm,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: colors.secondary,
-    borderRadius: 2,
-  },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: spacing.sm,
-  },
-  rarityBadge: {
-    backgroundColor: colors.surfaceHighlight,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    borderRadius: radius.sm,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    card: {
+      flexDirection: 'row',
+      backgroundColor: colors.surfaceSolid,
+      borderRadius: radius.md,
+      padding: spacing.md,
+      marginBottom: spacing.sm,
+      borderWidth: 1,
+      borderColor: colors.border,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 2,
+    },
+    iconContainer: {
+      width: 48,
+      height: 48,
+      borderRadius: radius.sm,
+      backgroundColor: colors.surfaceHighlight,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: spacing.md,
+    },
+    iconText: {
+      color: colors.primary,
+      fontSize: 20,
+      fontWeight: '700',
+    },
+    content: {
+      flex: 1,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: spacing.xs,
+    },
+    unlockedBadge: {
+      backgroundColor: colors.successMuted,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: 2,
+      borderRadius: radius.sm,
+    },
+    progressContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: spacing.sm,
+    },
+    progressBar: {
+      flex: 1,
+      height: 4,
+      backgroundColor: colors.surfaceHighlight,
+      borderRadius: 2,
+      marginRight: spacing.sm,
+      overflow: 'hidden',
+    },
+    progressFill: {
+      height: '100%',
+      backgroundColor: colors.secondary,
+      borderRadius: 2,
+    },
+    footer: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginTop: spacing.sm,
+    },
+    rarityBadge: {
+      backgroundColor: colors.surfaceHighlight,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: 2,
+      borderRadius: radius.sm,
+    },
+  });
+}

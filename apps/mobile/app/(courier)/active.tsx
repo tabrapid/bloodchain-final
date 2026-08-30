@@ -13,7 +13,7 @@ import {
 } from 'lucide-react-native';
 import { AppButton, AppText, Badge, Card, EmptyState, LoadingState, Screen } from '../../src/components';
 import { LocationMap, type MapMarkerPoint } from '../../src/components/map/LocationMap';
-import { colors, spacing } from '../../src/theme';
+import { spacing, useTheme } from '../../src/theme';
 import {
   acceptShipment,
   arriveAtHospital,
@@ -52,6 +52,7 @@ function unitsSummary(shipment: Shipment): string {
 }
 
 export default function CourierActive() {
+  const { colors } = useTheme();
   const [shipment, setShipment] = useState<Shipment | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -371,7 +372,7 @@ export default function CourierActive() {
                   value={declineReason}
                   onChangeText={setDeclineReason}
                   style={{
-                    backgroundColor: colors.surfaceElevated,
+                    backgroundColor: colors.surfaceSolid,
                     borderColor: colors.border,
                     borderWidth: 1,
                     borderRadius: 10,
@@ -453,7 +454,7 @@ export default function CourierActive() {
                   onChangeText={setFailReason}
                   multiline
                   style={{
-                    backgroundColor: colors.surfaceElevated,
+                    backgroundColor: colors.surfaceSolid,
                     borderColor: colors.border,
                     borderWidth: 1,
                     borderRadius: 10,

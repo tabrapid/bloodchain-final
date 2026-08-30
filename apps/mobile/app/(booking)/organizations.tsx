@@ -1,11 +1,14 @@
+import { useMemo } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
 import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { MapPin, Building2 } from 'lucide-react-native';
 import { AppButton, AppText, Card, EmptyState, GlassCard, Screen } from '../../src/components';
 import { useOrganizations } from '../../src/hooks/useAppointments';
-import { colors, spacing, radius } from '../../src/theme';
+import { spacing, useTheme, ThemeColors } from '../../src/theme';
 
 export default function SelectOrganization() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const params = useLocalSearchParams<{ type: string }>();
   const {
     data: organizations = [],
@@ -111,53 +114,55 @@ export default function SelectOrganization() {
   );
 }
 
-const styles = StyleSheet.create({
-  content: {
-    paddingBottom: spacing.xl,
-  },
-  title: {
-    marginBottom: spacing.xs,
-  },
-  subtitle: {
-    marginBottom: spacing.xl,
-  },
-  emptyCard: {
-    paddingVertical: spacing.xl,
-  },
-  retryButton: {
-    marginTop: spacing.md,
-    alignSelf: 'center',
-  },
-  organizationsList: {
-    gap: spacing.md,
-  },
-  orgCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: spacing.lg,
-  },
-  iconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing.md,
-  },
-  orgInfo: {
-    flex: 1,
-  },
-  addressRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginTop: 4,
-  },
-  address: {
-    fontSize: 13,
-    flex: 1,
-  },
-  footer: {
-    paddingTop: spacing.lg,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    content: {
+      paddingBottom: spacing.xl,
+    },
+    title: {
+      marginBottom: spacing.xs,
+    },
+    subtitle: {
+      marginBottom: spacing.xl,
+    },
+    emptyCard: {
+      paddingVertical: spacing.xl,
+    },
+    retryButton: {
+      marginTop: spacing.md,
+      alignSelf: 'center',
+    },
+    organizationsList: {
+      gap: spacing.md,
+    },
+    orgCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: spacing.lg,
+    },
+    iconContainer: {
+      width: 48,
+      height: 48,
+      borderRadius: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: spacing.md,
+    },
+    orgInfo: {
+      flex: 1,
+    },
+    addressRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      marginTop: 4,
+    },
+    address: {
+      fontSize: 13,
+      flex: 1,
+    },
+    footer: {
+      paddingTop: spacing.lg,
+    },
+  });
+}

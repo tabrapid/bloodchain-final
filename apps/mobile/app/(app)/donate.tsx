@@ -3,9 +3,10 @@ import { TouchableOpacity, View } from 'react-native';
 import { CalendarPlus, ChevronRight, HeartHandshake, History } from 'lucide-react-native';
 import { AppButton, AppText, Card, Screen, SectionHeader } from '../../src/components';
 import { useDonationStatistics, useMyDonations } from '../../src/hooks/useDonations';
-import { colors, spacing } from '../../src/theme';
+import { spacing, useTheme } from '../../src/theme';
 
 export default function Donate() {
+  const { colors } = useTheme();
   const { data: stats } = useDonationStatistics();
   const { data: donationsData } = useMyDonations({ limit: 3 });
 
@@ -22,7 +23,7 @@ export default function Donate() {
         Make an impact, on your terms.
       </AppText>
 
-      <Card style={{ marginTop: spacing.xl, borderColor: '#5B3038' }}>
+      <Card style={{ marginTop: spacing.xl, borderColor: colors.danger }}>
         <View
           style={{
             flexDirection: 'row',
@@ -36,7 +37,7 @@ export default function Donate() {
               width: 44,
               height: 44,
               borderRadius: 12,
-              backgroundColor: '#26191F',
+              backgroundColor: colors.dangerMuted,
               alignItems: 'center',
               justifyContent: 'center',
             }}
@@ -86,7 +87,7 @@ export default function Donate() {
 
       <SectionHeader>EMERGENCY REQUESTS</SectionHeader>
       <TouchableOpacity onPress={() => router.push('/sos')} activeOpacity={0.8}>
-        <Card style={{ borderColor: '#5B3038' }}>
+        <Card style={{ borderColor: colors.danger }}>
           <View
             style={{
               flexDirection: 'row',

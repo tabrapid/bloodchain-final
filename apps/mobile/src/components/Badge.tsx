@@ -1,20 +1,22 @@
 import { PropsWithChildren } from 'react';
 import { View, ViewProps } from 'react-native';
-import { colors, radius, spacing, typography } from '../theme';
+import { radius, spacing, typography, useTheme, ThemeColors } from '../theme';
 import { AppText } from './AppText';
 
 export interface BadgeProps extends ViewProps {
   variant?: 'default' | 'primary' | 'secondary' | 'success' | 'warning' | 'danger';
 }
 
-const badgeColors: Record<string, { bg: string; text: string }> = {
-  default: { bg: colors.surfaceElevated, text: colors.textMuted },
-  primary: { bg: colors.primaryMuted, text: colors.primary },
-  secondary: { bg: '#10202A', text: colors.secondary },
-  success: { bg: '#10221F', text: colors.success },
-  warning: { bg: '#1F1A12', text: colors.warning },
-  danger: { bg: '#26191F', text: colors.danger },
-};
+function getBadgeColors(colors: ThemeColors): Record<string, { bg: string; text: string }> {
+  return {
+    default: { bg: colors.surfaceElevated, text: colors.textMuted },
+    primary: { bg: colors.primaryMuted, text: colors.primary },
+    secondary: { bg: colors.secondaryMuted, text: colors.secondary },
+    success: { bg: colors.successMuted, text: colors.success },
+    warning: { bg: colors.warningMuted, text: colors.warning },
+    danger: { bg: colors.dangerMuted, text: colors.danger },
+  };
+}
 
 export function Badge({
   children,
@@ -22,7 +24,8 @@ export function Badge({
   style,
   ...props
 }: PropsWithChildren<BadgeProps>) {
-  const theme = badgeColors[variant]!;
+  const { colors } = useTheme();
+  const theme = getBadgeColors(colors)[variant]!;
   return (
     <View
       style={[

@@ -1,5 +1,5 @@
 import { View } from 'react-native';
-import { colors, radius, typography } from '../theme';
+import { radius, typography, useTheme } from '../theme';
 import { AppText } from './AppText';
 
 export interface AvatarProps {
@@ -8,6 +8,7 @@ export interface AvatarProps {
 }
 
 export function Avatar({ name, size = 48 }: AvatarProps) {
+  const { colors } = useTheme();
   const initial = name?.charAt(0).toUpperCase() ?? '?';
   return (
     <View

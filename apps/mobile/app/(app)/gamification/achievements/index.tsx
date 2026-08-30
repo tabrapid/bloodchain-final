@@ -5,9 +5,11 @@ import { Screen } from '../../../../src/components/Screen';
 import { GlassCard } from '../../../../src/components';
 import { AppText } from '../../../../src/components/AppText';
 import { AchievementCard } from '../../../../src/components/gamification/AchievementCard';
-import { colors, spacing, radius } from '../../../../src/theme';
+import { spacing, radius, useTheme, ThemeColors } from '../../../../src/theme';
 
 export default function AchievementsScreen() {
+  const { colors } = useTheme();
+  const styles = React.useMemo(() => createStyles(colors), [colors]);
   const { data: achievements, isLoading, refetch } = useAchievements();
   const [refreshing, setRefreshing] = React.useState(false);
 
@@ -112,43 +114,45 @@ export default function AchievementsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  header: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.md,
-  },
-  section: {
-    paddingHorizontal: spacing.lg,
-    marginBottom: spacing.lg,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing.md,
-  },
-  countBadge: {
-    backgroundColor: 'rgba(99, 194, 155, 0.15)',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    borderRadius: radius.sm,
-    marginLeft: spacing.sm,
-  },
-  inProgressBadge: {
-    backgroundColor: 'rgba(229, 184, 109, 0.15)',
-  },
-  lockedBadge: {
-    backgroundColor: colors.surfaceHighlight,
-  },
-  bottomPadding: {
-    height: spacing.xl,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    header: {
+      paddingHorizontal: spacing.lg,
+      paddingTop: spacing.lg,
+      paddingBottom: spacing.md,
+    },
+    section: {
+      paddingHorizontal: spacing.lg,
+      marginBottom: spacing.lg,
+    },
+    sectionHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: spacing.md,
+    },
+    countBadge: {
+      backgroundColor: colors.successMuted,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: 2,
+      borderRadius: radius.sm,
+      marginLeft: spacing.sm,
+    },
+    inProgressBadge: {
+      backgroundColor: colors.warningMuted,
+    },
+    lockedBadge: {
+      backgroundColor: colors.surfaceHighlight,
+    },
+    bottomPadding: {
+      height: spacing.xl,
+    },
+  });
+}

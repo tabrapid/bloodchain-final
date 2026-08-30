@@ -7,9 +7,11 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { registerSchema, type RegisterInput } from '@bloodchain/validation';
 import { AppButton, AppText, Screen } from '../../src/components';
 import { useRegister, getAuthErrorMessage } from '../../src/hooks/useAuth';
-import { colors, spacing } from '../../src/theme';
+import { spacing, useTheme, ThemeColors } from '../../src/theme';
 
 export default function Register() {
+  const { colors } = useTheme();
+  const inputStyle = getInputStyle(colors);
   const registerUser = useRegister();
   const [serverError, setServerError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
@@ -134,12 +136,14 @@ export default function Register() {
   );
 }
 
-const inputStyle = {
-  backgroundColor: colors.surface,
-  borderColor: colors.border,
-  borderWidth: 1,
-  borderRadius: 10,
-  padding: 16,
-  color: colors.text,
-  marginBottom: 12,
-};
+function getInputStyle(colors: ThemeColors) {
+  return {
+    backgroundColor: colors.surfaceSolid,
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 16,
+    color: colors.text,
+    marginBottom: 12,
+  };
+}

@@ -1,13 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { View, TextInput, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { AppButton, AppText, Screen } from '../../../src/components';
 import { useUpdateUserProfile } from '../../../src/hooks/useUsers';
 import { useUserProfile } from '../../../src/hooks/useUsers';
-import { colors, spacing, radius } from '../../../src/theme';
+import { spacing, radius, useTheme, ThemeColors } from '../../../src/theme';
 import { ApiRequestError } from '../../../src/api/client';
 
 export default function EditProfile() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { data: user } = useUserProfile();
   const updateProfile = useUpdateUserProfile();
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -147,45 +149,47 @@ export default function EditProfile() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-  },
-  title: {
-    marginBottom: spacing.xl,
-  },
-  form: {
-    gap: spacing.lg,
-  },
-  field: {
-    gap: spacing.xs,
-  },
-  label: {
-    fontSize: 13,
-    marginBottom: spacing.xs,
-  },
-  input: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: radius.sm,
-    padding: spacing.md,
-    color: colors.text,
-    fontSize: 16,
-  },
-  footer: {
-    flexDirection: 'row',
-    gap: spacing.md,
-    marginTop: spacing.xl,
-    paddingBottom: spacing.lg,
-  },
-  cancelButton: {
-    flex: 1,
-  },
-  saveButton: {
-    flex: 2,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+    },
+    scrollContent: {
+      flexGrow: 1,
+    },
+    title: {
+      marginBottom: spacing.xl,
+    },
+    form: {
+      gap: spacing.lg,
+    },
+    field: {
+      gap: spacing.xs,
+    },
+    label: {
+      fontSize: 13,
+      marginBottom: spacing.xs,
+    },
+    input: {
+      backgroundColor: colors.surfaceSolid,
+      borderColor: colors.border,
+      borderWidth: 1,
+      borderRadius: radius.sm,
+      padding: spacing.md,
+      color: colors.text,
+      fontSize: 16,
+    },
+    footer: {
+      flexDirection: 'row',
+      gap: spacing.md,
+      marginTop: spacing.xl,
+      paddingBottom: spacing.lg,
+    },
+    cancelButton: {
+      flex: 1,
+    },
+    saveButton: {
+      flex: 2,
+    },
+  });
+}

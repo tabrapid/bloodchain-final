@@ -14,9 +14,11 @@ import { AppText } from '../../../src/components/AppText';
 import { XpProgressBar } from '../../../src/components/gamification/XpProgressBar';
 import { AchievementCard } from '../../../src/components/gamification/AchievementCard';
 import { BadgeDisplay } from '../../../src/components/gamification/BadgeDisplay';
-import { colors, spacing, radius } from '../../../src/theme';
+import { spacing, radius, useTheme, ThemeColors } from '../../../src/theme';
 
 export default function GamificationScreen() {
+  const { colors } = useTheme();
+  const styles = React.useMemo(() => createStyles(colors), [colors]);
   const router = useRouter();
   const { data: profile, isLoading: profileLoading, refetch: refetchProfile } = useGamificationProfile();
   const { data: levelProgress, isLoading: progressLoading, refetch: refetchProgress } = useLevelProgress();
@@ -223,96 +225,98 @@ export default function GamificationScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  header: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.md,
-  },
-  profileCard: {
-    marginHorizontal: spacing.lg,
-    marginBottom: spacing.lg,
-    padding: spacing.lg,
-  },
-  profileHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing.lg,
-  },
-  levelBadge: {
-    width: 64,
-    height: 64,
-    borderRadius: radius.md,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: spacing.lg,
-  },
-  profileInfo: {
-    flex: 1,
-  },
-  xpRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-  },
-  xpLabel: {
-    marginLeft: 4,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    marginTop: spacing.lg,
-    paddingTop: spacing.lg,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  statItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  statDivider: {
-    width: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  section: {
-    paddingHorizontal: spacing.lg,
-    marginBottom: spacing.lg,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.md,
-  },
-  badgesScroll: {
-    marginHorizontal: -spacing.lg,
-    paddingHorizontal: spacing.lg,
-  },
-  emptyCard: {
-    padding: spacing.xl,
-    alignItems: 'center',
-  },
-  emptyText: {
-    textAlign: 'center',
-  },
-  leaderboardButton: {
-    marginHorizontal: spacing.lg,
-    marginBottom: spacing.lg,
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  bottomPadding: {
-    height: spacing.xl,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    header: {
+      paddingHorizontal: spacing.lg,
+      paddingTop: spacing.lg,
+      paddingBottom: spacing.md,
+    },
+    profileCard: {
+      marginHorizontal: spacing.lg,
+      marginBottom: spacing.lg,
+      padding: spacing.lg,
+    },
+    profileHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: spacing.lg,
+    },
+    levelBadge: {
+      width: 64,
+      height: 64,
+      borderRadius: radius.md,
+      backgroundColor: 'rgba(255, 255, 255, 0.15)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: spacing.lg,
+    },
+    profileInfo: {
+      flex: 1,
+    },
+    xpRow: {
+      flexDirection: 'row',
+      alignItems: 'baseline',
+    },
+    xpLabel: {
+      marginLeft: 4,
+    },
+    statsRow: {
+      flexDirection: 'row',
+      marginTop: spacing.lg,
+      paddingTop: spacing.lg,
+      borderTopWidth: 1,
+      borderTopColor: 'rgba(255, 255, 255, 0.1)',
+    },
+    statItem: {
+      flex: 1,
+      alignItems: 'center',
+    },
+    statDivider: {
+      width: 1,
+      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    },
+    section: {
+      paddingHorizontal: spacing.lg,
+      marginBottom: spacing.lg,
+    },
+    sectionHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: spacing.md,
+    },
+    badgesScroll: {
+      marginHorizontal: -spacing.lg,
+      paddingHorizontal: spacing.lg,
+    },
+    emptyCard: {
+      padding: spacing.xl,
+      alignItems: 'center',
+    },
+    emptyText: {
+      textAlign: 'center',
+    },
+    leaderboardButton: {
+      marginHorizontal: spacing.lg,
+      marginBottom: spacing.lg,
+      backgroundColor: colors.surfaceSolid,
+      borderRadius: radius.md,
+      padding: spacing.md,
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    bottomPadding: {
+      height: spacing.xl,
+    },
+  });
+}
