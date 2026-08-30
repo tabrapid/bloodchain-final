@@ -351,8 +351,8 @@ export default function EmergencyPage() {
                         emergency.urgencyLevel === 'CRITICAL'
                           ? 'bg-donor-dangerMuted text-donor-onDangerMuted'
                           : emergency.urgencyLevel === 'HIGH'
-                          ? 'bg-orange-500/20 text-orange-400'
-                          : 'bg-yellow-500/20 text-yellow-400'
+                          ? 'bg-donor-warningMuted text-donor-onWarningMuted'
+                          : 'bg-donor-warningMuted/70 text-donor-onWarningMuted'
                       }`}
                     >
                       <AlertTriangle size={24} />
@@ -370,8 +370,8 @@ export default function EmergencyPage() {
                             emergency.urgencyLevel === 'CRITICAL'
                               ? 'bg-donor-dangerMuted text-donor-onDangerMuted'
                               : emergency.urgencyLevel === 'HIGH'
-                              ? 'bg-orange-500/20 text-orange-400'
-                              : 'bg-yellow-500/20 text-yellow-400'
+                              ? 'bg-donor-warningMuted text-donor-onWarningMuted'
+                              : 'bg-donor-warningMuted/70 text-donor-onWarningMuted'
                           }`}
                         >
                           {emergency.urgencyLevel}

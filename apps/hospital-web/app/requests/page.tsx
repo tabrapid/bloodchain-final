@@ -34,8 +34,8 @@ const STATUS_CONFIG: Record<string, { label: string; variant: 'success' | 'warni
 };
 
 const PRIORITY_COLOR: Record<string, string> = {
-  ROUTINE: 'text-blue-400',
-  URGENT: 'text-orange-400',
+  ROUTINE: 'text-donor-secondary',
+  URGENT: 'text-donor-warning',
   CRITICAL: 'text-donor-danger',
 };
 

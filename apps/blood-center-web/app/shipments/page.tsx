@@ -45,8 +45,8 @@ const STATUS_CONFIG: Record<string, { label: string; variant: 'success' | 'warni
 };
 
 const PRIORITY_CONFIG: Record<string, { label: string; color: string }> = {
-  ROUTINE: { label: 'Routine', color: 'text-blue-400' },
-  URGENT: { label: 'Urgent', color: 'text-orange-400' },
+  ROUTINE: { label: 'Routine', color: 'text-donor-secondary' },
+  URGENT: { label: 'Urgent', color: 'text-donor-warning' },
   CRITICAL: { label: 'Critical', color: 'text-donor-danger' },
 };
 

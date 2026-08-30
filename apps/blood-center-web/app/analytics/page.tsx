@@ -310,15 +310,15 @@ export default function AnalyticsPage() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-donor-muted">Available</span>
-                  <span className="font-semibold text-green-400">{overview.inventory.availableUnits}</span>
+                  <span className="font-semibold text-donor-success">{overview.inventory.availableUnits}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-donor-muted">Reserved</span>
-                  <span className="font-semibold text-yellow-400">{overview.inventory.reservedUnits}</span>
+                  <span className="font-semibold text-donor-warning">{overview.inventory.reservedUnits}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-donor-muted">Quarantined</span>
-                  <span className="font-semibold text-orange-400">{overview.inventory.quarantinedUnits}</span>
+                  <span className="font-semibold text-donor-warning">{overview.inventory.quarantinedUnits}</span>
                 </div>
               </div>
               {overview.inventory.criticalGroups.length > 0 && (
@@ -338,7 +338,7 @@ export default function AnalyticsPage() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-donor-muted">Completed</span>
-                  <span className="font-semibold text-green-400">{formatKpiValue(overview.donations.completed.value)}</span>
+                  <span className="font-semibold text-donor-success">{formatKpiValue(overview.donations.completed.value)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-donor-muted">Cancelled</span>
@@ -435,8 +435,8 @@ export default function AnalyticsPage() {
                 <div key={comp.componentType} className="flex items-center justify-between rounded-lg bg-donor-border p-3">
                   <span className="text-sm font-medium text-donor-text">{comp.componentType}</span>
                   <div className="flex items-center gap-4">
-                    <span className="text-xs text-green-400">Avail: {comp.available}</span>
-                    <span className="text-xs text-yellow-400">Res: {comp.reserved}</span>
+                    <span className="text-xs text-donor-success">Avail: {comp.available}</span>
+                    <span className="text-xs text-donor-warning">Res: {comp.reserved}</span>
                     <span className="text-sm font-semibold text-donor-primary">{comp.count}</span>
                   </div>
                 </div>
@@ -604,10 +604,10 @@ export default function AnalyticsPage() {
               </div>
             ))}
             {highAlerts.slice(0, 5).map((alert) => (
-              <div key={alert.id} className="flex items-start gap-3 rounded-lg bg-orange-500/20 p-3">
-                <AlertCircle className="mt-0.5 text-orange-400" size={14} />
+              <div key={alert.id} className="flex items-start gap-3 rounded-lg bg-donor-warningMuted p-3">
+                <AlertCircle className="mt-0.5 text-donor-warning" size={14} />
                 <div>
-                  <p className="text-sm font-semibold text-orange-400">{alert.title}</p>
+                  <p className="text-sm font-semibold text-donor-warning">{alert.title}</p>
                   <p className="text-xs text-donor-muted">{alert.message}</p>
                 </div>
               </div>
