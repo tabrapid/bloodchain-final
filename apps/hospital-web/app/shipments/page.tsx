@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
 import {
   Activity,
   AlertCircle,
@@ -221,7 +222,7 @@ export default function ShipmentsPage() {
               variant: 'default' as const,
             };
             return (
-              <a
+              <Link
                 key={shipment.id}
                 href={`/shipments/${shipment.id}`}
                 className="block bc-glass rounded-card p-5 transition-colors hover:bg-donor-border/50"
@@ -232,13 +233,13 @@ export default function ShipmentsPage() {
                       shipment.status === 'IN_TRANSIT' ? 'bg-donor-secondaryMuted' :
                       shipment.status === 'ARRIVED_AT_HOSPITAL' ? 'bg-donor-successMuted' :
                       shipment.status === 'DELIVERED' ? 'bg-donor-successMuted' :
-                      'bg-donor-primary/20'
+                      'bg-donor-primaryMuted'
                     }`}>
                       <Truck size={24} className={
-                        shipment.status === 'IN_TRANSIT' ? 'text-donor-secondary' :
-                        shipment.status === 'ARRIVED_AT_HOSPITAL' ? 'text-donor-success' :
-                        shipment.status === 'DELIVERED' ? 'text-donor-success' :
-                        'text-donor-primary'
+                        shipment.status === 'IN_TRANSIT' ? 'text-donor-onSecondaryMuted' :
+                        shipment.status === 'ARRIVED_AT_HOSPITAL' ? 'text-donor-onSuccessMuted' :
+                        shipment.status === 'DELIVERED' ? 'text-donor-onSuccessMuted' :
+                        'text-donor-onPrimaryMuted'
                       } />
                     </div>
                     <div>
@@ -276,7 +277,7 @@ export default function ShipmentsPage() {
                     </span>
                   )}
                 </div>
-              </a>
+              </Link>
             );
           })}
         </div>
