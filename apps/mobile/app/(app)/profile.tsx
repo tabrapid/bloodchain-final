@@ -72,12 +72,14 @@ export default function Profile() {
 
       {completion && (
         <GradientCard
-          colors={[colors.surfaceSolidElevated, colors.surfaceSolid]}
+          colors={[colors.success, colors.secondary]}
           style={styles.completionCard}
         >
           <View style={styles.completionHeader}>
-            <AppText variant="heading">Profile Completion</AppText>
-            <AppText variant="heading" style={{ color: colors.primary }}>
+            <AppText variant="heading" style={styles.onGradientText}>
+              Profile Completion
+            </AppText>
+            <AppText variant="heading" style={styles.onGradientText}>
               {completion.percentage}%
             </AppText>
           </View>
@@ -90,7 +92,7 @@ export default function Profile() {
             />
           </View>
           {completion.missing.length > 0 && (
-            <AppText muted style={styles.missingText}>
+            <AppText style={[styles.missingText, styles.onGradientMuted]}>
               Missing: {completion.missing.join(', ').replace(/_/g, ' ')}
             </AppText>
           )}
@@ -98,12 +100,14 @@ export default function Profile() {
       )}
 
       <GradientCard
-        colors={[colors.dangerMuted, colors.surfaceSolid]}
+        colors={[colors.primary, colors.ai]}
         style={styles.bloodTypeCard}
       >
         <View style={styles.bloodTypeHeader}>
-          <Droplet size={24} color={colors.primary} />
-          <AppText variant="heading">Blood Type</AppText>
+          <Droplet size={24} color="#FFFFFF" />
+          <AppText variant="heading" style={styles.onGradientText}>
+            Blood Type
+          </AppText>
         </View>
         <View style={styles.bloodTypeValue}>
           <AppText variant="numeric" style={styles.bloodTypeText}>
@@ -116,7 +120,7 @@ export default function Profile() {
           </View>
         </View>
         {donor?.bloodTypeSource && (
-          <AppText muted style={styles.sourceText}>
+          <AppText style={[styles.sourceText, styles.onGradientMuted]}>
             Source: {donor.bloodTypeSource.replace(/_/g, ' ')}
           </AppText>
         )}
@@ -205,15 +209,25 @@ function createStyles(colors: ThemeColors) {
       alignItems: 'center',
       marginBottom: spacing.sm,
     },
+    // These two cards are vivid, saturated brand gradients rather than a
+    // theme surface, so their text is fixed white/near-white in both themes
+    // instead of `colors.text`, which would go near-black and vanish in
+    // light mode -- the same choice the reference design makes.
+    onGradientText: {
+      color: '#FFFFFF',
+    },
+    onGradientMuted: {
+      color: 'rgba(255,255,255,0.75)',
+    },
     progressBar: {
       height: 6,
-      backgroundColor: colors.surfaceElevated,
+      backgroundColor: 'rgba(255,255,255,0.25)',
       borderRadius: 3,
       overflow: 'hidden',
     },
     progressFill: {
       height: '100%',
-      backgroundColor: colors.primary,
+      backgroundColor: '#FFFFFF',
       borderRadius: 3,
     },
     missingText: {
@@ -236,7 +250,7 @@ function createStyles(colors: ThemeColors) {
       gap: spacing.md,
     },
     bloodTypeText: {
-      color: colors.text,
+      color: '#FFFFFF',
     },
     verificationBadge: {
       paddingHorizontal: spacing.sm,
