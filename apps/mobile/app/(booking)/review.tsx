@@ -176,7 +176,7 @@ export default function ReviewBooking() {
 
           <View style={styles.detailRow}>
             <View style={styles.detailIcon}>
-              <Droplet size={20} color={colors.primary} />
+              <Droplet size={20} color={colors.onMuted.primary} />
             </View>
             <View style={styles.detailInfo}>
               <AppText muted style={styles.detailLabel}>
@@ -188,7 +188,7 @@ export default function ReviewBooking() {
 
           <View style={styles.detailRow}>
             <View style={styles.detailIcon}>
-              <Building2 size={20} color={colors.primary} />
+              <Building2 size={20} color={colors.onMuted.primary} />
             </View>
             <View style={styles.detailInfo}>
               <AppText muted style={styles.detailLabel}>
@@ -205,7 +205,7 @@ export default function ReviewBooking() {
 
           <View style={styles.detailRow}>
             <View style={styles.detailIcon}>
-              <Calendar size={20} color={colors.primary} />
+              <Calendar size={20} color={colors.onMuted.primary} />
             </View>
             <View style={styles.detailInfo}>
               <AppText muted style={styles.detailLabel}>
@@ -217,7 +217,7 @@ export default function ReviewBooking() {
 
           <View style={styles.detailRow}>
             <View style={styles.detailIcon}>
-              <Clock size={20} color={colors.primary} />
+              <Clock size={20} color={colors.onMuted.primary} />
             </View>
             <View style={styles.detailInfo}>
               <AppText muted style={styles.detailLabel}>

@@ -44,10 +44,16 @@ export default function Profile() {
     ? 'Under Review'
     : 'Unverified';
 
-  const statusColor = donor?.verificationStatus === 'VERIFIED'
-    ? colors.success
+  const statusBg = donor?.verificationStatus === 'VERIFIED'
+    ? colors.successMuted
     : donor?.verificationStatus === 'REQUIRES_REVIEW'
-    ? colors.warning
+    ? colors.warningMuted
+    : colors.surfaceElevated;
+
+  const statusColor = donor?.verificationStatus === 'VERIFIED'
+    ? colors.onMuted.success
+    : donor?.verificationStatus === 'REQUIRES_REVIEW'
+    ? colors.onMuted.warning
     : colors.textMuted;
 
   return (
@@ -62,7 +68,7 @@ export default function Profile() {
         <View style={styles.profileInfo}>
           <AppText variant="title">{fullName}</AppText>
           <AppText muted>{user?.email}</AppText>
-          <View style={[styles.statusBadge, { backgroundColor: statusColor + '20' }]}>
+          <View style={[styles.statusBadge, { backgroundColor: statusBg }]}>
             <AppText style={[styles.statusText, { color: statusColor }]}>
               {verificationLabel}
             </AppText>
@@ -113,7 +119,7 @@ export default function Profile() {
           <AppText variant="numeric" style={styles.bloodTypeText}>
             {bloodTypeDisplay}
           </AppText>
-          <View style={[styles.verificationBadge, { backgroundColor: statusColor + '20' }]}>
+          <View style={[styles.verificationBadge, { backgroundColor: statusBg }]}>
             <AppText style={[styles.verificationText, { color: statusColor }]}>
               {verificationLabel}
             </AppText>

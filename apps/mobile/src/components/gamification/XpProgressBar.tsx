@@ -13,6 +13,10 @@ interface XpProgressBarProps {
   xpToNextLevel: number;
   progress: number;
   size?: 'small' | 'medium' | 'large';
+  /** Set when rendered on top of a vivid, saturated gradient (not a theme
+   * surface) -- the track and labels switch to white-based tones since the
+   * themed `surfaceHighlight`/muted-text colors are unreadable there. */
+  onGradient?: boolean;
 }
 
 export function XpProgressBar({
@@ -20,6 +24,7 @@ export function XpProgressBar({
   xpToNextLevel,
   progress,
   size = 'medium',
+  onGradient = false,
 }: XpProgressBarProps) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -40,20 +45,27 @@ export function XpProgressBar({
 
   return (
     <View style={styles.container}>
-      <View style={[styles.track, { height, borderRadius }]}>
+      <View
+        style={[
+          styles.track,
+          { height, borderRadius },
+          onGradient && styles.trackOnGradient,
+        ]}
+      >
         <Animated.View
           style={[
             styles.fill,
             { height, borderRadius },
+            onGradient && styles.fillOnGradient,
             animatedStyle,
           ]}
         />
       </View>
       <View style={styles.labelContainer}>
-        <AppText variant="bodySmall" muted>
+        <AppText variant="bodySmall" muted={!onGradient} style={onGradient ? styles.labelOnGradient : undefined}>
           {currentXp} XP
         </AppText>
-        <AppText variant="bodySmall" muted>
+        <AppText variant="bodySmall" muted={!onGradient} style={onGradient ? styles.labelOnGradient : undefined}>
           {xpToNextLevel} XP to next level
         </AppText>
       </View>
@@ -70,13 +82,22 @@ function createStyles(colors: ThemeColors) {
       backgroundColor: colors.surfaceHighlight,
       overflow: 'hidden',
     },
+    trackOnGradient: {
+      backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    },
     fill: {
       backgroundColor: colors.primary,
+    },
+    fillOnGradient: {
+      backgroundColor: '#FFFFFF',
     },
     labelContainer: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       marginTop: spacing.xs,
+    },
+    labelOnGradient: {
+      color: 'rgba(255,255,255,0.75)',
     },
   });
 }

@@ -97,12 +97,12 @@ export default function Health() {
                   width: 48,
                   height: 48,
                   borderRadius: 12,
-                  backgroundColor: colors.success + '20',
+                  backgroundColor: colors.successMuted,
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
               >
-                <TrendingUp size={24} color={colors.success} />
+                <TrendingUp size={24} color={colors.onMuted.success} />
               </View>
               <View style={{ flex: 1 }}>
                 <AppText variant="heading">View Health Trends</AppText>
@@ -157,12 +157,12 @@ export default function Health() {
                   width: 48,
                   height: 48,
                   borderRadius: 12,
-                  backgroundColor: colors.secondary + '20',
+                  backgroundColor: colors.secondaryMuted,
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
               >
-                <FlaskConical size={24} color={colors.secondary} />
+                <FlaskConical size={24} color={colors.onMuted.secondary} />
               </View>
               <View style={{ flex: 1 }}>
                 <AppText variant="heading">Blood Tests</AppText>

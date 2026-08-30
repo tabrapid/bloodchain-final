@@ -73,7 +73,7 @@ export default function ChallengesScreen() {
 
       {joinError && (
         <Card style={styles.errorCard}>
-          <AppText style={{ color: colors.danger }}>{joinError}</AppText>
+          <AppText style={{ color: colors.onMuted.danger }}>{joinError}</AppText>
         </Card>
       )}
 

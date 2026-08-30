@@ -54,7 +54,11 @@ export function GlassTabBar({ state, descriptors, navigation }: BottomTabBarProp
         // route list, so an index comparison against the filtered list would
         // highlight the wrong tab.
         const focused = focusedKey === route.key;
-        const color = focused ? colors.primary : colors.textMuted;
+        // The focused icon sits on its own `primaryMuted` tint (below), so it
+        // reads from `onMuted` rather than the raw accent -- the same fix as
+        // every other icon-on-tint pairing in the app; the raw accent fails
+        // contrast against its own low-alpha tint.
+        const color = focused ? colors.onMuted.primary : colors.textMuted;
 
         const onPress = () => {
           const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });

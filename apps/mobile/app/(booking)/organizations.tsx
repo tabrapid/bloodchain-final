@@ -77,14 +77,14 @@ export default function SelectOrganization() {
                       {
                         backgroundColor:
                           org.type === 'HOSPITAL'
-                            ? colors.primary + '20'
-                            : colors.secondary + '20',
+                            ? colors.primaryMuted
+                            : colors.secondaryMuted,
                       },
                     ]}
                   >
                     <Building2
                       size={24}
-                      color={org.type === 'HOSPITAL' ? colors.primary : colors.secondary}
+                      color={org.type === 'HOSPITAL' ? colors.onMuted.primary : colors.onMuted.secondary}
                     />
                   </View>
                   <View style={styles.orgInfo}>

@@ -72,27 +72,27 @@ export default function GamificationScreen() {
         </View>
 
         <GradientCard
-          colors={[colors.primary, colors.primaryMuted]}
+          colors={[colors.primary, colors.ai]}
           style={styles.profileCard}
         >
           <View style={styles.profileHeader}>
             <View style={styles.levelBadge}>
-              <AppText variant="title" >
+              <AppText variant="title" style={styles.onGradientText}>
                 {profile?.level || 1}
               </AppText>
-              <AppText variant="caption" muted>
+              <AppText variant="caption" style={styles.onGradientMuted}>
                 LEVEL
               </AppText>
             </View>
             <View style={styles.profileInfo}>
-              <AppText variant="heading" >
+              <AppText variant="heading" style={styles.onGradientText}>
                 {levelProgress?.currentLevelName || 'New Donor'}
               </AppText>
               <View style={styles.xpRow}>
-                <AppText variant="numeric" >
+                <AppText variant="numeric" style={styles.onGradientText}>
                   {profile?.totalXp || 0}
                 </AppText>
-                <AppText variant="body" muted style={styles.xpLabel}>
+                <AppText variant="body" style={[styles.xpLabel, styles.onGradientMuted]}>
                   {' '}XP
                 </AppText>
               </View>
@@ -104,32 +104,33 @@ export default function GamificationScreen() {
             xpToNextLevel={profile?.xpToNextLevel || 0}
             progress={profile?.progress || 0}
             size="medium"
+            onGradient
           />
 
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
-              <AppText variant="heading" >
+              <AppText variant="heading" style={styles.onGradientText}>
                 {profile?.donationCount || 0}
               </AppText>
-              <AppText variant="caption" muted>
+              <AppText variant="caption" style={styles.onGradientMuted}>
                 Donations
               </AppText>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
-              <AppText variant="heading" >
+              <AppText variant="heading" style={styles.onGradientText}>
                 {profile?.rank || '-'}
               </AppText>
-              <AppText variant="caption" muted>
+              <AppText variant="caption" style={styles.onGradientMuted}>
                 Rank
               </AppText>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
-              <AppText variant="heading" >
+              <AppText variant="heading" style={styles.onGradientText}>
                 {profile?.reputationScore || 0}
               </AppText>
-              <AppText variant="caption" muted>
+              <AppText variant="caption" style={styles.onGradientMuted}>
                 Reputation
               </AppText>
             </View>
@@ -244,6 +245,14 @@ function createStyles(colors: ThemeColors) {
       marginHorizontal: spacing.lg,
       marginBottom: spacing.lg,
       padding: spacing.lg,
+    },
+    // Vivid, saturated brand gradient rather than a theme surface, so its
+    // text is fixed white/near-white in both themes instead of `colors.text`.
+    onGradientText: {
+      color: '#FFFFFF',
+    },
+    onGradientMuted: {
+      color: 'rgba(255,255,255,0.75)',
     },
     profileHeader: {
       flexDirection: 'row',

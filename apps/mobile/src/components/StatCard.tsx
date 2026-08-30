@@ -16,10 +16,10 @@ export interface StatCardProps {
 function getIconTheme(colors: ThemeColors): Record<string, { bg: string; icon: string }> {
   return {
     default: { bg: colors.surfaceElevated, icon: colors.textMuted },
-    secondary: { bg: colors.secondaryMuted, icon: colors.secondary },
-    success: { bg: colors.successMuted, icon: colors.success },
-    warning: { bg: colors.warningMuted, icon: colors.warning },
-    danger: { bg: colors.dangerMuted, icon: colors.danger },
+    secondary: { bg: colors.secondaryMuted, icon: colors.onMuted.secondary },
+    success: { bg: colors.successMuted, icon: colors.onMuted.success },
+    warning: { bg: colors.warningMuted, icon: colors.onMuted.warning },
+    danger: { bg: colors.dangerMuted, icon: colors.onMuted.danger },
   };
 }
 
