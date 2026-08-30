@@ -146,7 +146,7 @@ export default function RolesPage() {
                         ) : (
                           <button
                             onClick={() => openEditor(role)}
-                            className="text-donor-danger hover:text-donor-onDangerMuted text-sm font-medium"
+                            className="text-donor-primary hover:text-donor-primary/70 text-sm font-medium"
                           >
                             Edit permissions
                           </button>
@@ -164,7 +164,7 @@ export default function RolesPage() {
       {editingRole && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bc-glass-elevated bc-rise rounded-panel w-full max-w-2xl mx-4 max-h-[85vh] overflow-y-auto">
-            <div className="px-6 py-4 border-b border-donor-border/40 flex items-center justify-between sticky top-0 bg-donor-surface">
+            <div className="px-6 py-4 border-b border-donor-border/40 flex items-center justify-between sticky top-0 bc-solid">
               <h3 className="text-lg font-semibold text-donor-text">Edit permissions — {editingRole.code}</h3>
               <button onClick={() => setEditingRole(null)}>
                 <X className="w-5 h-5 text-donor-muted" />
@@ -188,7 +188,7 @@ export default function RolesPage() {
                           type="checkbox"
                           checked={selectedCodes.has(perm.code)}
                           onChange={() => toggleCode(perm.code)}
-                          className="mt-0.5 h-4 w-4 rounded border-donor-border/80 text-donor-danger focus:ring-donor-primary"
+                          className="mt-0.5 h-4 w-4 rounded border-donor-border/80 text-donor-primary focus:ring-donor-primary"
                         />
                         <span>
                           <span className="block font-medium">{perm.code}</span>
@@ -200,10 +200,10 @@ export default function RolesPage() {
                 </div>
               ))}
             </div>
-            <div className="px-6 py-4 border-t border-donor-border/40 flex gap-3 sticky bottom-0 bg-donor-surface">
+            <div className="px-6 py-4 border-t border-donor-border/40 flex gap-3 sticky bottom-0 bc-solid">
               <button
                 onClick={() => setEditingRole(null)}
-                className="flex-1 border border-donor-border/60 text-donor-text py-2 px-4 rounded-lg text-sm font-medium hover:bg-donor-elevated"
+                className="flex-1 bc-solid text-donor-text py-2 px-4 rounded-lg text-sm font-medium hover:bg-donor-elevated"
               >
                 Cancel
               </button>

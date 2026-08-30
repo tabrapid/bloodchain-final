@@ -95,7 +95,7 @@ export default function AIAnalyticsPage() {
             <button
               onClick={handleRefresh}
               disabled={refreshing}
-              className="flex items-center gap-2 bg-donor-elevated text-donor-text px-4 py-2 rounded-lg text-sm font-medium hover:bg-donor-elevated disabled:opacity-50"
+              className="flex items-center gap-2 bg-donor-elevated text-donor-text px-4 py-2 rounded-lg text-sm font-medium hover:bg-donor-border/60 disabled:opacity-50"
             >
               <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
               {refreshing ? 'Refreshing...' : 'Refresh'}
@@ -107,7 +107,7 @@ export default function AIAnalyticsPage() {
           <div className="bc-glass rounded-card p-6">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-donor-secondaryMuted">
-                <BarChart3 className="w-6 h-6 text-donor-secondary" />
+                <BarChart3 className="w-6 h-6 text-donor-onSecondaryMuted" />
               </div>
               <div>
                 <p className="text-sm text-donor-muted">Total Requests</p>
@@ -119,7 +119,7 @@ export default function AIAnalyticsPage() {
           <div className="bc-glass rounded-card p-6">
             <div className="flex items-center gap-4">
               <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${analytics.successRate >= 95 ? 'bg-donor-successMuted' : analytics.successRate >= 80 ? 'bg-donor-warningMuted' : 'bg-donor-dangerMuted'}`}>
-                <CheckCircle className="w-6 h-6 text-donor-success" />
+                <CheckCircle className={`w-6 h-6 ${analytics.successRate >= 95 ? 'text-donor-onSuccessMuted' : analytics.successRate >= 80 ? 'text-donor-onWarningMuted' : 'text-donor-onDangerMuted'}`} />
               </div>
               <div>
                 <p className="text-sm text-donor-muted">Success Rate</p>
@@ -131,7 +131,7 @@ export default function AIAnalyticsPage() {
           <div className="bc-glass rounded-card p-6">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-donor-aiMuted">
-                <Clock className="w-6 h-6 text-donor-ai" />
+                <Clock className="w-6 h-6 text-donor-onAiMuted" />
               </div>
               <div>
                 <p className="text-sm text-donor-muted">Avg Latency</p>
@@ -143,7 +143,7 @@ export default function AIAnalyticsPage() {
           <div className="bc-glass rounded-card p-6">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-donor-warningMuted">
-                <AlertTriangle className="w-6 h-6 text-donor-warning" />
+                <AlertTriangle className="w-6 h-6 text-donor-onWarningMuted" />
               </div>
               <div>
                 <p className="text-sm text-donor-muted">Safety Blocks</p>
@@ -174,21 +174,21 @@ export default function AIAnalyticsPage() {
             <div className="space-y-3">
               <div className="flex items-center justify-between p-3 bg-donor-successMuted rounded-lg">
                 <div className="flex items-center gap-3">
-                  <ThumbsUp className="w-5 h-5 text-donor-success" />
+                  <ThumbsUp className="w-5 h-5 text-donor-onSuccessMuted" />
                   <span className="text-sm text-donor-text">Helpful</span>
                 </div>
                 <span className="font-semibold text-donor-text">{analytics.feedbackAnalytics.helpful}</span>
               </div>
               <div className="flex items-center justify-between p-3 bg-donor-warningMuted rounded-lg">
                 <div className="flex items-center gap-3">
-                  <ThumbsDown className="w-5 h-5 text-donor-warning" />
+                  <ThumbsDown className="w-5 h-5 text-donor-onWarningMuted" />
                   <span className="text-sm text-donor-text">Not Helpful</span>
                 </div>
                 <span className="font-semibold text-donor-text">{analytics.feedbackAnalytics.notHelpful}</span>
               </div>
               <div className="flex items-center justify-between p-3 bg-donor-dangerMuted rounded-lg">
                 <div className="flex items-center gap-3">
-                  <Flag className="w-5 h-5 text-donor-danger" />
+                  <Flag className="w-5 h-5 text-donor-onDangerMuted" />
                   <span className="text-sm text-donor-text">Reported Issues</span>
                 </div>
                 <span className="font-semibold text-donor-text">{analytics.feedbackAnalytics.reportIssue}</span>

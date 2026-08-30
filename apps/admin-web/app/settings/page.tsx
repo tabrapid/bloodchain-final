@@ -34,13 +34,11 @@ function Toggle({
         disabled={disabled}
         onClick={() => onChange(!checked)}
         className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-          checked ? 'bg-donor-success' : 'bg-donor-border'
+          checked ? 'bg-donor-success' : 'bg-donor-muted/40'
         } disabled:opacity-50`}
       >
         <span
-          className={`inline-block h-3.5 w-3.5 transform rounded-full bg-donor-surface transition-transform ${
-            checked ? 'translate-x-4.5' : 'translate-x-1'
-          }`}
+          className="inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform"
           style={{ transform: checked ? 'translateX(18px)' : 'translateX(2px)' }}
         />
       </button>
@@ -122,7 +120,7 @@ export default function SettingsPage() {
           <div className="mb-4 p-4 bg-donor-dangerMuted border border-donor-danger/30 rounded-lg flex items-center justify-between">
             <p className="text-sm text-donor-onDangerMuted">{error}</p>
             <button onClick={() => setError(null)}>
-              <X className="w-4 h-4 text-donor-danger" />
+              <X className="w-4 h-4 text-donor-onDangerMuted" />
             </button>
           </div>
         )}
@@ -137,7 +135,7 @@ export default function SettingsPage() {
           <div className="bc-glass rounded-card p-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 bg-donor-secondaryMuted rounded-lg flex items-center justify-center">
-                <Shield className="w-5 h-5 text-donor-secondary" />
+                <Shield className="w-5 h-5 text-donor-onSecondaryMuted" />
               </div>
               <div>
                 <h3 className="font-medium text-donor-text">Security Settings</h3>
@@ -184,7 +182,7 @@ export default function SettingsPage() {
           <div className="bc-glass rounded-card p-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 bg-donor-successMuted rounded-lg flex items-center justify-center">
-                <Bell className="w-5 h-5 text-donor-success" />
+                <Bell className="w-5 h-5 text-donor-onSuccessMuted" />
               </div>
               <div>
                 <h3 className="font-medium text-donor-text">Notification Settings</h3>
@@ -216,7 +214,7 @@ export default function SettingsPage() {
           <div className="bc-glass rounded-card p-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 bg-donor-aiMuted rounded-lg flex items-center justify-center">
-                <SettingsIcon className="w-5 h-5 text-donor-ai" />
+                <SettingsIcon className="w-5 h-5 text-donor-onAiMuted" />
               </div>
               <div>
                 <h3 className="font-medium text-donor-text">Feature Flags</h3>
@@ -258,7 +256,7 @@ export default function SettingsPage() {
           <div className="bc-glass rounded-card p-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 bg-donor-warningMuted rounded-lg flex items-center justify-center">
-                <Database className="w-5 h-5 text-donor-warning" />
+                <Database className="w-5 h-5 text-donor-onWarningMuted" />
               </div>
               <div>
                 <h3 className="font-medium text-donor-text">Platform Info</h3>
@@ -293,10 +291,10 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          <div className="bg-donor-surface rounded-xl border border-donor-danger/30 p-6 md:col-span-2">
+          <div className="bc-glass rounded-card border-donor-danger/30 p-6 md:col-span-2">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 bg-donor-dangerMuted rounded-lg flex items-center justify-center">
-                <AlertTriangle className="w-5 h-5 text-donor-danger" />
+                <AlertTriangle className="w-5 h-5 text-donor-onDangerMuted" />
               </div>
               <div>
                 <h3 className="font-medium text-donor-text">Maintenance Mode</h3>

@@ -176,7 +176,7 @@ export default function AdminDashboard() {
                 autoComplete="username"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full rounded-lg border border-donor-border/80 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-donor-primary focus:border-transparent"
+                className="w-full rounded-lg bc-solid px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-donor-primary focus:border-transparent"
               />
             </div>
             <div>
@@ -190,7 +190,7 @@ export default function AdminDashboard() {
                 autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-lg border border-donor-border/80 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-donor-primary focus:border-transparent"
+                className="w-full rounded-lg bc-solid px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-donor-primary focus:border-transparent"
               />
             </div>
             <button
@@ -216,10 +216,10 @@ export default function AdminDashboard() {
 
         {error && (
           <div className="mb-6 p-4 bg-donor-warningMuted border border-donor-warning/30 rounded-lg flex items-center gap-3">
-            <AlertTriangle className="w-5 h-5 text-donor-warning" />
+            <AlertTriangle className="w-5 h-5 text-donor-onWarningMuted" />
             <p className="text-sm text-donor-onWarningMuted">{error}</p>
             <button onClick={() => setError(null)} className="ml-auto">
-              <X className="w-4 h-4 text-donor-warning" />
+              <X className="w-4 h-4 text-donor-onWarningMuted" />
             </button>
           </div>
         )}

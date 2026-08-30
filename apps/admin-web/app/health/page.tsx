@@ -70,7 +70,7 @@ export default function SystemHealthPage() {
           <button
             onClick={handleRefresh}
             disabled={refreshing}
-            className="flex items-center gap-2 bg-donor-elevated text-donor-text px-4 py-2 rounded-lg text-sm font-medium hover:bg-donor-elevated disabled:opacity-50"
+            className="flex items-center gap-2 bg-donor-elevated text-donor-text px-4 py-2 rounded-lg text-sm font-medium hover:bg-donor-border/60 disabled:opacity-50"
           >
             <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
             {refreshing ? 'Refreshing...' : 'Refresh'}
@@ -84,9 +84,9 @@ export default function SystemHealthPage() {
                 health?.status === 'healthy' ? 'bg-donor-successMuted' : 'bg-donor-dangerMuted'
               }`}>
                 {health?.status === 'healthy' ? (
-                  <CheckCircle className="w-6 h-6 text-donor-success" />
+                  <CheckCircle className="w-6 h-6 text-donor-onSuccessMuted" />
                 ) : (
-                  <XCircle className="w-6 h-6 text-donor-danger" />
+                  <XCircle className="w-6 h-6 text-donor-onDangerMuted" />
                 )}
               </div>
               <div>
@@ -101,7 +101,7 @@ export default function SystemHealthPage() {
               <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
                 health?.database === 'up' ? 'bg-donor-successMuted' : 'bg-donor-dangerMuted'
               }`}>
-                <Database className="w-6 h-6 text-donor-success" />
+                <Database className={`w-6 h-6 ${health?.database === 'up' ? 'text-donor-onSuccessMuted' : 'text-donor-onDangerMuted'}`} />
               </div>
               <div>
                 <p className="text-sm text-donor-muted">Database</p>
@@ -113,7 +113,7 @@ export default function SystemHealthPage() {
           <div className="bc-glass rounded-card p-6">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-donor-secondaryMuted">
-                <Server className="w-6 h-6 text-donor-secondary" />
+                <Server className="w-6 h-6 text-donor-onSecondaryMuted" />
               </div>
               <div>
                 <p className="text-sm text-donor-muted">Last Updated</p>
@@ -131,21 +131,21 @@ export default function SystemHealthPage() {
             <div className="space-y-3">
               <div className="flex items-center justify-between p-3 bg-donor-warningMuted rounded-lg">
                 <div className="flex items-center gap-3">
-                  <AlertTriangle className="w-5 h-5 text-donor-warning" />
+                  <AlertTriangle className="w-5 h-5 text-donor-onWarningMuted" />
                   <span className="text-sm text-donor-text">Pending Organizations</span>
                 </div>
                 <span className="font-semibold text-donor-text">{health?.pending?.organizations || 0}</span>
               </div>
               <div className="flex items-center justify-between p-3 bg-donor-secondaryMuted rounded-lg">
                 <div className="flex items-center gap-3">
-                  <Server className="w-5 h-5 text-donor-secondary" />
+                  <Server className="w-5 h-5 text-donor-onSecondaryMuted" />
                   <span className="text-sm text-donor-text">Pending Couriers</span>
                 </div>
                 <span className="font-semibold text-donor-text">{health?.pending?.couriers || 0}</span>
               </div>
               <div className="flex items-center justify-between p-3 bg-donor-dangerMuted rounded-lg">
                 <div className="flex items-center gap-3">
-                  <AlertTriangle className="w-5 h-5 text-donor-danger" />
+                  <AlertTriangle className="w-5 h-5 text-donor-onDangerMuted" />
                   <span className="text-sm text-donor-text">Active Alerts</span>
                 </div>
                 <span className="font-semibold text-donor-text">{health?.alerts || 0}</span>
@@ -157,7 +157,7 @@ export default function SystemHealthPage() {
             <h3 className="font-medium text-donor-text mb-4">Recent Errors</h3>
             <div className="flex items-center justify-between p-3 bg-donor-dangerMuted rounded-lg">
               <div className="flex items-center gap-3">
-                <XCircle className="w-5 h-5 text-donor-danger" />
+                <XCircle className="w-5 h-5 text-donor-onDangerMuted" />
                 <span className="text-sm text-donor-text">Failed Jobs (24h)</span>
               </div>
               <span className="font-semibold text-donor-text">{health?.recentErrors || 0}</span>

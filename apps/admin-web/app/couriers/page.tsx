@@ -103,7 +103,7 @@ export default function CouriersPage() {
           <div className="mb-4 p-4 bg-donor-dangerMuted border border-donor-danger/30 rounded-lg flex items-center justify-between">
             <p className="text-sm text-donor-onDangerMuted">{error}</p>
             <button onClick={() => setError(null)}>
-              <X className="w-4 h-4 text-donor-danger" />
+              <X className="w-4 h-4 text-donor-onDangerMuted" />
             </button>
           </div>
         )}
@@ -118,13 +118,13 @@ export default function CouriersPage() {
                   placeholder="Search by name or phone..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-donor-border/60 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-donor-primary"
+                  className="w-full pl-10 pr-4 py-2 bc-solid rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-donor-primary"
                 />
               </div>
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="border border-donor-border/60 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-donor-primary"
+                className="bc-solid rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-donor-primary"
               >
                 <option value="">All Status</option>
                 <option value="AVAILABLE">Available</option>
@@ -166,7 +166,7 @@ export default function CouriersPage() {
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 bg-donor-secondaryMuted rounded-full flex items-center justify-center">
-                            <Ship className="w-4 h-4 text-donor-secondary" />
+                            <Ship className="w-4 h-4 text-donor-onSecondaryMuted" />
                           </div>
                           <div>
                             <p className="font-medium text-donor-text">{courier.displayName}</p>
@@ -193,7 +193,7 @@ export default function CouriersPage() {
                             const data = await getCourier(courier.id);
                             setSelectedCourier(data);
                           }}
-                          className="text-donor-danger hover:text-donor-onDangerMuted text-sm font-medium"
+                          className="text-donor-primary hover:text-donor-primary/70 text-sm font-medium"
                         >
                           View
                         </button>
@@ -214,14 +214,14 @@ export default function CouriersPage() {
                 <button
                   onClick={() => loadCouriers(meta.page - 1)}
                   disabled={meta.page === 1}
-                  className="px-3 py-1 border border-donor-border/60 rounded text-sm disabled:opacity-50"
+                  className="px-3 py-1 bc-solid rounded text-sm disabled:opacity-50"
                 >
                   Previous
                 </button>
                 <button
                   onClick={() => loadCouriers(meta.page + 1)}
                   disabled={meta.page === meta.totalPages}
-                  className="px-3 py-1 border border-donor-border/60 rounded text-sm disabled:opacity-50"
+                  className="px-3 py-1 bc-solid rounded text-sm disabled:opacity-50"
                 >
                   Next
                 </button>
@@ -243,7 +243,7 @@ export default function CouriersPage() {
             <div className="p-6 space-y-4">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-donor-secondaryMuted rounded-full flex items-center justify-center">
-                  <Ship className="w-6 h-6 text-donor-secondary" />
+                  <Ship className="w-6 h-6 text-donor-onSecondaryMuted" />
                 </div>
                 <div>
                   <p className="font-semibold text-donor-text">{selectedCourier.displayName}</p>
@@ -272,11 +272,11 @@ export default function CouriersPage() {
                     </div>
                     <div className="bg-donor-successMuted p-2 rounded text-center">
                       <p className="text-donor-muted">Completed</p>
-                      <p className="font-semibold text-donor-success">{selectedCourier.stats.completedShipments}</p>
+                      <p className="font-semibold text-donor-onSuccessMuted">{selectedCourier.stats.completedShipments}</p>
                     </div>
                     <div className="bg-donor-dangerMuted p-2 rounded text-center">
                       <p className="text-donor-muted">Failed</p>
-                      <p className="font-semibold text-donor-danger">{selectedCourier.stats.failedShipments}</p>
+                      <p className="font-semibold text-donor-onDangerMuted">{selectedCourier.stats.failedShipments}</p>
                     </div>
                   </div>
                 </div>
@@ -287,7 +287,7 @@ export default function CouriersPage() {
                 <button
                   onClick={() => handleRestore(selectedCourier.id)}
                   disabled={actionLoading}
-                  className="flex-1 bg-donor-success text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-donor-success disabled:opacity-50"
+                  className="flex-1 bg-donor-success text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-donor-success/85 disabled:opacity-50"
                 >
                   {actionLoading ? 'Restoring...' : 'Restore Courier'}
                 </button>
