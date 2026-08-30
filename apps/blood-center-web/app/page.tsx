@@ -93,7 +93,7 @@ export default function BloodCenterDashboard() {
         organizationType="Operations workspace"
         userName="Guest"
       >
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-donor-border bg-donor-surface p-12">
+        <div className="flex flex-col items-center justify-center bc-glass rounded-card p-12">
           <Activity className="mb-4 text-donor-secondary" size={48} />
           <h2 className="mb-2 font-display text-2xl font-semibold text-donor-text">
             Blood Center Portal
@@ -101,7 +101,7 @@ export default function BloodCenterDashboard() {
           <p className="mb-6 text-center text-donor-muted">
             Sign in to access the blood center dashboard
           </p>
-          {error && <p className="mb-4 text-sm text-red-400">{error}</p>}
+          {error && <p className="mb-4 text-sm text-donor-danger">{error}</p>}
           <form onSubmit={handleLogin} className="w-full max-w-xs space-y-3">
             <div>
               <label htmlFor="email" className="mb-1 block text-left text-xs font-medium text-donor-muted">
@@ -166,7 +166,7 @@ export default function BloodCenterDashboard() {
         organizationType="Operations workspace"
         userName={`${user.firstName} ${user.lastName}`}
       >
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-donor-border bg-donor-surface p-12 text-center">
+        <div className="flex flex-col items-center justify-center bc-glass rounded-card p-12 text-center">
           <Clock className="mb-4 text-donor-secondary" size={48} />
           <h2 className="mb-2 font-display text-2xl font-semibold text-donor-text">
             {isPending ? 'Your blood center is pending approval' : 'Organization unavailable'}
@@ -196,8 +196,8 @@ export default function BloodCenterDashboard() {
         organizationType="Operations workspace"
         userName={`${user.firstName} ${user.lastName}`}
       >
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-red-900/50 bg-red-950/20 p-12">
-          <Activity className="mb-4 text-red-400" size={48} />
+        <div className="flex flex-col items-center justify-center bc-glass rounded-card border-donor-danger/30 bg-donor-dangerMuted p-12">
+          <Activity className="mb-4 text-donor-danger" size={48} />
           <h2 className="mb-2 font-display text-2xl font-semibold text-donor-text">
             Access Denied
           </h2>
@@ -223,7 +223,7 @@ export default function BloodCenterDashboard() {
       organizationType="Operations workspace"
       userName={`${user.firstName} ${user.lastName}`}
     >
-      <div className="mb-8 flex items-center justify-between rounded-2xl border border-donor-border bg-donor-surface p-6">
+      <div className="mb-8 flex items-center justify-between bc-glass rounded-card p-6">
         <div>
           <p className="text-xs font-bold uppercase tracking-widest text-donor-muted">
             CENTER OVERVIEW
@@ -235,7 +235,7 @@ export default function BloodCenterDashboard() {
             A precise operational foundation for a safer blood supply.
           </p>
         </div>
-        <div className="hidden rounded-2xl border border-[#29404D] bg-[#10202A] p-5 md:block">
+        <div className="hidden bc-glass rounded-card border-donor-secondary/30 bg-donor-secondaryMuted p-5 md:block">
           <Activity className="mb-2 text-donor-secondary" size={24} />
           <p className="text-sm font-semibold text-donor-text">System healthy</p>
           <p className="text-xs text-donor-muted">All services operational</p>
@@ -249,7 +249,7 @@ export default function BloodCenterDashboard() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <div className="rounded-2xl border border-donor-border bg-donor-surface p-6 lg:col-span-2">
+        <div className="bc-glass rounded-card p-6 lg:col-span-2">
           <p className="text-xs font-bold uppercase tracking-widest text-donor-muted">WORKSPACE</p>
           <h3 className="mt-1 font-display text-xl font-semibold text-donor-text">
             Operational clarity starts here
@@ -261,7 +261,7 @@ export default function BloodCenterDashboard() {
           </p>
         </div>
 
-        <div className="rounded-2xl border border-donor-border bg-donor-surface p-6">
+        <div className="bc-glass rounded-card p-6">
           <p className="text-xs font-bold uppercase tracking-widest text-donor-muted">STATUS</p>
           <div className="mt-4 space-y-3">
             <div className="flex items-center justify-between">

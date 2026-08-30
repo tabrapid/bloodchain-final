@@ -36,7 +36,7 @@ const STATUS_CONFIG: Record<string, { label: string; variant: 'success' | 'warni
 const PRIORITY_COLOR: Record<string, string> = {
   ROUTINE: 'text-blue-400',
   URGENT: 'text-orange-400',
-  CRITICAL: 'text-red-400',
+  CRITICAL: 'text-donor-danger',
 };
 
 export default function BloodRequestsPage() {
@@ -113,7 +113,7 @@ export default function BloodRequestsPage() {
         organizationType="Hospital workspace"
         userName="Guest"
       >
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-donor-border bg-donor-surface p-12">
+        <div className="flex flex-col items-center justify-center bc-glass rounded-card p-12">
           <Droplet className="mb-4 text-donor-primary" size={48} />
           <h2 className="mb-2 font-display text-2xl font-semibold text-donor-text">
             Sign In Required
@@ -232,7 +232,7 @@ export default function BloodRequestsPage() {
               <a
                 key={request.id}
                 href={`/requests/${request.id}`}
-                className="block rounded-xl border border-donor-border bg-donor-surface p-5 transition-colors hover:bg-donor-border/50"
+                className="block bc-glass rounded-card p-5 transition-colors hover:bg-donor-border/50"
               >
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-4">

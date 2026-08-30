@@ -93,7 +93,7 @@ export default function CouriersPage() {
         organizationType="Blood Center workspace"
         userName="Guest"
       >
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-donor-border bg-donor-surface p-12">
+        <div className="flex flex-col items-center justify-center bc-glass rounded-card p-12">
           <Truck className="mb-4 text-donor-primary" size={48} />
           <h2 className="mb-2 font-display text-2xl font-semibold text-donor-text">
             Sign In Required
@@ -137,7 +137,7 @@ export default function CouriersPage() {
         </button>
       </div>
 
-      <div className="mb-6 flex items-start gap-3 rounded-xl border border-donor-border bg-donor-surface p-4 text-sm text-donor-muted">
+      <div className="mb-6 flex items-start gap-3 bc-glass rounded-card p-4 text-sm text-donor-muted">
         <Info size={16} className="mt-0.5 shrink-0 text-donor-primary" />
         <p>
           Couriers become available here once they register and are approved through the
@@ -164,7 +164,7 @@ export default function CouriersPage() {
             return (
               <div
                 key={courier.id}
-                className="flex items-center justify-between rounded-xl border border-donor-border bg-donor-surface p-5"
+                className="flex items-center justify-between bc-glass rounded-card p-5"
               >
                 <div className="flex items-center gap-4">
                   <div className="rounded-full bg-donor-primary/20 p-3">

@@ -25,8 +25,8 @@ function Toggle({
   disabled?: boolean;
 }) {
   return (
-    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-      <span className="text-sm text-gray-700">{label}</span>
+    <div className="flex items-center justify-between p-3 bg-donor-elevated rounded-lg">
+      <span className="text-sm text-donor-text">{label}</span>
       <button
         type="button"
         role="switch"
@@ -34,11 +34,11 @@ function Toggle({
         disabled={disabled}
         onClick={() => onChange(!checked)}
         className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-          checked ? 'bg-green-600' : 'bg-gray-300'
+          checked ? 'bg-donor-success' : 'bg-donor-border'
         } disabled:opacity-50`}
       >
         <span
-          className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
+          className={`inline-block h-3.5 w-3.5 transform rounded-full bg-donor-surface transition-transform ${
             checked ? 'translate-x-4.5' : 'translate-x-1'
           }`}
           style={{ transform: checked ? 'translateX(18px)' : 'translateX(2px)' }}
@@ -103,7 +103,7 @@ export default function SettingsPage() {
   if (!settings) {
     return (
       <AppShell title="Platform Settings" userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
-        <div className="p-6 text-sm text-gray-500">Failed to load platform settings.</div>
+        <div className="p-6 text-sm text-donor-muted">Failed to load platform settings.</div>
       </AppShell>
     );
   }
@@ -114,41 +114,41 @@ export default function SettingsPage() {
     <AppShell title="Platform Settings" userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
       <div className="p-6">
         <div className="mb-6">
-          <h1 className="text-2xl font-semibold text-gray-900">Platform Settings</h1>
-          <p className="text-sm text-gray-500 mt-1">Configure platform-wide settings and feature flags</p>
+          <h1 className="text-2xl font-semibold text-donor-text">Platform Settings</h1>
+          <p className="text-sm text-donor-muted mt-1">Configure platform-wide settings and feature flags</p>
         </div>
 
         {error && (
-          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center justify-between">
-            <p className="text-sm text-red-800">{error}</p>
+          <div className="mb-4 p-4 bg-donor-dangerMuted border border-donor-danger/30 rounded-lg flex items-center justify-between">
+            <p className="text-sm text-donor-onDangerMuted">{error}</p>
             <button onClick={() => setError(null)}>
-              <X className="w-4 h-4 text-red-600" />
+              <X className="w-4 h-4 text-donor-danger" />
             </button>
           </div>
         )}
 
         {savedMessage && (
-          <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-800">
+          <div className="mb-4 p-3 bg-donor-successMuted border border-donor-success/30 rounded-lg text-sm text-donor-onSuccessMuted">
             {savedMessage}
           </div>
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <div className="bc-glass rounded-card p-6">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Shield className="w-5 h-5 text-blue-600" />
+              <div className="w-10 h-10 bg-donor-secondaryMuted rounded-lg flex items-center justify-center">
+                <Shield className="w-5 h-5 text-donor-secondary" />
               </div>
               <div>
-                <h3 className="font-medium text-gray-900">Security Settings</h3>
-                <p className="text-sm text-gray-500">Authentication and session policy</p>
+                <h3 className="font-medium text-donor-text">Security Settings</h3>
+                <p className="text-sm text-donor-muted">Authentication and session policy</p>
               </div>
             </div>
             <div className="space-y-3">
-              <div className="p-3 bg-gray-50 rounded-lg">
+              <div className="p-3 bg-donor-elevated rounded-lg">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-gray-700">Session Timeout</span>
-                  <span className="text-xs text-gray-500">{sessionTimeoutHours}h</span>
+                  <span className="text-sm text-donor-text">Session Timeout</span>
+                  <span className="text-xs text-donor-muted">{sessionTimeoutHours}h</span>
                 </div>
                 <input
                   type="range"
@@ -161,13 +161,13 @@ export default function SettingsPage() {
                   }
                   className="w-full"
                 />
-                <p className="mt-1 text-xs text-gray-400">
+                <p className="mt-1 text-xs text-donor-muted">
                   How long a signed-in session stays valid before requiring re-login (1h–30d).
                 </p>
               </div>
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <span className="text-sm text-gray-700">Password Policy</span>
-                <span className="text-xs text-gray-500 text-right max-w-[60%]">
+              <div className="flex items-center justify-between p-3 bg-donor-elevated rounded-lg">
+                <span className="text-sm text-donor-text">Password Policy</span>
+                <span className="text-xs text-donor-muted text-right max-w-[60%]">
                   Min. 12 chars, upper/lower/number/symbol (fixed)
                 </span>
               </div>
@@ -175,20 +175,20 @@ export default function SettingsPage() {
             <button
               onClick={() => save('Security settings', { sessionTimeoutMinutes: settings.sessionTimeoutMinutes })}
               disabled={savingSection === 'Security settings'}
-              className="mt-4 w-full bg-red-600 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-red-700 disabled:opacity-50"
+              className="mt-4 w-full bg-donor-primary text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-donor-primary/85 disabled:opacity-50"
             >
               {savingSection === 'Security settings' ? 'Saving...' : 'Save'}
             </button>
           </div>
 
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <div className="bc-glass rounded-card p-6">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                <Bell className="w-5 h-5 text-green-600" />
+              <div className="w-10 h-10 bg-donor-successMuted rounded-lg flex items-center justify-center">
+                <Bell className="w-5 h-5 text-donor-success" />
               </div>
               <div>
-                <h3 className="font-medium text-gray-900">Notification Settings</h3>
-                <p className="text-sm text-gray-500">Platform notification channels</p>
+                <h3 className="font-medium text-donor-text">Notification Settings</h3>
+                <p className="text-sm text-donor-muted">Platform notification channels</p>
               </div>
             </div>
             <div className="space-y-3">
@@ -197,7 +197,7 @@ export default function SettingsPage() {
                 checked={settings.pushNotificationsEnabled}
                 onChange={(v) => setSettings({ ...settings, pushNotificationsEnabled: v })}
               />
-              <p className="text-xs text-gray-400 px-1">
+              <p className="text-xs text-donor-muted px-1">
                 Email is used only for account verification, not general notifications. SMS delivery
                 isn&apos;t implemented — there is nothing to toggle for either channel yet.
               </p>
@@ -207,20 +207,20 @@ export default function SettingsPage() {
                 save('Notification settings', { pushNotificationsEnabled: settings.pushNotificationsEnabled })
               }
               disabled={savingSection === 'Notification settings'}
-              className="mt-4 w-full bg-red-600 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-red-700 disabled:opacity-50"
+              className="mt-4 w-full bg-donor-primary text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-donor-primary/85 disabled:opacity-50"
             >
               {savingSection === 'Notification settings' ? 'Saving...' : 'Save'}
             </button>
           </div>
 
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <div className="bc-glass rounded-card p-6">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                <SettingsIcon className="w-5 h-5 text-purple-600" />
+              <div className="w-10 h-10 bg-donor-aiMuted rounded-lg flex items-center justify-center">
+                <SettingsIcon className="w-5 h-5 text-donor-ai" />
               </div>
               <div>
-                <h3 className="font-medium text-gray-900">Feature Flags</h3>
-                <p className="text-sm text-gray-500">Enable or disable platform features</p>
+                <h3 className="font-medium text-donor-text">Feature Flags</h3>
+                <p className="text-sm text-donor-muted">Enable or disable platform features</p>
               </div>
             </div>
             <div className="space-y-3">
@@ -249,42 +249,42 @@ export default function SettingsPage() {
                 })
               }
               disabled={savingSection === 'Feature flags'}
-              className="mt-4 w-full bg-red-600 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-red-700 disabled:opacity-50"
+              className="mt-4 w-full bg-donor-primary text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-donor-primary/85 disabled:opacity-50"
             >
               {savingSection === 'Feature flags' ? 'Saving...' : 'Save'}
             </button>
           </div>
 
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <div className="bc-glass rounded-card p-6">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
-                <Database className="w-5 h-5 text-amber-600" />
+              <div className="w-10 h-10 bg-donor-warningMuted rounded-lg flex items-center justify-center">
+                <Database className="w-5 h-5 text-donor-warning" />
               </div>
               <div>
-                <h3 className="font-medium text-gray-900">Platform Info</h3>
-                <p className="text-sm text-gray-500">Live system version and status</p>
+                <h3 className="font-medium text-donor-text">Platform Info</h3>
+                <p className="text-sm text-donor-muted">Live system version and status</p>
               </div>
             </div>
             <div className="space-y-3">
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <span className="text-sm text-gray-700">Platform Version</span>
-                <span className="text-sm font-medium text-gray-900">{health?.version ?? '-'}</span>
+              <div className="flex items-center justify-between p-3 bg-donor-elevated rounded-lg">
+                <span className="text-sm text-donor-text">Platform Version</span>
+                <span className="text-sm font-medium text-donor-text">{health?.version ?? '-'}</span>
               </div>
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <span className="text-sm text-gray-700">API Status</span>
+              <div className="flex items-center justify-between p-3 bg-donor-elevated rounded-lg">
+                <span className="text-sm text-donor-text">API Status</span>
                 <span
                   className={`text-xs px-2 py-1 rounded ${
-                    health?.status === 'healthy' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                    health?.status === 'healthy' ? 'bg-donor-successMuted text-donor-onSuccessMuted' : 'bg-donor-dangerMuted text-donor-onDangerMuted'
                   }`}
                 >
                   {health?.status === 'healthy' ? 'Operational' : health?.status ?? 'Unknown'}
                 </span>
               </div>
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <span className="text-sm text-gray-700">Database Status</span>
+              <div className="flex items-center justify-between p-3 bg-donor-elevated rounded-lg">
+                <span className="text-sm text-donor-text">Database Status</span>
                 <span
                   className={`text-xs px-2 py-1 rounded ${
-                    health?.database === 'up' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                    health?.database === 'up' ? 'bg-donor-successMuted text-donor-onSuccessMuted' : 'bg-donor-dangerMuted text-donor-onDangerMuted'
                   }`}
                 >
                   {health?.database === 'up' ? 'Connected' : health?.database ?? 'Unknown'}
@@ -293,14 +293,14 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl border border-red-200 p-6 md:col-span-2">
+          <div className="bg-donor-surface rounded-xl border border-donor-danger/30 p-6 md:col-span-2">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-                <AlertTriangle className="w-5 h-5 text-red-600" />
+              <div className="w-10 h-10 bg-donor-dangerMuted rounded-lg flex items-center justify-center">
+                <AlertTriangle className="w-5 h-5 text-donor-danger" />
               </div>
               <div>
-                <h3 className="font-medium text-gray-900">Maintenance Mode</h3>
-                <p className="text-sm text-gray-500">
+                <h3 className="font-medium text-donor-text">Maintenance Mode</h3>
+                <p className="text-sm text-donor-muted">
                   Blocks sign-in for everyone except SUPER_ADMIN accounts platform-wide
                 </p>
               </div>
@@ -313,7 +313,7 @@ export default function SettingsPage() {
             <button
               onClick={() => save('Maintenance mode', { maintenanceMode: settings.maintenanceMode })}
               disabled={savingSection === 'Maintenance mode'}
-              className="mt-4 w-full bg-red-600 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-red-700 disabled:opacity-50"
+              className="mt-4 w-full bg-donor-primary text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-donor-primary/85 disabled:opacity-50"
             >
               {savingSection === 'Maintenance mode' ? 'Saving...' : 'Save'}
             </button>

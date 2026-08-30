@@ -244,7 +244,7 @@ export default function EmergencyPage() {
         organizationType="Operations workspace"
         userName="Guest"
       >
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-donor-border bg-donor-surface p-12">
+        <div className="flex flex-col items-center justify-center bc-glass rounded-card p-12">
           <AlertTriangle className="mb-4 text-donor-primary" size={48} />
           <h2 className="mb-2 font-display text-2xl font-semibold text-donor-text">
             Sign In Required
@@ -342,14 +342,14 @@ export default function EmergencyPage() {
             return (
               <div
                 key={emergency.id}
-                className="rounded-xl border border-donor-border bg-donor-surface p-6"
+                className="bc-glass rounded-card p-6"
               >
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-4">
                     <div
                       className={`rounded-full p-3 ${
                         emergency.urgencyLevel === 'CRITICAL'
-                          ? 'bg-red-500/20 text-red-400'
+                          ? 'bg-donor-dangerMuted text-donor-onDangerMuted'
                           : emergency.urgencyLevel === 'HIGH'
                           ? 'bg-orange-500/20 text-orange-400'
                           : 'bg-yellow-500/20 text-yellow-400'
@@ -368,7 +368,7 @@ export default function EmergencyPage() {
                         <span
                           className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
                             emergency.urgencyLevel === 'CRITICAL'
-                              ? 'bg-red-500/20 text-red-400'
+                              ? 'bg-donor-dangerMuted text-donor-onDangerMuted'
                               : emergency.urgencyLevel === 'HIGH'
                               ? 'bg-orange-500/20 text-orange-400'
                               : 'bg-yellow-500/20 text-yellow-400'

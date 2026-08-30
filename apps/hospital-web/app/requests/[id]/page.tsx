@@ -91,7 +91,7 @@ export default function BloodRequestDetailPage() {
         organizationType="Hospital workspace"
         userName={user ? `${user.firstName} ${user.lastName}` : 'Guest'}
       >
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-donor-border bg-donor-surface p-12">
+        <div className="flex flex-col items-center justify-center bc-glass rounded-card p-12">
           <XCircle className="mb-4 text-donor-primary" size={48} />
           <h2 className="mb-2 font-display text-2xl font-semibold text-donor-text">
             Request Not Found
@@ -152,7 +152,7 @@ export default function BloodRequestDetailPage() {
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
-          <div className="rounded-2xl border border-donor-border bg-donor-surface p-5">
+          <div className="bc-glass rounded-card p-5">
             <h3 className="mb-4 text-sm font-semibold text-donor-text">Requested Units</h3>
             <div className="space-y-3">
               {request.items.map((item) => (
@@ -184,7 +184,7 @@ export default function BloodRequestDetailPage() {
           </div>
 
           {request.events && request.events.length > 0 && (
-            <div className="rounded-2xl border border-donor-border bg-donor-surface p-5">
+            <div className="bc-glass rounded-card p-5">
               <h3 className="mb-4 text-sm font-semibold text-donor-text">History</h3>
               <div className="space-y-4">
                 {request.events.map((event) => (
@@ -206,7 +206,7 @@ export default function BloodRequestDetailPage() {
         </div>
 
         <div className="space-y-6">
-          <div className="rounded-2xl border border-donor-border bg-donor-surface p-5">
+          <div className="bc-glass rounded-card p-5">
             <h3 className="mb-4 text-sm font-semibold text-donor-text">Details</h3>
             <div className="space-y-3 text-sm">
               <div>

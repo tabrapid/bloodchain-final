@@ -232,7 +232,7 @@ export default function LaboratoryPage() {
         organizationName="Northstar Blood Center"
         userName="Guest"
       >
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-donor-border bg-donor-surface p-12">
+        <div className="flex flex-col items-center justify-center bc-glass rounded-card p-12">
           <Beaker className="mb-4 text-donor-primary" size={48} />
           <h2 className="mb-2 font-display text-2xl font-semibold text-donor-text">
             Sign In Required
@@ -330,7 +330,7 @@ export default function LaboratoryPage() {
       </div>
 
       {isLoadingData ? (
-        <div className="flex items-center justify-center rounded-xl border border-donor-border bg-donor-surface p-12">
+        <div className="flex items-center justify-center bc-glass rounded-card p-12">
           <Activity className="animate-spin text-donor-primary" size={24} />
         </div>
       ) : appointments.length === 0 ? (
@@ -339,7 +339,7 @@ export default function LaboratoryPage() {
           description="No laboratory appointments match your filters."
         />
       ) : (
-        <div className="rounded-xl border border-donor-border bg-donor-surface overflow-hidden">
+        <div className="bc-glass rounded-card overflow-hidden">
           <table className="w-full">
             <thead className="border-b border-donor-border bg-donor-surfaceElevated">
               <tr>
@@ -417,7 +417,7 @@ export default function LaboratoryPage() {
                               action.variant === 'primary'
                                 ? 'bg-donor-primary text-white hover:bg-donor-primary/80'
                                 : action.variant === 'danger'
-                                ? 'border border-red-500/50 text-red-400 hover:bg-red-500/20'
+                                ? 'border border-donor-danger/50 text-donor-danger hover:bg-donor-dangerMuted'
                                 : 'border border-donor-border text-donor-text hover:bg-donor-border'
                             }`}
                           >

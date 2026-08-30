@@ -177,7 +177,7 @@ export default function AppointmentSlotsPage() {
         organizationType="Blood Center workspace"
         userName="Guest"
       >
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-donor-border bg-donor-surface p-12">
+        <div className="flex flex-col items-center justify-center bc-glass rounded-card p-12">
           <CalendarDays className="mb-4 text-donor-primary" size={48} />
           <h2 className="mb-2 font-display text-2xl font-semibold text-donor-text">
             Sign In Required
@@ -267,7 +267,7 @@ export default function AppointmentSlotsPage() {
             return (
               <div
                 key={slot.id}
-                className="flex items-center justify-between rounded-xl border border-donor-border bg-donor-surface p-5"
+                className="flex items-center justify-between bc-glass rounded-card p-5"
               >
                 <div className="flex items-center gap-4">
                   <div className="rounded-full bg-donor-primary/20 p-3">
@@ -299,7 +299,7 @@ export default function AppointmentSlotsPage() {
                   {canBlock && (
                     <button
                       onClick={() => handleBlockSlot(slot.id)}
-                      className="flex items-center gap-2 rounded-lg border border-donor-border px-3 py-2 text-xs font-semibold text-donor-muted transition-colors hover:border-red-500/50 hover:text-red-400"
+                      className="flex items-center gap-2 rounded-lg border border-donor-border px-3 py-2 text-xs font-semibold text-donor-muted transition-colors hover:border-donor-danger/50 hover:text-donor-danger"
                     >
                       <Ban size={14} />
                       Block
@@ -358,7 +358,7 @@ export default function AppointmentSlotsPage() {
           </div>
 
           {actionError && (
-            <div className="flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-400">
+            <div className="flex items-center gap-2 rounded-lg border border-donor-danger/30 bg-donor-dangerMuted px-3 py-2 text-xs text-donor-onDangerMuted">
               <AlertCircle size={14} />
               {actionError}
             </div>

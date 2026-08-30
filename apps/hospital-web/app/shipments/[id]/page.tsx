@@ -177,7 +177,7 @@ export default function ShipmentDetailPage() {
         organizationType="Hospital workspace"
         userName={user ? `${user.firstName} ${user.lastName}` : 'Guest'}
       >
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-donor-border bg-donor-surface p-12">
+        <div className="flex flex-col items-center justify-center bc-glass rounded-card p-12">
           <XCircle className="mb-4 text-donor-primary" size={48} />
           <h2 className="mb-2 font-display text-2xl font-semibold text-donor-text">
             Shipment Not Found
@@ -255,7 +255,7 @@ export default function ShipmentDetailPage() {
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
           {tracking?.eta && (
-            <div className="rounded-2xl border border-donor-border bg-donor-surface p-5">
+            <div className="bc-glass rounded-card p-5">
               <h3 className="mb-4 text-sm font-semibold text-donor-text">Tracking Information</h3>
               <div className="grid gap-4 md:grid-cols-3">
                 <div>
@@ -282,7 +282,7 @@ export default function ShipmentDetailPage() {
           )}
 
           {tracking && (tracking.currentLocation || courierLocation || tracking.source.coordinates || tracking.destination.coordinates) && (
-            <div className="rounded-2xl border border-donor-border bg-donor-surface p-5">
+            <div className="bc-glass rounded-card p-5">
               <div className="mb-4 flex items-center justify-between">
                 <h3 className="text-sm font-semibold text-donor-text">Live Map</h3>
                 <span className={`flex items-center gap-1.5 text-xs ${connected ? 'text-green-400' : 'text-donor-muted'}`}>
@@ -336,7 +336,7 @@ export default function ShipmentDetailPage() {
             </div>
           )}
 
-          <div className="rounded-2xl border border-donor-border bg-donor-surface p-5">
+          <div className="bc-glass rounded-card p-5">
             <h3 className="mb-4 text-sm font-semibold text-donor-text">Timeline</h3>
             {timeline.length === 0 ? (
               <p className="text-sm text-donor-muted">No events recorded</p>
@@ -364,7 +364,7 @@ export default function ShipmentDetailPage() {
         </div>
 
         <div className="space-y-6">
-          <div className="rounded-2xl border border-donor-border bg-donor-surface p-5">
+          <div className="bc-glass rounded-card p-5">
             <h3 className="mb-4 text-sm font-semibold text-donor-text">Shipment Details</h3>
             <div className="space-y-3">
               <div>
@@ -392,7 +392,7 @@ export default function ShipmentDetailPage() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-donor-border bg-donor-surface p-5">
+          <div className="bc-glass rounded-card p-5">
             <h3 className="mb-4 text-sm font-semibold text-donor-text">Status Timeline</h3>
             <div className="space-y-3">
               {[
@@ -418,7 +418,7 @@ export default function ShipmentDetailPage() {
 
       {showDeliveryModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-2xl border border-donor-border bg-donor-surface p-6">
+          <div className="w-full max-w-md bc-glass rounded-card p-6">
             <h3 className="mb-4 font-display text-lg font-semibold text-donor-text">Confirm Delivery</h3>
             <div className="mb-4 space-y-4">
               <div>

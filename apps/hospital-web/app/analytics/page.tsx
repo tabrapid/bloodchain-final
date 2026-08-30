@@ -61,7 +61,7 @@ function getTrendIcon(trend: string) {
     case 'up':
       return <TrendingUp size={14} className="text-green-400" />;
     case 'down':
-      return <TrendingDown size={14} className="text-red-400" />;
+      return <TrendingDown size={14} className="text-donor-danger" />;
     default:
       return null;
   }
@@ -170,7 +170,7 @@ export default function AnalyticsPage() {
         organizationType="Operations workspace"
         userName="Guest"
       >
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-donor-border bg-donor-surface p-12">
+        <div className="flex flex-col items-center justify-center bc-glass rounded-card p-12">
           <BarChart3 className="mb-4 text-donor-primary" size={48} />
           <h2 className="mb-2 font-display text-2xl font-semibold text-donor-text">
             Sign In Required
@@ -305,7 +305,7 @@ export default function AnalyticsPage() {
           </div>
 
           <div className="mb-6 grid gap-4 md:grid-cols-2">
-            <div className="rounded-2xl border border-donor-border bg-donor-surface p-5">
+            <div className="bc-glass rounded-card p-5">
               <h3 className="mb-4 text-sm font-semibold text-donor-text">Inventory Summary</h3>
               <div className="space-y-3">
                 <div className="flex justify-between">
@@ -326,14 +326,14 @@ export default function AnalyticsPage() {
                 </div>
               </div>
               {overview.inventory.criticalGroups.length > 0 && (
-                <div className="mt-4 rounded-lg bg-red-500/10 p-3">
-                  <p className="text-xs font-semibold text-red-400">Critical Blood Groups</p>
+                <div className="mt-4 rounded-lg bg-donor-dangerMuted p-3">
+                  <p className="text-xs font-semibold text-donor-danger">Critical Blood Groups</p>
                   <p className="text-xs text-donor-muted">{overview.inventory.criticalGroups.join(', ')}</p>
                 </div>
               )}
             </div>
 
-            <div className="rounded-2xl border border-donor-border bg-donor-surface p-5">
+            <div className="bc-glass rounded-card p-5">
               <h3 className="mb-4 text-sm font-semibold text-donor-text">Donations</h3>
               <div className="space-y-3">
                 <div className="flex justify-between">
@@ -346,7 +346,7 @@ export default function AnalyticsPage() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-donor-muted">Cancelled</span>
-                  <span className="font-semibold text-red-400">{formatKpiValue(overview.donations.cancelled.value)}</span>
+                  <span className="font-semibold text-donor-danger">{formatKpiValue(overview.donations.cancelled.value)}</span>
                 </div>
               </div>
               <div className="mt-4">
@@ -422,7 +422,7 @@ export default function AnalyticsPage() {
             />
           </div>
 
-          <div className="mb-6 rounded-2xl border border-donor-border bg-donor-surface p-5">
+          <div className="mb-6 bc-glass rounded-card p-5">
             <h3 className="mb-4 text-sm font-semibold text-donor-text">Inventory by Blood Group</h3>
             <div className="grid gap-3 md:grid-cols-4 lg:grid-cols-8">
               {inventory.byBloodGroup.map((bg) => (
@@ -435,7 +435,7 @@ export default function AnalyticsPage() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-donor-border bg-donor-surface p-5">
+          <div className="bc-glass rounded-card p-5">
             <h3 className="mb-4 text-sm font-semibold text-donor-text">Inventory by Component</h3>
             <div className="space-y-3">
               {inventory.byComponent.map((comp) => (
@@ -479,7 +479,7 @@ export default function AnalyticsPage() {
           </div>
 
           <div className="mb-6 grid gap-4 md:grid-cols-2">
-            <div className="rounded-2xl border border-donor-border bg-donor-surface p-5">
+            <div className="bc-glass rounded-card p-5">
               <h3 className="mb-4 text-sm font-semibold text-donor-text">By Status</h3>
               <div className="space-y-2">
                 {emergencies.byStatus.map((s) => (
@@ -491,13 +491,13 @@ export default function AnalyticsPage() {
               </div>
             </div>
 
-            <div className="rounded-2xl border border-donor-border bg-donor-surface p-5">
+            <div className="bc-glass rounded-card p-5">
               <h3 className="mb-4 text-sm font-semibold text-donor-text">By Urgency</h3>
               <div className="space-y-2">
                 {emergencies.byUrgency.map((u) => (
                   <div key={u.urgencyLevel} className="flex justify-between">
                     <span className={`text-sm font-medium ${
-                      u.urgencyLevel === 'CRITICAL' ? 'text-red-400' :
+                      u.urgencyLevel === 'CRITICAL' ? 'text-donor-danger' :
                       u.urgencyLevel === 'HIGH' ? 'text-orange-400' :
                       'text-yellow-400'
                     }`}>{u.urgencyLevel}</span>
@@ -508,13 +508,13 @@ export default function AnalyticsPage() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-donor-border bg-donor-surface p-5">
+          <div className="bc-glass rounded-card p-5">
             <h3 className="mb-4 text-sm font-semibold text-donor-text">By Blood Group</h3>
             <div className="grid gap-3 md:grid-cols-4 lg:grid-cols-8">
               {emergencies.byBloodGroup.map((bg) => (
                 <div key={bg.fullName} className="rounded-lg bg-donor-border p-3 text-center">
                   <p className="text-lg font-bold text-donor-text">{bg.fullName}</p>
-                  <p className="text-2xl font-bold text-red-400">{bg.count}</p>
+                  <p className="text-2xl font-bold text-donor-danger">{bg.count}</p>
                 </div>
               ))}
             </div>
@@ -552,7 +552,7 @@ export default function AnalyticsPage() {
             />
           </div>
 
-          <div className="rounded-2xl border border-donor-border bg-donor-surface p-5">
+          <div className="bc-glass rounded-card p-5">
             <h3 className="mb-4 text-sm font-semibold text-donor-text">By Status</h3>
             <div className="space-y-2">
               {appointments.byStatus.map((s) => (
@@ -567,17 +567,17 @@ export default function AnalyticsPage() {
       )}
 
       {(criticalAlerts.length > 0 || highAlerts.length > 0) && (
-        <div className="mt-6 rounded-2xl border border-red-500/30 bg-red-500/10 p-5">
+        <div className="mt-6 bc-glass rounded-card border-donor-danger/30 bg-donor-dangerMuted p-5">
           <div className="mb-3 flex items-center gap-2">
-            <Bell className="text-red-400" size={18} />
-            <h3 className="text-sm font-semibold text-red-400">Active Alerts</h3>
+            <Bell className="text-donor-danger" size={18} />
+            <h3 className="text-sm font-semibold text-donor-danger">Active Alerts</h3>
           </div>
           <div className="space-y-2">
             {criticalAlerts.slice(0, 5).map((alert) => (
-              <div key={alert.id} className="flex items-start gap-3 rounded-lg bg-red-500/20 p-3">
-                <AlertTriangle className="mt-0.5 text-red-400" size={14} />
+              <div key={alert.id} className="flex items-start gap-3 rounded-lg bg-donor-dangerMuted p-3">
+                <AlertTriangle className="mt-0.5 text-donor-danger" size={14} />
                 <div>
-                  <p className="text-sm font-semibold text-red-400">{alert.title}</p>
+                  <p className="text-sm font-semibold text-donor-danger">{alert.title}</p>
                   <p className="text-xs text-donor-muted">{alert.message}</p>
                 </div>
               </div>
