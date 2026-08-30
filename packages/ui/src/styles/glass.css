@@ -1,0 +1,196 @@
+/*
+ * Bloodchainga — Liquid Glass design tokens (web).
+ *
+ * Shared by hospital-web, blood-center-web and admin-web so the three
+ * dashboards and the donor mobile app read as one product.
+ *
+ * Surface tokens are space-separated RGB triplets rather than hex, because
+ * the Tailwind preset exposes them as `rgb(var(--token) / <alpha-value>)`.
+ * That is what keeps the ~38 existing `bg-donor-primary/80`,
+ * `border-donor-border/60` style opacity modifiers working after the tokens
+ * stopped being static colors.
+ *
+ * Brand accents deliberately stay OUT of this file: they are identical in
+ * light and dark (a brand red is a brand red), so they live in the preset as
+ * plain hex where Tailwind's alpha handling is already native.
+ */
+
+:root {
+  /* Ambient page wash. Glass blurs whatever is behind it, so a flat
+     background blurs to that same flat color -- these stops and the orbs
+     below are the color variation that makes the material read as glass. */
+  --bc-bg: 244 245 250;
+  --bc-bg-gradient-from: #f5f2fb;
+  --bc-bg-gradient-to: #eef3fb;
+  --bc-orb-1: rgba(216, 83, 96, 0.1);
+  --bc-orb-2: rgba(104, 183, 209, 0.12);
+  --bc-orb-3: rgba(142, 130, 223, 0.1);
+
+  /* Layered surfaces. Translucent so the wash shows through. */
+  --bc-surface: 255 255 255;
+  --bc-surface-alpha: 0.62;
+  --bc-surface-elevated: 255 255 255;
+  --bc-surface-elevated-alpha: 0.78;
+  /* Opaque surface for inputs/menus, where translucency hurts legibility. */
+  --bc-surface-solid: 255 255 255;
+
+  --bc-text: 18 22 28;
+  --bc-muted: 91 102 116;
+  --bc-border: 15 23 42;
+  --bc-border-alpha: 0.1;
+  /* The bright inner edge that sells the "lit glass" look. */
+  --bc-glass-highlight: rgba(255, 255, 255, 0.85);
+  --bc-shadow: 0 8px 32px rgba(15, 23, 42, 0.08);
+  --bc-shadow-lg: 0 16px 48px rgba(15, 23, 42, 0.12);
+  --bc-blur: 20px;
+}
+
+/* Dark is opt-in via a class on <html>, and also follows the OS when the
+   app has not pinned a choice. Both selectors carry the same values. */
+.dark,
+:root.dark {
+  --bc-bg: 8 11 18;
+  --bc-bg-gradient-from: #0d1420;
+  --bc-bg-gradient-to: #05080d;
+  --bc-orb-1: rgba(216, 83, 96, 0.18);
+  --bc-orb-2: rgba(104, 183, 209, 0.14);
+  --bc-orb-3: rgba(142, 130, 223, 0.16);
+
+  --bc-surface: 255 255 255;
+  --bc-surface-alpha: 0.07;
+  --bc-surface-elevated: 255 255 255;
+  --bc-surface-elevated-alpha: 0.11;
+  --bc-surface-solid: 17 26 36;
+
+  --bc-text: 242 245 247;
+  --bc-muted: 132 149 163;
+  --bc-border: 255 255 255;
+  --bc-border-alpha: 0.12;
+  --bc-glass-highlight: rgba(255, 255, 255, 0.18);
+  --bc-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  --bc-shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.5);
+  --bc-blur: 24px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    --bc-bg: 8 11 18;
+    --bc-bg-gradient-from: #0d1420;
+    --bc-bg-gradient-to: #05080d;
+    --bc-orb-1: rgba(216, 83, 96, 0.18);
+    --bc-orb-2: rgba(104, 183, 209, 0.14);
+    --bc-orb-3: rgba(142, 130, 223, 0.16);
+
+    --bc-surface-alpha: 0.07;
+    --bc-surface-elevated-alpha: 0.11;
+    --bc-surface-solid: 17 26 36;
+
+    --bc-text: 242 245 247;
+    --bc-muted: 132 149 163;
+    --bc-border: 255 255 255;
+    --bc-border-alpha: 0.12;
+    --bc-glass-highlight: rgba(255, 255, 255, 0.18);
+    --bc-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    --bc-shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.5);
+    --bc-blur: 24px;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* The ambient page wash                                               */
+/* ------------------------------------------------------------------ */
+
+.bc-app-bg {
+  position: relative;
+  min-height: 100vh;
+  background:
+    radial-gradient(60rem 40rem at 12% -8%, var(--bc-orb-1), transparent 60%),
+    radial-gradient(52rem 36rem at 92% 4%, var(--bc-orb-2), transparent 62%),
+    radial-gradient(46rem 34rem at 48% 100%, var(--bc-orb-3), transparent 62%),
+    linear-gradient(160deg, var(--bc-bg-gradient-from), var(--bc-bg-gradient-to));
+  background-attachment: fixed;
+}
+
+/* ------------------------------------------------------------------ */
+/* Glass materials — a hierarchy, not one blur applied to everything.  */
+/* ------------------------------------------------------------------ */
+
+/* Level 1: the main content surface. Slightly opaque so text stays crisp. */
+.bc-glass {
+  background-color: rgb(var(--bc-surface) / var(--bc-surface-alpha));
+  border: 1px solid rgb(var(--bc-border) / var(--bc-border-alpha));
+  -webkit-backdrop-filter: blur(var(--bc-blur)) saturate(160%);
+  backdrop-filter: blur(var(--bc-blur)) saturate(160%);
+  box-shadow: var(--bc-shadow), inset 0 1px 0 0 var(--bc-glass-highlight);
+}
+
+/* Level 2: cards that need to sit above level 1. */
+.bc-glass-elevated {
+  background-color: rgb(var(--bc-surface-elevated) / var(--bc-surface-elevated-alpha));
+  border: 1px solid rgb(var(--bc-border) / var(--bc-border-alpha));
+  -webkit-backdrop-filter: blur(var(--bc-blur)) saturate(180%);
+  backdrop-filter: blur(var(--bc-blur)) saturate(180%);
+  box-shadow: var(--bc-shadow-lg), inset 0 1px 0 0 var(--bc-glass-highlight);
+}
+
+/* Level 0: chrome (sidebar, topbar). More transparent than content, so
+   content stays the focus and the chrome recedes. */
+.bc-glass-chrome {
+  background-color: rgb(var(--bc-surface) / calc(var(--bc-surface-alpha) * 0.75));
+  -webkit-backdrop-filter: blur(calc(var(--bc-blur) * 1.4)) saturate(180%);
+  backdrop-filter: blur(calc(var(--bc-blur) * 1.4)) saturate(180%);
+}
+
+/* Opaque: inputs, dropdowns, sticky table headers — anywhere translucency
+   would let content scroll through and destroy legibility. */
+.bc-solid {
+  background-color: rgb(var(--bc-surface-solid));
+  border: 1px solid rgb(var(--bc-border) / var(--bc-border-alpha));
+}
+
+.bc-hairline {
+  border-color: rgb(var(--bc-border) / var(--bc-border-alpha));
+}
+
+/* Respect users who have asked for less motion/effects. Dropping the blur
+   also helps low-end GPUs, where a full-page backdrop-filter is expensive. */
+@media (prefers-reduced-transparency: reduce) {
+  .bc-glass,
+  .bc-glass-elevated,
+  .bc-glass-chrome {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background-color: rgb(var(--bc-surface-solid));
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Motion — subtle, and fully disabled under reduced-motion.           */
+/* ------------------------------------------------------------------ */
+
+@keyframes bc-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.bc-rise {
+  animation: bc-rise 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bc-rise {
+    animation: none;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
