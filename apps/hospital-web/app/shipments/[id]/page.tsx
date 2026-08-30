@@ -229,7 +229,7 @@ export default function ShipmentDetailPage() {
           {canConfirmDelivery && (
             <button
               onClick={() => setShowDeliveryModal(true)}
-              className="flex items-center gap-2 rounded-lg bg-green-500 px-4 py-2 font-semibold text-white transition-colors hover:bg-green-600"
+              className="flex items-center gap-2 rounded-lg bg-donor-success px-4 py-2 font-semibold text-white transition-colors hover:bg-donor-success/85"
             >
               <CheckCircle size={16} />
               Confirm Delivery
@@ -239,11 +239,11 @@ export default function ShipmentDetailPage() {
       </div>
 
       {shipment.status === 'ARRIVED_AT_HOSPITAL' && (
-        <div className="mb-6 rounded-xl border border-green-500/30 bg-green-500/10 p-4">
+        <div className="mb-6 rounded-xl border border-donor-success/30 bg-donor-successMuted p-4">
           <div className="flex items-center gap-3">
-            <CheckCircle className="text-green-400" size={24} />
+            <CheckCircle className="text-donor-success" size={24} />
             <div>
-              <h3 className="font-semibold text-green-400">Courier Has Arrived</h3>
+              <h3 className="font-semibold text-donor-success">Courier Has Arrived</h3>
               <p className="text-sm text-donor-muted">
                 The courier has arrived at your location. Please confirm the delivery below.
               </p>
@@ -285,8 +285,8 @@ export default function ShipmentDetailPage() {
             <div className="bc-glass rounded-card p-5">
               <div className="mb-4 flex items-center justify-between">
                 <h3 className="text-sm font-semibold text-donor-text">Live Map</h3>
-                <span className={`flex items-center gap-1.5 text-xs ${connected ? 'text-green-400' : 'text-donor-muted'}`}>
-                  <span className={`h-1.5 w-1.5 rounded-full ${connected ? 'bg-green-400' : 'bg-donor-muted'}`} />
+                <span className={`flex items-center gap-1.5 text-xs ${connected ? 'text-donor-success' : 'text-donor-muted'}`}>
+                  <span className={`h-1.5 w-1.5 rounded-full ${connected ? 'bg-donor-success' : 'bg-donor-muted'}`} />
                   {connected ? 'Live' : 'Offline'}
                 </span>
               </div>
@@ -482,7 +482,7 @@ export default function ShipmentDetailPage() {
               <button
                 onClick={handleConfirmDelivery}
                 disabled={actionLoading || unitsReceived < 0 || unitsReceived > totalUnits}
-                className="rounded-lg bg-green-500 px-4 py-2 font-semibold text-white disabled:opacity-50"
+                className="rounded-lg bg-donor-success px-4 py-2 font-semibold text-white disabled:opacity-50"
               >
                 {actionLoading ? 'Confirming...' : 'Confirm Delivery'}
               </button>

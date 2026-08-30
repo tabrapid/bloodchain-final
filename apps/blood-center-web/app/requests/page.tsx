@@ -26,8 +26,8 @@ const STATUS_CONFIG: Record<string, { label: string; variant: 'success' | 'warni
 };
 
 const PRIORITY_COLOR: Record<string, string> = {
-  ROUTINE: 'text-blue-400',
-  URGENT: 'text-orange-400',
+  ROUTINE: 'text-donor-secondary',
+  URGENT: 'text-donor-warning',
   CRITICAL: 'text-donor-danger',
 };
 
@@ -250,7 +250,7 @@ export default function BloodRequestsPage() {
                     </div>
                   </div>
                   {needsReview && (
-                    <span className="rounded-full bg-orange-500/20 px-3 py-1 text-xs font-semibold text-orange-400">
+                    <span className="rounded-full bg-donor-warningMuted px-3 py-1 text-xs font-semibold text-donor-onWarningMuted">
                       Needs Review
                     </span>
                   )}

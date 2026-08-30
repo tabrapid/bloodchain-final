@@ -229,15 +229,15 @@ export default function ShipmentsPage() {
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-4">
                     <div className={`rounded-full p-3 ${
-                      shipment.status === 'IN_TRANSIT' ? 'bg-blue-500/20' :
-                      shipment.status === 'ARRIVED_AT_HOSPITAL' ? 'bg-green-500/20' :
-                      shipment.status === 'DELIVERED' ? 'bg-green-500/20' :
+                      shipment.status === 'IN_TRANSIT' ? 'bg-donor-secondaryMuted' :
+                      shipment.status === 'ARRIVED_AT_HOSPITAL' ? 'bg-donor-successMuted' :
+                      shipment.status === 'DELIVERED' ? 'bg-donor-successMuted' :
                       'bg-donor-primary/20'
                     }`}>
                       <Truck size={24} className={
-                        shipment.status === 'IN_TRANSIT' ? 'text-blue-400' :
-                        shipment.status === 'ARRIVED_AT_HOSPITAL' ? 'text-green-400' :
-                        shipment.status === 'DELIVERED' ? 'text-green-400' :
+                        shipment.status === 'IN_TRANSIT' ? 'text-donor-secondary' :
+                        shipment.status === 'ARRIVED_AT_HOSPITAL' ? 'text-donor-success' :
+                        shipment.status === 'DELIVERED' ? 'text-donor-success' :
                         'text-donor-primary'
                       } />
                     </div>
@@ -271,7 +271,7 @@ export default function ShipmentsPage() {
                     </div>
                   </div>
                   {shipment.status === 'ARRIVED_AT_HOSPITAL' && (
-                    <span className="rounded-full bg-green-500/20 px-3 py-1 text-xs font-semibold text-green-400">
+                    <span className="rounded-full bg-donor-successMuted px-3 py-1 text-xs font-semibold text-donor-onSuccessMuted">
                       Action Required
                     </span>
                   )}

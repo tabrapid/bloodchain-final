@@ -337,8 +337,8 @@ export default function ShipmentDetailPage() {
             <div className="bc-glass rounded-card p-5">
               <div className="mb-4 flex items-center justify-between">
                 <h3 className="text-sm font-semibold text-donor-text">Live Map</h3>
-                <span className={`flex items-center gap-1.5 text-xs ${connected ? 'text-green-400' : 'text-donor-muted'}`}>
-                  <span className={`h-1.5 w-1.5 rounded-full ${connected ? 'bg-green-400' : 'bg-donor-muted'}`} />
+                <span className={`flex items-center gap-1.5 text-xs ${connected ? 'text-donor-success' : 'text-donor-muted'}`}>
+                  <span className={`h-1.5 w-1.5 rounded-full ${connected ? 'bg-donor-success' : 'bg-donor-muted'}`} />
                   {connected ? 'Live' : 'Offline'}
                 </span>
               </div>

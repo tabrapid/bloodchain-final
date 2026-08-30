@@ -5,17 +5,13 @@ import {
   Activity,
   AlertTriangle,
   ArrowRightLeft,
-  CalendarDays,
   CheckCircle,
   Clock,
   Filter,
-  LayoutDashboard,
   Package,
   Plus,
   Search,
   Settings,
-  Truck,
-  Users,
   XCircle,
 } from 'lucide-react';
 import {
@@ -81,9 +77,7 @@ export default function InventoryPage() {
         if (isAuthenticated()) {
           const userData = await me();
           setUser(userData);
-          const org = userData.organizations.find(
-            (o) => o.type === 'BLOOD_CENTER' || o.type === 'BLOOD_CENTER_ADMIN'
-          );
+          const org = userData.organizations.find((o) => o.type === 'HOSPITAL');
           if (org) {
             setOrganizationId(org.organizationId);
           } else {
@@ -310,8 +304,8 @@ export default function InventoryPage() {
     return (
       <AppShell
         title="Loading..."
-        subtitle="BLOOD CENTER CONSOLE"
-        organizationName="Northstar Blood Center (Development)"
+        subtitle="HOSPITAL CONSOLE"
+        organizationName="Northstar Hospital (Development)"
         organizationType="Operations workspace"
         userName="Loading..."
       >
@@ -326,8 +320,8 @@ export default function InventoryPage() {
     return (
       <AppShell
         title="Authentication Required"
-        subtitle="BLOOD CENTER CONSOLE"
-        organizationName="Northstar Blood Center (Development)"
+        subtitle="HOSPITAL CONSOLE"
+        organizationName="Northstar Hospital (Development)"
         organizationType="Operations workspace"
         userName="Guest"
       >
@@ -347,8 +341,8 @@ export default function InventoryPage() {
   return (
     <AppShell
       title="Blood Inventory"
-      subtitle="BLOOD CENTER CONSOLE"
-      organizationName="Northstar Blood Center (Development)"
+      subtitle="HOSPITAL CONSOLE"
+      organizationName="Northstar Hospital (Development)"
       organizationType="Operations workspace"
       userName={`${user.firstName} ${user.lastName}`}
     >
