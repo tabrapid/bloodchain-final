@@ -83,7 +83,7 @@ export default function AlertsPage() {
                 setAcknowledgedFilter(e.target.value);
                 loadAlerts(1, e.target.value);
               }}
-              className="border border-donor-border/60 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-donor-primary"
+              className="bc-solid rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-donor-primary"
             >
               <option value="">All Alerts</option>
               <option value="false">Active</option>

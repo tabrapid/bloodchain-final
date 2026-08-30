@@ -75,7 +75,7 @@ export default function BloodRequestsPage() {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="border border-donor-border/60 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-donor-primary"
+                className="bc-solid rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-donor-primary"
               >
                 <option value="">All Status</option>
                 <option value="SUBMITTED">Submitted</option>
@@ -90,7 +90,7 @@ export default function BloodRequestsPage() {
               <select
                 value={priorityFilter}
                 onChange={(e) => setPriorityFilter(e.target.value)}
-                className="border border-donor-border/60 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-donor-primary"
+                className="bc-solid rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-donor-primary"
               >
                 <option value="">All Priority</option>
                 <option value="ROUTINE">Routine</option>
@@ -172,14 +172,14 @@ export default function BloodRequestsPage() {
                 <button
                   onClick={() => loadRequests(meta.page - 1)}
                   disabled={meta.page === 1}
-                  className="px-3 py-1 border border-donor-border/60 rounded text-sm disabled:opacity-50"
+                  className="px-3 py-1 bc-solid rounded text-sm disabled:opacity-50"
                 >
                   Previous
                 </button>
                 <button
                   onClick={() => loadRequests(meta.page + 1)}
                   disabled={meta.page === meta.totalPages}
-                  className="px-3 py-1 border border-donor-border/60 rounded text-sm disabled:opacity-50"
+                  className="px-3 py-1 bc-solid rounded text-sm disabled:opacity-50"
                 >
                   Next
                 </button>

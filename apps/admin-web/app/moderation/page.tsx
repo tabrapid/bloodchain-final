@@ -104,7 +104,7 @@ export default function ModerationPage() {
           <div className="mb-4 p-4 bg-donor-dangerMuted border border-donor-danger/30 rounded-lg flex items-center justify-between">
             <p className="text-sm text-donor-onDangerMuted">{error}</p>
             <button onClick={() => setError(null)}>
-              <X className="w-4 h-4 text-donor-danger" />
+              <X className="w-4 h-4 text-donor-onDangerMuted" />
             </button>
           </div>
         )}
@@ -116,7 +116,7 @@ export default function ModerationPage() {
               onChange={(e) => {
                 setStatusFilter(e.target.value);
               }}
-              className="border border-donor-border/60 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-donor-primary"
+              className="bc-solid rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-donor-primary"
             >
               <option value="">All Status</option>
               <option value="PENDING">Pending</option>
@@ -129,7 +129,7 @@ export default function ModerationPage() {
               onChange={(e) => {
                 setReasonFilter(e.target.value);
               }}
-              className="border border-donor-border/60 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-donor-primary"
+              className="bc-solid rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-donor-primary"
             >
               <option value="">All Reasons</option>
               <option value="SPAM">Spam</option>
@@ -196,7 +196,7 @@ export default function ModerationPage() {
                       <td className="px-4 py-3">
                         <button
                           onClick={() => openReport(report.id)}
-                          className="text-donor-danger hover:text-donor-onDangerMuted text-sm font-medium"
+                          className="text-donor-primary hover:text-donor-primary/70 text-sm font-medium"
                         >
                           Review
                         </button>
@@ -217,14 +217,14 @@ export default function ModerationPage() {
                 <button
                   onClick={() => loadReports(meta.page - 1)}
                   disabled={meta.page === 1}
-                  className="px-3 py-1 border border-donor-border/60 rounded text-sm disabled:opacity-50"
+                  className="px-3 py-1 bc-solid rounded text-sm disabled:opacity-50"
                 >
                   Previous
                 </button>
                 <button
                   onClick={() => loadReports(meta.page + 1)}
                   disabled={meta.page === meta.totalPages}
-                  className="px-3 py-1 border border-donor-border/60 rounded text-sm disabled:opacity-50"
+                  className="px-3 py-1 bc-solid rounded text-sm disabled:opacity-50"
                 >
                   Next
                 </button>
@@ -237,7 +237,7 @@ export default function ModerationPage() {
       {selectedReport && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bc-glass-elevated bc-rise rounded-panel w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
-            <div className="px-6 py-4 border-b border-donor-border/40 flex items-center justify-between sticky top-0 bg-donor-surface">
+            <div className="px-6 py-4 border-b border-donor-border/40 flex items-center justify-between sticky top-0 bc-solid">
               <h3 className="text-lg font-semibold text-donor-text">Report Details</h3>
               <button onClick={() => setSelectedReport(null)}>
                 <X className="w-5 h-5 text-donor-muted" />
@@ -307,7 +307,7 @@ export default function ModerationPage() {
                     value={resolution}
                     onChange={(e) => setResolution(e.target.value)}
                     rows={2}
-                    className="w-full border border-donor-border/60 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-donor-primary"
+                    className="w-full bc-solid rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-donor-primary"
                   />
                 </div>
               ) : (
@@ -322,14 +322,14 @@ export default function ModerationPage() {
                 <button
                   onClick={() => handleResolve('DISMISS')}
                   disabled={actionLoading}
-                  className="flex-1 bg-donor-muted text-white py-2 px-3 rounded-lg text-sm font-medium hover:bg-donor-muted disabled:opacity-50"
+                  className="flex-1 bg-donor-muted text-white py-2 px-3 rounded-lg text-sm font-medium hover:bg-donor-muted/85 disabled:opacity-50"
                 >
                   Dismiss
                 </button>
                 <button
                   onClick={() => handleResolve('HIDE')}
                   disabled={actionLoading}
-                  className="flex-1 bg-donor-warning text-white py-2 px-3 rounded-lg text-sm font-medium hover:bg-donor-warning disabled:opacity-50"
+                  className="flex-1 bg-donor-warning text-white py-2 px-3 rounded-lg text-sm font-medium hover:bg-donor-warning/85 disabled:opacity-50"
                 >
                   Hide Post
                 </button>

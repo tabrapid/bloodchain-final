@@ -134,7 +134,7 @@ export default function OrganizationsPage() {
           <div className="mb-4 p-4 bg-donor-dangerMuted border border-donor-danger/30 rounded-lg flex items-center justify-between">
             <p className="text-sm text-donor-onDangerMuted">{error}</p>
             <button onClick={() => setError(null)}>
-              <X className="w-4 h-4 text-donor-danger" />
+              <X className="w-4 h-4 text-donor-onDangerMuted" />
             </button>
           </div>
         )}
@@ -149,13 +149,13 @@ export default function OrganizationsPage() {
                   placeholder="Search by name, email, or address..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-donor-border/60 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-donor-primary"
+                  className="w-full pl-10 pr-4 py-2 bc-solid rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-donor-primary"
                 />
               </div>
               <select
                 value={typeFilter}
                 onChange={(e) => setTypeFilter(e.target.value)}
-                className="border border-donor-border/60 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-donor-primary"
+                className="bc-solid rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-donor-primary"
               >
                 <option value="">All Types</option>
                 <option value="HOSPITAL">Hospital</option>
@@ -164,7 +164,7 @@ export default function OrganizationsPage() {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="border border-donor-border/60 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-donor-primary"
+                className="bc-solid rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-donor-primary"
               >
                 <option value="">All Status</option>
                 <option value="ACTIVE">Active</option>
@@ -234,7 +234,7 @@ export default function OrganizationsPage() {
                             const data = await import('@lib/api').then(m => m.getOrganization(org.id));
                             setSelectedOrg(data);
                           }}
-                          className="text-donor-danger hover:text-donor-onDangerMuted text-sm font-medium"
+                          className="text-donor-primary hover:text-donor-primary/70 text-sm font-medium"
                         >
                           View
                         </button>
@@ -255,14 +255,14 @@ export default function OrganizationsPage() {
                 <button
                   onClick={() => loadOrgs(meta.page - 1)}
                   disabled={meta.page === 1}
-                  className="px-3 py-1 border border-donor-border/60 rounded text-sm disabled:opacity-50"
+                  className="px-3 py-1 bc-solid rounded text-sm disabled:opacity-50"
                 >
                   Previous
                 </button>
                 <button
                   onClick={() => loadOrgs(meta.page + 1)}
                   disabled={meta.page === meta.totalPages}
-                  className="px-3 py-1 border border-donor-border/60 rounded text-sm disabled:opacity-50"
+                  className="px-3 py-1 bc-solid rounded text-sm disabled:opacity-50"
                 >
                   Next
                 </button>
@@ -275,7 +275,7 @@ export default function OrganizationsPage() {
       {selectedOrg && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bc-glass-elevated bc-rise rounded-panel w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
-            <div className="px-6 py-4 border-b border-donor-border/40 flex items-center justify-between sticky top-0 bg-donor-surface">
+            <div className="px-6 py-4 border-b border-donor-border/40 flex items-center justify-between sticky top-0 bc-solid">
               <h3 className="text-lg font-semibold text-donor-text">Organization Details</h3>
               <button onClick={() => setSelectedOrg(null)}>
                 <X className="w-5 h-5 text-donor-muted" />
@@ -284,7 +284,7 @@ export default function OrganizationsPage() {
             <div className="p-6 space-y-4">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-donor-secondaryMuted rounded-full flex items-center justify-center">
-                  <Building2 className="w-6 h-6 text-donor-secondary" />
+                  <Building2 className="w-6 h-6 text-donor-onSecondaryMuted" />
                 </div>
                 <div>
                   <p className="font-semibold text-donor-text">{selectedOrg.name}</p>
@@ -346,14 +346,14 @@ export default function OrganizationsPage() {
                   <button
                     onClick={() => handleVerify(selectedOrg.id)}
                     disabled={actionLoading}
-                    className="flex-1 bg-donor-success text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-donor-success disabled:opacity-50"
+                    className="flex-1 bg-donor-success text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-donor-success/85 disabled:opacity-50"
                   >
                     {actionLoading ? 'Verifying...' : 'Verify'}
                   </button>
                   <button
                     onClick={() => handleReject(selectedOrg.id)}
                     disabled={actionLoading}
-                    className="flex-1 bg-donor-muted text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-donor-muted disabled:opacity-50"
+                    className="flex-1 bg-donor-muted text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-donor-muted/85 disabled:opacity-50"
                   >
                     Reject
                   </button>
@@ -372,7 +372,7 @@ export default function OrganizationsPage() {
                 <button
                   onClick={() => handleRestore(selectedOrg.id)}
                   disabled={actionLoading}
-                  className="flex-1 bg-donor-success text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-donor-success disabled:opacity-50"
+                  className="flex-1 bg-donor-success text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-donor-success/85 disabled:opacity-50"
                 >
                   {actionLoading ? 'Restoring...' : 'Restore'}
                 </button>

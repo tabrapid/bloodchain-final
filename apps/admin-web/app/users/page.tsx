@@ -122,7 +122,7 @@ export default function UsersPage() {
           <div className="mb-4 p-4 bg-donor-dangerMuted border border-donor-danger/30 rounded-lg flex items-center justify-between">
             <p className="text-sm text-donor-onDangerMuted">{error}</p>
             <button onClick={() => setError(null)}>
-              <X className="w-4 h-4 text-donor-danger" />
+              <X className="w-4 h-4 text-donor-onDangerMuted" />
             </button>
           </div>
         )}
@@ -137,13 +137,13 @@ export default function UsersPage() {
                   placeholder="Search by name, email, or phone..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-donor-border/60 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-donor-primary"
+                  className="w-full pl-10 pr-4 py-2 bc-solid rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-donor-primary"
                 />
               </div>
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="border border-donor-border/60 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-donor-primary"
+                className="bc-solid rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-donor-primary"
               >
                 <option value="">All Status</option>
                 <option value="ACTIVE">Active</option>
@@ -153,7 +153,7 @@ export default function UsersPage() {
               <select
                 value={roleFilter}
                 onChange={(e) => setRoleFilter(e.target.value)}
-                className="border border-donor-border/60 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-donor-primary"
+                className="bc-solid rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-donor-primary"
               >
                 <option value="">All Roles</option>
                 <option value="DONOR">Donor</option>
@@ -224,7 +224,7 @@ export default function UsersPage() {
                       <td className="px-4 py-3">
                         <button
                           onClick={() => setSelectedUser(user)}
-                          className="text-donor-danger hover:text-donor-onDangerMuted text-sm font-medium"
+                          className="text-donor-primary hover:text-donor-primary/70 text-sm font-medium"
                         >
                           View
                         </button>
@@ -245,14 +245,14 @@ export default function UsersPage() {
                 <button
                   onClick={() => loadUsers(meta.page - 1)}
                   disabled={meta.page === 1}
-                  className="px-3 py-1 border border-donor-border/60 rounded text-sm disabled:opacity-50"
+                  className="px-3 py-1 bc-solid rounded text-sm disabled:opacity-50"
                 >
                   Previous
                 </button>
                 <button
                   onClick={() => loadUsers(meta.page + 1)}
                   disabled={meta.page === meta.totalPages}
-                  className="px-3 py-1 border border-donor-border/60 rounded text-sm disabled:opacity-50"
+                  className="px-3 py-1 bc-solid rounded text-sm disabled:opacity-50"
                 >
                   Next
                 </button>
@@ -318,7 +318,7 @@ export default function UsersPage() {
                         onChange={(e) =>
                           setRoleChangeTarget((prev) => ({ ...prev, [r.membershipId]: e.target.value }))
                         }
-                        className="border border-donor-border/60 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-donor-primary"
+                        className="bc-solid rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-donor-primary"
                       >
                         <option value="">Change role to...</option>
                         {roles
@@ -332,7 +332,7 @@ export default function UsersPage() {
                       <button
                         onClick={() => handleChangeRole(r.membershipId)}
                         disabled={actionLoading || !roleChangeTarget[r.membershipId]}
-                        className="text-xs font-medium text-donor-danger hover:text-donor-onDangerMuted disabled:opacity-40 disabled:cursor-not-allowed"
+                        className="text-xs font-medium text-donor-primary hover:text-donor-primary/70 disabled:opacity-40 disabled:cursor-not-allowed"
                       >
                         Update
                       </button>
@@ -346,7 +346,7 @@ export default function UsersPage() {
                 <button
                   onClick={() => handleRestore(selectedUser.id)}
                   disabled={actionLoading}
-                  className="flex-1 bg-donor-success text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-donor-success disabled:opacity-50"
+                  className="flex-1 bg-donor-success text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-donor-success/85 disabled:opacity-50"
                 >
                   {actionLoading ? 'Restoring...' : 'Restore User'}
                 </button>
