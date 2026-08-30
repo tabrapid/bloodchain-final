@@ -1,17 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ScrollView, View, Alert } from 'react-native';
-import { Stack } from 'expo-router';
 import * as Location from 'expo-location';
 import {
   AlertTriangle,
-  ArrowLeft,
   CheckCircle,
   Clock,
   MapPin,
   Navigation,
   XCircle,
 } from 'lucide-react-native';
-import { AppButton, AppText, Card, LoadingState, Screen } from '../src/components';
+import { AppButton, AppText, Card, LoadingState, Screen, ScreenHeader } from '../src/components';
 import { LocationMap, type MapMarkerPoint } from '../src/components/map/LocationMap';
 import { spacing, useTheme } from '../src/theme';
 import {
@@ -370,13 +368,7 @@ export default function SosScreen() {
   if (status === 'loading') {
     return (
       <Screen>
-        <Stack.Screen
-          options={{
-            title: 'Emergency SOS',
-            headerStyle: { backgroundColor: colors.dangerMuted },
-            headerTintColor: colors.danger,
-          }}
-        />
+        <ScreenHeader title="Emergency SOS" />
         <LoadingState />
       </Screen>
     );
@@ -385,13 +377,7 @@ export default function SosScreen() {
   if (status === 'error') {
     return (
       <Screen>
-        <Stack.Screen
-          options={{
-            title: 'Emergency SOS',
-            headerStyle: { backgroundColor: colors.dangerMuted },
-            headerTintColor: colors.danger,
-          }}
-        />
+        <ScreenHeader title="Emergency SOS" />
         <View style={{ flex: 1, justifyContent: 'center', padding: spacing.lg }}>
           <Card style={{ alignItems: 'center' }}>
             <XCircle size={48} color={colors.danger} />
@@ -413,18 +399,7 @@ export default function SosScreen() {
   if (status === 'viewing' && selectedEmergency) {
     return (
       <Screen>
-        <Stack.Screen
-          options={{
-            title: 'Emergency Details',
-            headerStyle: { backgroundColor: colors.dangerMuted },
-            headerTintColor: colors.danger,
-            headerLeft: () => (
-              <AppButton variant="ghost" onPress={() => setStatus('idle')}>
-                <ArrowLeft size={20} color={colors.text} />
-              </AppButton>
-            ),
-          }}
-        />
+        <ScreenHeader title="Emergency Details" onBack={() => setStatus('idle')} />
         <ScrollView style={{ flex: 1, padding: spacing.lg }}>
           <Card style={{ marginBottom: spacing.lg }}>
             <View style={{ alignItems: 'center', marginBottom: spacing.lg }}>
@@ -538,32 +513,21 @@ export default function SosScreen() {
   if (['responding', 'en_route', 'arrived'].includes(status) && selectedEmergency) {
     return (
       <Screen>
-        <Stack.Screen
-          options={{
-            title: 'Your Response',
-            headerStyle: { backgroundColor: colors.dangerMuted },
-            headerTintColor: colors.danger,
-            headerLeft: () => (
-              <AppButton
-                variant="ghost"
-                onPress={() => {
-                  if (status === 'en_route' || status === 'arrived') {
-                    Alert.alert(
-                      'Go Back',
-                      'Are you sure? You will lose your progress.',
-                      [
-                        { text: 'Stay', style: 'cancel' },
-                        { text: 'Leave', style: 'destructive', onPress: () => setStatus('idle') },
-                      ]
-                    );
-                  } else {
-                    setStatus('idle');
-                  }
-                }}
-              >
-                <ArrowLeft size={20} color={colors.text} />
-              </AppButton>
-            ),
+        <ScreenHeader
+          title="Your Response"
+          onBack={() => {
+            if (status === 'en_route' || status === 'arrived') {
+              Alert.alert(
+                'Go Back',
+                'Are you sure? You will lose your progress.',
+                [
+                  { text: 'Stay', style: 'cancel' },
+                  { text: 'Leave', style: 'destructive', onPress: () => setStatus('idle') },
+                ]
+              );
+            } else {
+              setStatus('idle');
+            }
           }}
         />
         <ScrollView style={{ flex: 1, padding: spacing.lg }}>
@@ -689,13 +653,7 @@ export default function SosScreen() {
 
   return (
     <Screen>
-      <Stack.Screen
-        options={{
-          title: 'Emergency SOS',
-          headerStyle: { backgroundColor: colors.dangerMuted },
-          headerTintColor: colors.danger,
-        }}
-      />
+      <ScreenHeader title="Emergency SOS" />
       <ScrollView style={{ flex: 1, padding: spacing.lg }}>
         {emergencies.length > 0 ? (
           <>

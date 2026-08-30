@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, ScrollView, StyleSheet, RefreshControl, TouchableOpacity } from 'react-native';
 import { useLeaderboard, useUserRank } from '../../../../src/hooks/useGamification';
-import { Screen, GlassCard } from '../../../../src/components';
+import { Screen, GlassCard, ScreenHeader } from '../../../../src/components';
 import { AppText } from '../../../../src/components/AppText';
 import { LeaderboardItem } from '../../../../src/components/gamification/LeaderboardItem';
 import { spacing, radius, useTheme, ThemeColors } from '../../../../src/theme';
@@ -39,6 +39,7 @@ export default function LeaderboardScreen() {
   if (isLoading && !leaderboard) {
     return (
       <Screen>
+        <ScreenHeader title="Leaderboard" />
         <View style={styles.loadingContainer}>
           <AppText variant="body" muted>Loading...</AppText>
         </View>
@@ -47,7 +48,11 @@ export default function LeaderboardScreen() {
   }
 
   return (
-    <Screen>
+    <Screen scroll={false}>
+      <ScreenHeader
+        title="Leaderboard"
+        subtitle="Top donors in the community"
+      />
       <ScrollView
         style={styles.container}
         refreshControl={
@@ -55,14 +60,6 @@ export default function LeaderboardScreen() {
         }
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.header}>
-          <AppText variant="display">
-            Leaderboard
-          </AppText>
-          <AppText variant="body" muted>
-            Top donors in the community
-          </AppText>
-        </View>
 
         <View style={styles.timeRangeContainer}>
           {timeRangeOptions.map((option) => (
@@ -162,11 +159,6 @@ function createStyles(colors: ThemeColors) {
       flex: 1,
       justifyContent: 'center',
       alignItems: 'center',
-    },
-    header: {
-      paddingHorizontal: spacing.lg,
-      paddingTop: spacing.lg,
-      paddingBottom: spacing.md,
     },
     timeRangeContainer: {
       flexDirection: 'row',

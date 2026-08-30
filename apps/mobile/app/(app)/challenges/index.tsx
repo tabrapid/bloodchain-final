@@ -13,6 +13,7 @@ import {
   LoadingState,
   ProgressBar,
   Screen,
+  ScreenHeader,
 } from '../../../src/components';
 import { spacing, radius, useTheme, ThemeColors } from '../../../src/theme';
 
@@ -49,6 +50,7 @@ export default function ChallengesScreen() {
   if (isLoading) {
     return (
       <Screen>
+        <ScreenHeader title="Challenges" />
         <LoadingState message="Loading challenges..." />
       </Screen>
     );
@@ -64,12 +66,10 @@ export default function ChallengesScreen() {
         />
       }
     >
-      <View style={styles.header}>
-        <AppText variant="title">Challenges</AppText>
-        <AppText muted variant="bodySmall" style={styles.subtitle}>
-          Complete challenges to earn XP and badges
-        </AppText>
-      </View>
+      <ScreenHeader
+        title="Challenges"
+        subtitle="Complete challenges to earn XP and badges"
+      />
 
       {joinError && (
         <Card style={styles.errorCard}>
@@ -183,12 +183,6 @@ function ChallengeCard({
 
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
-    header: {
-      marginBottom: spacing.lg,
-    },
-    subtitle: {
-      marginTop: spacing.xs,
-    },
     errorCard: {
       padding: spacing.md,
       marginBottom: spacing.lg,

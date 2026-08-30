@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { Droplet, Calendar, Clock, Building2, MapPin, AlertCircle } from 'lucide-react-native';
-import { AppButton, AppText, Card, GlassCard, Screen } from '../../../src/components';
+import { AppButton, AppText, Card, GlassCard, Screen, ScreenHeader } from '../../../src/components';
 import { useDonation } from '../../../src/hooks/useDonations';
 import { spacing, radius, useTheme, ThemeColors } from '../../../src/theme';
 
@@ -47,6 +47,7 @@ export default function DonationDetailScreen() {
   if (isLoading) {
     return (
       <Screen>
+        <ScreenHeader title="Donation Details" />
         <AppText>Loading...</AppText>
       </Screen>
     );
@@ -55,6 +56,7 @@ export default function DonationDetailScreen() {
   if (!donation) {
     return (
       <Screen>
+        <ScreenHeader title="Donation Details" />
         <AppText>Donation not found</AppText>
         <View style={styles.footer}>
           <AppButton variant="secondary" onPress={() => router.back()}>
@@ -67,6 +69,7 @@ export default function DonationDetailScreen() {
 
   return (
     <Screen>
+      <ScreenHeader title="Donation Details" />
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.header}>
           <View

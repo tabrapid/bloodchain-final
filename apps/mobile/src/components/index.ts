@@ -10,6 +10,7 @@ export * from './Badge';
 export * from './Divider';
 export * from './Avatar';
 export * from './SectionHeader';
+export * from './ScreenHeader';
 export * from './ProgressBar';
 export * from './StatCard';
 export * from './ListItem';

@@ -19,6 +19,7 @@ import {
   GlassCard,
   LoadingState,
   Screen,
+  ScreenHeader,
 } from '../../../src/components';
 import { spacing, useTheme, ThemeColors } from '../../../src/theme';
 
@@ -87,6 +88,7 @@ export default function EducationScreen() {
   if (isLoading) {
     return (
       <Screen>
+        <ScreenHeader title="Education Hub" />
         <LoadingState message="Loading content..." />
       </Screen>
     );
@@ -102,12 +104,10 @@ export default function EducationScreen() {
         />
       }
     >
-      <View style={styles.header}>
-        <AppText variant="title">Education Hub</AppText>
-        <AppText muted variant="bodySmall" style={styles.subtitle}>
-          Learn about blood donation and earn XP
-        </AppText>
-      </View>
+      <ScreenHeader
+        title="Education Hub"
+        subtitle="Learn about blood donation and earn XP"
+      />
 
       {stats && (
         <Card style={styles.statsCard}>
@@ -251,12 +251,6 @@ function EducationCard({
 
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
-    header: {
-      marginBottom: spacing.lg,
-    },
-    subtitle: {
-      marginTop: spacing.xs,
-    },
     statsCard: {
       padding: spacing.lg,
       marginBottom: spacing.lg,

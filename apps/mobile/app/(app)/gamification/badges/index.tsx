@@ -2,7 +2,7 @@ import React from 'react';
 import { View, ScrollView, StyleSheet, RefreshControl } from 'react-native';
 import { useBadges } from '../../../../src/hooks/useGamification';
 import { Screen } from '../../../../src/components/Screen';
-import { GlassCard } from '../../../../src/components';
+import { GlassCard, ScreenHeader } from '../../../../src/components';
 import { AppText } from '../../../../src/components/AppText';
 import { BadgeDisplay } from '../../../../src/components/gamification/BadgeDisplay';
 import { spacing, useTheme, ThemeColors } from '../../../../src/theme';
@@ -25,6 +25,7 @@ export default function BadgesScreen() {
   if (isLoading && !badges) {
     return (
       <Screen>
+        <ScreenHeader title="Badges" />
         <View style={styles.loadingContainer}>
           <AppText variant="body" muted>Loading...</AppText>
         </View>
@@ -33,7 +34,11 @@ export default function BadgesScreen() {
   }
 
   return (
-    <Screen>
+    <Screen scroll={false}>
+      <ScreenHeader
+        title="Badges"
+        subtitle={`${earnedBadges.length} of ${badges?.length || 0} earned`}
+      />
       <ScrollView
         style={styles.container}
         refreshControl={
@@ -41,14 +46,6 @@ export default function BadgesScreen() {
         }
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.header}>
-          <AppText variant="display">
-            Badges
-          </AppText>
-          <AppText variant="body" muted>
-            {earnedBadges.length} of {badges?.length || 0} earned
-          </AppText>
-        </View>
 
         {earnedBadges.length > 0 && (
           <View style={styles.section}>
@@ -111,11 +108,6 @@ function createStyles(colors: ThemeColors) {
       flex: 1,
       justifyContent: 'center',
       alignItems: 'center',
-    },
-    header: {
-      paddingHorizontal: spacing.lg,
-      paddingTop: spacing.lg,
-      paddingBottom: spacing.md,
     },
     section: {
       paddingHorizontal: spacing.lg,

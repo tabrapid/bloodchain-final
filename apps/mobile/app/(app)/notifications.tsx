@@ -1,7 +1,7 @@
 import { useMemo, useState, useCallback } from 'react';
 import { View, StyleSheet, FlatList, TouchableOpacity, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
-import { AppButton, AppText, Card, Screen, EmptyState, LoadingState } from '../../src/components';
+import { AppButton, AppText, Card, Screen, ScreenHeader, EmptyState, LoadingState } from '../../src/components';
 import {
   useNotifications,
   useNotificationStats,
@@ -145,18 +145,21 @@ export default function NotificationsCenter() {
 
   if (isLoading) {
     return (
-      <Screen>
+      <Screen scroll={false}>
+        <ScreenHeader title="Notifications" />
         <LoadingState />
       </Screen>
     );
   }
 
   return (
-    <Screen>
+    <Screen scroll={false}>
+      <ScreenHeader title="Notifications" />
       <FlatList
         data={notifications}
         renderItem={renderNotification}
         keyExtractor={(item) => item.id}
+        style={{ flex: 1 }}
         contentContainerStyle={styles.listContent}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />

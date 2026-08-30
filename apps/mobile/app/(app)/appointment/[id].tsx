@@ -16,6 +16,7 @@ import {
   Card,
   GlassCard,
   Screen,
+  ScreenHeader,
 } from '../../../src/components';
 import { useAppointment, useCancelAppointment } from '../../../src/hooks/useAppointments';
 import { spacing, useTheme, ThemeColors } from '../../../src/theme';
@@ -123,6 +124,7 @@ export default function AppointmentDetail() {
   if (isLoading) {
     return (
       <Screen>
+        <ScreenHeader title="Appointment Details" />
         <AppText>Loading...</AppText>
       </Screen>
     );
@@ -131,6 +133,7 @@ export default function AppointmentDetail() {
   if (!appointment) {
     return (
       <Screen>
+        <ScreenHeader title="Appointment Details" />
         <AppText>Appointment not found</AppText>
         <View style={styles.footer}>
           <AppButton variant="secondary" onPress={() => router.back()}>
@@ -143,6 +146,7 @@ export default function AppointmentDetail() {
 
   return (
     <Screen>
+      <ScreenHeader title="Appointment Details" />
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.header}>
           <View

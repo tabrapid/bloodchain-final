@@ -2,7 +2,7 @@ import React from 'react';
 import { View, ScrollView, StyleSheet, RefreshControl } from 'react-native';
 import { useAchievements } from '../../../../src/hooks/useGamification';
 import { Screen } from '../../../../src/components/Screen';
-import { GlassCard } from '../../../../src/components';
+import { GlassCard, ScreenHeader } from '../../../../src/components';
 import { AppText } from '../../../../src/components/AppText';
 import { AchievementCard } from '../../../../src/components/gamification/AchievementCard';
 import { spacing, radius, useTheme, ThemeColors } from '../../../../src/theme';
@@ -22,6 +22,7 @@ export default function AchievementsScreen() {
   if (isLoading && !achievements) {
     return (
       <Screen>
+        <ScreenHeader title="Achievements" />
         <View style={styles.loadingContainer}>
           <AppText variant="body" muted>Loading...</AppText>
         </View>
@@ -34,7 +35,11 @@ export default function AchievementsScreen() {
   const lockedCount = achievements?.locked.length || 0;
 
   return (
-    <Screen>
+    <Screen scroll={false}>
+      <ScreenHeader
+        title="Achievements"
+        subtitle={`${unlockedCount} of ${unlockedCount + inProgressCount + lockedCount} unlocked`}
+      />
       <ScrollView
         style={styles.container}
         refreshControl={
@@ -42,14 +47,6 @@ export default function AchievementsScreen() {
         }
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.header}>
-          <AppText variant="display">
-            Achievements
-          </AppText>
-          <AppText variant="body" muted>
-            {unlockedCount} of {unlockedCount + inProgressCount + lockedCount} unlocked
-          </AppText>
-        </View>
 
         {achievements && achievements.unlocked.length > 0 && (
           <View style={styles.section}>
@@ -123,11 +120,6 @@ function createStyles(colors: ThemeColors) {
       flex: 1,
       justifyContent: 'center',
       alignItems: 'center',
-    },
-    header: {
-      paddingHorizontal: spacing.lg,
-      paddingTop: spacing.lg,
-      paddingBottom: spacing.md,
     },
     section: {
       paddingHorizontal: spacing.lg,

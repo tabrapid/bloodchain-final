@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, View, RefreshControl, TouchableOpacity } from 'react-native';
-import { router, Stack } from 'expo-router';
+import { router } from 'expo-router';
 import { Activity, Beaker, Calendar, ChevronRight, Clock, FlaskConical, TestTube2 } from 'lucide-react-native';
-import { AppText, Card, GlassCard, LoadingState, Screen, SectionHeader, StatCard } from '../../../src/components';
+import { AppText, Card, GlassCard, LoadingState, Screen, ScreenHeader, SectionHeader, StatCard } from '../../../src/components';
 import { spacing, useTheme } from '../../../src/theme';
 import {
   getDonorAppointments,
@@ -77,7 +77,7 @@ export default function LaboratoryScreen() {
   if (isLoading) {
     return (
       <Screen>
-        <Stack.Screen options={{ title: 'Blood Tests' }} />
+        <ScreenHeader title="Blood Tests" />
         <LoadingState />
       </Screen>
     );
@@ -85,7 +85,7 @@ export default function LaboratoryScreen() {
 
   return (
     <Screen>
-      <Stack.Screen options={{ title: 'Blood Tests' }} />
+      <ScreenHeader title="Blood Tests" />
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{ padding: spacing.lg }}
