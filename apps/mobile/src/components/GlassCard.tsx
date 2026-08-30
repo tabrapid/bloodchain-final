@@ -1,56 +1,60 @@
 import { PropsWithChildren } from 'react';
 import { Platform, View, ViewProps } from 'react-native';
 import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
 import { radius, spacing, useTheme } from '../theme';
 
+/**
+ * The app's default surface: a real translucent glass panel.
+ *
+ * Blur is enabled on Android too, via expo-blur's `dimezisBlurView` method.
+ * Upstream marks it experimental, but without it Android renders a plain flat
+ * card and the entire design language collapses -- which is exactly what
+ * happened when this shipped iOS-only. The tradeoff (some overdraw cost) is
+ * worth a design that actually exists on the platform most users are on.
+ *
+ * The top highlight gradient is what sells the "liquid" part: real glass
+ * catches light along its upper edge, and a flat translucent fill does not.
+ */
 export function GlassCard({ children, style, ...props }: PropsWithChildren<ViewProps>) {
   const { colors, isDark } = useTheme();
 
-  const content = (
-    <View
-      style={[
-        {
-          borderRadius: radius.md,
-          padding: spacing.md,
-          borderWidth: 1,
-          borderColor: colors.border,
-          backgroundColor: colors.surface,
-          overflow: 'hidden',
-        },
-        style,
-      ]}
-      {...props}
-    >
-      {children}
-    </View>
-  );
-
-  const shadowWrapperStyle = {
-    borderRadius: radius.md,
-    overflow: 'hidden' as const,
-    shadowColor: '#000',
-    shadowOpacity: isDark ? 0.4 : 0.08,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 8 },
-  };
-
-  // expo-blur's real blur is native (UIVisualEffectView) on iOS. Its Android path is
-  // still marked experimental upstream (perf/rendering issues warned in its own
-  // types) and unverifiable here without a physical device, so Android renders the
-  // same translucent tinted surface without the BlurView wrapper -- still reads as
-  // glass, just without the live blur-behind-content effect.
-  if (Platform.OS !== 'ios') {
-    return <View style={shadowWrapperStyle}>{content}</View>;
-  }
-
   return (
-    <View style={shadowWrapperStyle}>
+    <View
+      style={{
+        borderRadius: radius.md,
+        shadowColor: '#000',
+        shadowOpacity: isDark ? 0.45 : 0.1,
+        shadowRadius: 24,
+        shadowOffset: { width: 0, height: 10 },
+        elevation: 6,
+      }}
+    >
       <BlurView
-        intensity={24}
+        intensity={isDark ? 42 : 55}
         tint={colors.blurTint}
+        experimentalBlurMethod="dimezisBlurView"
         style={{ borderRadius: radius.md, overflow: 'hidden' }}
       >
-        {content}
+        {/* Specular highlight: brighter at the top edge, fading out downward. */}
+        <LinearGradient
+          colors={colors.glassSheen}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0.6, y: 1 }}
+          style={[
+            {
+              borderRadius: radius.md,
+              padding: spacing.md,
+              borderWidth: 1,
+              borderColor: colors.glassBorder,
+              overflow: 'hidden',
+            },
+            style as object,
+          ]}
+          {...props}
+        >
+          {children}
+        </LinearGradient>
       </BlurView>
     </View>
   );

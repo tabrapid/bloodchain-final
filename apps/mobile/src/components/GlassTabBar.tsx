@@ -1,4 +1,4 @@
-import { Platform, Pressable, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
@@ -19,10 +19,10 @@ export function GlassTabBar({ state, descriptors, navigation }: BottomTabBarProp
     <View
       style={{
         flexDirection: 'row',
-        backgroundColor: Platform.OS === 'ios' ? colors.surface : colors.surfaceSolidElevated,
+        backgroundColor: colors.surface,
         borderRadius: radius.xl,
         borderWidth: 1,
-        borderColor: colors.border,
+        borderColor: colors.glassBorder,
         paddingVertical: spacing.sm,
         paddingHorizontal: spacing.xs,
         overflow: 'hidden',
@@ -84,13 +84,14 @@ export function GlassTabBar({ state, descriptors, navigation }: BottomTabBarProp
           shadowOffset: { width: 0, height: 8 },
         }}
       >
-        {Platform.OS === 'ios' ? (
-          <BlurView intensity={30} tint={colors.blurTint} style={{ borderRadius: radius.xl, overflow: 'hidden' }}>
-            {bar}
-          </BlurView>
-        ) : (
-          bar
-        )}
+        <BlurView
+          intensity={isDark ? 50 : 65}
+          tint={colors.blurTint}
+          experimentalBlurMethod="dimezisBlurView"
+          style={{ borderRadius: radius.xl, overflow: 'hidden' }}
+        >
+          {bar}
+        </BlurView>
       </View>
     </View>
   );

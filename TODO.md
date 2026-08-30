@@ -1831,6 +1831,69 @@ These make the product unusable or unsafe for real users. Fix first, in order.
     `apps/mobile/src/__tests__/community-screens.spec.tsx`,
     `apps/mobile/package.json`, `pnpm-lock.yaml`.
 
+- [x] P0-35: The P0-34 "Liquid Glass" redesign shipped with no visible glass
+  at all — on a real device every card rendered as a flat opaque box, exactly
+  the look the redesign was supposed to replace. Reported with a screenshot
+  of the Donate screen.
+  — Fixed: two independent bugs, both of which P0-34's own verification was
+  structurally incapable of catching (typecheck and unit tests confirm props
+  and colors, and cannot see that a surface renders flat).
+
+  1. **`Card` was never converted, and ~29 of the ~40 screens use `Card`,
+     not `GlassCard`.** The redesign gave `GlassCard` a real `BlurView` but
+     left `Card` as the old flat opaque surface, so the new look only ever
+     reached the handful of screens that happened to name `GlassCard`
+     explicitly. The Donate screen in the screenshot is built entirely from
+     `Card` — hence solid boxes. Fixed at the root rather than by editing 29
+     screens: since the app's design language *is* glass now, `Card` simply
+     renders `GlassCard`, so every screen built on either name gets the same
+     real surface.
+
+  2. **Blur was gated behind `Platform.OS === 'ios'`.** P0-34 deliberately
+     disabled the Android path because `expo-blur` marks it experimental —
+     but Android is the platform the app is actually being tested on, so
+     that "safe" fallback guaranteed zero blur for the only user looking at
+     it. A design that doesn't exist on the platform in use isn't a safer
+     tradeoff, it's a broken one. Now enabled everywhere via
+     `experimentalBlurMethod="dimezisBlurView"` (in `GlassCard`, `Modal`,
+     and `GlassTabBar`), accepting the documented overdraw cost.
+
+  Also addressed why the glass would have read as weak even once mounted:
+  blur smears whatever is *behind* a panel, so a flat single-color
+  background blurs to that same flat color and looks like nothing happened.
+  `Screen` now paints three soft, wide ambient color blooms (`ambientOrbs`,
+  in the brand's primary/secondary/ai hues) behind the content under a
+  3-stop background gradient, giving the blur real color variation to pick
+  up. Glass panels also gained a top-lit specular gradient
+  (`glassSheen`) and a brighter lit edge (`glassBorder`) — a flat
+  translucent fill reads as "semi-transparent box", the highlight is what
+  makes it read as glass. Blur intensities raised (cards 24→42/55,
+  tab bar 30→50/65, modal 40→60).
+
+  Added `src/components/Card.spec.tsx` (4 tests) asserting what actually
+  broke and what no other test could see: that `Card` — the component the
+  bulk of the app is built from — really does mount a `BlurView`, that
+  `GlassCard` does too, and that `experimentalBlurMethod` is set so blur
+  isn't silently iOS-only again. Updated `community-screens.spec.tsx`'s
+  border assertion from `colors.border` to `colors.glassBorder` to match
+  the new panel edge token.
+
+  Still unverified visually: this environment has no simulator, device, or
+  any React Native rendering capability, so as with P0-34 these are claims
+  about props reaching real native APIs, not about pixels. That limitation
+  is precisely how P0-34 shipped broken, and the new tests exist to convert
+  as much of it as possible into something machine-checkable.
+  Verified via `pnpm --filter mobile typecheck` (clean) and the full
+  monorepo `pnpm -r typecheck` / `pnpm -r test` (all 10 projects clean;
+  mobile 8/8 suites, 57/57 tests).
+  - Files: `apps/mobile/src/components/Card.tsx`,
+    `apps/mobile/src/components/GlassCard.tsx`,
+    `apps/mobile/src/components/GlassTabBar.tsx`,
+    `apps/mobile/src/components/Modal.tsx`,
+    `apps/mobile/src/components/Screen.tsx`, `apps/mobile/src/theme.tsx`,
+    `apps/mobile/src/components/Card.spec.tsx` (new),
+    `apps/mobile/src/__tests__/community-screens.spec.tsx`.
+
 ## 🟠 P1 — Major gaps (feature exists but disconnected, or missing entirely)
 
 - [x] **P1-1. Booking race conditions (double-booking) in appointments and lab slots.** — Fixed:

@@ -29,7 +29,13 @@ export interface ThemeColors {
   danger: string;
   white: string;
   background: string;
-  backgroundGradient: [string, string];
+  backgroundGradient: [string, string, string];
+  /** Soft ambient color blooms painted behind content, so blur has depth to pick up. */
+  ambientOrbs: { color: string; size: number; top: number; left: number }[];
+  /** Top-lit specular gradient painted inside every glass panel. */
+  glassSheen: [string, string];
+  /** Brighter than `border` — the lit edge of a glass panel. */
+  glassBorder: string;
   surface: string;
   surfaceElevated: string;
   surfaceHighlight: string;
@@ -51,8 +57,15 @@ export interface ThemeColors {
 
 const darkColors: ThemeColors = {
   ...accent,
-  background: '#080D14',
-  backgroundGradient: ['#0D1420', '#05080D'],
+  background: '#070B12',
+  backgroundGradient: ['#141C2E', '#0B1119', '#06090F'],
+  ambientOrbs: [
+    { color: 'rgba(216,83,96,0.30)', size: 340, top: -80, left: -110 },
+    { color: 'rgba(104,183,209,0.20)', size: 300, top: 260, left: 190 },
+    { color: 'rgba(142,130,223,0.20)', size: 320, top: 620, left: -70 },
+  ],
+  glassSheen: ['rgba(255,255,255,0.14)', 'rgba(255,255,255,0.03)'],
+  glassBorder: 'rgba(255,255,255,0.18)',
   surface: 'rgba(255,255,255,0.06)',
   surfaceElevated: 'rgba(255,255,255,0.10)',
   surfaceHighlight: 'rgba(255,255,255,0.15)',
@@ -74,8 +87,15 @@ const darkColors: ThemeColors = {
 
 const lightColors: ThemeColors = {
   ...accent,
-  background: '#F2F3F8',
-  backgroundGradient: ['#F7F1FA', '#EDF2FB'],
+  background: '#EFF1F9',
+  backgroundGradient: ['#FBF2FA', '#F1F1FC', '#E9F1FB'],
+  ambientOrbs: [
+    { color: 'rgba(216,83,96,0.20)', size: 340, top: -90, left: -110 },
+    { color: 'rgba(104,183,209,0.20)', size: 300, top: 260, left: 190 },
+    { color: 'rgba(142,130,223,0.18)', size: 320, top: 620, left: -70 },
+  ],
+  glassSheen: ['rgba(255,255,255,0.75)', 'rgba(255,255,255,0.35)'],
+  glassBorder: 'rgba(255,255,255,0.85)',
   surface: 'rgba(255,255,255,0.55)',
   surfaceElevated: 'rgba(255,255,255,0.72)',
   surfaceHighlight: 'rgba(255,255,255,0.88)',
