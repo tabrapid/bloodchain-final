@@ -8,10 +8,10 @@ import {
   CalendarDays,
   CheckCircle,
   Clock,
-  Filter,
   LayoutDashboard,
   Package,
   Plus,
+  RefreshCw,
   Search,
   Settings,
   Truck,
@@ -22,7 +22,6 @@ import {
   DataTable,
   DataTableColumn,
   EmptyState,
-  Modal,
   StatCard,
   StatusBadge,
 } from '@bloodchain/ui/components';
@@ -203,6 +202,93 @@ export default function LaboratoryPage() {
     return actions;
   };
 
+  const columns: DataTableColumn<LaboratoryAppointment>[] = [
+    {
+      key: 'referenceNumber',
+      header: 'Reference',
+      render: (appointment) => (
+        <span className="font-mono">{appointment.referenceNumber}</span>
+      ),
+    },
+    {
+      key: 'donor',
+      header: 'Donor',
+      render: (appointment) => (
+        <div>
+          <div className="text-donor-text">
+            {appointment.donor.firstName} {appointment.donor.lastName}
+          </div>
+          <div className="text-xs text-donor-muted">{appointment.donor.email}</div>
+        </div>
+      ),
+    },
+    {
+      key: 'scheduledStart',
+      header: 'Date & Time',
+      render: (appointment) =>
+        `${new Date(appointment.scheduledStart).toLocaleDateString()} ${new Date(appointment.scheduledStart).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      render: (appointment) => {
+        const config = statusConfig[appointment.status] || {
+          label: appointment.status,
+          variant: 'default' as const,
+        };
+        return <StatusBadge variant={config.variant}>{config.label}</StatusBadge>;
+      },
+    },
+    {
+      key: 'result',
+      header: 'Result',
+      render: (appointment) =>
+        appointment.laboratoryResult ? (
+          <StatusBadge
+            variant={
+              appointment.laboratoryResult.status === 'PUBLISHED'
+                ? 'success'
+                : appointment.laboratoryResult.status === 'REVIEWED'
+                ? 'info'
+                : 'warning'
+            }
+          >
+            {appointment.laboratoryResult.status}
+          </StatusBadge>
+        ) : (
+          <span className="text-xs text-donor-muted">—</span>
+        ),
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      className: 'text-right',
+      render: (appointment) => {
+        const actions = getActionButtons(appointment);
+        return (
+          <div className="flex items-center justify-end gap-2">
+            {actions.map((action, index) => (
+              <button
+                key={index}
+                onClick={action.onClick}
+                disabled={actionLoading === appointment.id}
+                className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+                  action.variant === 'primary'
+                    ? 'bg-donor-primary text-white hover:bg-donor-primary/80'
+                    : action.variant === 'danger'
+                    ? 'border border-donor-danger/50 text-donor-danger hover:bg-donor-dangerMuted'
+                    : 'border border-donor-border text-donor-text hover:bg-donor-elevated'
+                }`}
+              >
+                {action.label}
+              </button>
+            ))}
+          </div>
+        );
+      },
+    },
+  ];
+
   const pendingCount = appointments.filter((a) => a.status === 'PENDING').length;
   const confirmedCount = appointments.filter((a) => a.status === 'CONFIRMED').length;
   const checkedInCount = appointments.filter((a) => a.status === 'CHECKED_IN').length;
@@ -324,114 +410,20 @@ export default function LaboratoryPage() {
           disabled={isLoadingData}
           className="flex items-center gap-2 rounded-lg bc-solid px-4 py-2 text-sm font-semibold text-donor-text transition-colors hover:bg-donor-elevated disabled:opacity-50"
         >
-          <Filter size={14} />
+          <RefreshCw size={14} />
           Refresh
         </button>
       </div>
 
       {isLoadingData ? (
-        <div className="flex items-center justify-center bc-glass rounded-card p-12">
-          <Activity className="animate-spin text-donor-primary" size={24} />
-        </div>
+        <DataTable columns={columns} rows={[]} keyExtractor={(a) => a.id} loading />
       ) : appointments.length === 0 ? (
         <EmptyState
           title="No appointments"
           description="No laboratory appointments match your filters."
         />
       ) : (
-        <div className="bc-glass rounded-card overflow-hidden">
-          <table className="w-full">
-            <thead className="border-b border-donor-border bg-donor-surfaceElevated">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-donor-muted">
-                  Reference
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-donor-muted">
-                  Donor
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-donor-muted">
-                  Date & Time
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-donor-muted">
-                  Status
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-donor-muted">
-                  Result
-                </th>
-                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-donor-muted">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-donor-border">
-              {appointments.map((appointment) => {
-                const config = statusConfig[appointment.status] || {
-                  label: appointment.status,
-                  variant: 'default' as const,
-                };
-                const actions = getActionButtons(appointment);
-                return (
-                  <tr key={appointment.id} className="hover:bg-donor-surfaceElevated/50">
-                    <td className="px-4 py-3 text-sm font-mono text-donor-text">
-                      {appointment.referenceNumber}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="text-sm text-donor-text">
-                        {appointment.donor.firstName} {appointment.donor.lastName}
-                      </div>
-                      <div className="text-xs text-donor-muted">
-                        {appointment.donor.email}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-donor-text">
-                      {new Date(appointment.scheduledStart).toLocaleDateString()} {new Date(appointment.scheduledStart).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </td>
-                    <td className="px-4 py-3">
-                      <StatusBadge variant={config.variant}>{config.label}</StatusBadge>
-                    </td>
-                    <td className="px-4 py-3">
-                      {appointment.laboratoryResult ? (
-                        <StatusBadge
-                          variant={
-                            appointment.laboratoryResult.status === 'PUBLISHED'
-                              ? 'success'
-                              : appointment.laboratoryResult.status === 'REVIEWED'
-                              ? 'info'
-                              : 'warning'
-                          }
-                        >
-                          {appointment.laboratoryResult.status}
-                        </StatusBadge>
-                      ) : (
-                        <span className="text-xs text-donor-muted">—</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        {actions.map((action, index) => (
-                          <button
-                            key={index}
-                            onClick={action.onClick}
-                            disabled={actionLoading === appointment.id}
-                            className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
-                              action.variant === 'primary'
-                                ? 'bg-donor-primary text-white hover:bg-donor-primary/80'
-                                : action.variant === 'danger'
-                                ? 'border border-donor-danger/50 text-donor-danger hover:bg-donor-dangerMuted'
-                                : 'border border-donor-border text-donor-text hover:bg-donor-elevated'
-                            }`}
-                          >
-                            {action.label}
-                          </button>
-                        ))}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+        <DataTable columns={columns} rows={appointments} keyExtractor={(a) => a.id} />
       )}
     </AppShell>
   );
