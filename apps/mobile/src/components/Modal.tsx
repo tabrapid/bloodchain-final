@@ -1,5 +1,5 @@
 import { PropsWithChildren } from 'react';
-import { Modal as RNModal, Platform, Pressable, View } from 'react-native';
+import { Modal as RNModal, Pressable, View } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { radius, spacing, useTheme } from '../theme';
 import { AppText } from './AppText';
@@ -16,7 +16,7 @@ export function Modal({ visible, onClose, title, children }: PropsWithChildren<M
   const sheet = (
     <View
       style={{
-        backgroundColor: Platform.OS === 'ios' ? colors.surface : colors.surfaceSolid,
+        backgroundColor: colors.surface,
         borderRadius: radius.lg,
         borderWidth: 1,
         borderColor: colors.border,
@@ -52,13 +52,14 @@ export function Modal({ visible, onClose, title, children }: PropsWithChildren<M
           padding: spacing.lg,
         }}
       >
-        {Platform.OS === 'ios' ? (
-          <BlurView intensity={40} tint={colors.blurTint} style={{ borderRadius: radius.lg, overflow: 'hidden' }}>
-            {sheet}
-          </BlurView>
-        ) : (
-          sheet
-        )}
+        <BlurView
+          intensity={60}
+          tint={colors.blurTint}
+          experimentalBlurMethod="dimezisBlurView"
+          style={{ borderRadius: radius.lg, overflow: 'hidden' }}
+        >
+          {sheet}
+        </BlurView>
       </Pressable>
     </RNModal>
   );

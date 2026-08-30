@@ -279,7 +279,7 @@ describe('P3-9: the four screens that used className render with real styles', (
     // Native serializes to processed native color ints rather than the
     // original hex string, so it isn't substring-matchable here.)
     expect(fingerprint).toContain(colors.text);
-    expect(fingerprint).toContain(colors.border);
+    expect(fingerprint).toContain(colors.glassBorder);
   });
 
   it('community renders real content from the API, not just chrome', async () => {
