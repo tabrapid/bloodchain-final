@@ -316,7 +316,7 @@ export default function InventoryPage() {
         userName="Loading..."
       >
         <div className="flex items-center justify-center p-12">
-          <Activity className="animate-spin text-donor-secondary" size={32} />
+          <Activity className="animate-spin text-donor-primary" size={32} />
         </div>
       </AppShell>
     );

@@ -35,9 +35,9 @@ const STATUS_CONFIG: Record<string, { label: string; variant: 'success' | 'warni
 };
 
 const PRIORITY_COLOR: Record<string, string> = {
-  ROUTINE: 'text-donor-secondary',
-  URGENT: 'text-donor-warning',
-  CRITICAL: 'text-donor-danger',
+  ROUTINE: 'bg-donor-secondaryMuted text-donor-onSecondaryMuted',
+  URGENT: 'bg-donor-warningMuted text-donor-onWarningMuted',
+  CRITICAL: 'bg-donor-dangerMuted text-donor-onDangerMuted',
 };
 
 export default function BloodRequestsPage() {
@@ -246,7 +246,7 @@ export default function BloodRequestsPage() {
                           {request.requestReference}
                         </h3>
                         <StatusBadge variant={status.variant}>{status.label}</StatusBadge>
-                        <span className={`text-xs font-semibold uppercase ${PRIORITY_COLOR[request.priority] || 'text-donor-muted'}`}>
+                        <span className={`rounded-full px-2 py-0.5 text-xs font-semibold uppercase ${PRIORITY_COLOR[request.priority] || 'bg-donor-elevated text-donor-muted'}`}>
                           {request.priority}
                         </span>
                       </div>

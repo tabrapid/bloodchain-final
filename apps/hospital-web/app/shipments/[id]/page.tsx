@@ -3,15 +3,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
-  Activity,
-  AlertCircle,
   ArrowLeft,
   CheckCircle,
-  Clock,
-  MapPin,
-  Package,
   RefreshCw,
-  Settings,
   Truck,
   XCircle,
 } from 'lucide-react';
@@ -227,15 +221,24 @@ export default function ShipmentDetailPage() {
               {shipment.courier && <> • Courier: {shipment.courier.displayName}</>}
             </p>
           </div>
-          {canConfirmDelivery && (
+          <div className="flex items-center gap-3">
             <button
-              onClick={() => setShowDeliveryModal(true)}
-              className="flex items-center gap-2 rounded-lg bg-donor-success px-4 py-2 font-semibold text-white transition-colors hover:bg-donor-success/85"
+              onClick={() => loadShipment()}
+              className="flex items-center gap-2 rounded-lg bc-solid px-3 py-2 text-sm text-donor-text transition-colors hover:bg-donor-elevated"
             >
-              <CheckCircle size={16} />
-              Confirm Delivery
+              <RefreshCw size={14} />
+              Refresh
             </button>
-          )}
+            {canConfirmDelivery && (
+              <button
+                onClick={() => setShowDeliveryModal(true)}
+                className="flex items-center gap-2 rounded-lg bg-donor-success px-4 py-2 font-semibold text-white transition-colors hover:bg-donor-success/85"
+              >
+                <CheckCircle size={16} />
+                Confirm Delivery
+              </button>
+            )}
+          </div>
         </div>
       </div>
 

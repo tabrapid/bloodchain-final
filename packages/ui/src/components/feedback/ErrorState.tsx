@@ -25,7 +25,7 @@ export function ErrorState({
         className,
       )}
     >
-      <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-donor-danger/20 text-donor-onDangerMuted">
+      <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-donor-dangerMuted text-donor-onDangerMuted">
         <Icon size={24} />
       </div>
       <h3 className="text-base font-semibold text-donor-text">{title}</h3>

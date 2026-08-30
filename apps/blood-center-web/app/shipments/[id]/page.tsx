@@ -3,15 +3,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
-  Activity,
-  AlertCircle,
   ArrowLeft,
-  CheckCircle,
-  Clock,
-  MapPin,
-  Package,
   RefreshCw,
-  Settings,
   Truck,
   Users,
   XCircle,
@@ -276,6 +269,13 @@ export default function ShipmentDetailPage() {
             </p>
           </div>
           <div className="flex items-center gap-3">
+            <button
+              onClick={() => loadShipment()}
+              className="flex items-center gap-2 rounded-lg bc-solid px-3 py-2 text-sm text-donor-text transition-colors hover:bg-donor-elevated"
+            >
+              <RefreshCw size={14} />
+              Refresh
+            </button>
             {canAssignCourier && (
               <button
                 onClick={() => setShowAssignModal(true)}

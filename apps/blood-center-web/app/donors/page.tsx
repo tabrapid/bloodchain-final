@@ -6,6 +6,7 @@ import {
   DataTable,
   DataTableColumn,
   EmptyState,
+  ErrorState,
   StatusBadge,
 } from '@bloodchain/ui/components';
 import { me, isAuthenticated, MeResponse } from '../../lib/auth';
@@ -41,6 +42,7 @@ export default function DonorsPage() {
 
   const [donors, setDonors] = useState<Donor[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const [filters, setFilters] = useState<ListDonorsParams>({ page: 1, limit: 20 });
   const [cityInput, setCityInput] = useState('');
   const [totalPages, setTotalPages] = useState(1);
@@ -63,6 +65,7 @@ export default function DonorsPage() {
 
   const loadDonors = useCallback(async () => {
     setIsLoadingData(true);
+    setLoadError(false);
     try {
       const response = await listDonors(filters);
       setDonors(response.data);
@@ -70,6 +73,7 @@ export default function DonorsPage() {
       setTotalDonors(response.meta.total);
     } catch (err) {
       console.error('Failed to load donors:', err);
+      setLoadError(true);
     } finally {
       setIsLoadingData(false);
     }
@@ -196,6 +200,12 @@ export default function DonorsPage() {
 
       {isLoadingData ? (
         <DataTable columns={columns} rows={[]} keyExtractor={(d) => d.id} loading />
+      ) : loadError ? (
+        <ErrorState
+          title="Failed to load donors"
+          description="Something went wrong fetching the donor directory. Please try again."
+          onRetry={loadDonors}
+        />
       ) : donors.length === 0 ? (
         <EmptyState
           title="No donors found"
