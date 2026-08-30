@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import {
+  Modal,
   StatusBadge,
 } from '@bloodchain/ui/components';
 import type { MapMarker } from '@bloodchain/ui/map';
@@ -416,80 +417,79 @@ export default function ShipmentDetailPage() {
         </div>
       </div>
 
-      {showDeliveryModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md bc-glass rounded-card p-6">
-            <h3 className="mb-4 font-display text-lg font-semibold text-donor-text">Confirm Delivery</h3>
-            <div className="mb-4 space-y-4">
-              <div>
-                <label className="mb-2 block text-sm text-donor-muted">Units Received</label>
-                <input
-                  type="number"
-                  min={0}
-                  max={totalUnits}
-                  value={unitsReceived}
-                  onChange={(e) => setUnitsReceived(parseInt(e.target.value) || 0)}
-                  className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-donor-text"
-                />
-                <p className="mt-1 text-xs text-donor-muted">
-                  Total units shipped: {totalUnits}
-                </p>
-              </div>
-              <div>
-                <label className="mb-2 block text-sm text-donor-muted">Condition</label>
-                <select
-                  value={deliveryCondition}
-                  onChange={(e) => setDeliveryCondition(e.target.value)}
-                  className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-donor-text"
-                >
-                  <option value="GOOD">Good</option>
-                  <option value="DAMAGED">Damaged</option>
-                  <option value="PARTIAL">Partial</option>
-                  <option value="OTHER">Other</option>
-                </select>
-              </div>
-              <div>
-                <label className="mb-2 block text-sm text-donor-muted">Notes (optional)</label>
-                <textarea
-                  value={deliveryNotes}
-                  onChange={(e) => setDeliveryNotes(e.target.value)}
-                  className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-donor-text"
-                  rows={2}
-                />
-              </div>
-              {unitsReceived < totalUnits && (
-                <div>
-                  <label className="mb-2 block text-sm text-donor-muted">
-                    Discrepancy Reason (required when units received &lt; units shipped)
-                  </label>
-                  <textarea
-                    value={discrepancyReason}
-                    onChange={(e) => setDiscrepancyReason(e.target.value)}
-                    className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-donor-text"
-                    rows={2}
-                    placeholder="Explain why fewer units were received..."
-                  />
-                </div>
-              )}
+      <Modal
+        open={showDeliveryModal}
+        onClose={() => setShowDeliveryModal(false)}
+        title="Confirm Delivery"
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="mb-2 block text-sm text-donor-muted">Units Received</label>
+            <input
+              type="number"
+              min={0}
+              max={totalUnits}
+              value={unitsReceived}
+              onChange={(e) => setUnitsReceived(parseInt(e.target.value) || 0)}
+              className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-donor-text"
+            />
+            <p className="mt-1 text-xs text-donor-muted">
+              Total units shipped: {totalUnits}
+            </p>
+          </div>
+          <div>
+            <label className="mb-2 block text-sm text-donor-muted">Condition</label>
+            <select
+              value={deliveryCondition}
+              onChange={(e) => setDeliveryCondition(e.target.value)}
+              className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-donor-text"
+            >
+              <option value="GOOD">Good</option>
+              <option value="DAMAGED">Damaged</option>
+              <option value="PARTIAL">Partial</option>
+              <option value="OTHER">Other</option>
+            </select>
+          </div>
+          <div>
+            <label className="mb-2 block text-sm text-donor-muted">Notes (optional)</label>
+            <textarea
+              value={deliveryNotes}
+              onChange={(e) => setDeliveryNotes(e.target.value)}
+              className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-donor-text"
+              rows={2}
+            />
+          </div>
+          {unitsReceived < totalUnits && (
+            <div>
+              <label className="mb-2 block text-sm text-donor-muted">
+                Discrepancy Reason (required when units received &lt; units shipped)
+              </label>
+              <textarea
+                value={discrepancyReason}
+                onChange={(e) => setDiscrepancyReason(e.target.value)}
+                className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-donor-text"
+                rows={2}
+                placeholder="Explain why fewer units were received..."
+              />
             </div>
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setShowDeliveryModal(false)}
-                className="rounded-lg border border-donor-border px-4 py-2 text-donor-text"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleConfirmDelivery}
-                disabled={actionLoading || unitsReceived < 0 || unitsReceived > totalUnits}
-                className="rounded-lg bg-donor-success px-4 py-2 font-semibold text-white disabled:opacity-50"
-              >
-                {actionLoading ? 'Confirming...' : 'Confirm Delivery'}
-              </button>
-            </div>
+          )}
+          <div className="flex justify-end gap-3 pt-2">
+            <button
+              onClick={() => setShowDeliveryModal(false)}
+              className="rounded-lg border border-donor-border px-4 py-2 text-donor-text"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleConfirmDelivery}
+              disabled={actionLoading || unitsReceived < 0 || unitsReceived > totalUnits}
+              className="rounded-lg bg-donor-success px-4 py-2 font-semibold text-white disabled:opacity-50"
+            >
+              {actionLoading ? 'Confirming...' : 'Confirm Delivery'}
+            </button>
           </div>
         </div>
-      )}
+      </Modal>
     </AppShell>
   );
 }

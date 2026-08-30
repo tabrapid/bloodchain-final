@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { ArrowLeft, Clock, Droplet, Truck, XCircle } from 'lucide-react';
 import { StatusBadge } from '@bloodchain/ui/components';
 import { me, isAuthenticated, MeResponse } from '../../../lib/auth';
@@ -140,13 +141,13 @@ export default function BloodRequestDetailPage() {
           </p>
         </div>
         {request.shipment && (
-          <a
+          <Link
             href={`/shipments/${request.shipment.id}`}
             className="flex items-center gap-2 rounded-lg bg-donor-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-donor-primary/80"
           >
             <Truck size={16} />
             View Shipment
-          </a>
+          </Link>
         )}
       </div>
 

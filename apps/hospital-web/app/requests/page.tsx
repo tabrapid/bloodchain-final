@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
 import {
   CheckCircle,
   Clock,
@@ -158,13 +159,13 @@ export default function BloodRequestsPage() {
               <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
               Refresh
             </button>
-            <a
+            <Link
               href="/requests/new"
               className="flex items-center gap-2 rounded-lg bg-donor-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-donor-primary/80"
             >
               <Plus size={16} />
               New Request
-            </a>
+            </Link>
           </div>
         </div>
 
@@ -229,7 +230,7 @@ export default function BloodRequestsPage() {
             };
             const totalRequested = request.items.reduce((sum, i) => sum + i.unitsRequested, 0);
             return (
-              <a
+              <Link
                 key={request.id}
                 href={`/requests/${request.id}`}
                 className="block bc-glass rounded-card p-5 transition-colors hover:bg-donor-border/50"
@@ -266,7 +267,7 @@ export default function BloodRequestsPage() {
                     </div>
                   </div>
                 </div>
-              </a>
+              </Link>
             );
           })}
         </div>
