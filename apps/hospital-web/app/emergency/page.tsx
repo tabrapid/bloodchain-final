@@ -305,7 +305,7 @@ export default function EmergencyPage() {
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="rounded-lg border border-donor-border bg-donor-surface px-3 py-2 text-sm text-donor-text"
+          className="rounded-lg bc-solid px-3 py-2 text-sm text-donor-text"
         >
           <option value="">All Statuses</option>
           <option value="DRAFT">Draft</option>
@@ -320,7 +320,7 @@ export default function EmergencyPage() {
         </select>
         <button
           onClick={loadEmergencies}
-          className="flex items-center gap-2 rounded-lg border border-donor-border bg-donor-surface px-3 py-2 text-sm text-donor-text transition-colors hover:bg-donor-border"
+          className="flex items-center gap-2 rounded-lg bc-solid px-3 py-2 text-sm text-donor-text transition-colors hover:bg-donor-elevated"
         >
           <RefreshCw size={14} />
           Refresh
@@ -410,7 +410,7 @@ export default function EmergencyPage() {
                         const liveLocation = liveLocations[emergency.id];
                         if (!liveLocation) {
                           return (
-                            <div className="mt-3 flex items-center gap-2 rounded-lg border border-donor-border bg-donor-background px-3 py-2">
+                            <div className="mt-3 flex items-center gap-2 rounded-lg border border-donor-border bc-solid px-3 py-2">
                               <Navigation size={14} className="text-donor-primary" />
                               <span className="text-xs text-donor-muted">
                                 Waiting for donor location update...
@@ -462,7 +462,7 @@ export default function EmergencyPage() {
                         </button>
                         <button
                           onClick={() => handleCancelEmergency(emergency.id)}
-                          className="flex items-center gap-1 rounded-lg border border-donor-border bg-donor-surface px-3 py-1.5 text-sm font-semibold text-donor-text transition-colors hover:bg-donor-border"
+                          className="flex items-center gap-1 rounded-lg bc-solid px-3 py-1.5 text-sm font-semibold text-donor-text transition-colors hover:bg-donor-elevated"
                         >
                           <X size={14} />
                           Cancel
@@ -510,7 +510,7 @@ export default function EmergencyPage() {
                     ].includes(emergency.status) && (
                       <button
                         onClick={() => handleCancelEmergency(emergency.id)}
-                        className="flex items-center gap-1 rounded-lg border border-donor-border bg-donor-surface px-3 py-1.5 text-sm font-semibold text-donor-text transition-colors hover:bg-donor-border"
+                        className="flex items-center gap-1 rounded-lg bc-solid px-3 py-1.5 text-sm font-semibold text-donor-text transition-colors hover:bg-donor-elevated"
                       >
                         <X size={14} />
                         Cancel
@@ -541,7 +541,7 @@ export default function EmergencyPage() {
                   onChange={(e) =>
                     setNewEmergency({ ...newEmergency, bloodType: e.target.value })
                   }
-                  className="w-full rounded-lg border border-donor-border bg-donor-surface px-3 py-2 text-sm text-donor-text"
+                  className="w-full rounded-lg bc-solid px-3 py-2 text-sm text-donor-text"
                 >
                   {BLOOD_TYPES.map((type) => (
                     <option key={type} value={type}>
@@ -562,7 +562,7 @@ export default function EmergencyPage() {
                       rhFactor: e.target.value,
                     })
                   }
-                  className="w-full rounded-lg border border-donor-border bg-donor-surface px-3 py-2 text-sm text-donor-text"
+                  className="w-full rounded-lg bc-solid px-3 py-2 text-sm text-donor-text"
                 >
                   {RH_FACTORS.map((rh) => (
                     <option key={rh} value={rh}>
@@ -586,7 +586,7 @@ export default function EmergencyPage() {
                       unitsRequired: parseInt(e.target.value) || 1,
                     })
                   }
-                  className="w-full rounded-lg border border-donor-border bg-donor-surface px-3 py-2 text-sm text-donor-text"
+                  className="w-full rounded-lg bc-solid px-3 py-2 text-sm text-donor-text"
                 />
               </div>
             </div>
@@ -602,7 +602,7 @@ export default function EmergencyPage() {
                     urgencyLevel: e.target.value,
                   })
                 }
-                className="w-full rounded-lg border border-donor-border bg-donor-surface px-3 py-2 text-sm text-donor-text"
+                className="w-full rounded-lg bc-solid px-3 py-2 text-sm text-donor-text"
               >
                 {URGENCY_LEVELS.map((level) => (
                   <option key={level} value={level}>
@@ -623,7 +623,7 @@ export default function EmergencyPage() {
                     componentType: e.target.value,
                   })
                 }
-                className="w-full rounded-lg border border-donor-border bg-donor-surface px-3 py-2 text-sm text-donor-text"
+                className="w-full rounded-lg bc-solid px-3 py-2 text-sm text-donor-text"
               >
                 {COMPONENT_TYPES.map((type) => (
                   <option key={type} value={type}>
@@ -646,7 +646,7 @@ export default function EmergencyPage() {
                     patientReference: e.target.value,
                   })
                 }
-                className="w-full rounded-lg border border-donor-border bg-donor-surface px-3 py-2 text-sm text-donor-text placeholder:text-donor-muted"
+                className="w-full rounded-lg bc-solid px-3 py-2 text-sm text-donor-text placeholder:text-donor-muted"
               />
             </div>
             <div>
@@ -663,7 +663,7 @@ export default function EmergencyPage() {
                   })
                 }
                 rows={3}
-                className="w-full rounded-lg border border-donor-border bg-donor-surface px-3 py-2 text-sm text-donor-text placeholder:text-donor-muted"
+                className="w-full rounded-lg bc-solid px-3 py-2 text-sm text-donor-text placeholder:text-donor-muted"
               />
             </div>
             <div>
@@ -679,7 +679,7 @@ export default function EmergencyPage() {
                     requiredBefore: e.target.value,
                   })
                 }
-                className="w-full rounded-lg border border-donor-border bg-donor-surface px-3 py-2 text-sm text-donor-text"
+                className="w-full rounded-lg bc-solid px-3 py-2 text-sm text-donor-text"
               />
             </div>
             <div>
@@ -696,13 +696,13 @@ export default function EmergencyPage() {
                     donationLocation: e.target.value,
                   })
                 }
-                className="w-full rounded-lg border border-donor-border bg-donor-surface px-3 py-2 text-sm text-donor-text placeholder:text-donor-muted"
+                className="w-full rounded-lg bc-solid px-3 py-2 text-sm text-donor-text placeholder:text-donor-muted"
               />
             </div>
             <div className="flex justify-end gap-3 pt-4">
               <button
                 onClick={() => setShowCreateModal(false)}
-                className="rounded-lg border border-donor-border bg-donor-surface px-4 py-2 font-semibold text-donor-text transition-colors hover:bg-donor-border"
+                className="rounded-lg bc-solid px-4 py-2 font-semibold text-donor-text transition-colors hover:bg-donor-elevated"
               >
                 Cancel
               </button>

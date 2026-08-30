@@ -169,13 +169,13 @@ export default function DonorsPage() {
             value={cityInput}
             onChange={(e) => setCityInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleCitySearch()}
-            className="w-full rounded-lg border border-donor-border bg-donor-surface px-10 py-2 text-sm text-donor-text placeholder:text-donor-muted focus:border-donor-secondary focus:outline-none"
+            className="w-full rounded-lg bc-solid px-10 py-2 text-sm text-donor-text placeholder:text-donor-muted focus:border-donor-secondary focus:outline-none"
           />
         </div>
         <select
           value={filters.bloodType ?? ''}
           onChange={(e) => handleFilterChange('bloodType', e.target.value)}
-          className="rounded-lg border border-donor-border bg-donor-surface px-3 py-2 text-sm text-donor-text"
+          className="rounded-lg bc-solid px-3 py-2 text-sm text-donor-text"
         >
           <option value="">All Blood Types</option>
           {BLOOD_TYPES.map((bt) => (
@@ -185,7 +185,7 @@ export default function DonorsPage() {
         <select
           value={filters.donorStatus ?? ''}
           onChange={(e) => handleFilterChange('donorStatus', e.target.value)}
-          className="rounded-lg border border-donor-border bg-donor-surface px-3 py-2 text-sm text-donor-text"
+          className="rounded-lg bc-solid px-3 py-2 text-sm text-donor-text"
         >
           <option value="">All Statuses</option>
           {DONOR_STATUSES.map((s) => (
@@ -215,14 +215,14 @@ export default function DonorsPage() {
                 <button
                   onClick={() => handlePageChange((filters.page ?? 1) - 1)}
                   disabled={(filters.page ?? 1) <= 1}
-                  className="rounded-lg border border-donor-border bg-donor-surface px-3 py-1.5 text-sm text-donor-text transition-colors hover:bg-donor-border disabled:cursor-not-allowed disabled:opacity-50"
+                  className="rounded-lg bc-solid px-3 py-1.5 text-sm text-donor-text transition-colors hover:bg-donor-elevated disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Previous
                 </button>
                 <button
                   onClick={() => handlePageChange((filters.page ?? 1) + 1)}
                   disabled={(filters.page ?? 1) >= totalPages}
-                  className="rounded-lg border border-donor-border bg-donor-surface px-3 py-1.5 text-sm text-donor-text transition-colors hover:bg-donor-border disabled:cursor-not-allowed disabled:opacity-50"
+                  className="rounded-lg bc-solid px-3 py-1.5 text-sm text-donor-text transition-colors hover:bg-donor-elevated disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Next
                 </button>

@@ -217,7 +217,7 @@ export default function AppointmentSlotsPage() {
           <button
             onClick={loadSlots}
             disabled={refreshing}
-            className="flex items-center gap-2 rounded-lg border border-donor-border bg-donor-surface px-3 py-2 text-sm text-donor-text transition-colors hover:bg-donor-border disabled:opacity-50"
+            className="flex items-center gap-2 rounded-lg bc-solid px-3 py-2 text-sm text-donor-text transition-colors hover:bg-donor-elevated disabled:opacity-50"
           >
             <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
             Refresh
@@ -236,7 +236,7 @@ export default function AppointmentSlotsPage() {
         <select
           value={typeFilter}
           onChange={(e) => setTypeFilter(e.target.value as AppointmentType | '')}
-          className="rounded-lg border border-donor-border bg-donor-surface px-3 py-2 text-sm text-donor-text"
+          className="rounded-lg bc-solid px-3 py-2 text-sm text-donor-text"
         >
           <option value="">All Types</option>
           <option value="BLOOD_DONATION">Blood Donation</option>
@@ -270,8 +270,8 @@ export default function AppointmentSlotsPage() {
                 className="flex items-center justify-between bc-glass rounded-card p-5"
               >
                 <div className="flex items-center gap-4">
-                  <div className="rounded-full bg-donor-primary/20 p-3">
-                    <CalendarDays size={20} className="text-donor-primary" />
+                  <div className="rounded-full bg-donor-primaryMuted p-3">
+                    <CalendarDays size={20} className="text-donor-onPrimaryMuted" />
                   </div>
                   <div>
                     <div className="flex items-center gap-3">
@@ -319,7 +319,7 @@ export default function AppointmentSlotsPage() {
             <select
               value={form.appointmentType}
               onChange={(e) => setForm({ ...form, appointmentType: e.target.value as AppointmentType })}
-              className="w-full rounded-lg border border-donor-border bg-donor-bg px-3 py-2 text-sm text-donor-text"
+              className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-sm text-donor-text"
             >
               <option value="BLOOD_DONATION">Blood Donation</option>
               <option value="BLOOD_TEST">Blood Test</option>
@@ -333,7 +333,7 @@ export default function AppointmentSlotsPage() {
                 type="datetime-local"
                 value={form.startAt}
                 onChange={(e) => setForm({ ...form, startAt: e.target.value })}
-                className="w-full rounded-lg border border-donor-border bg-donor-bg px-3 py-2 text-sm text-donor-text"
+                className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-sm text-donor-text"
               />
             </div>
             <div>
@@ -342,7 +342,7 @@ export default function AppointmentSlotsPage() {
                 type="datetime-local"
                 value={form.endAt}
                 onChange={(e) => setForm({ ...form, endAt: e.target.value })}
-                className="w-full rounded-lg border border-donor-border bg-donor-bg px-3 py-2 text-sm text-donor-text"
+                className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-sm text-donor-text"
               />
             </div>
           </div>
@@ -353,7 +353,7 @@ export default function AppointmentSlotsPage() {
               min={1}
               value={form.capacity}
               onChange={(e) => setForm({ ...form, capacity: Math.max(1, Number(e.target.value) || 1) })}
-              className="w-full rounded-lg border border-donor-border bg-donor-bg px-3 py-2 text-sm text-donor-text"
+              className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-sm text-donor-text"
             />
           </div>
 
@@ -374,7 +374,7 @@ export default function AppointmentSlotsPage() {
             </button>
             <button
               onClick={() => setShowCreateModal(false)}
-              className="rounded-lg border border-donor-border bg-donor-surface px-4 py-2 text-sm text-donor-text transition-colors hover:bg-donor-border"
+              className="rounded-lg bc-solid px-4 py-2 text-sm text-donor-text transition-colors hover:bg-donor-elevated"
             >
               Cancel
             </button>

@@ -168,7 +168,7 @@ export default function ShipmentsPage() {
           <button
             onClick={loadShipments}
             disabled={refreshing}
-            className="flex items-center gap-2 rounded-lg border border-donor-border bg-donor-surface px-3 py-2 text-sm text-donor-text transition-colors hover:bg-donor-border disabled:opacity-50"
+            className="flex items-center gap-2 rounded-lg bc-solid px-3 py-2 text-sm text-donor-text transition-colors hover:bg-donor-elevated disabled:opacity-50"
           >
             <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
             Refresh
@@ -181,7 +181,7 @@ export default function ShipmentsPage() {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="rounded-lg border border-donor-border bg-donor-surface px-3 py-2 text-sm text-donor-text"
+              className="rounded-lg bc-solid px-3 py-2 text-sm text-donor-text"
             >
               <option value="">All Statuses</option>
               <option value="CREATED">Created</option>
@@ -253,8 +253,8 @@ export default function ShipmentsPage() {
               >
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-4">
-                    <div className="rounded-full bg-donor-primary/20 p-3">
-                      <Truck size={24} className="text-donor-primary" />
+                    <div className="rounded-full bg-donor-primaryMuted p-3">
+                      <Truck size={24} className="text-donor-onPrimaryMuted" />
                     </div>
                     <div>
                       <div className="flex items-center gap-3">

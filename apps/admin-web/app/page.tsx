@@ -373,12 +373,12 @@ export default function AdminDashboard() {
           <h3 className="font-medium text-donor-text mb-4">System Health</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full ${health?.status === 'healthy' ? 'bg-donor-successMuted0' : 'bg-donor-dangerMuted0'}`} />
+              <div className={`w-2 h-2 rounded-full ${health?.status === 'healthy' ? 'bg-donor-success' : 'bg-donor-danger'}`} />
               <span className="text-sm text-donor-muted">API Status</span>
               <span className="text-sm font-medium text-donor-text ml-auto">{health?.status ?? '-'}</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full ${health?.database === 'up' ? 'bg-donor-successMuted0' : 'bg-donor-dangerMuted0'}`} />
+              <div className={`w-2 h-2 rounded-full ${health?.database === 'up' ? 'bg-donor-success' : 'bg-donor-danger'}`} />
               <span className="text-sm text-donor-muted">Database</span>
               <span className="text-sm font-medium text-donor-text ml-auto">{health?.database ?? '-'}</span>
             </div>

@@ -130,7 +130,7 @@ export default function CouriersPage() {
         <button
           onClick={loadCouriers}
           disabled={refreshing}
-          className="flex items-center gap-2 rounded-lg border border-donor-border bg-donor-surface px-3 py-2 text-sm text-donor-text transition-colors hover:bg-donor-border disabled:opacity-50"
+          className="flex items-center gap-2 rounded-lg bc-solid px-3 py-2 text-sm text-donor-text transition-colors hover:bg-donor-elevated disabled:opacity-50"
         >
           <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
           Refresh
@@ -167,8 +167,8 @@ export default function CouriersPage() {
                 className="flex items-center justify-between bc-glass rounded-card p-5"
               >
                 <div className="flex items-center gap-4">
-                  <div className="rounded-full bg-donor-primary/20 p-3">
-                    <Truck size={22} className="text-donor-primary" />
+                  <div className="rounded-full bg-donor-primaryMuted p-3">
+                    <Truck size={22} className="text-donor-onPrimaryMuted" />
                   </div>
                   <div>
                     <div className="flex items-center gap-3">

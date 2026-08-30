@@ -299,13 +299,13 @@ export default function LaboratoryPage() {
             placeholder="Search by reference or donor..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full rounded-lg border border-donor-border bg-donor-surface pl-10 pr-4 py-2 text-sm text-donor-text placeholder:text-donor-muted"
+            className="w-full rounded-lg bc-solid pl-10 pr-4 py-2 text-sm text-donor-text placeholder:text-donor-muted"
           />
         </div>
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="rounded-lg border border-donor-border bg-donor-surface px-3 py-2 text-sm text-donor-text"
+          className="rounded-lg bc-solid px-3 py-2 text-sm text-donor-text"
         >
           <option value="">All Statuses</option>
           <option value="PENDING">Pending</option>
@@ -322,7 +322,7 @@ export default function LaboratoryPage() {
         <button
           onClick={loadAppointments}
           disabled={isLoadingData}
-          className="flex items-center gap-2 rounded-lg border border-donor-border bg-donor-surface px-4 py-2 text-sm font-semibold text-donor-text transition-colors hover:bg-donor-border disabled:opacity-50"
+          className="flex items-center gap-2 rounded-lg bc-solid px-4 py-2 text-sm font-semibold text-donor-text transition-colors hover:bg-donor-elevated disabled:opacity-50"
         >
           <Filter size={14} />
           Refresh
@@ -418,7 +418,7 @@ export default function LaboratoryPage() {
                                 ? 'bg-donor-primary text-white hover:bg-donor-primary/80'
                                 : action.variant === 'danger'
                                 ? 'border border-donor-danger/50 text-donor-danger hover:bg-donor-dangerMuted'
-                                : 'border border-donor-border text-donor-text hover:bg-donor-border'
+                                : 'border border-donor-border text-donor-text hover:bg-donor-elevated'
                             }`}
                           >
                             {action.label}

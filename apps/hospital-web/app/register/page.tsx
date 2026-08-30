@@ -110,7 +110,7 @@ export default function RegisterHospitalPage() {
                   required
                   value={organizationName}
                   onChange={(e) => setOrganizationName(e.target.value)}
-                  className="w-full rounded-lg border border-donor-border bg-donor-background px-3 py-2.5 text-sm text-donor-text focus:outline-none focus:ring-2 focus:ring-donor-primary"
+                  className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2.5 text-sm text-donor-text focus:outline-none focus:ring-2 focus:ring-donor-primary"
                 />
               </div>
               <div>
@@ -122,7 +122,7 @@ export default function RegisterHospitalPage() {
                   type="text"
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
-                  className="w-full rounded-lg border border-donor-border bg-donor-background px-3 py-2.5 text-sm text-donor-text focus:outline-none focus:ring-2 focus:ring-donor-primary"
+                  className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2.5 text-sm text-donor-text focus:outline-none focus:ring-2 focus:ring-donor-primary"
                 />
               </div>
               <div>
@@ -134,7 +134,7 @@ export default function RegisterHospitalPage() {
                   type="tel"
                   value={organizationPhone}
                   onChange={(e) => setOrganizationPhone(e.target.value)}
-                  className="w-full rounded-lg border border-donor-border bg-donor-background px-3 py-2.5 text-sm text-donor-text focus:outline-none focus:ring-2 focus:ring-donor-primary"
+                  className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2.5 text-sm text-donor-text focus:outline-none focus:ring-2 focus:ring-donor-primary"
                 />
               </div>
             </div>
@@ -156,7 +156,7 @@ export default function RegisterHospitalPage() {
                     required
                     value={adminFirstName}
                     onChange={(e) => setAdminFirstName(e.target.value)}
-                    className="w-full rounded-lg border border-donor-border bg-donor-background px-3 py-2.5 text-sm text-donor-text focus:outline-none focus:ring-2 focus:ring-donor-primary"
+                    className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2.5 text-sm text-donor-text focus:outline-none focus:ring-2 focus:ring-donor-primary"
                   />
                 </div>
                 <div>
@@ -169,7 +169,7 @@ export default function RegisterHospitalPage() {
                     required
                     value={adminLastName}
                     onChange={(e) => setAdminLastName(e.target.value)}
-                    className="w-full rounded-lg border border-donor-border bg-donor-background px-3 py-2.5 text-sm text-donor-text focus:outline-none focus:ring-2 focus:ring-donor-primary"
+                    className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2.5 text-sm text-donor-text focus:outline-none focus:ring-2 focus:ring-donor-primary"
                   />
                 </div>
               </div>
@@ -184,7 +184,7 @@ export default function RegisterHospitalPage() {
                   autoComplete="username"
                   value={adminEmail}
                   onChange={(e) => setAdminEmail(e.target.value)}
-                  className="w-full rounded-lg border border-donor-border bg-donor-background px-3 py-2.5 text-sm text-donor-text focus:outline-none focus:ring-2 focus:ring-donor-primary"
+                  className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2.5 text-sm text-donor-text focus:outline-none focus:ring-2 focus:ring-donor-primary"
                 />
               </div>
               <div>
@@ -196,7 +196,7 @@ export default function RegisterHospitalPage() {
                   type="tel"
                   value={adminPhone}
                   onChange={(e) => setAdminPhone(e.target.value)}
-                  className="w-full rounded-lg border border-donor-border bg-donor-background px-3 py-2.5 text-sm text-donor-text focus:outline-none focus:ring-2 focus:ring-donor-primary"
+                  className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2.5 text-sm text-donor-text focus:outline-none focus:ring-2 focus:ring-donor-primary"
                 />
               </div>
               <div>
@@ -211,7 +211,7 @@ export default function RegisterHospitalPage() {
                   autoComplete="new-password"
                   value={adminPassword}
                   onChange={(e) => setAdminPassword(e.target.value)}
-                  className="w-full rounded-lg border border-donor-border bg-donor-background px-3 py-2.5 text-sm text-donor-text focus:outline-none focus:ring-2 focus:ring-donor-primary"
+                  className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2.5 text-sm text-donor-text focus:outline-none focus:ring-2 focus:ring-donor-primary"
                 />
                 <p className="mt-1 text-xs text-donor-muted">
                   At least 12 characters, with uppercase, lowercase, a number, and a symbol.
@@ -231,7 +231,7 @@ export default function RegisterHospitalPage() {
           <button
             type="button"
             onClick={() => router.push('/')}
-            className="w-full rounded-lg border border-donor-border px-6 py-3 font-semibold text-donor-text transition-colors hover:bg-donor-border"
+            className="w-full rounded-lg border border-donor-border px-6 py-3 font-semibold text-donor-text transition-colors hover:bg-donor-elevated"
           >
             Back to sign in
           </button>
