@@ -11,7 +11,7 @@ import {
   Truck,
   XCircle,
 } from 'lucide-react';
-import { StatusBadge } from '@bloodchain/ui/components';
+import { Modal, StatusBadge } from '@bloodchain/ui/components';
 import { me, isAuthenticated, MeResponse } from '../../../lib/auth';
 import {
   getBloodRequest,
@@ -378,84 +378,80 @@ export default function BloodRequestDetailPage() {
         </div>
       </div>
 
-      {showReviewModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="w-full max-w-lg bc-glass rounded-card p-6">
-            <h3 className="mb-1 font-display text-lg font-semibold text-donor-text">Review Request</h3>
-            <p className="mb-4 text-sm text-donor-muted">
-              Set how many units of each type you can approve. Approving 0 for every line rejects the request.
-            </p>
-
-            <div className="max-h-64 space-y-3 overflow-y-auto pr-1">
-              {request.items.map((item) => (
-                <div key={item.id} className="flex items-center justify-between gap-4 rounded-lg border border-donor-border/60 px-3 py-2">
-                  <span className="text-sm text-donor-text">
-                    {item.bloodType}
-                    {item.rhFactor === 'POSITIVE' ? '+' : item.rhFactor === 'NEGATIVE' ? '-' : ''}
-                    {' '}
-                    {item.componentType.replace('_', ' ')}
-                    <span className="ml-2 text-xs text-donor-muted">requested {item.unitsRequested}</span>
-                  </span>
-                  <input
-                    type="number"
-                    min={0}
-                    max={item.unitsRequested}
-                    value={approvals[item.id] ?? 0}
-                    onChange={(e) =>
-                      setApprovals((prev) => ({
-                        ...prev,
-                        [item.id]: Math.max(0, Math.min(item.unitsRequested, Number(e.target.value) || 0)),
-                      }))
-                    }
-                    className="w-20 rounded-lg border border-donor-border bc-solid px-2 py-1 text-sm text-donor-text"
-                  />
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-4">
-              <label className="mb-1 block text-xs text-donor-muted">Notes (optional)</label>
-              <textarea
-                value={reviewNotes}
-                onChange={(e) => setReviewNotes(e.target.value)}
-                rows={2}
-                className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-sm text-donor-text"
+      <Modal
+        open={showReviewModal}
+        onClose={() => setShowReviewModal(false)}
+        title="Review Request"
+        description="Set how many units of each type you can approve. Approving 0 for every line rejects the request."
+      >
+        <div className="max-h-64 space-y-3 overflow-y-auto pr-1">
+          {request.items.map((item) => (
+            <div key={item.id} className="flex items-center justify-between gap-4 rounded-lg border border-donor-border/60 px-3 py-2">
+              <span className="text-sm text-donor-text">
+                {item.bloodType}
+                {item.rhFactor === 'POSITIVE' ? '+' : item.rhFactor === 'NEGATIVE' ? '-' : ''}
+                {' '}
+                {item.componentType.replace('_', ' ')}
+                <span className="ml-2 text-xs text-donor-muted">requested {item.unitsRequested}</span>
+              </span>
+              <input
+                type="number"
+                min={0}
+                max={item.unitsRequested}
+                value={approvals[item.id] ?? 0}
+                onChange={(e) =>
+                  setApprovals((prev) => ({
+                    ...prev,
+                    [item.id]: Math.max(0, Math.min(item.unitsRequested, Number(e.target.value) || 0)),
+                  }))
+                }
+                className="w-20 rounded-lg border border-donor-border bc-solid px-2 py-1 text-sm text-donor-text"
               />
             </div>
-
-            {actionError && (
-              <div className="mt-3 flex items-center gap-2 rounded-lg border border-donor-danger/30 bg-donor-dangerMuted px-3 py-2 text-xs text-donor-onDangerMuted">
-                <AlertCircle size={14} />
-                {actionError}
-              </div>
-            )}
-
-            <div className="mt-5 flex justify-end gap-3">
-              <button
-                onClick={() => setShowReviewModal(false)}
-                disabled={actionLoading}
-                className="rounded-lg border border-donor-border px-4 py-2 text-sm text-donor-text disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => submitReview('reject')}
-                disabled={actionLoading}
-                className="rounded-lg border border-donor-danger/50 bg-donor-dangerMuted px-4 py-2 text-sm font-semibold text-donor-onDangerMuted transition-colors hover:bg-donor-dangerMuted/70 disabled:opacity-50"
-              >
-                Reject
-              </button>
-              <button
-                onClick={() => submitReview('approve')}
-                disabled={actionLoading}
-                className="rounded-lg bg-donor-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
-              >
-                {actionLoading ? 'Submitting...' : 'Approve'}
-              </button>
-            </div>
-          </div>
+          ))}
         </div>
-      )}
+
+        <div className="mt-4">
+          <label className="mb-1 block text-xs text-donor-muted">Notes (optional)</label>
+          <textarea
+            value={reviewNotes}
+            onChange={(e) => setReviewNotes(e.target.value)}
+            rows={2}
+            className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-sm text-donor-text"
+          />
+        </div>
+
+        {actionError && (
+          <div className="mt-3 flex items-center gap-2 rounded-lg border border-donor-danger/30 bg-donor-dangerMuted px-3 py-2 text-xs text-donor-onDangerMuted">
+            <AlertCircle size={14} />
+            {actionError}
+          </div>
+        )}
+
+        <div className="mt-5 flex justify-end gap-3">
+          <button
+            onClick={() => setShowReviewModal(false)}
+            disabled={actionLoading}
+            className="rounded-lg border border-donor-border px-4 py-2 text-sm text-donor-text disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => submitReview('reject')}
+            disabled={actionLoading}
+            className="rounded-lg border border-donor-danger/50 bg-donor-dangerMuted px-4 py-2 text-sm font-semibold text-donor-onDangerMuted transition-colors hover:bg-donor-dangerMuted/70 disabled:opacity-50"
+          >
+            Reject
+          </button>
+          <button
+            onClick={() => submitReview('approve')}
+            disabled={actionLoading}
+            className="rounded-lg bg-donor-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+          >
+            {actionLoading ? 'Submitting...' : 'Approve'}
+          </button>
+        </div>
+      </Modal>
     </AppShell>
   );
 }

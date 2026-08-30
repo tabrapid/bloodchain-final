@@ -19,6 +19,7 @@ import {
 import dynamic from 'next/dynamic';
 import {
   EmptyState,
+  Modal,
   StatCard,
   StatusBadge,
 } from '@bloodchain/ui/components';
@@ -478,78 +479,74 @@ export default function ShipmentDetailPage() {
         </div>
       </div>
 
-      {showAssignModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="w-full max-w-md bc-glass rounded-card p-6">
-            <h3 className="mb-4 font-display text-lg font-semibold text-donor-text">
-              {shipment?.status === 'FAILED' ? 'Reassign Courier' : 'Assign Courier'}
-            </h3>
-            <div className="mb-4">
-              <label className="mb-2 block text-sm text-donor-muted">Select Courier</label>
-              <select
-                value={selectedCourierId}
-                onChange={(e) => setSelectedCourierId(e.target.value)}
-                className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-donor-text"
-              >
-                <option value="">Choose a courier...</option>
-                {availableCouriers.map((courier) => (
-                  <option key={courier.id} value={courier.id}>
-                    {courier.displayName} - {courier.activeShipments} active shipments
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setShowAssignModal(false)}
-                className="rounded-lg border border-donor-border px-4 py-2 text-donor-text"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleAssignCourier}
-                disabled={!selectedCourierId || actionLoading}
-                className="rounded-lg bg-donor-primary px-4 py-2 font-semibold text-white disabled:opacity-50"
-              >
-                {actionLoading
-                  ? shipment?.status === 'FAILED' ? 'Reassigning...' : 'Assigning...'
-                  : shipment?.status === 'FAILED' ? 'Reassign' : 'Assign'}
-              </button>
-            </div>
-          </div>
+      <Modal
+        open={showAssignModal}
+        onClose={() => setShowAssignModal(false)}
+        title={shipment?.status === 'FAILED' ? 'Reassign Courier' : 'Assign Courier'}
+      >
+        <div className="mb-4">
+          <label className="mb-2 block text-sm text-donor-muted">Select Courier</label>
+          <select
+            value={selectedCourierId}
+            onChange={(e) => setSelectedCourierId(e.target.value)}
+            className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-donor-text"
+          >
+            <option value="">Choose a courier...</option>
+            {availableCouriers.map((courier) => (
+              <option key={courier.id} value={courier.id}>
+                {courier.displayName} - {courier.activeShipments} active shipments
+              </option>
+            ))}
+          </select>
         </div>
-      )}
+        <div className="flex justify-end gap-3">
+          <button
+            onClick={() => setShowAssignModal(false)}
+            className="rounded-lg border border-donor-border px-4 py-2 text-donor-text"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleAssignCourier}
+            disabled={!selectedCourierId || actionLoading}
+            className="rounded-lg bg-donor-primary px-4 py-2 font-semibold text-white disabled:opacity-50"
+          >
+            {actionLoading
+              ? shipment?.status === 'FAILED' ? 'Reassigning...' : 'Assigning...'
+              : shipment?.status === 'FAILED' ? 'Reassign' : 'Assign'}
+          </button>
+        </div>
+      </Modal>
 
-      {showCancelModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="w-full max-w-md bc-glass rounded-card p-6">
-            <h3 className="mb-4 font-display text-lg font-semibold text-donor-text">Cancel Shipment</h3>
-            <div className="mb-4">
-              <label className="mb-2 block text-sm text-donor-muted">Reason (optional)</label>
-              <textarea
-                value={cancelReason}
-                onChange={(e) => setCancelReason(e.target.value)}
-                className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-donor-text"
-                rows={3}
-              />
-            </div>
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setShowCancelModal(false)}
-                className="rounded-lg border border-donor-border px-4 py-2 text-donor-text"
-              >
-                Back
-              </button>
-              <button
-                onClick={handleCancelShipment}
-                className="rounded-lg bg-donor-danger px-4 py-2 font-semibold text-white"
-              >
-                Cancel Shipment
-              </button>
-            </div>
-          </div>
+      <Modal
+        open={showCancelModal}
+        onClose={() => setShowCancelModal(false)}
+        title="Cancel Shipment"
+      >
+        <div className="mb-4">
+          <label className="mb-2 block text-sm text-donor-muted">Reason (optional)</label>
+          <textarea
+            value={cancelReason}
+            onChange={(e) => setCancelReason(e.target.value)}
+            className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-donor-text"
+            rows={3}
+          />
         </div>
-      )}
+        <div className="flex justify-end gap-3">
+          <button
+            onClick={() => setShowCancelModal(false)}
+            className="rounded-lg border border-donor-border px-4 py-2 text-donor-text"
+          >
+            Back
+          </button>
+          <button
+            onClick={handleCancelShipment}
+            className="rounded-lg bg-donor-danger px-4 py-2 font-semibold text-white"
+          >
+            Cancel Shipment
+          </button>
+        </div>
+      </Modal>
     </AppShell>
   );
 }
