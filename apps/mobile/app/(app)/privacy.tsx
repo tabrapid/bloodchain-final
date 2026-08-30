@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { AppText, Card, Screen, ScreenHeader, SectionHeader, ListItem, Divider } from '../../src/components';
-import { spacing, useTheme, ThemeColors } from '../../src/theme';
+import { spacing, radius, useTheme, ThemeColors } from '../../src/theme';
 
 export default function Privacy() {
   const { colors } = useTheme();
@@ -105,7 +105,7 @@ function createStyles(colors: ThemeColors) {
       marginTop: spacing.xl,
       padding: spacing.lg,
       backgroundColor: colors.surfaceSolid,
-      borderRadius: 12,
+      borderRadius: radius.sm,
     },
     disclaimerText: {
       fontSize: 13,
