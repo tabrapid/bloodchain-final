@@ -209,12 +209,14 @@ export default function GamificationScreen() {
         </View>
 
         <TouchableOpacity
-          style={styles.leaderboardButton}
           onPress={() => router.push('/gamification/leaderboard' as any)}
+          activeOpacity={0.8}
         >
-          <AppText variant="button">
-            View Leaderboard
-          </AppText>
+          <GlassCard style={styles.leaderboardButton}>
+            <AppText variant="button">
+              View Leaderboard
+            </AppText>
+          </GlassCard>
         </TouchableOpacity>
 
         <View style={styles.bottomPadding} />
@@ -309,12 +311,7 @@ function createStyles(colors: ThemeColors) {
     leaderboardButton: {
       marginHorizontal: spacing.lg,
       marginBottom: spacing.lg,
-      backgroundColor: colors.surfaceSolid,
-      borderRadius: radius.md,
-      padding: spacing.md,
       alignItems: 'center',
-      borderWidth: 1,
-      borderColor: colors.border,
     },
     bottomPadding: {
       height: spacing.xl,

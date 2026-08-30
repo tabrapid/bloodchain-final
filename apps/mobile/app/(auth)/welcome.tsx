@@ -14,13 +14,13 @@ export default function Welcome() {
             width: 64,
             height: 64,
             borderRadius: 20,
-            backgroundColor: `${colors.primary}18`,
+            backgroundColor: colors.primaryMuted,
             alignItems: 'center',
             justifyContent: 'center',
             marginBottom: spacing.xl,
           }}
         >
-          <Activity size={32} color={colors.primary} />
+          <Activity size={32} color={colors.onMuted.primary} />
         </View>
         <AppText variant="display">Care that moves{`\n`}with you.</AppText>
         <AppText muted style={{ marginTop: spacing.md, lineHeight: 23 }}>

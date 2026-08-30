@@ -5,7 +5,7 @@ import { Screen } from '../../../../src/components/Screen';
 import { GlassCard, ScreenHeader } from '../../../../src/components';
 import { AppText } from '../../../../src/components/AppText';
 import { BadgeDisplay } from '../../../../src/components/gamification/BadgeDisplay';
-import { spacing, useTheme, ThemeColors } from '../../../../src/theme';
+import { spacing, radius, useTheme, ThemeColors } from '../../../../src/theme';
 
 export default function BadgesScreen() {
   const { colors } = useTheme();
@@ -122,7 +122,7 @@ function createStyles(colors: ThemeColors) {
       backgroundColor: colors.successMuted,
       paddingHorizontal: spacing.sm,
       paddingVertical: 2,
-      borderRadius: 10,
+      borderRadius: radius.sm,
       marginLeft: spacing.sm,
     },
     lockedBadge: {

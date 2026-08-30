@@ -246,13 +246,13 @@ export default function SosScreen() {
   const getUrgencyColor = (level: string) => {
     switch (level) {
       case 'CRITICAL':
-        return colors.danger;
+        return { border: colors.danger, bg: colors.dangerMuted, text: colors.onMuted.danger };
       case 'HIGH':
-        return '#F97316';
+        return { border: colors.warning, bg: colors.warningMuted, text: colors.onMuted.warning };
       case 'MEDIUM':
-        return '#EAB308';
+        return { border: colors.secondary, bg: colors.secondaryMuted, text: colors.onMuted.secondary };
       default:
-        return colors.textMuted;
+        return { border: colors.textMuted, bg: colors.surfaceElevated, text: colors.textMuted };
     }
   };
 
@@ -296,7 +296,7 @@ export default function SosScreen() {
       style={{
         marginBottom: spacing.md,
         borderLeftWidth: 4,
-        borderLeftColor: getUrgencyColor(emergency.urgencyLevel),
+        borderLeftColor: getUrgencyColor(emergency.urgencyLevel).border,
       }}
     >
       <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md }}>
@@ -305,12 +305,12 @@ export default function SosScreen() {
             width: 48,
             height: 48,
             borderRadius: 24,
-            backgroundColor: `${getUrgencyColor(emergency.urgencyLevel)}20`,
+            backgroundColor: getUrgencyColor(emergency.urgencyLevel).bg,
             alignItems: 'center',
             justifyContent: 'center',
           }}
         >
-          <AlertTriangle size={24} color={getUrgencyColor(emergency.urgencyLevel)} />
+          <AlertTriangle size={24} color={getUrgencyColor(emergency.urgencyLevel).text} />
         </View>
         <View style={{ flex: 1 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
@@ -319,7 +319,7 @@ export default function SosScreen() {
             </AppText>
             <View
               style={{
-                backgroundColor: `${getUrgencyColor(emergency.urgencyLevel)}20`,
+                backgroundColor: getUrgencyColor(emergency.urgencyLevel).bg,
                 paddingHorizontal: spacing.sm,
                 paddingVertical: 2,
                 borderRadius: 4,
@@ -327,7 +327,7 @@ export default function SosScreen() {
             >
               <AppText
                 variant="caption"
-                style={{ color: getUrgencyColor(emergency.urgencyLevel), fontWeight: '600' }}
+                style={{ color: getUrgencyColor(emergency.urgencyLevel).text, fontWeight: '600' }}
               >
                 {emergency.urgencyLevel}
               </AppText>
@@ -408,19 +408,19 @@ export default function SosScreen() {
                   width: 64,
                   height: 64,
                   borderRadius: 32,
-                  backgroundColor: `${getUrgencyColor(selectedEmergency.urgencyLevel)}20`,
+                  backgroundColor: getUrgencyColor(selectedEmergency.urgencyLevel).bg,
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
               >
-                <AlertTriangle size={32} color={getUrgencyColor(selectedEmergency.urgencyLevel)} />
+                <AlertTriangle size={32} color={getUrgencyColor(selectedEmergency.urgencyLevel).text} />
               </View>
               <AppText variant="heading" style={{ marginTop: spacing.md, textAlign: 'center' }}>
                 {selectedEmergency.emergencyReference}
               </AppText>
               <View
                 style={{
-                  backgroundColor: `${getUrgencyColor(selectedEmergency.urgencyLevel)}20`,
+                  backgroundColor: getUrgencyColor(selectedEmergency.urgencyLevel).bg,
                   paddingHorizontal: spacing.md,
                   paddingVertical: spacing.xs,
                   borderRadius: 8,
@@ -429,7 +429,7 @@ export default function SosScreen() {
               >
                 <AppText
                   style={{
-                    color: getUrgencyColor(selectedEmergency.urgencyLevel),
+                    color: getUrgencyColor(selectedEmergency.urgencyLevel).text,
                     fontWeight: '700',
                   }}
                 >
