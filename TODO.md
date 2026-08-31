@@ -2090,6 +2090,72 @@ These make the product unusable or unsafe for real users. Fix first, in order.
     `packages/ui/src/components/feedback/ErrorState.tsx`,
     `apps/{hospital,blood-center,admin}-web/app/globals.css`.
 
+- [x] P0-50: Re-audited `DESIGN_VULNERABILITIES.md` against the live
+  codebase and closed the remaining quick fixes (A-group) plus the mobile
+  reference-design feature-parity gaps (B-group). Admin-web's
+  DataTable/FilterBar/SearchInput/Modal migration (P0-49) intentionally
+  left untouched — owned by a separate agent.
+  - **A-group (quick fixes).** Swapped the `Settings` (gear) icon for
+    `Pencil` on hospital-web/blood-center-web inventory "Adjust" actions
+    (gear collided with the sidebar's real Settings nav). Replaced every
+    hardcoded `organizationName="Northstar ... (Development)"` literal
+    across 11 hospital-web + 4 blood-center-web pages with either a
+    generic console fallback or the donor's real
+    `user.organizations.find(...)?.name`; a scripted first pass
+    mis-classified 3 "Not Found" branches and introduced a
+    `user.organizations` non-null-narrowing bug, caught by
+    `tsc` (TS18047) and fixed with optional chaining. Gave `SectionHeader`
+    an optional `action: {label, onPress}` ("View all" link, matching the
+    reference), `GlassCard` `elevated`/`danger` variant props, and
+    `IconButton` a `badge?: number` prop (required restructuring its
+    single `overflow:hidden` wrapper into an outer non-clipping view +
+    inner clipped view so the badge isn't cut off). Fixed `sos.tsx`'s
+    "`AppButton` wrapping a full card" anti-pattern (swapped for a bare
+    `TouchableOpacity`) and `insights/index.tsx`'s chat Send button
+    (`colors.text` on `colors.primary` — near-invisible in light mode —
+    → `colors.white`).
+  - **B-group (reference feature-parity).** Home: header row with a
+    notification-bell `IconButton` (real unread-count badge) + tappable
+    avatar, a hero stats row inside the Blood Type `GradientCard`
+    (donations/volume/emergency responses) with a divider, and a live SOS
+    card that shows the real active-emergency count with a pulse dot
+    instead of generic copy. Profile: real stats row + XP progress bar
+    toward the next level + an achievements/badges teaser, from
+    `useGamificationProfile`/`useLevelProgress`/`useAchievements`.
+    Donations: an aggregate stats row from the real donation-statistics
+    endpoint. Health: a "Vitals" list from the donor's real tracked lab
+    parameters, an "AI Insights" teaser showing the donor's actual most
+    recent AI insight (not the reference's fabricated "iron levels low"
+    text), and a "Lab Results" preview with a Normal/Review badge derived
+    from each result's real flag. Donate: replaced the plain bordered CTA
+    card with a vivid `GradientCard` hero (real eligibility + days since
+    last donation), plus real Active Campaigns / Challenges / Community
+    Impact preview sections — deliberately dropped the reference's
+    "Donation Types" grid (Whole Blood/Plasma/Platelets/Double Red with
+    fixed per-type intervals), since the backend has one flat
+    donation-eligibility cooldown, not per-type frequencies, so those
+    numbers would have been fabricated. Community: a leaderboard teaser
+    card showing the donor's real this-month rank, and a working native
+    Share button on feed posts (RN `Share` API) — Like/Comment were
+    dropped, since the backend has no like/comment endpoints for
+    community posts and a client-side-only counter would be fake
+    functionality with nothing behind it.
+  - New: `apps/mobile/src/hooks/useEmergency.ts` (wraps
+    `getDonorEmergencies` in a React Query hook, previously called
+    directly from `sos.tsx` via raw `useState`/`useEffect`).
+  - Verified: `pnpm --filter mobile typecheck` and
+    `pnpm --filter mobile test` clean (60/60) after every screen, plus
+    `pnpm --filter hospital-web typecheck`/`next build` and
+    `pnpm --filter blood-center-web typecheck`/`next build` clean for the
+    A-group web changes.
+  - Files: `apps/mobile/app/(app)/{home,profile,donate,health,
+    donations/index,community/index}.tsx`,
+    `apps/mobile/app/sos.tsx`, `apps/mobile/app/(app)/insights/index.tsx`,
+    `apps/mobile/src/components/{SectionHeader,GlassCard,IconButton}.tsx`,
+    `apps/mobile/src/hooks/useEmergency.ts` (new), 11 hospital-web +
+    4 blood-center-web page files, `apps/{hospital,blood-center}-web/app/
+    inventory/page.tsx`.
+
 ## 🟠 P1 — Major gaps (feature exists but disconnected, or missing entirely)
 
 - [x] **P1-1. Booking race conditions (double-booking) in appointments and lab slots.** — Fixed:
