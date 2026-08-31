@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { RefreshControl, StyleSheet, View } from 'react-native';
+import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Calendar, Users, MapPin, Droplet } from 'lucide-react-native';
 import { getCampaigns, joinCampaign, type Campaign } from '../../../src/api/campaigns';
@@ -55,47 +55,50 @@ export default function CampaignsScreen() {
     );
   }
 
+  const campaigns = data?.items ?? [];
+
   return (
-    <Screen
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={onRefresh}
-          tintColor={colors.primary}
-        />
-      }
-    >
+    <Screen scroll={false}>
       <ScreenHeader
         title="Blood Donation Campaigns"
         subtitle="Join campaigns to help save lives in your community"
       />
-
-      {joinError && (
-        <Card style={styles.errorCard}>
-          <AppText style={{ color: colors.onMuted.danger }}>{joinError}</AppText>
-        </Card>
-      )}
-
-      {data?.items.length === 0 ? (
-        <Card>
-          <EmptyState
-            icon={Calendar}
-            title="No Active Campaigns"
-            description="Check back later for new blood donation campaigns"
+      <FlatList
+        style={{ flex: 1 }}
+        data={campaigns}
+        keyExtractor={(campaign) => campaign.id}
+        contentContainerStyle={styles.list}
+        renderItem={({ item: campaign }) => (
+          <CampaignCard
+            campaign={campaign}
+            onJoin={() => joinMutation.mutate(campaign.id)}
+            isJoining={joinMutation.isPending}
           />
-        </Card>
-      ) : (
-        <View style={styles.list}>
-          {data?.items.map((campaign) => (
-            <CampaignCard
-              key={campaign.id}
-              campaign={campaign}
-              onJoin={() => joinMutation.mutate(campaign.id)}
-              isJoining={joinMutation.isPending}
+        )}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.primary}
+          />
+        }
+        ListHeaderComponent={
+          joinError ? (
+            <Card style={styles.errorCard}>
+              <AppText style={{ color: colors.onMuted.danger }}>{joinError}</AppText>
+            </Card>
+          ) : null
+        }
+        ListEmptyComponent={
+          <Card>
+            <EmptyState
+              icon={Calendar}
+              title="No Active Campaigns"
+              description="Check back later for new blood donation campaigns"
             />
-          ))}
-        </View>
-      )}
+          </Card>
+        }
+      />
     </Screen>
   );
 }

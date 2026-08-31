@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { RefreshControl, StyleSheet, View } from 'react-native';
+import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Trophy, Clock, Award } from 'lucide-react-native';
 import { getActiveChallenges, joinChallenge, type Challenge } from '../../../src/api/challenges';
@@ -57,46 +57,47 @@ export default function ChallengesScreen() {
   }
 
   return (
-    <Screen
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={onRefresh}
-          tintColor={colors.primary}
-        />
-      }
-    >
+    <Screen scroll={false}>
       <ScreenHeader
         title="Challenges"
         subtitle="Complete challenges to earn XP and badges"
       />
-
-      {joinError && (
-        <Card style={styles.errorCard}>
-          <AppText style={{ color: colors.onMuted.danger }}>{joinError}</AppText>
-        </Card>
-      )}
-
-      {challenges?.length === 0 ? (
-        <Card>
-          <EmptyState
-            icon={Trophy}
-            title="No Active Challenges"
-            description="Check back later for new challenges"
+      <FlatList
+        style={{ flex: 1 }}
+        data={challenges ?? []}
+        keyExtractor={(challenge) => challenge.id}
+        contentContainerStyle={styles.list}
+        renderItem={({ item: challenge }) => (
+          <ChallengeCard
+            challenge={challenge}
+            onJoin={() => joinMutation.mutate(challenge.id)}
+            isJoining={joinMutation.isPending}
           />
-        </Card>
-      ) : (
-        <View style={styles.list}>
-          {challenges?.map((challenge) => (
-            <ChallengeCard
-              key={challenge.id}
-              challenge={challenge}
-              onJoin={() => joinMutation.mutate(challenge.id)}
-              isJoining={joinMutation.isPending}
+        )}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.primary}
+          />
+        }
+        ListHeaderComponent={
+          joinError ? (
+            <Card style={styles.errorCard}>
+              <AppText style={{ color: colors.onMuted.danger }}>{joinError}</AppText>
+            </Card>
+          ) : null
+        }
+        ListEmptyComponent={
+          <Card>
+            <EmptyState
+              icon={Trophy}
+              title="No Active Challenges"
+              description="Check back later for new challenges"
             />
-          ))}
-        </View>
-      )}
+          </Card>
+        }
+      />
     </Screen>
   );
 }

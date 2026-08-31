@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { RefreshControl, StyleSheet, View } from 'react-native';
+import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { BookOpen, Clock, Award, CheckCircle, PlayCircle } from 'lucide-react-native';
 import {
@@ -95,70 +95,73 @@ export default function EducationScreen() {
   }
 
   return (
-    <Screen
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={onRefresh}
-          tintColor={colors.primary}
-        />
-      }
-    >
+    <Screen scroll={false}>
       <ScreenHeader
         title="Education Hub"
         subtitle="Learn about blood donation and earn XP"
       />
-
-      {stats && (
-        <Card style={styles.statsCard}>
-          <AppText variant="heading">Your Progress</AppText>
-          <View style={styles.statsRow}>
-            <EducationStat label="Completed" value={stats.totalCompleted} />
-            <EducationStat label="Started" value={stats.totalStarted} />
-            <EducationStat label="XP Earned" value={stats.totalXpEarned} />
-          </View>
-        </Card>
-      )}
-
-      <AppText variant="heading" style={styles.sectionTitle}>
-        Available Content
-      </AppText>
-
-      {actionError && (
-        <Card style={styles.errorCard}>
-          <AppText style={{ color: colors.onMuted.danger }}>{actionError}</AppText>
-        </Card>
-      )}
-
-      {content?.items.length === 0 ? (
-        <Card>
-          <EmptyState
-            icon={BookOpen}
-            title="No Content Available"
-            description="Check back later for educational content"
+      <FlatList
+        style={{ flex: 1 }}
+        data={content?.items ?? []}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.list}
+        renderItem={({ item }) => (
+          <EducationCard
+            content={item}
+            status={statusByContentId.get(item.id)}
+            onStart={() => {
+              setPendingId(item.id);
+              startMutation.mutate(item.id);
+            }}
+            onComplete={() => {
+              setPendingId(item.id);
+              completeMutation.mutate(item.id);
+            }}
+            isStarting={startMutation.isPending && pendingId === item.id}
+            isCompleting={completeMutation.isPending && pendingId === item.id}
           />
-        </Card>
-      ) : (
-        <View style={styles.list}>
-          {content?.items.map((item) => (
-            <EducationCard
-              key={item.id}
-              content={item}
-              status={statusByContentId.get(item.id)}
-              onStart={() => {
-                setPendingId(item.id);
-                startMutation.mutate(item.id);
-              }}
-              onComplete={() => {
-                setPendingId(item.id);
-                completeMutation.mutate(item.id);
-              }}
-              isStarting={startMutation.isPending && pendingId === item.id}
-              isCompleting={completeMutation.isPending && pendingId === item.id}
+        )}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.primary}
+          />
+        }
+        ListHeaderComponent={
+          <>
+            {stats && (
+              <Card style={styles.statsCard}>
+                <AppText variant="heading">Your Progress</AppText>
+                <View style={styles.statsRow}>
+                  <EducationStat label="Completed" value={stats.totalCompleted} />
+                  <EducationStat label="Started" value={stats.totalStarted} />
+                  <EducationStat label="XP Earned" value={stats.totalXpEarned} />
+                </View>
+              </Card>
+            )}
+
+            <AppText variant="heading" style={styles.sectionTitle}>
+              Available Content
+            </AppText>
+
+            {actionError && (
+              <Card style={styles.errorCard}>
+                <AppText style={{ color: colors.onMuted.danger }}>{actionError}</AppText>
+              </Card>
+            )}
+          </>
+        }
+        ListEmptyComponent={
+          <Card>
+            <EmptyState
+              icon={BookOpen}
+              title="No Content Available"
+              description="Check back later for educational content"
             />
-          ))}
-        </View>
-      )}
+          </Card>
+        }
+      />
     </Screen>
   );
 }
