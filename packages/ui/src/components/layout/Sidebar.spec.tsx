@@ -75,15 +75,15 @@ describe('Sidebar', () => {
   it('highlights the entry derived from currentPath', () => {
     render(<Sidebar items={items} currentPath="/shipments" />);
 
-    expect(screen.getByText('Shipments').closest('a')?.className).toContain('bg-donor-elevated');
-    expect(screen.getByText('Dashboard').closest('a')?.className).not.toContain('bg-donor-elevated');
+    expect(screen.getByText('Shipments').closest('a')?.className).toContain('bg-donor-primary/12');
+    expect(screen.getByText('Dashboard').closest('a')?.className).not.toContain('bg-donor-primary/12');
   });
 
   it('lets an explicit activeItem override the derived one', () => {
     render(<Sidebar items={items} currentPath="/shipments" activeItem="requests" />);
 
-    expect(screen.getByText('Blood Requests').closest('a')?.className).toContain('bg-donor-elevated');
-    expect(screen.getByText('Shipments').closest('a')?.className).not.toContain('bg-donor-elevated');
+    expect(screen.getByText('Blood Requests').closest('a')?.className).toContain('bg-donor-primary/12');
+    expect(screen.getByText('Shipments').closest('a')?.className).not.toContain('bg-donor-primary/12');
   });
 
   it('highlights nothing when neither is supplied', () => {

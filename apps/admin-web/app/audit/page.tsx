@@ -65,8 +65,7 @@ export default function AuditLogsPage() {
     <AppShell title="Audit Logs" userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
       <div className="p-6">
         <div className="mb-6">
-          <h1 className="text-2xl font-semibold text-donor-text">Audit Logs</h1>
-          <p className="text-sm text-donor-muted mt-1">Platform activity and security events</p>
+          <p className="text-sm text-donor-muted">Platform activity and security events</p>
         </div>
 
         <div className="bc-glass rounded-card mb-6">

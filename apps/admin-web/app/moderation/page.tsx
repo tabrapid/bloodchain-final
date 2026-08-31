@@ -96,8 +96,7 @@ export default function ModerationPage() {
     <AppShell title="Content Moderation" userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
       <div className="p-6">
         <div className="mb-6">
-          <h1 className="text-2xl font-semibold text-donor-text">Content Moderation</h1>
-          <p className="text-sm text-donor-muted mt-1">Review reports filed against community posts</p>
+          <p className="text-sm text-donor-muted">Review reports filed against community posts</p>
         </div>
 
         {error && (

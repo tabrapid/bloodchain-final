@@ -64,7 +64,7 @@ export function Modal({
           </div>
           <button
             onClick={onClose}
-            className="rounded-md p-1 text-donor-muted transition-colors hover:bg-donor-elevated hover:text-donor-text"
+            className="rounded-md p-1 text-donor-muted outline-none transition-colors hover:bg-donor-elevated hover:text-donor-text focus-visible:ring-2 focus-visible:ring-donor-primary/60"
             aria-label="Close"
           >
             <X size={18} />

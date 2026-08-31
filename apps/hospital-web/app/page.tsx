@@ -235,7 +235,7 @@ export default function HospitalDashboard() {
         userName={`${user.firstName} ${user.lastName}`}
       >
         <div className="flex flex-col items-center justify-center bc-glass rounded-card border-donor-danger/30 bg-donor-dangerMuted p-12">
-          <Activity className="mb-4 text-donor-danger" size={48} />
+          <Activity className="mb-4 text-donor-onDangerMuted" size={48} />
           <h2 className="mb-2 font-display text-2xl font-semibold text-donor-text">
             Access Denied
           </h2>
@@ -282,7 +282,7 @@ export default function HospitalDashboard() {
         >
           {alerts && alerts.critical > 0 ? (
             <>
-              <AlertTriangle className="mb-2 text-donor-danger" size={24} />
+              <AlertTriangle className="mb-2 text-donor-onDangerMuted" size={24} />
               <p className="text-sm font-semibold text-donor-text">
                 {alerts.critical} critical alert{alerts.critical === 1 ? '' : 's'}
               </p>

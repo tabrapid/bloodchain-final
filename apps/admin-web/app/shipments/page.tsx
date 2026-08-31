@@ -64,8 +64,7 @@ export default function ShipmentsPage() {
     <AppShell title="Shipment Monitoring" userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
       <div className="p-6">
         <div className="mb-6">
-          <h1 className="text-2xl font-semibold text-donor-text">Shipment Monitoring</h1>
-          <p className="text-sm text-donor-muted mt-1">Track and monitor all blood shipments across the platform</p>
+          <p className="text-sm text-donor-muted">Track and monitor all blood shipments across the platform</p>
         </div>
 
         <div className="bc-glass rounded-card mb-6">

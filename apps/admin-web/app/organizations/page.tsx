@@ -126,8 +126,7 @@ export default function OrganizationsPage() {
     <AppShell title="Organization Management" userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
       <div className="p-6">
         <div className="mb-6">
-          <h1 className="text-2xl font-semibold text-donor-text">Organization Management</h1>
-          <p className="text-sm text-donor-muted mt-1">Manage hospitals, blood centers, and other organizations</p>
+          <p className="text-sm text-donor-muted">Manage hospitals, blood centers, and other organizations</p>
         </div>
 
         {error && (

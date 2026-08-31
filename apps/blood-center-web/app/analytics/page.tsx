@@ -255,12 +255,14 @@ export default function AnalyticsPage() {
         </FilterBar>
       </div>
 
-      <div className="mb-6 flex gap-2">
+      <div className="mb-6 flex flex-wrap gap-2" role="tablist" aria-label="Analytics section">
         {(['overview', 'inventory', 'donations', 'laboratory', 'shipments'] as const).map((section) => (
           <button
             key={section}
+            role="tab"
+            aria-selected={activeSection === section}
             onClick={() => setActiveSection(section)}
-            className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
+            className={`rounded-lg px-4 py-2 text-sm font-semibold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-donor-primary/60 ${
               activeSection === section
                 ? 'bg-donor-primary text-white'
                 : 'bc-solid text-donor-text hover:bg-donor-elevated'
@@ -323,7 +325,7 @@ export default function AnalyticsPage() {
               </div>
               {overview.inventory.criticalGroups.length > 0 && (
                 <div className="mt-4 rounded-lg bg-donor-dangerMuted p-3">
-                  <p className="text-xs font-semibold text-donor-danger">Critical Blood Groups</p>
+                  <p className="text-xs font-semibold text-donor-onDangerMuted">Critical Blood Groups</p>
                   <p className="text-xs text-donor-muted">{overview.inventory.criticalGroups.join(', ')}</p>
                 </div>
               )}
@@ -590,24 +592,24 @@ export default function AnalyticsPage() {
       {(criticalAlerts.length > 0 || highAlerts.length > 0) && (
         <div className="mt-6 bc-glass rounded-card border-donor-danger/30 bg-donor-dangerMuted p-5">
           <div className="mb-3 flex items-center gap-2">
-            <Bell className="text-donor-danger" size={18} />
-            <h3 className="text-sm font-semibold text-donor-danger">Active Alerts</h3>
+            <Bell className="text-donor-onDangerMuted" size={18} />
+            <h3 className="text-sm font-semibold text-donor-onDangerMuted">Active Alerts</h3>
           </div>
           <div className="space-y-2">
             {criticalAlerts.slice(0, 5).map((alert) => (
               <div key={alert.id} className="flex items-start gap-3 rounded-lg bg-donor-dangerMuted p-3">
-                <AlertTriangle className="mt-0.5 text-donor-danger" size={14} />
+                <AlertTriangle className="mt-0.5 text-donor-onDangerMuted" size={14} />
                 <div>
-                  <p className="text-sm font-semibold text-donor-danger">{alert.title}</p>
+                  <p className="text-sm font-semibold text-donor-onDangerMuted">{alert.title}</p>
                   <p className="text-xs text-donor-muted">{alert.message}</p>
                 </div>
               </div>
             ))}
             {highAlerts.slice(0, 5).map((alert) => (
               <div key={alert.id} className="flex items-start gap-3 rounded-lg bg-donor-warningMuted p-3">
-                <AlertCircle className="mt-0.5 text-donor-warning" size={14} />
+                <AlertCircle className="mt-0.5 text-donor-onWarningMuted" size={14} />
                 <div>
-                  <p className="text-sm font-semibold text-donor-warning">{alert.title}</p>
+                  <p className="text-sm font-semibold text-donor-onWarningMuted">{alert.title}</p>
                   <p className="text-xs text-donor-muted">{alert.message}</p>
                 </div>
               </div>

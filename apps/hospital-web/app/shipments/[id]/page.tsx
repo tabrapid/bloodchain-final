@@ -245,9 +245,9 @@ export default function ShipmentDetailPage() {
       {shipment.status === 'ARRIVED_AT_HOSPITAL' && (
         <div className="mb-6 rounded-xl border border-donor-success/30 bg-donor-successMuted p-4">
           <div className="flex items-center gap-3">
-            <CheckCircle className="text-donor-success" size={24} />
+            <CheckCircle className="text-donor-onSuccessMuted" size={24} />
             <div>
-              <h3 className="font-semibold text-donor-success">Courier Has Arrived</h3>
+              <h3 className="font-semibold text-donor-onSuccessMuted">Courier Has Arrived</h3>
               <p className="text-sm text-donor-muted">
                 The courier has arrived at your location. Please confirm the delivery below.
               </p>
