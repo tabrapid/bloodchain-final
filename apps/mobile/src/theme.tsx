@@ -75,13 +75,16 @@ const darkColors: ThemeColors = {
   ...accent,
   background: '#070B12',
   backgroundGradient: ['#141C2E', '#0B1119', '#06090F'],
+  // Kept subtle -- a real ambient touch behind content, not a dominant haze
+  // that washes out every screen (smaller radius + lower opacity than the
+  // first pass).
   ambientOrbs: [
-    { color: 'rgba(216,83,96,0.20)', size: 380, top: -120, left: -130 },
-    { color: 'rgba(104,183,209,0.14)', size: 320, top: 280, left: 220 },
-    { color: 'rgba(142,130,223,0.14)', size: 340, top: 640, left: -90 },
+    { color: 'rgba(216,83,96,0.11)', size: 300, top: -100, left: -110 },
+    { color: 'rgba(104,183,209,0.08)', size: 260, top: 280, left: 220 },
+    { color: 'rgba(142,130,223,0.08)', size: 260, top: 640, left: -90 },
   ],
   glassSheen: ['rgba(255,255,255,0.16)', 'rgba(255,255,255,0.03)'],
-  glassBorder: 'rgba(255,255,255,0.20)',
+  glassBorder: 'rgba(255,255,255,0.26)',
   surface: 'rgba(255,255,255,0.08)',
   surfaceElevated: 'rgba(255,255,255,0.13)',
   surfaceHighlight: 'rgba(255,255,255,0.18)',
@@ -95,15 +98,16 @@ const darkColors: ThemeColors = {
   blurTint: 'dark',
   // Alpha tints rather than opaque swatches: these sit *inside* glass panels,
   // and a solid fill reads as a sticker pasted onto the glass instead of part
-  // of it. They also restore the subtlety of the `accent + '15'` tints these
-  // replaced -- swapping those for the old opaque `#8A3A42` turned every
-  // icon chip into a solid red blob.
-  primaryMuted: 'rgba(216,83,96,0.18)',
-  secondaryMuted: 'rgba(104,183,209,0.16)',
-  successMuted: 'rgba(99,194,155,0.16)',
-  warningMuted: 'rgba(229,184,109,0.16)',
-  dangerMuted: 'rgba(216,83,96,0.18)',
-  aiMuted: 'rgba(142,130,223,0.18)',
+  // of it. Raised from the first pass's 0.16-0.20 -- those read as tinted
+  // grey rather than a clearly identifiable color once composited over the
+  // blur; this is the lowest alpha at which red/blue/amber/purple are each
+  // unambiguous at a glance instead of merely implied.
+  primaryMuted: 'rgba(216,83,96,0.30)',
+  secondaryMuted: 'rgba(104,183,209,0.28)',
+  successMuted: 'rgba(99,194,155,0.28)',
+  warningMuted: 'rgba(229,184,109,0.28)',
+  dangerMuted: 'rgba(216,83,96,0.30)',
+  aiMuted: 'rgba(142,130,223,0.30)',
   onMuted: {
     primary: '#F2919A',
     secondary: '#A8DCEE',
@@ -119,9 +123,9 @@ const lightColors: ThemeColors = {
   background: '#EFF1F9',
   backgroundGradient: ['#FBF2FA', '#F1F1FC', '#E9F1FB'],
   ambientOrbs: [
-    { color: 'rgba(216,83,96,0.14)', size: 380, top: -120, left: -130 },
-    { color: 'rgba(104,183,209,0.14)', size: 320, top: 280, left: 220 },
-    { color: 'rgba(142,130,223,0.12)', size: 340, top: 640, left: -90 },
+    { color: 'rgba(216,83,96,0.08)', size: 300, top: -100, left: -110 },
+    { color: 'rgba(104,183,209,0.08)', size: 260, top: 280, left: 220 },
+    { color: 'rgba(142,130,223,0.07)', size: 260, top: 640, left: -90 },
   ],
   glassSheen: ['rgba(255,255,255,0.8)', 'rgba(255,255,255,0.4)'],
   glassBorder: 'rgba(255,255,255,0.9)',
@@ -136,12 +140,12 @@ const lightColors: ThemeColors = {
   borderSubtle: 'rgba(15,23,42,0.05)',
   overlay: 'rgba(15,23,42,0.45)',
   blurTint: 'light',
-  primaryMuted: 'rgba(216,83,96,0.14)',
-  secondaryMuted: 'rgba(104,183,209,0.18)',
-  successMuted: 'rgba(99,194,155,0.18)',
-  warningMuted: 'rgba(229,184,109,0.22)',
-  dangerMuted: 'rgba(216,83,96,0.14)',
-  aiMuted: 'rgba(142,130,223,0.16)',
+  primaryMuted: 'rgba(216,83,96,0.20)',
+  secondaryMuted: 'rgba(104,183,209,0.26)',
+  successMuted: 'rgba(99,194,155,0.26)',
+  warningMuted: 'rgba(229,184,109,0.30)',
+  dangerMuted: 'rgba(216,83,96,0.20)',
+  aiMuted: 'rgba(142,130,223,0.24)',
   onMuted: {
     primary: '#A32C38',
     secondary: '#1F6A83',
