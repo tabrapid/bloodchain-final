@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Image, RefreshControl, Share, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { FlatList, Image, RefreshControl, Share, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { Trophy, Users, Calendar, BookOpen, TrendingUp, Award, Share2 } from 'lucide-react-native';
@@ -69,130 +69,135 @@ export default function CommunityScreen() {
   }
 
   return (
-    <Screen
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={onRefresh}
-          tintColor={colors.primary}
-        />
-      }
-    >
-      {userRank && (
-        <TouchableOpacity
-          activeOpacity={0.8}
-          onPress={() => router.push('/gamification/leaderboard')}
-          style={styles.leaderboardTeaser}
-        >
-          <GlassCard elevated>
-            <View style={styles.leaderboardRow}>
-              <View style={styles.leaderboardIcon}>
-                <Award size={20} color={colors.onMuted.warning} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <AppText style={styles.leaderboardTitle}>This month's leaderboard</AppText>
-                <AppText muted style={styles.tinyText}>
-                  You're ranked #{userRank.rank} of {userRank.total} — keep going!
-                </AppText>
-              </View>
-              <Badge variant="warning">#{userRank.rank}</Badge>
-            </View>
-          </GlassCard>
-        </TouchableOpacity>
-      )}
+    <Screen scroll={false}>
+      <FlatList
+        style={{ flex: 1 }}
+        data={feed?.items ?? []}
+        keyExtractor={(post) => post.id}
+        renderItem={({ item }) => <FeedPostCard post={item} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.primary}
+          />
+        }
+        ListHeaderComponent={
+          <>
+            {userRank && (
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => router.push('/gamification/leaderboard')}
+                style={styles.leaderboardTeaser}
+              >
+                <GlassCard elevated>
+                  <View style={styles.leaderboardRow}>
+                    <View style={styles.leaderboardIcon}>
+                      <Award size={20} color={colors.onMuted.warning} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <AppText style={styles.leaderboardTitle}>This month's leaderboard</AppText>
+                      <AppText muted style={styles.tinyText}>
+                        You're ranked #{userRank.rank} of {userRank.total} — keep going!
+                      </AppText>
+                    </View>
+                    <Badge variant="warning">#{userRank.rank}</Badge>
+                  </View>
+                </GlassCard>
+              </TouchableOpacity>
+            )}
 
-      {impactStats && (
-        <Card style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <TrendingUp size={24} color={colors.primary} />
-            <AppText variant="heading">Your Impact</AppText>
-          </View>
+            {impactStats && (
+              <Card style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <TrendingUp size={24} color={colors.primary} />
+                  <AppText variant="heading">Your Impact</AppText>
+                </View>
 
-          <View style={styles.statsGrid}>
-            <ImpactStat
-              icon={<Award size={20} color={colors.primary} />}
-              label="Donations"
-              value={impactStats.donations}
-            />
-            <ImpactStat
-              icon={<Users size={20} color={colors.primary} />}
-              label="Campaigns"
-              value={impactStats.campaignParticipations}
-            />
-            <ImpactStat
-              icon={<Trophy size={20} color={colors.primary} />}
-              label="Challenges"
-              value={impactStats.challengeCompletions}
-            />
-            <ImpactStat
-              icon={<BookOpen size={20} color={colors.primary} />}
-              label="Education"
-              value={impactStats.educationCompletions}
-              onPress={() => router.push('/education')}
-            />
-          </View>
+                <View style={styles.statsGrid}>
+                  <ImpactStat
+                    icon={<Award size={20} color={colors.primary} />}
+                    label="Donations"
+                    value={impactStats.donations}
+                  />
+                  <ImpactStat
+                    icon={<Users size={20} color={colors.primary} />}
+                    label="Campaigns"
+                    value={impactStats.campaignParticipations}
+                  />
+                  <ImpactStat
+                    icon={<Trophy size={20} color={colors.primary} />}
+                    label="Challenges"
+                    value={impactStats.challengeCompletions}
+                  />
+                  <ImpactStat
+                    icon={<BookOpen size={20} color={colors.primary} />}
+                    label="Education"
+                    value={impactStats.educationCompletions}
+                    onPress={() => router.push('/education')}
+                  />
+                </View>
 
-          <Divider />
+                <Divider />
 
-          <View style={styles.totalsRow}>
-            <View>
-              <AppText muted variant="bodySmall">
-                Level
-              </AppText>
-              <AppText variant="heading">{impactStats.level}</AppText>
-            </View>
-            <View>
-              <AppText muted variant="bodySmall">
-                XP
-              </AppText>
-              <AppText variant="heading">{impactStats.xp}</AppText>
-            </View>
-            <View>
-              <AppText muted variant="bodySmall">
-                Reputation
-              </AppText>
-              <AppText variant="heading">{impactStats.reputation}</AppText>
-            </View>
-          </View>
-        </Card>
-      )}
+                <View style={styles.totalsRow}>
+                  <View>
+                    <AppText muted variant="bodySmall">
+                      Level
+                    </AppText>
+                    <AppText variant="heading">{impactStats.level}</AppText>
+                  </View>
+                  <View>
+                    <AppText muted variant="bodySmall">
+                      XP
+                    </AppText>
+                    <AppText variant="heading">{impactStats.xp}</AppText>
+                  </View>
+                  <View>
+                    <AppText muted variant="bodySmall">
+                      Reputation
+                    </AppText>
+                    <AppText variant="heading">{impactStats.reputation}</AppText>
+                  </View>
+                </View>
+              </Card>
+            )}
 
-      {activeChallenges && activeChallenges.length > 0 && (
-        <Card style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Trophy size={24} color={colors.primary} />
-            <AppText variant="heading">Active Challenges</AppText>
-          </View>
-          <View style={styles.itemList}>
-            {activeChallenges.slice(0, 3).map((challenge) => (
-              <ChallengeCard key={challenge.id} challenge={challenge} />
-            ))}
-          </View>
-        </Card>
-      )}
+            {activeChallenges && activeChallenges.length > 0 && (
+              <Card style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <Trophy size={24} color={colors.primary} />
+                  <AppText variant="heading">Active Challenges</AppText>
+                </View>
+                <View style={styles.itemList}>
+                  {activeChallenges.slice(0, 3).map((challenge) => (
+                    <ChallengeCard key={challenge.id} challenge={challenge} />
+                  ))}
+                </View>
+              </Card>
+            )}
 
-      {campaigns && campaigns.items.length > 0 && (
-        <Card style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Calendar size={24} color={colors.primary} />
-            <AppText variant="heading">Active Campaigns</AppText>
-          </View>
-          <View style={styles.itemList}>
-            {campaigns.items.slice(0, 3).map((campaign) => (
-              <CampaignCard key={campaign.id} campaign={campaign} />
-            ))}
-          </View>
-        </Card>
-      )}
+            {campaigns && campaigns.items.length > 0 && (
+              <Card style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <Calendar size={24} color={colors.primary} />
+                  <AppText variant="heading">Active Campaigns</AppText>
+                </View>
+                <View style={styles.itemList}>
+                  {campaigns.items.slice(0, 3).map((campaign) => (
+                    <CampaignCard key={campaign.id} campaign={campaign} />
+                  ))}
+                </View>
+              </Card>
+            )}
 
-      <Card style={styles.section}>
-        <AppText variant="heading">Community Feed</AppText>
-        <View style={styles.feedList}>
-          {feed?.items.map((post) => (
-            <FeedPostCard key={post.id} post={post} />
-          ))}
-        </View>
-      </Card>
+            <AppText variant="heading" style={styles.feedHeading}>
+              Community Feed
+            </AppText>
+          </>
+        }
+        contentContainerStyle={styles.listContent}
+      />
     </Screen>
   );
 }
@@ -451,9 +456,11 @@ function createStyles(colors: ThemeColors) {
       fontWeight: '600',
       color: colors.primary,
     },
-    feedList: {
-      marginTop: spacing.md,
-      gap: spacing.md,
+    feedHeading: {
+      marginBottom: spacing.md,
+    },
+    listContent: {
+      paddingBottom: spacing.xl,
     },
     feedPost: {
       paddingBottom: spacing.md,
