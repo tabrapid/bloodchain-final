@@ -32,13 +32,19 @@ export function GlassCard({
 }: PropsWithChildren<GlassCardProps>) {
   const { colors, isDark } = useTheme();
 
+  // Non-elevated cards used to fall back to a fully transparent fill, relying
+  // on blur + the top sheen alone to read as a surface -- against a
+  // low-contrast background gradient that left card boundaries barely
+  // perceptible. `colors.surface` gives every card a real (if faint) base
+  // tint so it reads as a distinct layer, not just a slightly blurrier patch
+  // of the same background.
   const overlayColor = danger
     ? isDark
       ? 'rgba(216,83,96,0.18)'
       : 'rgba(216,83,96,0.12)'
     : elevated
     ? colors.surfaceHighlight
-    : 'transparent';
+    : colors.surface;
 
   const borderColor = danger
     ? isDark
