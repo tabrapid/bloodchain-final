@@ -560,7 +560,7 @@ export default function InsightsScreen() {
               >
                 <AppText
                   style={{
-                    color: chatMessage.trim() && !isGenerating ? colors.text : colors.textMuted,
+                    color: chatMessage.trim() && !isGenerating ? colors.white : colors.textMuted,
                     fontWeight: '600',
                   }}
                 >
