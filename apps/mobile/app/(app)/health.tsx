@@ -125,7 +125,7 @@ export default function Health() {
             activeOpacity={0.9}
             style={{ marginTop: spacing.lg }}
           >
-            <GradientCard colors={[colors.primary, colors.secondary]}>
+            <GradientCard colors={colors.heroGradient}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <View style={{ flex: 1 }}>
                   <AppText style={{ fontSize: 11, fontWeight: '700', letterSpacing: 1.2, color: 'rgba(255,255,255,0.8)' }}>

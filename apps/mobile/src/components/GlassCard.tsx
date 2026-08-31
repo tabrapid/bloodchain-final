@@ -43,7 +43,7 @@ export function GlassCard({
       ? 'rgba(216,83,96,0.18)'
       : 'rgba(216,83,96,0.12)'
     : elevated
-    ? colors.surfaceHighlight
+    ? colors.surfaceElevated
     : colors.surface;
 
   const borderColor = danger

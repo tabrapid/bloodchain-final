@@ -37,16 +37,16 @@ export function IconButton({
         <View
           style={[
             {
-              width: 44,
-              height: 44,
-              borderRadius: radius.md,
+              width: 40,
+              height: 40,
+              borderRadius: radius.sm,
               opacity: pressed ? 0.85 : 1,
               transform: [{ scale: pressed ? 0.94 : 1 }],
             },
             flattenedStyle,
           ]}
         >
-          <View style={{ flex: 1, borderRadius: radius.md, overflow: 'hidden' }}>
+          <View style={{ flex: 1, borderRadius: radius.sm, overflow: 'hidden' }}>
             <BlurView
               intensity={isDark ? 42 : 55}
               tint={colors.blurTint}
@@ -55,9 +55,10 @@ export function IconButton({
                 flex: 1,
                 alignItems: 'center',
                 justifyContent: 'center',
+                backgroundColor: colors.surface,
                 borderWidth: 1,
                 borderColor: colors.glassBorder,
-                borderRadius: radius.md,
+                borderRadius: radius.sm,
               }}
             >
               <Icon size={size} color={resolvedColor} />

@@ -28,7 +28,21 @@ export default function CheckEmail() {
   return (
     <Screen>
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.lg }}>
-        <Mail size={64} color={colors.primary} style={{ marginBottom: spacing.lg }} />
+        <View
+          style={{
+            width: 80,
+            height: 80,
+            borderRadius: 24,
+            backgroundColor: colors.secondaryMuted,
+            borderWidth: 1,
+            borderColor: colors.secondary,
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: spacing.lg,
+          }}
+        >
+          <Mail size={36} color={colors.onMuted.secondary} strokeWidth={1.5} />
+        </View>
 
         <AppText variant="title" style={{ textAlign: 'center', marginBottom: spacing.sm }}>
           Check your email

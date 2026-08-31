@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { View, TextInput, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { router } from 'expo-router';
-import { AppButton, AppText, Screen } from '../../../src/components';
+import { AppButton, AppText, AppTextInput, Screen } from '../../../src/components';
 import { useUpdateUserProfile } from '../../../src/hooks/useUsers';
 import { useUserProfile } from '../../../src/hooks/useUsers';
-import { spacing, radius, useTheme, ThemeColors } from '../../../src/theme';
+import { spacing, useTheme, ThemeColors } from '../../../src/theme';
 import { ApiRequestError } from '../../../src/api/client';
 
 export default function EditProfile() {
@@ -77,50 +77,34 @@ export default function EditProfile() {
           </AppText>
 
           <View style={styles.form}>
-            <View style={styles.field}>
-              <AppText muted style={styles.label}>First Name</AppText>
-              <TextInput
-                style={styles.input}
-                placeholder="First Name"
-                placeholderTextColor={colors.textMuted}
-                value={formData.firstName}
-                onChangeText={(v) => handleChange('firstName', v)}
-              />
-            </View>
+            <AppTextInput
+              label="First Name"
+              placeholder="First Name"
+              value={formData.firstName}
+              onChangeText={(v) => handleChange('firstName', v)}
+            />
 
-            <View style={styles.field}>
-              <AppText muted style={styles.label}>Last Name</AppText>
-              <TextInput
-                style={styles.input}
-                placeholder="Last Name"
-                placeholderTextColor={colors.textMuted}
-                value={formData.lastName}
-                onChangeText={(v) => handleChange('lastName', v)}
-              />
-            </View>
+            <AppTextInput
+              label="Last Name"
+              placeholder="Last Name"
+              value={formData.lastName}
+              onChangeText={(v) => handleChange('lastName', v)}
+            />
 
-            <View style={styles.field}>
-              <AppText muted style={styles.label}>Display Name (optional)</AppText>
-              <TextInput
-                style={styles.input}
-                placeholder="Display Name"
-                placeholderTextColor={colors.textMuted}
-                value={formData.displayName}
-                onChangeText={(v) => handleChange('displayName', v)}
-              />
-            </View>
+            <AppTextInput
+              label="Display Name (optional)"
+              placeholder="Display Name"
+              value={formData.displayName}
+              onChangeText={(v) => handleChange('displayName', v)}
+            />
 
-            <View style={styles.field}>
-              <AppText muted style={styles.label}>Phone (optional)</AppText>
-              <TextInput
-                style={styles.input}
-                placeholder="+1 234 567 8900"
-                placeholderTextColor={colors.textMuted}
-                keyboardType="phone-pad"
-                value={formData.phone}
-                onChangeText={(v) => handleChange('phone', v)}
-              />
-            </View>
+            <AppTextInput
+              label="Phone (optional)"
+              placeholder="+1 234 567 8900"
+              keyboardType="phone-pad"
+              value={formData.phone}
+              onChangeText={(v) => handleChange('phone', v)}
+            />
           </View>
 
           {saveError && (
@@ -162,22 +146,6 @@ function createStyles(colors: ThemeColors) {
     },
     form: {
       gap: spacing.lg,
-    },
-    field: {
-      gap: spacing.xs,
-    },
-    label: {
-      fontSize: 13,
-      marginBottom: spacing.xs,
-    },
-    input: {
-      backgroundColor: colors.surfaceSolid,
-      borderColor: colors.border,
-      borderWidth: 1,
-      borderRadius: radius.sm,
-      padding: spacing.md,
-      color: colors.text,
-      fontSize: 16,
     },
     footer: {
       flexDirection: 'row',
