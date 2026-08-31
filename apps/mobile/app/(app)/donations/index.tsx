@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
+import { View, StyleSheet, FlatList, TouchableOpacity, RefreshControl } from 'react-native';
 import { router } from 'expo-router';
 import { Droplet, Calendar, Building2, ChevronRight } from 'lucide-react-native';
 import { AppText, Card, EmptyState, GlassCard, Screen, ScreenHeader } from '../../../src/components';
@@ -42,59 +42,79 @@ export default function DonationsScreen() {
     }
   };
 
-  return (
-    <Screen>
-      <ScreenHeader title="Donation History" />
-
-      {stats && (
-        <GlassCard style={styles.statsCard}>
-          <View style={styles.statsRow}>
-            <View style={styles.statItem}>
-              <AppText variant="heading" style={styles.statValue}>
-                {stats.totalDonations}
-              </AppText>
-              <AppText muted style={styles.statLabel}>
-                Total donations
-              </AppText>
-            </View>
-            <View style={styles.statItem}>
-              <AppText variant="heading" style={styles.statValue}>
-                {(stats.totalVolumeMl / 1000).toFixed(1)}L
-              </AppText>
-              <AppText muted style={styles.statLabel}>
-                Volume donated
-              </AppText>
-            </View>
-            <View style={styles.statItem}>
-              <AppText variant="heading" style={styles.statValue}>
-                {stats.completedCount}
-              </AppText>
-              <AppText muted style={styles.statLabel}>
-                Completed
-              </AppText>
-            </View>
+  const renderDonation = ({ item: donation }: { item: Donation }) => (
+    <TouchableOpacity
+      onPress={() => router.push(`/donations/${donation.id}`)}
+      activeOpacity={0.8}
+    >
+      <GlassCard style={styles.donationCard}>
+        <View style={styles.donationHeader}>
+          <View style={styles.donationType}>
+            <Droplet size={18} color={colors.primary} />
+            <AppText style={styles.donationTypeText}>
+              {donation.donationType.replace('_', ' ')}
+            </AppText>
           </View>
-        </GlassCard>
-      )}
-
-      <View style={styles.filterTabs}>
-        {(['all', 'completed', 'cancelled'] as const).map((tab) => (
-          <TouchableOpacity
-            key={tab}
-            style={[styles.filterTab, filter === tab && styles.filterTabActive]}
-            onPress={() => setFilter(tab)}
+          <View
+            style={[
+              styles.statusBadge,
+              { backgroundColor: getStatusColor(donation.status).bg },
+            ]}
           >
             <AppText
-              style={[styles.filterTabText, filter === tab && styles.filterTabTextActive]}
+              style={[styles.statusText, { color: getStatusColor(donation.status).text }]}
             >
-              {tab === 'all' ? 'All' : tab === 'completed' ? 'Completed' : 'Cancelled'}
+              {donation.status}
             </AppText>
-          </TouchableOpacity>
-        ))}
-      </View>
+          </View>
+        </View>
 
-      <ScrollView
+        <View style={styles.donationDetails}>
+          <View style={styles.detailRow}>
+            <Calendar size={14} color={colors.textMuted} />
+            <AppText muted style={styles.detailText}>
+              {donation.collectionCompletedAt
+                ? formatDate(donation.collectionCompletedAt)
+                : formatDate(donation.createdAt)}
+            </AppText>
+          </View>
+          <View style={styles.detailRow}>
+            <Building2 size={14} color={colors.textMuted} />
+            <AppText muted style={styles.detailText}>
+              {donation.organization.name}
+            </AppText>
+          </View>
+        </View>
+
+        <View style={styles.donationFooter}>
+          <View>
+            <AppText muted style={styles.refLabel}>
+              Reference
+            </AppText>
+            <AppText style={styles.refText}>
+              {donation.donationReference}
+            </AppText>
+          </View>
+          {donation.volumeMl && (
+            <View style={styles.volumeBadge}>
+              <AppText style={styles.volumeText}>{donation.volumeMl} ml</AppText>
+            </View>
+          )}
+          <ChevronRight size={18} color={colors.textMuted} />
+        </View>
+      </GlassCard>
+    </TouchableOpacity>
+  );
+
+  return (
+    <Screen scroll={false}>
+      <ScreenHeader title="Donation History" />
+      <FlatList
         style={styles.scrollView}
+        data={donations}
+        renderItem={renderDonation}
+        keyExtractor={(donation) => donation.id}
+        contentContainerStyle={styles.donationsList}
         refreshControl={
           <RefreshControl
             refreshing={isRefetching}
@@ -102,91 +122,75 @@ export default function DonationsScreen() {
             tintColor={colors.primary}
           />
         }
-      >
-        {isLoading ? (
-          <Card style={styles.loadingCard}>
-            <AppText muted>Loading donations...</AppText>
-          </Card>
-        ) : donations.length === 0 ? (
-          <Card style={styles.emptyCard}>
-            <EmptyState
-              title="No donations yet"
-              description={
-                filter === 'all'
-                  ? "Your donation history will appear here once you complete a donation."
-                  : `No ${filter} donations found.`
-              }
-            />
-          </Card>
-        ) : (
-          <View style={styles.donationsList}>
-            {donations.map((donation) => (
-              <TouchableOpacity
-                key={donation.id}
-                onPress={() => router.push(`/donations/${donation.id}`)}
-                activeOpacity={0.8}
-              >
-                <GlassCard style={styles.donationCard}>
-                  <View style={styles.donationHeader}>
-                    <View style={styles.donationType}>
-                      <Droplet size={18} color={colors.primary} />
-                      <AppText style={styles.donationTypeText}>
-                        {donation.donationType.replace('_', ' ')}
-                      </AppText>
-                    </View>
-                    <View
-                      style={[
-                        styles.statusBadge,
-                        { backgroundColor: getStatusColor(donation.status).bg },
-                      ]}
-                    >
-                      <AppText
-                        style={[styles.statusText, { color: getStatusColor(donation.status).text }]}
-                      >
-                        {donation.status}
-                      </AppText>
-                    </View>
+        ListHeaderComponent={
+          <>
+            {stats && (
+              <GlassCard style={styles.statsCard}>
+                <View style={styles.statsRow}>
+                  <View style={styles.statItem}>
+                    <AppText variant="heading" style={styles.statValue}>
+                      {stats.totalDonations}
+                    </AppText>
+                    <AppText muted style={styles.statLabel}>
+                      Total donations
+                    </AppText>
                   </View>
+                  <View style={styles.statItem}>
+                    <AppText variant="heading" style={styles.statValue}>
+                      {(stats.totalVolumeMl / 1000).toFixed(1)}L
+                    </AppText>
+                    <AppText muted style={styles.statLabel}>
+                      Volume donated
+                    </AppText>
+                  </View>
+                  <View style={styles.statItem}>
+                    <AppText variant="heading" style={styles.statValue}>
+                      {stats.completedCount}
+                    </AppText>
+                    <AppText muted style={styles.statLabel}>
+                      Completed
+                    </AppText>
+                  </View>
+                </View>
+              </GlassCard>
+            )}
 
-                  <View style={styles.donationDetails}>
-                    <View style={styles.detailRow}>
-                      <Calendar size={14} color={colors.textMuted} />
-                      <AppText muted style={styles.detailText}>
-                        {donation.collectionCompletedAt
-                          ? formatDate(donation.collectionCompletedAt)
-                          : formatDate(donation.createdAt)}
-                      </AppText>
-                    </View>
-                    <View style={styles.detailRow}>
-                      <Building2 size={14} color={colors.textMuted} />
-                      <AppText muted style={styles.detailText}>
-                        {donation.organization.name}
-                      </AppText>
-                    </View>
-                  </View>
-
-                  <View style={styles.donationFooter}>
-                    <View>
-                      <AppText muted style={styles.refLabel}>
-                        Reference
-                      </AppText>
-                      <AppText style={styles.refText}>
-                        {donation.donationReference}
-                      </AppText>
-                    </View>
-                    {donation.volumeMl && (
-                      <View style={styles.volumeBadge}>
-                        <AppText style={styles.volumeText}>{donation.volumeMl} ml</AppText>
-                      </View>
-                    )}
-                    <ChevronRight size={18} color={colors.textMuted} />
-                  </View>
-                </GlassCard>
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
-      </ScrollView>
+            <View style={styles.filterTabs}>
+              {(['all', 'completed', 'cancelled'] as const).map((tab) => (
+                <TouchableOpacity
+                  key={tab}
+                  style={[styles.filterTab, filter === tab && styles.filterTabActive]}
+                  onPress={() => setFilter(tab)}
+                >
+                  <AppText
+                    style={[styles.filterTabText, filter === tab && styles.filterTabTextActive]}
+                  >
+                    {tab === 'all' ? 'All' : tab === 'completed' ? 'Completed' : 'Cancelled'}
+                  </AppText>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </>
+        }
+        ListEmptyComponent={
+          isLoading ? (
+            <Card style={styles.loadingCard}>
+              <AppText muted>Loading donations...</AppText>
+            </Card>
+          ) : (
+            <Card style={styles.emptyCard}>
+              <EmptyState
+                title="No donations yet"
+                description={
+                  filter === 'all'
+                    ? "Your donation history will appear here once you complete a donation."
+                    : `No ${filter} donations found.`
+                }
+              />
+            </Card>
+          )
+        }
+      />
     </Screen>
   );
 }
