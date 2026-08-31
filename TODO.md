@@ -2156,6 +2156,71 @@ These make the product unusable or unsafe for real users. Fix first, in order.
     4 blood-center-web page files, `apps/{hospital,blood-center}-web/app/
     inventory/page.tsx`.
 
+- [x] P0-51: Premium healthcare visual redesign of the mobile donor UI
+  (Profile, Health, Home, Donate, Calendar) plus the shared design system
+  and primitives underneath them. Presentation only -- no functionality,
+  navigation, or business logic changed; every screen stayed on its real
+  hooks/API calls.
+  - **Design tokens** (`theme.tsx`): stronger text/surface contrast in
+    both themes, screen titles bumped 27->32px, a new 58px `bloodType`
+    typography variant for the app's single most important number, and a
+    slightly larger radius scale (12/18/26 -> 14/20/28) for a more
+    premium feel.
+  - **Background composition** (`Screen.tsx`): the 3 ambient blobs behind
+    every screen were flat, hard-edged circles reading as "concept art."
+    Replaced with real `react-native-svg` radial gradients (full color at
+    center, fading to fully transparent at the edge) -- genuinely soft
+    atmospheric light, and cheaper than the full-screen `BlurView` layer
+    tried first and discarded (would have stacked a second blur pass under
+    every glass card's own blur).
+  - **Primitives**: `AppButton`/`IconButton` get a press-scale interaction;
+    `GlassTabBar`'s active capsule is bigger and scales on press;
+    `ProgressBar` now animates its fill with `react-native-reanimated`
+    (idiomatic `withTiming` inside `useAnimatedStyle`, not a manual
+    shared-value + effect, which doesn't reactively update under the
+    community-screens.spec.tsx snapshot test -- fixed by wiring reanimated's
+    official Jest mock into `jest.setup.js`). Fixed a real pre-existing bug
+    found in the process: Donate's challenge progress bar was feeding
+    `ProgressBar` a 0-1 fraction where every other caller (and the
+    component itself) expects 0-100, so it was rendering a sliver instead
+    of the real percentage. New `Sparkline` component for lightweight trend
+    lines; `react-native-svg` was a real, already-bundled runtime
+    dependency (chart-kit needs it) but mis-declared as a devDependency --
+    moved to `dependencies` now that app code imports it directly.
+  - **Profile**: hero header's big colored pill became a small dot + label
+    ("Verified Donor"/"Under Review"), a status-colored ring around the
+    avatar, balanced stat numbers, the real XP progress bar now animates,
+    and the achievements teaser shows up to 3 real badge-icon previews
+    (reusing `AchievementCard`'s existing icon-abbreviation map, exported
+    for reuse). Blood type card gets the new 58px value and a subtle
+    low-opacity droplet watermark.
+  - **Health**: the "Latest tracked" value was buried in a small nested box
+    inside a plain "View Health Trends" card. Promoted to a proper
+    `GradientCard` hero with a real trend sparkline and min/max (from the
+    donor's actual lab-history points, not fabricated), replacing that now-
+    redundant nested card entirely. The privacy footer shrank from a full
+    card to a compact one-liner.
+  - **Home / Donate**: same bigger blood-type/hero typography and droplet
+    watermark treatment for visual consistency with Profile/Health.
+  - **Calendar**: added a real Donation/Blood test/Consultation color
+    legend below the grid -- day dots are now colored by each day's actual
+    `appointmentType` instead of always the same primary red, closing two
+    DESIGN_VULNERABILITIES.md low-severity findings at once. Replaced the
+    icon-only "+" button with a labeled "Schedule" button.
+  - Deliberately did not reproduce the reference mockup pixel-for-pixel
+    where it implied data or distinctions this backend doesn't have (no
+    per-donation-type UI, no fabricated AI insight copy, etc.) -- consistent
+    with every other pass in this log.
+  - Verified: `pnpm --filter mobile typecheck` and
+    `pnpm --filter mobile test` clean (60/60) after every screen and after
+    the final `pnpm install` lockfile sync.
+  - Files: `apps/mobile/src/theme.tsx`,
+    `apps/mobile/src/components/{Screen,AppButton,IconButton,GlassTabBar,
+    ProgressBar,Sparkline(new),gamification/AchievementCard,index}.tsx`,
+    `apps/mobile/app/(app)/{profile,health,home,donate,calendar}.tsx`,
+    `apps/mobile/jest.setup.js`, `apps/mobile/package.json`,
+    `pnpm-lock.yaml`.
+
 ## 🟠 P1 — Major gaps (feature exists but disconnected, or missing entirely)
 
 - [x] **P1-1. Booking race conditions (double-booking) in appointments and lab slots.** — Fixed:
