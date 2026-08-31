@@ -1971,6 +1971,125 @@ These make the product unusable or unsafe for real users. Fix first, in order.
     `apps/{hospital,blood-center,admin}-web/app/globals.css`,
     ~35 page files under `apps/{hospital,blood-center,admin}-web/app/`.
 
+- [x] P0-41 to P0-49: Full design audit against the user-supplied Figma Make
+  reference (`apps/mobile/Create Design/`) and a systematic fix pass across
+  the entire ecosystem — mobile, hospital-web, blood-center-web, admin-web.
+  - **P0-41 — the audit.** Ran 4 parallel deep-dive agents (one per app) and
+    compiled every finding into `DESIGN_VULNERABILITIES.md` (repo root):
+    181 grouped findings (56 high / 83 medium / 42 low), categorized as
+    `color`/`contrast`/`glass-material`/`icon`/`navigation`/`spacing`/
+    `placeholder`/`dead-code`, each with file:line and severity.
+  - **P0-42 — mobile home/profile gradient + reference-design integration.**
+    Merged the reference export into `apps/mobile/Create Design/`
+    (tsconfig-excluded, reference-only). Fixed dull `GradientCard`s on
+    Home/Profile's Blood Type hero (`[dangerMuted, surfaceSolid]` →
+    `[primary, ai]`) and Profile Completion card, with hardcoded
+    white/near-white text for the now-saturated backgrounds. Replaced
+    Home's fake "Health: — / No data yet" stat with 3 real cards
+    (donations, volume, XP via `useGamificationProfile`). Bumped ambient
+    bloom opacity on web to match the reference's `ColorBlooms` values.
+  - **P0-43 — input-background unification + admin-web icon/hover/link
+    sweep.** Unified hospital-web/blood-center-web form controls onto
+    `bc-solid`, fixed `donor-border`-as-opaque-fill contrast bugs found
+    independently in both apps (~19 + several more instances), fixed a
+    regex substring bug from P0-40's automated sweep (`bg-green-50`
+    matching inside `bg-green-500` → garbled `Muted0` classes, 3 instances).
+    Rewrote admin-web's `Toggle` component and Maintenance Mode card
+    (flat → glass), fixed 21+ icon-on-Muted-tile contrast bugs, no-op
+    hovers, and danger-red-misapplied-to-neutral-links across
+    users/moderation/couriers/organizations/roles pages.
+  - **P0-44 — mobile alpha-hack contrast sweep.** The `colors.X + '20'`/
+    `` `${expr}20` `` hex-alpha-concat pattern (raw accent directly on its
+    own low-alpha tint, failing 4.5:1 contrast) existed in two shapes: a
+    string-concat form (13 screens) and a template-literal form on a
+    function call, which the first sweep's regex missed and was only
+    caught later in `sos.tsx`'s `getUrgencyColor`. Converted every instance
+    to the `XMuted` background + `onMuted.X` text/icon pair across
+    home/profile/appointment/donations/laboratory/health/insights/
+    calendar/sos/the full booking flow/campaigns/challenges/education/
+    gamification, plus the shared `GlassTabBar`/`StatCard`/`ErrorState`/
+    `AchievementCard`/`LeaderboardItem`/`IconButton` components. Also fixed
+    `sos.tsx`'s HIGH/MEDIUM urgency hardcoded hex (`#F97316`/`#EAB308`) and
+    a leftover flat `surfaceSolid` button on the gamification hub.
+  - **P0-45 — mobile navigation: back buttons + orphaned screens.** Root
+    cause: the `(app)` Tabs navigator and root Stack both set
+    `headerShown: false`, so `<Stack.Screen options={{headerLeft}}>` used
+    by `laboratory`/`health-trends`/`insights`/`sos.tsx` never rendered —
+    there was no native header for those options to attach to. Added a new
+    shared `ScreenHeader` component (back `IconButton` + title/subtitle)
+    and wired it into every pushed screen that had no back affordance at
+    all: notifications/privacy/security/campaigns/challenges/donations/
+    education/the gamification hub+achievements+badges+leaderboard/
+    select-type/appointment-detail/donation-detail, in place of the dead
+    `Stack.Screen` calls or bare title text. Also fixed 2 completely
+    unreachable screens (`education`, `insights` — nothing in the app
+    linked to either): made Community's "Education" impact stat tappable,
+    added an "AI Insights" teaser card to the Health screen.
+  - **P0-46 — real dashboard stats + functional booking notes field.**
+    hospital-web's and blood-center-web's landing dashboards permanently
+    hardcoded their `StatCard`s (`"—"`/"Connect your API to view",
+    `"Ready"`/"Foundation workspace") and a fake "System healthy" status
+    panel — the first screen either app's users see was fake, despite each
+    app's own `analytics/page.tsx` proving the real KPI endpoints already
+    existed. Wired both to `getOverviewAnalytics`/`getAlerts` (plus
+    `getLaboratoryAnalytics`/`getShipmentAnalytics` for blood-center-web)
+    and replaced the fake status panel with a real inventory summary +
+    critical/high alert counts. Separately, the mobile booking review
+    screen's "Notes (Optional)" field rendered a static placeholder
+    `AppText` instead of a `TextInput` — anything typed there had nowhere
+    to go and was silently dropped from the booking request.
+  - **P0-47 — DataTable/Link/Modal migrations.** blood-center-web's
+    `laboratory/page.tsx` hand-built its own `<table>` despite importing
+    `DataTable`/`DataTableColumn`, which is how it ended up with the
+    invalid `bg-donor-surfaceElevated` class (silently dropped by
+    Tailwind — sticky header and row-hover got no background) and a
+    "Refresh" button rendering the `Filter` icon instead of `RefreshCw`.
+    Migrated to `DataTable` with a `columns` array, fixing both. hospital-web's
+    `requests`/`requests/[id]`/`shipments` pages used raw `<a href>` for
+    internal navigation instead of `next/link`'s `Link` — the exact
+    full-page-reload defect `AppShell.tsx`'s own doc comment describes
+    fixing for the sidebar. hospital-web's `shipments/[id]` Confirm
+    Delivery dialog and blood-center-web's `requests/[id]` Review Request
+    + `shipments/[id]` Assign/Reassign Courier + Cancel Shipment dialogs
+    were all hand-built (`fixed inset-0` + flat `bg-black/50`) instead of
+    the shared `Modal` used correctly elsewhere in both apps — migrated
+    all four, restoring Escape-to-close, the header close button, the
+    correct scrim/radius/elevation, and the entrance animation.
+  - **P0-48 — real error states + dead-code cleanup.** Both apps'
+    `donors/page.tsx` silently `console.error`'d on a failed fetch and
+    rendered the identical "No donors found" `EmptyState` as a genuine
+    zero-result search — actively misleading staff. Added a `loadError`
+    flag and the shared `ErrorState` component (previously unused in
+    either app) with a working Retry action; fixed the same raw-accent-
+    on-tint contrast bug in `ErrorState` itself. Removed half a dozen
+    unused icon imports from both apps' `shipments/[id]/page.tsx` and
+    added the missing manual-refresh button the dead `RefreshCw` import
+    implied was meant to exist. Fixed a handful of smaller polish items:
+    `donor-secondary` vs `donor-primary` spinner-color mismatch, plain-text
+    vs. pill-style priority badges, `radius.sm`/`rounded-card` consistency
+    (mobile badges, admin-web mini-stat tiles), a magic-number focus-ring
+    hex duplicating `donor-primary` across all three web apps' `globals.css`.
+  - **P0-49 — deferred: admin-web architectural migration.** No page under
+    `apps/admin-web/app` uses the shared `DataTable`/`FilterBar`/
+    `SearchInput`/`Modal` components — every table, filter bar, search
+    input, and all 5 inline modals across ~14 pages are hand-rolled, which
+    is the root cause of most remaining inconsistencies in that app (see
+    DESIGN_VULNERABILITIES.md §4.0). Deliberately left out of this pass —
+    too large (14 pages) and risky to complete safely without dedicated
+    per-page verification. Queued as a follow-up task.
+  - Verified: full monorepo `pnpm -r typecheck` and `pnpm -r test` clean
+    (mobile 60/60, `packages/ui` 73/73, `packages/utils` 18/18,
+    `packages/validation` 37/37, hospital-web 23/23, blood-center-web
+    24/24, admin-web 14/14, api 684/684), and real production `next build`
+    for all three web apps after every change.
+  - Files: `DESIGN_VULNERABILITIES.md` (new), `apps/mobile/Create Design/`
+    (new, reference-only), ~45 mobile screen/component files under
+    `apps/mobile/{app,src/components}/`, `apps/mobile/src/components/
+    ScreenHeader.tsx` (new), ~25 files under
+    `apps/{hospital,blood-center,admin}-web/app/`,
+    `packages/ui/src/components/feedback/ErrorState.tsx`,
+    `apps/{hospital,blood-center,admin}-web/app/globals.css`.
+
 ## 🟠 P1 — Major gaps (feature exists but disconnected, or missing entirely)
 
 - [x] **P1-1. Booking race conditions (double-booking) in appointments and lab slots.** — Fixed:
