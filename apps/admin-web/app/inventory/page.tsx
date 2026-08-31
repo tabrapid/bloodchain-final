@@ -71,7 +71,7 @@ export default function InventoryPage() {
                 const key = `${bt}${rh}`;
                 const data = inventory?.byBloodGroup?.[key] || { total: 0, available: 0, reserved: 0 };
                 return (
-                  <div key={key} className="bg-donor-elevated rounded-lg p-4">
+                  <div key={key} className="bg-donor-elevated rounded-card p-4">
                     <div className="flex items-center gap-2 mb-2">
                       <Droplet className="w-4 h-4 text-donor-danger" />
                       <span className="font-semibold text-donor-text">{key}</span>

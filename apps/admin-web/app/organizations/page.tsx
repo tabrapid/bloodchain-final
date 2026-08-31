@@ -320,19 +320,19 @@ export default function OrganizationsPage() {
                 <div className="border-t border-donor-border/40 pt-4">
                   <p className="text-sm font-medium text-donor-text mb-2">Statistics</p>
                   <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div className="bg-donor-elevated p-2 rounded">
+                    <div className="bg-donor-elevated p-2 rounded-card">
                       <p className="text-donor-muted">Blood Requests</p>
                       <p className="font-medium">{selectedOrg.stats.bloodRequestsReceived || 0}</p>
                     </div>
-                    <div className="bg-donor-elevated p-2 rounded">
+                    <div className="bg-donor-elevated p-2 rounded-card">
                       <p className="text-donor-muted">Shipments</p>
                       <p className="font-medium">{selectedOrg.stats.shipmentsCreated || 0}</p>
                     </div>
-                    <div className="bg-donor-elevated p-2 rounded">
+                    <div className="bg-donor-elevated p-2 rounded-card">
                       <p className="text-donor-muted">Couriers</p>
                       <p className="font-medium">{selectedOrg.stats.couriers || 0}</p>
                     </div>
-                    <div className="bg-donor-elevated p-2 rounded">
+                    <div className="bg-donor-elevated p-2 rounded-card">
                       <p className="text-donor-muted">Fulfilled</p>
                       <p className="font-medium">{selectedOrg.stats.bloodRequestsFulfilled || 0}</p>
                     </div>

@@ -15,7 +15,7 @@ import {
   Clock,
   Activity,
 } from 'lucide-react';
-import { StatCard, EmptyState, LoadingState } from '@bloodchain/ui/components';
+import { StatCard, LoadingState } from '@bloodchain/ui/components';
 import { StatusBadgeWrapper } from '@lib/status';
 import { login, logout as logoutApi, me, isAuthenticated } from '@lib/auth';
 import {
