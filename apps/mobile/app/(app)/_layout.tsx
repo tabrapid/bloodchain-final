@@ -35,19 +35,32 @@ export default function AppLayout() {
         options={{ title: 'Profile', tabBarIcon: ({ color }) => <UserRound color={color} /> }}
       />
 
-      {/* Routes below are pushed to directly (router.push) and must stay out of the tab bar. */}
+      {/*
+        Routes below are pushed to directly (router.push) and must stay out
+        of the tab bar. Each `name` has to match the exact route Expo Router
+        derives from the file tree (e.g. `community/index.tsx` registers as
+        "community/index", not "community") -- getting this wrong doesn't
+        break navigation (push still works), but Tabs logs a "No route
+        named ... exists in nested children" warning for every mismatch,
+        one per screen, on every load.
+      */}
       <Tabs.Screen name="notifications" options={{ href: null }} />
       <Tabs.Screen name="privacy" options={{ href: null }} />
       <Tabs.Screen name="security" options={{ href: null }} />
-      <Tabs.Screen name="appointment" options={{ href: null }} />
-      <Tabs.Screen name="campaigns" options={{ href: null }} />
-      <Tabs.Screen name="challenges" options={{ href: null }} />
-      <Tabs.Screen name="donations" options={{ href: null }} />
-      <Tabs.Screen name="education" options={{ href: null }} />
-      <Tabs.Screen name="gamification" options={{ href: null }} />
-      <Tabs.Screen name="health-trends" options={{ href: null }} />
-      <Tabs.Screen name="insights" options={{ href: null }} />
-      <Tabs.Screen name="laboratory" options={{ href: null }} />
+      <Tabs.Screen name="appointment/[id]" options={{ href: null }} />
+      <Tabs.Screen name="campaigns/index" options={{ href: null }} />
+      <Tabs.Screen name="challenges/index" options={{ href: null }} />
+      <Tabs.Screen name="community/index" options={{ href: null }} />
+      <Tabs.Screen name="donations/index" options={{ href: null }} />
+      <Tabs.Screen name="donations/[id]" options={{ href: null }} />
+      <Tabs.Screen name="education/index" options={{ href: null }} />
+      <Tabs.Screen name="gamification/index" options={{ href: null }} />
+      <Tabs.Screen name="gamification/achievements/index" options={{ href: null }} />
+      <Tabs.Screen name="gamification/badges/index" options={{ href: null }} />
+      <Tabs.Screen name="gamification/leaderboard/index" options={{ href: null }} />
+      <Tabs.Screen name="health-trends/index" options={{ href: null }} />
+      <Tabs.Screen name="insights/index" options={{ href: null }} />
+      <Tabs.Screen name="laboratory/index" options={{ href: null }} />
       <Tabs.Screen name="profile/donor" options={{ href: null }} />
       <Tabs.Screen name="profile/edit" options={{ href: null }} />
     </Tabs>
