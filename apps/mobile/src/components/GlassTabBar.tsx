@@ -43,7 +43,7 @@ export function GlassTabBar({ state, descriptors, navigation }: BottomTabBarProp
         borderRadius: radius.xl,
         borderWidth: 1,
         borderColor: colors.glassBorder,
-        paddingVertical: spacing.sm,
+        paddingVertical: spacing.xs,
         paddingHorizontal: spacing.xs,
         overflow: 'hidden',
       }}
@@ -76,18 +76,21 @@ export function GlassTabBar({ state, descriptors, navigation }: BottomTabBarProp
             accessibilityLabel={options.tabBarAccessibilityLabel ?? (options.title as string)}
             style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: spacing.xs }}
           >
-            <View
-              style={{
-                width: 44,
-                height: 34,
-                borderRadius: radius.pill,
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: focused ? colors.primaryMuted : 'transparent',
-              }}
-            >
-              {options.tabBarIcon?.({ focused, color, size: 22 })}
-            </View>
+            {({ pressed }) => (
+              <View
+                style={{
+                  width: 48,
+                  height: 40,
+                  borderRadius: radius.pill,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: focused ? colors.primaryMuted : 'transparent',
+                  transform: [{ scale: pressed ? 0.9 : 1 }],
+                }}
+              >
+                {options.tabBarIcon?.({ focused, color, size: 22 })}
+              </View>
+            )}
           </Pressable>
         );
       })}

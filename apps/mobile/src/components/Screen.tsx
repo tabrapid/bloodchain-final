@@ -2,6 +2,7 @@ import { PropsWithChildren } from 'react';
 import { ScrollView, ScrollViewProps, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import Svg, { Defs, RadialGradient, Stop, Circle } from 'react-native-svg';
 import { spacing, useTheme } from '../theme';
 
 export interface ScreenProps extends ScrollViewProps {
@@ -25,22 +26,29 @@ export function Screen({
         behind them, so a flat single-color background blurs to that exact same
         flat color -- the effect only becomes visible when there is color
         variation to smear. These orbs are that variation.
-        pointerEvents="none" keeps them out of the touch path entirely.
+        Each is a radial gradient (full color at center, fading to fully
+        transparent at the edge) rather than a flat-filled circle -- a real
+        soft glow instead of a hard-edged "concept art" blob, and cheaper than
+        a full-screen BlurView (no extra compositing pass on top of the blur
+        every glass card already does). pointerEvents="none" keeps it out of
+        the touch path.
       */}
-      <View style={{ ...StyleSheetAbsoluteFill }} pointerEvents="none">
+      <View style={StyleSheetAbsoluteFill} pointerEvents="none">
         {colors.ambientOrbs.map((orb, i) => (
-          <View
+          <Svg
             key={i}
-            style={{
-              position: 'absolute',
-              top: orb.top,
-              left: orb.left,
-              width: orb.size,
-              height: orb.size,
-              borderRadius: orb.size / 2,
-              backgroundColor: orb.color,
-            }}
-          />
+            style={{ position: 'absolute', top: orb.top, left: orb.left }}
+            width={orb.size}
+            height={orb.size}
+          >
+            <Defs>
+              <RadialGradient id={`orb-${i}`} cx="50%" cy="50%" r="50%">
+                <Stop offset="0%" stopColor={orb.color} stopOpacity={1} />
+                <Stop offset="100%" stopColor={orb.color} stopOpacity={0} />
+              </RadialGradient>
+            </Defs>
+            <Circle cx={orb.size / 2} cy={orb.size / 2} r={orb.size / 2} fill={`url(#orb-${i})`} />
+          </Svg>
         ))}
       </View>
 

@@ -2,9 +2,20 @@ import { useCallback, useEffect, useState } from 'react';
 import { router } from 'expo-router';
 import type { RelativePathString } from 'expo-router';
 import { TouchableOpacity, View, RefreshControl, ScrollView } from 'react-native';
-import { Activity, Brain, ChevronRight, Droplet, FlaskConical, Thermometer, TrendingUp, Wind } from 'lucide-react-native';
-import { AppText, Card, Divider, GlassCard, LoadingState, Screen, SectionHeader, StatCard } from '../../src/components';
-import { spacing, useTheme } from '../../src/theme';
+import {
+  Activity,
+  Brain,
+  ChevronRight,
+  Droplet,
+  FlaskConical,
+  ShieldCheck,
+  Thermometer,
+  TrendingDown,
+  TrendingUp,
+  Wind,
+} from 'lucide-react-native';
+import { AppText, Card, Divider, GlassCard, GradientCard, LoadingState, Screen, SectionHeader, Sparkline, StatCard } from '../../src/components';
+import { spacing, typography, useTheme } from '../../src/theme';
 import { getTrendSummary, TrendSummary } from '../../src/api/health-trends';
 import { getDonorResults, LaboratoryResult } from '../../src/api/laboratory';
 import { getInsightHistory, AiInsight } from '../../src/api/ai-health';
@@ -57,6 +68,11 @@ export default function Health() {
   }
 
   const latestParam = summary?.availableParameters[0];
+  const trend = summary?.recentTrend;
+  const trendValues = trend?.points.map((p) => p.value) ?? [];
+  const trendMin = trendValues.length ? Math.min(...trendValues) : undefined;
+  const trendMax = trendValues.length ? Math.max(...trendValues) : undefined;
+  const TrendIcon = trend?.trend === 'INCREASING' ? TrendingUp : trend?.trend === 'DECREASING' ? TrendingDown : undefined;
 
   return (
     <Screen>
@@ -69,8 +85,83 @@ export default function Health() {
       >
         <AppText variant="title">Health</AppText>
         <AppText muted style={{ marginTop: spacing.sm }}>
-          A calm view of your health journey.
+          Your health overview
         </AppText>
+
+        {(trend || latestParam) && (
+          <TouchableOpacity
+            onPress={() => router.push('/health-trends' as RelativePathString)}
+            activeOpacity={0.9}
+            style={{ marginTop: spacing.lg }}
+          >
+            <GradientCard colors={[colors.primary, colors.secondary]}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <View style={{ flex: 1 }}>
+                  <AppText style={{ fontSize: 11, fontWeight: '700', letterSpacing: 1.2, color: 'rgba(255,255,255,0.8)' }}>
+                    LATEST TRACKED
+                  </AppText>
+                  <AppText style={{ fontSize: 16, fontWeight: '600', color: '#FFFFFF', marginTop: 2 }}>
+                    {(trend?.parameterName ?? latestParam?.name)!}
+                  </AppText>
+                  <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 4, marginTop: spacing.xs }}>
+                    <AppText style={{ ...typography.numeric, fontSize: 44, color: '#FFFFFF' }}>
+                      {trend?.latestValue ?? latestParam?.latestValue ?? '—'}
+                    </AppText>
+                    {(trend?.unit ?? latestParam?.unit) && (
+                      <AppText style={{ fontSize: 16, color: 'rgba(255,255,255,0.75)' }}>
+                        {trend?.unit ?? latestParam?.unit}
+                      </AppText>
+                    )}
+                  </View>
+                  <AppText style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', marginTop: 2 }}>
+                    {trend ? `${trend.points.length} measurement${trend.points.length !== 1 ? 's' : ''}` : `${latestParam?.measurementCount} measurement${latestParam?.measurementCount !== 1 ? 's' : ''}`}
+                  </AppText>
+                </View>
+                <View style={{ alignItems: 'flex-end', gap: spacing.sm }}>
+                  <View
+                    style={{
+                      width: 44,
+                      height: 44,
+                      borderRadius: 14,
+                      backgroundColor: 'rgba(255,255,255,0.15)',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Activity size={22} color="#FFFFFF" />
+                  </View>
+                  {TrendIcon && trend?.percentageChange != null && (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                      <TrendIcon size={13} color="rgba(255,255,255,0.85)" />
+                      <AppText style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)' }}>
+                        {Math.abs(trend.percentageChange).toFixed(1)}%
+                      </AppText>
+                    </View>
+                  )}
+                </View>
+              </View>
+
+              {trendValues.length >= 2 && (
+                <>
+                  <View style={{ marginTop: spacing.md }}>
+                    <Sparkline values={trendValues} color="rgba(255,255,255,0.55)" />
+                  </View>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: spacing.xs }}>
+                    <AppText style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)' }}>Min {trendMin}</AppText>
+                    <AppText style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)' }}>Max {trendMax}</AppText>
+                  </View>
+                </>
+              )}
+
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: spacing.md }}>
+                <AppText style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)' }}>
+                  Track your laboratory results over time
+                </AppText>
+                <ChevronRight size={18} color="rgba(255,255,255,0.85)" />
+              </View>
+            </GradientCard>
+          </TouchableOpacity>
+        )}
 
         <SectionHeader>OVERVIEW</SectionHeader>
         <View style={{ flexDirection: 'row', gap: spacing.md }}>
@@ -142,70 +233,9 @@ export default function Health() {
           </>
         )}
 
-        <SectionHeader>TRENDS</SectionHeader>
-        <TouchableOpacity onPress={() => router.push('/health-trends' as RelativePathString)}>
-          <Card>
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: spacing.md,
-                marginBottom: spacing.md,
-              }}
-            >
-              <View
-                style={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: 12,
-                  backgroundColor: colors.successMuted,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <TrendingUp size={24} color={colors.onMuted.success} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <AppText variant="heading">View Health Trends</AppText>
-                <AppText muted style={{ fontSize: 13 }}>
-                  Track your laboratory results over time
-                </AppText>
-              </View>
-              <ChevronRight size={20} color={colors.textMuted} />
-            </View>
-            {latestParam && (
-              <View
-                style={{
-                  padding: spacing.md,
-                  backgroundColor: colors.surface,
-                  borderRadius: 8,
-                }}
-              >
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <View>
-                    <AppText muted style={{ fontSize: 12 }}>Latest tracked</AppText>
-                    <AppText variant="heading">{latestParam.name}</AppText>
-                    <AppText muted style={{ fontSize: 12 }}>
-                      {latestParam.latestValue} {latestParam.unit} • {latestParam.measurementCount} measurements
-                    </AppText>
-                  </View>
-                  <AppText
-                    style={{
-                      fontSize: 20,
-                      fontWeight: '600',
-                      color: colors.primary,
-                    }}
-                  >
-                    {latestParam.latestValue}
-                  </AppText>
-                </View>
-              </View>
-            )}
-          </Card>
-        </TouchableOpacity>
-
+        <SectionHeader>BLOOD TESTS</SectionHeader>
         <TouchableOpacity onPress={() => router.push('/laboratory' as RelativePathString)}>
-          <Card style={{ marginTop: spacing.md }}>
+          <Card>
             <View
               style={{
                 flexDirection: 'row',
@@ -330,11 +360,12 @@ export default function Health() {
           </>
         )}
 
-        <SectionHeader>ACTIVITY</SectionHeader>
-        <GlassCard>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
-            <Activity size={22} color={colors.success} />
-            <AppText>Your health data is private and secure.</AppText>
+        <GlassCard style={{ marginTop: spacing.lg, paddingVertical: spacing.sm }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+            <ShieldCheck size={16} color={colors.onMuted.success} />
+            <AppText muted style={{ fontSize: 12 }}>
+              Your health data is private and secure.
+            </AppText>
           </View>
         </GlassCard>
       </ScrollView>

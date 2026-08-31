@@ -12,15 +12,15 @@ import {
   ProgressBar,
   Screen,
   SectionHeader,
-  StatCard,
 } from '../../src/components';
+import { achievementIconMap } from '../../src/components/gamification/AchievementCard';
 import { useLogout } from '../../src/hooks/useAuth';
 import { useUserProfile } from '../../src/hooks/useUsers';
 import { useDonorProfile } from '../../src/hooks/useDonors';
 import { useProfileCompletion } from '../../src/hooks/useDonors';
 import { useGamificationProfile, useLevelProgress, useAchievements } from '../../src/hooks/useGamification';
-import { spacing, useTheme, ThemeColors } from '../../src/theme';
-import { Award, Bell, Droplet, Lock, Shield, User } from 'lucide-react-native';
+import { spacing, radius, typography, useTheme, ThemeColors } from '../../src/theme';
+import { Award, Bell, ChevronRight, Droplet, Lock, Shield, User } from 'lucide-react-native';
 import { useMemo } from 'react';
 
 export default function Profile() {
@@ -37,6 +37,7 @@ export default function Profile() {
   const completion = completionData?.data;
   const unlockedCount = achievements?.unlocked.length ?? 0;
   const inProgressCount = achievements?.inProgress.length ?? 0;
+  const badgePreviews = (achievements?.unlocked.length ? achievements.unlocked : achievements?.inProgress ?? []).slice(0, 3);
 
   const fullName = user
     ? [user.firstName, user.lastName].filter(Boolean).join(' ') || 'Donor'
@@ -46,11 +47,27 @@ export default function Profile() {
     ? `${donor.bloodType}${donor.rhFactor === 'POSITIVE' ? '+' : '-'}`
     : '—';
 
-  const verificationLabel = donor?.verificationStatus === 'VERIFIED'
+  const verificationShortLabel = donor?.verificationStatus === 'VERIFIED'
     ? 'Verified'
     : donor?.verificationStatus === 'REQUIRES_REVIEW'
     ? 'Under Review'
     : 'Unverified';
+
+  const verificationLabel = donor?.verificationStatus === 'VERIFIED'
+    ? 'Verified Donor'
+    : verificationShortLabel;
+
+  const statusDotColor = donor?.verificationStatus === 'VERIFIED'
+    ? colors.success
+    : donor?.verificationStatus === 'REQUIRES_REVIEW'
+    ? colors.warning
+    : colors.textMuted;
+
+  const statusTextColor = donor?.verificationStatus === 'VERIFIED'
+    ? colors.onMuted.success
+    : donor?.verificationStatus === 'REQUIRES_REVIEW'
+    ? colors.onMuted.warning
+    : colors.textMuted;
 
   const statusBg = donor?.verificationStatus === 'VERIFIED'
     ? colors.successMuted
@@ -58,11 +75,7 @@ export default function Profile() {
     ? colors.warningMuted
     : colors.surfaceElevated;
 
-  const statusColor = donor?.verificationStatus === 'VERIFIED'
-    ? colors.onMuted.success
-    : donor?.verificationStatus === 'REQUIRES_REVIEW'
-    ? colors.onMuted.warning
-    : colors.textMuted;
+  const statusColor = statusTextColor;
 
   return (
     <Screen>
@@ -70,12 +83,19 @@ export default function Profile() {
 
       <GlassCard elevated style={styles.profileCard}>
         <View style={styles.profileHeader}>
-          <Avatar name={fullName} size={72} />
+          <View style={[styles.avatarRing, { borderColor: statusDotColor }]}>
+            <Avatar name={fullName} size={68} />
+          </View>
           <View style={styles.profileInfo}>
-            <AppText variant="title">{fullName}</AppText>
-            <AppText muted>{user?.email}</AppText>
-            <View style={[styles.statusBadge, { backgroundColor: statusBg }]}>
-              <AppText style={[styles.statusText, { color: statusColor }]}>
+            <AppText variant="heading" numberOfLines={1}>
+              {fullName}
+            </AppText>
+            <AppText muted style={styles.emailText} numberOfLines={1}>
+              {user?.email}
+            </AppText>
+            <View style={styles.statusRow}>
+              <View style={[styles.statusDot, { backgroundColor: statusDotColor }]} />
+              <AppText style={[styles.statusText, { color: statusTextColor }]}>
                 {verificationLabel}
               </AppText>
             </View>
@@ -152,6 +172,18 @@ export default function Profile() {
                 {unlockedCount} earned · {inProgressCount} in progress
               </AppText>
             </View>
+            {badgePreviews.length > 0 && (
+              <View style={styles.badgePreviewRow}>
+                {badgePreviews.map((badge) => (
+                  <View key={badge.id} style={styles.badgePreview}>
+                    <AppText style={styles.badgePreviewText}>
+                      {achievementIconMap[badge.icon] ?? '?'}
+                    </AppText>
+                  </View>
+                ))}
+              </View>
+            )}
+            <ChevronRight size={18} color={colors.textMuted} />
           </View>
         </GlassCard>
       </TouchableOpacity>
@@ -189,19 +221,21 @@ export default function Profile() {
         colors={[colors.primary, colors.ai]}
         style={styles.bloodTypeCard}
       >
+        <Droplet
+          size={140}
+          color="rgba(255,255,255,0.10)"
+          fill="rgba(255,255,255,0.06)"
+          style={styles.bloodTypeWatermark}
+        />
         <View style={styles.bloodTypeHeader}>
-          <Droplet size={24} color="#FFFFFF" />
-          <AppText variant="heading" style={styles.onGradientText}>
-            Blood Type
-          </AppText>
+          <Droplet size={16} color="rgba(255,255,255,0.85)" fill="rgba(255,255,255,0.5)" />
+          <AppText style={styles.bloodTypeEyebrow}>YOUR BLOOD TYPE</AppText>
         </View>
         <View style={styles.bloodTypeValue}>
-          <AppText variant="numeric" style={styles.bloodTypeText}>
-            {bloodTypeDisplay}
-          </AppText>
+          <AppText style={styles.bloodTypeText}>{bloodTypeDisplay}</AppText>
           <View style={[styles.verificationBadge, { backgroundColor: statusBg }]}>
             <AppText style={[styles.verificationText, { color: statusColor }]}>
-              {verificationLabel}
+              {verificationShortLabel}
             </AppText>
           </View>
         </View>
@@ -276,21 +310,32 @@ function createStyles(colors: ThemeColors) {
       alignItems: 'center',
       gap: spacing.md,
     },
+    avatarRing: {
+      padding: 3,
+      borderRadius: radius.pill,
+      borderWidth: 2,
+    },
     profileInfo: {
       flex: 1,
     },
-    statusBadge: {
-      alignSelf: 'flex-start',
-      paddingHorizontal: spacing.sm,
-      paddingVertical: spacing.xs,
-      borderRadius: spacing.xs,
+    emailText: {
+      fontSize: 13,
+      marginTop: 1,
+    },
+    statusRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
       marginTop: spacing.xs,
     },
+    statusDot: {
+      width: 7,
+      height: 7,
+      borderRadius: 4,
+    },
     statusText: {
-      fontSize: 11,
+      fontSize: 12,
       fontWeight: '600',
-      textTransform: 'uppercase',
-      letterSpacing: 0.5,
     },
     statsRow: {
       flexDirection: 'row',
@@ -304,11 +349,13 @@ function createStyles(colors: ThemeColors) {
       alignItems: 'center',
     },
     statValue: {
-      fontSize: 20,
+      fontSize: 22,
+      fontWeight: '700',
     },
     statLabel: {
       fontSize: 11,
-      marginTop: 2,
+      marginTop: 3,
+      textAlign: 'center',
     },
     xpSection: {
       marginTop: spacing.md,
@@ -344,6 +391,23 @@ function createStyles(colors: ThemeColors) {
       backgroundColor: colors.warningMuted,
       alignItems: 'center',
       justifyContent: 'center',
+    },
+    badgePreviewRow: {
+      flexDirection: 'row',
+      gap: 4,
+    },
+    badgePreview: {
+      width: 26,
+      height: 26,
+      borderRadius: 13,
+      backgroundColor: colors.warningMuted,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    badgePreviewText: {
+      fontSize: 10,
+      fontWeight: '700',
+      color: colors.onMuted.warning,
     },
     completionCard: {
       marginBottom: spacing.lg,
@@ -383,11 +447,22 @@ function createStyles(colors: ThemeColors) {
     bloodTypeCard: {
       marginBottom: spacing.lg,
     },
+    bloodTypeWatermark: {
+      position: 'absolute',
+      top: -24,
+      right: -24,
+    },
     bloodTypeHeader: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: spacing.sm,
-      marginBottom: spacing.md,
+      gap: spacing.xs,
+      marginBottom: spacing.sm,
+    },
+    bloodTypeEyebrow: {
+      fontSize: 11,
+      fontWeight: '700',
+      letterSpacing: 1.2,
+      color: 'rgba(255,255,255,0.85)',
     },
     bloodTypeValue: {
       flexDirection: 'row',
@@ -395,6 +470,7 @@ function createStyles(colors: ThemeColors) {
       gap: spacing.md,
     },
     bloodTypeText: {
+      ...typography.bloodType,
       color: '#FFFFFF',
     },
     verificationBadge: {

@@ -12,6 +12,7 @@ export * from './Avatar';
 export * from './SectionHeader';
 export * from './ScreenHeader';
 export * from './ProgressBar';
+export * from './Sparkline';
 export * from './StatCard';
 export * from './ListItem';
 export * from './Skeleton';

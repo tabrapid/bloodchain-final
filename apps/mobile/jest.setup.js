@@ -35,3 +35,11 @@ jest.mock('expo-blur', () => {
     BlurView: ({ children, ...props }) => React.createElement(View, props, children),
   };
 });
+
+// react-native-reanimated's real implementation drives animations off the UI
+// thread, so `withTiming` never resolves during a synchronous test render --
+// components using it (ProgressBar, XpProgressBar) would snapshot at their
+// initial value instead of the target. The library ships an official test
+// mock (`withTiming`/`withSpring` resolve straight to their target value)
+// for exactly this.
+jest.mock('react-native-reanimated', () => require('react-native-reanimated/mock'));
