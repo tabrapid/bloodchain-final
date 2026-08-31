@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { View } from 'react-native';
-import { Activity } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Droplet } from 'lucide-react-native';
 import { AppButton, AppText, Screen } from '../../src/components';
 import { spacing, useTheme } from '../../src/theme';
 
@@ -8,25 +9,41 @@ export default function Welcome() {
   const { colors } = useTheme();
   return (
     <Screen>
-      <View style={{ flex: 1, justifyContent: 'center' }}>
-        <View
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+        <LinearGradient
+          colors={colors.heroGradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
           style={{
-            width: 64,
-            height: 64,
-            borderRadius: 20,
-            backgroundColor: colors.primaryMuted,
+            width: 88,
+            height: 88,
+            borderRadius: 26,
             alignItems: 'center',
             justifyContent: 'center',
             marginBottom: spacing.xl,
           }}
         >
-          <Activity size={32} color={colors.onMuted.primary} />
-        </View>
-        <AppText variant="display">Care that moves{`\n`}with you.</AppText>
-        <AppText muted style={{ marginTop: spacing.md, lineHeight: 23 }}>
-          DONOR gives you a clearer, more confident way to stay connected to your health journey.
+          <Droplet size={42} color="#FFFFFF" fill="#FFFFFF" />
+        </LinearGradient>
+        <AppText
+          style={{
+            fontSize: 13,
+            fontWeight: '700',
+            letterSpacing: 4,
+            color: colors.textMuted,
+            marginBottom: spacing.md,
+          }}
+        >
+          DONOR
         </AppText>
-        <View style={{ marginTop: spacing['2xl'] }}>
+        <AppText variant="display" style={{ textAlign: 'center' }}>
+          Care that moves{`\n`}with you.
+        </AppText>
+        <AppText muted style={{ marginTop: spacing.md, lineHeight: 23, textAlign: 'center' }}>
+          Track your donations, monitor your health, and connect with your community — all in one
+          place.
+        </AppText>
+        <View style={{ marginTop: spacing['2xl'], width: '100%' }}>
           <AppButton onPress={() => router.push('/(auth)/login')}>Sign in</AppButton>
           <AppButton
             variant="ghost"
@@ -36,6 +53,18 @@ export default function Welcome() {
             Create an account
           </AppButton>
         </View>
+        <AppText
+          muted
+          style={{
+            marginTop: spacing.xl,
+            fontSize: 11,
+            textAlign: 'center',
+            opacity: 0.7,
+            lineHeight: 16,
+          }}
+        >
+          By continuing you agree to our Terms of Service and Privacy Policy
+        </AppText>
       </View>
     </Screen>
   );

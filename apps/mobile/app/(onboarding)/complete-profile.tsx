@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react';
-import { Alert, View, TextInput, StyleSheet } from 'react-native';
+import { Alert, View, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import * as Location from 'expo-location';
-import { AppButton, AppText, Screen, ProgressBar } from '../../src/components';
+import { AppButton, AppText, AppTextInput, Screen, ProgressBar } from '../../src/components';
 import { spacing, radius, useTheme, ThemeColors } from '../../src/theme';
 import { useUpdateDonorProfile } from '../../src/hooks/useDonors';
 import { useUpdateUserProfile } from '../../src/hooks/useUsers';
@@ -161,24 +161,20 @@ export default function OnboardingWelcome() {
             <AppText muted style={styles.subtitle}>
               Tell us a bit about yourself.
             </AppText>
-            <TextInput
-              style={styles.input}
+            <AppTextInput
               placeholder="First Name"
-              placeholderTextColor={colors.textMuted}
+              wrapperStyle={styles.inputWrapper}
               value={formData.firstName}
               onChangeText={(v) => updateField('firstName', v)}
             />
-            <TextInput
-              style={styles.input}
+            <AppTextInput
               placeholder="Last Name"
-              placeholderTextColor={colors.textMuted}
+              wrapperStyle={styles.inputWrapper}
               value={formData.lastName}
               onChangeText={(v) => updateField('lastName', v)}
             />
-            <TextInput
-              style={styles.input}
+            <AppTextInput
               placeholder="Phone (optional)"
-              placeholderTextColor={colors.textMuted}
               keyboardType="phone-pad"
               value={formData.phone}
               onChangeText={(v) => updateField('phone', v)}
@@ -237,17 +233,14 @@ export default function OnboardingWelcome() {
             <AppText muted style={styles.subtitle}>
               Where are you located? This helps us find nearby donation centers.
             </AppText>
-            <TextInput
-              style={styles.input}
+            <AppTextInput
               placeholder="City"
-              placeholderTextColor={colors.textMuted}
+              wrapperStyle={styles.inputWrapper}
               value={formData.city}
               onChangeText={(v) => updateField('city', v)}
             />
-            <TextInput
-              style={styles.input}
+            <AppTextInput
               placeholder="District (optional)"
-              placeholderTextColor={colors.textMuted}
               value={formData.district}
               onChangeText={(v) => updateField('district', v)}
             />
@@ -528,15 +521,8 @@ function createStyles(colors: ThemeColors) {
     borderRadius: 4,
     backgroundColor: colors.primary,
   },
-  input: {
-    backgroundColor: colors.surfaceSolid,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: radius.sm,
-    padding: spacing.md,
-    color: colors.text,
+  inputWrapper: {
     marginBottom: spacing.md,
-    fontSize: 16,
   },
   bloodTypeGrid: {
     flexDirection: 'row',

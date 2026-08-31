@@ -35,13 +35,13 @@ export function AppButton({
   const variants = getVariants(colors);
   const flattenedStyle = StyleSheet.flatten(style);
   const isDisabled = disabled || loading;
-  const textColor = variant === 'secondary' || variant === 'ghost' ? colors.text : colors.white;
+  const textColor = variant === 'secondary' || variant === 'ghost' ? colors.primary : colors.white;
   const textStyle = { ...typography.button, color: textColor };
 
   return (
     <Pressable
       style={({ pressed }) => ({
-        borderRadius: radius.sm,
+        borderRadius: radius.pill,
         paddingVertical: size === 'small' ? spacing.sm : spacing.md,
         paddingHorizontal: spacing.md,
         alignItems: 'center',
