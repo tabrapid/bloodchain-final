@@ -69,7 +69,7 @@ export default function GamificationScreen() {
       >
 
         <GradientCard
-          colors={[colors.primary, colors.ai]}
+          colors={colors.heroGradient}
           style={styles.profileCard}
         >
           <View style={styles.profileHeader}>

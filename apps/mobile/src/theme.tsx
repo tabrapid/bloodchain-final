@@ -30,6 +30,8 @@ export interface ThemeColors {
   white: string;
   background: string;
   backgroundGradient: [string, string, string];
+  /** The monochrome rose/plum hero gradient used on every "featured" GradientCard (blood type, donate CTA, health trend). */
+  heroGradient: [string, string, string];
   /** Soft ambient color blooms painted behind content, so blur has depth to pick up. */
   ambientOrbs: { color: string; size: number; top: number; left: number }[];
   /** Top-lit specular gradient painted inside every glass panel. */
@@ -75,13 +77,13 @@ const darkColors: ThemeColors = {
   ...accent,
   background: '#070B12',
   backgroundGradient: ['#141C2E', '#0B1119', '#06090F'],
-  // Kept subtle -- a real ambient touch behind content, not a dominant haze
-  // that washes out every screen (smaller radius + lower opacity than the
-  // first pass).
+  heroGradient: ['#D85360', '#8E3A59', '#5B3080'],
+  // Matches the Create Design reference's ColorBlooms spec exactly: 3
+  // blooms ~280-320px, ~24% opacity in dark mode.
   ambientOrbs: [
-    { color: 'rgba(216,83,96,0.11)', size: 300, top: -100, left: -110 },
-    { color: 'rgba(104,183,209,0.08)', size: 260, top: 280, left: 220 },
-    { color: 'rgba(142,130,223,0.08)', size: 260, top: 640, left: -90 },
+    { color: 'rgba(216,83,96,0.24)', size: 320, top: -80, left: -60 },
+    { color: 'rgba(104,183,209,0.24)', size: 300, top: 300, left: 220 },
+    { color: 'rgba(142,130,223,0.24)', size: 280, top: 620, left: -70 },
   ],
   glassSheen: ['rgba(255,255,255,0.16)', 'rgba(255,255,255,0.03)'],
   glassBorder: 'rgba(255,255,255,0.26)',
@@ -90,8 +92,8 @@ const darkColors: ThemeColors = {
   surfaceHighlight: 'rgba(255,255,255,0.18)',
   surfaceSolid: '#111A24',
   surfaceSolidElevated: '#182431',
-  text: '#F7F9FA',
-  textMuted: '#96A5B2',
+  text: '#F2F5F7',
+  textMuted: '#8495A3',
   border: 'rgba(255,255,255,0.10)',
   borderSubtle: 'rgba(255,255,255,0.06)',
   overlay: 'rgba(0,0,0,0.6)',
@@ -122,10 +124,11 @@ const lightColors: ThemeColors = {
   ...accent,
   background: '#EFF1F9',
   backgroundGradient: ['#FBF2FA', '#F1F1FC', '#E9F1FB'],
+  heroGradient: ['#D85360', '#8E3A59', '#5B3080'],
   ambientOrbs: [
-    { color: 'rgba(216,83,96,0.08)', size: 300, top: -100, left: -110 },
-    { color: 'rgba(104,183,209,0.08)', size: 260, top: 280, left: 220 },
-    { color: 'rgba(142,130,223,0.07)', size: 260, top: 640, left: -90 },
+    { color: 'rgba(216,83,96,0.16)', size: 320, top: -80, left: -60 },
+    { color: 'rgba(104,183,209,0.16)', size: 300, top: 300, left: 220 },
+    { color: 'rgba(142,130,223,0.16)', size: 280, top: 620, left: -70 },
   ],
   glassSheen: ['rgba(255,255,255,0.8)', 'rgba(255,255,255,0.4)'],
   glassBorder: 'rgba(255,255,255,0.9)',
@@ -134,8 +137,8 @@ const lightColors: ThemeColors = {
   surfaceHighlight: 'rgba(255,255,255,0.92)',
   surfaceSolid: '#FFFFFF',
   surfaceSolidElevated: '#FAFAFC',
-  text: '#0D1117',
-  textMuted: '#57626F',
+  text: '#12161C',
+  textMuted: '#5B6674',
   border: 'rgba(15,23,42,0.09)',
   borderSubtle: 'rgba(15,23,42,0.05)',
   overlay: 'rgba(15,23,42,0.45)',
@@ -167,9 +170,9 @@ export const spacing = {
 } as const;
 
 export const radius = {
-  sm: 14,
-  md: 20,
-  lg: 28,
+  sm: 12,
+  md: 18,
+  lg: 26,
   xl: 34,
   pill: 999,
 } as const;

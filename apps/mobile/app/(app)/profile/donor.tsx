@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { View, TextInput, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { router } from 'expo-router';
-import { AppButton, AppText, Card, Screen } from '../../../src/components';
+import { AppButton, AppText, AppTextInput, Card, Screen } from '../../../src/components';
 import { useUpdateDonorProfile } from '../../../src/hooks/useDonors';
 import { useDonorProfile } from '../../../src/hooks/useDonors';
-import { spacing, radius, useTheme, ThemeColors } from '../../../src/theme';
+import { spacing, useTheme, ThemeColors } from '../../../src/theme';
 import { ApiRequestError } from '../../../src/api/client';
 
 const BLOOD_TYPES = ['A', 'B', 'AB', 'O'] as const;
@@ -130,27 +130,20 @@ export default function EditDonorProfile() {
               Location
             </AppText>
 
-            <View style={styles.field}>
-              <AppText muted style={styles.label}>City</AppText>
-              <TextInput
-                style={styles.input}
-                placeholder="Your city"
-                placeholderTextColor={colors.textMuted}
-                value={formData.city}
-                onChangeText={(v) => handleChange('city', v)}
-              />
-            </View>
+            <AppTextInput
+              label="City"
+              placeholder="Your city"
+              wrapperStyle={styles.field}
+              value={formData.city}
+              onChangeText={(v) => handleChange('city', v)}
+            />
 
-            <View style={styles.field}>
-              <AppText muted style={styles.label}>District (optional)</AppText>
-              <TextInput
-                style={styles.input}
-                placeholder="Your district"
-                placeholderTextColor={colors.textMuted}
-                value={formData.district}
-                onChangeText={(v) => handleChange('district', v)}
-              />
-            </View>
+            <AppTextInput
+              label="District (optional)"
+              placeholder="Your district"
+              value={formData.district}
+              onChangeText={(v) => handleChange('district', v)}
+            />
           </View>
 
           {saveError && (
@@ -229,19 +222,6 @@ function createStyles(colors: ThemeColors) {
     },
     field: {
       marginBottom: spacing.md,
-    },
-    label: {
-      fontSize: 13,
-      marginBottom: spacing.xs,
-    },
-    input: {
-      backgroundColor: colors.surfaceSolid,
-      borderColor: colors.border,
-      borderWidth: 1,
-      borderRadius: radius.sm,
-      padding: spacing.md,
-      color: colors.text,
-      fontSize: 16,
     },
     footer: {
       flexDirection: 'row',

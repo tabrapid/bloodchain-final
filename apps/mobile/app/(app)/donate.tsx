@@ -43,7 +43,7 @@ export default function Donate() {
         Make an impact, on your terms.
       </AppText>
 
-      <GradientCard colors={[colors.primary, colors.ai]} style={{ marginTop: spacing.xl }}>
+      <GradientCard colors={colors.heroGradient} style={{ marginTop: spacing.xl }}>
         <Droplet
           size={120}
           color="rgba(255,255,255,0.10)"

@@ -1,18 +1,17 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Pressable, TextInput, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { Eye, EyeOff } from 'lucide-react-native';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema, type LoginInput } from '@bloodchain/validation';
-import { AppButton, AppText, Screen } from '../../src/components';
+import { AppButton, AppText, AppTextInput, Screen } from '../../src/components';
 import { useLogin, getAuthErrorMessage } from '../../src/hooks/useAuth';
 import { getPostAuthRoute } from '../../src/utils/postAuthRoute';
-import { spacing, useTheme, ThemeColors } from '../../src/theme';
+import { spacing, useTheme } from '../../src/theme';
 
 export default function Login() {
   const { colors } = useTheme();
-  const inputStyle = getInputStyle(colors);
   const login = useLogin();
   const [serverError, setServerError] = useState<string | null>(null);
   const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
@@ -49,12 +48,13 @@ export default function Login() {
           control={control}
           name="email"
           render={({ field, fieldState }) => (
-            <TextInput
-              placeholder="Email address"
-              placeholderTextColor={colors.textMuted}
+            <AppTextInput
+              label="Email address"
+              placeholder="you@example.com"
               autoCapitalize="none"
               keyboardType="email-address"
-              style={[inputStyle, fieldState.error && { borderColor: colors.danger }]}
+              error={fieldState.error?.message}
+              wrapperStyle={{ marginBottom: spacing.md }}
               value={field.value}
               onChangeText={field.onChange}
               onBlur={field.onBlur}
@@ -66,32 +66,25 @@ export default function Login() {
           control={control}
           name="password"
           render={({ field, fieldState }) => (
-            <View style={{ marginBottom: spacing.lg }}>
-              <TextInput
-                placeholder="Password"
-                placeholderTextColor={colors.textMuted}
-                secureTextEntry={!showPassword}
-                style={[
-                  inputStyle,
-                  { marginBottom: 0, paddingRight: 48 },
-                  fieldState.error && { borderColor: colors.danger },
-                ]}
-                value={field.value}
-                onChangeText={field.onChange}
-                onBlur={field.onBlur}
-              />
-              <Pressable
-                onPress={() => setShowPassword((v) => !v)}
-                style={{ position: 'absolute', right: 14, top: 0, bottom: 0, justifyContent: 'center' }}
-                hitSlop={8}
-              >
-                {showPassword ? (
-                  <EyeOff size={20} color={colors.textMuted} />
-                ) : (
-                  <Eye size={20} color={colors.textMuted} />
-                )}
-              </Pressable>
-            </View>
+            <AppTextInput
+              label="Password"
+              placeholder="••••••••"
+              secureTextEntry={!showPassword}
+              error={fieldState.error?.message}
+              wrapperStyle={{ marginBottom: spacing.lg }}
+              trailing={
+                <Pressable onPress={() => setShowPassword((v) => !v)} hitSlop={8}>
+                  {showPassword ? (
+                    <EyeOff size={20} color={colors.textMuted} />
+                  ) : (
+                    <Eye size={20} color={colors.textMuted} />
+                  )}
+                </Pressable>
+              }
+              value={field.value}
+              onChangeText={field.onChange}
+              onBlur={field.onBlur}
+            />
           )}
         />
 
@@ -127,16 +120,4 @@ export default function Login() {
       </View>
     </Screen>
   );
-}
-
-function getInputStyle(colors: ThemeColors) {
-  return {
-    backgroundColor: colors.surfaceSolid,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: 10,
-    padding: 16,
-    color: colors.text,
-    marginBottom: 12,
-  };
 }

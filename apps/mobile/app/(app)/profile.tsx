@@ -221,7 +221,7 @@ export default function Profile() {
       )}
 
       <GradientCard
-        colors={[colors.primary, colors.ai]}
+        colors={colors.heroGradient}
         style={styles.bloodTypeCard}
       >
         <Droplet
