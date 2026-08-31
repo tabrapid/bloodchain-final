@@ -121,7 +121,7 @@ export default function BloodCenterDashboard() {
       <AppShell
         title="Loading..."
         subtitle="BLOOD CENTER CONSOLE"
-        organizationName="Northstar Blood Center (Development)"
+        organizationName="Blood Center Console"
         organizationType="Operations workspace"
         userName="Loading..."
       >
@@ -137,7 +137,7 @@ export default function BloodCenterDashboard() {
       <AppShell
         title="Authentication Required"
         subtitle="BLOOD CENTER CONSOLE"
-        organizationName="Northstar Blood Center (Development)"
+        organizationName="Blood Center Console"
         organizationType="Operations workspace"
         userName="Guest"
       >
@@ -240,7 +240,7 @@ export default function BloodCenterDashboard() {
       <AppShell
         title="Access Denied"
         subtitle="BLOOD CENTER CONSOLE"
-        organizationName="Northstar Blood Center (Development)"
+        organizationName={bloodCenterOrg?.name ?? user.organizations[0]?.name ?? 'Blood Center Console'}
         organizationType="Operations workspace"
         userName={`${user.firstName} ${user.lastName}`}
       >
@@ -267,7 +267,7 @@ export default function BloodCenterDashboard() {
     <AppShell
       title={`Good morning, ${user.firstName}.`}
       subtitle="BLOOD CENTER CONSOLE"
-      organizationName="Northstar Blood Center (Development)"
+      organizationName={bloodCenterOrg?.name ?? 'Blood Center Console'}
       organizationType="Operations workspace"
       userName={`${user.firstName} ${user.lastName}`}
     >

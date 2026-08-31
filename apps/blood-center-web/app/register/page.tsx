@@ -49,7 +49,7 @@ export default function RegisterBloodCenterPage() {
       <AppShell
         title="Registration Submitted"
         subtitle="BLOOD CENTER CONSOLE"
-        organizationName="Northstar Blood Center (Development)"
+        organizationName={organizationName || 'Blood Center Console'}
         organizationType="Operations workspace"
         userName="Guest"
       >
@@ -78,7 +78,7 @@ export default function RegisterBloodCenterPage() {
     <AppShell
       title="Register Your Blood Center"
       subtitle="BLOOD CENTER CONSOLE"
-      organizationName="Northstar Blood Center (Development)"
+      organizationName={organizationName || 'Blood Center Console'}
       organizationType="Operations workspace"
       userName="Guest"
     >

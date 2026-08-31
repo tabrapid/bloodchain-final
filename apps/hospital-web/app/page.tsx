@@ -111,7 +111,7 @@ export default function HospitalDashboard() {
       <AppShell
         title="Loading..."
         subtitle="HOSPITAL CONSOLE"
-        organizationName="Northstar Hospital (Development)"
+        organizationName="Hospital Console"
         organizationType="Operations workspace"
         userName="Loading..."
       >
@@ -127,7 +127,7 @@ export default function HospitalDashboard() {
       <AppShell
         title="Authentication Required"
         subtitle="HOSPITAL CONSOLE"
-        organizationName="Northstar Hospital (Development)"
+        organizationName="Hospital Console"
         organizationType="Operations workspace"
         userName="Guest"
       >
@@ -230,7 +230,7 @@ export default function HospitalDashboard() {
       <AppShell
         title="Access Denied"
         subtitle="HOSPITAL CONSOLE"
-        organizationName="Northstar Hospital (Development)"
+        organizationName={hospitalOrg?.name ?? user.organizations[0]?.name ?? 'Hospital Console'}
         organizationType="Operations workspace"
         userName={`${user.firstName} ${user.lastName}`}
       >
@@ -257,7 +257,7 @@ export default function HospitalDashboard() {
     <AppShell
       title={`Good morning, ${user.firstName}.`}
       subtitle="HOSPITAL CONSOLE"
-      organizationName="Northstar Hospital (Development)"
+      organizationName={hospitalOrg?.name ?? 'Hospital Console'}
       organizationType="Operations workspace"
       userName={`${user.firstName} ${user.lastName}`}
     >

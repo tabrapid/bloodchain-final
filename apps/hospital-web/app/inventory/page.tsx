@@ -9,9 +9,9 @@ import {
   Clock,
   Filter,
   Package,
+  Pencil,
   Plus,
   Search,
-  Settings,
   XCircle,
 } from 'lucide-react';
 import {
@@ -305,7 +305,7 @@ export default function InventoryPage() {
       <AppShell
         title="Loading..."
         subtitle="HOSPITAL CONSOLE"
-        organizationName="Northstar Hospital (Development)"
+        organizationName="Hospital Console"
         organizationType="Operations workspace"
         userName="Loading..."
       >
@@ -321,7 +321,7 @@ export default function InventoryPage() {
       <AppShell
         title="Authentication Required"
         subtitle="HOSPITAL CONSOLE"
-        organizationName="Northstar Hospital (Development)"
+        organizationName="Hospital Console"
         organizationType="Operations workspace"
         userName="Guest"
       >
@@ -342,7 +342,7 @@ export default function InventoryPage() {
     <AppShell
       title="Blood Inventory"
       subtitle="HOSPITAL CONSOLE"
-      organizationName="Northstar Hospital (Development)"
+      organizationName={user.organizations.find((org) => org.type === 'HOSPITAL')?.name ?? 'Hospital Console'}
       organizationType="Operations workspace"
       userName={`${user.firstName} ${user.lastName}`}
     >
@@ -557,7 +557,7 @@ export default function InventoryPage() {
                   }}
                   className="flex items-center gap-2 rounded-lg bc-solid px-4 py-2 text-sm text-donor-text transition-colors hover:bg-donor-elevated"
                 >
-                  <Settings size={16} />
+                  <Pencil size={16} />
                   Adjust
                 </button>
                 <button
@@ -602,7 +602,7 @@ export default function InventoryPage() {
                   }}
                   className="flex items-center gap-2 rounded-lg bc-solid px-4 py-2 text-sm text-donor-text transition-colors hover:bg-donor-elevated"
                 >
-                  <Settings size={16} />
+                  <Pencil size={16} />
                   Adjust
                 </button>
                 <button
@@ -637,7 +637,7 @@ export default function InventoryPage() {
                   }}
                   className="flex items-center gap-2 rounded-lg bc-solid px-4 py-2 text-sm text-donor-text transition-colors hover:bg-donor-elevated"
                 >
-                  <Settings size={16} />
+                  <Pencil size={16} />
                   Adjust
                 </button>
               </div>

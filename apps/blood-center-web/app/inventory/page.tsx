@@ -11,9 +11,9 @@ import {
   Filter,
   LayoutDashboard,
   Package,
+  Pencil,
   Plus,
   Search,
-  Settings,
   Truck,
   Users,
   XCircle,
@@ -311,7 +311,7 @@ export default function InventoryPage() {
       <AppShell
         title="Loading..."
         subtitle="BLOOD CENTER CONSOLE"
-        organizationName="Northstar Blood Center (Development)"
+        organizationName="Blood Center Console"
         organizationType="Operations workspace"
         userName="Loading..."
       >
@@ -327,7 +327,7 @@ export default function InventoryPage() {
       <AppShell
         title="Authentication Required"
         subtitle="BLOOD CENTER CONSOLE"
-        organizationName="Northstar Blood Center (Development)"
+        organizationName="Blood Center Console"
         organizationType="Operations workspace"
         userName="Guest"
       >
@@ -348,7 +348,7 @@ export default function InventoryPage() {
     <AppShell
       title="Blood Inventory"
       subtitle="BLOOD CENTER CONSOLE"
-      organizationName="Northstar Blood Center (Development)"
+      organizationName={user.organizations.find((org) => org.type === 'BLOOD_CENTER' || org.type === 'BLOOD_CENTER_ADMIN')?.name ?? 'Blood Center Console'}
       organizationType="Operations workspace"
       userName={`${user.firstName} ${user.lastName}`}
     >
@@ -563,7 +563,7 @@ export default function InventoryPage() {
                   }}
                   className="flex items-center gap-2 rounded-lg bc-solid px-4 py-2 text-sm text-donor-text transition-colors hover:bg-donor-elevated"
                 >
-                  <Settings size={16} />
+                  <Pencil size={16} />
                   Adjust
                 </button>
                 <button
@@ -608,7 +608,7 @@ export default function InventoryPage() {
                   }}
                   className="flex items-center gap-2 rounded-lg bc-solid px-4 py-2 text-sm text-donor-text transition-colors hover:bg-donor-elevated"
                 >
-                  <Settings size={16} />
+                  <Pencil size={16} />
                   Adjust
                 </button>
                 <button
@@ -643,7 +643,7 @@ export default function InventoryPage() {
                   }}
                   className="flex items-center gap-2 rounded-lg bc-solid px-4 py-2 text-sm text-donor-text transition-colors hover:bg-donor-elevated"
                 >
-                  <Settings size={16} />
+                  <Pencil size={16} />
                   Adjust
                 </button>
               </div>

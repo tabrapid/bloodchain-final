@@ -152,7 +152,7 @@ export default function ShipmentDetailPage() {
       <AppShell
         title="Loading..."
         subtitle="HOSPITAL CONSOLE"
-        organizationName="Northstar Hospital (Development)"
+        organizationName="Hospital Console"
         organizationType="Hospital workspace"
         userName="Loading..."
       >
@@ -168,7 +168,7 @@ export default function ShipmentDetailPage() {
       <AppShell
         title="Shipment Not Found"
         subtitle="HOSPITAL CONSOLE"
-        organizationName="Northstar Hospital (Development)"
+        organizationName={user?.organizations.find((org) => org.type === 'HOSPITAL')?.name ?? 'Hospital Console'}
         organizationType="Hospital workspace"
         userName={user ? `${user.firstName} ${user.lastName}` : 'Guest'}
       >
@@ -195,7 +195,7 @@ export default function ShipmentDetailPage() {
     <AppShell
       title={shipment.shipmentReference}
       subtitle="SHIPMENT TRACKING"
-      organizationName="Northstar Hospital (Development)"
+      organizationName={user.organizations.find((org) => org.type === 'HOSPITAL')?.name ?? 'Hospital Console'}
       organizationType="Hospital Console"
       userName={`${user.firstName} ${user.lastName}`}
     >

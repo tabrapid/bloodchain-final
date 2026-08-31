@@ -97,7 +97,7 @@ export default function ShipmentsPage() {
       <AppShell
         title="Loading..."
         subtitle="HOSPITAL CONSOLE"
-        organizationName="Northstar Hospital (Development)"
+        organizationName="Hospital Console"
         organizationType="Hospital workspace"
         userName="Loading..."
       >
@@ -113,7 +113,7 @@ export default function ShipmentsPage() {
       <AppShell
         title="Authentication Required"
         subtitle="HOSPITAL CONSOLE"
-        organizationName="Northstar Hospital (Development)"
+        organizationName="Hospital Console"
         organizationType="Hospital workspace"
         userName="Guest"
       >
@@ -141,7 +141,7 @@ export default function ShipmentsPage() {
     <AppShell
       title="Incoming Shipments"
       subtitle="HOSPITAL OPERATIONS"
-      organizationName="Northstar Hospital (Development)"
+      organizationName={user.organizations.find((org) => org.type === 'HOSPITAL')?.name ?? 'Hospital Console'}
       organizationType="Hospital Console"
       userName={`${user.firstName} ${user.lastName}`}
     >
