@@ -17,7 +17,7 @@ import {
   TrendingUp,
   type LucideIcon,
 } from 'lucide-react-native';
-import { AppText, Card, Divider, GlassCard, GradientCard, LoadingState, Screen, SectionHeader, Sparkline, StatCard } from '../../src/components';
+import { AppText, Card, Divider, GlassCard, GradientCard, LoadingState, OverviewStat, Screen, SectionHeader, Sparkline } from '../../src/components';
 import { spacing, typography, useTheme } from '../../src/theme';
 import { getTrendSummary, TrendSummary } from '../../src/api/health-trends';
 import { getDonorResults, LaboratoryResult } from '../../src/api/laboratory';
@@ -196,22 +196,18 @@ export default function Health() {
 
         <SectionHeader>OVERVIEW</SectionHeader>
         <View style={{ flexDirection: 'row', gap: spacing.md }}>
-          <StatCard
-            label="Blood tests"
-            value={summary?.totalTests?.toString() || '0'}
-            note={summary?.lastTestDate
-              ? `Last: ${new Date(summary.lastTestDate).toLocaleDateString()}`
-              : 'No tests'}
+          <OverviewStat
             icon={FlaskConical}
-            variant={summary?.totalTests && summary.totalTests > 0 ? 'secondary' : 'default'}
+            color="secondary"
+            value={summary?.totalTests ?? 0}
+            label="Blood tests"
             style={{ flex: 1 }}
           />
-          <StatCard
-            label="Trends"
-            value={summary?.totalParameters?.toString() || '0'}
-            note={latestParam ? latestParam.name : 'No trends'}
+          <OverviewStat
             icon={TrendingUp}
-            variant={summary?.totalParameters && summary.totalParameters > 0 ? 'success' : 'default'}
+            color="success"
+            value={summary?.totalParameters ?? 0}
+            label="Trends tracked"
             style={{ flex: 1 }}
           />
         </View>
@@ -221,31 +217,31 @@ export default function Health() {
             <SectionHeader action={{ label: 'Trends', onPress: () => router.push('/health-trends' as RelativePathString) }}>
               VITALS
             </SectionHeader>
-            <GlassCard>
+            <GlassCard style={{ paddingVertical: spacing.sm }}>
               {summary.availableParameters.slice(0, 5).map((param, index) => {
                 const { icon: Icon, color: colorKey } = getVitalIconAndColor(param.code, index);
                 return (
                   <View key={param.code}>
-                    {index > 0 && <Divider style={{ marginVertical: spacing.md }} />}
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
+                    {index > 0 && <Divider style={{ marginVertical: spacing.sm }} />}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
                       <View
                         style={{
-                          width: 40,
-                          height: 40,
-                          borderRadius: 12,
+                          width: 34,
+                          height: 34,
+                          borderRadius: 10,
                           backgroundColor: colors[`${colorKey}Muted`],
                           alignItems: 'center',
                           justifyContent: 'center',
                         }}
                       >
-                        <Icon size={18} color={colors.onMuted[colorKey]} />
+                        <Icon size={16} color={colors.onMuted[colorKey]} />
                       </View>
                       <View style={{ flex: 1 }}>
                         <AppText muted style={{ fontSize: 12 }}>
                           {param.name}
                         </AppText>
                         <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 3, marginTop: 1 }}>
-                          <AppText variant="heading" style={{ fontSize: 22 }}>
+                          <AppText variant="heading" style={{ fontSize: 19 }}>
                             {param.latestValue ?? '—'}
                           </AppText>
                           {param.unit && (

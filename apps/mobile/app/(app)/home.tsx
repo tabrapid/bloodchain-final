@@ -10,6 +10,7 @@ import {
   GlassCard,
   GradientCard,
   IconButton,
+  OverviewStat,
   Screen,
   SectionHeader,
 } from '../../src/components';
@@ -148,9 +149,12 @@ export default function Home() {
             <AppText style={styles.heroStatLabel}>Donations</AppText>
           </View>
           <View style={styles.heroStatItem}>
-            <AppText style={styles.heroStatValue}>
-              {donationStats?.totalVolumeMl ? (donationStats.totalVolumeMl / 1000).toFixed(1) : '0'}L
-            </AppText>
+            <View style={styles.heroStatValueRow}>
+              <AppText style={styles.heroStatValue}>
+                {donationStats?.totalVolumeMl ? (donationStats.totalVolumeMl / 1000).toFixed(1) : '0'}
+              </AppText>
+              <AppText style={styles.heroStatUnit}>L</AppText>
+            </View>
             <AppText style={styles.heroStatLabel}>Total volume</AppText>
           </View>
           <View style={styles.heroStatItem}>
@@ -236,56 +240,30 @@ export default function Home() {
 
       <SectionHeader>YOUR OVERVIEW</SectionHeader>
       <View style={styles.statsRow}>
-        <TouchableOpacity
+        <OverviewStat
+          icon={Droplet}
+          color="primary"
+          value={donationStats?.completedCount ?? 0}
+          label="Donations"
           onPress={() => router.push('/donations')}
-          activeOpacity={0.8}
           style={styles.donationStatCard}
-        >
-          <GlassCard style={styles.statGlassCard}>
-            <View style={[styles.statIconContainer, { backgroundColor: colors.primaryMuted }]}>
-              <Droplet size={18} color={colors.onMuted.primary} />
-            </View>
-            <AppText variant="numeric" style={styles.statValue}>
-              {donationStats?.completedCount ?? 0}
-            </AppText>
-            <AppText muted style={styles.statNote}>
-              Donations
-            </AppText>
-          </GlassCard>
-        </TouchableOpacity>
-        <View style={styles.donationStatCard}>
-          <GlassCard style={styles.statGlassCard}>
-            <View style={[styles.statIconContainer, { backgroundColor: colors.secondaryMuted }]}>
-              <TrendingUp size={18} color={colors.onMuted.secondary} />
-            </View>
-            <AppText variant="numeric" style={styles.statValue}>
-              {donationStats?.totalVolumeMl
-                ? (donationStats.totalVolumeMl / 1000).toFixed(1)
-                : '0'}
-              <AppText style={styles.statUnit}>L</AppText>
-            </AppText>
-            <AppText muted style={styles.statNote}>
-              Total volume
-            </AppText>
-          </GlassCard>
-        </View>
-        <TouchableOpacity
+        />
+        <OverviewStat
+          icon={TrendingUp}
+          color="secondary"
+          value={donationStats?.totalVolumeMl ? (donationStats.totalVolumeMl / 1000).toFixed(1) : '0'}
+          unit="L"
+          label="Total volume"
+          style={styles.donationStatCard}
+        />
+        <OverviewStat
+          icon={Zap}
+          color="warning"
+          value={gamificationProfile?.totalXp ?? 0}
+          label="XP points"
           onPress={() => router.push('/(app)/gamification')}
-          activeOpacity={0.8}
           style={styles.donationStatCard}
-        >
-          <GlassCard style={styles.statGlassCard}>
-            <View style={[styles.statIconContainer, { backgroundColor: colors.warningMuted }]}>
-              <Zap size={18} color={colors.onMuted.warning} />
-            </View>
-            <AppText variant="numeric" style={styles.statValue}>
-              {gamificationProfile?.totalXp ?? 0}
-            </AppText>
-            <AppText muted style={styles.statNote}>
-              XP points
-            </AppText>
-          </GlassCard>
-        </TouchableOpacity>
+        />
       </View>
 
       <SectionHeader>PROFILE</SectionHeader>
@@ -454,10 +432,20 @@ function createStyles(colors: ThemeColors) {
     heroStatItem: {
       alignItems: 'center',
     },
+    heroStatValueRow: {
+      flexDirection: 'row',
+      alignItems: 'baseline',
+      gap: 2,
+    },
     heroStatValue: {
       fontSize: 18,
       fontWeight: '700',
       color: '#FFFFFF',
+    },
+    heroStatUnit: {
+      fontSize: 12,
+      fontWeight: '500',
+      color: 'rgba(255,255,255,0.7)',
     },
     heroStatLabel: {
       fontSize: 11,
@@ -560,34 +548,6 @@ function createStyles(colors: ThemeColors) {
     },
     donationStatCard: {
       flex: 1,
-    },
-    statGlassCard: {
-      flex: 1,
-      alignItems: 'center',
-      paddingVertical: spacing.lg,
-    },
-    statIconContainer: {
-      width: 40,
-      height: 40,
-      borderRadius: 12,
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginBottom: spacing.sm,
-    },
-    statValue: {
-      fontSize: 28,
-      fontWeight: '700',
-      color: colors.text,
-      marginBottom: spacing.xs,
-    },
-    statUnit: {
-      fontSize: 12,
-      fontWeight: '500',
-      color: colors.textMuted,
-    },
-    statNote: {
-      fontSize: 12,
-      textAlign: 'center',
     },
   });
 }
