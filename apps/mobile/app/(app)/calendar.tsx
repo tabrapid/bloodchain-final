@@ -2,9 +2,15 @@ import { useState, useMemo } from 'react';
 import { View, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react-native';
-import { AppText, Card, EmptyState, GlassCard, Screen } from '../../src/components';
+import { AppButton, AppText, Card, EmptyState, GlassCard, Screen } from '../../src/components';
 import { useMyAppointments } from '../../src/hooks/useAppointments';
 import { spacing, radius, useTheme, ThemeColors } from '../../src/theme';
+
+const LEGEND: { label: string; type: string }[] = [
+  { label: 'Donation', type: 'BLOOD_DONATION' },
+  { label: 'Blood test', type: 'BLOOD_TEST' },
+  { label: 'Consultation', type: 'CONSULTATION' },
+];
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTHS = [
@@ -111,6 +117,25 @@ export default function Calendar() {
     return !!appointmentsByDate[date.toDateString()];
   };
 
+  const getTypeColor = (type?: string) => {
+    switch (type) {
+      case 'BLOOD_DONATION':
+        return colors.primary;
+      case 'BLOOD_TEST':
+        return colors.secondary;
+      case 'CONSULTATION':
+        return colors.ai;
+      default:
+        return colors.textMuted;
+    }
+  };
+
+  const getDayDotColor = (day: number) => {
+    const date = new Date(viewDate.year, viewDate.month, day);
+    const dayAppointments = appointmentsByDate[date.toDateString()];
+    return getTypeColor(dayAppointments?.[0]?.appointmentType);
+  };
+
   const formatTime = (dateStr: string) => {
     const date = new Date(dateStr);
     return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
@@ -137,9 +162,14 @@ export default function Calendar() {
           <TouchableOpacity onPress={goToToday} style={styles.todayButton}>
             <AppText style={styles.todayText}>Today</AppText>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => router.push('/(booking)/select-type')} style={styles.bookButton}>
-            <Plus size={18} color={colors.white} />
-          </TouchableOpacity>
+          <AppButton
+            size="small"
+            onPress={() => router.push('/(booking)/select-type')}
+            style={styles.bookButton}
+          >
+            <Plus size={16} color={colors.white} />
+            Schedule
+          </AppButton>
         </View>
       </View>
 
@@ -197,10 +227,23 @@ export default function Calendar() {
                       {day}
                     </AppText>
                   </View>
-                  {hasAppointment(day) && <View style={styles.appointmentDot} />}
+                  {hasAppointment(day) && (
+                    <View style={[styles.appointmentDot, { backgroundColor: getDayDotColor(day) }]} />
+                  )}
                 </>
               )}
             </TouchableOpacity>
+          ))}
+        </View>
+
+        <View style={styles.legendRow}>
+          {LEGEND.map((item) => (
+            <View key={item.type} style={styles.legendItem}>
+              <View style={[styles.legendDot, { backgroundColor: getTypeColor(item.type) }]} />
+              <AppText muted style={styles.legendLabel}>
+                {item.label}
+              </AppText>
+            </View>
           ))}
         </View>
       </GlassCard>
@@ -274,7 +317,7 @@ function createStyles(colors: ThemeColors) {
       gap: spacing.sm,
     },
     todayButton: {
-      paddingHorizontal: spacing.md,
+      paddingHorizontal: spacing.sm,
       paddingVertical: spacing.sm,
       backgroundColor: colors.surfaceSolid,
       borderRadius: radius.sm,
@@ -282,18 +325,36 @@ function createStyles(colors: ThemeColors) {
     todayText: {
       color: colors.primary,
       fontWeight: '600',
+      fontSize: 13,
     },
     bookButton: {
-      width: 36,
-      height: 36,
-      borderRadius: 18,
-      backgroundColor: colors.primary,
-      alignItems: 'center',
-      justifyContent: 'center',
+      paddingHorizontal: spacing.md,
     },
     calendarCard: {
       padding: spacing.md,
       marginBottom: spacing.lg,
+    },
+    legendRow: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      gap: spacing.lg,
+      marginTop: spacing.md,
+      paddingTop: spacing.md,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+    },
+    legendItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+    },
+    legendDot: {
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+    },
+    legendLabel: {
+      fontSize: 11,
     },
     monthNav: {
       flexDirection: 'row',

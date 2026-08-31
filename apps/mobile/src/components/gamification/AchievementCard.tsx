@@ -10,7 +10,7 @@ interface AchievementCardProps {
   showProgress?: boolean;
 }
 
-const iconMap: Record<string, string> = {
+export const achievementIconMap: Record<string, string> = {
   droplet: 'D',
   'droplet-plus': 'D+',
   award: 'A',
@@ -35,7 +35,7 @@ export function AchievementCard({ achievement, showProgress = true }: Achievemen
     <GlassCard style={styles.card}>
       <View style={styles.iconContainer}>
         <AppText style={styles.iconText} variant="title">
-          {iconMap[achievement.icon] || '?'}
+          {achievementIconMap[achievement.icon] || '?'}
         </AppText>
       </View>
       <View style={styles.content}>

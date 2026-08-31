@@ -22,7 +22,7 @@ import { useGamificationProfile } from '../../src/hooks/useGamification';
 import { useUnreadCount } from '../../src/hooks/useNotifications';
 import { useDonorEmergencies } from '../../src/hooks/useEmergency';
 import { useAuthStore } from '../../src/stores/auth.store';
-import { spacing, radius, useTheme, ThemeColors } from '../../src/theme';
+import { spacing, radius, typography, useTheme, ThemeColors } from '../../src/theme';
 
 export default function Home() {
   const { colors } = useTheme();
@@ -117,16 +117,18 @@ export default function Home() {
         colors={[colors.primary, colors.ai]}
         style={styles.bloodTypeCard}
       >
+        <Droplet
+          size={130}
+          color="rgba(255,255,255,0.10)"
+          fill="rgba(255,255,255,0.06)"
+          style={styles.bloodTypeWatermark}
+        />
         <View style={styles.bloodTypeHeader}>
-          <Droplet size={24} color="#FFFFFF" />
-          <AppText variant="heading" style={styles.bloodTypeLabel}>
-            BLOOD TYPE
-          </AppText>
+          <Droplet size={14} color="rgba(255,255,255,0.85)" fill="rgba(255,255,255,0.5)" />
+          <AppText style={styles.bloodTypeLabel}>BLOOD TYPE</AppText>
         </View>
         <View style={styles.bloodTypeContent}>
-          <AppText variant="numeric" style={styles.bloodTypeValue}>
-            {bloodTypeDisplay}
-          </AppText>
+          <AppText style={styles.bloodTypeValue}>{bloodTypeDisplay}</AppText>
           <View style={[styles.statusBadge, { backgroundColor: bloodTypeColor }]}>
             <AppText style={[styles.statusText, { color: bloodTypeTextColor }]}>
               {bloodTypeStatus}
@@ -393,11 +395,16 @@ function createStyles(colors: ThemeColors) {
     bloodTypeCard: {
       marginBottom: spacing.lg,
     },
+    bloodTypeWatermark: {
+      position: 'absolute',
+      top: -20,
+      right: -20,
+    },
     bloodTypeHeader: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: spacing.sm,
-      marginBottom: spacing.md,
+      gap: spacing.xs,
+      marginBottom: spacing.sm,
     },
     bloodTypeContent: {
       flexDirection: 'row',
@@ -409,9 +416,13 @@ function createStyles(colors: ThemeColors) {
     // choice the reference design makes -- instead of `colors.text`, which
     // would go near-black and vanish in light mode.
     bloodTypeLabel: {
+      fontSize: 11,
+      fontWeight: '700',
+      letterSpacing: 1.2,
       color: 'rgba(255,255,255,0.85)',
     },
     bloodTypeValue: {
+      ...typography.bloodType,
       color: '#FFFFFF',
     },
     statusBadge: {

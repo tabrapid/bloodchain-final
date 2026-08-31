@@ -46,7 +46,8 @@ export function AppButton({
         paddingHorizontal: spacing.md,
         alignItems: 'center',
         justifyContent: 'center',
-        opacity: pressed ? 0.85 : isDisabled ? 0.5 : 1,
+        opacity: pressed ? 0.9 : isDisabled ? 0.5 : 1,
+        transform: [{ scale: pressed ? 0.98 : 1 }],
         ...variants[variant],
         ...flattenedStyle,
       })}

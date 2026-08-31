@@ -36,7 +36,13 @@ export function IconButton({
       {({ pressed }) => (
         <View
           style={[
-            { width: 44, height: 44, borderRadius: radius.md, opacity: pressed ? 0.8 : 1 },
+            {
+              width: 44,
+              height: 44,
+              borderRadius: radius.md,
+              opacity: pressed ? 0.85 : 1,
+              transform: [{ scale: pressed ? 0.94 : 1 }],
+            },
             flattenedStyle,
           ]}
         >

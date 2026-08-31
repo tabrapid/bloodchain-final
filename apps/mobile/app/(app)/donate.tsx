@@ -44,6 +44,12 @@ export default function Donate() {
       </AppText>
 
       <GradientCard colors={[colors.primary, colors.ai]} style={{ marginTop: spacing.xl }}>
+        <Droplet
+          size={120}
+          color="rgba(255,255,255,0.10)"
+          fill="rgba(255,255,255,0.06)"
+          style={{ position: 'absolute', top: -18, right: -18 }}
+        />
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: spacing.md }}>
           <View style={{ flex: 1 }}>
             <Badge variant={isEligible ? 'success' : 'warning'} style={{ alignSelf: 'flex-start', marginBottom: spacing.sm }}>
@@ -183,7 +189,7 @@ export default function Donate() {
                   <View style={{ marginTop: spacing.xs, flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
                     <View style={{ flex: 1 }}>
                       <ProgressBar
-                        progress={Math.min((featuredChallenge.userProgress ?? 0) / featuredChallenge.goal, 1)}
+                        progress={Math.min((featuredChallenge.userProgress ?? 0) / featuredChallenge.goal, 1) * 100}
                         color={colors.warning}
                       />
                     </View>
