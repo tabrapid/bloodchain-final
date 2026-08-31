@@ -2221,6 +2221,71 @@ These make the product unusable or unsafe for real users. Fix first, in order.
     `apps/mobile/jest.setup.js`, `apps/mobile/package.json`,
     `pnpm-lock.yaml`.
 
+- [x] P0-52: Root-caused and fixed the white-on-white bug visible in
+  user-supplied screenshots (invisible active sidebar item, unreadable
+  Roles & Permissions badges), then a premium UI/UX pass across the three
+  web dashboards on top of the fix.
+  - **Root cause.** `bg-donor-elevated`/`bg-donor-surface` read from a raw
+    RGB-triplet CSS variable meant only for the hand-composed
+    `.bc-glass`/`.bc-glass-elevated` rules, which pair it with a *separate*
+    low-alpha variable those two classes alone know to consult. Used bare
+    as a Tailwind utility anywhere else (~40 files: the active sidebar
+    item, permission badges, table row hover/skeletons, dropdown/hover
+    states) Tailwind's `<alpha-value>` defaults to 1 with no `/NN`
+    modifier, so it rendered solid opaque white over the dark theme —
+    exactly the bug in both screenshots. Fixed at the token level: added
+    theme-correct opaque `--bc-surface-solid`/`-solid-elevated` variables
+    (same values as the mobile app's `surfaceSolid`/`surfaceSolidElevated`)
+    and repointed the Tailwind `elevated`/`surface` keys at them, leaving
+    `.bc-glass`/`.bc-glass-elevated` untouched — one token change fixes
+    every affected file with zero regression to the intentional glass
+    look.
+  - **Sidebar** (`packages/ui`): red-tinted active state (background tint +
+    left accent bar + accent-colored icon, not just a surface swap) with
+    real contrast, `focus-visible` rings, `aria-current`, and a genuine
+    off-canvas drawer mode for small screens (backdrop, slide transition) —
+    the sidebar previously had no responsive behavior at all.
+  - **Topbar**: hamburger button wired to the new drawer, bigger page-title
+    typography (28px), truncation for long titles, `focus-visible` on every
+    icon button. **DashboardShell** now owns the drawer's open/close state.
+  - **StatCard** (the KPI card the Analytics dashboards are built from):
+    icon chip background, a left accent bar + pulsing icon for the danger
+    variant so "critical" doesn't rely on color alone, optional trend
+    arrow. **StatusBadge**: optional icon, same reasoning. **DataTable**:
+    wrapped in `overflow-x-auto` — a table wider than the viewport
+    previously just clipped off-screen instead of scrolling.
+  - **admin-web**: found the *same page title rendered twice* — once in
+    the Topbar, again as a full `<h1>` in the page body — on 10 of its 15
+    pages (Users, Roles & Permissions, Organizations, Audit, Settings,
+    Shipments, Couriers, Health, Moderation, Alerts). Removed the redundant
+    heading on all 10. Roles & Permissions' pills (the worst instance of
+    the white-on-white bug) also got sorted-by-group + a "+N more" collapse
+    once 14+ codes stopped being unreadable and became merely a wall of
+    text.
+  - **Analytics** (hospital-web + blood-center-web): tabs got real
+    `role="tablist"`/`aria-selected`/focus rings. Auditing these pages
+    surfaced a second, narrower contrast bug while looking for the first:
+    "Critical Blood Groups" and the "Active Alerts" panel used the raw
+    danger/warning accent as text/icon color directly on their own
+    `*Muted` tint (measured ~3.9:1, under the 4.5:1 AA floor for small
+    text) — the same anti-pattern class already fixed for the mobile app's
+    P0-44 pass, now fixed here too via the existing `onDangerMuted`/
+    `onWarningMuted` tokens already used correctly a few lines away in the
+    same files. Same fix on hospital-web's shipment "Courier Has Arrived"
+    banner.
+  - Verified: full monorepo `pnpm typecheck` (10/10 packages) and
+    `pnpm test` clean (`ui` 73/73, hospital-web 23/23, blood-center-web
+    24/24, admin-web 14/14, api 684/684, mobile unaffected), plus a real
+    production `next build` for all three web apps.
+  - Files: `packages/ui/src/styles/glass.css`,
+    `packages/ui/src/tokens/tailwind-preset.ts`,
+    `packages/ui/src/components/{layout/Sidebar,layout/Topbar,
+    layout/DashboardShell,data/StatCard,data/StatusBadge,data/DataTable,
+    form/SearchInput,overlay/Modal,overlay/Drawer}.tsx`, 10 admin-web page
+    files, `apps/{hospital,blood-center}-web/app/analytics/page.tsx`,
+    `apps/{hospital,blood-center}-web/app/page.tsx`,
+    `apps/hospital-web/app/shipments/[id]/page.tsx`.
+
 ## 🟠 P1 — Major gaps (feature exists but disconnected, or missing entirely)
 
 - [x] **P1-1. Booking race conditions (double-booking) in appointments and lab slots.** — Fixed:
