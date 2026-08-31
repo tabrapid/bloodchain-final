@@ -31,8 +31,15 @@ export const bloodchaingaPreset = {
           // Theme-aware surfaces.
           background: surface('--bc-bg'),
           bg: surface('--bc-bg'),
-          surface: surface('--bc-surface'),
-          elevated: surface('--bc-surface-elevated'),
+          // `surface`/`elevated` read from the opaque `--bc-surface-solid*`
+          // tokens, NOT the raw-white `--bc-surface*` pair the `.bc-glass`
+          // CSS classes use. Those are meant to be composed with their own
+          // low `-alpha` variable and a backdrop blur; used bare (the whole
+          // point of a Tailwind utility class), `<alpha-value>` defaults to
+          // 1 and they render as solid opaque white over a dark theme. See
+          // glass.css for the longer version of this.
+          surface: surface('--bc-surface-solid'),
+          elevated: surface('--bc-surface-solid-elevated'),
           solid: surface('--bc-surface-solid'),
           text: surface('--bc-text'),
           muted: surface('--bc-muted'),

@@ -4,11 +4,56 @@ import { useEffect, useState } from 'react';
 import { LoadingState } from '@bloodchain/ui/components';
 import { listRoles, listPermissions, updateRolePermissions, type Role, type Permission } from '@lib/api';
 import { me, isAuthenticated } from '@lib/auth';
-import { KeyRound, Lock, X } from 'lucide-react';
+import { ChevronDown, KeyRound, Lock, X } from 'lucide-react';
 import { AppShell } from '../../components/AppShell';
 
 function permissionGroup(code: string): string {
   return code.split('.')[0] ?? code;
+}
+
+/**
+ * A role's permission list can run to 14+ codes (see BLOOD_CENTER_ADMIN),
+ * which as a flat wrapped row of pills reads as noise, not information.
+ * Sorting by group clusters `donor.*`/`hospital.*`/etc. together, and
+ * collapsing past a threshold keeps a normal row scannable while a click
+ * still reveals everything -- no permission is hidden, just deferred.
+ */
+function PermissionPills({ codes }: { codes: string[] }) {
+  const [expanded, setExpanded] = useState(false);
+  const sorted = [...codes].sort((a, b) => a.localeCompare(b));
+  const visibleCount = 6;
+  const visible = expanded ? sorted : sorted.slice(0, visibleCount);
+  const remaining = sorted.length - visible.length;
+
+  return (
+    <div className="flex max-w-xl flex-wrap items-center gap-1.5">
+      {visible.map((code) => (
+        <span
+          key={code}
+          className="inline-flex items-center rounded-full border border-donor-border/60 bg-donor-elevated px-2.5 py-1 text-[11px] font-medium text-donor-text"
+          title={code}
+        >
+          {code}
+        </span>
+      ))}
+      {remaining > 0 && (
+        <button
+          onClick={() => setExpanded(true)}
+          className="inline-flex items-center gap-1 rounded-full border border-donor-border/60 px-2.5 py-1 text-[11px] font-semibold text-donor-primary hover:bg-donor-elevated"
+        >
+          +{remaining} more
+        </button>
+      )}
+      {expanded && sorted.length > visibleCount && (
+        <button
+          onClick={() => setExpanded(false)}
+          className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold text-donor-muted hover:text-donor-text"
+        >
+          <ChevronDown size={12} className="rotate-180" /> Show less
+        </button>
+      )}
+    </div>
+  );
 }
 
 export default function RolesPage() {
@@ -92,8 +137,7 @@ export default function RolesPage() {
     <AppShell title="Roles & Permissions" userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
       <div className="p-6">
         <div className="mb-6">
-          <h1 className="text-2xl font-semibold text-donor-text">Roles & Permissions</h1>
-          <p className="text-sm text-donor-muted mt-1">
+          <p className="text-sm text-donor-muted">
             Manage which permissions each role grants. Change a specific user&apos;s role from their
             entry on the Users page.
           </p>
@@ -123,19 +167,13 @@ export default function RolesPage() {
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        <div className="flex flex-wrap gap-1 max-w-xl">
-                          {isSuperAdmin ? (
-                            <span className="text-sm text-donor-muted">All permissions (fixed)</span>
-                          ) : role.permissions.length === 0 ? (
-                            <span className="text-sm text-donor-muted">No permissions granted</span>
-                          ) : (
-                            role.permissions.map((code) => (
-                              <span key={code} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-donor-elevated text-donor-text">
-                                {code}
-                              </span>
-                            ))
-                          )}
-                        </div>
+                        {isSuperAdmin ? (
+                          <span className="text-sm text-donor-muted">All permissions (fixed)</span>
+                        ) : role.permissions.length === 0 ? (
+                          <span className="text-sm text-donor-muted">No permissions granted</span>
+                        ) : (
+                          <PermissionPills codes={role.permissions} />
+                        )}
                       </td>
                       <td className="px-4 py-3">
                         {isSuperAdmin ? (

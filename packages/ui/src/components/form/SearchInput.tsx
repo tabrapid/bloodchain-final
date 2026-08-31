@@ -12,7 +12,7 @@ export function SearchInput({ className, onClear, wrapperClassName, ...props }: 
       className={cn(
         // Solid, not glass: an input the user is about to type into needs a
         // stable, opaque field, not scrolled content showing through it.
-        'bc-solid flex items-center gap-2 rounded-lg px-3 py-2 focus-within:border-donor-secondary',
+        'bc-solid flex items-center gap-2 rounded-lg px-3 py-2 transition-colors focus-within:border-donor-secondary focus-within:ring-2 focus-within:ring-donor-secondary/30',
         wrapperClassName,
       )}
     >

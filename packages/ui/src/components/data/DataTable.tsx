@@ -46,38 +46,44 @@ export function DataTable<T>({
 
   return (
     <div className={cn('bc-glass overflow-hidden rounded-card', className)}>
-      <table className="w-full text-left text-sm">
-        {/* Solid, not glass -- a translucent sticky header would let scrolled
-            rows show through and blur the column labels along with them. */}
-        <thead className="bc-solid border-0 border-b border-donor-border/60">
-          <tr>
-            {columns.map((col) => (
-              <th
-                key={col.key}
-                className={cn(
-                  'px-5 py-3 text-xs font-semibold uppercase tracking-wider text-donor-muted',
-                  col.className,
-                )}
-              >
-                {col.header}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-donor-border/60">
-          {rows.map((row) => (
-            <tr key={keyExtractor(row)} className="transition-colors hover:bg-donor-elevated/60">
+      {/* The card clips to its rounded corners (`overflow-hidden` above);
+          this inner wrapper is what actually scrolls a table too wide for a
+          small screen, instead of silently clipping columns off the edge. */}
+      <div className="overflow-x-auto">
+        <table className="w-full text-left text-sm">
+          {/* Solid, not glass -- a translucent sticky header would let scrolled
+              rows show through and blur the column labels along with them. */}
+          <thead className="bc-solid border-0 border-b border-donor-border/60">
+            <tr>
               {columns.map((col) => (
-                <td key={col.key} className={cn('px-5 py-3.5 text-donor-text', col.className)}>
-                  {col.render
-                    ? col.render(row)
-                    : String((row as Record<string, unknown>)[col.key] ?? '-')}
-                </td>
+                <th
+                  key={col.key}
+                  scope="col"
+                  className={cn(
+                    'whitespace-nowrap px-5 py-3 text-xs font-semibold uppercase tracking-wider text-donor-muted',
+                    col.className,
+                  )}
+                >
+                  {col.header}
+                </th>
               ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="divide-y divide-donor-border/60">
+            {rows.map((row) => (
+              <tr key={keyExtractor(row)} className="transition-colors hover:bg-donor-elevated/60">
+                {columns.map((col) => (
+                  <td key={col.key} className={cn('px-5 py-3.5 text-donor-text', col.className)}>
+                    {col.render
+                      ? col.render(row)
+                      : String((row as Record<string, unknown>)[col.key] ?? '-')}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

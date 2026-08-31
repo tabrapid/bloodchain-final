@@ -71,8 +71,7 @@ export default function AlertsPage() {
     <AppShell title="Alert Center" userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
       <div className="p-6">
         <div className="mb-6">
-          <h1 className="text-2xl font-semibold text-donor-text">Alert Center</h1>
-          <p className="text-sm text-donor-muted mt-1">Manage platform alerts and notifications</p>
+          <p className="text-sm text-donor-muted">Manage platform alerts and notifications</p>
         </div>
 
         <div className="bc-glass rounded-card mb-6">

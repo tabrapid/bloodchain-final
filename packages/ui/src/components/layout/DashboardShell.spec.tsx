@@ -35,7 +35,7 @@ describe('DashboardShell', () => {
     );
 
     expect(screen.getByText('Shipments', { selector: 'span' }).closest('a')?.className).toContain(
-      'bg-donor-elevated',
+      'bg-donor-primary/12',
     );
   });
 

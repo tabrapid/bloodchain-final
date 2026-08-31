@@ -64,8 +64,7 @@ export default function SystemHealthPage() {
       <div className="p-6">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-semibold text-donor-text">System Health</h1>
-            <p className="text-sm text-donor-muted mt-1">Platform infrastructure status</p>
+            <p className="text-sm text-donor-muted">Platform infrastructure status</p>
           </div>
           <button
             onClick={handleRefresh}

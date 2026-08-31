@@ -26,13 +26,27 @@
   --bc-orb-2: rgba(104, 183, 209, 0.16);
   --bc-orb-3: rgba(142, 130, 223, 0.16);
 
-  /* Layered surfaces. Translucent so the wash shows through. */
+  /* Layered surfaces. Translucent so the wash shows through. These two
+     (`--bc-surface`/`--bc-surface-elevated`) are consumed ONLY by the
+     hand-composed `.bc-glass`/`.bc-glass-elevated` rules below, which pair
+     them with their `-alpha` companion and a backdrop blur. They must never
+     be read by a plain Tailwind utility class (`bg-donor-surface`) without
+     that pairing: `<alpha-value>` defaults to 1 with no `/NN` modifier, so a
+     bare utility would render solid opaque white over a dark theme instead
+     of the intended low-alpha tint -- see `--bc-surface-solid*` below for
+     the token Tailwind's `surface`/`elevated` keys actually read. */
   --bc-surface: 255 255 255;
   --bc-surface-alpha: 0.62;
   --bc-surface-elevated: 255 255 255;
   --bc-surface-elevated-alpha: 0.78;
-  /* Opaque surface for inputs/menus, where translucency hurts legibility. */
+  /* Opaque, theme-correct surfaces for anything that needs to be legible
+     without a blur backdrop: badges, active/hover nav states, table rows,
+     dropdown menus, skeleton loaders. Two tiers for real elevation
+     hierarchy -- same values as the mobile app's `surfaceSolid`/
+     `surfaceSolidElevated` tokens, so the web and mobile apps read as one
+     product at this tier too. */
   --bc-surface-solid: 255 255 255;
+  --bc-surface-solid-elevated: 250 250 252;
 
   --bc-text: 18 22 28;
   --bc-muted: 91 102 116;
@@ -80,6 +94,7 @@
   --bc-surface-elevated: 255 255 255;
   --bc-surface-elevated-alpha: 0.11;
   --bc-surface-solid: 17 26 36;
+  --bc-surface-solid-elevated: 24 36 49;
 
   --bc-text: 242 245 247;
   --bc-muted: 132 149 163;
@@ -116,6 +131,7 @@
     --bc-surface-alpha: 0.07;
     --bc-surface-elevated-alpha: 0.11;
     --bc-surface-solid: 17 26 36;
+    --bc-surface-solid-elevated: 24 36 49;
 
     --bc-text: 242 245 247;
     --bc-muted: 132 149 163;

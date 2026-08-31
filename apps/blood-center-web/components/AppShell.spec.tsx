@@ -80,7 +80,7 @@ describe('AppShell', () => {
 
     render(<AppShell title="Dashboard"><p>body</p></AppShell>);
 
-    expect(screen.getByText(target.label).closest('a')?.className).toContain('bg-donor-elevated');
+    expect(screen.getByText(target.label).closest('a')?.className).toContain('bg-donor-primary/12');
   });
 
   it('keeps the section highlighted on a nested route', () => {
@@ -89,7 +89,7 @@ describe('AppShell', () => {
 
     render(<AppShell title="Dashboard"><p>body</p></AppShell>);
 
-    expect(screen.getByText(target.label).closest('a')?.className).toContain('bg-donor-elevated');
+    expect(screen.getByText(target.label).closest('a')?.className).toContain('bg-donor-primary/12');
   });
 
   it('renders no notifications bell, since this app has no notifications route', () => {
