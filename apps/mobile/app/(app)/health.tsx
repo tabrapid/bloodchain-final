@@ -7,12 +7,15 @@ import {
   Brain,
   ChevronRight,
   Droplet,
+  Fingerprint,
   FlaskConical,
+  Gauge,
+  Layers,
+  Percent,
   ShieldCheck,
-  Thermometer,
   TrendingDown,
   TrendingUp,
-  Wind,
+  type LucideIcon,
 } from 'lucide-react-native';
 import { AppText, Card, Divider, GlassCard, GradientCard, LoadingState, Screen, SectionHeader, Sparkline, StatCard } from '../../src/components';
 import { spacing, typography, useTheme } from '../../src/theme';
@@ -20,8 +23,36 @@ import { getTrendSummary, TrendSummary } from '../../src/api/health-trends';
 import { getDonorResults, LaboratoryResult } from '../../src/api/laboratory';
 import { getInsightHistory, AiInsight } from '../../src/api/ai-health';
 
-const VITAL_ICONS = [Droplet, Wind, Thermometer, TrendingUp, Activity] as const;
-const VITAL_ICON_COLORS = ['primary', 'secondary', 'warning', 'ai', 'success'] as const;
+type VitalColorKey = 'primary' | 'secondary' | 'warning' | 'ai' | 'success';
+
+// Keyed by the real lab-parameter code (see apps/api/prisma/seed.ts's
+// TestParameter records) so each vital gets the icon that actually matches
+// what it measures, instead of cycling icons by list position -- which is
+// how hemoglobin ended up with a "wind" icon and platelets a "thermometer".
+const VITAL_ICON_BY_CODE: Record<string, { icon: LucideIcon; color: VitalColorKey }> = {
+  HEMOGLOBIN: { icon: Droplet, color: 'primary' },
+  HEMATOCRIT: { icon: Percent, color: 'secondary' },
+  RBC: { icon: Activity, color: 'primary' },
+  WBC: { icon: ShieldCheck, color: 'success' },
+  PLATELETS: { icon: Layers, color: 'warning' },
+  FERRITIN: { icon: Gauge, color: 'ai' },
+  FERRITIN_LEVEL: { icon: Gauge, color: 'ai' },
+  BLOOD_GROUP: { icon: Fingerprint, color: 'secondary' },
+  ABO: { icon: Fingerprint, color: 'secondary' },
+  RH_FACTOR: { icon: Fingerprint, color: 'secondary' },
+};
+
+const VITAL_FALLBACK_ORDER: VitalColorKey[] = ['primary', 'secondary', 'warning', 'ai', 'success'];
+
+function getVitalIconAndColor(
+  code: string,
+  index: number,
+): { icon: LucideIcon; color: VitalColorKey } {
+  return VITAL_ICON_BY_CODE[code.toUpperCase()] ?? {
+    icon: Activity,
+    color: VITAL_FALLBACK_ORDER[index % VITAL_FALLBACK_ORDER.length]!,
+  };
+}
 
 export default function Health() {
   const { colors } = useTheme();
@@ -192,8 +223,7 @@ export default function Health() {
             </SectionHeader>
             <GlassCard>
               {summary.availableParameters.slice(0, 5).map((param, index) => {
-                const Icon = VITAL_ICONS[index % VITAL_ICONS.length]!;
-                const colorKey = VITAL_ICON_COLORS[index % VITAL_ICON_COLORS.length]!;
+                const { icon: Icon, color: colorKey } = getVitalIconAndColor(param.code, index);
                 return (
                   <View key={param.code}>
                     {index > 0 && <Divider style={{ marginVertical: spacing.md }} />}

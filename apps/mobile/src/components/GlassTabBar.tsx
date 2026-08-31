@@ -3,6 +3,7 @@ import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { radius, spacing, useTheme } from '../theme';
+import { AppText } from './AppText';
 
 /**
  * A floating, glass-styled bottom tab bar, replacing React Navigation's
@@ -54,11 +55,12 @@ export function GlassTabBar({ state, descriptors, navigation }: BottomTabBarProp
         // route list, so an index comparison against the filtered list would
         // highlight the wrong tab.
         const focused = focusedKey === route.key;
-        // The focused icon sits on its own `primaryMuted` tint (below), so it
-        // reads from `onMuted` rather than the raw accent -- the same fix as
-        // every other icon-on-tint pairing in the app; the raw accent fails
-        // contrast against its own low-alpha tint.
-        const color = focused ? colors.onMuted.primary : colors.textMuted;
+        const label = (options.title as string) ?? route.name;
+        // A filled, solid pill (not a translucent tint) so the active tab is
+        // unambiguous at a glance -- the previous faint red circle was too
+        // subtle to tell "active" from "just tinted" on a real device,
+        // especially between visually similar icons (heart vs. droplet).
+        const color = focused ? colors.white : colors.textMuted;
 
         const onPress = () => {
           const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
@@ -73,22 +75,29 @@ export function GlassTabBar({ state, descriptors, navigation }: BottomTabBarProp
             onPress={onPress}
             accessibilityRole="button"
             accessibilityState={focused ? { selected: true } : {}}
-            accessibilityLabel={options.tabBarAccessibilityLabel ?? (options.title as string)}
+            accessibilityLabel={options.tabBarAccessibilityLabel ?? label}
             style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: spacing.xs }}
           >
             {({ pressed }) => (
               <View
                 style={{
-                  width: 48,
-                  height: 40,
-                  borderRadius: radius.pill,
                   alignItems: 'center',
                   justifyContent: 'center',
-                  backgroundColor: focused ? colors.primaryMuted : 'transparent',
-                  transform: [{ scale: pressed ? 0.9 : 1 }],
+                  gap: 3,
+                  paddingVertical: 6,
+                  paddingHorizontal: spacing.sm,
+                  borderRadius: radius.pill,
+                  backgroundColor: focused ? colors.primary : 'transparent',
+                  transform: [{ scale: pressed ? 0.94 : 1 }],
                 }}
               >
-                {options.tabBarIcon?.({ focused, color, size: 22 })}
+                {options.tabBarIcon?.({ focused, color, size: 20 })}
+                <AppText
+                  style={{ fontSize: 10, fontWeight: focused ? '700' : '600', color }}
+                  numberOfLines={1}
+                >
+                  {label}
+                </AppText>
               </View>
             )}
           </Pressable>

@@ -112,6 +112,7 @@ export default function Profile() {
                 Donations
               </AppText>
             </View>
+            <View style={styles.statDivider} />
             <View style={styles.statItem}>
               <AppText variant="heading" style={styles.statValue}>
                 {gamificationProfile.emergencyResponseCount}
@@ -120,6 +121,7 @@ export default function Profile() {
                 Emergency responses
               </AppText>
             </View>
+            <View style={styles.statDivider} />
             <View style={styles.statItem}>
               <AppText variant="heading" style={styles.statValue}>
                 {gamificationProfile.totalXp}
@@ -174,13 +176,14 @@ export default function Profile() {
             </View>
             {badgePreviews.length > 0 && (
               <View style={styles.badgePreviewRow}>
-                {badgePreviews.map((badge) => (
-                  <View key={badge.id} style={styles.badgePreview}>
-                    <AppText style={styles.badgePreviewText}>
-                      {achievementIconMap[badge.icon] ?? '?'}
-                    </AppText>
-                  </View>
-                ))}
+                {badgePreviews.map((badge) => {
+                  const BadgeIcon = achievementIconMap[badge.icon] ?? Award;
+                  return (
+                    <View key={badge.id} style={styles.badgePreview}>
+                      <BadgeIcon size={13} color={colors.onMuted.warning} />
+                    </View>
+                  );
+                })}
               </View>
             )}
             <ChevronRight size={18} color={colors.textMuted} />
@@ -339,14 +342,20 @@ function createStyles(colors: ThemeColors) {
     },
     statsRow: {
       flexDirection: 'row',
-      justifyContent: 'space-around',
+      alignItems: 'center',
       marginTop: spacing.lg,
       paddingTop: spacing.md,
       borderTopWidth: 1,
       borderTopColor: colors.border,
     },
     statItem: {
+      flex: 1,
       alignItems: 'center',
+    },
+    statDivider: {
+      width: 1,
+      alignSelf: 'stretch',
+      backgroundColor: colors.border,
     },
     statValue: {
       fontSize: 22,
@@ -403,11 +412,6 @@ function createStyles(colors: ThemeColors) {
       backgroundColor: colors.warningMuted,
       alignItems: 'center',
       justifyContent: 'center',
-    },
-    badgePreviewText: {
-      fontSize: 10,
-      fontWeight: '700',
-      color: colors.onMuted.warning,
     },
     completionCard: {
       marginBottom: spacing.lg,
