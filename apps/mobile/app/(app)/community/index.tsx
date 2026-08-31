@@ -1,8 +1,8 @@
 import React, { useMemo, useState } from 'react';
-import { Image, RefreshControl, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Image, RefreshControl, Share, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import { Trophy, Users, Calendar, BookOpen, TrendingUp, Award } from 'lucide-react-native';
+import { Trophy, Users, Calendar, BookOpen, TrendingUp, Award, Share2 } from 'lucide-react-native';
 import {
   getFeed,
   getImpactStats,
@@ -10,12 +10,14 @@ import {
 } from '../../../src/api/community';
 import { getActiveChallenges, type Challenge } from '../../../src/api/challenges';
 import { getCampaigns, type Campaign } from '../../../src/api/campaigns';
+import { getUserRank } from '../../../src/api/gamification';
 import {
   AppText,
   Avatar,
   Badge,
   Card,
   Divider,
+  GlassCard,
   LoadingState,
   ProgressBar,
   Screen,
@@ -47,6 +49,11 @@ export default function CommunityScreen() {
     queryFn: () => getCampaigns({ page: 1, limit: 5, status: 'ACTIVE' }),
   });
 
+  const { data: userRank } = useQuery({
+    queryKey: ['leaderboard', 'me', 'THIS_MONTH'],
+    queryFn: () => getUserRank('THIS_MONTH'),
+  });
+
   const onRefresh = async () => {
     setRefreshing(true);
     await Promise.all([refetchFeed()]);
@@ -71,6 +78,29 @@ export default function CommunityScreen() {
         />
       }
     >
+      {userRank && (
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={() => router.push('/gamification/leaderboard')}
+          style={styles.leaderboardTeaser}
+        >
+          <GlassCard elevated>
+            <View style={styles.leaderboardRow}>
+              <View style={styles.leaderboardIcon}>
+                <Award size={20} color={colors.onMuted.warning} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <AppText style={styles.leaderboardTitle}>This month's leaderboard</AppText>
+                <AppText muted style={styles.tinyText}>
+                  You're ranked #{userRank.rank} of {userRank.total} — keep going!
+                </AppText>
+              </View>
+              <Badge variant="warning">#{userRank.rank}</Badge>
+            </View>
+          </GlassCard>
+        </TouchableOpacity>
+      )}
+
       {impactStats && (
         <Card style={styles.section}>
           <View style={styles.sectionHeader}>
@@ -284,6 +314,13 @@ function FeedPostCard({ post }: { post: CommunityPost }) {
   const authorName =
     post.author?.displayName || `${post.author?.firstName} ${post.author?.lastName}`;
 
+  const handleShare = () => {
+    Share.share({
+      message: `${post.title}\n\n${post.body}`,
+      title: post.title,
+    }).catch(() => {});
+  };
+
   return (
     <View style={styles.feedPost}>
       <View style={styles.feedPostHeader}>
@@ -311,6 +348,13 @@ function FeedPostCard({ post }: { post: CommunityPost }) {
       {post.imageUrl && (
         <Image source={{ uri: post.imageUrl }} style={styles.feedPostImage} resizeMode="cover" />
       )}
+
+      <TouchableOpacity style={styles.shareButton} activeOpacity={0.7} onPress={handleShare}>
+        <Share2 size={15} color={colors.textMuted} />
+        <AppText muted style={styles.tinyText}>
+          Share
+        </AppText>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -320,6 +364,26 @@ function createStyles(colors: ThemeColors) {
     section: {
       padding: spacing.lg,
       marginBottom: spacing.md,
+    },
+    leaderboardTeaser: {
+      marginBottom: spacing.md,
+    },
+    leaderboardRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.md,
+    },
+    leaderboardIcon: {
+      width: 40,
+      height: 40,
+      borderRadius: 12,
+      backgroundColor: colors.warningMuted,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    leaderboardTitle: {
+      fontSize: 13,
+      fontWeight: '600',
     },
     sectionHeader: {
       flexDirection: 'row',
@@ -424,6 +488,13 @@ function createStyles(colors: ThemeColors) {
       height: 192,
       borderRadius: radius.sm,
       marginTop: spacing.sm,
+    },
+    shareButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+      marginTop: spacing.sm,
+      alignSelf: 'flex-start',
     },
   });
 }
