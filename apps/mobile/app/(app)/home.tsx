@@ -1,13 +1,15 @@
 import { useMemo } from 'react';
 import { router } from 'expo-router';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
-import { Calendar, Droplet, TrendingUp, Zap, ChevronRight, Clock } from 'lucide-react-native';
+import { Bell, Calendar, Droplet, TrendingUp, Zap, ChevronRight, Clock } from 'lucide-react-native';
 import {
   AppButton,
   AppText,
+  Avatar,
   Card,
   GlassCard,
   GradientCard,
+  IconButton,
   Screen,
   SectionHeader,
 } from '../../src/components';
@@ -17,6 +19,8 @@ import { useProfileCompletion } from '../../src/hooks/useDonors';
 import { useNextAppointment } from '../../src/hooks/useAppointments';
 import { useDonationStatistics } from '../../src/hooks/useDonations';
 import { useGamificationProfile } from '../../src/hooks/useGamification';
+import { useUnreadCount } from '../../src/hooks/useNotifications';
+import { useDonorEmergencies } from '../../src/hooks/useEmergency';
 import { useAuthStore } from '../../src/stores/auth.store';
 import { spacing, radius, useTheme, ThemeColors } from '../../src/theme';
 
@@ -30,6 +34,11 @@ export default function Home() {
   const { data: nextAppointment } = useNextAppointment();
   const { data: donationStats } = useDonationStatistics();
   const { data: gamificationProfile } = useGamificationProfile();
+  const { data: unreadCount } = useUnreadCount();
+  const { data: emergencies } = useDonorEmergencies();
+
+  const fullName = userProfile ? [userProfile.firstName, userProfile.lastName].filter(Boolean).join(' ') : undefined;
+  const activeEmergencyCount = emergencies?.active.length ?? 0;
 
   const completion = completionData?.data;
 
@@ -67,16 +76,30 @@ export default function Home() {
 
   return (
     <Screen>
-      <AppText muted style={styles.dateLabel}>
-        {new Date().toLocaleDateString('en-US', {
-          weekday: 'long',
-          day: 'numeric',
-          month: 'long',
-        }).toUpperCase()}
-      </AppText>
-      <AppText variant="title" style={styles.greeting}>
-        {greeting}
-      </AppText>
+      <View style={styles.headerRow}>
+        <View style={styles.headerText}>
+          <AppText muted style={styles.dateLabel}>
+            {new Date().toLocaleDateString('en-US', {
+              weekday: 'long',
+              day: 'numeric',
+              month: 'long',
+            }).toUpperCase()}
+          </AppText>
+          <AppText variant="title" style={styles.greeting}>
+            {greeting}
+          </AppText>
+        </View>
+        <View style={styles.headerActions}>
+          <IconButton
+            icon={Bell}
+            onPress={() => router.push('/(app)/notifications')}
+            badge={unreadCount?.count}
+          />
+          <TouchableOpacity onPress={() => router.push('/(app)/profile')}>
+            <Avatar name={fullName ?? user?.firstName ?? 'Donor'} size={40} />
+          </TouchableOpacity>
+        </View>
+      </View>
 
       {needsOnboarding && (
         <GlassCard style={styles.onboardingPrompt}>
@@ -116,6 +139,23 @@ export default function Home() {
             {donorProfile.district ? `, ${donorProfile.district}` : ''}
           </AppText>
         )}
+        <View style={styles.heroDivider} />
+        <View style={styles.heroStatsRow}>
+          <View style={styles.heroStatItem}>
+            <AppText style={styles.heroStatValue}>{donationStats?.completedCount ?? 0}</AppText>
+            <AppText style={styles.heroStatLabel}>Donations</AppText>
+          </View>
+          <View style={styles.heroStatItem}>
+            <AppText style={styles.heroStatValue}>
+              {donationStats?.totalVolumeMl ? (donationStats.totalVolumeMl / 1000).toFixed(1) : '0'}L
+            </AppText>
+            <AppText style={styles.heroStatLabel}>Total volume</AppText>
+          </View>
+          <View style={styles.heroStatItem}>
+            <AppText style={styles.heroStatValue}>{gamificationProfile?.emergencyResponseCount ?? 0}</AppText>
+            <AppText style={styles.heroStatLabel}>Emergency responses</AppText>
+          </View>
+        </View>
       </GradientCard>
 
       {nextAppointment && (
@@ -201,7 +241,7 @@ export default function Home() {
         >
           <GlassCard style={styles.statGlassCard}>
             <View style={[styles.statIconContainer, { backgroundColor: colors.primaryMuted }]}>
-              <Droplet size={18} color={colors.primary} />
+              <Droplet size={18} color={colors.onMuted.primary} />
             </View>
             <AppText variant="numeric" style={styles.statValue}>
               {donationStats?.completedCount ?? 0}
@@ -214,7 +254,7 @@ export default function Home() {
         <View style={styles.donationStatCard}>
           <GlassCard style={styles.statGlassCard}>
             <View style={[styles.statIconContainer, { backgroundColor: colors.secondaryMuted }]}>
-              <TrendingUp size={18} color={colors.secondary} />
+              <TrendingUp size={18} color={colors.onMuted.secondary} />
             </View>
             <AppText variant="numeric" style={styles.statValue}>
               {donationStats?.totalVolumeMl
@@ -234,7 +274,7 @@ export default function Home() {
         >
           <GlassCard style={styles.statGlassCard}>
             <View style={[styles.statIconContainer, { backgroundColor: colors.warningMuted }]}>
-              <Zap size={18} color={colors.warning} />
+              <Zap size={18} color={colors.onMuted.warning} />
             </View>
             <AppText variant="numeric" style={styles.statValue}>
               {gamificationProfile?.totalXp ?? 0}
@@ -282,12 +322,17 @@ export default function Home() {
       </View>
 
       <SectionHeader>EMERGENCY</SectionHeader>
-      <GlassCard style={styles.sosCard}>
-        <AppText variant="heading" style={{ color: colors.danger }}>
-          SOS Blood Requests
-        </AppText>
+      <GlassCard danger={activeEmergencyCount > 0} style={styles.sosCard}>
+        <View style={styles.sosHeader}>
+          <AppText variant="heading" style={{ color: colors.danger }}>
+            SOS Blood Requests
+          </AppText>
+          {activeEmergencyCount > 0 && <View style={styles.sosPulseDot} />}
+        </View>
         <AppText muted style={styles.sosText}>
-          View active emergency requests that match your blood type.
+          {activeEmergencyCount > 0
+            ? `${activeEmergencyCount} active emergency ${activeEmergencyCount === 1 ? 'request' : 'requests'} near you.`
+            : 'No active emergency requests right now.'}
         </AppText>
         <AppButton variant="danger" size="small" onPress={() => router.push('/sos')}>
           View SOS Area
@@ -314,13 +359,25 @@ function getGreeting(name: string): string {
 
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
+    headerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: spacing.xl,
+    },
+    headerText: {
+      flex: 1,
+    },
+    headerActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
     dateLabel: {
       letterSpacing: 1,
       marginBottom: spacing.xs,
     },
-    greeting: {
-      marginBottom: spacing.xl,
-    },
+    greeting: {},
     onboardingPrompt: {
       marginBottom: spacing.xl,
       borderColor: colors.primary,
@@ -373,6 +430,29 @@ function createStyles(colors: ThemeColors) {
       fontSize: 13,
       color: 'rgba(255,255,255,0.75)',
     },
+    heroDivider: {
+      marginTop: spacing.md,
+      height: 1,
+      backgroundColor: 'rgba(255,255,255,0.15)',
+    },
+    heroStatsRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginTop: spacing.md,
+    },
+    heroStatItem: {
+      alignItems: 'center',
+    },
+    heroStatValue: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: '#FFFFFF',
+    },
+    heroStatLabel: {
+      fontSize: 11,
+      color: 'rgba(255,255,255,0.6)',
+      marginTop: 2,
+    },
     statsRow: {
       flexDirection: 'row',
       gap: spacing.md,
@@ -403,6 +483,17 @@ function createStyles(colors: ThemeColors) {
     },
     sosCard: {
       borderColor: colors.danger,
+    },
+    sosHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
+    sosPulseDot: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      backgroundColor: colors.danger,
     },
     sosText: {
       marginTop: spacing.xs,
