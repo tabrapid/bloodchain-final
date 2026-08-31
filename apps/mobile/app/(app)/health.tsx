@@ -2,21 +2,34 @@ import { useCallback, useEffect, useState } from 'react';
 import { router } from 'expo-router';
 import type { RelativePathString } from 'expo-router';
 import { TouchableOpacity, View, RefreshControl, ScrollView } from 'react-native';
-import { Activity, Brain, ChevronRight, FlaskConical, TrendingUp } from 'lucide-react-native';
-import { AppText, Card, GlassCard, LoadingState, Screen, SectionHeader, StatCard } from '../../src/components';
+import { Activity, Brain, ChevronRight, Droplet, FlaskConical, Thermometer, TrendingUp, Wind } from 'lucide-react-native';
+import { AppText, Card, Divider, GlassCard, LoadingState, Screen, SectionHeader, StatCard } from '../../src/components';
 import { spacing, useTheme } from '../../src/theme';
 import { getTrendSummary, TrendSummary } from '../../src/api/health-trends';
+import { getDonorResults, LaboratoryResult } from '../../src/api/laboratory';
+import { getInsightHistory, AiInsight } from '../../src/api/ai-health';
+
+const VITAL_ICONS = [Droplet, Wind, Thermometer, TrendingUp, Activity] as const;
+const VITAL_ICON_COLORS = ['primary', 'secondary', 'warning', 'ai', 'success'] as const;
 
 export default function Health() {
   const { colors } = useTheme();
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [summary, setSummary] = useState<TrendSummary | null>(null);
+  const [labResults, setLabResults] = useState<LaboratoryResult[]>([]);
+  const [latestInsight, setLatestInsight] = useState<AiInsight | null>(null);
 
   const loadData = useCallback(async () => {
     try {
-      const data = await getTrendSummary();
-      setSummary(data);
+      const [trendData, resultsData, insightData] = await Promise.all([
+        getTrendSummary(),
+        getDonorResults().catch(() => []),
+        getInsightHistory({ limit: 1 }).catch(() => ({ insights: [], total: 0 })),
+      ]);
+      setSummary(trendData);
+      setLabResults(resultsData);
+      setLatestInsight(insightData.insights[0] ?? null);
     } catch (err) {
       console.error('Failed to load health summary:', err);
     } finally {
@@ -80,6 +93,54 @@ export default function Health() {
             style={{ flex: 1 }}
           />
         </View>
+
+        {summary && summary.availableParameters.length > 0 && (
+          <>
+            <SectionHeader action={{ label: 'Trends', onPress: () => router.push('/health-trends' as RelativePathString) }}>
+              VITALS
+            </SectionHeader>
+            <GlassCard>
+              {summary.availableParameters.slice(0, 5).map((param, index) => {
+                const Icon = VITAL_ICONS[index % VITAL_ICONS.length]!;
+                const colorKey = VITAL_ICON_COLORS[index % VITAL_ICON_COLORS.length]!;
+                return (
+                  <View key={param.code}>
+                    {index > 0 && <Divider style={{ marginVertical: spacing.md }} />}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
+                      <View
+                        style={{
+                          width: 40,
+                          height: 40,
+                          borderRadius: 12,
+                          backgroundColor: colors[`${colorKey}Muted`],
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <Icon size={18} color={colors.onMuted[colorKey]} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <AppText muted style={{ fontSize: 12 }}>
+                          {param.name}
+                        </AppText>
+                        <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 3, marginTop: 1 }}>
+                          <AppText variant="heading" style={{ fontSize: 22 }}>
+                            {param.latestValue ?? '—'}
+                          </AppText>
+                          {param.unit && (
+                            <AppText muted style={{ fontSize: 12 }}>
+                              {param.unit}
+                            </AppText>
+                          )}
+                        </View>
+                      </View>
+                    </View>
+                  </View>
+                );
+              })}
+            </GlassCard>
+          </>
+        )}
 
         <SectionHeader>TRENDS</SectionHeader>
         <TouchableOpacity onPress={() => router.push('/health-trends' as RelativePathString)}>
@@ -175,37 +236,99 @@ export default function Health() {
           </Card>
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => router.push('/insights' as RelativePathString)}>
-          <Card style={{ marginTop: spacing.md }}>
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: spacing.md,
-              }}
-            >
+        <SectionHeader action={{ label: 'View all', onPress: () => router.push('/insights' as RelativePathString) }}>
+          AI INSIGHTS
+        </SectionHeader>
+        <TouchableOpacity onPress={() => router.push('/insights' as RelativePathString)} activeOpacity={0.8}>
+          <GlassCard style={{ borderColor: colors.aiMuted }}>
+            <View style={{ flexDirection: 'row', gap: spacing.md, alignItems: 'flex-start' }}>
               <View
                 style={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: 12,
+                  width: 36,
+                  height: 36,
+                  borderRadius: 10,
                   backgroundColor: colors.aiMuted,
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
               >
-                <Brain size={24} color={colors.onMuted.ai} />
+                <Brain size={16} color={colors.onMuted.ai} />
               </View>
               <View style={{ flex: 1 }}>
-                <AppText variant="heading">AI Insights</AppText>
-                <AppText muted style={{ fontSize: 13 }}>
-                  Get AI-powered explanations of your results
-                </AppText>
+                {latestInsight ? (
+                  <>
+                    <AppText style={{ fontSize: 13, fontWeight: '600', color: colors.ai, marginBottom: spacing.xs }}>
+                      {latestInsight.title}
+                    </AppText>
+                    <AppText style={{ fontSize: 13, lineHeight: 18 }} numberOfLines={3}>
+                      {latestInsight.summary}
+                    </AppText>
+                  </>
+                ) : (
+                  <>
+                    <AppText variant="heading">AI Insights</AppText>
+                    <AppText muted style={{ fontSize: 13, marginTop: 2 }}>
+                      Get AI-powered explanations of your results
+                    </AppText>
+                  </>
+                )}
               </View>
-              <ChevronRight size={20} color={colors.textMuted} />
             </View>
-          </Card>
+          </GlassCard>
         </TouchableOpacity>
+
+        {labResults.filter((r) => r.status === 'PUBLISHED').length > 0 && (
+          <>
+            <SectionHeader action={{ label: 'View all', onPress: () => router.push('/laboratory' as RelativePathString) }}>
+              LAB RESULTS
+            </SectionHeader>
+            {labResults
+              .filter((r) => r.status === 'PUBLISHED')
+              .slice(0, 2)
+              .map((result) => {
+                const hasFlaggedItem = result.items.some((item) => item.flag && item.flag !== 'NORMAL');
+                return (
+                  <TouchableOpacity
+                    key={result.id}
+                    onPress={() => router.push('/laboratory' as RelativePathString)}
+                    activeOpacity={0.8}
+                  >
+                    <GlassCard style={{ padding: spacing.md, marginBottom: spacing.sm }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <View style={{ flex: 1 }}>
+                          <AppText style={{ fontSize: 14, fontWeight: '500' }}>{result.testType.name}</AppText>
+                          <AppText muted style={{ fontSize: 12, marginTop: 2 }}>
+                            {result.publishedAt ? new Date(result.publishedAt).toLocaleDateString() : 'Date unknown'}
+                          </AppText>
+                        </View>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+                          <View
+                            style={{
+                              paddingHorizontal: spacing.sm,
+                              paddingVertical: 2,
+                              borderRadius: 4,
+                              backgroundColor: hasFlaggedItem ? colors.warningMuted : colors.successMuted,
+                            }}
+                          >
+                            <AppText
+                              style={{
+                                fontSize: 11,
+                                fontWeight: '600',
+                                color: hasFlaggedItem ? colors.onMuted.warning : colors.onMuted.success,
+                              }}
+                            >
+                              {hasFlaggedItem ? 'Review' : 'Normal'}
+                            </AppText>
+                          </View>
+                          <ChevronRight size={14} color={colors.textMuted} />
+                        </View>
+                      </View>
+                    </GlassCard>
+                  </TouchableOpacity>
+                );
+              })}
+          </>
+        )}
 
         <SectionHeader>ACTIVITY</SectionHeader>
         <GlassCard>
