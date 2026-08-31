@@ -99,7 +99,7 @@ export default function NewBloodRequestPage() {
       <AppShell
         title="Loading..."
         subtitle="HOSPITAL CONSOLE"
-        organizationName="Northstar Hospital (Development)"
+        organizationName="Hospital Console"
         organizationType="Hospital workspace"
         userName="Loading..."
       >
@@ -114,7 +114,7 @@ export default function NewBloodRequestPage() {
     <AppShell
       title="New Blood Request"
       subtitle="HOSPITAL OPERATIONS"
-      organizationName="Northstar Hospital (Development)"
+      organizationName={user?.organizations.find((org) => org.type === 'HOSPITAL')?.name ?? 'Hospital Console'}
       organizationType="Hospital Console"
       userName={user ? `${user.firstName} ${user.lastName}` : 'Guest'}
     >

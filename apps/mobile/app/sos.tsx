@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ScrollView, View, Alert } from 'react-native';
+import { ScrollView, View, Alert, TouchableOpacity } from 'react-native';
 import * as Location from 'expo-location';
 import {
   AlertTriangle,
@@ -662,12 +662,12 @@ export default function SosScreen() {
             </AppText>
             {emergencies.map((emergency) => (
               <View key={emergency.id} style={{ marginBottom: spacing.md }}>
-                <AppButton
-                  variant="secondary"
+                <TouchableOpacity
+                  activeOpacity={0.8}
                   onPress={() => handleViewMatch(emergency)}
                 >
                   {renderEmergencyCard(emergency)}
-                </AppButton>
+                </TouchableOpacity>
               </View>
             ))}
           </>
@@ -690,8 +690,8 @@ export default function SosScreen() {
             </AppText>
             {myResponses.map((emergency) => (
               <View key={emergency.id} style={{ marginBottom: spacing.md }}>
-                <AppButton
-                  variant="secondary"
+                <TouchableOpacity
+                  activeOpacity={0.8}
                   onPress={() => {
                     setSelectedEmergency(emergency);
                     if (emergency.responseStatus === 'EN_ROUTE') {
@@ -704,7 +704,7 @@ export default function SosScreen() {
                   }}
                 >
                   {renderEmergencyCard(emergency)}
-                </AppButton>
+                </TouchableOpacity>
               </View>
             ))}
           </>

@@ -72,7 +72,7 @@ export default function BloodRequestDetailPage() {
       <AppShell
         title="Loading..."
         subtitle="HOSPITAL CONSOLE"
-        organizationName="Northstar Hospital (Development)"
+        organizationName="Hospital Console"
         organizationType="Hospital workspace"
         userName="Loading..."
       >
@@ -88,7 +88,7 @@ export default function BloodRequestDetailPage() {
       <AppShell
         title="Request Not Found"
         subtitle="HOSPITAL CONSOLE"
-        organizationName="Northstar Hospital (Development)"
+        organizationName={user?.organizations.find((org) => org.type === 'HOSPITAL')?.name ?? 'Hospital Console'}
         organizationType="Hospital workspace"
         userName={user ? `${user.firstName} ${user.lastName}` : 'Guest'}
       >
@@ -116,7 +116,7 @@ export default function BloodRequestDetailPage() {
     <AppShell
       title={request.requestReference}
       subtitle="BLOOD REQUEST DETAILS"
-      organizationName="Northstar Hospital (Development)"
+      organizationName={user.organizations.find((org) => org.type === 'HOSPITAL')?.name ?? 'Hospital Console'}
       organizationType="Hospital Console"
       userName={`${user.firstName} ${user.lastName}`}
     >

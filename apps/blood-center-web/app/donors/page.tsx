@@ -116,7 +116,7 @@ export default function DonorsPage() {
       <AppShell
         title="Loading..."
         subtitle="BLOOD CENTER CONSOLE"
-        organizationName="Northstar Blood Center (Development)"
+        organizationName="Blood Center Console"
         organizationType="Operations workspace"
         userName="Loading..."
       >
@@ -132,7 +132,7 @@ export default function DonorsPage() {
       <AppShell
         title="Authentication Required"
         subtitle="BLOOD CENTER CONSOLE"
-        organizationName="Northstar Blood Center (Development)"
+        organizationName="Blood Center Console"
         organizationType="Operations workspace"
         userName="Guest"
       >
@@ -153,7 +153,7 @@ export default function DonorsPage() {
     <AppShell
       title="Donors"
       subtitle="BLOOD CENTER OPERATIONS"
-      organizationName="Northstar Blood Center (Development)"
+      organizationName={user.organizations.find((org) => org.type === 'BLOOD_CENTER' || org.type === 'BLOOD_CENTER_ADMIN')?.name ?? 'Blood Center Console'}
       organizationType="Operations workspace"
       userName={`${user.firstName} ${user.lastName}`}
     >

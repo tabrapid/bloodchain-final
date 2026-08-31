@@ -155,7 +155,7 @@ export default function AppointmentSlotsPage() {
       <AppShell
         title="Loading..."
         subtitle="HOSPITAL CONSOLE"
-        organizationName="Northstar Hospital (Development)"
+        organizationName="Hospital Console"
         organizationType="Operations workspace"
         userName="Loading..."
       >
@@ -171,7 +171,7 @@ export default function AppointmentSlotsPage() {
       <AppShell
         title="Authentication Required"
         subtitle="HOSPITAL CONSOLE"
-        organizationName="Northstar Hospital (Development)"
+        organizationName="Hospital Console"
         organizationType="Operations workspace"
         userName="Guest"
       >
@@ -198,7 +198,7 @@ export default function AppointmentSlotsPage() {
     <AppShell
       title="Appointment Slots"
       subtitle="HOSPITAL OPERATIONS"
-      organizationName="Northstar Hospital (Development)"
+      organizationName={user.organizations.find((org) => org.type === 'HOSPITAL')?.name ?? 'Hospital Console'}
       organizationType="Operations workspace"
       userName={`${user.firstName} ${user.lastName}`}
     >

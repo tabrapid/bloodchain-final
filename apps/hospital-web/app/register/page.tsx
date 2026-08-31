@@ -49,7 +49,7 @@ export default function RegisterHospitalPage() {
       <AppShell
         title="Registration Submitted"
         subtitle="HOSPITAL CONSOLE"
-        organizationName="Northstar Hospital (Development)"
+        organizationName={organizationName || 'Hospital Console'}
         organizationType="Operations workspace"
         userName="Guest"
       >
@@ -78,7 +78,7 @@ export default function RegisterHospitalPage() {
     <AppShell
       title="Register Your Hospital"
       subtitle="HOSPITAL CONSOLE"
-      organizationName="Northstar Hospital (Development)"
+      organizationName={organizationName || 'Hospital Console'}
       organizationType="Operations workspace"
       userName="Guest"
     >
