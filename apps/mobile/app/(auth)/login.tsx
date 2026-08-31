@@ -7,7 +7,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema, type LoginInput } from '@bloodchain/validation';
 import { AppButton, AppText, Screen } from '../../src/components';
 import { useLogin, getAuthErrorMessage } from '../../src/hooks/useAuth';
-import { useAuthStore } from '../../src/stores/auth.store';
 import { getPostAuthRoute } from '../../src/utils/postAuthRoute';
 import { spacing, useTheme, ThemeColors } from '../../src/theme';
 
@@ -15,7 +14,6 @@ export default function Login() {
   const { colors } = useTheme();
   const inputStyle = getInputStyle(colors);
   const login = useLogin();
-  const setLoading = useAuthStore((s) => s.setLoading);
   const [serverError, setServerError] = useState<string | null>(null);
   const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
@@ -27,7 +25,6 @@ export default function Login() {
   const onSubmit = handleSubmit(async (data) => {
     setServerError(null);
     setUnverifiedEmail(null);
-    setLoading(true);
     try {
       const result = await login.mutateAsync(data);
       router.replace(getPostAuthRoute(result.user.roles));
@@ -37,7 +34,6 @@ export default function Login() {
       if (message.toLowerCase().includes('verify your email')) {
         setUnverifiedEmail(data.email);
       }
-      setLoading(false);
     }
   });
 
