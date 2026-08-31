@@ -3,7 +3,7 @@ import { View, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from '
 import { router } from 'expo-router';
 import { Droplet, Calendar, Building2, ChevronRight } from 'lucide-react-native';
 import { AppText, Card, EmptyState, GlassCard, Screen, ScreenHeader } from '../../../src/components';
-import { useMyDonations } from '../../../src/hooks/useDonations';
+import { useMyDonations, useDonationStatistics } from '../../../src/hooks/useDonations';
 import { type Donation } from '../../../src/api/donations';
 import { spacing, radius, useTheme, ThemeColors } from '../../../src/theme';
 
@@ -15,6 +15,7 @@ export default function DonationsScreen() {
   const { data, isLoading, refetch, isRefetching } = useMyDonations(
     filter === 'all' ? { past: true } : filter === 'completed' ? { status: 'COMPLETED', past: true } : { status: 'CANCELLED', past: true }
   );
+  const { data: stats } = useDonationStatistics();
 
   const donations: Donation[] = data?.data || [];
 
@@ -44,6 +45,37 @@ export default function DonationsScreen() {
   return (
     <Screen>
       <ScreenHeader title="Donation History" />
+
+      {stats && (
+        <GlassCard style={styles.statsCard}>
+          <View style={styles.statsRow}>
+            <View style={styles.statItem}>
+              <AppText variant="heading" style={styles.statValue}>
+                {stats.totalDonations}
+              </AppText>
+              <AppText muted style={styles.statLabel}>
+                Total donations
+              </AppText>
+            </View>
+            <View style={styles.statItem}>
+              <AppText variant="heading" style={styles.statValue}>
+                {(stats.totalVolumeMl / 1000).toFixed(1)}L
+              </AppText>
+              <AppText muted style={styles.statLabel}>
+                Volume donated
+              </AppText>
+            </View>
+            <View style={styles.statItem}>
+              <AppText variant="heading" style={styles.statValue}>
+                {stats.completedCount}
+              </AppText>
+              <AppText muted style={styles.statLabel}>
+                Completed
+              </AppText>
+            </View>
+          </View>
+        </GlassCard>
+      )}
 
       <View style={styles.filterTabs}>
         {(['all', 'completed', 'cancelled'] as const).map((tab) => (
@@ -161,6 +193,23 @@ export default function DonationsScreen() {
 
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
+    statsCard: {
+      marginBottom: spacing.lg,
+    },
+    statsRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-around',
+    },
+    statItem: {
+      alignItems: 'center',
+    },
+    statValue: {
+      fontSize: 20,
+    },
+    statLabel: {
+      fontSize: 11,
+      marginTop: 2,
+    },
     filterTabs: {
       flexDirection: 'row',
       backgroundColor: colors.surfaceSolid,

@@ -2,12 +2,15 @@ import { Pressable, PressableProps, StyleProp, StyleSheet, View, ViewStyle } fro
 import { BlurView } from 'expo-blur';
 import { radius, useTheme } from '../theme';
 import { LucideIcon } from '../types/icons';
+import { AppText } from './AppText';
 
 export interface IconButtonProps extends Omit<PressableProps, 'style'> {
   icon: LucideIcon;
   size?: number;
   color?: string;
   style?: StyleProp<ViewStyle>;
+  /** Small numeric badge in the top-right corner (e.g. unread count). */
+  badge?: number;
 }
 
 /**
@@ -21,6 +24,7 @@ export function IconButton({
   size = 22,
   color,
   style,
+  badge,
   ...props
 }: IconButtonProps) {
   const { colors, isDark } = useTheme();
@@ -32,25 +36,47 @@ export function IconButton({
       {({ pressed }) => (
         <View
           style={[
-            { width: 44, height: 44, borderRadius: radius.md, overflow: 'hidden', opacity: pressed ? 0.8 : 1 },
+            { width: 44, height: 44, borderRadius: radius.md, opacity: pressed ? 0.8 : 1 },
             flattenedStyle,
           ]}
         >
-          <BlurView
-            intensity={isDark ? 42 : 55}
-            tint={colors.blurTint}
-            experimentalBlurMethod="dimezisBlurView"
-            style={{
-              flex: 1,
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderWidth: 1,
-              borderColor: colors.glassBorder,
-              borderRadius: radius.md,
-            }}
-          >
-            <Icon size={size} color={resolvedColor} />
-          </BlurView>
+          <View style={{ flex: 1, borderRadius: radius.md, overflow: 'hidden' }}>
+            <BlurView
+              intensity={isDark ? 42 : 55}
+              tint={colors.blurTint}
+              experimentalBlurMethod="dimezisBlurView"
+              style={{
+                flex: 1,
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderWidth: 1,
+                borderColor: colors.glassBorder,
+                borderRadius: radius.md,
+              }}
+            >
+              <Icon size={size} color={resolvedColor} />
+            </BlurView>
+          </View>
+          {badge != null && badge > 0 && (
+            <View
+              style={{
+                position: 'absolute',
+                top: -3,
+                right: -3,
+                minWidth: 16,
+                height: 16,
+                paddingHorizontal: 3,
+                borderRadius: 8,
+                backgroundColor: colors.danger,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <AppText style={{ fontSize: 9, fontWeight: '700', color: colors.white }}>
+                {badge > 9 ? '9+' : badge}
+              </AppText>
+            </View>
+          )}
         </View>
       )}
     </Pressable>
