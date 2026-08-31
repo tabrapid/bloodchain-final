@@ -266,15 +266,15 @@ export default function CouriersPage() {
                 <div className="border-t border-donor-border/40 pt-4">
                   <p className="text-sm font-medium text-donor-text mb-2">Performance</p>
                   <div className="grid grid-cols-3 gap-2 text-sm">
-                    <div className="bg-donor-elevated p-2 rounded text-center">
+                    <div className="bg-donor-elevated p-2 rounded-card text-center">
                       <p className="text-donor-muted">Total</p>
                       <p className="font-semibold">{selectedCourier.stats.totalShipments}</p>
                     </div>
-                    <div className="bg-donor-successMuted p-2 rounded text-center">
+                    <div className="bg-donor-successMuted p-2 rounded-card text-center">
                       <p className="text-donor-muted">Completed</p>
                       <p className="font-semibold text-donor-onSuccessMuted">{selectedCourier.stats.completedShipments}</p>
                     </div>
-                    <div className="bg-donor-dangerMuted p-2 rounded text-center">
+                    <div className="bg-donor-dangerMuted p-2 rounded-card text-center">
                       <p className="text-donor-muted">Failed</p>
                       <p className="font-semibold text-donor-onDangerMuted">{selectedCourier.stats.failedShipments}</p>
                     </div>
