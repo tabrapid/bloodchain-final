@@ -1,6 +1,20 @@
 import { useMemo, useState, useCallback } from 'react';
 import { View, StyleSheet, FlatList, TouchableOpacity, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
+import {
+  AlertCircle,
+  Heart,
+  Calendar,
+  FlaskConical,
+  Cpu,
+  Trophy,
+  Droplet,
+  Truck,
+  Package,
+  Shield,
+  Settings,
+  type LucideIcon,
+} from 'lucide-react-native';
 import { AppButton, AppText, Card, Screen, ScreenHeader, EmptyState, LoadingState } from '../../src/components';
 import {
   useNotifications,
@@ -11,33 +25,33 @@ import {
 import { spacing, radius, useTheme, ThemeColors } from '../../src/theme';
 import type { Notification, NotificationType } from '../../src/api/notifications';
 
-const TYPE_ICONS: Record<NotificationType, string> = {
-  EMERGENCY: 'alert-circle',
-  DONATION: 'heart',
-  APPOINTMENT: 'calendar',
-  LABORATORY: 'flask',
-  AI: 'cpu',
-  GAMIFICATION: 'trophy',
-  BLOOD_REQUEST: 'droplet',
-  SHIPMENT: 'truck',
-  INVENTORY: 'package',
-  SECURITY: 'shield',
-  SYSTEM: 'settings',
+const TYPE_ICON_COMPONENTS: Record<NotificationType, LucideIcon> = {
+  EMERGENCY: AlertCircle,
+  DONATION: Heart,
+  APPOINTMENT: Calendar,
+  LABORATORY: FlaskConical,
+  AI: Cpu,
+  GAMIFICATION: Trophy,
+  BLOOD_REQUEST: Droplet,
+  SHIPMENT: Truck,
+  INVENTORY: Package,
+  SECURITY: Shield,
+  SYSTEM: Settings,
 };
 
-function getTypeColors(colors: ThemeColors): Record<NotificationType, string> {
+function getTypeStyle(colors: ThemeColors): Record<NotificationType, { bg: string; icon: string }> {
   return {
-    EMERGENCY: colors.danger,
-    DONATION: colors.primary,
-    APPOINTMENT: colors.secondary,
-    LABORATORY: colors.secondary,
-    AI: colors.ai,
-    GAMIFICATION: colors.ai,
-    BLOOD_REQUEST: colors.danger,
-    SHIPMENT: colors.secondary,
-    INVENTORY: colors.warning,
-    SECURITY: colors.warning,
-    SYSTEM: colors.textMuted,
+    EMERGENCY: { bg: colors.dangerMuted, icon: colors.onMuted.danger },
+    DONATION: { bg: colors.primaryMuted, icon: colors.onMuted.primary },
+    APPOINTMENT: { bg: colors.secondaryMuted, icon: colors.onMuted.secondary },
+    LABORATORY: { bg: colors.secondaryMuted, icon: colors.onMuted.secondary },
+    AI: { bg: colors.aiMuted, icon: colors.onMuted.ai },
+    GAMIFICATION: { bg: colors.warningMuted, icon: colors.onMuted.warning },
+    BLOOD_REQUEST: { bg: colors.dangerMuted, icon: colors.onMuted.danger },
+    SHIPMENT: { bg: colors.secondaryMuted, icon: colors.onMuted.secondary },
+    INVENTORY: { bg: colors.warningMuted, icon: colors.onMuted.warning },
+    SECURITY: { bg: colors.warningMuted, icon: colors.onMuted.warning },
+    SYSTEM: { bg: colors.surfaceElevated, icon: colors.textMuted },
   };
 }
 
@@ -51,32 +65,42 @@ function NotificationItem({ notification, onPress, onMarkRead }: NotificationIte
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const isUnread = !notification.readAt;
-  const typeColor = getTypeColors(colors)[notification.type] || colors.textMuted;
+  const typeStyle = getTypeStyle(colors)[notification.type] || {
+    bg: colors.surfaceElevated,
+    icon: colors.textMuted,
+  };
+  const Icon = TYPE_ICON_COMPONENTS[notification.type] || Settings;
   const timeAgo = formatTimeAgo(new Date(notification.createdAt));
 
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
       <Card style={[styles.notificationCard, isUnread && styles.unreadCard]}>
         <View style={styles.notificationHeader}>
-          <View style={[styles.typeIndicator, { backgroundColor: typeColor }]} />
+          <View style={[styles.typeIcon, { backgroundColor: typeStyle.bg }]}>
+            <Icon size={18} color={typeStyle.icon} />
+            {isUnread && (
+              <View style={[styles.unreadDot, { borderColor: colors.background }]} />
+            )}
+          </View>
           <View style={styles.notificationContent}>
             <View style={styles.notificationTitleRow}>
-              <AppText variant="heading" style={styles.notificationTitle} numberOfLines={1}>
+              <AppText
+                variant="heading"
+                style={[styles.notificationTitle, isUnread && styles.notificationTitleUnread]}
+                numberOfLines={1}
+              >
                 {notification.title}
               </AppText>
-              {isUnread && <View style={styles.unreadDot} />}
+              <AppText muted style={styles.timeAgo}>{timeAgo}</AppText>
             </View>
             <AppText muted style={styles.notificationBody} numberOfLines={2}>
               {notification.body}
             </AppText>
-            <View style={styles.notificationMeta}>
-              <AppText muted style={styles.timeAgo}>{timeAgo}</AppText>
-              {notification.priority === 'CRITICAL' && (
-                <View style={styles.priorityBadge}>
-                  <AppText style={styles.priorityText}>URGENT</AppText>
-                </View>
-              )}
-            </View>
+            {notification.priority === 'CRITICAL' && (
+              <View style={styles.priorityBadge}>
+                <AppText style={styles.priorityText}>URGENT</AppText>
+              </View>
+            )}
           </View>
         </View>
       </Card>
@@ -243,54 +267,62 @@ function createStyles(colors: ThemeColors) {
     },
     unreadCard: {
       backgroundColor: colors.surfaceHighlight,
-      borderLeftWidth: 3,
-      borderLeftColor: colors.primary,
     },
     notificationHeader: {
       flexDirection: 'row',
     },
-    typeIndicator: {
-      width: 4,
-      borderRadius: 2,
+    typeIcon: {
+      width: 42,
+      height: 42,
+      borderRadius: radius.sm,
+      alignItems: 'center',
+      justifyContent: 'center',
       marginRight: spacing.sm,
+      flexShrink: 0,
     },
     notificationContent: {
       flex: 1,
     },
     notificationTitleRow: {
       flexDirection: 'row',
-      alignItems: 'center',
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
       gap: spacing.xs,
     },
     notificationTitle: {
       flex: 1,
-      fontSize: 15,
+      fontSize: 14,
+      fontWeight: '500',
+    },
+    notificationTitleUnread: {
+      fontWeight: '700',
     },
     unreadDot: {
-      width: 8,
-      height: 8,
-      borderRadius: 4,
+      position: 'absolute',
+      top: -2,
+      right: -2,
+      width: 10,
+      height: 10,
+      borderRadius: 5,
       backgroundColor: colors.primary,
+      borderWidth: 2,
     },
     notificationBody: {
-      fontSize: 14,
-      marginTop: 2,
-      lineHeight: 20,
-    },
-    notificationMeta: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      marginTop: spacing.xs,
-      gap: spacing.sm,
+      fontSize: 13,
+      marginTop: 3,
+      lineHeight: 18,
     },
     timeAgo: {
-      fontSize: 12,
+      fontSize: 11,
+      flexShrink: 0,
     },
     priorityBadge: {
+      alignSelf: 'flex-start',
       backgroundColor: colors.danger,
       paddingHorizontal: spacing.xs,
       paddingVertical: 2,
       borderRadius: radius.sm,
+      marginTop: spacing.xs,
     },
     priorityText: {
       fontSize: 10,
