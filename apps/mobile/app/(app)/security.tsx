@@ -1,21 +1,37 @@
 import { useMemo, useState } from 'react';
 import { View, TextInput, StyleSheet, ScrollView, Alert, Pressable } from 'react-native';
 import { router } from 'expo-router';
-import { Eye, EyeOff } from 'lucide-react-native';
+import { Eye, EyeOff, Smartphone } from 'lucide-react-native';
 import { AppButton, AppText, Card, Screen, ScreenHeader, SectionHeader, ListItem, Divider } from '../../src/components';
 import { spacing, radius, useTheme, ThemeColors } from '../../src/theme';
-import { useRevokeAllSessions } from '../../src/hooks/useSessions';
+import { useSessions, useRevokeSession, useRevokeAllSessions } from '../../src/hooks/useSessions';
 import { useLogout } from '../../src/hooks/useAuth';
+import { useDonorProfile } from '../../src/hooks/useDonors';
 import { clearAuthTokens } from '../../src/auth/storage';
 import { useAuthStore } from '../../src/stores/auth.store';
 import { apiRequest, ApiRequestError } from '../../src/api/client';
 import { apiBasePath } from '../../src/api/config';
 
+function formatRelativeTime(dateStr?: string): string {
+  if (!dateStr) return 'Unknown';
+  const diffMs = Date.now() - new Date(dateStr).getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  if (diffMins < 1) return 'Active now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  const diffDays = Math.floor(diffHours / 24);
+  return `${diffDays}d ago`;
+}
+
 export default function Security() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const logout = useLogout();
+  const { data: sessions } = useSessions();
+  const revokeSession = useRevokeSession();
   const revokeAllSessions = useRevokeAllSessions();
+  const { data: donorProfile } = useDonorProfile();
   const clearAuth = useAuthStore((s) => s.clearAuth);
 
   const [currentPassword, setCurrentPassword] = useState('');
@@ -57,6 +73,17 @@ export default function Security() {
     } finally {
       setIsChangingPassword(false);
     }
+  };
+
+  const handleRevokeSession = (sessionId: string) => {
+    Alert.alert('Revoke Session', 'This device will be signed out immediately. Continue?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Revoke',
+        style: 'destructive',
+        onPress: () => revokeSession.mutate(sessionId),
+      },
+    ]);
   };
 
   const handleLogoutAll = () => {
@@ -180,8 +207,41 @@ export default function Security() {
           </AppButton>
         </Card>
 
-        <SectionHeader>SESSIONS</SectionHeader>
+        <SectionHeader>ACTIVE SESSIONS</SectionHeader>
         <Card>
+          {sessions && sessions.length > 0 ? (
+            sessions.map((session, index) => (
+              <View key={session.id}>
+                {index > 0 && <Divider />}
+                <View style={styles.sessionRow}>
+                  <View style={styles.sessionIcon}>
+                    <Smartphone size={16} color={colors.textMuted} />
+                  </View>
+                  <View style={styles.sessionInfo}>
+                    <AppText style={{ fontSize: 14, fontWeight: '500' }}>
+                      {session.deviceName || session.deviceType || 'Unknown device'}
+                    </AppText>
+                    <AppText muted style={{ fontSize: 11, marginTop: 1 }}>
+                      {session.ipAddress ? `${session.ipAddress} · ` : ''}
+                      {formatRelativeTime(session.lastUsedAt || session.createdAt)}
+                    </AppText>
+                  </View>
+                  <Pressable onPress={() => handleRevokeSession(session.id)} hitSlop={8}>
+                    <AppText style={{ fontSize: 12, color: colors.danger, fontWeight: '600' }}>
+                      Revoke
+                    </AppText>
+                  </Pressable>
+                </View>
+              </View>
+            ))
+          ) : (
+            <AppText muted style={{ fontSize: 13 }}>
+              No other active sessions.
+            </AppText>
+          )}
+        </Card>
+
+        <Card style={styles.logoutAllCard}>
           <ListItem
             title="Logout from all devices"
             subtitle="Revoke all active sessions"
@@ -194,8 +254,20 @@ export default function Security() {
         <Card>
           <View style={styles.statusItem}>
             <AppText muted>Account Status</AppText>
-            <AppText variant="heading" style={{ color: colors.success }}>
-              Active
+            <AppText
+              variant="heading"
+              style={{
+                color:
+                  donorProfile?.donorStatus === 'ACTIVE'
+                    ? colors.success
+                    : donorProfile?.donorStatus
+                    ? colors.warning
+                    : colors.textMuted,
+              }}
+            >
+              {donorProfile?.donorStatus
+                ? donorProfile.donorStatus.charAt(0) + donorProfile.donorStatus.slice(1).toLowerCase()
+                : '—'}
             </AppText>
           </View>
         </Card>
@@ -246,6 +318,26 @@ function createStyles(colors: ThemeColors) {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
+    },
+    sessionRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      paddingVertical: spacing.sm,
+    },
+    sessionIcon: {
+      width: 36,
+      height: 36,
+      borderRadius: radius.sm,
+      backgroundColor: colors.surfaceElevated,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    sessionInfo: {
+      flex: 1,
+    },
+    logoutAllCard: {
+      marginTop: spacing.md,
     },
   });
 }
