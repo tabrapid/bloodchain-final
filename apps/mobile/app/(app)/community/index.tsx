@@ -327,22 +327,24 @@ function FeedPostCard({ post }: { post: CommunityPost }) {
   };
 
   return (
-    <View style={styles.feedPost}>
+    <GlassCard style={styles.feedPost}>
       <View style={styles.feedPostHeader}>
         {post.author?.avatarUrl ? (
           <Image source={{ uri: post.author.avatarUrl }} style={styles.avatarImage} />
         ) : (
-          <Avatar name={post.author?.firstName || 'U'} size={32} />
+          <Avatar name={post.author?.firstName || 'U'} size={38} />
         )}
         <View style={styles.feedPostAuthor}>
-          <AppText variant="bodySmall" style={styles.feedPostAuthorName}>
-            {authorName}
-          </AppText>
+          <View style={styles.feedPostAuthorRow}>
+            <AppText variant="bodySmall" style={styles.feedPostAuthorName}>
+              {authorName}
+            </AppText>
+            <Badge variant="primary">{post.type}</Badge>
+          </View>
           <AppText muted style={styles.tinyText}>
             {new Date(post.publishedAt).toLocaleDateString()}
           </AppText>
         </View>
-        <Badge variant="primary">{post.type}</Badge>
       </View>
 
       <AppText style={styles.feedPostTitle}>{post.title}</AppText>
@@ -360,7 +362,7 @@ function FeedPostCard({ post }: { post: CommunityPost }) {
           Share
         </AppText>
       </TouchableOpacity>
-    </View>
+    </GlassCard>
   );
 }
 
@@ -463,23 +465,26 @@ function createStyles(colors: ThemeColors) {
       paddingBottom: spacing.xl,
     },
     feedPost: {
-      paddingBottom: spacing.md,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.borderSubtle,
+      marginBottom: spacing.md,
     },
     feedPostHeader: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.sm,
-      marginBottom: spacing.sm,
+      marginBottom: spacing.md,
     },
     avatarImage: {
-      width: 32,
-      height: 32,
+      width: 38,
+      height: 38,
       borderRadius: radius.pill,
     },
     feedPostAuthor: {
       flex: 1,
+    },
+    feedPostAuthorRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
     },
     feedPostAuthorName: {
       fontWeight: '600',
