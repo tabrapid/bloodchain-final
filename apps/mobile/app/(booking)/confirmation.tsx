@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
 import { View, StyleSheet } from 'react-native';
-import { CheckCircle } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Check } from 'lucide-react-native';
 import { AppButton, AppText, Card, GlassCard, Screen } from '../../src/components';
 import { useAppointment } from '../../src/hooks/useAppointments';
 import { spacing, useTheme, ThemeColors } from '../../src/theme';
@@ -34,7 +35,12 @@ export default function BookingConfirmation() {
     <Screen>
       <View style={styles.content}>
         <View style={styles.successIcon}>
-          <CheckCircle size={64} color={colors.success} />
+          <LinearGradient
+            colors={['#63C29B', '#3EA87E']}
+            style={styles.successBadge}
+          >
+            <Check size={38} color="#FFFFFF" strokeWidth={3} />
+          </LinearGradient>
         </View>
 
         <AppText variant="title" style={styles.title}>
@@ -152,6 +158,18 @@ function createStyles(colors: ThemeColors) {
       alignItems: 'center',
       marginBottom: spacing.xl,
       marginTop: spacing.xl,
+    },
+    successBadge: {
+      width: 80,
+      height: 80,
+      borderRadius: 40,
+      alignItems: 'center',
+      justifyContent: 'center',
+      shadowColor: '#63C29B',
+      shadowOpacity: 0.4,
+      shadowRadius: 20,
+      shadowOffset: { width: 0, height: 8 },
+      elevation: 8,
     },
     title: {
       textAlign: 'center',
