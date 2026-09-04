@@ -1,11 +1,32 @@
-import { useMemo } from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
+import { useMemo, useState } from 'react';
+import { View, StyleSheet, ScrollView, Switch, Alert } from 'react-native';
 import { AppText, Card, Screen, ScreenHeader, SectionHeader, ListItem, Divider } from '../../src/components';
 import { spacing, radius, useTheme, ThemeColors } from '../../src/theme';
+import { useDonorProfile, useUpdateDonorProfile } from '../../src/hooks/useDonors';
 
 export default function Privacy() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const { data: donorProfile } = useDonorProfile();
+  const updateDonorProfile = useUpdateDonorProfile();
+  const [pendingConsent, setPendingConsent] = useState<boolean | null>(null);
+
+  const consentLocation = pendingConsent ?? donorProfile?.consentLocation ?? false;
+
+  const handleToggleLocation = (value: boolean) => {
+    setPendingConsent(value);
+    updateDonorProfile.mutate(
+      { consentLocation: value },
+      {
+        onError: () => {
+          setPendingConsent(null);
+          Alert.alert('Error', 'Could not update your location sharing preference. Please try again.');
+        },
+        onSuccess: () => setPendingConsent(null),
+      },
+    );
+  };
+
   return (
     <Screen scroll={false}>
       <ScreenHeader title="Privacy" />
@@ -13,37 +34,33 @@ export default function Privacy() {
 
         <SectionHeader>DATA SHARING</SectionHeader>
         <Card>
-          <ListItem
-            title="Emergency requests"
-            subtitle="Allow hospitals to see your blood type in emergencies"
-          />
-          <Divider />
-          <ListItem
-            title="Location sharing"
-            subtitle="Share your approximate location for nearby centers"
-          />
-          <Divider />
-          <ListItem
-            title="Hospital contact"
-            subtitle="Allow hospitals to contact you for donations"
-          />
-          <Divider />
-          <ListItem
-            title="Blood center contact"
-            subtitle="Allow blood centers to send you updates"
-          />
+          <View style={styles.toggleRow}>
+            <View style={styles.toggleText}>
+              <AppText style={{ fontSize: 14, fontWeight: '500' }}>Location sharing</AppText>
+              <AppText muted style={{ fontSize: 12, marginTop: 1 }}>
+                Share your location so nearby emergency requests can find you
+              </AppText>
+            </View>
+            <Switch
+              value={consentLocation}
+              onValueChange={handleToggleLocation}
+              disabled={updateDonorProfile.isPending}
+              trackColor={{ false: colors.surfaceElevated, true: colors.primary }}
+              thumbColor={colors.white}
+            />
+          </View>
         </Card>
 
         <SectionHeader>YOUR DATA</SectionHeader>
         <Card>
           <ListItem
             title="Download your data"
-            subtitle="Request a copy of all your data"
+            subtitle="Contact support to request a copy of your data"
           />
           <Divider />
           <ListItem
             title="Delete account"
-            subtitle="Permanently delete your account and data"
+            subtitle="Contact support to permanently delete your account"
             destructive
           />
         </Card>
@@ -94,6 +111,14 @@ function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
     content: {
       paddingBottom: spacing['2xl'],
+    },
+    toggleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.md,
+    },
+    toggleText: {
+      flex: 1,
     },
     aboutItem: {
       flexDirection: 'row',
