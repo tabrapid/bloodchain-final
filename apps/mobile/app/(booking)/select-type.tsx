@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
-import { Droplet, HeartPulse, Stethoscope } from 'lucide-react-native';
+import { Check, Droplet, HeartPulse, Stethoscope } from 'lucide-react-native';
 import { AppButton, AppText, Card, GlassCard, Screen } from '../../src/components';
 import { spacing, radius, useTheme, ThemeColors } from '../../src/theme';
 
@@ -92,18 +92,15 @@ export default function Booking() {
                       {type.description}
                     </AppText>
                   </View>
-                  <View
-                    style={[
-                      styles.radioOuter,
-                      isSelected && { borderColor: type.color },
-                    ]}
-                  >
-                    {isSelected && (
-                      <View
-                        style={[styles.radioInner, { backgroundColor: type.color }]}
-                      />
-                    )}
-                  </View>
+                  {isSelected ? (
+                    <View
+                      style={[styles.checkBadge, { backgroundColor: type.color }]}
+                    >
+                      <Check size={13} color="#FFFFFF" strokeWidth={3} />
+                    </View>
+                  ) : (
+                    <View style={styles.radioOuter} />
+                  )}
                 </GlassCard>
               </TouchableOpacity>
             );
@@ -165,18 +162,18 @@ function createStyles(colors: ThemeColors) {
       marginTop: 2,
     },
     radioOuter: {
-      width: 24,
-      height: 24,
-      borderRadius: 12,
+      width: 22,
+      height: 22,
+      borderRadius: 11,
       borderWidth: 2,
       borderColor: colors.border,
+    },
+    checkBadge: {
+      width: 22,
+      height: 22,
+      borderRadius: 11,
       alignItems: 'center',
       justifyContent: 'center',
-    },
-    radioInner: {
-      width: 12,
-      height: 12,
-      borderRadius: 6,
     },
     footer: {
       paddingTop: spacing.lg,

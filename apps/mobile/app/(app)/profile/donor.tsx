@@ -130,20 +130,22 @@ export default function EditDonorProfile() {
               Location
             </AppText>
 
-            <AppTextInput
-              label="City"
-              placeholder="Your city"
-              wrapperStyle={styles.field}
-              value={formData.city}
-              onChangeText={(v) => handleChange('city', v)}
-            />
+            <Card style={styles.locationCard}>
+              <AppTextInput
+                label="City"
+                placeholder="Your city"
+                wrapperStyle={styles.field}
+                value={formData.city}
+                onChangeText={(v) => handleChange('city', v)}
+              />
 
-            <AppTextInput
-              label="District (optional)"
-              placeholder="Your district"
-              value={formData.district}
-              onChangeText={(v) => handleChange('district', v)}
-            />
+              <AppTextInput
+                label="District (optional)"
+                placeholder="Your district"
+                value={formData.district}
+                onChangeText={(v) => handleChange('district', v)}
+              />
+            </Card>
           </View>
 
           {saveError && (
@@ -222,6 +224,9 @@ function createStyles(colors: ThemeColors) {
     },
     field: {
       marginBottom: spacing.md,
+    },
+    locationCard: {
+      padding: spacing.lg,
     },
     footer: {
       flexDirection: 'row',

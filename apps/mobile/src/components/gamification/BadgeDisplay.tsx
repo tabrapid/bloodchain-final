@@ -1,8 +1,10 @@
 import React, { useMemo } from 'react';
 import { View, StyleSheet } from 'react-native';
+import { Shield } from 'lucide-react-native';
 import { spacing, useTheme, ThemeColors } from '../../theme';
 import { AppText } from '../../components/AppText';
 import { Badge } from '../../api/gamification';
+import { achievementIconMap } from './AchievementCard';
 
 interface BadgeDisplayProps {
   badge: Badge;
@@ -16,27 +18,23 @@ const rarityColorKey = {
   LEGENDARY: '#F59E0B',
 } as const;
 
-const iconMap: Record<string, string> = {
-  droplet: 'D',
-  award: 'A',
-  heart: 'H',
-  'alert-circle': '!',
-  activity: 'AC',
-  star: 'S',
-  shield: 'SH',
+const badgeIconMap: Record<string, (typeof achievementIconMap)[string]> = {
+  ...achievementIconMap,
+  shield: Shield,
 };
 
 export function BadgeDisplay({ badge, size = 'medium' }: BadgeDisplayProps) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const isEarned = !!badge.earnedAt;
-  const iconSize = size === 'small' ? 24 : size === 'large' ? 48 : 36;
-  const containerSize = iconSize + 16;
+  const iconSize = size === 'small' ? 20 : size === 'large' ? 32 : 26;
+  const containerSize = iconSize + 24;
   const rarityKey = rarityColorKey[badge.rarity];
   const rarityColor = rarityKey === 'textMuted' ? colors.textMuted : rarityKey;
+  const Icon = badgeIconMap[badge.icon] ?? Shield;
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, !isEarned && styles.containerUnearned]}>
       <View
         style={[
           styles.badgeCircle,
@@ -45,20 +43,11 @@ export function BadgeDisplay({ badge, size = 'medium' }: BadgeDisplayProps) {
             height: containerSize,
             borderRadius: containerSize / 2,
             backgroundColor: isEarned ? colors.surfaceHighlight : colors.surface,
+            borderColor: isEarned ? rarityColor : colors.border,
           },
         ]}
       >
-        <AppText
-          style={[
-            styles.icon,
-            {
-              fontSize: iconSize * 0.5,
-              color: isEarned ? rarityColor : colors.border,
-            },
-          ]}
-        >
-          {iconMap[badge.icon] || '?'}
-        </AppText>
+        <Icon size={iconSize} color={isEarned ? rarityColor : colors.textMuted} strokeWidth={isEarned ? 2.25 : 1.75} />
       </View>
       <AppText
         variant="bodySmall"
@@ -84,15 +73,14 @@ function createStyles(colors: ThemeColors) {
       width: 80,
       marginRight: spacing.md,
     },
+    containerUnearned: {
+      opacity: 0.5,
+    },
     badgeCircle: {
       justifyContent: 'center',
       alignItems: 'center',
       borderWidth: 2,
-      borderColor: colors.border,
       marginBottom: spacing.xs,
-    },
-    icon: {
-      fontWeight: '700',
     },
     name: {
       textAlign: 'center',
