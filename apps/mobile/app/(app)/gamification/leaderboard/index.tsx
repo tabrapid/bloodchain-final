@@ -1,10 +1,16 @@
 import React from 'react';
 import { View, ScrollView, StyleSheet, RefreshControl, TouchableOpacity } from 'react-native';
+import { Trophy } from 'lucide-react-native';
 import { useLeaderboard, useUserRank } from '../../../../src/hooks/useGamification';
-import { Screen, GlassCard, ScreenHeader } from '../../../../src/components';
+import { Screen, GlassCard, Avatar, ScreenHeader } from '../../../../src/components';
 import { AppText } from '../../../../src/components/AppText';
 import { LeaderboardItem } from '../../../../src/components/gamification/LeaderboardItem';
 import { spacing, radius, useTheme, ThemeColors } from '../../../../src/theme';
+import type { LeaderboardEntry } from '../../../../src/api/gamification';
+
+const PODIUM_COLORS = ['#E5B86D', '#8495A3', '#CD7F32'] as const;
+const PODIUM_HEIGHTS = [70, 50, 40] as const;
+const PODIUM_ORDER = [1, 0, 2] as const;
 
 type TimeRange = 'ALL_TIME' | 'THIS_YEAR' | 'THIS_MONTH';
 
@@ -81,6 +87,43 @@ export default function LeaderboardScreen() {
           ))}
         </View>
 
+        {currentPage === 1 && leaderboard && leaderboard.entries.length >= 3 && (
+          <View style={styles.podiumRow}>
+            {PODIUM_ORDER.map((slot) => {
+              const entry = leaderboard.entries[slot]!;
+              const isFirst = slot === 0;
+              return (
+                <View key={entry.userId} style={styles.podiumColumn}>
+                  <View style={isFirst ? styles.podiumAvatarWrap : undefined}>
+                    <Avatar name={entry.displayName} size={isFirst ? 58 : 48} />
+                    {isFirst && (
+                      <View style={styles.podiumTrophy}>
+                        <Trophy size={14} color={PODIUM_COLORS[0]} />
+                      </View>
+                    )}
+                  </View>
+                  <AppText
+                    numberOfLines={1}
+                    style={{ fontSize: 11, fontWeight: '600', marginTop: spacing.xs, textAlign: 'center' }}
+                  >
+                    {entry.displayName.split(' ')[0]}
+                  </AppText>
+                  <View
+                    style={[
+                      styles.podiumBar,
+                      { height: PODIUM_HEIGHTS[slot], backgroundColor: PODIUM_COLORS[slot] },
+                    ]}
+                  >
+                    <AppText style={{ fontSize: isFirst ? 22 : 18, fontWeight: '800', color: '#FFFFFF' }}>
+                      {slot + 1}
+                    </AppText>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        )}
+
         {userRank && (
           <GlassCard style={styles.yourRankCard}>
             <View style={styles.yourRankContent}>
@@ -120,7 +163,10 @@ export default function LeaderboardScreen() {
         )}
 
         <View style={styles.leaderboardList}>
-          {leaderboard?.entries.map((entry) => (
+          {(currentPage === 1 && leaderboard && leaderboard.entries.length >= 3
+            ? leaderboard.entries.slice(3)
+            : leaderboard?.entries ?? []
+          ).map((entry) => (
             <LeaderboardItem key={entry.userId} entry={entry} />
           ))}
 
@@ -174,6 +220,37 @@ function createStyles(colors: ThemeColors) {
     },
     timeRangeButtonActive: {
       borderBottomColor: colors.primary,
+    },
+    podiumRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      justifyContent: 'center',
+      gap: spacing.sm,
+      paddingHorizontal: spacing.lg,
+      marginBottom: spacing.lg,
+    },
+    podiumColumn: {
+      flex: 1,
+      alignItems: 'center',
+    },
+    podiumAvatarWrap: {
+      position: 'relative',
+    },
+    podiumTrophy: {
+      position: 'absolute',
+      top: -4,
+      right: -4,
+      backgroundColor: colors.background,
+      borderRadius: radius.pill,
+      padding: 2,
+    },
+    podiumBar: {
+      width: '100%',
+      borderTopLeftRadius: radius.sm,
+      borderTopRightRadius: radius.sm,
+      marginTop: spacing.sm,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     yourRankCard: {
       marginHorizontal: spacing.lg,
