@@ -175,7 +175,7 @@ export default function ReviewBooking() {
           </AppText>
 
           <View style={styles.detailRow}>
-            <View style={styles.detailIcon}>
+            <View style={[styles.detailIcon, { backgroundColor: colors.primaryMuted }]}>
               <Droplet size={20} color={colors.onMuted.primary} />
             </View>
             <View style={styles.detailInfo}>
@@ -187,8 +187,8 @@ export default function ReviewBooking() {
           </View>
 
           <View style={styles.detailRow}>
-            <View style={styles.detailIcon}>
-              <Building2 size={20} color={colors.onMuted.primary} />
+            <View style={[styles.detailIcon, { backgroundColor: colors.secondaryMuted }]}>
+              <Building2 size={20} color={colors.onMuted.secondary} />
             </View>
             <View style={styles.detailInfo}>
               <AppText muted style={styles.detailLabel}>
@@ -204,8 +204,8 @@ export default function ReviewBooking() {
           </View>
 
           <View style={styles.detailRow}>
-            <View style={styles.detailIcon}>
-              <Calendar size={20} color={colors.onMuted.primary} />
+            <View style={[styles.detailIcon, { backgroundColor: colors.aiMuted }]}>
+              <Calendar size={20} color={colors.onMuted.ai} />
             </View>
             <View style={styles.detailInfo}>
               <AppText muted style={styles.detailLabel}>
@@ -216,8 +216,8 @@ export default function ReviewBooking() {
           </View>
 
           <View style={styles.detailRow}>
-            <View style={styles.detailIcon}>
-              <Clock size={20} color={colors.onMuted.primary} />
+            <View style={[styles.detailIcon, { backgroundColor: colors.successMuted }]}>
+              <Clock size={20} color={colors.onMuted.success} />
             </View>
             <View style={styles.detailInfo}>
               <AppText muted style={styles.detailLabel}>
@@ -309,7 +309,6 @@ function createStyles(colors: ThemeColors) {
       width: 40,
       height: 40,
       borderRadius: 10,
-      backgroundColor: colors.primaryMuted,
       alignItems: 'center',
       justifyContent: 'center',
       marginRight: spacing.md,
