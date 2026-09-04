@@ -46,11 +46,17 @@ export function GlassCard({
     ? colors.surfaceElevated
     : colors.surface;
 
+  // Create Design gives elevated cards a visibly stronger border than base
+  // cards (a subtle depth cue); `colors.border` is close to its base-tier
+  // value in both themes, so only `elevated` cards get the stronger
+  // `glassBorder`.
   const borderColor = danger
     ? isDark
       ? 'rgba(216,83,96,0.4)'
       : 'rgba(216,83,96,0.32)'
-    : colors.glassBorder;
+    : elevated
+    ? colors.glassBorder
+    : colors.border;
 
   return (
     <View
