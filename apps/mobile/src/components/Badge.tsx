@@ -38,12 +38,19 @@ export function Badge({
           borderRadius: radius.pill,
           paddingVertical: spacing.xs,
           paddingHorizontal: spacing.sm,
+          // A border in the badge's own text color (at low alpha) is what
+          // gives Create Design's badges their defined pill outline, instead
+          // of reading as a flat, edgeless tint.
+          borderWidth: 1,
+          borderColor: `${theme.text}28`,
         },
         style,
       ]}
       {...props}
     >
-      <AppText style={{ ...typography.caption, color: theme.text }}>{children}</AppText>
+      <AppText style={{ ...typography.caption, color: theme.text, textTransform: 'uppercase' }}>
+        {children}
+      </AppText>
     </View>
   );
 }

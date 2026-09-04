@@ -11,13 +11,31 @@ export interface AppButtonProps extends PressableProps {
 
 function getVariants(colors: ThemeColors): Record<string, ViewStyle> {
   return {
-    primary: { backgroundColor: colors.primary },
+    // The colored glow beneath primary/danger buttons matches Create
+    // Design's `boxShadow: rgba(color, 0.4-0.5)` -- `shadowOpacity` scales
+    // whatever alpha `shadowColor` already has, so an opaque hex color here
+    // reproduces that glow without needing an rgba conversion.
+    primary: {
+      backgroundColor: colors.primary,
+      shadowColor: colors.primary,
+      shadowOpacity: 0.4,
+      shadowRadius: 16,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 6,
+    },
     secondary: {
       backgroundColor: colors.surfaceElevated,
       borderWidth: 1,
       borderColor: colors.border,
     },
-    danger: { backgroundColor: colors.danger },
+    danger: {
+      backgroundColor: colors.danger,
+      shadowColor: colors.danger,
+      shadowOpacity: 0.5,
+      shadowRadius: 20,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 8,
+    },
     ghost: { backgroundColor: 'transparent' },
   };
 }

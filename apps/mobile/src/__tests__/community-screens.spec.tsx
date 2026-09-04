@@ -279,7 +279,13 @@ describe('P3-9: the four screens that used className render with real styles', (
     // Native serializes to processed native color ints rather than the
     // original hex string, so it isn't substring-matchable here.)
     expect(fingerprint).toContain(colors.text);
-    expect(fingerprint).toContain(colors.glassBorder);
+    // GlassCard borders come from `colors.border` (base cards) or
+    // `colors.glassBorder` (elevated cards) -- either is proof the screen is
+    // themed rather than unstyled; which one appears depends on whether this
+    // particular screen's mocked data renders an elevated card.
+    expect(
+      fingerprint.includes(colors.border) || fingerprint.includes(colors.glassBorder),
+    ).toBe(true);
   });
 
   it('community renders real content from the API, not just chrome', async () => {
