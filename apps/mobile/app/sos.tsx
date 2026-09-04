@@ -1,15 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ScrollView, View, Alert, TouchableOpacity } from 'react-native';
 import * as Location from 'expo-location';
+import { LinearGradient } from 'expo-linear-gradient';
+import { router } from 'expo-router';
 import {
   AlertTriangle,
+  ArrowLeft,
   CheckCircle,
   Clock,
   MapPin,
   Navigation,
   XCircle,
 } from 'lucide-react-native';
-import { AppButton, AppText, Card, LoadingState, Screen, ScreenHeader } from '../src/components';
+import { AppButton, AppText, Card, IconButton, LoadingState, Screen, ScreenHeader } from '../src/components';
 import { LocationMap, type MapMarkerPoint } from '../src/components/map/LocationMap';
 import { spacing, useTheme } from '../src/theme';
 import {
@@ -314,8 +317,9 @@ export default function SosScreen() {
         </View>
         <View style={{ flex: 1 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-            <AppText variant="heading" style={{ color: colors.text }}>
-              {emergency.emergencyReference}
+            <AppText style={{ fontSize: 28, fontWeight: '800', color: colors.danger, letterSpacing: -0.5 }}>
+              {emergency.bloodType}
+              {emergency.rhFactor === 'POSITIVE' ? '+' : emergency.rhFactor === 'NEGATIVE' ? '-' : ''}
             </AppText>
             <View
               style={{
@@ -333,9 +337,11 @@ export default function SosScreen() {
               </AppText>
             </View>
           </View>
-          <AppText variant="body" style={{ color: colors.textMuted, marginTop: spacing.xs }}>
-            {emergency.bloodType}-{emergency.rhFactor} • {emergency.unitsRequired} unit
-            {emergency.unitsRequired !== 1 ? 's' : ''}
+          <AppText variant="heading" style={{ color: colors.text, marginTop: spacing.xs }}>
+            {emergency.emergencyReference}
+          </AppText>
+          <AppText variant="body" style={{ color: colors.textMuted, marginTop: 2 }}>
+            {emergency.unitsRequired} unit{emergency.unitsRequired !== 1 ? 's' : ''} needed
           </AppText>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginTop: spacing.sm }}>
             <MapPin size={12} color={colors.textMuted} />
@@ -652,9 +658,43 @@ export default function SosScreen() {
   }
 
   return (
-    <Screen>
-      <ScreenHeader title="Emergency SOS" />
-      <ScrollView style={{ flex: 1, padding: spacing.lg }}>
+    <Screen scroll={false}>
+      <LinearGradient
+        colors={[colors.dangerMuted, 'transparent']}
+        style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.sm, paddingBottom: spacing.lg }}
+      >
+        <IconButton icon={ArrowLeft} onPress={() => router.back()} style={{ marginBottom: spacing.md }} />
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
+          <View
+            style={{
+              width: 52,
+              height: 52,
+              borderRadius: 26,
+              backgroundColor: colors.danger,
+              alignItems: 'center',
+              justifyContent: 'center',
+              shadowColor: colors.danger,
+              shadowOpacity: 0.5,
+              shadowRadius: 16,
+              shadowOffset: { width: 0, height: 6 },
+              elevation: 6,
+            }}
+          >
+            <AlertTriangle size={26} color="#FFFFFF" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <AppText variant="title" style={{ fontSize: 24 }}>
+              Emergency SOS
+            </AppText>
+            <AppText muted style={{ fontSize: 13, marginTop: 2 }}>
+              {emergencies.length > 0
+                ? `${emergencies.length} active request${emergencies.length !== 1 ? 's' : ''} near you`
+                : 'No active requests right now'}
+            </AppText>
+          </View>
+        </View>
+      </LinearGradient>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: spacing.lg, paddingTop: 0 }}>
         {emergencies.length > 0 ? (
           <>
             <AppText variant="caption" style={{ color: colors.textMuted, marginBottom: spacing.sm }}>
