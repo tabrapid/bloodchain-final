@@ -35,10 +35,12 @@ export function useEmergencyTracking(emergencyRequestIds: string[]) {
   const [statusUpdates, setStatusUpdates] = useState<Record<string, ResponseStatusUpdate>>({});
   const socketRef = useRef<Socket | null>(null);
   const joinedRooms = useRef<Set<string>>(new Set());
+  const roomKey = emergencyRequestIds.join(',');
 
   useEffect(() => {
     const token = typeof window !== 'undefined' ? localStorage.getItem('donor_access_token') : null;
     if (!token || emergencyRequestIds.length === 0) return;
+
 
     if (!socketRef.current) {
       socketRef.current = io(`${API_BASE_URL}/emergency`, {
@@ -56,20 +58,28 @@ export function useEmergencyTracking(emergencyRequestIds: string[]) {
     }
 
     const socket = socketRef.current;
+    // Captured now rather than read at cleanup time: `joinedRooms` is a ref,
+    // and reading `.current` inside the teardown would see whatever the ref
+    // points at then, not the set this run joined into.
+    const rooms = joinedRooms.current;
     for (const id of emergencyRequestIds) {
-      if (!joinedRooms.current.has(id)) {
+      if (!rooms.has(id)) {
         socket.emit('join', { emergencyRequestId: id });
-        joinedRooms.current.add(id);
+        rooms.add(id);
       }
     }
 
     return () => {
       for (const id of emergencyRequestIds) {
         socket.emit('leave', { emergencyRequestId: id });
-        joinedRooms.current.delete(id);
+        rooms.delete(id);
       }
     };
-  }, [emergencyRequestIds.join(',')]);
+    // Keyed on the ids' contents, not the array's identity: the caller builds
+    // a fresh array every render, so depending on it directly would tear the
+    // socket down and rebuild it on every single render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roomKey]);
 
   useEffect(() => {
     return () => {

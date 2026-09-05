@@ -17,7 +17,7 @@ export default function AchievementsScreen() {
     setRefreshing(true);
     await refetch();
     setRefreshing(false);
-  }, []);
+  }, [refetch]);
 
   if (isLoading && !achievements) {
     return (
