@@ -30,7 +30,11 @@ export default [
     plugins: { '@typescript-eslint': tsPlugin },
     rules: {
       ...tsPlugin.configs.recommended.rules,
-      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
+      // `no-undef` duplicates what the TypeScript compiler already proves,
+      // and misfires on platform globals and type-only names.
+      'no-undef': 'off',
+      'no-unused-vars': 'off',
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
       '@typescript-eslint/no-explicit-any': 'warn',
     },
   },
@@ -68,6 +72,84 @@ export default [
       '@typescript-eslint/no-explicit-any': 'warn',
       'react-hooks/rules-of-hooks': 'error',
     },
+  },
+  {
+    // The three Next.js apps. Same reasoning as the mobile block: `tsc` does
+    // not report unused imports, locals or dead code, and every one of those
+    // classes of bug has shipped in this repo before. These ran `tsc --noEmit`
+    // under the name `lint`, which meant `pnpm lint` was reporting success for
+    // eight packages it never actually linted.
+    files: ['apps/*-web/**/*.{ts,tsx}'],
+    languageOptions: {
+      parser: tsParser,
+      parserOptions: {
+        ecmaVersion: 'latest',
+        sourceType: 'module',
+        ecmaFeatures: { jsx: true },
+      },
+      globals: {
+        console: 'readonly',
+        document: 'readonly',
+        window: 'readonly',
+        navigator: 'readonly',
+        localStorage: 'readonly',
+        sessionStorage: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
+        setInterval: 'readonly',
+        clearInterval: 'readonly',
+        fetch: 'readonly',
+        Request: 'readonly',
+        Response: 'readonly',
+        Headers: 'readonly',
+        URL: 'readonly',
+        URLSearchParams: 'readonly',
+        FormData: 'readonly',
+        Blob: 'readonly',
+        File: 'readonly',
+        AbortController: 'readonly',
+        HTMLElement: 'readonly',
+        HTMLInputElement: 'readonly',
+        HTMLFormElement: 'readonly',
+        HTMLDivElement: 'readonly',
+        HTMLButtonElement: 'readonly',
+        HTMLSelectElement: 'readonly',
+        HTMLTextAreaElement: 'readonly',
+        Event: 'readonly',
+        KeyboardEvent: 'readonly',
+        MouseEvent: 'readonly',
+        process: 'readonly',
+      },
+    },
+    plugins: { '@typescript-eslint': tsPlugin, 'react-hooks': reactHooks },
+    rules: {
+      ...tsPlugin.configs.recommended.rules,
+      // `no-undef` duplicates what the TypeScript compiler already proves,
+      // and misfires on type-only names.
+      'no-undef': 'off',
+      'no-unused-vars': 'off',
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      '@typescript-eslint/no-explicit-any': 'warn',
+      'react-hooks/rules-of-hooks': 'error',
+    },
+  },
+  {
+    // Vitest specs and config files.
+    files: ['apps/*-web/**/*.{spec,test}.{ts,tsx}', 'apps/*-web/*.config.{ts,mts}', 'apps/*-web/vitest.setup.ts'],
+    languageOptions: {
+      globals: {
+        describe: 'readonly',
+        it: 'readonly',
+        expect: 'readonly',
+        beforeEach: 'readonly',
+        afterEach: 'readonly',
+        beforeAll: 'readonly',
+        afterAll: 'readonly',
+        vi: 'readonly',
+        global: 'readonly',
+      },
+    },
+    rules: { '@typescript-eslint/no-require-imports': 'off' },
   },
   {
     // Jest specs legitimately `require()` a module *after* its mocks are

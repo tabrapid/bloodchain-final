@@ -3,20 +3,9 @@
 import { useEffect, useState, useCallback } from 'react';
 import {
   Activity,
-  AlertCircle,
   Beaker,
-  CalendarDays,
-  CheckCircle,
-  Clock,
-  LayoutDashboard,
-  Package,
-  Plus,
   RefreshCw,
   Search,
-  Settings,
-  Truck,
-  Users,
-  XCircle,
 } from 'lucide-react';
 import {
   DataTable,
@@ -26,7 +15,6 @@ import {
   StatusBadge,
 } from '@bloodchain/ui/components';
 import {
-  login,
   me,
   isAuthenticated,
   MeResponse,
@@ -76,8 +64,12 @@ export default function LaboratoryPage() {
         search: searchQuery || undefined,
       });
       setAppointments(data);
+      setError(null);
     } catch (err: any) {
-      console.error('Failed to load appointments:', err);
+      // Without this the table just renders empty, which reads as "no
+      // appointments today" rather than "we could not reach the server" --
+      // the difference between a quiet morning and a missed test.
+      setError(err?.message || 'Could not load appointments. Check your connection and retry.');
     } finally {
       setIsLoadingData(false);
     }
@@ -348,6 +340,15 @@ export default function LaboratoryPage() {
           </p>
         </div>
       </div>
+
+      {error && (
+        <div className="mb-4 rounded-lg border border-donor-danger/30 bg-donor-dangerMuted p-4 text-donor-onDangerMuted">
+          {error}
+          <button onClick={() => setError(null)} className="ml-2 underline">
+            Dismiss
+          </button>
+        </div>
+      )}
 
       <div className="mb-6 grid gap-4 md:grid-cols-5">
         <StatCard

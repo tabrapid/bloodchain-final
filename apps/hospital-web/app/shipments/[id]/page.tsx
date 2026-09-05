@@ -19,7 +19,7 @@ import type { MapMarker } from '@bloodchain/ui/map';
 const LocationMap = dynamic(() => import('@bloodchain/ui/map').then((mod) => mod.LocationMap), {
   ssr: false,
 });
-import { logout as logoutApi, me, isAuthenticated, MeResponse } from '../../../lib/auth';
+import { me, isAuthenticated, MeResponse } from '../../../lib/auth';
 import {
   getShipment,
   getShipmentTracking,

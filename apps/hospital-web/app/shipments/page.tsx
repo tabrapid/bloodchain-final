@@ -3,16 +3,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
-  Activity,
-  AlertCircle,
-  AlertTriangle,
-  Bell,
   CheckCircle,
   Clock,
   MapPin,
   Package,
   RefreshCw,
-  Settings,
   Truck,
 } from 'lucide-react';
 import {
