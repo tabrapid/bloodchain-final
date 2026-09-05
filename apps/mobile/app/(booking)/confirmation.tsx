@@ -55,7 +55,7 @@ export default function BookingConfirmation() {
         {isLoading ? (
           <AppText muted>Loading...</AppText>
         ) : appointment ? (
-          <GlassCard style={styles.detailsCard}>
+          <GlassCard tier="elevated" style={styles.detailsCard}>
             <View style={styles.refRow}>
               <AppText muted>Reference Number</AppText>
               <AppText variant="heading" style={styles.refNumber}>

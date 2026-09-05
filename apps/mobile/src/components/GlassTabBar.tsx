@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
 import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { radius, spacing, useTheme } from '../theme';
@@ -13,7 +14,7 @@ import { AppText } from './AppText';
  * corners, it just occupies its own row instead of overlapping content.
  */
 export function GlassTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
 
   // `state.routes` is EVERY route registered in the navigator, including the
@@ -36,19 +37,31 @@ export function GlassTabBar({ state, descriptors, navigation }: BottomTabBarProp
 
   const focusedKey = state.routes[state.index]?.key;
 
+  const nav = colors.glass.nav;
+
   const bar = (
     <View
       style={{
         flexDirection: 'row',
-        backgroundColor: colors.surface,
-        borderRadius: radius.xl,
+        alignItems: 'center',
+        justifyContent: 'space-around',
+        backgroundColor: nav.fill,
+        borderRadius: radius.pill,
         borderWidth: 1,
-        borderColor: colors.glassBorder,
-        paddingVertical: spacing.xs,
-        paddingHorizontal: spacing.xs,
+        borderColor: nav.border,
+        paddingVertical: 10,
+        paddingHorizontal: 6,
         overflow: 'hidden',
       }}
     >
+      {/* Specular: the lit top edge that makes the bar read as floating glass. */}
+      <LinearGradient
+        colors={colors.glassSheen}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+        style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '50%' }}
+        pointerEvents="none"
+      />
       {visibleRoutes.map((route) => {
         const { options } = descriptors[route.key]!;
         // Compared by key, not by array index: `state.index` indexes the full
@@ -76,28 +89,47 @@ export function GlassTabBar({ state, descriptors, navigation }: BottomTabBarProp
             accessibilityRole="button"
             accessibilityState={focused ? { selected: true } : {}}
             accessibilityLabel={options.tabBarAccessibilityLabel ?? label}
-            style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: spacing.xs }}
+            style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
           >
             {({ pressed }) => (
               <View
                 style={{
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: 3,
+                  gap: 2,
+                  minWidth: 44,
+                  minHeight: 44,
                   paddingVertical: 6,
-                  paddingHorizontal: spacing.sm,
+                  paddingHorizontal: 10,
                   borderRadius: radius.pill,
                   backgroundColor: focused ? colors.primary : 'transparent',
                   transform: [{ scale: pressed ? 0.94 : 1 }],
+                  // The active pill carries its own rose glow, so the selected
+                  // tab lifts off the bar rather than just changing color.
+                  shadowColor: colors.primary,
+                  shadowOpacity: focused ? 0.38 : 0,
+                  shadowRadius: 10,
+                  shadowOffset: { width: 0, height: 2 },
+                  elevation: focused ? 4 : 0,
                 }}
               >
-                {options.tabBarIcon?.({ focused, color, size: 20 })}
-                <AppText
-                  style={{ fontSize: 10, fontWeight: focused ? '700' : '600', color }}
-                  numberOfLines={1}
-                >
-                  {label}
-                </AppText>
+                {options.tabBarIcon?.({ focused, color, size: focused ? 17 : 20 })}
+                {/* Only the active tab is labelled -- the reference keeps the
+                    inactive tabs icon-only so the selected one reads clearly. */}
+                {focused && (
+                  <AppText
+                    style={{
+                      fontSize: 9,
+                      fontWeight: '700',
+                      color,
+                      letterSpacing: 0.36,
+                      lineHeight: 11,
+                    }}
+                    numberOfLines={1}
+                  >
+                    {label}
+                  </AppText>
+                )}
               </View>
             )}
           </Pressable>
@@ -109,25 +141,26 @@ export function GlassTabBar({ state, descriptors, navigation }: BottomTabBarProp
   return (
     <View
       style={{
-        paddingHorizontal: spacing.md,
-        paddingBottom: Math.max(insets.bottom, spacing.sm),
+        paddingHorizontal: 14,
+        paddingBottom: Math.max(insets.bottom, 22),
         paddingTop: spacing.xs,
       }}
     >
       <View
         style={{
-          borderRadius: radius.xl,
+          borderRadius: radius.pill,
           shadowColor: '#000',
-          shadowOpacity: isDark ? 0.4 : 0.1,
-          shadowRadius: 18,
-          shadowOffset: { width: 0, height: 8 },
+          shadowOpacity: nav.shadowOpacity,
+          shadowRadius: nav.shadowRadius,
+          shadowOffset: { width: 0, height: nav.shadowOffsetY },
+          elevation: nav.elevation,
         }}
       >
         <BlurView
-          intensity={isDark ? 50 : 65}
+          intensity={nav.blur}
           tint={colors.blurTint}
           experimentalBlurMethod="dimezisBlurView"
-          style={{ borderRadius: radius.xl, overflow: 'hidden' }}
+          style={{ borderRadius: radius.pill, overflow: 'hidden' }}
         >
           {bar}
         </BlurView>

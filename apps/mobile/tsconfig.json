@@ -22,6 +22,7 @@
   ],
   "exclude": [
     "node_modules",
-    "Create Design"
+    "Create Design",
+    "Create Design (2)"
   ]
 }

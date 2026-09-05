@@ -19,25 +19,33 @@ export function ErrorState({
 }: ErrorStateProps) {
   const { colors } = useTheme();
   return (
-    <View style={{ alignItems: 'center', paddingVertical: spacing.xl }}>
+    <View
+      style={{
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 40,
+        paddingHorizontal: spacing.xl,
+        gap: 12,
+      }}
+    >
+      {/* A rounded square rather than a circle, and rose-tinted rather than
+          neutral: an error must not be mistaken for an empty state. */}
       <View
         style={{
-          width: 56,
-          height: 56,
-          borderRadius: 28,
-          backgroundColor: colors.dangerMuted,
+          width: 52,
+          height: 52,
+          borderRadius: 16,
+          backgroundColor: 'rgba(216,83,96,0.12)',
+          borderWidth: 1,
+          borderColor: 'rgba(216,83,96,0.25)',
           alignItems: 'center',
           justifyContent: 'center',
-          marginBottom: spacing.md,
         }}
       >
-        <Icon size={28} color={colors.onMuted.danger} />
+        <Icon size={24} color={colors.danger} />
       </View>
-      <AppText style={{ textAlign: 'center' }}>{title}</AppText>
-      <AppText
-        muted
-        style={{ textAlign: 'center', marginTop: spacing.xs, marginBottom: spacing.md }}
-      >
+      <AppText style={{ fontSize: 15, fontWeight: '600', textAlign: 'center' }}>{title}</AppText>
+      <AppText muted style={{ fontSize: 14, lineHeight: 22, textAlign: 'center', maxWidth: 260 }}>
         {description}
       </AppText>
       {onRetry && (

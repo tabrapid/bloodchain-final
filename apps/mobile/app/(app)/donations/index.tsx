@@ -125,7 +125,7 @@ export default function DonationsScreen() {
         ListHeaderComponent={
           <>
             {stats && (
-              <GlassCard style={styles.statsCard}>
+              <GlassCard tier="elevated" style={styles.statsCard}>
                 <View style={styles.statsRow}>
                   <View style={styles.statItem}>
                     <AppText variant="heading" style={styles.statValue}>

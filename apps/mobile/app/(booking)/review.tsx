@@ -169,7 +169,7 @@ export default function ReviewBooking() {
             : 'Please review your appointment details before confirming.'}
         </AppText>
 
-        <GlassCard style={styles.summaryCard}>
+        <GlassCard tier="elevated" style={styles.summaryCard}>
           <AppText variant="heading" style={styles.sectionTitle}>
             Appointment Details
           </AppText>

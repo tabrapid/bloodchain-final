@@ -1,6 +1,5 @@
 import { PropsWithChildren } from 'react';
-import { ViewProps } from 'react-native';
-import { GlassCard } from './GlassCard';
+import { GlassCard, GlassCardProps } from './GlassCard';
 
 /**
  * `Card` is the glass panel. It used to be a flat opaque surface, which meant
@@ -10,7 +9,7 @@ import { GlassCard } from './GlassCard';
  * glass now, the default card is the glass one, and both names render the same
  * surface.
  */
-export function Card({ children, style, ...props }: PropsWithChildren<ViewProps>) {
+export function Card({ children, style, ...props }: PropsWithChildren<GlassCardProps>) {
   return (
     <GlassCard style={style} {...props}>
       {children}
