@@ -11,11 +11,8 @@ import {
   Droplet,
   Package,
   RefreshCw,
-  TrendingDown,
-  TrendingUp,
 } from 'lucide-react';
 import {
-  EmptyState,
   FilterBar,
   StatCard,
 } from '@bloodchain/ui/components';
@@ -54,17 +51,6 @@ function formatKpiValue(value: number): string {
   if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
   if (value >= 1000) return `${(value / 1000).toFixed(1)}K`;
   return value.toString();
-}
-
-function getTrendIcon(trend: string) {
-  switch (trend) {
-    case 'up':
-      return <TrendingUp size={14} className="text-donor-success" />;
-    case 'down':
-      return <TrendingDown size={14} className="text-donor-danger" />;
-    default:
-      return null;
-  }
 }
 
 function getTrendNote(trend: string, changePercent: number | null): string {

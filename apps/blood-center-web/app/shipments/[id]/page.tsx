@@ -11,13 +11,11 @@ import {
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import {
-  EmptyState,
   Modal,
-  StatCard,
   StatusBadge,
 } from '@bloodchain/ui/components';
 import type { MapMarker } from '@bloodchain/ui/map';
-import { logout as logoutApi, me, isAuthenticated, MeResponse } from '../../../lib/auth';
+import { me, isAuthenticated, MeResponse } from '../../../lib/auth';
 import {
   getShipment,
   getShipmentTimeline,

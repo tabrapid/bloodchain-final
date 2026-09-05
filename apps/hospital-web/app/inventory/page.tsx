@@ -460,6 +460,8 @@ export default function InventoryPage() {
             columns={columns}
             rows={units}
             keyExtractor={(u) => u.id}
+            onRowClick={handleUnitClick}
+            rowLabel={(u) => `Open unit ${u.unitReference}`}
             emptyMessage="No blood units found"
           />
 

@@ -14,6 +14,15 @@ export interface DataTableProps<T> {
   className?: string;
   loading?: boolean;
   emptyMessage?: string;
+  /**
+   * Makes each row open something -- a detail modal, a drilldown page.
+   * Rows already carried a hover highlight, which promises a click; wiring
+   * this is what makes the promise true, and it adds the keyboard path
+   * (Enter / Space) that a bare `onClick` on a `<tr>` would not have.
+   */
+  onRowClick?: (row: T) => void;
+  /** Accessible label for a clickable row, e.g. `(u) => \`Unit \${u.reference}\``. */
+  rowLabel?: (row: T) => string;
 }
 
 export function DataTable<T>({
@@ -23,6 +32,8 @@ export function DataTable<T>({
   className,
   loading,
   emptyMessage,
+  onRowClick,
+  rowLabel,
 }: DataTableProps<T>) {
   if (loading) {
     return (
@@ -71,7 +82,26 @@ export function DataTable<T>({
           </thead>
           <tbody className="divide-y divide-donor-border/60">
             {rows.map((row) => (
-              <tr key={keyExtractor(row)} className="transition-colors hover:bg-donor-elevated/60">
+              <tr
+                key={keyExtractor(row)}
+                className={cn(
+                  'transition-colors hover:bg-donor-elevated/60',
+                  onRowClick &&
+                    'cursor-pointer focus:bg-donor-elevated/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-donor-primary',
+                )}
+                {...(onRowClick && {
+                  onClick: () => onRowClick(row),
+                  onKeyDown: (event: React.KeyboardEvent<HTMLTableRowElement>) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      onRowClick(row);
+                    }
+                  },
+                  role: 'button',
+                  tabIndex: 0,
+                  'aria-label': rowLabel?.(row),
+                })}
+              >
                 {columns.map((col) => (
                   <td key={col.key} className={cn('px-5 py-3.5 text-donor-text', col.className)}>
                     {col.render

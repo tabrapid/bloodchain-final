@@ -4,8 +4,8 @@ import { useEffect, useState } from 'react';
 import { LoadingState } from '@bloodchain/ui/components';
 import { getInventoryOverview, listAlerts } from '@lib/api';
 import { me, isAuthenticated } from '@lib/auth';
-import { StatusBadgeWrapper } from '@lib/status';
-import { LayoutDashboard, Users, Building2, Ship, Package, Droplet, AlertTriangle, TestTube, Bell, FileText, Activity, Settings } from 'lucide-react';
+import {  } from '@lib/status';
+import { Droplet, AlertTriangle } from 'lucide-react';
 import { AppShell } from '../../components/AppShell';
 
 export default function InventoryPage() {

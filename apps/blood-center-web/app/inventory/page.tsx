@@ -5,17 +5,13 @@ import {
   Activity,
   AlertTriangle,
   ArrowRightLeft,
-  CalendarDays,
   CheckCircle,
   Clock,
   Filter,
-  LayoutDashboard,
   Package,
   Pencil,
   Plus,
   Search,
-  Truck,
-  Users,
   XCircle,
 } from 'lucide-react';
 import {
@@ -466,6 +462,8 @@ export default function InventoryPage() {
             columns={columns}
             rows={units}
             keyExtractor={(u) => u.id}
+            onRowClick={handleUnitClick}
+            rowLabel={(u) => `Open unit ${u.unitReference}`}
             emptyMessage="No blood units found"
           />
 

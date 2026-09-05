@@ -1,11 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Search, FileText, User, Clock, X, LayoutDashboard, Users, Building2, Ship, Package, Droplet, AlertTriangle, TestTube, Bell, Activity, Settings } from 'lucide-react';
+import { Clock } from 'lucide-react';
 import { LoadingState } from '@bloodchain/ui/components';
 import { listAuditLogs, type AuditLog } from '@lib/api';
 import { me, isAuthenticated } from '@lib/auth';
-import { StatusBadgeWrapper } from '@lib/status';
+import {  } from '@lib/status';
 import { AppShell } from '../../components/AppShell';
 
 export default function AuditLogsPage() {

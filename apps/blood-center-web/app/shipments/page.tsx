@@ -2,19 +2,13 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import {
-  Activity,
-  AlertCircle,
-  Bell,
   CheckCircle,
   Clock,
   Filter,
   MapPin,
   Package,
   RefreshCw,
-  Settings,
   Truck,
-  Users,
-  XCircle,
 } from 'lucide-react';
 import {
   EmptyState,
@@ -25,8 +19,6 @@ import { me, isAuthenticated, MeResponse } from '../../lib/auth';
 import {
   getShipments,
   Shipment,
-  getAvailableCouriers,
-  Courier,
 } from '../../lib/shipments';
 import { AppShell } from '../../components/AppShell';
 
@@ -42,12 +34,6 @@ const STATUS_CONFIG: Record<string, { label: string; variant: 'success' | 'warni
   DELIVERED: { label: 'Delivered', variant: 'success' },
   FAILED: { label: 'Failed', variant: 'danger' },
   CANCELLED: { label: 'Cancelled', variant: 'danger' },
-};
-
-const PRIORITY_CONFIG: Record<string, { label: string; color: string }> = {
-  ROUTINE: { label: 'Routine', color: 'text-donor-secondary' },
-  URGENT: { label: 'Urgent', color: 'text-donor-warning' },
-  CRITICAL: { label: 'Critical', color: 'text-donor-danger' },
 };
 
 export default function ShipmentsPage() {

@@ -1,11 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Bell, AlertTriangle, CheckCircle, X, LayoutDashboard, Users, Building2, Ship, Package, Droplet, TestTube, FileText, Activity, Settings } from 'lucide-react';
+import { AlertTriangle, CheckCircle } from 'lucide-react';
 import { LoadingState } from '@bloodchain/ui/components';
 import { listAlerts, acknowledgeAlert } from '@lib/api';
 import { me, isAuthenticated } from '@lib/auth';
-import { StatusBadgeWrapper } from '@lib/status';
+import {  } from '@lib/status';
 import { AppShell } from '../../components/AppShell';
 
 export default function AlertsPage() {

@@ -13,12 +13,9 @@ import {
   Package,
   RefreshCw,
   TestTube,
-  TrendingDown,
-  TrendingUp,
   Truck,
 } from 'lucide-react';
 import {
-  EmptyState,
   FilterBar,
   StatCard,
 } from '@bloodchain/ui/components';
