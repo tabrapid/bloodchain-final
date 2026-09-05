@@ -93,6 +93,23 @@ beforeEach(() => {
   jest.mocked(getDonorTracking).mockResolvedValue({ locations: [] } as never);
 });
 
+/**
+ * Mounted trees, unmounted after each test. Mounting this screen starts a
+ * 15-second tracking poll and an expo-location watcher; leaving them running
+ * past the end of the test file means they fire during Jest's teardown, when
+ * the module registry is already gone -- at which point `LinearGradient`
+ * resolves to a bare object and React throws mid-render. That is a slow-CI
+ * failure and a local "worker process failed to exit gracefully" warning: the
+ * same leak, showing up differently depending on how fast the machine is.
+ */
+const mounted: renderer.ReactTestRenderer[] = [];
+
+afterEach(() => {
+  act(() => {
+    mounted.splice(0).forEach((tree) => tree.unmount());
+  });
+});
+
 async function render() {
   const element = (
     <ThemeProvider>
@@ -111,6 +128,7 @@ async function render() {
   act(() => {
     tree = renderer.create(element);
   });
+  mounted.push(tree);
   await flush();
   return tree;
 }

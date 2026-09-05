@@ -70,6 +70,15 @@ beforeEach(() => {
   jest.mocked(getAvailability).mockResolvedValue([slot] as never);
 });
 
+/** Mounted trees, unmounted after each test so their effects stop running. */
+const mounted: renderer.ReactTestRenderer[] = [];
+
+afterEach(() => {
+  act(() => {
+    mounted.splice(0).forEach((tree) => tree.unmount());
+  });
+});
+
 async function render(element: React.ReactElement) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 } },
@@ -92,6 +101,7 @@ async function render(element: React.ReactElement) {
       </QueryClientProvider>,
     );
   });
+  mounted.push(tree);
 
   for (let i = 0; i < 4; i++) {
     await act(async () => {
