@@ -120,7 +120,7 @@ function CampaignCard({
   const daysLeft = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
   return (
-    <GlassCard style={styles.card}>
+    <GlassCard>
       <View style={styles.cardHeader}>
         <View style={styles.cardHeading}>
           <AppText variant="heading">{campaign.title}</AppText>
@@ -193,9 +193,6 @@ function createStyles(colors: ThemeColors) {
     list: {
       gap: spacing.md,
       paddingBottom: spacing.xl,
-    },
-    card: {
-      padding: spacing.lg,
     },
     cardHeader: {
       flexDirection: 'row',

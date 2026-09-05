@@ -11,7 +11,7 @@ import {
   Package,
   XCircle,
 } from 'lucide-react-native';
-import { AppButton, AppText, Badge, Card, EmptyState, LoadingState, Screen } from '../../src/components';
+import { AppButton, AppHeader, AppText, Badge, Card, EmptyState, LoadingState, Screen } from '../../src/components';
 import { LocationMap, type MapMarkerPoint } from '../../src/components/map/LocationMap';
 import { spacing, useTheme } from '../../src/theme';
 import {
@@ -264,7 +264,7 @@ export default function CourierActive() {
   if (isLoading) {
     return (
       <Screen>
-        <AppText variant="title" style={{ marginBottom: spacing.lg }}>Active Delivery</AppText>
+        <AppHeader title="Active Delivery" />
         <LoadingState />
       </Screen>
     );
@@ -272,7 +272,7 @@ export default function CourierActive() {
 
   return (
     <Screen scroll={false}>
-      <AppText variant="title" style={{ marginBottom: spacing.md }}>Active Delivery</AppText>
+      <AppHeader title="Active Delivery" />
       <ScrollView
         style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}

@@ -1,186 +1,150 @@
 import { useMemo, useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, Pressable } from 'react-native';
 import { router } from 'expo-router';
-import { Check, Droplet, HeartPulse, Stethoscope } from 'lucide-react-native';
-import { AppButton, AppText, GlassCard, Screen } from '../../src/components';
-import { spacing, useTheme, ThemeColors } from '../../src/theme';
+import { Check, Droplet, HeartPulse, Stethoscope, type LucideIcon } from 'lucide-react-native';
+import { AppText, BookingStep, GlassCard } from '../../src/components';
+import { radius, useTheme, ThemeColors } from '../../src/theme';
 
-export default function Booking() {
+interface AppointmentTypeOption {
+  id: string;
+  title: string;
+  description: string;
+  icon: LucideIcon;
+  tintKey: 'primary' | 'success' | 'secondary';
+}
+
+const APPOINTMENT_TYPES: AppointmentTypeOption[] = [
+  {
+    id: 'BLOOD_DONATION',
+    title: 'Blood Donation',
+    description: 'Donate blood to help those in need',
+    icon: Droplet,
+    tintKey: 'primary',
+  },
+  {
+    id: 'BLOOD_TEST',
+    title: 'Blood Test',
+    description: 'Get your blood tested for various parameters',
+    icon: HeartPulse,
+    tintKey: 'success',
+  },
+  {
+    id: 'CONSULTATION',
+    title: 'Consultation',
+    description: 'Speak with a healthcare professional',
+    icon: Stethoscope,
+    tintKey: 'secondary',
+  },
+];
+
+export default function SelectType() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const APPOINTMENT_TYPES = useMemo(
-    () => [
-      {
-        id: 'BLOOD_DONATION',
-        title: 'Blood Donation',
-        description: 'Donate blood to help those in need',
-        icon: Droplet,
-        color: colors.primary,
-        bg: colors.primaryMuted,
-        iconColor: colors.onMuted.primary,
-      },
-      {
-        id: 'BLOOD_TEST',
-        title: 'Blood Test',
-        description: 'Get your blood tested for various parameters',
-        icon: HeartPulse,
-        color: colors.success,
-        bg: colors.successMuted,
-        iconColor: colors.onMuted.success,
-      },
-      {
-        id: 'CONSULTATION',
-        title: 'Consultation',
-        description: 'Speak with a healthcare professional',
-        icon: Stethoscope,
-        color: colors.secondary,
-        bg: colors.secondaryMuted,
-        iconColor: colors.onMuted.secondary,
-      },
-    ],
-    [colors],
-  );
-  const [selectedType, setSelectedType] = useState<string | null>(null);
-
-  const handleNext = () => {
-    if (selectedType) {
-      router.push({
-        pathname: '/(booking)/organizations',
-        params: { type: selectedType },
-      });
-    }
-  };
+  const [selected, setSelected] = useState<string | null>(null);
 
   return (
-    <Screen>
-      <ScrollView contentContainerStyle={styles.content}>
-        <AppText variant="title" style={styles.title}>
-          Book an Appointment
-        </AppText>
-        <AppText muted style={styles.subtitle}>
-          Select the type of appointment you would like to book.
-        </AppText>
-
-        <View style={styles.typesList}>
-          {APPOINTMENT_TYPES.map((type) => {
-            const Icon = type.icon;
-            const isSelected = selectedType === type.id;
-
-            return (
-              <TouchableOpacity
-                key={type.id}
-                onPress={() => setSelectedType(type.id)}
-                activeOpacity={0.8}
+    <BookingStep
+      step={1}
+      title="Select appointment type"
+      subtitle="What would you like to book today?"
+      nextDisabled={!selected}
+      onNext={() =>
+        router.push({ pathname: '/(booking)/organizations', params: { type: selected! } })
+      }
+    >
+      <View style={styles.list}>
+        {APPOINTMENT_TYPES.map((type) => {
+          const Icon = type.icon;
+          const isSelected = selected === type.id;
+          return (
+            <Pressable
+              key={type.id}
+              onPress={() => setSelected(type.id)}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: isSelected }}
+              style={({ pressed }) => ({ opacity: pressed && !isSelected ? 0.7 : 1 })}
+            >
+              <GlassCard
+                tier={isSelected ? 'elevated' : 'standard'}
+                style={isSelected ? styles.cardSelected : undefined}
               >
-                <GlassCard
-                  style={[
-                    styles.typeCard,
-                    isSelected && { borderColor: type.color, borderWidth: 2 },
-                  ]}
-                >
+                <View style={styles.row}>
                   <View
-                    style={[
-                      styles.iconContainer,
-                      { backgroundColor: type.bg },
-                    ]}
+                    style={[styles.icon, { backgroundColor: colors[`${type.tintKey}Muted`] }]}
                   >
-                    <Icon size={28} color={type.iconColor} />
+                    <Icon size={22} color={colors.onMuted[type.tintKey]} />
                   </View>
-                  <View style={styles.typeInfo}>
-                    <AppText variant="heading">{type.title}</AppText>
-                    <AppText muted style={styles.typeDescription}>
-                      {type.description}
-                    </AppText>
+                  <View style={styles.body}>
+                    <AppText style={styles.title}>{type.title}</AppText>
+                    <AppText style={styles.description}>{type.description}</AppText>
                   </View>
                   {isSelected ? (
-                    <View
-                      style={[styles.checkBadge, { backgroundColor: type.color }]}
-                    >
+                    <View style={styles.check}>
                       <Check size={13} color="#FFFFFF" strokeWidth={3} />
                     </View>
                   ) : (
-                    <View style={styles.radioOuter} />
+                    <View style={styles.radio} />
                   )}
-                </GlassCard>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      </ScrollView>
-
-      <View style={styles.footer}>
-        <AppButton
-          onPress={handleNext}
-          disabled={!selectedType}
-        >
-          Continue
-        </AppButton>
-        <AppButton
-          variant="secondary"
-          onPress={() => router.back()}
-          style={styles.backButton}
-        >
-          Back
-        </AppButton>
+                </View>
+              </GlassCard>
+            </Pressable>
+          );
+        })}
       </View>
-    </Screen>
+    </BookingStep>
   );
 }
 
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
-    content: {
-      paddingBottom: spacing.xl,
+    list: {
+      gap: 10,
     },
-    title: {
-      marginBottom: spacing.xs,
+    cardSelected: {
+      borderColor: 'rgba(216, 83, 96, 0.45)',
     },
-    subtitle: {
-      marginBottom: spacing.xl,
-    },
-    typesList: {
-      gap: spacing.md,
-    },
-    typeCard: {
+    row: {
       flexDirection: 'row',
       alignItems: 'center',
-      padding: spacing.lg,
+      gap: 14,
     },
-    iconContainer: {
-      width: 56,
-      height: 56,
-      borderRadius: 16,
+    icon: {
+      width: 44,
+      height: 44,
+      borderRadius: radius.sm,
       alignItems: 'center',
       justifyContent: 'center',
-      marginRight: spacing.md,
+      flexShrink: 0,
     },
-    typeInfo: {
+    body: {
       flex: 1,
     },
-    typeDescription: {
-      fontSize: 13,
+    title: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: colors.text,
+    },
+    description: {
+      fontSize: 12,
+      color: colors.textMuted,
       marginTop: 2,
     },
-    radioOuter: {
+    radio: {
       width: 22,
       height: 22,
       borderRadius: 11,
       borderWidth: 2,
       borderColor: colors.border,
+      flexShrink: 0,
     },
-    checkBadge: {
+    check: {
       width: 22,
       height: 22,
       borderRadius: 11,
+      backgroundColor: colors.primary,
       alignItems: 'center',
       justifyContent: 'center',
-    },
-    footer: {
-      paddingTop: spacing.lg,
-      paddingBottom: spacing.lg,
-    },
-    backButton: {
-      marginTop: spacing.md,
+      flexShrink: 0,
     },
   });
 }

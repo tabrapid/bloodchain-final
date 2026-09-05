@@ -3,7 +3,7 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { View, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Check } from 'lucide-react-native';
-import { AppButton, AppText, Card, GlassCard, Screen } from '../../src/components';
+import { AppButton, AppText, Badge, GlassCard, Screen } from '../../src/components';
 import { useAppointment } from '../../src/hooks/useAppointments';
 import { spacing, useTheme, ThemeColors } from '../../src/theme';
 
@@ -43,8 +43,8 @@ export default function BookingConfirmation() {
           </LinearGradient>
         </View>
 
-        <AppText variant="title" style={styles.title}>
-          {isRescheduled ? 'Appointment Rescheduled!' : 'Booking Confirmed!'}
+        <AppText style={styles.title}>
+          {isRescheduled ? 'Appointment rescheduled!' : 'Appointment confirmed!'}
         </AppText>
         <AppText muted style={styles.subtitle}>
           {isRescheduled
@@ -100,49 +100,31 @@ export default function BookingConfirmation() {
               <AppText muted style={styles.detailLabel}>
                 Status
               </AppText>
-              <View
-                style={[
-                  styles.statusBadge,
-                  {
-                    backgroundColor:
-                      appointment.status === 'CONFIRMED'
-                        ? colors.successMuted
-                        : colors.warningMuted,
-                  },
-                ]}
-              >
-                <AppText
-                  style={{
-                    color: appointment.status === 'CONFIRMED' ? colors.onMuted.success : colors.onMuted.warning,
-                    fontSize: 12,
-                    fontWeight: '600',
-                  }}
-                >
-                  {appointment.status}
-                </AppText>
-              </View>
+              <Badge variant={appointment.status === 'CONFIRMED' ? 'success' : 'warning'}>
+                {appointment.status.replace(/_/g, ' ')}
+              </Badge>
             </View>
           </GlassCard>
         ) : null}
 
-        <Card style={styles.reminderCard}>
+        <GlassCard style={styles.reminderCard}>
           <AppText muted style={styles.reminderText}>
             Please arrive 15 minutes before your scheduled appointment time.
             Remember to bring a valid ID.
           </AppText>
-        </Card>
+        </GlassCard>
       </View>
 
       <View style={styles.footer}>
         <AppButton onPress={() => router.replace('/(app)/calendar')}>
-          View Calendar
+          View calendar
         </AppButton>
         <AppButton
           variant="secondary"
           onPress={() => router.replace('/home' as const)}
           style={styles.homeButton}
         >
-          Go to Home
+          Back to app
         </AppButton>
       </View>
     </Screen>
@@ -172,8 +154,12 @@ function createStyles(colors: ThemeColors) {
       elevation: 8,
     },
     title: {
+      fontSize: 27,
+      fontWeight: '800',
+      letterSpacing: -0.81,
+      color: colors.text,
       textAlign: 'center',
-      marginBottom: spacing.xs,
+      marginBottom: spacing.sm,
     },
     subtitle: {
       textAlign: 'center',
@@ -208,14 +194,8 @@ function createStyles(colors: ThemeColors) {
       textTransform: 'uppercase',
       letterSpacing: 0.5,
     },
-    statusBadge: {
-      paddingHorizontal: spacing.sm,
-      paddingVertical: spacing.xs,
-      borderRadius: 4,
-    },
     reminderCard: {
       padding: spacing.md,
-      backgroundColor: colors.surfaceElevated,
     },
     reminderText: {
       fontSize: 13,

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { RefreshControl, ScrollView, View } from 'react-native';
 import { AlertTriangle, CheckCircle, Clock3, Droplet, Package, XCircle } from 'lucide-react-native';
-import { AppButton, AppText, Badge, Card, EmptyState, LoadingState, Screen, StatCard } from '../../src/components';
+import { AppButton, AppHeader, AppText, Badge, Card, EmptyState, LoadingState, Screen, StatCard } from '../../src/components';
 import { spacing, useTheme } from '../../src/theme';
 import { getCourierShipments, getCourierStats, type CourierStats, type Shipment } from '../../src/api/courier';
 
@@ -51,7 +51,7 @@ export default function CourierHistory() {
   if (isLoading) {
     return (
       <Screen>
-        <AppText variant="title" style={{ marginBottom: spacing.lg }}>History</AppText>
+        <AppHeader title="History" subtitle="Your completed deliveries" />
         <LoadingState />
       </Screen>
     );
@@ -59,7 +59,7 @@ export default function CourierHistory() {
 
   return (
     <Screen scroll={false}>
-      <AppText variant="title" style={{ marginBottom: spacing.md }}>History</AppText>
+      <AppHeader title="History" subtitle="Your completed deliveries" />
       <ScrollView
         style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}

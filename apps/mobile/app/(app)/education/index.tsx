@@ -131,14 +131,14 @@ export default function EducationScreen() {
         ListHeaderComponent={
           <>
             {stats && (
-              <Card style={styles.statsCard}>
+              <GlassCard tier="elevated" style={styles.statsCard}>
                 <AppText variant="heading">Your Progress</AppText>
                 <View style={styles.statsRow}>
                   <EducationStat label="Completed" value={stats.totalCompleted} />
                   <EducationStat label="Started" value={stats.totalStarted} />
                   <EducationStat label="XP Earned" value={stats.totalXpEarned} />
                 </View>
-              </Card>
+              </GlassCard>
             )}
 
             <AppText variant="heading" style={styles.sectionTitle}>
@@ -200,7 +200,7 @@ function EducationCard({
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   return (
-    <GlassCard style={styles.card}>
+    <GlassCard>
       <View style={styles.badgeRow}>
         <Badge variant="primary">{content.type}</Badge>
         <Badge>{content.difficulty}</Badge>
@@ -255,7 +255,6 @@ function EducationCard({
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
     statsCard: {
-      padding: spacing.lg,
       marginBottom: spacing.lg,
     },
     errorCard: {
@@ -286,9 +285,6 @@ function createStyles(colors: ThemeColors) {
     list: {
       gap: spacing.md,
       paddingBottom: spacing.xl,
-    },
-    card: {
-      padding: spacing.lg,
     },
     badgeRow: {
       flexDirection: 'row',

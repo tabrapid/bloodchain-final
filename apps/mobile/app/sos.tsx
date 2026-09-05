@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ScrollView, View, Alert, TouchableOpacity } from 'react-native';
+import { ScrollView, View, Alert, Pressable, TouchableOpacity } from 'react-native';
 import * as Location from 'expo-location';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
@@ -12,7 +12,15 @@ import {
   Navigation,
   XCircle,
 } from 'lucide-react-native';
-import { AppButton, AppText, Card, IconButton, LoadingState, Screen, ScreenHeader } from '../src/components';
+import {
+  AppButton,
+  AppText,
+  Badge,
+  Card,
+  LoadingState,
+  Screen,
+  ScreenHeader,
+} from '../src/components';
 import { LocationMap, type MapMarkerPoint } from '../src/components/map/LocationMap';
 import { spacing, useTheme } from '../src/theme';
 import {
@@ -34,6 +42,22 @@ const LOCATION_UPDATE_INTERVAL_MS = 15000;
 const LOCATION_UPDATE_DISTANCE_M = 50;
 
 type EmergencyStatus = 'idle' | 'loading' | 'viewing' | 'responding' | 'en_route' | 'arrived' | 'error';
+
+/**
+ * How long until the hospital needs the units. `requiredBefore` is optional on
+ * an emergency, and an expired one shows as "Overdue" rather than a negative
+ * count -- the request is still live and still worth answering.
+ */
+function timeLeftLabel(requiredBefore?: string): string | null {
+  if (!requiredBefore) return null;
+  const minutes = Math.round((new Date(requiredBefore).getTime() - Date.now()) / 60000);
+  if (Number.isNaN(minutes)) return null;
+  if (minutes <= 0) return 'Overdue';
+  if (minutes < 60) return `${minutes}m left`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 48) return `${hours}h left`;
+  return `${Math.round(hours / 24)}d left`;
+}
 
 export default function SosScreen() {
   const { colors } = useTheme();
@@ -308,82 +332,72 @@ export default function SosScreen() {
     return emergency.status;
   };
 
-  const renderEmergencyCard = (emergency: EmergencyRequest) => (
+  const renderEmergencyCard = (emergency: EmergencyRequest) => {
     // The reference distinguishes urgency by tier, not by a left rule: a
     // critical request is a danger-tinted card, anything else an elevated one.
-    <Card
-      key={emergency.id}
-      tier={emergency.urgencyLevel?.toUpperCase() === 'CRITICAL' ? 'danger' : 'elevated'}
-      style={{ marginBottom: spacing.md }}
-    >
-      <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md }}>
-        <View
-          style={{
-            width: 48,
-            height: 48,
-            borderRadius: 24,
-            backgroundColor: getUrgencyColor(emergency.urgencyLevel).bg,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <AlertTriangle size={24} color={getUrgencyColor(emergency.urgencyLevel).text} />
-        </View>
-        <View style={{ flex: 1 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-            <AppText style={{ fontSize: 28, fontWeight: '800', color: colors.danger, letterSpacing: -0.5 }}>
-              {emergency.bloodType}
-              {emergency.rhFactor === 'POSITIVE' ? '+' : emergency.rhFactor === 'NEGATIVE' ? '-' : ''}
-            </AppText>
-            <View
-              style={{
-                backgroundColor: getUrgencyColor(emergency.urgencyLevel).bg,
-                paddingHorizontal: spacing.sm,
-                paddingVertical: 2,
-                borderRadius: 4,
-              }}
-            >
-              <AppText
-                variant="caption"
-                style={{ color: getUrgencyColor(emergency.urgencyLevel).text, fontWeight: '600' }}
-              >
-                {emergency.urgencyLevel}
+    const isCritical = emergency.urgencyLevel?.toUpperCase() === 'CRITICAL';
+    const rh =
+      emergency.rhFactor === 'POSITIVE' ? '+' : emergency.rhFactor === 'NEGATIVE' ? '-' : '';
+
+    return (
+      <Card key={emergency.id} tier={isCritical ? 'danger' : 'elevated'}>
+        {/* The reference splits the card: what is needed on the left, how
+            pressed you are on the right. */}
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md }}>
+          <View style={{ flex: 1 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: 6 }}>
+              <AppText style={{ fontSize: 28, fontWeight: '800', color: colors.danger, letterSpacing: -0.84 }}>
+                {emergency.bloodType}
+                {rh}
               </AppText>
+              <Badge variant={isCritical ? 'danger' : 'warning'}>{emergency.urgencyLevel}</Badge>
             </View>
-          </View>
-          <AppText variant="heading" style={{ color: colors.text, marginTop: spacing.xs }}>
-            {emergency.emergencyReference}
-          </AppText>
-          <AppText variant="body" style={{ color: colors.textMuted, marginTop: 2 }}>
-            {emergency.unitsRequired} unit{emergency.unitsRequired !== 1 ? 's' : ''} needed
-          </AppText>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginTop: spacing.sm }}>
-            <MapPin size={12} color={colors.textMuted} />
-            <AppText variant="caption" style={{ color: colors.textMuted }}>
+            <AppText style={{ fontSize: 14, fontWeight: '600', color: colors.text }}>
               {emergency.hospital.name}
             </AppText>
+            <AppText style={{ fontSize: 12, color: colors.textMuted, marginTop: 2 }}>
+              {emergency.description ?? emergency.emergencyReference}
+            </AppText>
           </View>
-          {emergency.donationLocation && (
-            <AppText variant="caption" style={{ color: colors.textMuted, marginTop: spacing.xs }}>
-              {emergency.donationLocation}
+
+          <View style={{ alignItems: 'flex-end' }}>
+            {timeLeftLabel(emergency.requiredBefore) && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                <Clock size={11} color={colors.danger} />
+                <AppText style={{ fontSize: 12, fontWeight: '600', color: colors.danger }}>
+                  {timeLeftLabel(emergency.requiredBefore)}
+                </AppText>
+              </View>
+            )}
+            <AppText style={{ fontSize: 11, color: colors.textMuted, marginTop: 3 }}>
+              {emergency.unitsRequired} unit{emergency.unitsRequired !== 1 ? 's' : ''} needed
             </AppText>
-          )}
-          <View
-            style={{
-              marginTop: spacing.md,
-              paddingTop: spacing.sm,
-              borderTopWidth: 1,
-              borderTopColor: colors.border,
-            }}
-          >
-            <AppText variant="caption" style={{ color: colors.primary, fontWeight: '600' }}>
-              {getStatusLabel(emergency)}
-            </AppText>
+            {emergency.donationLocation && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 3 }}>
+                <MapPin size={11} color={colors.textMuted} />
+                <AppText style={{ fontSize: 11, color: colors.textMuted }}>
+                  {emergency.donationLocation}
+                </AppText>
+              </View>
+            )}
           </View>
         </View>
-      </View>
-    </Card>
-  );
+
+        <View
+          style={{
+            marginTop: spacing.md,
+            paddingTop: spacing.sm,
+            borderTopWidth: 1,
+            borderTopColor: colors.borderSubtle,
+          }}
+        >
+          <AppText style={{ fontSize: 12, fontWeight: '600', color: colors.primary }}>
+            {getStatusLabel(emergency)}
+          </AppText>
+        </View>
+      </Card>
+    );
+  };
 
   if (status === 'loading') {
     return (
@@ -675,29 +689,62 @@ export default function SosScreen() {
     <Screen scroll={false}>
       <LinearGradient
         colors={[colors.dangerMuted, 'transparent']}
-        style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.sm, paddingBottom: spacing.lg }}
+        style={{ paddingHorizontal: spacing.md, paddingTop: spacing.sm, paddingBottom: spacing.lg }}
       >
-        <IconButton icon={ArrowLeft} onPress={() => router.back()} style={{ marginBottom: spacing.md }} />
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
-          <View
-            style={{
-              width: 52,
-              height: 52,
-              borderRadius: 26,
-              backgroundColor: colors.danger,
-              alignItems: 'center',
-              justifyContent: 'center',
-              shadowColor: colors.danger,
-              shadowOpacity: 0.5,
-              shadowRadius: 16,
-              shadowOffset: { width: 0, height: 6 },
-              elevation: 6,
-            }}
-          >
-            <AlertTriangle size={26} color="#FFFFFF" />
+        <Pressable
+          onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+          style={({ pressed }) => ({
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 6,
+            minHeight: 44,
+            alignSelf: 'flex-start',
+            paddingRight: spacing.sm,
+            opacity: pressed ? 0.6 : 1,
+          })}
+        >
+          <ArrowLeft size={16} color={colors.primary} strokeWidth={2.5} />
+          <AppText style={{ fontSize: 14, fontWeight: '600', color: colors.primary }}>Back</AppText>
+        </Pressable>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: spacing.md }}>
+          <View>
+            {/* The reference rings the mark, so it reads as live rather than
+                as one more icon in a header. */}
+            <View
+              style={{
+                position: 'absolute',
+                top: -8,
+                left: -8,
+                right: -8,
+                bottom: -8,
+                borderRadius: 34,
+                borderWidth: 2,
+                borderColor: 'rgba(216, 83, 96, 0.4)',
+              }}
+              pointerEvents="none"
+            />
+            <View
+              style={{
+                width: 52,
+                height: 52,
+                borderRadius: 26,
+                backgroundColor: colors.danger,
+                alignItems: 'center',
+                justifyContent: 'center',
+                shadowColor: colors.danger,
+                shadowOpacity: 0.5,
+                shadowRadius: 16,
+                shadowOffset: { width: 0, height: 6 },
+                elevation: 6,
+              }}
+            >
+              <AlertTriangle size={26} color="#FFFFFF" />
+            </View>
           </View>
           <View style={{ flex: 1 }}>
-            <AppText variant="title" style={{ fontSize: 24 }}>
+            <AppText style={{ fontSize: 24, fontWeight: '800', letterSpacing: -0.48, color: colors.text }}>
               Emergency SOS
             </AppText>
             <AppText muted style={{ fontSize: 13, marginTop: 2 }}>
@@ -708,25 +755,28 @@ export default function SosScreen() {
           </View>
         </View>
       </LinearGradient>
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: spacing.lg, paddingTop: 0 }}>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingHorizontal: spacing.md, paddingBottom: spacing.xl, gap: 12 }}
+        showsVerticalScrollIndicator={false}
+      >
         {emergencies.length > 0 ? (
           <>
             <AppText variant="caption" style={{ color: colors.textMuted, marginBottom: spacing.sm }}>
               ACTIVE EMERGENCY REQUESTS NEAR YOU
             </AppText>
             {emergencies.map((emergency) => (
-              <View key={emergency.id} style={{ marginBottom: spacing.md }}>
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  onPress={() => handleViewMatch(emergency)}
-                >
-                  {renderEmergencyCard(emergency)}
-                </TouchableOpacity>
-              </View>
+              <TouchableOpacity
+                key={emergency.id}
+                activeOpacity={0.8}
+                onPress={() => handleViewMatch(emergency)}
+              >
+                {renderEmergencyCard(emergency)}
+              </TouchableOpacity>
             ))}
           </>
         ) : (
-          <Card style={{ alignItems: 'center', paddingVertical: spacing.xl, marginBottom: spacing.lg }}>
+          <Card style={{ alignItems: 'center', paddingVertical: spacing.xl }}>
             <AlertTriangle size={48} color={colors.textMuted} />
             <AppText variant="heading" style={{ marginTop: spacing.md }}>
               No Active Emergencies
@@ -743,31 +793,38 @@ export default function SosScreen() {
               YOUR ACTIVE RESPONSES
             </AppText>
             {myResponses.map((emergency) => (
-              <View key={emergency.id} style={{ marginBottom: spacing.md }}>
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  onPress={() => {
-                    setSelectedEmergency(emergency);
-                    if (emergency.responseStatus === 'EN_ROUTE') {
-                      setStatus('en_route');
-                    } else if (emergency.responseStatus === 'ARRIVED') {
-                      setStatus('arrived');
-                    } else {
-                      setStatus('responding');
-                    }
-                  }}
-                >
-                  {renderEmergencyCard(emergency)}
-                </TouchableOpacity>
-              </View>
+              <TouchableOpacity
+                key={emergency.id}
+                activeOpacity={0.8}
+                onPress={() => {
+                  setSelectedEmergency(emergency);
+                  if (emergency.responseStatus === 'EN_ROUTE') {
+                    setStatus('en_route');
+                  } else if (emergency.responseStatus === 'ARRIVED') {
+                    setStatus('arrived');
+                  } else {
+                    setStatus('responding');
+                  }
+                }}
+              >
+                {renderEmergencyCard(emergency)}
+              </TouchableOpacity>
             ))}
           </>
         )}
 
-        <AppButton variant="secondary" onPress={loadEmergencies} style={{ marginTop: spacing.md }}>
-          <Clock size={16} />
+        <AppButton variant="secondary" onPress={loadEmergencies} style={{ marginTop: spacing.sm }}>
           Refresh
         </AppButton>
+
+        <Card style={{ paddingVertical: 12, paddingHorizontal: 14 }}>
+          <AppText
+            style={{ fontSize: 12, lineHeight: 19, color: colors.textMuted, textAlign: 'center' }}
+          >
+            Responding commits you to donate within the stated timeframe. The hospital confirms
+            your appointment as soon as you accept.
+          </AppText>
+        </Card>
       </ScrollView>
     </Screen>
   );

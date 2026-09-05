@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import { ArrowLeft } from 'lucide-react-native';
@@ -9,6 +9,12 @@ export interface ScreenHeaderProps {
   title: string;
   subtitle?: string;
   onBack?: () => void;
+  /**
+   * A screen-level action rendered beside the title, as the reference draws
+   * "Mark all read" on Notifications -- baseline-aligned with the title
+   * rather than stacked above the list.
+   */
+  trailing?: ReactNode;
 }
 
 /**
@@ -23,7 +29,7 @@ export interface ScreenHeaderProps {
  * width instead of relying on invisible hit-slop, and leaves the title the
  * full width of the screen.
  */
-export function ScreenHeader({ title, subtitle, onBack }: ScreenHeaderProps) {
+export function ScreenHeader({ title, subtitle, onBack, trailing }: ScreenHeaderProps) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
@@ -39,8 +45,13 @@ export function ScreenHeader({ title, subtitle, onBack }: ScreenHeaderProps) {
         <AppText style={styles.backLabel}>Back</AppText>
       </Pressable>
 
-      <AppText style={styles.title}>{title}</AppText>
-      {subtitle && <AppText style={styles.subtitle}>{subtitle}</AppText>}
+      <View style={styles.titleRow}>
+        <View style={styles.titleBlock}>
+          <AppText style={styles.title}>{title}</AppText>
+          {subtitle && <AppText style={styles.subtitle}>{subtitle}</AppText>}
+        </View>
+        {trailing}
+      </View>
     </View>
   );
 }
@@ -62,6 +73,15 @@ function createStyles(colors: ThemeColors) {
       fontSize: 14,
       fontWeight: '600',
       color: colors.primary,
+    },
+    titleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: spacing.md,
+    },
+    titleBlock: {
+      flex: 1,
     },
     title: {
       fontSize: 27,

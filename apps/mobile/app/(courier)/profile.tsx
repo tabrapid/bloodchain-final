@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, TextInput, View } from 'react-native';
 import { AlertTriangle, Building2, LogOut, Moon, Sun } from 'lucide-react-native';
-import { AppButton, AppText, Badge, Card, EmptyState, LoadingState, Screen } from '../../src/components';
+import { AppButton, AppHeader, AppText, Badge, Card, EmptyState, LoadingState, Screen } from '../../src/components';
 import { useLogout } from '../../src/hooks/useAuth';
 import { spacing, useTheme } from '../../src/theme';
 import {
@@ -80,7 +80,7 @@ export default function CourierProfileScreen() {
   if (isLoading) {
     return (
       <Screen>
-        <AppText variant="title" style={{ marginBottom: spacing.lg }}>Profile</AppText>
+        <AppHeader title="Profile" subtitle="Availability and delivery record" />
         <LoadingState />
       </Screen>
     );
@@ -89,7 +89,7 @@ export default function CourierProfileScreen() {
   if (!profile) {
     return (
       <Screen>
-        <AppText variant="title" style={{ marginBottom: spacing.lg }}>Profile</AppText>
+        <AppHeader title="Profile" subtitle="Availability and delivery record" />
         <EmptyState
           icon={AlertTriangle}
           title="Couldn't load your profile"
@@ -107,7 +107,7 @@ export default function CourierProfileScreen() {
 
   return (
     <Screen scroll={false}>
-      <AppText variant="title" style={{ marginBottom: spacing.md }}>Profile</AppText>
+      <AppHeader title="Profile" subtitle="Availability and delivery record" />
       <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
         <Card style={{ marginBottom: spacing.lg }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.md }}>

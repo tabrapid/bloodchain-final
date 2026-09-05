@@ -1,16 +1,34 @@
 import { useEffect, useMemo, useState } from 'react';
-import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, StyleSheet, ScrollView, Pressable, KeyboardAvoidingView, Platform } from 'react-native';
 import { router } from 'expo-router';
-import { AppButton, AppText, AppTextInput, Card, Screen } from '../../../src/components';
-import { useUpdateDonorProfile } from '../../../src/hooks/useDonors';
-import { useDonorProfile } from '../../../src/hooks/useDonors';
-import { spacing, useTheme, ThemeColors } from '../../../src/theme';
+import {
+  AppButton,
+  AppText,
+  AppTextInput,
+  GlassCard,
+  Screen,
+  ScreenHeader,
+  SectionHeader,
+} from '../../../src/components';
+import { useDonorProfile, useUpdateDonorProfile } from '../../../src/hooks/useDonors';
+import { spacing, radius, useTheme, ThemeColors } from '../../../src/theme';
 import { ApiRequestError } from '../../../src/api/client';
 
-const BLOOD_TYPES = ['A', 'B', 'AB', 'O'] as const;
-const RH_FACTORS = [
-  { value: 'POSITIVE', label: 'Rh Positive +' },
-  { value: 'NEGATIVE', label: 'Rh Negative -' },
+/**
+ * The reference offers the eight blood types as one grid of chips, which is
+ * how a donor thinks of their type. The API stores it as two fields, so each
+ * chip writes both -- the split is a storage detail and does not belong in
+ * the interface.
+ */
+const BLOOD_TYPE_CHIPS = [
+  { label: 'A+', bloodType: 'A', rhFactor: 'POSITIVE' },
+  { label: 'A-', bloodType: 'A', rhFactor: 'NEGATIVE' },
+  { label: 'B+', bloodType: 'B', rhFactor: 'POSITIVE' },
+  { label: 'B-', bloodType: 'B', rhFactor: 'NEGATIVE' },
+  { label: 'AB+', bloodType: 'AB', rhFactor: 'POSITIVE' },
+  { label: 'AB-', bloodType: 'AB', rhFactor: 'NEGATIVE' },
+  { label: 'O+', bloodType: 'O', rhFactor: 'POSITIVE' },
+  { label: 'O-', bloodType: 'O', rhFactor: 'NEGATIVE' },
 ] as const;
 
 export default function EditDonorProfile() {
@@ -21,35 +39,30 @@ export default function EditDonorProfile() {
   const [saveError, setSaveError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
-    bloodType: donor?.bloodType || '',
-    rhFactor: donor?.rhFactor || '',
-    city: donor?.city || '',
-    district: donor?.district || '',
+    bloodType: donor?.bloodType ?? '',
+    rhFactor: donor?.rhFactor ?? '',
+    city: donor?.city ?? '',
+    district: donor?.district ?? '',
   });
 
-  // See profile/edit.tsx's identical fix: useState's initializer only runs
-  // once, so a screen reached before `donor` is cached would otherwise
-  // show blank fields forever.
+  // useState's initializer only runs once, so a screen reached before `donor`
+  // is cached would otherwise show blank fields forever.
   useEffect(() => {
     if (!donor) return;
     setFormData({
-      bloodType: donor.bloodType || '',
-      rhFactor: donor.rhFactor || '',
-      city: donor.city || '',
-      district: donor.district || '',
+      bloodType: donor.bloodType ?? '',
+      rhFactor: donor.rhFactor ?? '',
+      city: donor.city ?? '',
+      district: donor.district ?? '',
     });
   }, [donor]);
-
-  const handleChange = (field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-  };
 
   const handleSave = async () => {
     setSaveError(null);
     try {
       await updateProfile.mutateAsync({
-        bloodType: formData.bloodType as any || undefined,
-        rhFactor: formData.rhFactor as any || undefined,
+        bloodType: formData.bloodType || undefined,
+        rhFactor: formData.rhFactor || undefined,
         city: formData.city || undefined,
         district: formData.district || undefined,
       });
@@ -63,182 +76,147 @@ export default function EditDonorProfile() {
     }
   };
 
-  const isLoading = updateProfile.isPending;
   const hasChanges =
-    formData.bloodType !== (donor?.bloodType || '') ||
-    formData.rhFactor !== (donor?.rhFactor || '') ||
-    formData.city !== (donor?.city || '') ||
-    formData.district !== (donor?.district || '');
+    formData.bloodType !== (donor?.bloodType ?? '') ||
+    formData.rhFactor !== (donor?.rhFactor ?? '') ||
+    formData.city !== (donor?.city ?? '') ||
+    formData.district !== (donor?.district ?? '');
 
   return (
-    <Screen>
+    <Screen scroll={false}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.container}
+        style={styles.flex}
       >
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          <AppText variant="title" style={styles.title}>
-            Donor Profile
+        <ScreenHeader title="Donor Profile" subtitle="Update your donor information" />
+
+        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+          <SectionHeader>Blood type</SectionHeader>
+          <View style={styles.chipGrid}>
+            {BLOOD_TYPE_CHIPS.map((chip) => {
+              const selected =
+                formData.bloodType === chip.bloodType && formData.rhFactor === chip.rhFactor;
+              return (
+                <View key={chip.label} style={styles.chipCell}>
+                  <Pressable
+                    onPress={() =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        bloodType: chip.bloodType,
+                        rhFactor: chip.rhFactor,
+                      }))
+                    }
+                    accessibilityRole="button"
+                    accessibilityState={{ selected }}
+                    accessibilityLabel={`Blood type ${chip.label}`}
+                    style={({ pressed }) => [
+                      styles.chip,
+                      selected && styles.chipSelected,
+                      { opacity: pressed && !selected ? 0.6 : 1 },
+                    ]}
+                  >
+                    <AppText style={[styles.chipLabel, selected && styles.chipLabelSelected]}>
+                      {chip.label}
+                    </AppText>
+                  </Pressable>
+                </View>
+              );
+            })}
+          </View>
+          <AppText style={styles.note}>
+            Your blood type stays marked unverified until an authorized healthcare provider
+            confirms it.
           </AppText>
 
-          <View style={styles.section}>
-            <AppText variant="heading" style={styles.sectionTitle}>
-              Blood Type
-            </AppText>
-            <AppText muted style={styles.sectionDesc}>
-              Select your blood type. If unknown, leave as is.
-            </AppText>
-
-            <View style={styles.bloodTypeGrid}>
-              {BLOOD_TYPES.map((type) => (
-                <AppButton
-                  key={type}
-                  variant={formData.bloodType === type ? 'primary' : 'secondary'}
-                  onPress={() => handleChange('bloodType', type)}
-                  style={styles.bloodTypeButton}
-                >
-                  {type}
-                </AppButton>
-              ))}
-            </View>
-
-            {formData.bloodType && (
-              <View style={styles.rhSection}>
-                <AppText muted style={styles.rhLabel}>Rh Factor</AppText>
-                <View style={styles.rhButtons}>
-                  {RH_FACTORS.map((rh) => (
-                    <AppButton
-                      key={rh.value}
-                      variant={formData.rhFactor === rh.value ? 'primary' : 'secondary'}
-                      onPress={() => handleChange('rhFactor', rh.value)}
-                      style={styles.rhButton}
-                    >
-                      {rh.label}
-                    </AppButton>
-                  ))}
-                </View>
-              </View>
-            )}
-
-            <AppText muted style={styles.disclaimer}>
-              Your blood type will be marked as unverified until confirmed by an authorized healthcare provider.
-            </AppText>
-          </View>
-
-          <View style={styles.section}>
-            <AppText variant="heading" style={styles.sectionTitle}>
-              Location
-            </AppText>
-
-            <Card style={styles.locationCard}>
+          <SectionHeader>Location</SectionHeader>
+          <GlassCard>
+            <View style={styles.fields}>
               <AppTextInput
                 label="City"
                 placeholder="Your city"
-                wrapperStyle={styles.field}
                 value={formData.city}
-                onChangeText={(v) => handleChange('city', v)}
+                onChangeText={(city) => setFormData((prev) => ({ ...prev, city }))}
               />
-
               <AppTextInput
                 label="District (optional)"
                 placeholder="Your district"
                 value={formData.district}
-                onChangeText={(v) => handleChange('district', v)}
+                onChangeText={(district) => setFormData((prev) => ({ ...prev, district }))}
               />
-            </Card>
-          </View>
+            </View>
+          </GlassCard>
 
-          {saveError && (
-            <AppText style={{ color: colors.danger, marginTop: spacing.lg }}>{saveError}</AppText>
-          )}
-        </ScrollView>
+          {saveError && <AppText style={styles.error}>{saveError}</AppText>}
 
-        <View style={styles.footer}>
-          <AppButton
-            variant="secondary"
-            onPress={() => router.back()}
-            style={styles.cancelButton}
-          >
-            Cancel
-          </AppButton>
           <AppButton
             onPress={handleSave}
-            disabled={!hasChanges || isLoading}
-            style={styles.saveButton}
+            disabled={!hasChanges || updateProfile.isPending}
+            loading={updateProfile.isPending}
+            style={styles.save}
           >
-            {isLoading ? 'Saving...' : 'Save Changes'}
+            Save changes
           </AppButton>
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </Screen>
   );
 }
 
-function createStyles(_colors: ThemeColors) {
+function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
-    container: {
-      flex: 1,
+    flex: { flex: 1 },
+    content: {
+      paddingBottom: spacing.xl,
     },
-    scrollContent: {
-      flexGrow: 1,
-    },
-    title: {
-      marginBottom: spacing.xl,
-    },
-    section: {
-      marginBottom: spacing.xl,
-    },
-    sectionTitle: {
-      marginBottom: spacing.xs,
-    },
-    sectionDesc: {
-      marginBottom: spacing.md,
-      fontSize: 14,
-    },
-    bloodTypeGrid: {
+    chipGrid: {
       flexDirection: 'row',
-      gap: spacing.sm,
-      marginBottom: spacing.lg,
+      flexWrap: 'wrap',
+      marginHorizontal: -4,
     },
-    bloodTypeButton: {
-      flex: 1,
-      height: 56,
+    chipCell: {
+      width: '25%',
+      paddingHorizontal: 4,
+      paddingBottom: 8,
     },
-    rhSection: {
-      marginBottom: spacing.lg,
+    chip: {
+      minHeight: 46,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: radius.sm,
+      backgroundColor: colors.glass.standard.fill,
+      borderWidth: 1,
+      borderColor: colors.glass.standard.border,
     },
-    rhLabel: {
-      marginBottom: spacing.sm,
-      fontSize: 13,
+    chipSelected: {
+      backgroundColor: colors.primary,
+      borderColor: 'transparent',
     },
-    rhButtons: {
-      flexDirection: 'row',
-      gap: spacing.sm,
+    chipLabel: {
+      fontSize: 15,
+      fontWeight: '500',
+      color: colors.text,
     },
-    rhButton: {
-      flex: 1,
+    chipLabelSelected: {
+      fontWeight: '800',
+      color: colors.white,
     },
-    disclaimer: {
-      fontSize: 13,
+    note: {
+      fontSize: 12,
+      lineHeight: 18,
       fontStyle: 'italic',
+      color: colors.textMuted,
+      marginTop: 4,
     },
-    field: {
-      marginBottom: spacing.md,
+    fields: {
+      gap: 14,
     },
-    locationCard: {
-      padding: spacing.lg,
+    error: {
+      fontSize: 13,
+      color: colors.onMuted.danger,
+      marginTop: spacing.md,
     },
-    footer: {
-      flexDirection: 'row',
-      gap: spacing.md,
-      marginTop: spacing.xl,
-      paddingBottom: spacing.lg,
-    },
-    cancelButton: {
-      flex: 1,
-    },
-    saveButton: {
-      flex: 2,
+    save: {
+      marginTop: spacing.lg,
     },
   });
 }

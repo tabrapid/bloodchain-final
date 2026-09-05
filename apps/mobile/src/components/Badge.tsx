@@ -4,7 +4,7 @@ import { radius, spacing, typography, useTheme, ThemeColors } from '../theme';
 import { AppText } from './AppText';
 
 export interface BadgeProps extends ViewProps {
-  variant?: 'default' | 'primary' | 'secondary' | 'success' | 'warning' | 'danger';
+  variant?: 'default' | 'primary' | 'secondary' | 'success' | 'warning' | 'danger' | 'ai';
 }
 
 function getBadgeColors(colors: ThemeColors): Record<string, { bg: string; text: string }> {
@@ -19,6 +19,7 @@ function getBadgeColors(colors: ThemeColors): Record<string, { bg: string; text:
     success: { bg: colors.successMuted, text: colors.onMuted.success },
     warning: { bg: colors.warningMuted, text: colors.onMuted.warning },
     danger: { bg: colors.dangerMuted, text: colors.onMuted.danger },
+    ai: { bg: colors.aiMuted, text: colors.onMuted.ai },
   };
 }
 
