@@ -1,13 +1,26 @@
 import { router } from 'expo-router';
 import { TouchableOpacity, View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
-import { Award, ChevronRight, Clock, Droplet, HeartHandshake, History, MapPin } from 'lucide-react-native';
+import { Award, ChevronRight, Clock, Droplet, Droplets, Layers, MapPin, TestTube } from 'lucide-react-native';
 import { AppButton, AppText, Badge, Card, GlassCard, GradientCard, ProgressBar, Screen, SectionHeader } from '../../src/components';
 import { useDonationStatistics, useMyDonations } from '../../src/hooks/useDonations';
 import { getCampaigns } from '../../src/api/campaigns';
 import { getActiveChallenges } from '../../src/api/challenges';
 import { getCommunityStats } from '../../src/api/community';
 import { spacing, useTheme } from '../../src/theme';
+
+/**
+ * The four donation types the backend's `DonationType` enum actually
+ * supports. The reference lists a "Double Red" tile with a donation cadence
+ * beside each type; neither exists here, so each tile carries the donor's own
+ * real count for that type instead.
+ */
+const DONATION_TYPES = [
+  { value: 'WHOLE_BLOOD', label: 'Whole Blood', icon: Droplet, color: 'primary' },
+  { value: 'PLASMA', label: 'Plasma', icon: TestTube, color: 'secondary' },
+  { value: 'PLATELETS', label: 'Platelets', icon: Layers, color: 'warning' },
+  { value: 'OTHER', label: 'Other', icon: Droplets, color: 'ai' },
+] as const;
 
 export default function Donate() {
   const { colors } = useTheme();
@@ -27,6 +40,14 @@ export default function Donate() {
   });
 
   const recentDonations = donationsData?.data ?? [];
+  const donationCountByType = (donationsData?.data ?? []).reduce<Record<string, number>>(
+    (acc, donation) => {
+      if (donation.status !== 'COMPLETED') return acc;
+      acc[donation.donationType] = (acc[donation.donationType] ?? 0) + 1;
+      return acc;
+    },
+    {},
+  );
   const activeCampaigns = campaignsData?.items ?? [];
   const featuredChallenge = challenges?.[0];
 
@@ -46,12 +67,6 @@ export default function Donate() {
       {/* Donate's hero is its own two-stop rose-to-mulberry, distinct from
           both the brand hero and Health's. */}
       <GradientCard colors={['#D85360', '#7B3266']} style={{ marginTop: spacing.xl }}>
-        <Droplet
-          size={120}
-          color="rgba(255,255,255,0.10)"
-          fill="rgba(255,255,255,0.06)"
-          style={{ position: 'absolute', top: -18, right: -18 }}
-        />
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: spacing.md }}>
           <View style={{ flex: 1 }}>
             <Badge variant={isEligible ? 'success' : 'warning'} style={{ alignSelf: 'flex-start', marginBottom: spacing.sm }}>
@@ -85,34 +100,32 @@ export default function Donate() {
         </AppButton>
       </GradientCard>
 
-      <SectionHeader>YOUR JOURNEY</SectionHeader>
-      <TouchableOpacity onPress={() => router.push('/donations')} activeOpacity={0.8}>
-        <Card>
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: spacing.md,
-              marginBottom: spacing.md,
-            }}
-          >
-            <History size={22} color={colors.secondary} />
-            <AppText variant="heading" style={{ flex: 1 }}>
-              Donation history
-            </AppText>
-            <ChevronRight size={20} color={colors.textMuted} />
-          </View>
-          {recentDonations.length > 0 ? (
-            <AppText muted>
-              {stats?.completedCount ?? recentDonations.length} donation
-              {(stats?.completedCount ?? recentDonations.length) !== 1 ? 's' : ''} · last on{' '}
-              {new Date(recentDonations[0]!.createdAt).toLocaleDateString()}
-            </AppText>
-          ) : (
-            <AppText muted>No donations yet. Your history will appear here.</AppText>
-          )}
-        </Card>
-      </TouchableOpacity>
+      <SectionHeader>DONATION TYPES</SectionHeader>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+        {DONATION_TYPES.map((type) => {
+          const Icon = type.icon;
+          return (
+            <TouchableOpacity
+              key={type.value}
+              activeOpacity={0.8}
+              onPress={goToBooking}
+              style={{ width: '48%' }}
+            >
+              <Card style={{ padding: 14 }}>
+                <Icon size={24} color={colors[type.color]} />
+                <AppText style={{ fontSize: 13, fontWeight: '600', marginTop: spacing.sm }}>
+                  {type.label}
+                </AppText>
+                <AppText muted style={{ fontSize: 11, marginTop: 2 }}>
+                  {donationCountByType[type.value]
+                    ? `${donationCountByType[type.value]} donated`
+                    : 'Not yet donated'}
+                </AppText>
+              </Card>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
 
       {activeCampaigns.length > 0 && (
         <>
@@ -242,28 +255,6 @@ export default function Donate() {
         </>
       )}
 
-      <SectionHeader>EMERGENCY REQUESTS</SectionHeader>
-      <TouchableOpacity onPress={() => router.push('/sos')} activeOpacity={0.8}>
-        <Card style={{ borderColor: colors.danger }}>
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: spacing.md,
-              marginBottom: spacing.md,
-            }}
-          >
-            <HeartHandshake size={22} color={colors.danger} />
-            <AppText variant="heading" style={{ color: colors.danger, flex: 1 }}>
-              Respond to SOS
-            </AppText>
-            <ChevronRight size={20} color={colors.textMuted} />
-          </View>
-          <AppText muted>
-            View active emergency blood requests that match your blood type nearby.
-          </AppText>
-        </Card>
-      </TouchableOpacity>
     </Screen>
   );
 }

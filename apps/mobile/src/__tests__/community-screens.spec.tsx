@@ -34,6 +34,11 @@ jest.mock('react-native/Libraries/Utilities/useColorScheme', () => ({
 jest.mock('../api/community', () => ({
   getFeed: jest.fn(),
   getImpactStats: jest.fn(),
+  getCommunityStats: jest.fn(),
+}));
+jest.mock('../hooks/useDonations', () => ({
+  useDonationStatistics: () => ({ data: undefined }),
+  useMyDonations: () => ({ data: { data: [] } }),
 }));
 jest.mock('../api/challenges', () => ({
   getActiveChallenges: jest.fn(),
@@ -52,7 +57,7 @@ jest.mock('../api/education', () => ({
 }));
 
 import { router } from 'expo-router';
-import { getFeed, getImpactStats } from '../api/community';
+import { getFeed, getImpactStats, getCommunityStats } from '../api/community';
 import { getActiveChallenges } from '../api/challenges';
 import { getCampaigns } from '../api/campaigns';
 import {
@@ -62,6 +67,7 @@ import {
 } from '../api/education';
 
 import CommunityScreen from '../../app/(app)/community/index';
+import DonateScreen from '../../app/(app)/donate';
 import CampaignsScreen from '../../app/(app)/campaigns/index';
 import ChallengesScreen from '../../app/(app)/challenges/index';
 import EducationScreen from '../../app/(app)/education/index';
@@ -122,6 +128,7 @@ beforeEach(() => {
     xp: 1250,
     reputation: 88,
   } as never);
+  jest.mocked(getCommunityStats).mockResolvedValue({} as never);
   jest.mocked(getActiveChallenges).mockResolvedValue([challengeFixture] as never);
   jest.mocked(getCampaigns).mockResolvedValue({
     items: [campaignFixture],
@@ -188,10 +195,15 @@ async function renderScreen(Screen: React.ComponentType) {
   // gone makes it independent of how many ticks the machine happens to need.
   // (walks the node tree rather than JSON.stringify-ing it — the render output
   // carries React context objects that stringify hits circular refs on.)
+  //
+  // The first few ticks are unconditional: a screen with no loading text at
+  // all (Donate renders its header immediately) would otherwise break out
+  // before its queries ever resolved, leaving the data-driven sections
+  // unrendered.
   for (let attempt = 0; attempt < 25; attempt++) {
     const json = tree.toJSON() as ReactTestRendererJSON | null;
     if (!json) break;
-    if (!renderedText(allNodes(json)).includes('Loading')) break;
+    if (attempt >= 3 && !renderedText(allNodes(json)).includes('Loading')) break;
     await act(async () => {
       await new Promise((resolve) => setTimeout(resolve, 0));
     });
@@ -292,14 +304,15 @@ describe('P3-9: the four screens that used className render with real styles', (
     const nodes = allNodes(await renderTree(CommunityScreen));
     const text = renderedText(nodes);
 
-    expect(text).toContain('Your Impact');
+    // Community is the leaderboard teaser plus the feed; campaigns and
+    // challenges live on Donate, which is where those cards are asserted.
+    expect(text).toContain('Community');
     expect(text).toContain(postFixture.title);
-    expect(text).toContain(challengeFixture.title);
-    expect(text).toContain(campaignFixture.title);
+    expect(text).toContain(postFixture.body);
   });
 
-  it('community feed: tapping a challenge card navigates to the challenges list (there is no per-challenge detail route)', async () => {
-    const tree = await renderScreen(CommunityScreen);
+  it('donate: tapping a challenge card navigates to the challenges list (there is no per-challenge detail route)', async () => {
+    const tree = await renderScreen(DonateScreen);
     const card = findPressableByText(tree, challengeFixture.title);
     expect(card).toBeDefined();
 
@@ -310,9 +323,9 @@ describe('P3-9: the four screens that used className render with real styles', (
     expect(router.push).toHaveBeenCalledWith('/challenges');
   });
 
-  it('community feed: tapping a campaign card navigates to the campaigns list (there is no per-campaign detail route)', async () => {
-    const tree = await renderScreen(CommunityScreen);
-    const card = findPressableByText(tree, campaignFixture.title);
+  it('donate: tapping a campaign card navigates to the campaigns list (there is no per-campaign detail route)', async () => {
+    const tree = await renderScreen(DonateScreen);
+    const card = findPressableByText(tree, campaignFixture.organization.name);
     expect(card).toBeDefined();
 
     act(() => {
