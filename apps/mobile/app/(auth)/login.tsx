@@ -44,8 +44,8 @@ export default function Login() {
         <AppText variant="title" style={{ fontSize: 32, fontWeight: '800', letterSpacing: -0.96 }}>
           Welcome back.
         </AppText>
-        <AppText muted style={{ marginTop: spacing.sm, marginBottom: spacing.xl }}>
-          Sign in to your private health space.
+        <AppText muted style={{ fontSize: 14, marginTop: 6, marginBottom: spacing.xl }}>
+          Sign in to continue saving lives.
         </AppText>
 
         <Controller

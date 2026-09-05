@@ -4,6 +4,7 @@ import {
   AppButton,
   AppText,
   Avatar,
+  Badge,
   Card,
   Divider,
   GlassCard,
@@ -77,6 +78,12 @@ export default function Profile() {
 
   const statusColor = statusTextColor;
 
+  const verificationBadgeVariant = donor?.verificationStatus === 'VERIFIED'
+    ? 'success'
+    : donor?.verificationStatus === 'REQUIRES_REVIEW'
+    ? 'warning'
+    : 'default';
+
   return (
     <Screen>
       <AppText variant="title">Profile</AppText>
@@ -84,21 +91,17 @@ export default function Profile() {
       <GlassCard elevated style={styles.profileCard}>
         <View style={styles.profileHeader}>
           <View style={[styles.avatarRing, { borderColor: statusDotColor }]}>
-            <Avatar name={fullName} size={68} />
+            <Avatar name={fullName} size={72} />
           </View>
-          <View style={styles.profileInfo}>
-            <AppText variant="heading" numberOfLines={1}>
-              {fullName}
-            </AppText>
-            <AppText muted style={styles.emailText} numberOfLines={1}>
-              {user?.email}
-            </AppText>
-            <View style={styles.statusRow}>
-              <View style={[styles.statusDot, { backgroundColor: statusDotColor }]} />
-              <AppText style={[styles.statusText, { color: statusTextColor }]}>
-                {verificationLabel}
-              </AppText>
-            </View>
+          <AppText style={styles.profileName} numberOfLines={1}>
+            {fullName}
+          </AppText>
+          <AppText muted style={styles.emailText} numberOfLines={1}>
+            {user?.email}
+          </AppText>
+          <View style={styles.badgeRow}>
+            <Badge variant="primary">{bloodTypeDisplay} Blood Type</Badge>
+            <Badge variant={verificationBadgeVariant}>{verificationLabel}</Badge>
           </View>
         </View>
 
@@ -112,7 +115,6 @@ export default function Profile() {
                 Donations
               </AppText>
             </View>
-            <View style={styles.statDivider} />
             <View style={styles.statItem}>
               <AppText variant="heading" style={styles.statValue}>
                 {gamificationProfile.emergencyResponseCount}
@@ -121,7 +123,6 @@ export default function Profile() {
                 Emergency responses
               </AppText>
             </View>
-            <View style={styles.statDivider} />
             <View style={styles.statItem}>
               <AppText variant="heading" style={styles.statValue}>
                 {gamificationProfile.totalXp}
@@ -249,22 +250,25 @@ export default function Profile() {
         )}
       </GradientCard>
 
-      <SectionHeader>ACCOUNT</SectionHeader>
+      <SectionHeader>DONOR INFO</SectionHeader>
       <Card>
         <ListItem
-          title="Personal Information"
-          subtitle="Name, email, phone"
-          icon={User}
-          onPress={() => router.push('/(app)/profile/edit')}
-        />
-        <Divider />
-        <ListItem
           title="Donor Profile"
-          subtitle="Blood type, location, preferences"
+          subtitle="Blood type, eligibility, preferences"
           icon={Droplet}
           onPress={() => router.push('/(app)/profile/donor')}
         />
         <Divider />
+        <ListItem
+          title="Personal Info"
+          subtitle="Name, contact, address"
+          icon={User}
+          onPress={() => router.push('/(app)/profile/edit')}
+        />
+      </Card>
+
+      <SectionHeader>SETTINGS</SectionHeader>
+      <Card>
         <ListItem
           title="Notifications"
           icon={Bell}
@@ -284,13 +288,10 @@ export default function Profile() {
         />
       </Card>
 
-      <SectionHeader>SESSION</SectionHeader>
-      <Card>
-        <ListItem
-          title="Log out"
-          destructive
-          onPress={() => logout.mutate()}
-        />
+      {/* Sign-out sits in its own card rather than under a section header --
+          the reference gives it no label, just the action. */}
+      <Card style={styles.signOutCard}>
+        <ListItem title="Sign out" destructive onPress={() => logout.mutate()} />
       </Card>
 
       <View style={styles.footer}>
@@ -308,40 +309,35 @@ function createStyles(colors: ThemeColors) {
       marginTop: spacing.xl,
       marginBottom: spacing.lg,
     },
+    // Centred identity block, as the reference has it: avatar over name over
+    // email over a pair of badges -- not a left-aligned row.
     profileHeader: {
-      flexDirection: 'row',
       alignItems: 'center',
-      gap: spacing.md,
     },
     avatarRing: {
       padding: 3,
       borderRadius: radius.pill,
       borderWidth: 2,
     },
-    profileInfo: {
-      flex: 1,
+    profileName: {
+      fontSize: 20,
+      fontWeight: '700',
+      letterSpacing: -0.4,
+      marginTop: 14,
     },
     emailText: {
       fontSize: 13,
-      marginTop: 1,
+      marginTop: 2,
     },
-    statusRow: {
+    badgeRow: {
       flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.xs,
-      marginTop: spacing.xs,
-    },
-    statusDot: {
-      width: 7,
-      height: 7,
-      borderRadius: 4,
-    },
-    statusText: {
-      fontSize: 12,
-      fontWeight: '600',
+      justifyContent: 'center',
+      gap: spacing.sm,
+      marginTop: 10,
     },
     statsRow: {
       flexDirection: 'row',
+      justifyContent: 'space-around',
       alignItems: 'center',
       marginTop: spacing.lg,
       paddingTop: spacing.md,
@@ -349,13 +345,7 @@ function createStyles(colors: ThemeColors) {
       borderTopColor: colors.border,
     },
     statItem: {
-      flex: 1,
       alignItems: 'center',
-    },
-    statDivider: {
-      width: 1,
-      alignSelf: 'stretch',
-      backgroundColor: colors.border,
     },
     statValue: {
       fontSize: 22,
@@ -491,6 +481,9 @@ function createStyles(colors: ThemeColors) {
     sourceText: {
       fontSize: 12,
       marginTop: spacing.sm,
+    },
+    signOutCard: {
+      marginTop: spacing.lg,
     },
     footer: {
       marginTop: spacing.xl,

@@ -43,10 +43,10 @@ export function AppTextInput({
       )}
       <View
         style={{
-          backgroundColor: colors.surfaceSolid,
+          backgroundColor: colors.surfaceElevated,
           borderWidth: 1,
           borderColor: error ? colors.danger : colors.border,
-          borderRadius: radius.sm,
+          borderRadius: 14,
         }}
       >
         <TextInput

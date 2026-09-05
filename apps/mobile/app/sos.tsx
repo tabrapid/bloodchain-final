@@ -294,13 +294,12 @@ export default function SosScreen() {
   };
 
   const renderEmergencyCard = (emergency: EmergencyRequest) => (
+    // The reference distinguishes urgency by tier, not by a left rule: a
+    // critical request is a danger-tinted card, anything else an elevated one.
     <Card
       key={emergency.id}
-      style={{
-        marginBottom: spacing.md,
-        borderLeftWidth: 4,
-        borderLeftColor: getUrgencyColor(emergency.urgencyLevel).border,
-      }}
+      tier={emergency.urgencyLevel?.toUpperCase() === 'CRITICAL' ? 'danger' : 'elevated'}
+      style={{ marginBottom: spacing.md }}
     >
       <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md }}>
         <View

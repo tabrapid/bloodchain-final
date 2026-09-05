@@ -12,6 +12,7 @@ import { getActiveChallenges, type Challenge } from '../../../src/api/challenges
 import { getCampaigns, type Campaign } from '../../../src/api/campaigns';
 import { getUserRank } from '../../../src/api/gamification';
 import {
+  AppHeader,
   AppText,
   Avatar,
   Badge,
@@ -84,6 +85,8 @@ export default function CommunityScreen() {
         }
         ListHeaderComponent={
           <>
+            <AppHeader title="Community" subtitle="Your donor network" />
+
             {userRank && (
               <TouchableOpacity
                 activeOpacity={0.8}
