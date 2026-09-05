@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { router } from 'expo-router';
 import type { RelativePathString } from 'expo-router';
-import { TouchableOpacity, View, RefreshControl, ScrollView } from 'react-native';
+import { TouchableOpacity, View, RefreshControl } from 'react-native';
 import {
   Activity,
   Brain,
@@ -121,14 +121,11 @@ export default function Health() {
   const TrendIcon = trend?.trend === 'INCREASING' ? TrendingUp : trend?.trend === 'DECREASING' ? TrendingDown : undefined;
 
   return (
-    <Screen>
-      <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={{ padding: spacing.lg }}
-        refreshControl={
-          <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor={colors.primary} />
-        }
-      >
+    <Screen
+      refreshControl={
+        <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+      }
+    >
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <View style={{ flex: 1 }}>
             <AppText variant="title">Health</AppText>
@@ -366,7 +363,6 @@ export default function Health() {
             </AppText>
           </View>
         </GlassCard>
-      </ScrollView>
     </Screen>
   );
 }

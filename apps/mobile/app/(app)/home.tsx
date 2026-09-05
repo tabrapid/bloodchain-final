@@ -576,7 +576,7 @@ function createStyles(colors: ThemeColors) {
     },
     appointmentCard: {
       padding: spacing.lg,
-      marginBottom: spacing.md,
+      marginBottom: layout.cardGap,
     },
     appointmentHeader: {
       flexDirection: 'row',

@@ -15,7 +15,7 @@ import {
   LoadingState,
   Screen,
 } from '../../../src/components';
-import { radius, spacing, useTheme, ThemeColors } from '../../../src/theme';
+import { layout, radius, spacing, useTheme, ThemeColors } from '../../../src/theme';
 
 export default function CommunityScreen() {
   const { colors } = useTheme();
@@ -164,7 +164,7 @@ function FeedPostCard({ post }: { post: CommunityPost }) {
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
     leaderboardTeaser: {
-      marginBottom: spacing.md,
+      marginBottom: layout.cardGap,
     },
     leaderboardRow: {
       flexDirection: 'row',
@@ -194,7 +194,7 @@ function createStyles(colors: ThemeColors) {
       paddingBottom: spacing.xl,
     },
     feedPost: {
-      marginBottom: spacing.md,
+      marginBottom: layout.cardGap,
     },
     feedPostHeader: {
       flexDirection: 'row',

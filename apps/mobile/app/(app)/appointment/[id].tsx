@@ -317,7 +317,7 @@ function toTitleCase(value: string): string {
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
     header: {
-      marginBottom: spacing.lg,
+      marginBottom: layout.cardGap,
     },
     backLink: {
       flexDirection: 'row',

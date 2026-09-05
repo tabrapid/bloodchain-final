@@ -4,7 +4,7 @@ import { View, StyleSheet, Pressable } from 'react-native';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { AppButton, AppText, BookingStep, GlassCard } from '../../src/components';
 import { useAvailability } from '../../src/hooks/useAppointments';
-import { spacing, useTheme, ThemeColors } from '../../src/theme';
+import { layout, spacing, useTheme, ThemeColors } from '../../src/theme';
 
 /** Monday-first, matching the reference and the app's own Calendar screen. */
 const WEEKDAY_INITIALS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
@@ -206,7 +206,7 @@ export default function SelectDate() {
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
     errorCard: {
-      marginBottom: spacing.md,
+      marginBottom: layout.cardGap,
     },
     errorText: {
       fontSize: 13,

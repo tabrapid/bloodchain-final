@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { RefreshControl, ScrollView, View } from 'react-native';
 import { AlertTriangle, CheckCircle, Clock3, Droplet, Package, XCircle } from 'lucide-react-native';
 import { AppButton, AppHeader, AppText, Badge, Card, EmptyState, LoadingState, Screen, StatCard } from '../../src/components';
-import { spacing, useTheme } from '../../src/theme';
+import { layout, spacing, useTheme } from '../../src/theme';
 import { getCourierShipments, getCourierStats, type CourierStats, type Shipment } from '../../src/api/courier';
 
 const STATUS_VARIANT: Record<string, 'default' | 'primary' | 'secondary' | 'success' | 'warning' | 'danger'> = {
@@ -106,7 +106,7 @@ export default function CourierHistory() {
           )
         ) : (
           shipments.map((shipment) => (
-            <Card key={shipment.id} style={{ marginBottom: spacing.md }}>
+            <Card key={shipment.id} style={{ marginBottom: layout.cardGap }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.xs }}>
                 <AppText variant="heading">{shipment.shipmentReference}</AppText>
                 <Badge variant={STATUS_VARIANT[shipment.status] || 'default'}>

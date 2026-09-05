@@ -7,7 +7,7 @@ import {
   BottomTabBarHeightCallbackContext,
   type BottomTabBarProps,
 } from '@react-navigation/bottom-tabs';
-import { radius, spacing, useTheme } from '../theme';
+import { radius, spacing, translucentElevation, useTheme } from '../theme';
 import { AppText } from './AppText';
 
 /**
@@ -178,7 +178,7 @@ export function GlassTabBar({ state, descriptors, navigation }: BottomTabBarProp
           shadowOpacity: nav.shadowOpacity,
           shadowRadius: nav.shadowRadius,
           shadowOffset: { width: 0, height: nav.shadowOffsetY },
-          elevation: nav.elevation,
+          elevation: translucentElevation(nav.elevation),
         }}
       >
         <BlurView

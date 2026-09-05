@@ -1,5 +1,5 @@
 import { createContext, PropsWithChildren, useContext, useEffect, useMemo, useState } from 'react';
-import { useColorScheme } from 'react-native';
+import { Platform, useColorScheme } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 
 /**
@@ -116,14 +116,21 @@ const darkColors: ThemeColors = {
   background: '#070B12',
   backgroundGradient: ['#0E1625', '#08101C', '#040609'],
   heroGradient: ['#D85360', '#8E3A59', '#5B3080'],
-  // The reference's ColorBlooms: one 280px rose bloom hanging off the
-  // top-left corner, a 252px blue one off the right edge at ~35% height, and
-  // a 224px violet one off the bottom-left — each progressively fainter
-  // (x1 / x0.75 / x0.65) so the rose stays the dominant one behind the hero.
+  // The reference's ColorBlooms: a rose bloom hanging off the top-left
+  // corner, a blue one off the right edge at ~35% height, and a violet one off
+  // the bottom-left — each progressively fainter (x1 / x0.75 / x0.65) so the
+  // rose stays the dominant one behind the hero.
+  //
+  // Each is centred where the reference puts it, but drawn roughly 1.65x wider
+  // than the reference's 280/252/224 and at a lower peak alpha: a wider bloom
+  // spends its falloff over more pixels, which is what makes it read as light
+  // diffusing through the backdrop rather than a coloured disc laid on top of
+  // it. The peaks came down with it so the blooms sit closer to the background
+  // they are tinting.
   ambientOrbs: [
-    { color: 'rgba(216,83,96,0.28)', size: 280, top: -126, left: -98 },
-    { color: 'rgba(104,183,209,0.21)', size: 252, top: 295, left: 264 },
-    { color: 'rgba(142,130,223,0.18)', size: 224, top: 732, left: 39 },
+    { color: 'rgba(216,83,96,0.20)', size: 460, top: -216, left: -188 },
+    { color: 'rgba(104,183,209,0.15)', size: 420, top: 211, left: 180 },
+    { color: 'rgba(142,130,223,0.13)', size: 380, top: 654, left: -39 },
   ],
   glass: {
     nav: {
@@ -196,9 +203,9 @@ const lightColors: ThemeColors = {
   backgroundGradient: ['#F8F0FC', '#EEEEFC', '#E6EFF9'],
   heroGradient: ['#D85360', '#8E3A59', '#5B3080'],
   ambientOrbs: [
-    { color: 'rgba(216,83,96,0.14)', size: 280, top: -126, left: -98 },
-    { color: 'rgba(104,183,209,0.105)', size: 252, top: 295, left: 264 },
-    { color: 'rgba(142,130,223,0.091)', size: 224, top: 732, left: 39 },
+    { color: 'rgba(216,83,96,0.10)', size: 460, top: -216, left: -188 },
+    { color: 'rgba(104,183,209,0.075)', size: 420, top: 211, left: 180 },
+    { color: 'rgba(142,130,223,0.065)', size: 380, top: 654, left: -39 },
   ],
   glass: {
     nav: {
@@ -304,6 +311,28 @@ export const spacing = {
  * Flip this to `true` to get the blur back on cards.
  */
 export const glassBlurOnCards = false;
+
+/**
+ * The elevation to use on a surface that is *see-through* -- every glass card,
+ * the floating tab bar, any wrapper whose fill actually lives in a child.
+ *
+ * Android draws an elevation shadow underneath the view it belongs to, and
+ * derives its shape from the view's outline. A view with no background of its
+ * own offers no rounded outline, so Android falls back to the bounding box --
+ * and because the surface above it is translucent, that shadow reads straight
+ * through the fill as a hard, square-cornered grey rectangle sitting inside
+ * the card. It showed up on every card in the app, worst wherever the backdrop
+ * behind it was bright: over an ambient bloom, or under the emergency card's
+ * rose halo. No elevation value avoids it -- the problem is the surface being
+ * translucent, not the shadow being too strong.
+ *
+ * iOS computes its shadow from the rendered alpha of the whole subtree, so it
+ * gets both the rounded shape and the occlusion right, and keeps its shadow.
+ * On Android the hairline border carries the separation instead.
+ */
+export function translucentElevation(value: number): number {
+  return Platform.OS === 'android' ? 0 : value;
+}
 
 export const layout = {
   cardGap: 10,

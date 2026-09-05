@@ -51,8 +51,18 @@ export function AppBackground({ children }: PropsWithChildren) {
             height={orb.size}
           >
             <Defs>
+              {/*
+                A two-stop radial gradient falls off linearly, which the eye
+                reads as a disc with a visible edge rather than as light
+                bleeding into the backdrop. These stops trace a Gaussian
+                instead -- most of the colour held near the centre, then a long
+                thin tail -- so the bloom has no discernible boundary at all.
+              */}
               <RadialGradient id={`orb-${i}`} cx="50%" cy="50%" r="50%">
                 <Stop offset="0%" stopColor={orb.color} stopOpacity={1} />
+                <Stop offset="30%" stopColor={orb.color} stopOpacity={0.78} />
+                <Stop offset="55%" stopColor={orb.color} stopOpacity={0.42} />
+                <Stop offset="78%" stopColor={orb.color} stopOpacity={0.15} />
                 <Stop offset="100%" stopColor={orb.color} stopOpacity={0} />
               </RadialGradient>
             </Defs>

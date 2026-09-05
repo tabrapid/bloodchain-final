@@ -233,7 +233,7 @@ function createStyles(colors: ThemeColors) {
     },
     header: {
       alignItems: 'center',
-      marginBottom: spacing.lg,
+      marginBottom: layout.cardGap,
     },
     statusBadge: {
       paddingHorizontal: spacing.md,

@@ -3,7 +3,7 @@ import { View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Droplet } from 'lucide-react-native';
 import { AppButton, AppText, Screen } from '../../src/components';
-import { spacing, useTheme } from '../../src/theme';
+import { spacing, translucentElevation, useTheme } from '../../src/theme';
 
 export default function Welcome() {
   const { colors } = useTheme();
@@ -20,7 +20,7 @@ export default function Welcome() {
             shadowOpacity: 0.45,
             shadowRadius: 48,
             shadowOffset: { width: 0, height: 16 },
-            elevation: 16,
+            elevation: translucentElevation(16),
           }}
         >
           <LinearGradient

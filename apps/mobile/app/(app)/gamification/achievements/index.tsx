@@ -5,7 +5,7 @@ import { Screen } from '../../../../src/components/Screen';
 import { ScreenHeader } from '../../../../src/components';
 import { AppText } from '../../../../src/components/AppText';
 import { AchievementCard } from '../../../../src/components/gamification/AchievementCard';
-import { spacing, radius, useTheme, ThemeColors } from '../../../../src/theme';
+import { layout, spacing, radius, useTheme, ThemeColors } from '../../../../src/theme';
 
 export default function AchievementsScreen() {
   const { colors } = useTheme();
@@ -122,7 +122,7 @@ function createStyles(colors: ThemeColors) {
       alignItems: 'center',
     },
     section: {
-      marginBottom: spacing.lg,
+      marginBottom: layout.cardGap,
     },
     sectionHeader: {
       flexDirection: 'row',

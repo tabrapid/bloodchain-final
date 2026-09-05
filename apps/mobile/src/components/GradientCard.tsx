@@ -20,6 +20,11 @@ export function GradientCard({
       style={[
         {
           borderRadius: radius.xl,
+          // The gradient that fills this card is a child, so without this the
+          // shadow-casting view has no background -- and Android then casts
+          // from the bounding box, drawing a hard rectangular halo around a
+          // rounded card. The child covers this exactly, so it is never seen.
+          backgroundColor: resolvedColors[0],
           // A colored glow beneath the card, matching Create Design's
           // GradientCard shadow -- `shadowOpacity` scales whatever alpha
           // `shadowColor` already has, so an opaque hex color plus 0.35

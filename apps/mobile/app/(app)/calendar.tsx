@@ -444,7 +444,7 @@ function createStyles(colors: ThemeColors) {
       paddingVertical: spacing.xl,
     },
     appointmentCard: {
-      marginBottom: spacing.md,
+      marginBottom: layout.cardGap,
     },
     appointmentTime: {
       flexDirection: 'row',

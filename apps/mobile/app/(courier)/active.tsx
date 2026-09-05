@@ -13,7 +13,7 @@ import {
 } from 'lucide-react-native';
 import { AppButton, AppHeader, AppText, Badge, Card, EmptyState, LoadingState, Screen } from '../../src/components';
 import { LocationMap, type MapMarkerPoint } from '../../src/components/map/LocationMap';
-import { spacing, useTheme } from '../../src/theme';
+import { layout, spacing, useTheme } from '../../src/theme';
 import {
   acceptShipment,
   arriveAtHospital,
@@ -308,7 +308,7 @@ export default function CourierActive() {
           )
         ) : (
           <>
-            <Card style={{ marginBottom: spacing.lg }}>
+            <Card style={{ marginBottom: layout.cardGap }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.md }}>
                 <AppText variant="heading">{shipment.shipmentReference}</AppText>
                 <Badge variant={shipment.status === 'IN_TRANSIT' ? 'primary' : 'secondary'}>
@@ -347,7 +347,7 @@ export default function CourierActive() {
             </Card>
 
             {trackingMarkers.length > 0 && (
-              <Card style={{ marginBottom: spacing.lg, padding: 0, overflow: 'hidden' }}>
+              <Card style={{ marginBottom: layout.cardGap, padding: 0, overflow: 'hidden' }}>
                 <LocationMap markers={trackingMarkers} showRoute height={200} />
               </Card>
             )}
@@ -412,7 +412,7 @@ export default function CourierActive() {
 
             {shipment.status === 'IN_TRANSIT' && (
               <>
-                <Card style={{ marginBottom: spacing.md, flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+                <Card style={{ marginBottom: layout.cardGap, flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
                   <Navigation size={18} color={colors.primary} />
                   <AppText style={{ color: colors.primary, flex: 1 }}>
                     Sharing your live location with the hospital
@@ -443,7 +443,7 @@ export default function CourierActive() {
             )}
 
             {showFail && (
-              <Card style={{ marginTop: spacing.md, borderColor: colors.danger }}>
+              <Card style={{ marginTop: layout.cardGap, borderColor: colors.danger }}>
                 <AppText variant="heading" style={{ marginBottom: spacing.sm, color: colors.danger }}>
                   Report a Problem
                 </AppText>

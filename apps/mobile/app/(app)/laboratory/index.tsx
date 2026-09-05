@@ -3,7 +3,7 @@ import { ScrollView, View, RefreshControl, TouchableOpacity } from 'react-native
 import { router } from 'expo-router';
 import { Activity, Beaker, Calendar, ChevronRight, Clock, FlaskConical, TestTube2 } from 'lucide-react-native';
 import { AppText, Card, GlassCard, LoadingState, Screen, ScreenHeader, SectionHeader, StatCard } from '../../../src/components';
-import { spacing, useTheme } from '../../../src/theme';
+import { layout, spacing, useTheme } from '../../../src/theme';
 import {
   getDonorAppointments,
   getDonorResults,
@@ -116,7 +116,7 @@ export default function LaboratoryScreen() {
           }
           activeOpacity={0.8}
         >
-          <Card style={{ marginBottom: spacing.lg }}>
+          <Card style={{ marginBottom: layout.cardGap }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
               <View
                 style={{
@@ -150,7 +150,7 @@ export default function LaboratoryScreen() {
                 onPress={() => router.push(`/appointment/${appointment.id}`)}
                 activeOpacity={0.8}
               >
-              <Card style={{ marginBottom: spacing.md }}>
+              <Card style={{ marginBottom: layout.cardGap }}>
                 <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md }}>
                   <View
                     style={{
@@ -210,7 +210,7 @@ export default function LaboratoryScreen() {
           <>
             <SectionHeader>RECENT RESULTS</SectionHeader>
             {publishedResults.slice(0, 3).map((result) => (
-              <Card key={result.id} style={{ marginBottom: spacing.md }}>
+              <Card key={result.id} style={{ marginBottom: layout.cardGap }}>
                 <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md }}>
                   <View
                     style={{

@@ -1,6 +1,6 @@
 import React from 'react';
 import renderer, { type ReactTestRendererJSON } from 'react-test-renderer';
-import { StyleSheet, Text, type ViewStyle } from 'react-native';
+import { Platform, StyleSheet, Text, type ViewStyle } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Card } from './Card';
 import { GlassCard } from './GlassCard';
@@ -117,5 +117,41 @@ describe('which layer a call-site style lands on', () => {
 
     expect(outer.borderRadius).toBe(8);
     expect(surface.borderRadius).toBe(8);
+  });
+});
+
+/**
+ * Android casts an elevation shadow from the view's outline and draws it
+ * *underneath* the view. The shadow wrapper has no background of its own, so
+ * Android had no rounded outline to cast from and fell back to the bounding
+ * box -- and because the surface above it is see-through, that shadow read
+ * straight through the fill as a hard, square-cornered grey rectangle sitting
+ * inside every card in the app. It was worst wherever the backdrop behind it
+ * was bright: over an ambient bloom, or under the emergency card's rose halo.
+ *
+ * There is no elevation value that avoids this, because the cause is the
+ * surface being translucent. So Android gets no elevation at all and leans on
+ * the hairline border above; iOS derives its shadow from the rendered alpha of
+ * the subtree, gets the shape and the occlusion right, and keeps it.
+ */
+describe('a card casts no Android elevation shadow through its own fill', () => {
+  const realOS = Platform.OS;
+  afterEach(() => {
+    (Platform as { OS: string }).OS = realOS;
+  });
+
+  it('drops elevation on Android', () => {
+    (Platform as { OS: string }).OS = 'android';
+
+    expect(layers().outer.elevation).toBe(0);
+  });
+
+  it('keeps the iOS shadow, which is drawn from the rounded content', () => {
+    (Platform as { OS: string }).OS = 'ios';
+    const { outer } = layers();
+
+    expect(outer.elevation).toBe(darkColors.glass.standard.elevation);
+    expect(outer.shadowRadius).toBe(darkColors.glass.standard.shadowRadius);
+    expect(outer.shadowOpacity).toBe(darkColors.glass.standard.shadowOpacity);
   });
 });

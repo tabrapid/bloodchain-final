@@ -3,7 +3,7 @@ import { ScrollView, TextInput, View } from 'react-native';
 import { AlertTriangle, Building2, LogOut, Moon, Sun } from 'lucide-react-native';
 import { AppButton, AppHeader, AppText, Badge, Card, EmptyState, LoadingState, Screen } from '../../src/components';
 import { useLogout } from '../../src/hooks/useAuth';
-import { spacing, useTheme } from '../../src/theme';
+import { layout, spacing, useTheme } from '../../src/theme';
 import {
   getCourierProfile,
   updateCourierProfile,
@@ -109,7 +109,7 @@ export default function CourierProfileScreen() {
     <Screen scroll={false}>
       <AppHeader title="Profile" subtitle="Availability and delivery record" />
       <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
-        <Card style={{ marginBottom: spacing.lg }}>
+        <Card style={{ marginBottom: layout.cardGap }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.md }}>
             <AppText variant="heading">Availability</AppText>
             <Badge variant={STATUS_VARIANT[profile.status] || 'default'}>{profile.status}</Badge>
@@ -132,7 +132,7 @@ export default function CourierProfileScreen() {
           )}
         </Card>
 
-        <Card style={{ marginBottom: spacing.lg }}>
+        <Card style={{ marginBottom: layout.cardGap }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md }}>
             <Building2 size={18} color={colors.textMuted} />
             <AppText muted>{profile.organizationName}</AppText>

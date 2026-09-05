@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Dimensions, ScrollView, View, TouchableOpacity, RefreshControl } from 'react-native';
+import { View, TouchableOpacity, RefreshControl } from 'react-native';
 import {
   TrendingUp,
   TrendingDown,
@@ -11,7 +11,7 @@ import {
 } from 'lucide-react-native';
 import { LineChart } from 'react-native-chart-kit';
 import { AppButton, AppText, Card, GlassCard, LoadingState, Screen, ScreenHeader, SectionHeader } from '../../../src/components';
-import { spacing, useTheme } from '../../../src/theme';
+import { layout, spacing, useTheme } from '../../../src/theme';
 import {
   getTrendSummary,
   getAvailableParameters,
@@ -23,7 +23,6 @@ import {
 } from '../../../src/api/health-trends';
 
 const TIME_RANGES = ['1M', '3M', '6M', '1Y', '2Y', 'ALL'] as const;
-const screenWidth = Dimensions.get('window').width;
 
 export default function HealthTrendsScreen() {
   const { colors } = useTheme();
@@ -37,6 +36,11 @@ export default function HealthTrendsScreen() {
   const [trendData, setTrendData] = useState<TrendData | null>(null);
   const [history, setHistory] = useState<TrendHistoryResponse | null>(null);
   const [showParamSelector, setShowParamSelector] = useState(false);
+  // The chart is a fixed-pixel canvas, so it has to be told how wide its
+  // card actually is. Measuring beats deriving it from `Dimensions` minus a
+  // guessed stack of paddings -- that guess was 48px too narrow, which is
+  // why the plot sat off-centre inside its card.
+  const [chartWidth, setChartWidth] = useState(0);
 
   const loadSummary = useCallback(async () => {
     try {
@@ -203,273 +207,270 @@ export default function HealthTrendsScreen() {
   }
 
   return (
-    <Screen>
+    <Screen
+      refreshControl={
+        <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+      }
+    >
       <ScreenHeader title="Health Trends" />
-      <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={{ paddingBottom: spacing.xl }}
-        refreshControl={
-          <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor={colors.primary} />
-        }
+      <AppText muted style={{ marginBottom: spacing.lg }}>
+        Your laboratory history over time
+      </AppText>
+
+      <SectionHeader>PARAMETER</SectionHeader>
+      <TouchableOpacity
+        onPress={() => setShowParamSelector(!showParamSelector)}
+        style={{
+          backgroundColor: colors.surface,
+          borderRadius: 12,
+          padding: spacing.md,
+          marginBottom: spacing.lg,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          borderWidth: 1,
+          borderColor: colors.border,
+        }}
       >
-        <AppText muted style={{ marginBottom: spacing.lg }}>
-          Your laboratory history over time
-        </AppText>
-
-        <SectionHeader>PARAMETER</SectionHeader>
-        <TouchableOpacity
-          onPress={() => setShowParamSelector(!showParamSelector)}
-          style={{
-            backgroundColor: colors.surface,
-            borderRadius: 12,
-            padding: spacing.md,
-            marginBottom: spacing.lg,
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            borderWidth: 1,
-            borderColor: colors.border,
-          }}
-        >
-          <View>
-            <AppText variant="heading">
-              {trendData?.parameterName || availableParams.find((p) => p.code === selectedParam)?.name || 'Select parameter'}
+        <View>
+          <AppText variant="heading">
+            {trendData?.parameterName || availableParams.find((p) => p.code === selectedParam)?.name || 'Select parameter'}
+          </AppText>
+          {selectedParam && availableParams.find((p) => p.code === selectedParam) && (
+            <AppText muted style={{ fontSize: 13 }}>
+              {availableParams.find((p) => p.code === selectedParam)?.category} •{' '}
+              {availableParams.find((p) => p.code === selectedParam)?.measurementCount} measurements
             </AppText>
-            {selectedParam && availableParams.find((p) => p.code === selectedParam) && (
-              <AppText muted style={{ fontSize: 13 }}>
-                {availableParams.find((p) => p.code === selectedParam)?.category} •{' '}
-                {availableParams.find((p) => p.code === selectedParam)?.measurementCount} measurements
-              </AppText>
-            )}
-          </View>
-          <ChevronDown size={20} color={colors.textMuted} style={{ transform: showParamSelector ? 'rotate(180deg)' : undefined }} />
-        </TouchableOpacity>
+          )}
+        </View>
+        <ChevronDown size={20} color={colors.textMuted} style={{ transform: showParamSelector ? 'rotate(180deg)' : undefined }} />
+      </TouchableOpacity>
 
-        {showParamSelector && (
-          <Card style={{ marginBottom: spacing.lg }}>
-            {availableParams.map((param) => (
-              <TouchableOpacity
-                key={param.code}
-                onPress={() => {
-                  setSelectedParam(param.code);
-                  setShowParamSelector(false);
-                }}
-                style={{
-                  padding: spacing.md,
-                  borderRadius: 8,
-                  backgroundColor: param.code === selectedParam ? colors.primaryMuted : 'transparent',
-                }}
-              >
-                <AppText variant="heading" style={{ color: param.code === selectedParam ? colors.onMuted.primary : colors.text }}>
-                  {param.name}
-                </AppText>
-                <AppText muted style={{ fontSize: 12 }}>
-                  {param.category} • {param.measurementCount} measurements
-                  {param.latestValue !== undefined ? ` • Latest: ${param.latestValue} ${param.unit || ''}` : ''}
-                </AppText>
-              </TouchableOpacity>
-            ))}
-          </Card>
-        )}
-
-        <SectionHeader>TIME RANGE</SectionHeader>
-        <View style={{ flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.lg }}>
-          {TIME_RANGES.map((range) => (
+      {showParamSelector && (
+        <Card style={{ marginBottom: layout.cardGap }}>
+          {availableParams.map((param) => (
             <TouchableOpacity
-              key={range}
-              onPress={() => setSelectedRange(range)}
+              key={param.code}
+              onPress={() => {
+                setSelectedParam(param.code);
+                setShowParamSelector(false);
+              }}
               style={{
-                paddingHorizontal: spacing.md,
-                paddingVertical: spacing.sm,
-                borderRadius: 20,
-                backgroundColor: selectedRange === range ? colors.primary : colors.surface,
-                borderWidth: 1,
-                borderColor: selectedRange === range ? colors.primary : colors.border,
+                padding: spacing.md,
+                borderRadius: 8,
+                backgroundColor: param.code === selectedParam ? colors.primaryMuted : 'transparent',
               }}
             >
-              <AppText
-                style={{
-                  fontSize: 13,
-                  fontWeight: '600',
-                  color: selectedRange === range ? colors.text : colors.textMuted,
-                }}
-              >
-                {range}
+              <AppText variant="heading" style={{ color: param.code === selectedParam ? colors.onMuted.primary : colors.text }}>
+                {param.name}
+              </AppText>
+              <AppText muted style={{ fontSize: 12 }}>
+                {param.category} • {param.measurementCount} measurements
+                {param.latestValue !== undefined ? ` • Latest: ${param.latestValue} ${param.unit || ''}` : ''}
               </AppText>
             </TouchableOpacity>
           ))}
-        </View>
+        </Card>
+      )}
 
-        {trendData && trendData.points.length > 0 ? (
-          <>
-            <SectionHeader>CURRENT VALUE</SectionHeader>
-            <Card style={{ marginBottom: spacing.lg }}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <View>
-                  <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: spacing.sm }}>
-                    <AppText variant="display" style={{ fontSize: 36 }}>
-                      {trendData.latestValue}
-                    </AppText>
-                    <AppText muted>{trendData.unit}</AppText>
-                  </View>
-                  <AppText muted style={{ fontSize: 13, marginTop: spacing.xs }}>
-                    {formatDate(trendData.latestValueDate)}
-                    {trendData.latestValueLaboratory ? ` • ${trendData.latestValueLaboratory}` : ''}
+      <SectionHeader>TIME RANGE</SectionHeader>
+      <View style={{ flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.lg }}>
+        {TIME_RANGES.map((range) => (
+          <TouchableOpacity
+            key={range}
+            onPress={() => setSelectedRange(range)}
+            style={{
+              paddingHorizontal: spacing.md,
+              paddingVertical: spacing.sm,
+              borderRadius: 20,
+              backgroundColor: selectedRange === range ? colors.primary : colors.surface,
+              borderWidth: 1,
+              borderColor: selectedRange === range ? colors.primary : colors.border,
+            }}
+          >
+            <AppText
+              style={{
+                fontSize: 13,
+                fontWeight: '600',
+                color: selectedRange === range ? colors.text : colors.textMuted,
+              }}
+            >
+              {range}
+            </AppText>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {trendData && trendData.points.length > 0 ? (
+        <>
+          <SectionHeader>CURRENT VALUE</SectionHeader>
+          <Card style={{ marginBottom: layout.cardGap }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <View>
+                <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: spacing.sm }}>
+                  <AppText variant="display" style={{ fontSize: 36 }}>
+                    {trendData.latestValue}
+                  </AppText>
+                  <AppText muted>{trendData.unit}</AppText>
+                </View>
+                <AppText muted style={{ fontSize: 13, marginTop: spacing.xs }}>
+                  {formatDate(trendData.latestValueDate)}
+                  {trendData.latestValueLaboratory ? ` • ${trendData.latestValueLaboratory}` : ''}
+                </AppText>
+              </View>
+              <View style={{ alignItems: 'flex-end' }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
+                  {getTrendIcon(trendData.trend)}
+                  <AppText muted style={{ fontSize: 13 }}>
+                    {getTrendLabel(trendData.trend)}
                   </AppText>
                 </View>
-                <View style={{ alignItems: 'flex-end' }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
-                    {getTrendIcon(trendData.trend)}
-                    <AppText muted style={{ fontSize: 13 }}>
-                      {getTrendLabel(trendData.trend)}
-                    </AppText>
-                  </View>
-                  {trendData.absoluteChange !== undefined && (
-                    <AppText
-                      style={{
-                        fontSize: 13,
-                        fontWeight: '600',
-                        marginTop: spacing.xs,
-                        color: trendData.absoluteChange >= 0 ? colors.warning : colors.danger,
-                      }}
-                    >
-                      {formatChange(trendData.absoluteChange, trendData.percentageChange)}
-                    </AppText>
-                  )}
-                  {trendData.previousValue !== undefined && (
-                    <AppText muted style={{ fontSize: 12, marginTop: spacing.xs }}>
-                      Previous: {trendData.previousValue} {trendData.unit}
-                    </AppText>
-                  )}
-                </View>
-              </View>
-            </Card>
-
-            <SectionHeader>REFERENCE RANGE</SectionHeader>
-            <GlassCard style={{ marginBottom: spacing.lg }}>
-              {trendData.hasReferenceRange && trendData.referenceMin !== undefined && trendData.referenceMax !== undefined ? (
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
-                  <View
+                {trendData.absoluteChange !== undefined && (
+                  <AppText
                     style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 10,
-                      backgroundColor: colors.successMuted,
-                      alignItems: 'center',
-                      justifyContent: 'center',
+                      fontSize: 13,
+                      fontWeight: '600',
+                      marginTop: spacing.xs,
+                      color: trendData.absoluteChange >= 0 ? colors.warning : colors.danger,
                     }}
                   >
-                    <Activity size={20} color={colors.onMuted.success} />
-                  </View>
-                  <View>
-                    <AppText variant="heading">
-                      {trendData.referenceMin} – {trendData.referenceMax} {trendData.unit}
-                    </AppText>
-                    <AppText muted style={{ fontSize: 12 }}>
-                      Reference range provided by the laboratory
-                    </AppText>
-                  </View>
-                </View>
-              ) : (
-                <AppText muted>Reference range unavailable</AppText>
-              )}
-            </GlassCard>
-
-            <SectionHeader>TREND CHART</SectionHeader>
-            <Card style={{ marginBottom: spacing.lg, padding: 0, overflow: 'hidden' }}>
-              {chartData && (
-                <LineChart
-                  data={chartData}
-                  width={screenWidth - spacing.lg * 2 - spacing.md * 2}
-                  height={220}
-                  chartConfig={{
-                    ...chartOptions,
-                    propsForBackgroundLines: {
-                      strokeDasharray: '',
-                      stroke: colors.border,
-                      strokeWidth: 0.5,
-                    },
-                  }}
-                  bezier
-                  style={{
-                    marginVertical: spacing.sm,
-                    borderRadius: 16,
-                  }}
-                  withInnerLines={true}
-                  withOuterLines={false}
-                  withVerticalLines={false}
-                  withHorizontalLines={true}
-                  withVerticalLabels={true}
-                  withHorizontalLabels={true}
-                  fromZero={false}
-                />
-              )}
-              <View style={{ padding: spacing.md }}>
-                <AppText muted style={{ fontSize: 12 }}>
-                  {trendData.points.length} data points • Tap points for details
-                </AppText>
+                    {formatChange(trendData.absoluteChange, trendData.percentageChange)}
+                  </AppText>
+                )}
+                {trendData.previousValue !== undefined && (
+                  <AppText muted style={{ fontSize: 12, marginTop: spacing.xs }}>
+                    Previous: {trendData.previousValue} {trendData.unit}
+                  </AppText>
+                )}
               </View>
-            </Card>
+            </View>
+          </Card>
 
-            <SectionHeader>HISTORY</SectionHeader>
-            {history && history.history.length > 0 ? (
-              history.history.map((item, index) => (
-                <Card key={item.resultId || index} style={{ marginBottom: spacing.sm }}>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <View>
-                      <AppText variant="heading">{item.value} {item.unit}</AppText>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.xs }}>
-                        <Calendar size={12} color={colors.textMuted} />
-                        <AppText muted style={{ fontSize: 12 }}>{formatDate(item.date)}</AppText>
-                        {item.laboratoryName && (
-                          <>
-                            <AppText muted>•</AppText>
-                            <AppText muted style={{ fontSize: 12 }}>{item.laboratoryName}</AppText>
-                          </>
-                        )}
-                      </View>
-                    </View>
-                    {item.flag && item.flag !== 'NORMAL' && (
-                      <View
-                        style={{
-                          paddingHorizontal: spacing.sm,
-                          paddingVertical: 2,
-                          borderRadius: 4,
-                          backgroundColor: colors.warningMuted,
-                        }}
-                      >
-                        <AppText style={{ fontSize: 11, color: colors.onMuted.warning }}>
-                          {item.flag}
-                        </AppText>
-                      </View>
-                    )}
-                  </View>
-                </Card>
-              ))
+          <SectionHeader>REFERENCE RANGE</SectionHeader>
+          <GlassCard style={{ marginBottom: layout.cardGap }}>
+            {trendData.hasReferenceRange && trendData.referenceMin !== undefined && trendData.referenceMax !== undefined ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
+                <View
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 10,
+                    backgroundColor: colors.successMuted,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Activity size={20} color={colors.onMuted.success} />
+                </View>
+                <View>
+                  <AppText variant="heading">
+                    {trendData.referenceMin} – {trendData.referenceMax} {trendData.unit}
+                  </AppText>
+                  <AppText muted style={{ fontSize: 12 }}>
+                    Reference range provided by the laboratory
+                  </AppText>
+                </View>
+              </View>
             ) : (
-              <GlassCard>
-                <AppText muted style={{ textAlign: 'center' }}>
-                  One result available. More measurements will allow you to compare your results over time.
-                </AppText>
-              </GlassCard>
+              <AppText muted>Reference range unavailable</AppText>
             )}
-          </>
-        ) : (
-          <GlassCard>
-            <View style={{ alignItems: 'center', padding: spacing.xl }}>
-              <Activity size={48} color={colors.textMuted} />
-              <AppText variant="heading" style={{ marginTop: spacing.md, textAlign: 'center' }}>
-                One result available
-              </AppText>
-              <AppText muted style={{ marginTop: spacing.sm, textAlign: 'center' }}>
-                More measurements will allow you to compare your results over time.
+          </GlassCard>
+
+          <SectionHeader>TREND CHART</SectionHeader>
+          <Card
+            style={{ marginBottom: layout.cardGap, padding: 0, overflow: 'hidden' }}
+            onLayout={(event) => setChartWidth(event.nativeEvent.layout.width)}
+          >
+            {chartData && chartWidth > 0 && (
+              <LineChart
+                data={chartData}
+                width={chartWidth}
+                height={220}
+                chartConfig={{
+                  ...chartOptions,
+                  propsForBackgroundLines: {
+                    strokeDasharray: '',
+                    stroke: colors.border,
+                    strokeWidth: 0.5,
+                  },
+                }}
+                bezier
+                style={{
+                  marginVertical: spacing.sm,
+                  borderRadius: 16,
+                }}
+                withInnerLines={true}
+                withOuterLines={false}
+                withVerticalLines={false}
+                withHorizontalLines={true}
+                withVerticalLabels={true}
+                withHorizontalLabels={true}
+                fromZero={false}
+              />
+            )}
+            <View style={{ padding: spacing.md }}>
+              <AppText muted style={{ fontSize: 12 }}>
+                {trendData.points.length} data points • Tap points for details
               </AppText>
             </View>
-          </GlassCard>
-        )}
+          </Card>
 
-        <View style={{ height: spacing.xl }} />
-      </ScrollView>
+          <SectionHeader>HISTORY</SectionHeader>
+          {history && history.history.length > 0 ? (
+            history.history.map((item, index) => (
+              <Card key={item.resultId || index} style={{ marginBottom: spacing.sm }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <View>
+                    <AppText variant="heading">{item.value} {item.unit}</AppText>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.xs }}>
+                      <Calendar size={12} color={colors.textMuted} />
+                      <AppText muted style={{ fontSize: 12 }}>{formatDate(item.date)}</AppText>
+                      {item.laboratoryName && (
+                        <>
+                          <AppText muted>•</AppText>
+                          <AppText muted style={{ fontSize: 12 }}>{item.laboratoryName}</AppText>
+                        </>
+                      )}
+                    </View>
+                  </View>
+                  {item.flag && item.flag !== 'NORMAL' && (
+                    <View
+                      style={{
+                        paddingHorizontal: spacing.sm,
+                        paddingVertical: 2,
+                        borderRadius: 4,
+                        backgroundColor: colors.warningMuted,
+                      }}
+                    >
+                      <AppText style={{ fontSize: 11, color: colors.onMuted.warning }}>
+                        {item.flag}
+                      </AppText>
+                    </View>
+                  )}
+                </View>
+              </Card>
+            ))
+          ) : (
+            <GlassCard>
+              <AppText muted style={{ textAlign: 'center' }}>
+                One result available. More measurements will allow you to compare your results over time.
+              </AppText>
+            </GlassCard>
+          )}
+        </>
+      ) : (
+        <GlassCard>
+          <View style={{ alignItems: 'center', padding: spacing.xl }}>
+            <Activity size={48} color={colors.textMuted} />
+            <AppText variant="heading" style={{ marginTop: spacing.md, textAlign: 'center' }}>
+              One result available
+            </AppText>
+            <AppText muted style={{ marginTop: spacing.sm, textAlign: 'center' }}>
+              More measurements will allow you to compare your results over time.
+            </AppText>
+          </View>
+        </GlassCard>
+      )}
     </Screen>
   );
 }

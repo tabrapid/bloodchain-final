@@ -2,7 +2,7 @@ import { PropsWithChildren, useMemo } from 'react';
 import { StyleSheet, View, ViewProps, type ViewStyle } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
-import { glassBlurOnCards, radius, spacing, useTheme, GlassTierTokens } from '../theme';
+import { glassBlurOnCards, radius, spacing, translucentElevation, useTheme, GlassTierTokens } from '../theme';
 
 /**
  * The three glass tiers of the Create Design system, plus the rose-tinted
@@ -139,7 +139,7 @@ export function GlassCard({
           shadowOpacity: resolvedTier === 'danger' ? 0.15 : base.shadowOpacity,
           shadowRadius: base.shadowRadius,
           shadowOffset: { width: 0, height: base.shadowOffsetY },
-          elevation: base.elevation,
+          elevation: translucentElevation(base.elevation),
         },
         outer,
       ]}

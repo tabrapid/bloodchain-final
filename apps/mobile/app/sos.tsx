@@ -22,7 +22,7 @@ import {
   ScreenHeader,
 } from '../src/components';
 import { LocationMap, type MapMarkerPoint } from '../src/components/map/LocationMap';
-import { spacing, useTheme } from '../src/theme';
+import { layout, spacing, useTheme } from '../src/theme';
 import {
   acceptEmergency,
   arriveAtHospital,
@@ -435,7 +435,7 @@ export default function SosScreen() {
       <Screen>
         <ScreenHeader title="Emergency Details" onBack={() => setStatus('idle')} />
         <ScrollView style={{ flex: 1, padding: spacing.lg }}>
-          <Card style={{ marginBottom: spacing.lg }}>
+          <Card style={{ marginBottom: layout.cardGap }}>
             <View style={{ alignItems: 'center', marginBottom: spacing.lg }}>
               <View
                 style={{
@@ -512,7 +512,7 @@ export default function SosScreen() {
             </View>
           </Card>
 
-          <Card style={{ marginBottom: spacing.lg }}>
+          <Card style={{ marginBottom: layout.cardGap }}>
             <AppText variant="heading" style={{ marginBottom: spacing.md }}>
               Are you able to help?
             </AppText>
@@ -565,7 +565,7 @@ export default function SosScreen() {
           }}
         />
         <ScrollView style={{ flex: 1, padding: spacing.lg }}>
-          <Card style={{ marginBottom: spacing.lg }}>
+          <Card style={{ marginBottom: layout.cardGap }}>
             <View style={{ alignItems: 'center', marginBottom: spacing.lg }}>
               <View
                 style={{
@@ -603,12 +603,12 @@ export default function SosScreen() {
           </Card>
 
           {trackingMarkers.length > 0 && (
-            <Card style={{ marginBottom: spacing.lg, padding: 0, overflow: 'hidden' }}>
+            <Card style={{ marginBottom: layout.cardGap, padding: 0, overflow: 'hidden' }}>
               <LocationMap markers={trackingMarkers} height={200} />
             </Card>
           )}
 
-          <Card style={{ marginBottom: spacing.lg }}>
+          <Card style={{ marginBottom: layout.cardGap }}>
             <AppText variant="heading" style={{ marginBottom: spacing.md }}>
               What to do next
             </AppText>
