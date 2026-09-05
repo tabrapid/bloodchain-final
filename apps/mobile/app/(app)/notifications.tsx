@@ -74,7 +74,7 @@ function NotificationItem({ notification, onPress, onMarkRead }: NotificationIte
 
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
-      <Card style={[styles.notificationCard, isUnread && styles.unreadCard]}>
+      <Card tier={isUnread ? 'elevated' : 'standard'} style={styles.notificationCard}>
         <View style={styles.notificationHeader}>
           <View style={[styles.typeIcon, { backgroundColor: typeStyle.bg }]}>
             <Icon size={18} color={typeStyle.icon} />
@@ -265,9 +265,7 @@ function createStyles(colors: ThemeColors) {
       marginTop: spacing.sm,
       padding: spacing.md,
     },
-    unreadCard: {
-      backgroundColor: colors.surfaceHighlight,
-    },
+
     notificationHeader: {
       flexDirection: 'row',
     },
