@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { ScrollView, View, TouchableOpacity, TextInput, RefreshControl, Alert } from 'react-native';
+import { ScrollView, View, TouchableOpacity, TextInput, RefreshControl } from 'react-native';
 import {
   Brain,
   ChevronRight,
@@ -29,9 +29,7 @@ import {
   ChatResponse,
   FeedbackType,
 } from '../../../src/api/ai-health';
-import { getAvailableParameters, getTrendSummary, AvailableParameter } from '../../../src/api/health-trends';
-
-const TIME_RANGES = ['1M', '3M', '6M', '1Y', '2Y', 'ALL'] as const;
+import { getAvailableParameters, AvailableParameter } from '../../../src/api/health-trends';
 
 export default function InsightsScreen() {
   const { colors } = useTheme();

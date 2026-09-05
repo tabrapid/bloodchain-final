@@ -174,7 +174,7 @@ export default function EditDonorProfile() {
   );
 }
 
-function createStyles(colors: ThemeColors) {
+function createStyles(_colors: ThemeColors) {
   return StyleSheet.create({
     container: {
       flex: 1,

@@ -2,8 +2,8 @@ import { useMemo, useState } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { Check, Droplet, HeartPulse, Stethoscope } from 'lucide-react-native';
-import { AppButton, AppText, Card, GlassCard, Screen } from '../../src/components';
-import { spacing, radius, useTheme, ThemeColors } from '../../src/theme';
+import { AppButton, AppText, GlassCard, Screen } from '../../src/components';
+import { spacing, useTheme, ThemeColors } from '../../src/theme';
 
 export default function Booking() {
   const { colors } = useTheme();

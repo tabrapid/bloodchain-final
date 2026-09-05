@@ -4,7 +4,7 @@ import { View, StyleSheet, ScrollView } from 'react-native';
 import { Droplet, Calendar, Clock, Building2, MapPin, AlertCircle } from 'lucide-react-native';
 import { AppButton, AppText, Card, GlassCard, Screen, ScreenHeader } from '../../../src/components';
 import { useDonation } from '../../../src/hooks/useDonations';
-import { spacing, radius, useTheme, ThemeColors } from '../../../src/theme';
+import { spacing, useTheme, ThemeColors } from '../../../src/theme';
 
 export default function DonationDetailScreen() {
   const { colors } = useTheme();

@@ -5,13 +5,12 @@ import {
   TrendingDown,
   Minus,
   ChevronDown,
-  ChevronRight,
   Calendar,
   Activity,
   FlaskConical,
 } from 'lucide-react-native';
 import { LineChart } from 'react-native-chart-kit';
-import { AppButton, AppText, Card, GlassCard, LoadingState, Screen, ScreenHeader, SectionHeader, StatCard } from '../../../src/components';
+import { AppButton, AppText, Card, GlassCard, LoadingState, Screen, ScreenHeader, SectionHeader } from '../../../src/components';
 import { spacing, useTheme } from '../../../src/theme';
 import {
   getTrendSummary,
@@ -24,15 +23,6 @@ import {
 } from '../../../src/api/health-trends';
 
 const TIME_RANGES = ['1M', '3M', '6M', '1Y', '2Y', 'ALL'] as const;
-const TIME_RANGE_LABELS: Record<string, string> = {
-  '1M': '1 Month',
-  '3M': '3 Months',
-  '6M': '6 Months',
-  '1Y': '1 Year',
-  '2Y': '2 Years',
-  ALL: 'All Time',
-};
-
 const screenWidth = Dimensions.get('window').width;
 
 export default function HealthTrendsScreen() {

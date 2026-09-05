@@ -114,7 +114,7 @@ export default function SelectOrganization() {
   );
 }
 
-function createStyles(colors: ThemeColors) {
+function createStyles(_colors: ThemeColors) {
   return StyleSheet.create({
     content: {
       paddingBottom: spacing.xl,

@@ -2,7 +2,7 @@ import React from 'react';
 import { View, ScrollView, StyleSheet, RefreshControl } from 'react-native';
 import { useBadges } from '../../../../src/hooks/useGamification';
 import { Screen } from '../../../../src/components/Screen';
-import { GlassCard, ScreenHeader } from '../../../../src/components';
+import { ScreenHeader } from '../../../../src/components';
 import { AppText } from '../../../../src/components/AppText';
 import { BadgeDisplay } from '../../../../src/components/gamification/BadgeDisplay';
 import { spacing, radius, useTheme, ThemeColors } from '../../../../src/theme';

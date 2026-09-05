@@ -58,10 +58,9 @@ function getTypeStyle(colors: ThemeColors): Record<NotificationType, { bg: strin
 interface NotificationItemProps {
   notification: Notification;
   onPress: () => void;
-  onMarkRead: () => void;
 }
 
-function NotificationItem({ notification, onPress, onMarkRead }: NotificationItemProps) {
+function NotificationItem({ notification, onPress }: NotificationItemProps) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const isUnread = !notification.readAt;
@@ -163,7 +162,6 @@ export default function NotificationsCenter() {
     <NotificationItem
       notification={item}
       onPress={() => handleNotificationPress(item)}
-      onMarkRead={() => markAsRead.mutate(item.id)}
     />
   );
 
