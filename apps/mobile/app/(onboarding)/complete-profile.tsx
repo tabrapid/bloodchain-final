@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Alert, View, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import * as Location from 'expo-location';
 import { AppButton, AppText, AppTextInput, Screen, ProgressBar } from '../../src/components';
 import { spacing, radius, useTheme, ThemeColors } from '../../src/theme';
