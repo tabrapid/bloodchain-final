@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { LoadingState } from '@bloodchain/ui/components';
-import { listShipments, getShipment, type Shipment } from '@lib/api';
+import { listShipments, type Shipment } from '@lib/api';
 import { me, isAuthenticated } from '@lib/auth';
 import { StatusBadgeWrapper } from '@lib/status';
-import { LayoutDashboard, Users, Building2, Ship, Package, Droplet, AlertTriangle, TestTube, Bell, FileText, Activity, Settings } from 'lucide-react';
+import {  } from 'lucide-react';
 import { AppShell } from '../../components/AppShell';
 
 export default function ShipmentsPage() {
@@ -14,7 +14,6 @@ export default function ShipmentsPage() {
   const [shipments, setShipments] = useState<Shipment[]>([]);
   const [meta, setMeta] = useState({ total: 0, page: 1, limit: 20, totalPages: 0 });
   const [statusFilter, setStatusFilter] = useState('');
-  const [selectedShipment, setSelectedShipment] = useState<any>(null);
 
   useEffect(() => {
     async function load() {

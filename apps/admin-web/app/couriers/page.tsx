@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Search, Ship, Phone, X, Package, CheckCircle, XCircle, LayoutDashboard, Users, Building2, Droplet, AlertTriangle, TestTube, Bell, FileText, Activity, Settings } from 'lucide-react';
+import { Search, Ship, X } from 'lucide-react';
 import { LoadingState } from '@bloodchain/ui/components';
 import { listCouriers, suspendCourier, restoreCourier, type Courier } from '@lib/api';
 import { me, isAuthenticated } from '@lib/auth';

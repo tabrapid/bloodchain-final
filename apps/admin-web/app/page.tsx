@@ -17,14 +17,12 @@ import {
 } from 'lucide-react';
 import { StatCard, LoadingState } from '@bloodchain/ui/components';
 import { StatusBadgeWrapper } from '@lib/status';
-import { login, logout as logoutApi, me, isAuthenticated } from '@lib/auth';
+import { login, me, isAuthenticated } from '@lib/auth';
 import {
   getDashboard,
   listOrganizations,
-  listUsers,
   listEmergencies,
   listAlerts,
-  listShipments,
   getSystemHealth,
 } from '@lib/api';
 import { AppShell } from '../components/AppShell';
@@ -55,7 +53,6 @@ export default function AdminDashboard() {
   const [activeEmergencies, setActiveEmergencies] = useState<any[]>([]);
   const [activeAlerts, setActiveAlerts] = useState<any[]>([]);
   const [health, setHealth] = useState<any>(null);
-  const [activeNav, setActiveNav] = useState('dashboard');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -77,7 +74,7 @@ export default function AdminDashboard() {
           });
           await loadDashboardData();
         }
-      } catch (err) {
+      } catch {
         setError('Authentication failed');
       } finally {
         setIsLoading(false);
@@ -126,12 +123,6 @@ export default function AdminDashboard() {
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const handleLogout = async () => {
-    await logoutApi();
-    setUser(null);
-    setStats(null);
   };
 
   if (isLoading) {
