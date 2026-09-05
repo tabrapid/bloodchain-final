@@ -17,7 +17,9 @@ export function Screen({
   ...props
 }: PropsWithChildren<ScreenProps>) {
   const { colors } = useTheme();
-  const content = <View style={[{ flex: 1, padding: spacing.lg }, style]}>{children}</View>;
+  // 16px, matching the reference's content gutter. This was 24px, which made
+  // every card noticeably narrower than the reference's.
+  const content = <View style={[{ flex: 1, padding: spacing.md }, style]}>{children}</View>;
 
   return (
     <LinearGradient
