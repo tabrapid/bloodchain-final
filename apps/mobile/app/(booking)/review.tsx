@@ -1,15 +1,29 @@
 import { useMemo, useState } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
-import { View, StyleSheet, ScrollView, TextInput } from 'react-native';
-import { Calendar, Clock, Building2, Droplet, AlertCircle } from 'lucide-react-native';
-import { AppButton, AppText, Card, GlassCard, Screen } from '../../src/components';
+import { View, StyleSheet } from 'react-native';
+import { Calendar, Building2, Droplet, AlertCircle } from 'lucide-react-native';
+import {
+  AppButton,
+  AppText,
+  AppTextInput,
+  BookingStep,
+  GlassCard,
+  Screen,
+} from '../../src/components';
 import {
   useAvailability,
   useBookAppointment,
   useOrganizations,
   useRescheduleAppointment,
 } from '../../src/hooks/useAppointments';
-import { spacing, useTheme, ThemeColors } from '../../src/theme';
+import { ApiRequestError } from '../../src/api/client';
+import { radius, spacing, useTheme, ThemeColors } from '../../src/theme';
+
+const TYPE_LABELS: Record<string, string> = {
+  BLOOD_DONATION: 'Blood Donation',
+  BLOOD_TEST: 'Blood Test',
+  CONSULTATION: 'Consultation',
+};
 
 export default function ReviewBooking() {
   const { colors } = useTheme();
@@ -48,36 +62,7 @@ export default function ReviewBooking() {
 
   const bookMutation = useBookAppointment();
   const rescheduleMutation = useRescheduleAppointment();
-
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-  };
-
-  const formatTime = (dateStr: string) => {
-    return new Date(dateStr).toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-    });
-  };
-
-  const getTypeLabel = (type: string) => {
-    switch (type) {
-      case 'BLOOD_DONATION':
-        return 'Blood Donation';
-      case 'BLOOD_TEST':
-        return 'Blood Test';
-      case 'CONSULTATION':
-        return 'Consultation';
-      default:
-        return type;
-    }
-  };
+  const isSaving = isRescheduling ? rescheduleMutation.isPending : bookMutation.isPending;
 
   const handleConfirm = async () => {
     setError(null);
@@ -99,38 +84,37 @@ export default function ReviewBooking() {
           ...(isRescheduling && { rescheduled: '1' }),
         },
       });
-    } catch (err: any) {
+    } catch (err) {
       setError(
-        err.message ||
-          (isRescheduling
+        err instanceof ApiRequestError
+          ? err.error.message
+          : isRescheduling
             ? 'Failed to reschedule appointment. Please try again.'
-            : 'Failed to book appointment. Please try again.'),
+            : 'Failed to book appointment. Please try again.',
       );
     }
   };
 
-  const isSaving = isRescheduling ? rescheduleMutation.isPending : bookMutation.isPending;
-
   if (isLoading) {
     return (
-      <Screen>
-        <AppText muted>Loading...</AppText>
-      </Screen>
+      <BookingStep step={5} title="Review booking" subtitle="Loading your details…">
+        <View />
+      </BookingStep>
     );
   }
 
-  if (hasLoadError || notFound) {
+  if (hasLoadError || notFound || !slot || !organization) {
     return (
       <Screen>
-        <Card style={styles.errorCard}>
-          <AlertCircle size={20} color={colors.danger} />
-          <AppText style={styles.errorText}>
+        <GlassCard danger style={styles.blockingError}>
+          <AlertCircle size={20} color={colors.onMuted.danger} />
+          <AppText style={styles.blockingErrorText}>
             {hasLoadError
               ? "Couldn't load your booking details. Check your connection and try again."
               : 'This time slot is no longer available. Please choose another time.'}
           </AppText>
-        </Card>
-        <View style={styles.footer}>
+        </GlassCard>
+        <View style={styles.blockingActions}>
           {hasLoadError && (
             <AppButton
               onPress={() => {
@@ -141,11 +125,7 @@ export default function ReviewBooking() {
               Retry
             </AppButton>
           )}
-          <AppButton
-            variant="secondary"
-            onPress={() => router.back()}
-            style={styles.backButton}
-          >
+          <AppButton variant="secondary" onPress={() => router.back()}>
             Back
           </AppButton>
         </View>
@@ -153,216 +133,196 @@ export default function ReviewBooking() {
     );
   }
 
-  if (!slot || !organization) {
-    return null;
-  }
+  const start = new Date(slot.startAt);
 
   return (
-    <Screen>
-      <ScrollView contentContainerStyle={styles.content}>
-        <AppText variant="title" style={styles.title}>
-          {isRescheduling ? 'Review Reschedule' : 'Review Booking'}
-        </AppText>
-        <AppText muted style={styles.subtitle}>
-          {isRescheduling
-            ? 'Please review your new appointment time before confirming.'
-            : 'Please review your appointment details before confirming.'}
-        </AppText>
+    <BookingStep
+      step={5}
+      title={isRescheduling ? 'Review reschedule' : 'Review booking'}
+      subtitle="Confirm your appointment details"
+      nextLabel={isRescheduling ? 'Confirm reschedule' : 'Confirm appointment'}
+      onNext={handleConfirm}
+      nextDisabled={isSaving}
+      nextLoading={isSaving}
+    >
+      <GlassCard tier="elevated">
+        <View style={styles.detailStack}>
+          <DetailRow
+            icon={<Droplet size={18} color={colors.onMuted.primary} />}
+            tint={colors.primaryMuted}
+            label="DONATION TYPE"
+            value={TYPE_LABELS[params.type] ?? params.type}
+          />
+          <View style={styles.divider} />
+          <DetailRow
+            icon={<Building2 size={18} color={colors.onMuted.secondary} />}
+            tint={colors.secondaryMuted}
+            label="LOCATION"
+            value={organization.name}
+            meta={organization.address}
+          />
+          <View style={styles.divider} />
+          <DetailRow
+            icon={<Calendar size={18} color={colors.onMuted.success} />}
+            tint={colors.successMuted}
+            label="DATE & TIME"
+            value={`${start.toLocaleDateString('en-US', {
+              weekday: 'short',
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric',
+            })} · ${formatTime(slot.startAt)}`}
+            meta={`Ends around ${formatTime(slot.endAt)}`}
+          />
+        </View>
+      </GlassCard>
 
-        <GlassCard tier="elevated" style={styles.summaryCard}>
-          <AppText variant="heading" style={styles.sectionTitle}>
-            Appointment Details
-          </AppText>
-
-          <View style={styles.detailRow}>
-            <View style={[styles.detailIcon, { backgroundColor: colors.primaryMuted }]}>
-              <Droplet size={20} color={colors.onMuted.primary} />
-            </View>
-            <View style={styles.detailInfo}>
-              <AppText muted style={styles.detailLabel}>
-                Type
-              </AppText>
-              <AppText>{getTypeLabel(params.type)}</AppText>
-            </View>
-          </View>
-
-          <View style={styles.detailRow}>
-            <View style={[styles.detailIcon, { backgroundColor: colors.secondaryMuted }]}>
-              <Building2 size={20} color={colors.onMuted.secondary} />
-            </View>
-            <View style={styles.detailInfo}>
-              <AppText muted style={styles.detailLabel}>
-                Location
-              </AppText>
-              <AppText>{organization.name}</AppText>
-              {organization.address && (
-                <AppText muted style={styles.addressText}>
-                  {organization.address}
-                </AppText>
-              )}
-            </View>
-          </View>
-
-          <View style={styles.detailRow}>
-            <View style={[styles.detailIcon, { backgroundColor: colors.aiMuted }]}>
-              <Calendar size={20} color={colors.onMuted.ai} />
-            </View>
-            <View style={styles.detailInfo}>
-              <AppText muted style={styles.detailLabel}>
-                Date
-              </AppText>
-              <AppText>{formatDate(params.date)}</AppText>
-            </View>
-          </View>
-
-          <View style={styles.detailRow}>
-            <View style={[styles.detailIcon, { backgroundColor: colors.successMuted }]}>
-              <Clock size={20} color={colors.onMuted.success} />
-            </View>
-            <View style={styles.detailInfo}>
-              <AppText muted style={styles.detailLabel}>
-                Time
-              </AppText>
-              <AppText>
-                {formatTime(slot.startAt)} - {formatTime(slot.endAt)}
-              </AppText>
-            </View>
-          </View>
-        </GlassCard>
-
-        <Card style={styles.notesCard}>
-          <AppText variant="heading" style={styles.sectionTitle}>
-            Notes (Optional)
-          </AppText>
-          <TextInput
-            style={styles.notesInput}
-            placeholder="Add any notes or special requirements for your appointment..."
-            placeholderTextColor={colors.textMuted}
+      {!isRescheduling && (
+        <GlassCard style={styles.notesCard}>
+          <AppTextInput
+            label="Notes (optional)"
+            placeholder="Anything the centre should know before you arrive"
             value={notes}
             onChangeText={setNotes}
             multiline
-            numberOfLines={3}
-            textAlignVertical="top"
+            style={styles.notesInput}
           />
-        </Card>
+        </GlassCard>
+      )}
 
-        {error && (
-          <Card style={styles.errorCard}>
-            <AlertCircle size={20} color={colors.danger} />
+      {error && (
+        <GlassCard danger style={styles.errorCard}>
+          <View style={styles.errorRow}>
+            <AlertCircle size={16} color={colors.onMuted.danger} />
             <AppText style={styles.errorText}>{error}</AppText>
-          </Card>
-        )}
+          </View>
+        </GlassCard>
+      )}
 
-        <Card style={styles.infoCard}>
-          <AppText muted style={styles.infoText}>
-            By confirming this booking, you agree to arrive on time for your appointment.
-            Cancellations must be made at least 24 hours in advance.
-          </AppText>
-        </Card>
-      </ScrollView>
+      <AppText style={styles.terms}>
+        By confirming, you agree to attend or to cancel at least 24 hours before the appointment.
+      </AppText>
+    </BookingStep>
+  );
+}
 
-      <View style={styles.footer}>
-        <AppButton
-          onPress={handleConfirm}
-          loading={isSaving}
-          disabled={isSaving}
-        >
-          {isRescheduling ? 'Confirm Reschedule' : 'Confirm Booking'}
-        </AppButton>
-        <AppButton
-          variant="secondary"
-          onPress={() => router.back()}
-          style={styles.backButton}
-          disabled={isSaving}
-        >
-          Back
-        </AppButton>
+function formatTime(dateStr: string): string {
+  return new Date(dateStr).toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+}
+
+function DetailRow({
+  icon,
+  tint,
+  label,
+  value,
+  meta,
+}: {
+  icon: React.ReactNode;
+  tint: string;
+  label: string;
+  value: string;
+  meta?: string;
+}) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  return (
+    <View style={styles.detailRow}>
+      <View style={[styles.detailIcon, { backgroundColor: tint }]}>{icon}</View>
+      <View style={styles.detailBody}>
+        <AppText style={styles.detailLabel}>{label}</AppText>
+        <AppText style={styles.detailValue}>{value}</AppText>
+        {meta && <AppText style={styles.detailMeta}>{meta}</AppText>}
       </View>
-    </Screen>
+    </View>
   );
 }
 
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
-    content: {
-      paddingBottom: spacing.xl,
-    },
-    title: {
-      marginBottom: spacing.xs,
-    },
-    subtitle: {
-      marginBottom: spacing.xl,
-    },
-    summaryCard: {
-      padding: spacing.lg,
-      marginBottom: spacing.lg,
-    },
-    sectionTitle: {
-      marginBottom: spacing.lg,
+    detailStack: {
+      gap: spacing.md,
     },
     detailRow: {
       flexDirection: 'row',
-      alignItems: 'flex-start',
-      marginBottom: spacing.md,
+      alignItems: 'center',
+      gap: 12,
     },
     detailIcon: {
       width: 40,
       height: 40,
-      borderRadius: 10,
+      borderRadius: radius.sm,
       alignItems: 'center',
       justifyContent: 'center',
-      marginRight: spacing.md,
+      flexShrink: 0,
     },
-    detailInfo: {
+    detailBody: {
       flex: 1,
     },
     detailLabel: {
-      fontSize: 12,
-      textTransform: 'uppercase',
-      letterSpacing: 0.5,
-      marginBottom: 2,
+      fontSize: 11,
+      letterSpacing: 0.88,
+      color: colors.textMuted,
     },
-    addressText: {
-      fontSize: 13,
+    detailValue: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: colors.text,
       marginTop: 2,
     },
+    detailMeta: {
+      fontSize: 12,
+      color: colors.textMuted,
+      marginTop: 1,
+    },
+    divider: {
+      height: 1,
+      backgroundColor: colors.borderSubtle,
+    },
+
     notesCard: {
-      padding: spacing.lg,
-      marginBottom: spacing.lg,
+      marginTop: 14,
     },
     notesInput: {
-      padding: spacing.md,
-      backgroundColor: colors.surfaceElevated,
-      borderRadius: 8,
-      minHeight: 80,
-      fontSize: 14,
-      color: colors.text,
+      minHeight: 72,
+      textAlignVertical: 'top',
     },
     errorCard: {
+      marginTop: 14,
+    },
+    errorRow: {
       flexDirection: 'row',
-      alignItems: 'center',
+      alignItems: 'flex-start',
       gap: spacing.sm,
-      padding: spacing.md,
-      backgroundColor: colors.dangerMuted,
-      marginBottom: spacing.lg,
     },
     errorText: {
-      color: colors.onMuted.danger,
       flex: 1,
-    },
-    infoCard: {
-      padding: spacing.md,
-      backgroundColor: colors.surfaceElevated,
-    },
-    infoText: {
       fontSize: 13,
+      color: colors.onMuted.danger,
+    },
+    terms: {
+      fontSize: 12,
       lineHeight: 18,
+      color: colors.textMuted,
+      marginTop: 12,
     },
-    footer: {
-      paddingTop: spacing.lg,
+
+    blockingError: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: spacing.sm,
     },
-    backButton: {
-      marginTop: spacing.md,
+    blockingErrorText: {
+      flex: 1,
+      fontSize: 14,
+      color: colors.onMuted.danger,
+    },
+    blockingActions: {
+      marginTop: spacing.lg,
+      gap: spacing.sm,
     },
   });
 }

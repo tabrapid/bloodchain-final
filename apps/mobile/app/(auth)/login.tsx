@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Pressable, View } from 'react-native';
-import { Eye, EyeOff } from 'lucide-react-native';
+import { ArrowLeft, Eye, EyeOff } from 'lucide-react-native';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema, type LoginInput } from '@bloodchain/validation';
 import { AppButton, AppText, AppTextInput, Screen } from '../../src/components';
@@ -38,7 +38,25 @@ export default function Login() {
 
   return (
     <Screen>
-      <View style={{ marginTop: spacing['2xl'] }}>
+      <Pressable
+        onPress={() => router.back()}
+        accessibilityRole="button"
+        accessibilityLabel="Go back"
+        style={({ pressed }) => ({
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 6,
+          minHeight: 44,
+          alignSelf: 'flex-start',
+          paddingRight: spacing.sm,
+          opacity: pressed ? 0.6 : 1,
+        })}
+      >
+        <ArrowLeft size={16} color={colors.primary} strokeWidth={2.5} />
+        <AppText style={{ fontSize: 14, fontWeight: '600', color: colors.primary }}>Back</AppText>
+      </Pressable>
+
+      <View style={{ marginTop: spacing.xl }}>
         {/* The auth headlines are the one place the reference goes bigger and
             heavier than the standard screen title. */}
         <AppText variant="title" style={{ fontSize: 32, fontWeight: '800', letterSpacing: -0.96 }}>
@@ -98,8 +116,12 @@ export default function Login() {
           </AppText>
         )}
 
-        <AppButton onPress={onSubmit} disabled={login.isPending || formState.isSubmitting}>
-          {login.isPending ? 'Signing in...' : 'Sign in'}
+        <AppButton
+          onPress={onSubmit}
+          disabled={login.isPending || formState.isSubmitting}
+          loading={login.isPending}
+        >
+          Sign in
         </AppButton>
 
         {unverifiedEmail && (
@@ -114,13 +136,19 @@ export default function Login() {
           </AppButton>
         )}
 
-        <AppButton
-          variant="ghost"
-          style={{ marginTop: spacing.md }}
-          onPress={() => router.push('/(auth)/register')}
-        >
-          Don't have an account? Create one
-        </AppButton>
+        {/* The reference closes the form with a sentence, not a third
+            button -- a ghost button here reads as an equal alternative to
+            signing in, which it is not. */}
+        <AppText style={{ textAlign: 'center', fontSize: 13, color: colors.textMuted, marginTop: spacing.lg }}>
+          Don&apos;t have an account?{' '}
+          <AppText
+            onPress={() => router.push('/(auth)/register')}
+            accessibilityRole="link"
+            style={{ fontSize: 13, fontWeight: '600', color: colors.primary }}
+          >
+            Create one
+          </AppText>
+        </AppText>
       </View>
     </Screen>
   );

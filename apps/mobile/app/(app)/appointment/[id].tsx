@@ -1,25 +1,49 @@
 import { useMemo, useState } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
-import { View, StyleSheet, ScrollView, Alert, TextInput } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert, Pressable } from 'react-native';
 import {
   Calendar,
   Clock,
-  Building2,
   MapPin,
   Droplet,
+  Hash,
   AlertCircle,
   XCircle,
+  ArrowLeft,
 } from 'lucide-react-native';
 import {
   AppButton,
   AppText,
-  Card,
+  AppTextInput,
+  Badge,
   GlassCard,
   Screen,
-  ScreenHeader,
 } from '../../../src/components';
 import { useAppointment, useCancelAppointment } from '../../../src/hooks/useAppointments';
-import { spacing, useTheme, ThemeColors } from '../../../src/theme';
+import { spacing, radius, useTheme, ThemeColors } from '../../../src/theme';
+import type { BadgeProps } from '../../../src/components/Badge';
+
+/**
+ * What the donor should do before arriving. This is the same advice every
+ * blood service publishes and does not vary per appointment, so it is content
+ * rather than data -- the backend has no per-appointment preparation field to
+ * read it from.
+ */
+const PREPARATION = [
+  'Drink plenty of water the night before',
+  'Eat a healthy meal 2-3 hours before',
+  'Avoid alcohol for 24 hours prior',
+  'Bring a valid ID document',
+  'Wear comfortable, loose clothing',
+];
+
+const STATUS_VARIANT: Record<string, BadgeProps['variant']> = {
+  CONFIRMED: 'success',
+  PENDING: 'warning',
+  CANCELLED: 'danger',
+  NO_SHOW: 'danger',
+  COMPLETED: 'primary',
+};
 
 export default function AppointmentDetail() {
   const { colors } = useTheme();
@@ -33,47 +57,7 @@ export default function AppointmentDetail() {
 
   const cancelMutation = useCancelAppointment();
 
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-  };
-
-  const formatTime = (dateStr: string) => {
-    return new Date(dateStr).toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-    });
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'CONFIRMED':
-        return { bg: colors.successMuted, text: colors.onMuted.success };
-      case 'PENDING':
-        return { bg: colors.warningMuted, text: colors.onMuted.warning };
-      case 'CANCELLED':
-        return { bg: colors.dangerMuted, text: colors.onMuted.danger };
-      case 'COMPLETED':
-        return { bg: colors.primaryMuted, text: colors.onMuted.primary };
-      default:
-        return { bg: colors.surfaceElevated, text: colors.textMuted };
-    }
-  };
-
-  const canCancel = () => {
-    if (!appointment) return false;
-    return ['PENDING', 'CONFIRMED'].includes(appointment.status);
-  };
-
-  const canReschedule = () => {
-    if (!appointment) return false;
-    return ['PENDING', 'CONFIRMED'].includes(appointment.status);
-  };
+  const isOpen = !!appointment && ['PENDING', 'CONFIRMED'].includes(appointment.status);
 
   const handleCancel = () => {
     if (!showCancelReason) {
@@ -81,29 +65,25 @@ export default function AppointmentDetail() {
       return;
     }
 
-    Alert.alert(
-      'Cancel Appointment',
-      'Are you sure you want to cancel this appointment?',
-      [
-        { text: 'No', style: 'cancel' },
-        {
-          text: 'Yes, Cancel',
-          style: 'destructive',
-          onPress: async () => {
-            setError(null);
-            try {
-              await cancelMutation.mutateAsync({
-                id: params.id,
-                input: { reason: cancelReason.trim() || undefined },
-              });
-              router.back();
-            } catch (err: any) {
-              setError(err.message || 'Failed to cancel appointment');
-            }
-          },
+    Alert.alert('Cancel Appointment', 'Are you sure you want to cancel this appointment?', [
+      { text: 'No', style: 'cancel' },
+      {
+        text: 'Yes, Cancel',
+        style: 'destructive',
+        onPress: async () => {
+          setError(null);
+          try {
+            await cancelMutation.mutateAsync({
+              id: params.id,
+              input: { reason: cancelReason.trim() || undefined },
+            });
+            router.back();
+          } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to cancel appointment');
+          }
         },
-      ],
-    );
+      },
+    ]);
   };
 
   const handleReschedule = () => {
@@ -121,309 +101,381 @@ export default function AppointmentDetail() {
     });
   };
 
-  if (isLoading) {
+  if (isLoading || !appointment) {
     return (
       <Screen>
-        <ScreenHeader title="Appointment Details" />
-        <AppText>Loading...</AppText>
+        <BackLink />
+        <AppText style={styles.title}>
+          {isLoading ? 'Loading…' : 'Appointment not found'}
+        </AppText>
+        {!isLoading && (
+          <View style={styles.footer}>
+            <AppButton variant="secondary" onPress={() => router.back()}>
+              Go Back
+            </AppButton>
+          </View>
+        )}
       </Screen>
     );
   }
 
-  if (!appointment) {
-    return (
-      <Screen>
-        <ScreenHeader title="Appointment Details" />
-        <AppText>Appointment not found</AppText>
-        <View style={styles.footer}>
-          <AppButton variant="secondary" onPress={() => router.back()}>
-            Go Back
-          </AppButton>
-        </View>
-      </Screen>
-    );
-  }
+  const start = new Date(appointment.scheduledStart);
+  const end = new Date(appointment.scheduledEnd);
+  const durationMin = Math.max(0, Math.round((end.getTime() - start.getTime()) / 60000));
 
   return (
-    <Screen>
-      <ScreenHeader title="Appointment Details" />
-      <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.header}>
-          <View
-            style={[
-              styles.statusBadge,
-              { backgroundColor: getStatusColor(appointment.status).bg },
-            ]}
-          >
-            <AppText
-              style={[styles.statusText, { color: getStatusColor(appointment.status).text }]}
-            >
-              {appointment.status}
-            </AppText>
-          </View>
-          <AppText muted style={styles.refNumber}>
-            {appointment.referenceNumber}
+    <Screen scroll={false}>
+      <View style={styles.header}>
+        <BackLink />
+        <View style={styles.titleRow}>
+          <AppText style={styles.title}>
+            {toTitleCase(appointment.appointmentType)} Donation
           </AppText>
+          <Badge variant={STATUS_VARIANT[appointment.status] ?? 'default'}>
+            {appointment.status.replace(/_/g, ' ')}
+          </Badge>
         </View>
+      </View>
 
-        <GlassCard tier="elevated" style={styles.detailsCard}>
-          <View style={styles.detailRow}>
-            <View style={styles.detailIcon}>
-              <Droplet size={20} color={colors.primary} />
-            </View>
-            <View style={styles.detailInfo}>
-              <AppText muted style={styles.detailLabel}>
-                Type
-              </AppText>
-              <AppText>{appointment.appointmentType.replace('_', ' ')}</AppText>
-            </View>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <GlassCard tier="elevated">
+          <View style={styles.detailStack}>
+            <DetailRow
+              icon={<Calendar size={18} color={colors.success} />}
+              tint={`${colors.success}26`}
+              label="Date"
+              value={start.toLocaleDateString('en-US', {
+                weekday: 'long',
+                month: 'long',
+                day: 'numeric',
+                year: 'numeric',
+              })}
+            />
+            <View style={styles.divider} />
+            <DetailRow
+              icon={<Clock size={18} color={colors.secondary} />}
+              tint={`${colors.secondary}26`}
+              label="Time"
+              value={`${formatTime(start)} — approx. ${durationMin} min`}
+            />
+            <View style={styles.divider} />
+            <DetailRow
+              icon={<MapPin size={18} color={colors.primary} />}
+              tint="rgba(216, 83, 96, 0.12)"
+              label="Location"
+              value={appointment.organization.name}
+              meta={appointment.organization.address}
+            />
+            <View style={styles.divider} />
+            <DetailRow
+              icon={<Droplet size={18} color={colors.primary} />}
+              tint="rgba(216, 83, 96, 0.12)"
+              label="Type"
+              value={toTitleCase(appointment.appointmentType)}
+            />
           </View>
+        </GlassCard>
 
-          <View style={styles.detailRow}>
-            <View style={styles.detailIcon}>
-              <Building2 size={20} color={colors.primary} />
-            </View>
-            <View style={styles.detailInfo}>
-              <AppText muted style={styles.detailLabel}>
-                Location
-              </AppText>
-              <AppText>{appointment.organization.name}</AppText>
-            </View>
-          </View>
-
-          <View style={styles.detailRow}>
-            <View style={styles.detailIcon}>
-              <Calendar size={20} color={colors.primary} />
-            </View>
-            <View style={styles.detailInfo}>
-              <AppText muted style={styles.detailLabel}>
-                Date
-              </AppText>
-              <AppText>{formatDate(appointment.scheduledStart)}</AppText>
-            </View>
-          </View>
-
-          <View style={styles.detailRow}>
-            <View style={styles.detailIcon}>
-              <Clock size={20} color={colors.primary} />
-            </View>
-            <View style={styles.detailInfo}>
-              <AppText muted style={styles.detailLabel}>
-                Time
-              </AppText>
-              <AppText>
-                {formatTime(appointment.scheduledStart)} -{' '}
-                {formatTime(appointment.scheduledEnd)}
-              </AppText>
-            </View>
-          </View>
-
-          {appointment.organization.address && (
-            <View style={styles.detailRow}>
-              <View style={styles.detailIcon}>
-                <MapPin size={20} color={colors.primary} />
+        {isOpen && (
+          <GlassCard>
+            <AppText style={styles.cardTitle}>Preparation checklist</AppText>
+            {PREPARATION.map((tip) => (
+              <View key={tip} style={styles.tipRow}>
+                <View style={styles.tipDot} />
+                <AppText style={styles.tipText}>{tip}</AppText>
               </View>
-              <View style={styles.detailInfo}>
-                <AppText muted style={styles.detailLabel}>
-                  Address
-                </AppText>
-                <AppText>{appointment.organization.address}</AppText>
-              </View>
+            ))}
+          </GlassCard>
+        )}
+
+        <GlassCard style={styles.compactCard}>
+          <View style={styles.compactRow}>
+            <View style={styles.compactIcon}>
+              <Hash size={16} color={colors.secondary} />
             </View>
-          )}
+            <View style={styles.compactBody}>
+              <AppText style={styles.compactTitle}>Reference number</AppText>
+              <AppText style={styles.compactMeta}>{appointment.referenceNumber}</AppText>
+            </View>
+          </View>
         </GlassCard>
 
         {appointment.notes && (
-          <Card style={styles.notesCard}>
-            <AppText muted style={styles.notesLabel}>
-              Notes
-            </AppText>
-            <AppText>{appointment.notes}</AppText>
-          </Card>
+          <GlassCard>
+            <AppText style={styles.cardTitle}>Notes</AppText>
+            <AppText style={styles.bodyText}>{appointment.notes}</AppText>
+          </GlassCard>
         )}
 
         {appointment.cancellationReason && (
-          <Card style={styles.cancellationCard}>
-            <View style={styles.cancellationHeader}>
-              <XCircle size={20} color={colors.danger} />
-              <AppText style={styles.cancellationTitle}>Cancelled</AppText>
+          <GlassCard danger>
+            <View style={styles.noticeHeader}>
+              <XCircle size={18} color={colors.onMuted.danger} />
+              <AppText style={styles.noticeTitle}>Cancelled</AppText>
             </View>
-            <AppText muted style={styles.cancellationReason}>
-              {appointment.cancellationReason}
-            </AppText>
-          </Card>
+            <AppText style={styles.bodyText}>{appointment.cancellationReason}</AppText>
+          </GlassCard>
         )}
 
         {error && (
-          <Card style={styles.errorCard}>
-            <AlertCircle size={20} color={colors.danger} />
-            <AppText style={styles.errorText}>{error}</AppText>
-          </Card>
+          <GlassCard danger>
+            <View style={styles.noticeHeader}>
+              <AlertCircle size={18} color={colors.onMuted.danger} />
+              <AppText style={styles.noticeTitle}>{error}</AppText>
+            </View>
+          </GlassCard>
         )}
 
         {showCancelReason && (
-          <Card style={styles.cancelReasonCard}>
-            <AppText variant="heading" style={styles.cancelTitle}>
-              Cancellation Reason
-            </AppText>
-            <TextInput
-              style={styles.cancelInput}
-              placeholder="Please provide a reason for cancellation (optional)..."
-              placeholderTextColor={colors.textMuted}
+          <GlassCard>
+            <AppTextInput
+              label="Cancellation reason"
+              placeholder="Optional — helps the centre free up your slot"
               value={cancelReason}
               onChangeText={setCancelReason}
               multiline
             />
-          </Card>
+          </GlassCard>
         )}
+
+        <View style={styles.actions}>
+          {isOpen ? (
+            <>
+              <AppButton variant="secondary" onPress={handleReschedule} style={styles.action}>
+                Reschedule
+              </AppButton>
+              <AppButton
+                variant="ghost"
+                onPress={handleCancel}
+                loading={cancelMutation.isPending}
+                style={styles.action}
+              >
+                {showCancelReason ? 'Confirm' : 'Cancel'}
+              </AppButton>
+            </>
+          ) : (
+            <AppButton variant="secondary" onPress={() => router.back()} style={styles.action}>
+              Go Back
+            </AppButton>
+          )}
+        </View>
       </ScrollView>
-
-      {(canCancel() || canReschedule()) && (
-        <View style={styles.footer}>
-          {canReschedule() && (
-            <AppButton onPress={handleReschedule} variant="secondary">
-              Reschedule
-            </AppButton>
-          )}
-          {canCancel() && (
-            <AppButton
-              onPress={handleCancel}
-              variant={canReschedule() ? 'secondary' : 'primary'}
-              loading={cancelMutation.isPending}
-              style={canReschedule() ? styles.cancelButton : undefined}
-            >
-              {showCancelReason ? 'Confirm Cancellation' : 'Cancel Appointment'}
-            </AppButton>
-          )}
-        </View>
-      )}
-
-      {!canCancel() && !canReschedule() && (
-        <View style={styles.footer}>
-          <AppButton variant="secondary" onPress={() => router.back()}>
-            Go Back
-          </AppButton>
-        </View>
-      )}
     </Screen>
   );
 }
 
+function BackLink() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  return (
+    <Pressable
+      onPress={() => router.back()}
+      accessibilityRole="button"
+      accessibilityLabel="Go back"
+      style={({ pressed }) => [styles.backLink, { opacity: pressed ? 0.6 : 1 }]}
+    >
+      <ArrowLeft size={16} color={colors.primary} strokeWidth={2.5} />
+      <AppText style={styles.backLabel}>Back</AppText>
+    </Pressable>
+  );
+}
+
+interface DetailRowProps {
+  icon: React.ReactNode;
+  tint: string;
+  label: string;
+  value: string;
+  meta?: string;
+}
+
+function DetailRow({ icon, tint, label, value, meta }: DetailRowProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  return (
+    <View style={styles.detailRow}>
+      <View style={[styles.detailIcon, { backgroundColor: tint }]}>{icon}</View>
+      <View style={styles.detailBody}>
+        <AppText style={styles.detailLabel}>{label.toUpperCase()}</AppText>
+        <AppText style={styles.detailValue}>{value}</AppText>
+        {meta && <AppText style={styles.detailMeta}>{meta}</AppText>}
+      </View>
+    </View>
+  );
+}
+
+function formatTime(date: Date): string {
+  return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+}
+
+function toTitleCase(value: string): string {
+  return value
+    .split('_')
+    .map((word) => word.charAt(0) + word.slice(1).toLowerCase())
+    .join(' ');
+}
+
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
-    content: {
-      paddingBottom: spacing.xl,
-    },
     header: {
+      marginBottom: spacing.lg,
+    },
+    backLink: {
+      flexDirection: 'row',
       alignItems: 'center',
-      marginBottom: spacing.xl,
+      gap: 6,
+      minHeight: 44,
+      alignSelf: 'flex-start',
+      paddingRight: spacing.sm,
     },
-    statusBadge: {
-      paddingHorizontal: spacing.md,
-      paddingVertical: spacing.sm,
-      borderRadius: 8,
-      marginBottom: spacing.sm,
-    },
-    statusText: {
+    backLabel: {
       fontSize: 14,
       fontWeight: '600',
-      textTransform: 'uppercase',
-      letterSpacing: 1,
+      color: colors.primary,
     },
-    refNumber: {
-      fontSize: 13,
-      letterSpacing: 1,
+    titleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      marginTop: spacing.sm,
     },
-    detailsCard: {
-      padding: spacing.lg,
-      marginBottom: spacing.lg,
+    title: {
+      flex: 1,
+      fontSize: 24,
+      fontWeight: '700',
+      letterSpacing: -0.48,
+      color: colors.text,
+    },
+    content: {
+      gap: 14,
+      paddingBottom: spacing.xl,
+    },
+
+    detailStack: {
+      gap: spacing.md,
     },
     detailRow: {
       flexDirection: 'row',
-      alignItems: 'flex-start',
-      marginBottom: spacing.md,
+      alignItems: 'center',
+      gap: 12,
     },
     detailIcon: {
       width: 40,
       height: 40,
-      borderRadius: 10,
-      backgroundColor: colors.primaryMuted,
+      borderRadius: radius.sm,
       alignItems: 'center',
       justifyContent: 'center',
-      marginRight: spacing.md,
+      flexShrink: 0,
     },
-    detailInfo: {
+    detailBody: {
       flex: 1,
     },
     detailLabel: {
-      fontSize: 12,
-      textTransform: 'uppercase',
-      letterSpacing: 0.5,
-      marginBottom: 2,
+      fontSize: 11,
+      letterSpacing: 0.66,
+      color: colors.textMuted,
     },
-    notesCard: {
-      padding: spacing.lg,
-      marginBottom: spacing.lg,
-    },
-    notesLabel: {
-      fontSize: 12,
-      textTransform: 'uppercase',
-      letterSpacing: 0.5,
-      marginBottom: spacing.sm,
-    },
-    cancellationCard: {
-      padding: spacing.lg,
-      backgroundColor: colors.dangerMuted,
-      marginBottom: spacing.lg,
-    },
-    cancellationHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.sm,
-      marginBottom: spacing.sm,
-    },
-    cancellationTitle: {
-      color: colors.onMuted.danger,
+    detailValue: {
+      fontSize: 15,
       fontWeight: '600',
+      color: colors.text,
+      marginTop: 1,
     },
-    cancellationReason: {
-      fontSize: 14,
-      marginTop: spacing.xs,
+    detailMeta: {
+      fontSize: 12,
+      color: colors.textMuted,
+      marginTop: 1,
     },
-    errorCard: {
+    divider: {
+      height: 1,
+      backgroundColor: colors.borderSubtle,
+    },
+
+    cardTitle: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: colors.text,
+      marginBottom: 12,
+    },
+    tipRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: 10,
+      marginBottom: 10,
+    },
+    tipDot: {
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+      backgroundColor: colors.success,
+      marginTop: 6,
+      flexShrink: 0,
+    },
+    tipText: {
+      flex: 1,
+      fontSize: 13,
+      lineHeight: 20,
+      color: colors.textMuted,
+    },
+    bodyText: {
+      fontSize: 13,
+      lineHeight: 20,
+      color: colors.textMuted,
+    },
+
+    compactCard: {
+      paddingVertical: 12,
+      paddingHorizontal: 14,
+    },
+    compactRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: spacing.sm,
-      padding: spacing.md,
-      backgroundColor: colors.dangerMuted,
-      marginBottom: spacing.lg,
+      gap: 12,
     },
-    errorText: {
-      color: colors.onMuted.danger,
+    compactIcon: {
+      width: 36,
+      height: 36,
+      borderRadius: 10,
+      backgroundColor: `${colors.secondary}26`,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    compactBody: {
       flex: 1,
     },
-    cancelReasonCard: {
-      padding: spacing.lg,
-      marginBottom: spacing.lg,
-    },
-    cancelTitle: {
-      marginBottom: spacing.md,
-    },
-    cancelInput: {
-      padding: spacing.md,
-      backgroundColor: colors.surfaceElevated,
-      borderRadius: 8,
+    compactTitle: {
+      fontSize: 13,
+      fontWeight: '500',
       color: colors.text,
+    },
+    compactMeta: {
+      fontSize: 12,
+      color: colors.textMuted,
+      letterSpacing: 0.5,
+    },
+
+    noticeHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      marginBottom: spacing.sm,
+    },
+    noticeTitle: {
+      flex: 1,
       fontSize: 14,
-      minHeight: 72,
-      textAlignVertical: 'top',
+      fontWeight: '600',
+      color: colors.onMuted.danger,
+    },
+
+    actions: {
+      flexDirection: 'row',
+      gap: 10,
+      marginTop: 2,
+    },
+    action: {
+      flex: 1,
     },
     footer: {
-      paddingTop: spacing.lg,
-      gap: spacing.md,
-    },
-    cancelButton: {
-      marginTop: spacing.sm,
+      marginTop: spacing.lg,
     },
   });
 }

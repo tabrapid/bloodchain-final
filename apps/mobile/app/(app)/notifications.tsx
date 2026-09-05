@@ -1,5 +1,5 @@
 import { useMemo, useState, useCallback } from 'react';
-import { View, StyleSheet, FlatList, TouchableOpacity, RefreshControl } from 'react-native';
+import { View, StyleSheet, FlatList, Pressable, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
   AlertCircle,
@@ -15,17 +15,25 @@ import {
   Settings,
   type LucideIcon,
 } from 'lucide-react-native';
-import { AppButton, AppText, Card, Screen, ScreenHeader, EmptyState, LoadingState } from '../../src/components';
+import {
+  AppText,
+  GlassCard,
+  Screen,
+  ScreenHeader,
+  SegmentedControl,
+  EmptyState,
+  SkeletonCard,
+} from '../../src/components';
 import {
   useNotifications,
   useNotificationStats,
   useMarkAllNotificationsAsRead,
   useMarkNotificationAsRead,
 } from '../../src/hooks/useNotifications';
-import { spacing, radius, useTheme, ThemeColors } from '../../src/theme';
+import { spacing, useTheme, ThemeColors } from '../../src/theme';
 import type { Notification, NotificationType } from '../../src/api/notifications';
 
-const TYPE_ICON_COMPONENTS: Record<NotificationType, LucideIcon> = {
+const TYPE_ICON: Record<NotificationType, LucideIcon> = {
   EMERGENCY: AlertCircle,
   DONATION: Heart,
   APPOINTMENT: Calendar,
@@ -39,7 +47,14 @@ const TYPE_ICON_COMPONENTS: Record<NotificationType, LucideIcon> = {
   SYSTEM: Settings,
 };
 
-function getTypeStyle(colors: ThemeColors): Record<NotificationType, { bg: string; icon: string }> {
+/**
+ * The reference tints each notification's icon square by what the
+ * notification is about. These stay on the app's `xMuted` / `onMuted` pairs
+ * rather than the reference's raw `rgba(accent, 0.15)`: the accents are
+ * mid-tones that fall under 4.5:1 against their own tint, and this app fixed
+ * that class of bug once already.
+ */
+function typeTint(colors: ThemeColors): Record<NotificationType, { bg: string; icon: string }> {
   return {
     EMERGENCY: { bg: colors.dangerMuted, icon: colors.onMuted.danger },
     DONATION: { bg: colors.primaryMuted, icon: colors.onMuted.primary },
@@ -55,87 +70,29 @@ function getTypeStyle(colors: ThemeColors): Record<NotificationType, { bg: strin
   };
 }
 
-interface NotificationItemProps {
-  notification: Notification;
-  onPress: () => void;
-}
+const FILTERS = [
+  { label: 'All', value: 'all' },
+  { label: 'Unread', value: 'unread' },
+] as const;
 
-function NotificationItem({ notification, onPress }: NotificationItemProps) {
-  const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
-  const isUnread = !notification.readAt;
-  const typeStyle = getTypeStyle(colors)[notification.type] || {
-    bg: colors.surfaceElevated,
-    icon: colors.textMuted,
-  };
-  const Icon = TYPE_ICON_COMPONENTS[notification.type] || Settings;
-  const timeAgo = formatTimeAgo(new Date(notification.createdAt));
-
-  return (
-    <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
-      <Card tier={isUnread ? 'elevated' : 'standard'} style={styles.notificationCard}>
-        <View style={styles.notificationHeader}>
-          <View style={[styles.typeIcon, { backgroundColor: typeStyle.bg }]}>
-            <Icon size={18} color={typeStyle.icon} />
-            {isUnread && (
-              <View style={[styles.unreadDot, { borderColor: colors.background }]} />
-            )}
-          </View>
-          <View style={styles.notificationContent}>
-            <View style={styles.notificationTitleRow}>
-              <AppText
-                variant="heading"
-                style={[styles.notificationTitle, isUnread && styles.notificationTitleUnread]}
-                numberOfLines={1}
-              >
-                {notification.title}
-              </AppText>
-              <AppText muted style={styles.timeAgo}>{timeAgo}</AppText>
-            </View>
-            <AppText muted style={styles.notificationBody} numberOfLines={2}>
-              {notification.body}
-            </AppText>
-            {notification.priority === 'CRITICAL' && (
-              <View style={styles.priorityBadge}>
-                <AppText style={styles.priorityText}>URGENT</AppText>
-              </View>
-            )}
-          </View>
-        </View>
-      </Card>
-    </TouchableOpacity>
-  );
-}
-
-function formatTimeAgo(date: Date): string {
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMins / 60);
-  const diffDays = Math.floor(diffHours / 24);
-
-  if (diffMins < 1) return 'Just now';
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago`;
-  return date.toLocaleDateString();
-}
+type Filter = (typeof FILTERS)[number]['value'];
 
 export default function NotificationsCenter() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'all' | 'unread' | NotificationType>('all');
+  const [filter, setFilter] = useState<Filter>('all');
   const [refreshing, setRefreshing] = useState(false);
 
   const { data, isLoading, refetch } = useNotifications(
-    activeTab === 'unread' ? { isRead: false } : undefined,
+    filter === 'unread' ? { isRead: false } : undefined,
   );
   const { data: stats } = useNotificationStats();
   const markAllRead = useMarkAllNotificationsAsRead();
-
-  const notifications = data?.items || [];
   const markAsRead = useMarkNotificationAsRead();
+
+  const notifications = data?.items ?? [];
+  const hasUnread = notifications.some((n) => !n.readAt);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -143,155 +100,187 @@ export default function NotificationsCenter() {
     setRefreshing(false);
   }, [refetch]);
 
-  const handleNotificationPress = useCallback((notification: Notification) => {
-    if (!notification.readAt) {
-      markAsRead.mutate(notification.id);
-    }
-
-    if (notification.deepLink) {
-      router.push(notification.deepLink as any);
-    }
-  }, [router, markAsRead]);
-
-  const tabs: { key: 'all' | 'unread' | NotificationType; label: string }[] = [
-    { key: 'all', label: 'All' },
-    { key: 'unread', label: `Unread${stats?.unread ? ` (${stats.unread})` : ''}` },
-  ];
-
-  const renderNotification = ({ item }: { item: Notification }) => (
-    <NotificationItem
-      notification={item}
-      onPress={() => handleNotificationPress(item)}
-    />
+  const handlePress = useCallback(
+    (notification: Notification) => {
+      if (!notification.readAt) markAsRead.mutate(notification.id);
+      if (notification.deepLink) {
+        router.push(notification.deepLink as Parameters<typeof router.push>[0]);
+      }
+    },
+    [router, markAsRead],
   );
 
-  if (isLoading) {
-    return (
-      <Screen scroll={false}>
-        <ScreenHeader title="Notifications" />
-        <LoadingState />
-      </Screen>
-    );
-  }
+  const filterOptions = useMemo(
+    () =>
+      FILTERS.map((option) =>
+        option.value === 'unread' && stats?.unread
+          ? { ...option, label: `Unread (${stats.unread})` }
+          : option,
+      ),
+    [stats?.unread],
+  );
 
   return (
     <Screen scroll={false}>
-      <ScreenHeader title="Notifications" />
+      <ScreenHeader
+        title="Notifications"
+        subtitle={stats?.unread ? `${stats.unread} unread` : undefined}
+        trailing={
+          hasUnread ? (
+            <Pressable
+              onPress={() => markAllRead.mutate()}
+              hitSlop={8}
+              accessibilityRole="button"
+              style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+            >
+              <AppText style={styles.markAll}>Mark all read</AppText>
+            </Pressable>
+          ) : undefined
+        }
+      />
+
       <FlatList
         data={notifications}
-        renderItem={renderNotification}
         keyExtractor={(item) => item.id}
-        style={{ flex: 1 }}
+        renderItem={({ item }) => (
+          <NotificationRow notification={item} onPress={() => handlePress(item)} />
+        )}
+        style={styles.list}
         contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }
         ListHeaderComponent={
-          <View style={styles.header}>
-            <View style={styles.tabs}>
-              {tabs.map((tab) => (
-                <TouchableOpacity
-                  key={tab.key}
-                  style={[styles.tab, activeTab === tab.key && styles.activeTab]}
-                  onPress={() => setActiveTab(tab.key)}
-                >
-                  <AppText
-                    variant="body"
-                    style={[styles.tabText, activeTab === tab.key && styles.activeTabText]}
-                  >
-                    {tab.label}
-                  </AppText>
-                </TouchableOpacity>
-              ))}
-            </View>
-            {notifications.some((n) => !n.readAt) && (
-              <AppButton variant="ghost" size="small" onPress={() => markAllRead.mutate()}>
-                Mark all read
-              </AppButton>
-            )}
-          </View>
+          <SegmentedControl
+            options={filterOptions}
+            value={filter}
+            onChange={setFilter}
+            style={styles.filter}
+          />
         }
         ListEmptyComponent={
-          <EmptyState
-            title="No notifications"
-            description={
-              activeTab === 'unread'
-                ? "You're all caught up!"
-                : "Push notifications and reminders will appear here."
-            }
-          />
+          isLoading ? (
+            <View style={styles.skeletons}>
+              {[0, 1, 2, 3].map((i) => (
+                <SkeletonCard key={i} />
+              ))}
+            </View>
+          ) : (
+            <EmptyState
+              title="No notifications"
+              description={
+                filter === 'unread'
+                  ? "You're all caught up!"
+                  : 'Push notifications and reminders will appear here.'
+              }
+            />
+          )
         }
       />
     </Screen>
   );
 }
 
+function NotificationRow({
+  notification,
+  onPress,
+}: {
+  notification: Notification;
+  onPress: () => void;
+}) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  const unread = !notification.readAt;
+  const tint = typeTint(colors)[notification.type] ?? {
+    bg: colors.surfaceElevated,
+    icon: colors.textMuted,
+  };
+  const Icon = TYPE_ICON[notification.type] ?? Settings;
+
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+    >
+      <GlassCard tier={unread ? 'elevated' : 'standard'} style={styles.rowCard}>
+        <View style={styles.row}>
+          <View style={[styles.rowIcon, { backgroundColor: tint.bg }]}>
+            <Icon size={18} color={tint.icon} />
+            {unread && <View style={[styles.unreadDot, { borderColor: colors.background }]} />}
+          </View>
+
+          <View style={styles.rowBody}>
+            <View style={styles.rowTitleLine}>
+              <AppText style={[styles.rowTitle, unread && styles.rowTitleUnread]} numberOfLines={2}>
+                {notification.title}
+              </AppText>
+              <AppText style={styles.rowTime}>
+                {formatTimeAgo(new Date(notification.createdAt))}
+              </AppText>
+            </View>
+            <AppText style={styles.rowBodyText} numberOfLines={3}>
+              {notification.body}
+            </AppText>
+            {notification.priority === 'CRITICAL' && (
+              <View style={styles.urgent}>
+                <AppText style={styles.urgentText}>URGENT</AppText>
+              </View>
+            )}
+          </View>
+        </View>
+      </GlassCard>
+    </Pressable>
+  );
+}
+
+function formatTimeAgo(date: Date): string {
+  const diffMins = Math.floor((Date.now() - date.getTime()) / 60000);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 7) return `${diffDays} days ago`;
+  return date.toLocaleDateString();
+}
+
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
-    listContent: {
-      paddingBottom: spacing['2xl'],
-    },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingHorizontal: spacing.md,
-      paddingVertical: spacing.sm,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
-    },
-    tabs: {
-      flexDirection: 'row',
-      gap: spacing.sm,
-    },
-    tab: {
-      paddingVertical: spacing.xs,
-      paddingHorizontal: spacing.sm,
-    },
-    activeTab: {
-      borderBottomWidth: 2,
-      borderBottomColor: colors.primary,
-    },
-    tabText: {
-      fontSize: 14,
-    },
-    activeTabText: {
+    markAll: {
+      fontSize: 13,
+      fontWeight: '500',
       color: colors.primary,
     },
-    notificationCard: {
-      marginHorizontal: spacing.md,
-      marginTop: spacing.sm,
-      padding: spacing.md,
+    list: { flex: 1 },
+    listContent: {
+      gap: spacing.sm,
+      paddingBottom: spacing.xl,
+    },
+    filter: {
+      marginBottom: spacing.sm,
+    },
+    skeletons: {
+      gap: spacing.sm,
     },
 
-    notificationHeader: {
-      flexDirection: 'row',
+    rowCard: {
+      padding: 14,
     },
-    typeIcon: {
+    row: {
+      flexDirection: 'row',
+      gap: 12,
+    },
+    rowIcon: {
       width: 42,
       height: 42,
-      borderRadius: radius.sm,
+      borderRadius: 13,
       alignItems: 'center',
       justifyContent: 'center',
-      marginRight: spacing.sm,
       flexShrink: 0,
-    },
-    notificationContent: {
-      flex: 1,
-    },
-    notificationTitleRow: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      justifyContent: 'space-between',
-      gap: spacing.xs,
-    },
-    notificationTitle: {
-      flex: 1,
-      fontSize: 14,
-      fontWeight: '500',
-    },
-    notificationTitleUnread: {
-      fontWeight: '700',
     },
     unreadDot: {
       position: 'absolute',
@@ -303,43 +292,51 @@ function createStyles(colors: ThemeColors) {
       backgroundColor: colors.primary,
       borderWidth: 2,
     },
-    notificationBody: {
-      fontSize: 13,
-      marginTop: 3,
-      lineHeight: 18,
+    rowBody: {
+      flex: 1,
+      minWidth: 0,
     },
-    timeAgo: {
+    rowTitleLine: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
+      gap: spacing.sm,
+    },
+    rowTitle: {
+      flex: 1,
+      fontSize: 13,
+      fontWeight: '500',
+      color: colors.text,
+    },
+    rowTitleUnread: {
+      fontWeight: '700',
+    },
+    rowTime: {
       fontSize: 11,
+      color: colors.textMuted,
       flexShrink: 0,
     },
-    priorityBadge: {
+    rowBodyText: {
+      fontSize: 12,
+      lineHeight: 18,
+      color: colors.textMuted,
+      marginTop: 3,
+    },
+    urgent: {
       alignSelf: 'flex-start',
-      backgroundColor: colors.danger,
-      paddingHorizontal: spacing.xs,
+      backgroundColor: colors.dangerMuted,
+      borderWidth: 1,
+      borderColor: `${colors.onMuted.danger}28`,
+      paddingHorizontal: spacing.sm,
       paddingVertical: 2,
-      borderRadius: radius.sm,
-      marginTop: spacing.xs,
+      borderRadius: 999,
+      marginTop: spacing.sm,
     },
-    priorityText: {
+    urgentText: {
       fontSize: 10,
-      color: colors.white,
-      fontWeight: '600',
-    },
-    toggleItem: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingVertical: spacing.md,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.borderSubtle,
-    },
-    toggleText: {
-      flex: 1,
-      marginRight: spacing.md,
-    },
-    toggleDescription: {
-      fontSize: 13,
-      marginTop: 2,
+      fontWeight: '700',
+      letterSpacing: 1,
+      color: colors.onMuted.danger,
     },
   });
 }
