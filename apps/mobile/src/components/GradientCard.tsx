@@ -19,7 +19,7 @@ export function GradientCard({
     <View
       style={[
         {
-          borderRadius: radius.md,
+          borderRadius: radius.xl,
           // A colored glow beneath the card, matching Create Design's
           // GradientCard shadow -- `shadowOpacity` scales whatever alpha
           // `shadowColor` already has, so an opaque hex color plus 0.35
@@ -38,7 +38,7 @@ export function GradientCard({
         colors={resolvedColors}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={{ borderRadius: radius.md, overflow: 'hidden' }}
+        style={{ borderRadius: radius.xl, overflow: 'hidden' }}
       >
         {/* Gloss overlay: a bright highlight across the top half, the same
             "liquid" cue Create Design's gloss layer gives every gradient card. */}

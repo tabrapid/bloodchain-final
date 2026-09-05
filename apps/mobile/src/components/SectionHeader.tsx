@@ -20,9 +20,10 @@ export function SectionHeader({ children, action }: SectionHeaderProps) {
       <AppText
         style={{
           ...typography.caption,
-          color: colors.textMuted,
-          marginTop: spacing.xl,
-          marginBottom: spacing.sm,
+          color: colors.text,
+          opacity: 0.55,
+          marginTop: spacing.lg,
+          marginBottom: 12,
         }}
       >
         {children.toUpperCase()}
@@ -36,11 +37,11 @@ export function SectionHeader({ children, action }: SectionHeaderProps) {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        marginTop: spacing.xl,
-        marginBottom: spacing.sm,
+        marginTop: spacing.lg,
+        marginBottom: 12,
       }}
     >
-      <AppText style={{ ...typography.caption, color: colors.textMuted }}>
+      <AppText style={{ ...typography.caption, color: colors.text, opacity: 0.55 }}>
         {children.toUpperCase()}
       </AppText>
       <TouchableOpacity onPress={action.onPress} hitSlop={8}>
