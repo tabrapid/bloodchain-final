@@ -19,6 +19,7 @@ import {
   Card,
   Divider,
   GlassCard,
+  IconButton,
   LoadingState,
   ProgressBar,
   Screen,
@@ -85,7 +86,17 @@ export default function CommunityScreen() {
         }
         ListHeaderComponent={
           <>
-            <AppHeader title="Community" subtitle="Your donor network" />
+            <AppHeader
+              title="Community"
+              subtitle="Your donor network"
+              trailing={
+                <IconButton
+                  icon={BookOpen}
+                  onPress={() => router.push('/education')}
+                  accessibilityLabel="Education"
+                />
+              }
+            />
 
             {userRank && (
               <TouchableOpacity
@@ -108,90 +119,6 @@ export default function CommunityScreen() {
                   </View>
                 </GlassCard>
               </TouchableOpacity>
-            )}
-
-            {impactStats && (
-              <Card style={styles.section}>
-                <View style={styles.sectionHeader}>
-                  <TrendingUp size={24} color={colors.primary} />
-                  <AppText variant="heading">Your Impact</AppText>
-                </View>
-
-                <View style={styles.statsGrid}>
-                  <ImpactStat
-                    icon={<Award size={20} color={colors.primary} />}
-                    label="Donations"
-                    value={impactStats.donations}
-                  />
-                  <ImpactStat
-                    icon={<Users size={20} color={colors.primary} />}
-                    label="Campaigns"
-                    value={impactStats.campaignParticipations}
-                  />
-                  <ImpactStat
-                    icon={<Trophy size={20} color={colors.primary} />}
-                    label="Challenges"
-                    value={impactStats.challengeCompletions}
-                  />
-                  <ImpactStat
-                    icon={<BookOpen size={20} color={colors.primary} />}
-                    label="Education"
-                    value={impactStats.educationCompletions}
-                    onPress={() => router.push('/education')}
-                  />
-                </View>
-
-                <Divider />
-
-                <View style={styles.totalsRow}>
-                  <View>
-                    <AppText muted variant="bodySmall">
-                      Level
-                    </AppText>
-                    <AppText variant="heading">{impactStats.level}</AppText>
-                  </View>
-                  <View>
-                    <AppText muted variant="bodySmall">
-                      XP
-                    </AppText>
-                    <AppText variant="heading">{impactStats.xp}</AppText>
-                  </View>
-                  <View>
-                    <AppText muted variant="bodySmall">
-                      Reputation
-                    </AppText>
-                    <AppText variant="heading">{impactStats.reputation}</AppText>
-                  </View>
-                </View>
-              </Card>
-            )}
-
-            {activeChallenges && activeChallenges.length > 0 && (
-              <Card style={styles.section}>
-                <View style={styles.sectionHeader}>
-                  <Trophy size={24} color={colors.primary} />
-                  <AppText variant="heading">Active Challenges</AppText>
-                </View>
-                <View style={styles.itemList}>
-                  {activeChallenges.slice(0, 3).map((challenge) => (
-                    <ChallengeCard key={challenge.id} challenge={challenge} />
-                  ))}
-                </View>
-              </Card>
-            )}
-
-            {campaigns && campaigns.items.length > 0 && (
-              <Card style={styles.section}>
-                <View style={styles.sectionHeader}>
-                  <Calendar size={24} color={colors.primary} />
-                  <AppText variant="heading">Active Campaigns</AppText>
-                </View>
-                <View style={styles.itemList}>
-                  {campaigns.items.slice(0, 3).map((campaign) => (
-                    <CampaignCard key={campaign.id} campaign={campaign} />
-                  ))}
-                </View>
-              </Card>
             )}
 
             <AppText variant="heading" style={styles.feedHeading}>
