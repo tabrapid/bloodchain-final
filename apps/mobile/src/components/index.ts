@@ -1,4 +1,5 @@
 export * from './AppText';
+export * from './AppBackground';
 export * from './AppView';
 export * from './Screen';
 export * from './AppButton';

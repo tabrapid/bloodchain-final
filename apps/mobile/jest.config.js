@@ -18,6 +18,6 @@ module.exports = {
   // untransformed. Match pnpm's directory naming instead: a scoped package is
   // encoded as `@scope+name@version`, an unscoped one as `name@version`.
   transformIgnorePatterns: [
-    'node_modules/\\.pnpm/(?!(@react-native|react-native|@expo|expo|@testing-library|lucide-react-native)[@+-])',
+    'node_modules/\\.pnpm/(?!(@react-native|react-native|@react-navigation|@expo|expo|@testing-library|lucide-react-native)[@+-])',
   ],
 };

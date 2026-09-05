@@ -253,7 +253,7 @@ function createStyles(colors: ThemeColors) {
     },
     summaryCard: {
       padding: spacing.lg,
-      marginBottom: spacing.lg,
+      marginBottom: 12,
       alignItems: 'center',
     },
     mainInfo: {
@@ -283,7 +283,7 @@ function createStyles(colors: ThemeColors) {
     },
     detailsCard: {
       padding: spacing.lg,
-      marginBottom: spacing.lg,
+      marginBottom: 12,
     },
     sectionTitle: {
       marginBottom: spacing.lg,
@@ -324,7 +324,7 @@ function createStyles(colors: ThemeColors) {
     nextDateCard: {
       padding: spacing.lg,
       alignItems: 'center',
-      marginBottom: spacing.lg,
+      marginBottom: 12,
       backgroundColor: colors.successMuted,
     },
     nextDateLabel: {
@@ -339,7 +339,7 @@ function createStyles(colors: ThemeColors) {
     reasonCard: {
       padding: spacing.lg,
       backgroundColor: colors.dangerMuted,
-      marginBottom: spacing.lg,
+      marginBottom: 12,
     },
     reasonHeader: {
       flexDirection: 'row',

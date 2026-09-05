@@ -306,8 +306,8 @@ export default function Profile() {
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
     profileCard: {
-      marginTop: spacing.xl,
-      marginBottom: spacing.lg,
+      marginTop: 12,
+      marginBottom: 12,
     },
     // Centred identity block, as the reference has it: avatar over name over
     // email over a pair of badges -- not a left-aligned row.
@@ -376,7 +376,7 @@ function createStyles(colors: ThemeColors) {
       marginTop: spacing.md,
     },
     gamificationTeaser: {
-      marginBottom: spacing.lg,
+      marginBottom: 12,
     },
     gamificationTeaserRow: {
       flexDirection: 'row',
@@ -404,7 +404,7 @@ function createStyles(colors: ThemeColors) {
       justifyContent: 'center',
     },
     completionCard: {
-      marginBottom: spacing.lg,
+      marginBottom: 12,
     },
     completionHeader: {
       flexDirection: 'row',
@@ -439,7 +439,7 @@ function createStyles(colors: ThemeColors) {
       textTransform: 'capitalize',
     },
     bloodTypeCard: {
-      marginBottom: spacing.lg,
+      marginBottom: 12,
     },
     bloodTypeWatermark: {
       position: 'absolute',
@@ -483,11 +483,11 @@ function createStyles(colors: ThemeColors) {
       marginTop: spacing.sm,
     },
     signOutCard: {
-      marginTop: spacing.lg,
+      marginTop: 12,
     },
     footer: {
-      marginTop: spacing.xl,
-      paddingVertical: spacing.lg,
+      marginTop: spacing.lg,
+      paddingVertical: spacing.md,
     },
     version: {
       textAlign: 'center',

@@ -345,7 +345,7 @@ function createStyles(colors: ThemeColors) {
     },
     calendarCard: {
       padding: spacing.md,
-      marginBottom: spacing.lg,
+      marginBottom: 12,
     },
     legendRow: {
       flexDirection: 'row',

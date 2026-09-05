@@ -255,11 +255,11 @@ function EducationCard({
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
     statsCard: {
-      marginBottom: spacing.lg,
+      marginBottom: 12,
     },
     errorCard: {
       padding: spacing.md,
-      marginBottom: spacing.lg,
+      marginBottom: 12,
       backgroundColor: colors.dangerMuted,
     },
     statsRow: {

@@ -142,7 +142,11 @@ export function GlassTabBar({ state, descriptors, navigation }: BottomTabBarProp
     <View
       style={{
         paddingHorizontal: 14,
-        paddingBottom: Math.max(insets.bottom, 22),
+        // Clear of the home indicator *and* off the bottom edge. `Math.max`
+        // alone put the pill flush against the indicator zone on a notched
+        // phone, so it read as docked rather than floating; the extra 10 is
+        // the gap that makes it read as a pill hovering over the content.
+        paddingBottom: Math.max(insets.bottom, 12) + 10,
         paddingTop: spacing.xs,
       }}
     >

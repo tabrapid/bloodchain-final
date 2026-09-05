@@ -384,7 +384,7 @@ function createStyles(colors: ThemeColors) {
       marginTop: 2,
     },
     onboardingPrompt: {
-      marginBottom: spacing.xl,
+      marginBottom: 12,
       borderColor: colors.primary,
       borderWidth: 1,
     },
@@ -396,7 +396,7 @@ function createStyles(colors: ThemeColors) {
       alignSelf: 'flex-start',
     },
     bloodTypeCard: {
-      marginBottom: spacing.lg,
+      marginBottom: 12,
     },
     heroTopRow: {
       flexDirection: 'row',
@@ -502,8 +502,8 @@ function createStyles(colors: ThemeColors) {
     },
     statsRow: {
       flexDirection: 'row',
-      gap: spacing.md,
-      marginBottom: spacing.lg,
+      gap: 10,
+      marginBottom: 12,
     },
     profileStat: {
       flexDirection: 'row',
@@ -535,7 +535,7 @@ function createStyles(colors: ThemeColors) {
     quickActions: {
       flexDirection: 'row',
       gap: 10,
-      marginBottom: spacing.lg,
+      marginBottom: 12,
     },
     quickAction: {
       flex: 1,

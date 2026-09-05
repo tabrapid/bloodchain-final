@@ -8,6 +8,19 @@ export default function AppLayout() {
       tabBar={(props) => <GlassTabBar {...props} />}
       screenOptions={{
         headerShown: false,
+        // The tab bar is a floating glass pill, so it has to sit *over* the
+        // screen rather than in a strip below it. Without `position:
+        // 'absolute'` the navigator reserves a band at the bottom and shortens
+        // every screen to fit -- the pill then has nothing behind it to blur
+        // and reads as a docked slab instead of glass floating over content.
+        // `Screen` pads its scroll content by the bar's height so nothing ends
+        // up stranded underneath it.
+        tabBarStyle: {
+          position: 'absolute',
+          backgroundColor: 'transparent',
+          borderTopWidth: 0,
+          elevation: 0,
+        },
       }}
     >
       <Tabs.Screen

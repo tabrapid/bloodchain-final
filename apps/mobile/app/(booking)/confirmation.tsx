@@ -167,7 +167,7 @@ function createStyles(colors: ThemeColors) {
     },
     detailsCard: {
       padding: spacing.lg,
-      marginBottom: spacing.lg,
+      marginBottom: 12,
     },
     refRow: {
       alignItems: 'center',

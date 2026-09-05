@@ -186,7 +186,7 @@ function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
     errorCard: {
       padding: spacing.md,
-      marginBottom: spacing.lg,
+      marginBottom: 12,
       backgroundColor: colors.dangerMuted,
     },
     list: {
