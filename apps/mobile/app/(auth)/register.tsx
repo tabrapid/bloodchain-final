@@ -32,7 +32,11 @@ export default function Register() {
   return (
     <Screen>
       <View style={{ marginTop: spacing.xl }}>
-        <AppText variant="title">Create your account.</AppText>
+        {/* The auth headlines are the one place the reference goes bigger and
+            heavier than the standard screen title. */}
+        <AppText variant="title" style={{ fontSize: 32, fontWeight: '800', letterSpacing: -0.96 }}>
+          Create your account.
+        </AppText>
         <AppText muted style={{ marginTop: spacing.sm, marginBottom: spacing.xl }}>
           Your health data stays private and secure.
         </AppText>

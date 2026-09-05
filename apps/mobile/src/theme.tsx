@@ -280,8 +280,14 @@ export const radius = {
 
 export const typography = {
   display: { fontSize: 38, fontWeight: '700' as const, lineHeight: 44, letterSpacing: -0.5 },
-  /** The reference's `screenTitle`. */
-  title: { fontSize: 32, fontWeight: '700' as const, lineHeight: 36, letterSpacing: -0.6 },
+  /**
+   * The screen title as the reference actually renders it — 27pt, not the
+   * 32pt its token table nominally declares. Every tab root and pushed
+   * screen in the reference draws its own `<h1>` at 27/700/-0.03em; the
+   * larger size only appears on the two auth headlines, which set it
+   * explicitly.
+   */
+  title: { fontSize: 27, fontWeight: '700' as const, lineHeight: 32, letterSpacing: -0.8 },
   /** The reference's `cardTitle` — smaller and tighter than the old 19pt heading. */
   heading: { fontSize: 16, fontWeight: '600' as const, lineHeight: 22 },
   body: { fontSize: 15, fontWeight: '400' as const, lineHeight: 22 },
