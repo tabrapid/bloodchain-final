@@ -27,11 +27,13 @@ export interface OverviewStatProps {
  */
 export function OverviewStat({ icon: Icon, color, value, unit, label, onPress, style }: OverviewStatProps) {
   const { colors } = useTheme();
-  const iconBg = colors[`${color}Muted` as const];
-  const iconColor = colors.onMuted[color];
+  // The reference washes the icon square in the accent at 15% and draws the
+  // icon in the full accent -- not a heavier tint under a lightened icon.
+  const accent = colors[color];
+  const iconBg = `${accent}26`;
 
   const card = (
-    <GlassCard style={{ alignItems: 'center', paddingVertical: spacing.lg }}>
+    <GlassCard style={{ alignItems: 'center', padding: 14 }}>
       <View
         style={{
           width: 40,
@@ -43,17 +45,17 @@ export function OverviewStat({ icon: Icon, color, value, unit, label, onPress, s
           marginBottom: spacing.sm,
         }}
       >
-        <Icon size={18} color={iconColor} />
+        <Icon size={18} color={accent} />
       </View>
-      <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 3 }}>
-        <AppText style={{ fontSize: 28, fontWeight: '700' }}>{value}</AppText>
+      <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 2 }}>
+        <AppText style={{ fontSize: 28, fontWeight: '700', letterSpacing: -0.84 }}>{value}</AppText>
         {unit && (
           <AppText muted style={{ fontSize: 12, fontWeight: '500' }}>
             {unit}
           </AppText>
         )}
       </View>
-      <AppText muted style={{ fontSize: 12, textAlign: 'center', marginTop: spacing.xs }}>
+      <AppText muted style={{ fontSize: 11, fontWeight: '500', textAlign: 'center' }}>
         {label}
       </AppText>
     </GlassCard>
