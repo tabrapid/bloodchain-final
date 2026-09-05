@@ -1,6 +1,6 @@
 import { Pressable, PressableProps, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 import { BlurView } from 'expo-blur';
-import { useTheme } from '../theme';
+import { glassBlurOnCards, useTheme } from '../theme';
 import { LucideIcon } from '../types/icons';
 import { AppText } from './AppText';
 
@@ -34,6 +34,16 @@ export function IconButton({
   const flattenedStyle = StyleSheet.flatten(style);
   const resolvedColor = color ?? colors.text;
 
+  const iconSurface = {
+    flex: 1,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    backgroundColor: colors.glass.standard.fill,
+    borderWidth: 1,
+    borderColor: colors.glass.standard.border,
+    borderRadius: ICON_BUTTON_RADIUS,
+  };
+
   return (
     <Pressable {...props}>
       {({ pressed }) => (
@@ -50,22 +60,23 @@ export function IconButton({
           ]}
         >
           <View style={{ flex: 1, borderRadius: ICON_BUTTON_RADIUS, overflow: 'hidden' }}>
-            <BlurView
-              intensity={colors.glass.standard.blur}
-              tint={colors.blurTint}
-              experimentalBlurMethod="dimezisBlurView"
-              style={{
-                flex: 1,
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: colors.glass.standard.fill,
-                borderWidth: 1,
-                borderColor: colors.glass.standard.border,
-                borderRadius: ICON_BUTTON_RADIUS,
-              }}
-            >
-              <Icon size={size} color={resolvedColor} />
-            </BlurView>
+            {/* Same switch as `GlassCard`: several of these sit on one screen,
+                and a backdrop blur that falls back to a flat tinted plate dims
+                them all. See `glassBlurOnCards`. */}
+            {glassBlurOnCards ? (
+              <BlurView
+                intensity={colors.glass.standard.blur}
+                tint={colors.blurTint}
+                experimentalBlurMethod="dimezisBlurView"
+                style={iconSurface}
+              >
+                <Icon size={size} color={resolvedColor} />
+              </BlurView>
+            ) : (
+              <View style={iconSurface}>
+                <Icon size={size} color={resolvedColor} />
+              </View>
+            )}
           </View>
           {badge != null && badge > 0 && (
             <View

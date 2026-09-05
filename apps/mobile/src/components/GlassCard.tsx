@@ -2,7 +2,7 @@ import { PropsWithChildren, useMemo } from 'react';
 import { StyleSheet, View, ViewProps, type ViewStyle } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
-import { radius, spacing, useTheme, GlassTierTokens } from '../theme';
+import { glassBlurOnCards, radius, spacing, useTheme, GlassTierTokens } from '../theme';
 
 /**
  * The three glass tiers of the Create Design system, plus the rose-tinted
@@ -102,6 +102,34 @@ export function GlassCard({
   // blur clips to one radius while the border draws another.
   const cornerRadius = inner.borderRadius ?? radius.lg;
 
+  const surface = (
+    <View
+      style={[
+        {
+          backgroundColor: fill,
+          borderRadius: cornerRadius,
+          padding: spacing.md,
+          borderWidth: 1,
+          borderColor,
+          overflow: 'hidden',
+        },
+        inner,
+      ]}
+      {...props}
+    >
+      {showSheen && (
+        <LinearGradient
+          colors={colors.glassSheen}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '40%' }}
+          pointerEvents="none"
+        />
+      )}
+      {children}
+    </View>
+  );
+
   return (
     <View
       style={[
@@ -116,41 +144,18 @@ export function GlassCard({
         outer,
       ]}
     >
-      <BlurView
-        intensity={base.blur}
-        tint={colors.blurTint}
-        experimentalBlurMethod="dimezisBlurView"
-        style={{ borderRadius: cornerRadius, overflow: 'hidden' }}
-      >
-        {/* Fill, border and padding on one view. These were two nested views,
-            which bought nothing and added a compositing layer to every card on
-            a screen that already stacks a blur pass per card. */}
-        <View
-          style={[
-            {
-              backgroundColor: fill,
-              borderRadius: cornerRadius,
-              padding: spacing.md,
-              borderWidth: 1,
-              borderColor,
-              overflow: 'hidden',
-            },
-            inner,
-          ]}
-          {...props}
+      {glassBlurOnCards ? (
+        <BlurView
+          intensity={base.blur}
+          tint={colors.blurTint}
+          experimentalBlurMethod="dimezisBlurView"
+          style={{ borderRadius: cornerRadius, overflow: 'hidden' }}
         >
-          {showSheen && (
-            <LinearGradient
-              colors={colors.glassSheen}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 0, y: 1 }}
-              style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '40%' }}
-              pointerEvents="none"
-            />
-          )}
-          {children}
-        </View>
-      </BlurView>
+          {surface}
+        </BlurView>
+      ) : (
+        surface
+      )}
     </View>
   );
 }

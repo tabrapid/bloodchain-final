@@ -1,5 +1,5 @@
 import { PropsWithChildren } from 'react';
-import { View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Defs, RadialGradient, Stop, Circle } from 'react-native-svg';
 import { useTheme } from '../theme';
@@ -27,25 +27,22 @@ export function AppBackground({ children }: PropsWithChildren) {
   const { colors } = useTheme();
 
   return (
-    <LinearGradient
-      colors={colors.backgroundGradient}
-      // Mostly top-to-bottom with a slight rightward lean, matching the
-      // reference's 160deg -- not a 135deg diagonal.
-      start={{ x: 0, y: 0 }}
-      end={{ x: 0.34, y: 0.94 }}
-      locations={[0, 0.55, 1]}
-      style={{ flex: 1 }}
-    >
-      {/*
-        Glass panels blur whatever sits behind them, so a flat single-color
-        background blurs to that same flat color -- the effect only becomes
-        visible when there is color variation to smear. These orbs are that
-        variation. Each is a radial gradient (full color at the center, fading
-        to fully transparent at the edge) rather than a flat-filled circle: a
-        real soft glow instead of a hard-edged blob, and cheaper than a
-        full-screen BlurView.
-      */}
-      <View style={ABSOLUTE_FILL} pointerEvents="none">
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+      {/* One non-interactive layer holding the gradient and the blooms, and
+          the app in a sibling declared after it. Painting order among
+          siblings is declaration order, so this makes "backdrop below,
+          content above" a property of the structure rather than something to
+          re-derive from how absolute positioning happens to composite. */}
+      <View style={StyleSheet.absoluteFill} pointerEvents="none">
+        <LinearGradient
+          colors={colors.backgroundGradient}
+          // Mostly top-to-bottom with a slight rightward lean, matching the
+          // reference's 160deg -- not a 135deg diagonal.
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0.34, y: 0.94 }}
+          locations={[0, 0.55, 1]}
+          style={StyleSheet.absoluteFill}
+        />
         {colors.ambientOrbs.map((orb, i) => (
           <Svg
             key={i}
@@ -64,16 +61,8 @@ export function AppBackground({ children }: PropsWithChildren) {
         ))}
       </View>
 
-      {children}
-    </LinearGradient>
+      <View style={{ flex: 1 }}>{children}</View>
+    </View>
   );
 }
 
-const ABSOLUTE_FILL = {
-  position: 'absolute' as const,
-  top: 0,
-  left: 0,
-  right: 0,
-  bottom: 0,
-  overflow: 'hidden' as const,
-};

@@ -155,3 +155,20 @@ describe('GlassTabBar', () => {
     expect(navigate).toHaveBeenCalledWith('health');
   });
 });
+
+/**
+ * Cards gave up their backdrop blur -- a screen tiled with them dimmed the
+ * whole app whenever the platform could not sample the backdrop. The bar is
+ * the exception and should stay one: it is a single surface floating over
+ * scrolling content, which is the one place the effect earns its cost, and a
+ * failure here is a slightly flat pill rather than a dimmed app.
+ */
+describe('the tab bar keeps its blur', () => {
+  it('mounts exactly one BlurView', () => {
+    const { BlurView } = require('expo-blur');
+    const { props } = buildProps(['home', 'health', 'donate'], 0);
+    const tree = renderBar(props);
+
+    expect(tree.root.findAllByType(BlurView)).toHaveLength(1);
+  });
+});

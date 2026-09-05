@@ -1,151 +1,121 @@
 import React from 'react';
-import renderer, { act, type ReactTestRendererJSON } from 'react-test-renderer';
-import { StyleSheet, Text } from 'react-native';
+import renderer, { type ReactTestRendererJSON } from 'react-test-renderer';
+import { StyleSheet, Text, type ViewStyle } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Card } from './Card';
 import { GlassCard } from './GlassCard';
-import { ThemeProvider } from '../theme';
+import { ThemeProvider, colors as darkColors, glassBlurOnCards } from '../theme';
+
+jest.mock('react-native/Libraries/Utilities/useColorScheme', () => ({
+  __esModule: true,
+  default: () => 'dark',
+}));
 
 /**
- * Regression tests for the Liquid Glass redesign shipping as flat opaque
- * cards on a real device.
+ * A card is a translucent surface: a fill you can see the backdrop through, a
+ * hairline border, and (on the upper tiers) a specular sheen. It shipped once
+ * as a flat opaque box, which collapsed the whole design language, so what a
+ * card *is* stays pinned here.
  *
- * Two independent bugs caused that, both invisible to typecheck and to every
- * other test:
- *
- * 1. `Card` was still the old flat opaque surface, and ~29 of the app's
- *    screens are built on `Card` rather than `GlassCard` -- so the redesign
- *    only ever reached the handful of screens that named `GlassCard`
- *    explicitly. Confirmed live from a screenshot: the Donate screen, which
- *    is all `Card`, rendered as solid boxes.
- * 2. Blur was gated behind `Platform.OS === 'ios'`, so on Android -- the
- *    platform the app was actually being tested on -- there was no blur at
- *    all, only a translucent fill over a near-flat background.
- *
- * These assert the fix at the level that actually broke: that the shared
- * card component really does mount a BlurView, on every platform.
+ * What it is no longer is a `BlurView`. A backdrop blur that cannot sample its
+ * backdrop does not degrade to "no blur" -- the platform draws a flat tinted
+ * plate instead, and a screen tiled with them dims the entire app. That was
+ * reported repeatedly, so cards render their surface directly and the effect
+ * is behind `glassBlurOnCards`. The look survives because it never rested on
+ * the blur: it rests on these values.
  */
-function render(node: React.ReactElement) {
-  let tree: renderer.ReactTestRenderer;
-  act(() => {
-    tree = renderer.create(<ThemeProvider>{node}</ThemeProvider>);
-  });
-  return tree!;
+function render(element: React.ReactElement) {
+  return renderer.create(<ThemeProvider>{element}</ThemeProvider>);
 }
 
-describe('Card / GlassCard render a real glass surface', () => {
-  it('Card mounts a BlurView (it is the glass surface, not a flat box)', () => {
-    const tree = render(
-      <Card>
-        <Text>content</Text>
-      </Card>,
-    );
-    expect(tree.root.findAllByType(BlurView).length).toBeGreaterThan(0);
+/** [shadow wrapper, surface] -- the two views a card is built from. */
+function layers(style?: ViewStyle) {
+  const tree = render(<GlassCard style={style} />);
+  const outer = tree.toJSON() as ReactTestRendererJSON;
+  const surface = outer.children![0] as ReactTestRendererJSON;
+  return {
+    outer: StyleSheet.flatten(outer.props.style) as ViewStyle,
+    surface: StyleSheet.flatten(surface.props.style) as ViewStyle,
+  };
+}
+
+describe('a card is a translucent surface', () => {
+  it('fills with a see-through tint, not an opaque color', () => {
+    const { surface } = layers();
+
+    expect(surface.backgroundColor).toBe(darkColors.glass.standard.fill);
+    // The whole point: the backdrop shows through.
+    expect(String(surface.backgroundColor)).toMatch(/rgba\(.*0\.\d+\)/);
   });
 
-  it('GlassCard mounts a BlurView', () => {
-    const tree = render(
-      <GlassCard>
-        <Text>content</Text>
-      </GlassCard>,
-    );
-    expect(tree.root.findAllByType(BlurView).length).toBeGreaterThan(0);
+  it('carries a hairline border', () => {
+    const { surface } = layers();
+
+    expect(surface.borderWidth).toBe(1);
+    expect(surface.borderColor).toBe(darkColors.glass.standard.border);
   });
 
-  it('enables the Android blur method, so blur is not iOS-only', () => {
+  it('renders the content it was given', () => {
     const tree = render(
       <Card>
-        <Text>content</Text>
+        <Text>inside</Text>
       </Card>,
     );
-    const blur = tree.root.findAllByType(BlurView)[0]!;
-    expect(blur.props.experimentalBlurMethod).toBe('dimezisBlurView');
+    expect(JSON.stringify(tree.toJSON())).toContain('inside');
   });
 
-  it('still renders the content it was given', () => {
-    const tree = render(
-      <Card>
-        <Text>hello</Text>
-      </Card>,
-    );
-    const texts = tree.root.findAllByType(Text);
-    expect(texts.some((t) => t.props.children === 'hello')).toBe(true);
+  it('does not mount a blur per card while the effect is off', () => {
+    // Guards the decision itself: flipping `glassBlurOnCards` back on is a
+    // deliberate act, not something that creeps back in.
+    const tree = render(<Card />);
+    const blurs = tree.root.findAllByType(BlurView);
+
+    expect(blurs).toHaveLength(glassBlurOnCards ? 1 : 0);
   });
 });
 
 /**
- * A card is three stacked views: a shadow wrapper, the blur, and the bordered
- * content box. A style handed in at the call site has to be split between them
- * by what each property means -- margins position the whole card, padding
- * describes its interior.
- *
- * Getting this wrong is not subtle. When the call-site style landed whole on
- * the innermost box, `marginTop: 32` inset the *content* 32px inside a
- * full-size blur panel, so the card rendered as a large faint rectangle with a
- * smaller bordered card floating inside it. Twenty-one cards across the app
- * pass a margin, so twenty-one of them drew that way.
+ * A style handed in at the call site is split between the two views by what
+ * each property means. When it landed whole on the inner one, `marginTop: 32`
+ * inset the *content* inside a full-size panel, and the card drew as a large
+ * faint rectangle with a smaller one floating inside it -- on all 21 cards in
+ * the app that pass a margin.
  */
-describe('GlassCard: which layer a call-site style lands on', () => {
-  const Glass = GlassCard;
-
-  function layers(style: object) {
-    const tree = renderer.create(
-      <ThemeProvider>
-        <Glass style={style} />
-      </ThemeProvider>,
-    );
-    const outer = tree.toJSON() as ReactTestRendererJSON;
-    const blur = outer.children![0] as ReactTestRendererJSON;
-    const content = blur.children![0] as ReactTestRendererJSON;
-    return {
-      outer: StyleSheet.flatten(outer.props.style),
-      content: StyleSheet.flatten(content.props.style),
-    };
-  }
-
+describe('which layer a call-site style lands on', () => {
   it('puts margins on the outer wrapper, so the whole card moves', () => {
-    const { outer, content } = layers({ marginTop: 32, marginBottom: 24 });
+    const { outer, surface } = layers({ marginTop: 32, marginBottom: 24 });
 
     expect(outer.marginTop).toBe(32);
     expect(outer.marginBottom).toBe(24);
-    expect(content.marginTop).toBeUndefined();
-    expect(content.marginBottom).toBeUndefined();
+    expect(surface.marginTop).toBeUndefined();
   });
 
   it('puts sizing and flex on the outer wrapper', () => {
-    const { outer, content } = layers({ flex: 1, alignSelf: 'center', maxWidth: 320 });
+    const { outer, surface } = layers({ flex: 1, alignSelf: 'center', maxWidth: 320 });
 
     expect(outer.flex).toBe(1);
     expect(outer.alignSelf).toBe('center');
     expect(outer.maxWidth).toBe(320);
-    expect(content.flex).toBeUndefined();
+    expect(surface.flex).toBeUndefined();
   });
 
-  it('keeps padding, borders and content layout on the inner box', () => {
-    const { outer, content } = layers({
+  it('keeps padding, borders and content layout on the surface', () => {
+    const { outer, surface } = layers({
       padding: 14,
       borderColor: 'rgba(216, 83, 96, 0.35)',
       alignItems: 'center',
     });
 
-    expect(content.padding).toBe(14);
-    expect(content.borderColor).toBe('rgba(216, 83, 96, 0.35)');
-    expect(content.alignItems).toBe('center');
+    expect(surface.padding).toBe(14);
+    expect(surface.borderColor).toBe('rgba(216, 83, 96, 0.35)');
+    expect(surface.alignItems).toBe('center');
     expect(outer.padding).toBeUndefined();
   });
 
-  it('applies an overridden corner to every layer, so the blur clips to it', () => {
-    const tree = renderer.create(
-      <ThemeProvider>
-        <Glass style={{ borderRadius: 8 }} />
-      </ThemeProvider>,
-    );
-    const outer = tree.toJSON() as ReactTestRendererJSON;
-    const blur = outer.children![0] as ReactTestRendererJSON;
-    const content = blur.children![0] as ReactTestRendererJSON;
+  it('applies an overridden corner to both layers', () => {
+    const { outer, surface } = layers({ borderRadius: 8 });
 
-    expect(StyleSheet.flatten(outer.props.style).borderRadius).toBe(8);
-    expect(StyleSheet.flatten(blur.props.style).borderRadius).toBe(8);
-    expect(StyleSheet.flatten(content.props.style).borderRadius).toBe(8);
+    expect(outer.borderRadius).toBe(8);
+    expect(surface.borderRadius).toBe(8);
   });
 });

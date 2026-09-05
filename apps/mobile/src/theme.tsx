@@ -136,7 +136,7 @@ const darkColors: ThemeColors = {
       elevation: 12,
     },
     elevated: {
-      fill: 'rgba(255,255,255,0.13)',
+      fill: 'rgba(255,255,255,0.16)',
       border: 'rgba(255,255,255,0.18)',
       blur: 48,
       shadowOpacity: 0.45,
@@ -145,7 +145,7 @@ const darkColors: ThemeColors = {
       elevation: 8,
     },
     standard: {
-      fill: 'rgba(255,255,255,0.07)',
+      fill: 'rgba(255,255,255,0.10)',
       border: 'rgba(255,255,255,0.10)',
       blur: 30,
       shadowOpacity: 0.3,
@@ -282,6 +282,29 @@ export const spacing = {
  * donation history, leaderboard places) stay tighter at `spacing.sm`, because
  * a row is not a card and reads better packed.
  */
+/**
+ * Whether glass surfaces use a real backdrop blur.
+ *
+ * `expo-blur` wraps the platform's backdrop-blur view, which samples what has
+ * already been drawn beneath it. When that sample is unavailable -- and on a
+ * screen that tiles a dozen of them over a navigator, it repeatedly is -- the
+ * platform does not fall back to "no blur", it falls back to a flat tinted
+ * plate. With `tint: 'dark'` that is a dark scrim, so a screenful of cards
+ * dims the entire app uniformly: text, icons, the tab bar, everything. That
+ * was reported four times across separate builds and survived moving the
+ * backdrop to the root.
+ *
+ * So the effect is off for the surfaces that tile the screen. The design does
+ * not actually rest on it -- the translucent fill, the hairline border, the
+ * specular sheen and the color blooms behind carry the look, and now they
+ * render the same way every launch. The tab bar keeps its blur: it is a single
+ * surface, it is the one place the effect earns its cost, and a single failure
+ * there is a slightly flat pill rather than a dimmed app.
+ *
+ * Flip this to `true` to get the blur back on cards.
+ */
+export const glassBlurOnCards = false;
+
 export const layout = {
   cardGap: 10,
   sectionGapTop: 16,
