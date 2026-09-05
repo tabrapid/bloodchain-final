@@ -155,6 +155,15 @@ beforeEach(() => {
   } as never);
 });
 
+/** Mounted trees, unmounted after each test so their effects stop running. */
+const mounted: renderer.ReactTestRenderer[] = [];
+
+afterEach(() => {
+  act(() => {
+    mounted.splice(0).forEach((tree) => tree.unmount());
+  });
+});
+
 async function renderScreen(Screen: React.ComponentType) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 } },
@@ -182,6 +191,7 @@ async function renderScreen(Screen: React.ComponentType) {
   act(() => {
     tree = renderer.create(element);
   });
+  mounted.push(tree);
 
   // React Query flushes subscriber notifications on a macrotask, so the first
   // commit still shows the loading state. Settle the queries before returning,

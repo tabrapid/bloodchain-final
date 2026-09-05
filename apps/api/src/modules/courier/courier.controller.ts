@@ -44,14 +44,19 @@ export class CourierController {
   @Get('shipments')
   @Roles(RoleCode.COURIER, RoleCode.SUPER_ADMIN)
   @ApiOperation({ summary: 'Get courier shipments' })
-  getShipments(
+  async getShipments(
     @CurrentUser('sub') userId: string,
     @Query('status') status?: string,
     @Query('limit') limit?: number,
     @Query('offset') offset?: number,
   ) {
+    // `Shipment.courierId` references `Courier.id`, not `User.id`. Passing the
+    // JWT subject straight through compared a user id against a courier id, so
+    // this list was unconditionally empty for every courier. The two sibling
+    // endpoints below already resolve the profile first.
+    const courier = await this.courierService.getCourierByUserId(userId);
     return this.courierService.getCourierShipments(
-      userId,
+      courier.id,
       { status, limit: limit ? Number(limit) : undefined, offset: offset ? Number(offset) : undefined },
     );
   }
