@@ -122,7 +122,6 @@ function createStyles(colors: ThemeColors) {
       alignItems: 'center',
     },
     section: {
-      paddingHorizontal: spacing.lg,
       marginBottom: spacing.lg,
     },
     sectionHeader: {

@@ -118,7 +118,7 @@ function ChallengeCard({
   const hasJoined = challenge.userProgress !== undefined;
 
   return (
-    <GlassCard style={styles.card}>
+    <GlassCard>
       <View style={styles.badgeRow}>
         <Badge variant="primary">{challenge.type}</Badge>
       </View>
@@ -192,9 +192,6 @@ function createStyles(colors: ThemeColors) {
     list: {
       gap: spacing.md,
       paddingBottom: spacing.xl,
-    },
-    card: {
-      padding: spacing.lg,
     },
     badgeRow: {
       flexDirection: 'row',

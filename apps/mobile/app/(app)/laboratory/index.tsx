@@ -83,7 +83,7 @@ export default function LaboratoryScreen() {
       <ScreenHeader title="Blood Tests" />
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={{ padding: spacing.lg }}
+        contentContainerStyle={{ paddingBottom: spacing.xl }}
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing}
