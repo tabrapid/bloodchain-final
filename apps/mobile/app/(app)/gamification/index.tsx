@@ -1,26 +1,34 @@
 import React from 'react';
-import {
-  View,
-  ScrollView,
-  StyleSheet,
-  RefreshControl,
-  TouchableOpacity,
-} from 'react-native';
+import { View, ScrollView, StyleSheet, RefreshControl, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useGamificationProfile, useLevelProgress, useAchievements, useBadges } from '../../../src/hooks/useGamification';
-import { Screen } from '../../../src/components/Screen';
-import { Card, GlassCard, GradientCard, ScreenHeader } from '../../../src/components';
+import { Award, Star, Trophy, Zap } from 'lucide-react-native';
+import {
+  useGamificationProfile,
+  useLevelProgress,
+  useAchievements,
+  useBadges,
+} from '../../../src/hooks/useGamification';
+import {
+  Screen,
+  GlassCard,
+  GradientCard,
+  Badge as Chip,
+  ProgressBar,
+  ScreenHeader,
+  SectionHeader,
+  SkeletonCard,
+} from '../../../src/components';
 import { AppText } from '../../../src/components/AppText';
 import { XpProgressBar } from '../../../src/components/gamification/XpProgressBar';
-import { AchievementCard } from '../../../src/components/gamification/AchievementCard';
 import { BadgeDisplay } from '../../../src/components/gamification/BadgeDisplay';
-import { Award, Star, Trophy, Zap } from 'lucide-react-native';
-import { spacing, useTheme, ThemeColors } from '../../../src/theme';
+import { spacing, radius, useTheme, ThemeColors } from '../../../src/theme';
+import type { Achievement, Badge } from '../../../src/api/gamification';
 
 export default function GamificationScreen() {
   const { colors } = useTheme();
   const styles = React.useMemo(() => createStyles(colors), [colors]);
   const router = useRouter();
+
   const { data: profile, isLoading: profileLoading, refetch: refetchProfile } = useGamificationProfile();
   const { data: levelProgress, isLoading: progressLoading, refetch: refetchProgress } = useLevelProgress();
   const { data: achievements, refetch: refetchAchievements } = useAchievements();
@@ -37,223 +45,234 @@ export default function GamificationScreen() {
       refetchBadges(),
     ]);
     setRefreshing(false);
-  }, []);
+  }, [refetchProfile, refetchProgress, refetchAchievements, refetchBadges]);
 
   const isLoading = profileLoading || progressLoading;
 
-  const recentAchievements = achievements?.unlocked.slice(0, 3) || [];
-  const inProgressAchievements = achievements?.inProgress.slice(0, 3) || [];
-
-  if (isLoading && !profile) {
-    return (
-      <Screen>
-        <ScreenHeader title="Achievements" subtitle="Your progress & rewards" />
-        <View style={styles.loadingContainer}>
-          <AppText variant="body" muted>Loading...</AppText>
-        </View>
-      </Screen>
-    );
-  }
+  const earnedBadges = badges?.filter((badge) => badge.earnedAt).length ?? 0;
+  const inProgress = achievements?.inProgress ?? [];
+  const unlocked = achievements?.unlocked ?? [];
+  // The reference shows twelve badge tiles: earned first, then the ones still
+  // to come at a third of the opacity, which is what makes the grid read as a
+  // collection rather than a list of what you happen to have.
+  const badgeGrid: Badge[] = React.useMemo(() => {
+    if (!badges) return [];
+    return [...badges].sort((a, b) => Number(!!b.earnedAt) - Number(!!a.earnedAt)).slice(0, 12);
+  }, [badges]);
 
   return (
     <Screen scroll={false}>
-      <ScreenHeader
-        title="Achievements"
-        subtitle="Your progress & rewards"
-      />
+      <ScreenHeader title="Achievements" subtitle="Your progress & rewards" />
       <ScrollView
-        style={styles.container}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }
-        showsVerticalScrollIndicator={false}
       >
+        {isLoading && !profile ? (
+          <>
+            <SkeletonCard />
+            <SkeletonCard />
+            <SkeletonCard />
+          </>
+        ) : (
+          <>
+            <GradientCard colors={['#E5B86D', '#D4A043']} style={styles.hero}>
+              <View style={styles.heroTop}>
+                <View style={styles.heroLevel}>
+                  <AppText style={styles.levelEyebrow}>LEVEL</AppText>
+                  <AppText style={styles.levelNumber}>{profile?.level ?? 1}</AppText>
+                  <AppText style={styles.levelName}>
+                    {levelProgress?.currentLevelName ?? 'New Donor'}
+                  </AppText>
+                </View>
+                <View style={styles.heroXp}>
+                  <Zap size={32} color="rgba(255,255,255,0.8)" />
+                  <AppText style={styles.xpValue}>{profile?.totalXp ?? 0}</AppText>
+                  <AppText style={styles.xpLabel}>XP points</AppText>
+                </View>
+              </View>
 
-        <GradientCard
-          colors={['#E5B86D', '#D4A043']}
-          style={styles.profileCard}
-        >
-          <View style={styles.profileHeader}>
-            <View style={styles.profileInfo}>
-              <AppText style={styles.levelEyebrow}>LEVEL</AppText>
-              <AppText style={styles.levelNumber}>{profile?.level || 1}</AppText>
-              <AppText style={styles.levelName}>
-                {levelProgress?.currentLevelName || 'New Donor'}
-              </AppText>
+              <View style={styles.progressLabelRow}>
+                <AppText style={styles.progressLabel}>
+                  Progress to {levelProgress?.nextLevelName ?? 'next level'}
+                </AppText>
+                <AppText style={styles.progressValue}>
+                  {profile?.totalXp ?? 0} / {(profile?.totalXp ?? 0) + (profile?.xpToNextLevel ?? 0)}
+                </AppText>
+              </View>
+              <XpProgressBar
+                currentXp={profile?.totalXp ?? 0}
+                xpToNextLevel={profile?.xpToNextLevel ?? 0}
+                progress={profile?.progress ?? 0}
+                size="medium"
+                onGradient
+              />
+            </GradientCard>
+
+            <View style={styles.statsRow}>
+              <StatTile
+                icon={<Trophy size={20} color={colors.onMuted.warning} />}
+                value={String(earnedBadges)}
+                label="Badges earned"
+              />
+              <StatTile
+                icon={<Star size={20} color={colors.onMuted.ai} />}
+                value={profile?.rank ? `#${profile.rank}` : '—'}
+                label="Rank overall"
+              />
+              <StatTile
+                icon={<Award size={20} color={colors.onMuted.success} />}
+                value={String(inProgress.length)}
+                label="In progress"
+              />
             </View>
-            <View style={styles.xpColumn}>
-              <Zap size={32} color="rgba(255,255,255,0.8)" />
-              <AppText style={styles.xpValue}>{profile?.totalXp || 0}</AppText>
-              <AppText style={styles.xpLabel}>XP points</AppText>
-            </View>
-          </View>
 
-          <View style={styles.progressLabelRow}>
-            <AppText style={styles.progressLabel}>
-              Progress to {levelProgress?.nextLevelName ?? 'next level'}
-            </AppText>
-            <AppText style={styles.progressValue}>
-              {profile?.totalXp || 0} / {(profile?.totalXp || 0) + (profile?.xpToNextLevel || 0)}
-            </AppText>
-          </View>
-          <XpProgressBar
-            currentXp={profile?.totalXp || 0}
-            xpToNextLevel={profile?.xpToNextLevel || 0}
-            progress={profile?.progress || 0}
-            size="medium"
-            onGradient
-          />
-        </GradientCard>
+            <SectionHeader action={{ label: 'View all', onPress: () => router.push('/gamification/badges') }}>
+              Badges
+            </SectionHeader>
+            {badgeGrid.length > 0 ? (
+              <View style={styles.badgeGrid}>
+                {badgeGrid.map((badge) => (
+                  <View key={badge.id} style={styles.badgeCell}>
+                    <GlassCard style={[styles.badgeTile, !badge.earnedAt && styles.badgeTileLocked]}>
+                      <BadgeDisplay badge={badge} size="small" />
+                    </GlassCard>
+                  </View>
+                ))}
+              </View>
+            ) : (
+              <GlassCard style={styles.emptyCard}>
+                <AppText style={styles.emptyText}>
+                  No badges yet — your first donation earns one.
+                </AppText>
+              </GlassCard>
+            )}
 
-        {/* The reference lifts these three out of the hero into their own
-            standard-tier cards, so the hero carries only level and XP. */}
-        <View style={styles.quickStatsRow}>
-          <Card style={styles.quickStat}>
-            <Trophy size={20} color={colors.warning} />
-            <AppText style={styles.quickStatValue}>{profile?.donationCount || 0}</AppText>
-            <AppText muted style={styles.quickStatLabel}>
-              Donations
-            </AppText>
-          </Card>
-          <Card style={styles.quickStat}>
-            <Star size={20} color={colors.ai} />
-            <AppText style={styles.quickStatValue}>
-              {profile?.rank ? `#${profile.rank}` : '—'}
-            </AppText>
-            <AppText muted style={styles.quickStatLabel}>
-              Rank
-            </AppText>
-          </Card>
-          <Card style={styles.quickStat}>
-            <Award size={20} color={colors.success} />
-            <AppText style={styles.quickStatValue}>{profile?.reputationScore || 0}</AppText>
-            <AppText muted style={styles.quickStatLabel}>
-              Reputation
-            </AppText>
-          </Card>
-        </View>
+            <SectionHeader>Active challenges</SectionHeader>
+            {inProgress.length > 0 ? (
+              inProgress
+                .slice(0, 4)
+                .map((achievement) => (
+                  <ChallengeCard key={achievement.id} achievement={achievement} />
+                ))
+            ) : (
+              <GlassCard style={styles.emptyCard}>
+                <AppText style={styles.emptyText}>
+                  Nothing in progress right now. Book a donation to start one.
+                </AppText>
+              </GlassCard>
+            )}
 
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <AppText variant="heading" >
-              Your Badges
-            </AppText>
-            <TouchableOpacity onPress={() => router.push('/gamification/badges' as any)}>
-              <AppText variant="body" style={{ color: colors.primary }}>
-                View All
-              </AppText>
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.badgesScroll}
-          >
-            {badges && badges.length > 0 ? (
-              badges.slice(0, 6).map((badge) => (
-                <BadgeDisplay key={badge.id} badge={badge} size="medium" />
+            <SectionHeader
+              action={{ label: 'View all', onPress: () => router.push('/gamification/achievements') }}
+            >
+              Unlocked
+            </SectionHeader>
+            {unlocked.length > 0 ? (
+              unlocked.slice(0, 3).map((achievement) => (
+                <ChallengeCard key={achievement.id} achievement={achievement} />
               ))
             ) : (
-              <AppText variant="body" muted>
-                No badges yet. Keep contributing!
-              </AppText>
+              <GlassCard style={styles.emptyCard}>
+                <AppText style={styles.emptyText}>
+                  Complete a donation to unlock your first achievement.
+                </AppText>
+              </GlassCard>
             )}
-          </ScrollView>
-        </View>
 
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <AppText variant="heading" >
-              Recent Achievements
-            </AppText>
-            <TouchableOpacity onPress={() => router.push('/gamification/achievements' as any)}>
-              <AppText variant="body" style={{ color: colors.primary }}>
-                View All
-              </AppText>
-            </TouchableOpacity>
-          </View>
-
-          {recentAchievements.length > 0 ? (
-            recentAchievements.map((achievement) => (
-              <AchievementCard key={achievement.id} achievement={achievement} />
-            ))
-          ) : (
-            <GlassCard style={styles.emptyCard}>
-              <AppText variant="body" muted style={styles.emptyText}>
-                Complete donations to unlock achievements
-              </AppText>
-            </GlassCard>
-          )}
-        </View>
-
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <AppText variant="heading" >
-              In Progress
-            </AppText>
-          </View>
-
-          {inProgressAchievements.length > 0 ? (
-            inProgressAchievements.map((achievement) => (
-              <AchievementCard key={achievement.id} achievement={achievement} />
-            ))
-          ) : (
-            <GlassCard style={styles.emptyCard}>
-              <AppText variant="body" muted style={styles.emptyText}>
-                Keep going! You're making great progress.
-              </AppText>
-            </GlassCard>
-          )}
-        </View>
-
-        <TouchableOpacity
-          onPress={() => router.push('/gamification/leaderboard' as any)}
-          activeOpacity={0.8}
-        >
-          <GlassCard tier="elevated" style={styles.leaderboardButton}>
-            <AppText variant="button">
-              View Leaderboard
-            </AppText>
-          </GlassCard>
-        </TouchableOpacity>
-
-        <View style={styles.bottomPadding} />
+            <Pressable
+              onPress={() => router.push('/gamification/leaderboard')}
+              accessibilityRole="button"
+              style={({ pressed }) => [styles.leaderboardWrap, { opacity: pressed ? 0.7 : 1 }]}
+            >
+              <GlassCard tier="elevated">
+                <View style={styles.leaderboardRow}>
+                  <View style={styles.leaderboardIcon}>
+                    <Trophy size={20} color={colors.onMuted.ai} />
+                  </View>
+                  <View style={styles.leaderboardBody}>
+                    <AppText style={styles.leaderboardTitle}>Leaderboard</AppText>
+                    <AppText style={styles.leaderboardMeta}>
+                      {profile?.rank
+                        ? `You are ranked #${profile.rank} among all donors`
+                        : 'See where you stand among all donors'}
+                    </AppText>
+                  </View>
+                </View>
+              </GlassCard>
+            </Pressable>
+          </>
+        )}
       </ScrollView>
     </Screen>
   );
 }
 
-function createStyles(_colors: ThemeColors) {
+function StatTile({ icon, value, label }: { icon: React.ReactNode; value: string; label: string }) {
+  const { colors } = useTheme();
+  const styles = React.useMemo(() => createStyles(colors), [colors]);
+  return (
+    <GlassCard style={styles.statTile}>
+      {icon}
+      <AppText style={styles.statValue}>{value}</AppText>
+      <AppText style={styles.statLabel}>{label}</AppText>
+    </GlassCard>
+  );
+}
+
+/**
+ * The reference's challenge card: name and one line of description on the
+ * left, the XP reward as a badge on the right, then a progress bar with the
+ * percentage under its right edge. An achievement is this app's challenge --
+ * same shape, same numbers -- so both the in-progress and unlocked lists use
+ * it rather than two different cards.
+ */
+function ChallengeCard({ achievement }: { achievement: Achievement }) {
+  const { colors } = useTheme();
+  const styles = React.useMemo(() => createStyles(colors), [colors]);
+  const percent =
+    achievement.target > 0
+      ? Math.min(100, Math.round((achievement.progress / achievement.target) * 100))
+      : achievement.status === 'UNLOCKED'
+        ? 100
+        : 0;
+  const complete = achievement.status === 'UNLOCKED' || percent === 100;
+
+  return (
+    <GlassCard style={styles.challengeCard}>
+      <View style={styles.challengeHead}>
+        <View style={styles.challengeText}>
+          <AppText style={styles.challengeName}>{achievement.name}</AppText>
+          <AppText style={styles.challengeDesc}>{achievement.description}</AppText>
+        </View>
+        <Chip variant={complete ? 'success' : 'default'}>{achievement.xpReward} XP</Chip>
+      </View>
+      <ProgressBar
+        progress={percent}
+        color={complete ? colors.success : colors.primary}
+      />
+      <AppText style={styles.challengePercent}>{percent}%</AppText>
+    </GlassCard>
+  );
+}
+
+function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
-    container: {
-      flex: 1,
+    content: {
+      gap: 12,
+      paddingBottom: spacing.xl,
     },
-    loadingContainer: {
-      flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    profileCard: {
-      marginHorizontal: spacing.lg,
-      marginBottom: spacing.lg,
-      padding: spacing.lg,
-    },
-    // Vivid, saturated brand gradient rather than a theme surface, so its
-    // text is fixed white/near-white in both themes instead of `colors.text`.
-    onGradientText: {
-      color: '#FFFFFF',
-    },
-    onGradientMuted: {
-      color: 'rgba(255,255,255,0.75)',
-    },
-    profileHeader: {
+
+    hero: {},
+    heroTop: {
       flexDirection: 'row',
       alignItems: 'flex-start',
       justifyContent: 'space-between',
       marginBottom: spacing.md,
     },
-    profileInfo: {
+    heroLevel: {
       flex: 1,
     },
     levelEyebrow: {
@@ -273,7 +292,7 @@ function createStyles(_colors: ThemeColors) {
       fontSize: 13,
       color: 'rgba(255,255,255,0.7)',
     },
-    xpColumn: {
+    heroXp: {
       alignItems: 'flex-end',
     },
     xpValue: {
@@ -300,54 +319,113 @@ function createStyles(_colors: ThemeColors) {
       fontWeight: '700',
       color: 'rgba(255,255,255,0.9)',
     },
-    quickStatsRow: {
+
+    statsRow: {
       flexDirection: 'row',
       gap: 10,
-      paddingHorizontal: spacing.lg,
-      marginTop: spacing.lg,
     },
-    quickStat: {
+    statTile: {
       flex: 1,
       alignItems: 'center',
       padding: 14,
     },
-    quickStatValue: {
+    statValue: {
       fontSize: 22,
       fontWeight: '700',
+      color: colors.text,
       marginTop: 6,
     },
-    quickStatLabel: {
+    statLabel: {
       fontSize: 11,
+      color: colors.textMuted,
       textAlign: 'center',
+      marginTop: 1,
     },
-    section: {
-      paddingHorizontal: spacing.lg,
-      marginBottom: spacing.lg,
-    },
-    sectionHeader: {
+
+    badgeGrid: {
       flexDirection: 'row',
+      flexWrap: 'wrap',
+      marginHorizontal: -5,
+    },
+    badgeCell: {
+      width: '25%',
+      paddingHorizontal: 5,
+      paddingBottom: 10,
+    },
+    badgeTile: {
+      padding: 10,
+      alignItems: 'center',
+    },
+    badgeTileLocked: {
+      opacity: 0.35,
+    },
+
+    challengeCard: {},
+    challengeHead: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
       justifyContent: 'space-between',
+      gap: spacing.sm,
+      marginBottom: 10,
+    },
+    challengeText: {
+      flex: 1,
+    },
+    challengeName: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: colors.text,
+    },
+    challengeDesc: {
+      fontSize: 12,
+      color: colors.textMuted,
+      marginTop: 2,
+    },
+    challengePercent: {
+      fontSize: 11,
+      color: colors.textMuted,
+      textAlign: 'right',
+      marginTop: 6,
+    },
+
+    leaderboardWrap: {
+      marginTop: spacing.sm,
+    },
+    leaderboardRow: {
+      flexDirection: 'row',
       alignItems: 'center',
-      marginBottom: spacing.md,
+      gap: 12,
     },
-    badgesScroll: {
-      marginHorizontal: -spacing.lg,
-      paddingHorizontal: spacing.lg,
+    leaderboardIcon: {
+      width: 40,
+      height: 40,
+      borderRadius: radius.sm,
+      backgroundColor: colors.aiMuted,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
+    leaderboardBody: {
+      flex: 1,
+    },
+    leaderboardTitle: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: colors.text,
+    },
+    leaderboardMeta: {
+      fontSize: 12,
+      color: colors.textMuted,
+      marginTop: 1,
+    },
+
     emptyCard: {
-      padding: spacing.xl,
       alignItems: 'center',
+      paddingVertical: spacing.lg,
     },
     emptyText: {
+      fontSize: 13,
+      color: colors.textMuted,
       textAlign: 'center',
-    },
-    leaderboardButton: {
-      marginHorizontal: spacing.lg,
-      marginBottom: spacing.lg,
-      alignItems: 'center',
-    },
-    bottomPadding: {
-      height: spacing.xl,
     },
   });
 }

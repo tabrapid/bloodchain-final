@@ -1,27 +1,35 @@
 import { useMemo, useState } from 'react';
-import { View, TextInput, StyleSheet, ScrollView, Alert, Pressable } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert, Pressable } from 'react-native';
 import { router } from 'expo-router';
-import { Eye, EyeOff, Smartphone } from 'lucide-react-native';
-import { AppButton, AppText, Card, Screen, ScreenHeader, SectionHeader, ListItem, Divider } from '../../src/components';
-import { spacing, radius, useTheme, ThemeColors } from '../../src/theme';
+import { Eye, EyeOff, Key, Smartphone, LogOut } from 'lucide-react-native';
+import {
+  AppButton,
+  AppText,
+  AppTextInput,
+  Badge,
+  GlassCard,
+  Screen,
+  ScreenHeader,
+  SectionHeader,
+} from '../../src/components';
+import { spacing, useTheme, ThemeColors } from '../../src/theme';
 import { useSessions, useRevokeSession, useRevokeAllSessions } from '../../src/hooks/useSessions';
-import {} from '../../src/hooks/useAuth';
 import { useDonorProfile } from '../../src/hooks/useDonors';
 import { clearAuthTokens } from '../../src/auth/storage';
 import { useAuthStore } from '../../src/stores/auth.store';
 import { apiRequest, ApiRequestError } from '../../src/api/client';
 import { apiBasePath } from '../../src/api/config';
 
+const MIN_PASSWORD_LENGTH = 12;
+
 function formatRelativeTime(dateStr?: string): string {
   if (!dateStr) return 'Unknown';
-  const diffMs = Date.now() - new Date(dateStr).getTime();
-  const diffMins = Math.floor(diffMs / 60000);
+  const diffMins = Math.floor((Date.now() - new Date(dateStr).getTime()) / 60000);
   if (diffMins < 1) return 'Active now';
   if (diffMins < 60) return `${diffMins}m ago`;
   const diffHours = Math.floor(diffMins / 60);
   if (diffHours < 24) return `${diffHours}h ago`;
-  const diffDays = Math.floor(diffHours / 24);
-  return `${diffDays}d ago`;
+  return `${Math.floor(diffHours / 24)}d ago`;
 }
 
 export default function Security() {
@@ -36,22 +44,26 @@ export default function Security() {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [reveal, setReveal] = useState({ current: false, next: false, confirm: false });
   const [isChangingPassword, setIsChangingPassword] = useState(false);
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // Validated inline rather than behind an alert on submit: a rule the donor
+  // can read while typing is the difference between one attempt and three.
+  const lengthError =
+    newPassword.length > 0 && newPassword.length < MIN_PASSWORD_LENGTH
+      ? `Must be at least ${MIN_PASSWORD_LENGTH} characters`
+      : undefined;
+  const matchError =
+    confirmPassword.length > 0 && confirmPassword !== newPassword
+      ? 'Passwords do not match'
+      : undefined;
+  const canSubmit =
+    !!currentPassword &&
+    newPassword.length >= MIN_PASSWORD_LENGTH &&
+    confirmPassword === newPassword &&
+    !isChangingPassword;
 
   const handleChangePassword = async () => {
-    if (newPassword !== confirmPassword) {
-      Alert.alert('Error', 'New passwords do not match');
-      return;
-    }
-
-    if (newPassword.length < 12) {
-      Alert.alert('Error', 'Password must be at least 12 characters');
-      return;
-    }
-
     setIsChangingPassword(true);
     try {
       await apiRequest(`${apiBasePath}/auth/change-password`, {
@@ -59,7 +71,7 @@ export default function Security() {
         body: JSON.stringify({ currentPassword, newPassword }),
       });
 
-      Alert.alert('Success', 'Password changed successfully. Please log in again.');
+      Alert.alert('Password changed', 'Please log in again with your new password.');
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
@@ -67,39 +79,37 @@ export default function Security() {
       clearAuth();
       router.replace('/(auth)/login');
     } catch (error) {
-      const message = error instanceof ApiRequestError ? error.error.message : 'Something went wrong';
-      Alert.alert('Error', message || 'Failed to change password');
+      Alert.alert(
+        'Could not change password',
+        error instanceof ApiRequestError ? error.error.message : 'Something went wrong.',
+      );
     } finally {
       setIsChangingPassword(false);
     }
   };
 
   const handleRevokeSession = (sessionId: string) => {
-    Alert.alert('Revoke Session', 'This device will be signed out immediately. Continue?', [
+    Alert.alert('Revoke session', 'This device will be signed out immediately. Continue?', [
       { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Revoke',
-        style: 'destructive',
-        onPress: () => revokeSession.mutate(sessionId),
-      },
+      { text: 'Revoke', style: 'destructive', onPress: () => revokeSession.mutate(sessionId) },
     ]);
   };
 
   const handleLogoutAll = () => {
     Alert.alert(
-      'Logout All Devices',
-      'This will log you out of all devices except the current one. Continue?',
+      'Log out everywhere',
+      'This signs you out of every device except this one. Continue?',
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Logout All',
+          text: 'Log out all',
           style: 'destructive',
           onPress: async () => {
             try {
               await revokeAllSessions.mutateAsync();
-              Alert.alert('Success', 'All sessions have been revoked.');
+              Alert.alert('Done', 'All other sessions have been revoked.');
             } catch {
-              Alert.alert('Error', 'Failed to revoke sessions');
+              Alert.alert('Error', 'Failed to revoke sessions.');
             }
           },
         },
@@ -107,171 +117,169 @@ export default function Security() {
     );
   };
 
+  const status = donorProfile?.donorStatus;
+
   return (
     <Screen scroll={false}>
-      <ScreenHeader title="Security" />
-      <ScrollView contentContainerStyle={styles.content}>
-
-        <SectionHeader>PASSWORD</SectionHeader>
-        <Card>
-          <View style={styles.field}>
-            <AppText muted style={styles.label}>Current Password</AppText>
-            <View>
-              <TextInput
-                style={[styles.input, styles.inputWithToggle]}
-                placeholder="Enter current password"
-                placeholderTextColor={colors.textMuted}
-                secureTextEntry={!showCurrentPassword}
-                value={currentPassword}
-                onChangeText={setCurrentPassword}
-              />
-              <Pressable
-                onPress={() => setShowCurrentPassword((v) => !v)}
-                style={styles.toggleButton}
-                hitSlop={8}
-              >
-                {showCurrentPassword ? (
-                  <EyeOff size={20} color={colors.textMuted} />
-                ) : (
-                  <Eye size={20} color={colors.textMuted} />
-                )}
-              </Pressable>
+      <ScreenHeader title="Security" subtitle="Account security settings" />
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <SectionHeader>Authentication</SectionHeader>
+        <GlassCard>
+          <View style={styles.cardHead}>
+            <View style={styles.cardHeadIcon}>
+              <Key size={16} color={colors.onMuted.success} />
+            </View>
+            <View style={styles.cardHeadBody}>
+              <AppText style={styles.cardHeadTitle}>Change password</AppText>
+              <AppText style={styles.cardHeadMeta}>
+                At least {MIN_PASSWORD_LENGTH} characters
+              </AppText>
             </View>
           </View>
 
-          <View style={styles.field}>
-            <AppText muted style={styles.label}>New Password</AppText>
-            <View>
-              <TextInput
-                style={[styles.input, styles.inputWithToggle]}
-                placeholder="Enter new password"
-                placeholderTextColor={colors.textMuted}
-                secureTextEntry={!showNewPassword}
-                value={newPassword}
-                onChangeText={setNewPassword}
-              />
-              <Pressable
-                onPress={() => setShowNewPassword((v) => !v)}
-                style={styles.toggleButton}
-                hitSlop={8}
-              >
-                {showNewPassword ? (
-                  <EyeOff size={20} color={colors.textMuted} />
-                ) : (
-                  <Eye size={20} color={colors.textMuted} />
-                )}
-              </Pressable>
-            </View>
-            <AppText muted style={styles.hint}>
-              Must be at least 12 characters
-            </AppText>
-          </View>
-
-          <View style={styles.field}>
-            <AppText muted style={styles.label}>Confirm New Password</AppText>
-            <View>
-              <TextInput
-                style={[styles.input, styles.inputWithToggle]}
-                placeholder="Confirm new password"
-                placeholderTextColor={colors.textMuted}
-                secureTextEntry={!showConfirmPassword}
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-              />
-              <Pressable
-                onPress={() => setShowConfirmPassword((v) => !v)}
-                style={styles.toggleButton}
-                hitSlop={8}
-              >
-                {showConfirmPassword ? (
-                  <EyeOff size={20} color={colors.textMuted} />
-                ) : (
-                  <Eye size={20} color={colors.textMuted} />
-                )}
-              </Pressable>
-            </View>
+          <View style={styles.fields}>
+            <AppTextInput
+              label="Current password"
+              placeholder="Enter current password"
+              secureTextEntry={!reveal.current}
+              value={currentPassword}
+              onChangeText={setCurrentPassword}
+              autoCapitalize="none"
+              trailing={
+                <RevealToggle
+                  shown={reveal.current}
+                  onToggle={() => setReveal((r) => ({ ...r, current: !r.current }))}
+                />
+              }
+            />
+            <AppTextInput
+              label="New password"
+              placeholder="Enter new password"
+              secureTextEntry={!reveal.next}
+              value={newPassword}
+              onChangeText={setNewPassword}
+              autoCapitalize="none"
+              error={lengthError}
+              trailing={
+                <RevealToggle
+                  shown={reveal.next}
+                  onToggle={() => setReveal((r) => ({ ...r, next: !r.next }))}
+                />
+              }
+            />
+            <AppTextInput
+              label="Confirm new password"
+              placeholder="Confirm new password"
+              secureTextEntry={!reveal.confirm}
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              autoCapitalize="none"
+              error={matchError}
+              trailing={
+                <RevealToggle
+                  shown={reveal.confirm}
+                  onToggle={() => setReveal((r) => ({ ...r, confirm: !r.confirm }))}
+                />
+              }
+            />
           </View>
 
           <AppButton
             onPress={handleChangePassword}
-            disabled={
-              !currentPassword ||
-              !newPassword ||
-              !confirmPassword ||
-              isChangingPassword
-            }
-            style={styles.changePasswordButton}
+            disabled={!canSubmit}
+            loading={isChangingPassword}
+            style={styles.submit}
           >
-            {isChangingPassword ? 'Changing...' : 'Change Password'}
+            Change password
           </AppButton>
-        </Card>
+        </GlassCard>
 
-        <SectionHeader>ACTIVE SESSIONS</SectionHeader>
-        <Card>
+        <SectionHeader>Active sessions</SectionHeader>
+        <GlassCard>
           {sessions && sessions.length > 0 ? (
-            sessions.map((session, index) => (
-              <View key={session.id}>
-                {index > 0 && <Divider />}
-                <View style={styles.sessionRow}>
-                  <View style={styles.sessionIcon}>
-                    <Smartphone size={16} color={colors.textMuted} />
+            <View style={styles.sessionList}>
+              {sessions.map((session, index) => (
+                <View key={session.id}>
+                  {index > 0 && <View style={styles.divider} />}
+                  <View style={styles.sessionRow}>
+                    <View style={styles.sessionIcon}>
+                      <Smartphone size={16} color={colors.textMuted} />
+                    </View>
+                    <View style={styles.sessionBody}>
+                      <AppText style={styles.sessionDevice}>
+                        {session.deviceName || session.deviceType || 'Unknown device'}
+                      </AppText>
+                      <AppText style={styles.sessionMeta}>
+                        {session.ipAddress ? `${session.ipAddress} · ` : ''}
+                        {formatRelativeTime(session.lastUsedAt ?? session.createdAt)}
+                      </AppText>
+                    </View>
+                    <Pressable
+                      onPress={() => handleRevokeSession(session.id)}
+                      hitSlop={8}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Revoke ${session.deviceName ?? 'this session'}`}
+                    >
+                      <AppText style={styles.revoke}>Revoke</AppText>
+                    </Pressable>
                   </View>
-                  <View style={styles.sessionInfo}>
-                    <AppText style={{ fontSize: 14, fontWeight: '500' }}>
-                      {session.deviceName || session.deviceType || 'Unknown device'}
-                    </AppText>
-                    <AppText muted style={{ fontSize: 11, marginTop: 1 }}>
-                      {session.ipAddress ? `${session.ipAddress} · ` : ''}
-                      {formatRelativeTime(session.lastUsedAt || session.createdAt)}
-                    </AppText>
-                  </View>
-                  <Pressable onPress={() => handleRevokeSession(session.id)} hitSlop={8}>
-                    <AppText style={{ fontSize: 12, color: colors.danger, fontWeight: '600' }}>
-                      Revoke
-                    </AppText>
-                  </Pressable>
                 </View>
-              </View>
-            ))
+              ))}
+            </View>
           ) : (
-            <AppText muted style={{ fontSize: 13 }}>
-              No other active sessions.
-            </AppText>
+            <AppText style={styles.emptyText}>No other active sessions.</AppText>
           )}
-        </Card>
+        </GlassCard>
 
-        <Card style={styles.logoutAllCard}>
-          <ListItem
-            title="Logout from all devices"
-            subtitle="Revoke all active sessions"
-            destructive
-            onPress={handleLogoutAll}
-          />
-        </Card>
+        <Pressable
+          onPress={handleLogoutAll}
+          accessibilityRole="button"
+          style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+        >
+          <GlassCard style={styles.compactCard}>
+            <View style={styles.compactRow}>
+              <View style={styles.dangerIcon}>
+                <LogOut size={16} color={colors.onMuted.danger} />
+              </View>
+              <View style={styles.compactBody}>
+                <AppText style={styles.dangerTitle}>Log out from all devices</AppText>
+                <AppText style={styles.sessionMeta}>Revokes every other active session</AppText>
+              </View>
+            </View>
+          </GlassCard>
+        </Pressable>
 
-        <SectionHeader>ACCOUNT STATUS</SectionHeader>
-        <Card>
-          <View style={styles.statusItem}>
-            <AppText muted>Account Status</AppText>
-            <AppText
-              variant="heading"
-              style={{
-                color:
-                  donorProfile?.donorStatus === 'ACTIVE'
-                    ? colors.success
-                    : donorProfile?.donorStatus
-                    ? colors.warning
-                    : colors.textMuted,
-              }}
+        <SectionHeader>Account status</SectionHeader>
+        <GlassCard style={styles.compactCard}>
+          <View style={styles.statusRow}>
+            <AppText style={styles.statusLabel}>Donor status</AppText>
+            <Badge
+              variant={status === 'ACTIVE' ? 'success' : status ? 'warning' : 'default'}
             >
-              {donorProfile?.donorStatus
-                ? donorProfile.donorStatus.charAt(0) + donorProfile.donorStatus.slice(1).toLowerCase()
-                : '—'}
-            </AppText>
+              {status ? status.replace(/_/g, ' ').toLowerCase() : 'unknown'}
+            </Badge>
           </View>
-        </Card>
+        </GlassCard>
       </ScrollView>
     </Screen>
+  );
+}
+
+function RevealToggle({ shown, onToggle }: { shown: boolean; onToggle: () => void }) {
+  const { colors } = useTheme();
+  return (
+    <Pressable
+      onPress={onToggle}
+      hitSlop={8}
+      accessibilityRole="button"
+      accessibilityLabel={shown ? 'Hide password' : 'Show password'}
+    >
+      {shown ? (
+        <EyeOff size={20} color={colors.textMuted} />
+      ) : (
+        <Eye size={20} color={colors.textMuted} />
+      )}
+    </Pressable>
   );
 }
 
@@ -280,63 +288,113 @@ function createStyles(colors: ThemeColors) {
     content: {
       paddingBottom: spacing['2xl'],
     },
-    field: {
-      marginBottom: spacing.lg,
+    cardHead: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      marginBottom: spacing.md,
     },
-    label: {
-      fontSize: 13,
-      marginBottom: spacing.xs,
-    },
-    input: {
-      backgroundColor: colors.surfaceSolid,
-      borderColor: colors.border,
-      borderWidth: 1,
-      borderRadius: radius.sm,
-      padding: spacing.md,
-      color: colors.text,
-      fontSize: 16,
-    },
-    inputWithToggle: {
-      paddingRight: 48,
-    },
-    toggleButton: {
-      position: 'absolute',
-      right: 14,
-      top: 0,
-      bottom: 0,
+    cardHeadIcon: {
+      width: 36,
+      height: 36,
+      borderRadius: 10,
+      backgroundColor: colors.successMuted,
+      alignItems: 'center',
       justifyContent: 'center',
     },
-    hint: {
+    cardHeadBody: { flex: 1 },
+    cardHeadTitle: {
+      fontSize: 14,
+      fontWeight: '500',
+      color: colors.text,
+    },
+    cardHeadMeta: {
       fontSize: 12,
-      marginTop: spacing.xs,
+      color: colors.textMuted,
+      marginTop: 1,
     },
-    changePasswordButton: {
-      marginTop: spacing.sm,
+    fields: {
+      gap: 14,
     },
-    statusItem: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
+    submit: {
+      marginTop: spacing.md,
+    },
+
+    sessionList: {
+      gap: 14,
+    },
+    divider: {
+      height: 1,
+      backgroundColor: colors.borderSubtle,
+      marginBottom: 14,
     },
     sessionRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: spacing.sm,
-      paddingVertical: spacing.sm,
+      gap: 12,
     },
     sessionIcon: {
       width: 36,
       height: 36,
-      borderRadius: radius.sm,
+      borderRadius: 10,
       backgroundColor: colors.surfaceElevated,
       alignItems: 'center',
       justifyContent: 'center',
     },
-    sessionInfo: {
-      flex: 1,
+    sessionBody: { flex: 1 },
+    sessionDevice: {
+      fontSize: 13,
+      fontWeight: '500',
+      color: colors.text,
     },
-    logoutAllCard: {
-      marginTop: spacing.md,
+    sessionMeta: {
+      fontSize: 11,
+      color: colors.textMuted,
+      marginTop: 1,
+    },
+    revoke: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: colors.primary,
+    },
+    emptyText: {
+      fontSize: 13,
+      color: colors.textMuted,
+    },
+
+    compactCard: {
+      paddingVertical: 12,
+      paddingHorizontal: 14,
+    },
+    compactRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+    },
+    compactBody: { flex: 1 },
+    dangerIcon: {
+      width: 36,
+      height: 36,
+      borderRadius: 10,
+      backgroundColor: colors.dangerMuted,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    dangerTitle: {
+      fontSize: 14,
+      fontWeight: '500',
+      color: colors.onMuted.danger,
+    },
+    statusRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: spacing.md,
+      minHeight: 36,
+    },
+    statusLabel: {
+      fontSize: 14,
+      color: colors.text,
     },
   });
 }

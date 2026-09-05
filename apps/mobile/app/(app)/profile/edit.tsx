@@ -1,9 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { router } from 'expo-router';
-import { AppButton, AppText, AppTextInput, Screen } from '../../../src/components';
-import { useUpdateUserProfile } from '../../../src/hooks/useUsers';
-import { useUserProfile } from '../../../src/hooks/useUsers';
+import {
+  AppButton,
+  AppText,
+  AppTextInput,
+  Avatar,
+  Screen,
+  ScreenHeader,
+} from '../../../src/components';
+import { useUserProfile, useUpdateUserProfile } from '../../../src/hooks/useUsers';
 import { spacing, useTheme, ThemeColors } from '../../../src/theme';
 import { ApiRequestError } from '../../../src/api/client';
 
@@ -15,10 +21,10 @@ export default function EditProfile() {
   const [saveError, setSaveError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
-    firstName: user?.firstName || '',
-    lastName: user?.lastName || '',
-    displayName: user?.displayName || '',
-    phone: user?.phone || '',
+    firstName: user?.firstName ?? '',
+    lastName: user?.lastName ?? '',
+    displayName: user?.displayName ?? '',
+    phone: user?.phone ?? '',
   });
 
   // useState's initializer only runs on first render -- if this screen is
@@ -28,16 +34,12 @@ export default function EditProfile() {
   useEffect(() => {
     if (!user) return;
     setFormData({
-      firstName: user.firstName || '',
-      lastName: user.lastName || '',
-      displayName: user.displayName || '',
-      phone: user.phone || '',
+      firstName: user.firstName ?? '',
+      lastName: user.lastName ?? '',
+      displayName: user.displayName ?? '',
+      phone: user.phone ?? '',
     });
   }, [user]);
-
-  const handleChange = (field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-  };
 
   const handleSave = async () => {
     setSaveError(null);
@@ -58,106 +60,100 @@ export default function EditProfile() {
     }
   };
 
-  const isLoading = updateProfile.isPending;
   const hasChanges =
-    formData.firstName !== (user?.firstName || '') ||
-    formData.lastName !== (user?.lastName || '') ||
-    formData.displayName !== (user?.displayName || '') ||
-    formData.phone !== (user?.phone || '');
+    formData.firstName !== (user?.firstName ?? '') ||
+    formData.lastName !== (user?.lastName ?? '') ||
+    formData.displayName !== (user?.displayName ?? '') ||
+    formData.phone !== (user?.phone ?? '');
+
+  const avatarName =
+    [formData.firstName, formData.lastName].filter(Boolean).join(' ') ||
+    formData.displayName ||
+    user?.email ||
+    '?';
 
   return (
-    <Screen>
+    <Screen scroll={false}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.container}
+        style={styles.flex}
       >
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          <AppText variant="title" style={styles.title}>
-            Edit Profile
-          </AppText>
+        <ScreenHeader title="Personal Info" />
 
-          <View style={styles.form}>
+        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+          <View style={styles.avatarBlock}>
+            <Avatar name={avatarName} size={72} ring={colors.primary} />
+            {user?.email && <AppText style={styles.email}>{user.email}</AppText>}
+          </View>
+
+          <View style={styles.fields}>
             <AppTextInput
-              label="First Name"
-              placeholder="First Name"
+              label="First name"
+              placeholder="First name"
               value={formData.firstName}
-              onChangeText={(v) => handleChange('firstName', v)}
+              onChangeText={(firstName) => setFormData((prev) => ({ ...prev, firstName }))}
             />
-
             <AppTextInput
-              label="Last Name"
-              placeholder="Last Name"
+              label="Last name"
+              placeholder="Last name"
               value={formData.lastName}
-              onChangeText={(v) => handleChange('lastName', v)}
+              onChangeText={(lastName) => setFormData((prev) => ({ ...prev, lastName }))}
             />
-
             <AppTextInput
-              label="Display Name (optional)"
-              placeholder="Display Name"
+              label="Display name (optional)"
+              placeholder="How other donors see you"
               value={formData.displayName}
-              onChangeText={(v) => handleChange('displayName', v)}
+              onChangeText={(displayName) => setFormData((prev) => ({ ...prev, displayName }))}
             />
-
             <AppTextInput
-              label="Phone (optional)"
+              label="Phone number (optional)"
               placeholder="+1 234 567 8900"
               keyboardType="phone-pad"
               value={formData.phone}
-              onChangeText={(v) => handleChange('phone', v)}
+              onChangeText={(phone) => setFormData((prev) => ({ ...prev, phone }))}
             />
           </View>
 
-          {saveError && (
-            <AppText style={{ color: colors.danger, marginTop: spacing.lg }}>{saveError}</AppText>
-          )}
-        </ScrollView>
+          {saveError && <AppText style={styles.error}>{saveError}</AppText>}
 
-        <View style={styles.footer}>
-          <AppButton
-            variant="secondary"
-            onPress={() => router.back()}
-            style={styles.cancelButton}
-          >
-            Cancel
-          </AppButton>
           <AppButton
             onPress={handleSave}
-            disabled={!hasChanges || isLoading}
-            style={styles.saveButton}
+            disabled={!hasChanges || updateProfile.isPending}
+            loading={updateProfile.isPending}
+            style={styles.save}
           >
-            {isLoading ? 'Saving...' : 'Save Changes'}
+            Save changes
           </AppButton>
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </Screen>
   );
 }
 
-function createStyles(_colors: ThemeColors) {
+function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
-    container: {
-      flex: 1,
+    flex: { flex: 1 },
+    content: {
+      paddingBottom: spacing.xl,
+      gap: 20,
     },
-    scrollContent: {
-      flexGrow: 1,
+    avatarBlock: {
+      alignItems: 'center',
+      gap: 10,
     },
-    title: {
-      marginBottom: spacing.xl,
+    email: {
+      fontSize: 13,
+      color: colors.textMuted,
     },
-    form: {
-      gap: spacing.lg,
+    fields: {
+      gap: 14,
     },
-    footer: {
-      flexDirection: 'row',
-      gap: spacing.md,
-      marginTop: spacing.xl,
-      paddingBottom: spacing.lg,
+    error: {
+      fontSize: 13,
+      color: colors.onMuted.danger,
     },
-    cancelButton: {
-      flex: 1,
-    },
-    saveButton: {
-      flex: 2,
+    save: {
+      marginTop: 2,
     },
   });
 }

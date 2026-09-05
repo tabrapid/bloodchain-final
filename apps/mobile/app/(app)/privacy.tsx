@@ -1,7 +1,15 @@
 import { useMemo, useState } from 'react';
 import { View, StyleSheet, ScrollView, Switch, Alert } from 'react-native';
-import { AppText, Card, Screen, ScreenHeader, SectionHeader, ListItem, Divider } from '../../src/components';
-import { spacing, radius, useTheme, ThemeColors } from '../../src/theme';
+import {
+  AppText,
+  GlassCard,
+  Screen,
+  ScreenHeader,
+  SectionHeader,
+  ListItem,
+  Divider,
+} from '../../src/components';
+import { spacing, useTheme, ThemeColors } from '../../src/theme';
 import { useDonorProfile, useUpdateDonorProfile } from '../../src/hooks/useDonors';
 
 export default function Privacy() {
@@ -20,7 +28,10 @@ export default function Privacy() {
       {
         onError: () => {
           setPendingConsent(null);
-          Alert.alert('Error', 'Could not update your location sharing preference. Please try again.');
+          Alert.alert(
+            'Error',
+            'Could not update your location sharing preference. Please try again.',
+          );
         },
         onSuccess: () => setPendingConsent(null),
       },
@@ -29,16 +40,21 @@ export default function Privacy() {
 
   return (
     <Screen scroll={false}>
-      <ScreenHeader title="Privacy" />
-      <ScrollView contentContainerStyle={styles.content}>
-
-        <SectionHeader>DATA SHARING</SectionHeader>
-        <Card>
+      <ScreenHeader title="Privacy" subtitle="Control what you share" />
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        {/* The reference shows five toggles. Four of them (public profile,
+            donation history visibility, leaderboard opt-out, anonymized
+            analytics) have no field behind them anywhere in this system, and
+            a privacy switch that silently does nothing is worse than one
+            that is absent. Only the consent this app actually stores and
+            honours is offered. */}
+        <SectionHeader>Location &amp; data</SectionHeader>
+        <GlassCard>
           <View style={styles.toggleRow}>
             <View style={styles.toggleText}>
-              <AppText style={{ fontSize: 14, fontWeight: '500' }}>Location sharing</AppText>
-              <AppText muted style={{ fontSize: 12, marginTop: 1 }}>
-                Share your location so nearby emergency requests can find you
+              <AppText style={styles.toggleLabel}>Share location</AppText>
+              <AppText style={styles.toggleDesc}>
+                Lets nearby emergency requests reach you during an SOS
               </AppText>
             </View>
             <Switch
@@ -49,10 +65,10 @@ export default function Privacy() {
               thumbColor={colors.white}
             />
           </View>
-        </Card>
+        </GlassCard>
 
-        <SectionHeader>YOUR DATA</SectionHeader>
-        <Card>
+        <SectionHeader>Your data</SectionHeader>
+        <GlassCard>
           <ListItem
             title="Download your data"
             subtitle="Contact support to request a copy of your data"
@@ -63,45 +79,37 @@ export default function Privacy() {
             subtitle="Contact support to permanently delete your account"
             destructive
           />
-        </Card>
+        </GlassCard>
 
-        <SectionHeader>POLICIES</SectionHeader>
-        <Card>
-          <ListItem
-            title="Privacy Policy"
-            subtitle="Not yet published"
-          />
+        <SectionHeader>Policies</SectionHeader>
+        <GlassCard>
+          <ListItem title="Privacy Policy" subtitle="Not yet published" />
           <Divider />
-          <ListItem
-            title="Terms of Service"
-            subtitle="Not yet published"
-          />
+          <ListItem title="Terms of Service" subtitle="Not yet published" />
           <Divider />
           <ListItem
             title="Medical Disclaimer"
             subtitle="Important information about medical content"
           />
-        </Card>
+        </GlassCard>
 
-        <SectionHeader>ABOUT</SectionHeader>
-        <Card>
-          <View style={styles.aboutItem}>
-            <AppText muted>Version</AppText>
-            <AppText>1.0.0</AppText>
+        <SectionHeader>About</SectionHeader>
+        <GlassCard style={styles.compactCard}>
+          <View style={styles.aboutRow}>
+            <AppText style={styles.aboutLabel}>Version</AppText>
+            <AppText style={styles.aboutValue}>1.0.0</AppText>
           </View>
           <Divider />
-          <View style={styles.aboutItem}>
-            <AppText muted>Last updated</AppText>
-            <AppText>August 2026</AppText>
+          <View style={styles.aboutRow}>
+            <AppText style={styles.aboutLabel}>Last updated</AppText>
+            <AppText style={styles.aboutValue}>September 2026</AppText>
           </View>
-        </Card>
+        </GlassCard>
 
-        <View style={styles.disclaimer}>
-          <AppText muted style={styles.disclaimerText}>
-            This application handles health-related information. The information provided
-            is not a substitute for professional medical advice, diagnosis, or treatment.
-          </AppText>
-        </View>
+        <AppText style={styles.disclaimer}>
+          This application handles health-related information. What it shows is not a substitute
+          for professional medical advice, diagnosis, or treatment.
+        </AppText>
       </ScrollView>
     </Screen>
   );
@@ -115,27 +123,47 @@ function createStyles(colors: ThemeColors) {
     toggleRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: spacing.md,
+      gap: 12,
     },
     toggleText: {
       flex: 1,
     },
-    aboutItem: {
+    toggleLabel: {
+      fontSize: 14,
+      fontWeight: '500',
+      color: colors.text,
+    },
+    toggleDesc: {
+      fontSize: 12,
+      color: colors.textMuted,
+      marginTop: 2,
+    },
+    compactCard: {
+      paddingVertical: 12,
+      paddingHorizontal: 14,
+    },
+    aboutRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
       paddingVertical: spacing.sm,
     },
-    disclaimer: {
-      marginTop: spacing.xl,
-      padding: spacing.lg,
-      backgroundColor: colors.surfaceSolid,
-      borderRadius: radius.sm,
-    },
-    disclaimerText: {
+    aboutLabel: {
       fontSize: 13,
+      color: colors.textMuted,
+    },
+    aboutValue: {
+      fontSize: 13,
+      fontWeight: '500',
+      color: colors.text,
+    },
+    disclaimer: {
+      fontSize: 11,
+      lineHeight: 17,
+      color: colors.textMuted,
       textAlign: 'center',
-      lineHeight: 20,
+      marginTop: spacing.lg,
+      paddingHorizontal: spacing.md,
     },
   });
 }
