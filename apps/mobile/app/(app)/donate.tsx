@@ -43,7 +43,9 @@ export default function Donate() {
         Schedule your next donation
       </AppText>
 
-      <GradientCard colors={colors.heroGradient} style={{ marginTop: spacing.xl }}>
+      {/* Donate's hero is its own two-stop rose-to-mulberry, distinct from
+          both the brand hero and Health's. */}
+      <GradientCard colors={['#D85360', '#7B3266']} style={{ marginTop: spacing.xl }}>
         <Droplet
           size={120}
           color="rgba(255,255,255,0.10)"

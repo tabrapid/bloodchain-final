@@ -125,7 +125,10 @@ export default function Health() {
             activeOpacity={0.9}
             style={{ marginTop: spacing.lg }}
           >
-            <GradientCard colors={colors.heroGradient}>
+            {/* Health's hero is a two-stop rose, distinct from the app's
+                rose-to-plum brand hero -- the reference keeps the plum for
+                blood-type moments only. */}
+            <GradientCard colors={['#D85360', '#C83B6C']}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <View style={{ flex: 1 }}>
                   <AppText style={{ fontSize: 11, fontWeight: '700', letterSpacing: 1.2, color: 'rgba(255,255,255,0.8)' }}>
@@ -296,19 +299,19 @@ export default function Health() {
           AI INSIGHTS
         </SectionHeader>
         <TouchableOpacity onPress={() => router.push('/insights' as RelativePathString)} activeOpacity={0.8}>
-          <GlassCard style={{ borderColor: colors.aiMuted }}>
+          <GlassCard style={{ borderColor: `${colors.ai}40` }}>
             <View style={{ flexDirection: 'row', gap: spacing.md, alignItems: 'flex-start' }}>
               <View
                 style={{
                   width: 36,
                   height: 36,
                   borderRadius: 10,
-                  backgroundColor: colors.aiMuted,
+                  backgroundColor: `${colors.ai}33`,
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
               >
-                <Brain size={16} color={colors.onMuted.ai} />
+                <Brain size={16} color={colors.ai} />
               </View>
               <View style={{ flex: 1 }}>
                 {latestInsight ? (
