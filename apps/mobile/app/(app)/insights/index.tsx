@@ -190,7 +190,7 @@ export default function InsightsScreen() {
   if (isLoading) {
     return (
       <Screen>
-        <ScreenHeader title="AI Health Insights" />
+        <ScreenHeader title="AI Insights" subtitle="Personalized health recommendations" />
         <LoadingState />
       </Screen>
     );
@@ -262,7 +262,7 @@ export default function InsightsScreen() {
 
   return (
     <Screen>
-      <ScreenHeader title="AI Health Insights" />
+      <ScreenHeader title="AI Insights" subtitle="Personalized health recommendations" />
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{ padding: spacing.lg }}

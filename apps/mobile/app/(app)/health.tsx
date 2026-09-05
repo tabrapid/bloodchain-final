@@ -115,8 +115,8 @@ export default function Health() {
         }
       >
         <AppText variant="title">Health</AppText>
-        <AppText muted style={{ marginTop: spacing.sm }}>
-          Your health overview
+        <AppText muted style={{ fontSize: 13, marginTop: 2 }}>
+          Your vitals overview
         </AppText>
 
         {(trend || latestParam) && (

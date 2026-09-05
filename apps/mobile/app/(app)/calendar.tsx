@@ -157,7 +157,12 @@ export default function Calendar() {
   return (
     <Screen>
       <View style={styles.header}>
-        <AppText variant="title">Calendar</AppText>
+        <View style={{ flex: 1 }}>
+          <AppText variant="title">Calendar</AppText>
+          <AppText muted style={styles.headerSubtitle}>
+            Appointments &amp; donations
+          </AppText>
+        </View>
         <View style={styles.headerActions}>
           <TouchableOpacity onPress={goToToday} style={styles.todayButton}>
             <AppText style={styles.todayText}>Today</AppText>
@@ -308,8 +313,12 @@ function createStyles(colors: ThemeColors) {
     header: {
       flexDirection: 'row',
       justifyContent: 'space-between',
-      alignItems: 'center',
+      alignItems: 'flex-start',
       marginBottom: spacing.lg,
+    },
+    headerSubtitle: {
+      fontSize: 13,
+      marginTop: 2,
     },
     headerActions: {
       flexDirection: 'row',

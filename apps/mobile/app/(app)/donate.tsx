@@ -39,8 +39,8 @@ export default function Donate() {
   return (
     <Screen>
       <AppText variant="title">Donate</AppText>
-      <AppText muted style={{ marginTop: spacing.sm }}>
-        Make an impact, on your terms.
+      <AppText muted style={{ fontSize: 13, marginTop: 2 }}>
+        Schedule your next donation
       </AppText>
 
       <GradientCard colors={colors.heroGradient} style={{ marginTop: spacing.xl }}>

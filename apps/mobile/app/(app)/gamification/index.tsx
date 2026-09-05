@@ -46,7 +46,7 @@ export default function GamificationScreen() {
   if (isLoading && !profile) {
     return (
       <Screen>
-        <ScreenHeader title="Gamification" />
+        <ScreenHeader title="Achievements" subtitle="Your progress & rewards" />
         <View style={styles.loadingContainer}>
           <AppText variant="body" muted>Loading...</AppText>
         </View>
@@ -57,8 +57,8 @@ export default function GamificationScreen() {
   return (
     <Screen scroll={false}>
       <ScreenHeader
-        title="Gamification"
-        subtitle="Track your progress and achievements"
+        title="Achievements"
+        subtitle="Your progress & rewards"
       />
       <ScrollView
         style={styles.container}
