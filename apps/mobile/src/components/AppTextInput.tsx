@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 import { StyleSheet, TextInput, TextInputProps, View, ViewStyle } from 'react-native';
-import { radius, spacing, useTheme } from '../theme';
+import { spacing, useTheme } from '../theme';
 import { AppText } from './AppText';
 
 export interface AppTextInputProps extends TextInputProps {

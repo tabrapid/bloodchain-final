@@ -39,7 +39,6 @@ export default function Donate() {
     queryFn: getCommunityStats,
   });
 
-  const recentDonations = donationsData?.data ?? [];
   const donationCountByType = (donationsData?.data ?? []).reduce<Record<string, number>>(
     (acc, donation) => {
       if (donation.status !== 'COMPLETED') return acc;

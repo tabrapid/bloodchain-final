@@ -66,7 +66,7 @@ export function BadgeDisplay({ badge, size = 'medium' }: BadgeDisplayProps) {
   );
 }
 
-function createStyles(colors: ThemeColors) {
+function createStyles(_colors: ThemeColors) {
   return StyleSheet.create({
     container: {
       alignItems: 'center',

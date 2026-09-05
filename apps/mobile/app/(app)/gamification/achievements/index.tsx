@@ -2,7 +2,7 @@ import React from 'react';
 import { View, ScrollView, StyleSheet, RefreshControl } from 'react-native';
 import { useAchievements } from '../../../../src/hooks/useGamification';
 import { Screen } from '../../../../src/components/Screen';
-import { GlassCard, ScreenHeader } from '../../../../src/components';
+import { ScreenHeader } from '../../../../src/components';
 import { AppText } from '../../../../src/components/AppText';
 import { AchievementCard } from '../../../../src/components/gamification/AchievementCard';
 import { spacing, radius, useTheme, ThemeColors } from '../../../../src/theme';

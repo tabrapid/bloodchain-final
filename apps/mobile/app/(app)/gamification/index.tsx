@@ -15,7 +15,7 @@ import { XpProgressBar } from '../../../src/components/gamification/XpProgressBa
 import { AchievementCard } from '../../../src/components/gamification/AchievementCard';
 import { BadgeDisplay } from '../../../src/components/gamification/BadgeDisplay';
 import { Award, Star, Trophy, Zap } from 'lucide-react-native';
-import { spacing, radius, useTheme, ThemeColors } from '../../../src/theme';
+import { spacing, useTheme, ThemeColors } from '../../../src/theme';
 
 export default function GamificationScreen() {
   const { colors } = useTheme();
@@ -23,8 +23,8 @@ export default function GamificationScreen() {
   const router = useRouter();
   const { data: profile, isLoading: profileLoading, refetch: refetchProfile } = useGamificationProfile();
   const { data: levelProgress, isLoading: progressLoading, refetch: refetchProgress } = useLevelProgress();
-  const { data: achievements, isLoading: achievementsLoading, refetch: refetchAchievements } = useAchievements();
-  const { data: badges, isLoading: badgesLoading, refetch: refetchBadges } = useBadges();
+  const { data: achievements, refetch: refetchAchievements } = useAchievements();
+  const { data: badges, refetch: refetchBadges } = useBadges();
 
   const [refreshing, setRefreshing] = React.useState(false);
 
@@ -224,7 +224,7 @@ export default function GamificationScreen() {
   );
 }
 
-function createStyles(colors: ThemeColors) {
+function createStyles(_colors: ThemeColors) {
   return StyleSheet.create({
     container: {
       flex: 1,

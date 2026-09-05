@@ -1,5 +1,4 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { useTheme } from '../theme';
 import { AppText } from './AppText';
 
 export interface AvatarProps {
@@ -14,7 +13,6 @@ export interface AvatarProps {
  * theme-neutral tint.
  */
 export function Avatar({ name, size = 48 }: AvatarProps) {
-  const { colors } = useTheme();
   const initials = (name ?? '')
     .split(' ')
     .filter(Boolean)

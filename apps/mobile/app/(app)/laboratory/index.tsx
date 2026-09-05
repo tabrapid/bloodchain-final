@@ -7,10 +7,8 @@ import { spacing, useTheme } from '../../../src/theme';
 import {
   getDonorAppointments,
   getDonorResults,
-  getTestTypes,
   LaboratoryAppointment,
   LaboratoryResult,
-  TestType,
 } from '../../../src/api/laboratory';
 
 export default function LaboratoryScreen() {
@@ -20,18 +18,15 @@ export default function LaboratoryScreen() {
   const [loadError, setLoadError] = useState(false);
   const [appointments, setAppointments] = useState<LaboratoryAppointment[]>([]);
   const [results, setResults] = useState<LaboratoryResult[]>([]);
-  const [testTypes, setTestTypes] = useState<TestType[]>([]);
 
   const loadData = useCallback(async () => {
     try {
-      const [appts, res, tests] = await Promise.all([
+      const [appts, res] = await Promise.all([
         getDonorAppointments(),
         getDonorResults(),
-        getTestTypes(),
       ]);
       setAppointments(appts);
       setResults(res);
-      setTestTypes(tests);
       setLoadError(false);
     } catch (err) {
       console.error('Failed to load laboratory data:', err);

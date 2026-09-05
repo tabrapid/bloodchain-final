@@ -5,7 +5,7 @@ import { Eye, EyeOff, Smartphone } from 'lucide-react-native';
 import { AppButton, AppText, Card, Screen, ScreenHeader, SectionHeader, ListItem, Divider } from '../../src/components';
 import { spacing, radius, useTheme, ThemeColors } from '../../src/theme';
 import { useSessions, useRevokeSession, useRevokeAllSessions } from '../../src/hooks/useSessions';
-import { useLogout } from '../../src/hooks/useAuth';
+import {} from '../../src/hooks/useAuth';
 import { useDonorProfile } from '../../src/hooks/useDonors';
 import { clearAuthTokens } from '../../src/auth/storage';
 import { useAuthStore } from '../../src/stores/auth.store';
@@ -27,7 +27,6 @@ function formatRelativeTime(dateStr?: string): string {
 export default function Security() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const logout = useLogout();
   const { data: sessions } = useSessions();
   const revokeSession = useRevokeSession();
   const revokeAllSessions = useRevokeAllSessions();
@@ -99,7 +98,7 @@ export default function Security() {
             try {
               await revokeAllSessions.mutateAsync();
               Alert.alert('Success', 'All sessions have been revoked.');
-            } catch (error) {
+            } catch {
               Alert.alert('Error', 'Failed to revoke sessions');
             }
           },

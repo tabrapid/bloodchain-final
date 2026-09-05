@@ -34,7 +34,7 @@ import { useGamificationProfile } from '../../src/hooks/useGamification';
 import { useUnreadCount } from '../../src/hooks/useNotifications';
 import { useDonorEmergencies } from '../../src/hooks/useEmergency';
 import { useAuthStore } from '../../src/stores/auth.store';
-import { spacing, radius, typography, useTheme, ThemeColors } from '../../src/theme';
+import { spacing, radius, useTheme, ThemeColors } from '../../src/theme';
 
 export default function Home() {
   const { colors } = useTheme();

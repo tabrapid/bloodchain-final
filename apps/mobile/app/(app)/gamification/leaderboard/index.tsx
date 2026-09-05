@@ -6,7 +6,6 @@ import { Screen, GlassCard, Avatar, ScreenHeader } from '../../../../src/compone
 import { AppText } from '../../../../src/components/AppText';
 import { LeaderboardItem } from '../../../../src/components/gamification/LeaderboardItem';
 import { spacing, radius, useTheme, ThemeColors } from '../../../../src/theme';
-import type { LeaderboardEntry } from '../../../../src/api/gamification';
 
 const PODIUM_COLORS = ['#E5B86D', '#8495A3', '#CD7F32'] as const;
 const PODIUM_HEIGHTS = [70, 50, 40] as const;

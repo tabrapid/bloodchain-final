@@ -8,7 +8,6 @@ import {
   ChevronRight,
   Droplet,
   Fingerprint,
-  FlaskConical,
   Gauge,
   Layers,
   Percent,
@@ -18,7 +17,7 @@ import {
   type LucideIcon,
 } from 'lucide-react-native';
 import { AppText, Badge, Divider, GlassCard, GradientCard, LoadingState, Screen, SectionHeader, Sparkline } from '../../src/components';
-import { spacing, typography, useTheme } from '../../src/theme';
+import { spacing, useTheme } from '../../src/theme';
 import { getTrendSummary, TrendSummary } from '../../src/api/health-trends';
 import { getDonorResults, LaboratoryResult } from '../../src/api/laboratory';
 import { getInsightHistory, AiInsight } from '../../src/api/ai-health';
