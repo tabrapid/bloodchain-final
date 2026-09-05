@@ -141,6 +141,14 @@ export function GlassTabBar({ state, descriptors, navigation }: BottomTabBarProp
   return (
     <View
       style={{
+        // Floats over the content rather than taking a strip below it. The
+        // navigator ignores `tabBarStyle` when a custom `tabBar` is supplied,
+        // so this has to live here; `Screen` pads its content by the height
+        // the navigator measures, so nothing ends up stranded underneath.
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        bottom: 0,
         paddingHorizontal: 14,
         // Clear of the home indicator *and* off the bottom edge. `Math.max`
         // alone put the pill flush against the indicator zone on a notched

@@ -8,19 +8,15 @@ export default function AppLayout() {
       tabBar={(props) => <GlassTabBar {...props} />}
       screenOptions={{
         headerShown: false,
-        // The tab bar is a floating glass pill, so it has to sit *over* the
-        // screen rather than in a strip below it. Without `position:
-        // 'absolute'` the navigator reserves a band at the bottom and shortens
-        // every screen to fit -- the pill then has nothing behind it to blur
-        // and reads as a docked slab instead of glass floating over content.
-        // `Screen` pads its scroll content by the bar's height so nothing ends
-        // up stranded underneath it.
-        tabBarStyle: {
-          position: 'absolute',
-          backgroundColor: 'transparent',
-          borderTopWidth: 0,
-          elevation: 0,
-        },
+        // Every navigator scene paints React Navigation's *own* theme
+        // background, which defaults to white -- and the app never gives it a
+        // theme. That used to be invisible because each `Screen` painted an
+        // opaque gradient over it; now the backdrop lives at the root and the
+        // screens are transparent, so this has to be transparent too or the
+        // navigator's white covers the backdrop on every screen.
+        sceneStyle: { backgroundColor: 'transparent' },
+        // The pill positions itself (see GlassTabBar): a navigator given a
+        // custom `tabBar` never applies `tabBarStyle`.
       }}
     >
       <Tabs.Screen
