@@ -9,11 +9,12 @@ import {
 import { useRouter } from 'expo-router';
 import { useGamificationProfile, useLevelProgress, useAchievements, useBadges } from '../../../src/hooks/useGamification';
 import { Screen } from '../../../src/components/Screen';
-import { GlassCard, GradientCard, ScreenHeader } from '../../../src/components';
+import { Card, GlassCard, GradientCard, ScreenHeader } from '../../../src/components';
 import { AppText } from '../../../src/components/AppText';
 import { XpProgressBar } from '../../../src/components/gamification/XpProgressBar';
 import { AchievementCard } from '../../../src/components/gamification/AchievementCard';
 import { BadgeDisplay } from '../../../src/components/gamification/BadgeDisplay';
+import { Award, Star, Trophy, Zap } from 'lucide-react-native';
 import { spacing, radius, useTheme, ThemeColors } from '../../../src/theme';
 
 export default function GamificationScreen() {
@@ -73,29 +74,28 @@ export default function GamificationScreen() {
           style={styles.profileCard}
         >
           <View style={styles.profileHeader}>
-            <View style={styles.levelBadge}>
-              <AppText variant="title" style={styles.onGradientText}>
-                {profile?.level || 1}
-              </AppText>
-              <AppText variant="caption" style={styles.onGradientMuted}>
-                LEVEL
-              </AppText>
-            </View>
             <View style={styles.profileInfo}>
-              <AppText variant="heading" style={styles.onGradientText}>
+              <AppText style={styles.levelEyebrow}>LEVEL</AppText>
+              <AppText style={styles.levelNumber}>{profile?.level || 1}</AppText>
+              <AppText style={styles.levelName}>
                 {levelProgress?.currentLevelName || 'New Donor'}
               </AppText>
-              <View style={styles.xpRow}>
-                <AppText variant="numeric" style={styles.onGradientText}>
-                  {profile?.totalXp || 0}
-                </AppText>
-                <AppText variant="body" style={[styles.xpLabel, styles.onGradientMuted]}>
-                  {' '}XP
-                </AppText>
-              </View>
+            </View>
+            <View style={styles.xpColumn}>
+              <Zap size={32} color="rgba(255,255,255,0.8)" />
+              <AppText style={styles.xpValue}>{profile?.totalXp || 0}</AppText>
+              <AppText style={styles.xpLabel}>XP points</AppText>
             </View>
           </View>
 
+          <View style={styles.progressLabelRow}>
+            <AppText style={styles.progressLabel}>
+              Progress to {levelProgress?.nextLevelName ?? 'next level'}
+            </AppText>
+            <AppText style={styles.progressValue}>
+              {profile?.totalXp || 0} / {(profile?.totalXp || 0) + (profile?.xpToNextLevel || 0)}
+            </AppText>
+          </View>
           <XpProgressBar
             currentXp={profile?.totalXp || 0}
             xpToNextLevel={profile?.xpToNextLevel || 0}
@@ -103,36 +103,35 @@ export default function GamificationScreen() {
             size="medium"
             onGradient
           />
-
-          <View style={styles.statsRow}>
-            <View style={styles.statItem}>
-              <AppText variant="heading" style={styles.onGradientText}>
-                {profile?.donationCount || 0}
-              </AppText>
-              <AppText variant="caption" style={styles.onGradientMuted}>
-                Donations
-              </AppText>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <AppText variant="heading" style={styles.onGradientText}>
-                {profile?.rank || '-'}
-              </AppText>
-              <AppText variant="caption" style={styles.onGradientMuted}>
-                Rank
-              </AppText>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <AppText variant="heading" style={styles.onGradientText}>
-                {profile?.reputationScore || 0}
-              </AppText>
-              <AppText variant="caption" style={styles.onGradientMuted}>
-                Reputation
-              </AppText>
-            </View>
-          </View>
         </GradientCard>
+
+        {/* The reference lifts these three out of the hero into their own
+            standard-tier cards, so the hero carries only level and XP. */}
+        <View style={styles.quickStatsRow}>
+          <Card style={styles.quickStat}>
+            <Trophy size={20} color={colors.warning} />
+            <AppText style={styles.quickStatValue}>{profile?.donationCount || 0}</AppText>
+            <AppText muted style={styles.quickStatLabel}>
+              Donations
+            </AppText>
+          </Card>
+          <Card style={styles.quickStat}>
+            <Star size={20} color={colors.ai} />
+            <AppText style={styles.quickStatValue}>
+              {profile?.rank ? `#${profile.rank}` : '—'}
+            </AppText>
+            <AppText muted style={styles.quickStatLabel}>
+              Rank
+            </AppText>
+          </Card>
+          <Card style={styles.quickStat}>
+            <Award size={20} color={colors.success} />
+            <AppText style={styles.quickStatValue}>{profile?.reputationScore || 0}</AppText>
+            <AppText muted style={styles.quickStatLabel}>
+              Reputation
+            </AppText>
+          </Card>
+        </View>
 
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
@@ -250,42 +249,76 @@ function createStyles(colors: ThemeColors) {
     },
     profileHeader: {
       flexDirection: 'row',
-      alignItems: 'center',
-      marginBottom: spacing.lg,
-    },
-    levelBadge: {
-      width: 64,
-      height: 64,
-      borderRadius: radius.md,
-      backgroundColor: 'rgba(255, 255, 255, 0.15)',
-      justifyContent: 'center',
-      alignItems: 'center',
-      marginRight: spacing.lg,
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
+      marginBottom: spacing.md,
     },
     profileInfo: {
       flex: 1,
     },
-    xpRow: {
-      flexDirection: 'row',
-      alignItems: 'baseline',
+    levelEyebrow: {
+      fontSize: 11,
+      fontWeight: '600',
+      letterSpacing: 1.1,
+      color: 'rgba(255,255,255,0.75)',
+    },
+    levelNumber: {
+      fontSize: 52,
+      fontWeight: '800',
+      lineHeight: 52,
+      letterSpacing: -2.08,
+      color: '#FFFFFF',
+    },
+    levelName: {
+      fontSize: 13,
+      color: 'rgba(255,255,255,0.7)',
+    },
+    xpColumn: {
+      alignItems: 'flex-end',
+    },
+    xpValue: {
+      fontSize: 22,
+      fontWeight: '700',
+      color: '#FFFFFF',
+      marginTop: 4,
     },
     xpLabel: {
-      marginLeft: 4,
+      fontSize: 11,
+      color: 'rgba(255,255,255,0.6)',
     },
-    statsRow: {
+    progressLabelRow: {
       flexDirection: 'row',
-      marginTop: spacing.lg,
-      paddingTop: spacing.lg,
-      borderTopWidth: 1,
-      borderTopColor: 'rgba(255, 255, 255, 0.1)',
+      justifyContent: 'space-between',
+      marginBottom: 6,
     },
-    statItem: {
+    progressLabel: {
+      fontSize: 11,
+      color: 'rgba(255,255,255,0.65)',
+    },
+    progressValue: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: 'rgba(255,255,255,0.9)',
+    },
+    quickStatsRow: {
+      flexDirection: 'row',
+      gap: 10,
+      paddingHorizontal: spacing.lg,
+      marginTop: spacing.lg,
+    },
+    quickStat: {
       flex: 1,
       alignItems: 'center',
+      padding: 14,
     },
-    statDivider: {
-      width: 1,
-      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    quickStatValue: {
+      fontSize: 22,
+      fontWeight: '700',
+      marginTop: 6,
+    },
+    quickStatLabel: {
+      fontSize: 11,
+      textAlign: 'center',
     },
     section: {
       paddingHorizontal: spacing.lg,
