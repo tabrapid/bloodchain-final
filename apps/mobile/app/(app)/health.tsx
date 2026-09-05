@@ -17,7 +17,7 @@ import {
   TrendingUp,
   type LucideIcon,
 } from 'lucide-react-native';
-import { AppText, Card, Divider, GlassCard, GradientCard, LoadingState, OverviewStat, Screen, SectionHeader, Sparkline } from '../../src/components';
+import { AppText, Badge, Divider, GlassCard, GradientCard, LoadingState, Screen, SectionHeader, Sparkline } from '../../src/components';
 import { spacing, typography, useTheme } from '../../src/theme';
 import { getTrendSummary, TrendSummary } from '../../src/api/health-trends';
 import { getDonorResults, LaboratoryResult } from '../../src/api/laboratory';
@@ -89,6 +89,22 @@ export default function Health() {
     loadData();
   }, [loadData]);
 
+  const publishedResults = labResults.filter((r) => r.status === 'PUBLISHED');
+  const anyFlagged = publishedResults.some((r) =>
+    r.items.some((item) => item.flag && item.flag !== 'NORMAL'),
+  );
+  // Latest known flag per parameter code, so a vital row can carry the same
+  // Normal/Review badge the reference puts there.
+  const flagByParameterCode = new Map<string, string>();
+  publishedResults.forEach((result) => {
+    result.items.forEach((item) => {
+      const code = item.parameter?.code?.toUpperCase();
+      if (code && !flagByParameterCode.has(code)) {
+        flagByParameterCode.set(code, item.flag);
+      }
+    });
+  });
+
   if (isLoading) {
     return (
       <Screen>
@@ -114,10 +130,19 @@ export default function Health() {
           <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }
       >
-        <AppText variant="title">Health</AppText>
-        <AppText muted style={{ fontSize: 13, marginTop: 2 }}>
-          Your vitals overview
-        </AppText>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <View style={{ flex: 1 }}>
+            <AppText variant="title">Health</AppText>
+            <AppText muted style={{ fontSize: 13, marginTop: 2 }}>
+              Your vitals overview
+            </AppText>
+          </View>
+          {publishedResults.length > 0 && (
+            <Badge variant={anyFlagged ? 'warning' : 'success'}>
+              {anyFlagged ? 'Review' : 'All Normal'}
+            </Badge>
+          )}
+        </View>
 
         {(trend || latestParam) && (
           <TouchableOpacity
@@ -138,7 +163,7 @@ export default function Health() {
                     {(trend?.parameterName ?? latestParam?.name)!}
                   </AppText>
                   <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 4, marginTop: spacing.xs }}>
-                    <AppText style={{ ...typography.numeric, fontSize: 44, color: '#FFFFFF' }}>
+                    <AppText style={{ fontSize: 52, fontWeight: '800', lineHeight: 52, letterSpacing: -2.08, color: '#FFFFFF' }}>
                       {trend?.latestValue ?? latestParam?.latestValue ?? '—'}
                     </AppText>
                     {(trend?.unit ?? latestParam?.unit) && (
@@ -152,18 +177,7 @@ export default function Health() {
                   </AppText>
                 </View>
                 <View style={{ alignItems: 'flex-end', gap: spacing.sm }}>
-                  <View
-                    style={{
-                      width: 44,
-                      height: 44,
-                      borderRadius: 14,
-                      backgroundColor: 'rgba(255,255,255,0.15)',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <Activity size={22} color="#FFFFFF" />
-                  </View>
+                  <Activity size={28} color="#FFFFFF" />
                   {TrendIcon && trend?.percentageChange != null && (
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
                       <TrendIcon size={13} color="rgba(255,255,255,0.85)" />
@@ -187,64 +201,40 @@ export default function Health() {
                 </>
               )}
 
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: spacing.md }}>
-                <AppText style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)' }}>
-                  Track your laboratory results over time
-                </AppText>
-                <ChevronRight size={18} color="rgba(255,255,255,0.85)" />
-              </View>
             </GradientCard>
           </TouchableOpacity>
         )}
-
-        <SectionHeader>OVERVIEW</SectionHeader>
-        <View style={{ flexDirection: 'row', gap: spacing.md }}>
-          <OverviewStat
-            icon={FlaskConical}
-            color="secondary"
-            value={summary?.totalTests ?? 0}
-            label="Blood tests"
-            style={{ flex: 1 }}
-          />
-          <OverviewStat
-            icon={TrendingUp}
-            color="success"
-            value={summary?.totalParameters ?? 0}
-            label="Trends tracked"
-            style={{ flex: 1 }}
-          />
-        </View>
 
         {summary && summary.availableParameters.length > 0 && (
           <>
             <SectionHeader action={{ label: 'Trends', onPress: () => router.push('/health-trends' as RelativePathString) }}>
               VITALS
             </SectionHeader>
-            <GlassCard style={{ paddingVertical: spacing.sm }}>
+            <GlassCard style={{ paddingVertical: 16 }}>
               {summary.availableParameters.slice(0, 5).map((param, index) => {
                 const { icon: Icon, color: colorKey } = getVitalIconAndColor(param.code, index);
                 return (
                   <View key={param.code}>
-                    {index > 0 && <Divider style={{ marginVertical: spacing.sm }} />}
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+                    {index > 0 && <Divider style={{ marginVertical: 18 }} />}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
                       <View
                         style={{
-                          width: 34,
-                          height: 34,
-                          borderRadius: 10,
-                          backgroundColor: colors[`${colorKey}Muted`],
+                          width: 40,
+                          height: 40,
+                          borderRadius: 12,
+                          backgroundColor: `${colors[colorKey]}20`,
                           alignItems: 'center',
                           justifyContent: 'center',
                         }}
                       >
-                        <Icon size={16} color={colors.onMuted[colorKey]} />
+                        <Icon size={18} color={colors[colorKey]} />
                       </View>
                       <View style={{ flex: 1 }}>
                         <AppText muted style={{ fontSize: 12 }}>
                           {param.name}
                         </AppText>
                         <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 3, marginTop: 1 }}>
-                          <AppText variant="heading" style={{ fontSize: 19 }}>
+                          <AppText style={{ fontSize: 22, fontWeight: '700', letterSpacing: -0.44 }}>
                             {param.latestValue ?? '—'}
                           </AppText>
                           {param.unit && (
@@ -254,6 +244,19 @@ export default function Health() {
                           )}
                         </View>
                       </View>
+                      {flagByParameterCode.has(param.code.toUpperCase()) && (
+                        <Badge
+                          variant={
+                            flagByParameterCode.get(param.code.toUpperCase()) === 'NORMAL'
+                              ? 'success'
+                              : 'warning'
+                          }
+                        >
+                          {flagByParameterCode.get(param.code.toUpperCase()) === 'NORMAL'
+                            ? 'Normal'
+                            : 'Review'}
+                        </Badge>
+                      )}
                     </View>
                   </View>
                 );
@@ -261,39 +264,6 @@ export default function Health() {
             </GlassCard>
           </>
         )}
-
-        <SectionHeader>BLOOD TESTS</SectionHeader>
-        <TouchableOpacity onPress={() => router.push('/laboratory' as RelativePathString)}>
-          <Card>
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: spacing.md,
-              }}
-            >
-              <View
-                style={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: 12,
-                  backgroundColor: colors.secondaryMuted,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <FlaskConical size={24} color={colors.onMuted.secondary} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <AppText variant="heading">Blood Tests</AppText>
-                <AppText muted style={{ fontSize: 13 }}>
-                  Book appointments and view results
-                </AppText>
-              </View>
-              <ChevronRight size={20} color={colors.textMuted} />
-            </View>
-          </Card>
-        </TouchableOpacity>
 
         <SectionHeader action={{ label: 'View all', onPress: () => router.push('/insights' as RelativePathString) }}>
           AI INSIGHTS
