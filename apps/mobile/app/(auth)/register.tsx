@@ -37,8 +37,8 @@ export default function Register() {
         <AppText variant="title" style={{ fontSize: 32, fontWeight: '800', letterSpacing: -0.96 }}>
           Create your account.
         </AppText>
-        <AppText muted style={{ marginTop: spacing.sm, marginBottom: spacing.xl }}>
-          Your health data stays private and secure.
+        <AppText muted style={{ fontSize: 14, marginTop: 6, marginBottom: spacing.xl }}>
+          Create your account and start saving lives.
         </AppText>
 
         <Controller
