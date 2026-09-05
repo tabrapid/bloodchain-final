@@ -108,7 +108,7 @@ export default function DonationsScreen() {
 
   return (
     <Screen scroll={false}>
-      <ScreenHeader title="Donation History" />
+      <ScreenHeader title="Donation History" subtitle="All your previous donations" />
       <FlatList
         style={styles.scrollView}
         data={donations}

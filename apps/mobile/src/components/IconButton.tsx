@@ -1,8 +1,11 @@
 import { Pressable, PressableProps, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 import { BlurView } from 'expo-blur';
-import { radius, useTheme } from '../theme';
+import { useTheme } from '../theme';
 import { LucideIcon } from '../types/icons';
 import { AppText } from './AppText';
+
+/** The reference sets 14 here — between the sm (12) and md (18) steps. */
+const ICON_BUTTON_RADIUS = 14;
 
 export interface IconButtonProps extends Omit<PressableProps, 'style'> {
   icon: LucideIcon;
@@ -27,7 +30,7 @@ export function IconButton({
   badge,
   ...props
 }: IconButtonProps) {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const flattenedStyle = StyleSheet.flatten(style);
   const resolvedColor = color ?? colors.text;
 
@@ -39,26 +42,26 @@ export function IconButton({
             {
               width: 40,
               height: 40,
-              borderRadius: radius.sm,
+              borderRadius: ICON_BUTTON_RADIUS,
               opacity: pressed ? 0.85 : 1,
               transform: [{ scale: pressed ? 0.94 : 1 }],
             },
             flattenedStyle,
           ]}
         >
-          <View style={{ flex: 1, borderRadius: radius.sm, overflow: 'hidden' }}>
+          <View style={{ flex: 1, borderRadius: ICON_BUTTON_RADIUS, overflow: 'hidden' }}>
             <BlurView
-              intensity={isDark ? 42 : 55}
+              intensity={colors.glass.standard.blur}
               tint={colors.blurTint}
               experimentalBlurMethod="dimezisBlurView"
               style={{
                 flex: 1,
                 alignItems: 'center',
                 justifyContent: 'center',
-                backgroundColor: colors.surface,
+                backgroundColor: colors.glass.standard.fill,
                 borderWidth: 1,
-                borderColor: colors.glassBorder,
-                borderRadius: radius.sm,
+                borderColor: colors.glass.standard.border,
+                borderRadius: ICON_BUTTON_RADIUS,
               }}
             >
               <Icon size={size} color={resolvedColor} />

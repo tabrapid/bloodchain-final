@@ -1,7 +1,17 @@
 import { useMemo } from 'react';
 import { router } from 'expo-router';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
-import { Bell, Calendar, Droplet, TrendingUp, Zap, ChevronRight, Clock } from 'lucide-react-native';
+import {
+  Bell,
+  Calendar,
+  Droplet,
+  MapPin,
+  Shield,
+  TrendingUp,
+  Zap,
+  ChevronRight,
+  Clock,
+} from 'lucide-react-native';
 import {
   AppButton,
   AppText,
@@ -11,6 +21,7 @@ import {
   GradientCard,
   IconButton,
   OverviewStat,
+  ProgressBar,
   Screen,
   SectionHeader,
 } from '../../src/components';
@@ -83,12 +94,10 @@ export default function Home() {
             {new Date().toLocaleDateString('en-US', {
               weekday: 'long',
               day: 'numeric',
-              month: 'long',
-            }).toUpperCase()}
+              month: 'short',
+            })}
           </AppText>
-          <AppText variant="title" style={styles.greeting}>
-            {greeting}
-          </AppText>
+          <AppText style={styles.greeting}>{greeting}</AppText>
         </View>
         <View style={styles.headerActions}>
           <IconButton
@@ -118,30 +127,34 @@ export default function Home() {
         colors={colors.heroGradient}
         style={styles.bloodTypeCard}
       >
-        <Droplet
-          size={130}
-          color="rgba(255,255,255,0.10)"
-          fill="rgba(255,255,255,0.06)"
-          style={styles.bloodTypeWatermark}
-        />
-        <View style={styles.bloodTypeHeader}>
-          <Droplet size={14} color="rgba(255,255,255,0.85)" fill="rgba(255,255,255,0.5)" />
-          <AppText style={styles.bloodTypeLabel}>BLOOD TYPE</AppText>
-        </View>
-        <View style={styles.bloodTypeContent}>
-          <AppText style={styles.bloodTypeValue}>{bloodTypeDisplay}</AppText>
-          <View style={[styles.statusBadge, { backgroundColor: bloodTypeColor }]}>
-            <AppText style={[styles.statusText, { color: bloodTypeTextColor }]}>
-              {bloodTypeStatus}
-            </AppText>
+        <View style={styles.heroTopRow}>
+          <View style={styles.heroTopLeft}>
+            <View style={styles.bloodTypeHeader}>
+              <Droplet size={14} color="rgba(255,255,255,0.7)" fill="rgba(255,255,255,0.5)" />
+              <AppText style={styles.bloodTypeLabel}>BLOOD TYPE</AppText>
+            </View>
+            <AppText style={styles.bloodTypeValue}>{bloodTypeDisplay}</AppText>
+            <View style={styles.bloodTypeContent}>
+              <View style={[styles.statusBadge, { backgroundColor: bloodTypeColor }]}>
+                <AppText style={[styles.statusText, { color: bloodTypeTextColor }]}>
+                  {bloodTypeStatus}
+                </AppText>
+              </View>
+              {donorProfile?.city && (
+                <View style={styles.locationRow}>
+                  <MapPin size={11} color="rgba(255,255,255,0.65)" />
+                  <AppText style={styles.locationText}>
+                    {donorProfile.city}
+                    {donorProfile.district ? `, ${donorProfile.district}` : ''}
+                  </AppText>
+                </View>
+              )}
+            </View>
+          </View>
+          <View style={styles.heroShield}>
+            <Shield size={28} color="#FFFFFF" strokeWidth={1.5} />
           </View>
         </View>
-        {donorProfile?.city && (
-          <AppText style={styles.locationText}>
-            {donorProfile.city}
-            {donorProfile.district ? `, ${donorProfile.district}` : ''}
-          </AppText>
-        )}
         <View style={styles.heroDivider} />
         <View style={styles.heroStatsRow}>
           <View style={styles.heroStatItem}>
@@ -269,24 +282,24 @@ export default function Home() {
       <SectionHeader>PROFILE</SectionHeader>
       <Card>
         <View style={styles.profileStat}>
-          <View>
-            <AppText variant="heading">Profile Completion</AppText>
+          <View style={{ flex: 1 }}>
+            <AppText style={styles.completionTitle}>Complete your profile</AppText>
             <AppText muted style={styles.completionNote}>
-              {completion?.percentage || 0}% complete
+              Add medical info to unlock all features
             </AppText>
           </View>
           <View style={styles.completionBadge}>
-            <AppText variant="heading" style={{ color: colors.primary }}>
-              {completion?.percentage || 0}%
-            </AppText>
+            <AppText style={styles.completionBadgeText}>{completion?.percentage || 0}%</AppText>
           </View>
         </View>
+        <ProgressBar progress={completion?.percentage || 0} color={colors.success} />
       </Card>
 
       <SectionHeader>QUICK ACTIONS</SectionHeader>
       <View style={styles.quickActions}>
         <AppButton
           variant="secondary"
+          size="small"
           onPress={() => router.push('/(app)/profile/donor')}
           style={styles.quickAction}
         >
@@ -294,6 +307,7 @@ export default function Home() {
         </AppButton>
         <AppButton
           variant="secondary"
+          size="small"
           onPress={() => router.push('/(app)/profile/edit')}
           style={styles.quickAction}
         >
@@ -303,20 +317,22 @@ export default function Home() {
 
       <SectionHeader>EMERGENCY</SectionHeader>
       <GlassCard tier="danger" style={styles.sosCard}>
-        <View style={styles.sosHeader}>
-          <AppText variant="heading" style={{ color: colors.danger }}>
-            SOS Blood Requests
-          </AppText>
-          {activeEmergencyCount > 0 && <View style={styles.sosPulseDot} />}
+        <View style={styles.sosRow}>
+          <View style={{ flex: 1 }}>
+            <View style={styles.sosHeader}>
+              {activeEmergencyCount > 0 && <View style={styles.sosPulseDot} />}
+              <AppText style={styles.sosTitle}>Emergency Requests</AppText>
+            </View>
+            <AppText muted style={styles.sosText}>
+              {activeEmergencyCount > 0
+                ? `${activeEmergencyCount} urgent ${activeEmergencyCount === 1 ? 'request' : 'requests'} near you`
+                : 'No active emergency requests right now'}
+            </AppText>
+          </View>
+          <AppButton variant="danger" size="small" onPress={() => router.push('/sos')}>
+            SOS Area
+          </AppButton>
         </View>
-        <AppText muted style={styles.sosText}>
-          {activeEmergencyCount > 0
-            ? `${activeEmergencyCount} active emergency ${activeEmergencyCount === 1 ? 'request' : 'requests'} near you.`
-            : 'No active emergency requests right now.'}
-        </AppText>
-        <AppButton variant="danger" size="small" onPress={() => router.push('/sos')}>
-          View SOS Area
-        </AppButton>
       </GlassCard>
     </Screen>
   );
@@ -353,11 +369,20 @@ function createStyles(colors: ThemeColors) {
       alignItems: 'center',
       gap: spacing.sm,
     },
+    // The reference's greeting block is deliberately smaller than a screen
+    // title: a sentence-cased date over a 22pt greeting, not a shouted
+    // all-caps label over a 27pt heading.
     dateLabel: {
-      letterSpacing: 1,
-      marginBottom: spacing.xs,
+      fontSize: 12,
+      fontWeight: '500',
+      letterSpacing: 0.24,
     },
-    greeting: {},
+    greeting: {
+      fontSize: 22,
+      fontWeight: '700',
+      letterSpacing: -0.44,
+      marginTop: 2,
+    },
     onboardingPrompt: {
       marginBottom: spacing.xl,
       borderColor: colors.primary,
@@ -373,21 +398,40 @@ function createStyles(colors: ThemeColors) {
     bloodTypeCard: {
       marginBottom: spacing.lg,
     },
-    bloodTypeWatermark: {
-      position: 'absolute',
-      top: -20,
-      right: -20,
+    heroTopRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+    },
+    heroTopLeft: {
+      flex: 1,
+    },
+    // A translucent white chip holding the verification shield, top-right of
+    // the hero -- the reference's counterweight to the blood-type letter.
+    heroShield: {
+      width: 60,
+      height: 60,
+      borderRadius: 18,
+      backgroundColor: 'rgba(255,255,255,0.15)',
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     bloodTypeHeader: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: spacing.xs,
-      marginBottom: spacing.sm,
+      gap: spacing.sm,
+      marginBottom: 4,
     },
     bloodTypeContent: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: spacing.md,
+      gap: spacing.sm,
+      marginTop: 10,
+    },
+    locationRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
     },
     // The blood type card is a vivid, saturated brand gradient rather than a
     // theme surface, so its text is fixed white in both themes -- the same
@@ -395,12 +439,17 @@ function createStyles(colors: ThemeColors) {
     // would go near-black and vanish in light mode.
     bloodTypeLabel: {
       fontSize: 11,
-      fontWeight: '700',
-      letterSpacing: 1.2,
-      color: 'rgba(255,255,255,0.85)',
+      fontWeight: '600',
+      letterSpacing: 1.1,
+      color: 'rgba(255,255,255,0.7)',
     },
+    // 64pt on Home specifically -- larger than the shared `bloodType` token,
+    // matching the reference, where this is the single biggest glyph anywhere.
     bloodTypeValue: {
-      ...typography.bloodType,
+      fontSize: 64,
+      fontWeight: '800',
+      lineHeight: 64,
+      letterSpacing: -2.56,
       color: '#FFFFFF',
     },
     statusBadge: {
@@ -415,9 +464,8 @@ function createStyles(colors: ThemeColors) {
       letterSpacing: 0.5,
     },
     locationText: {
-      marginTop: spacing.sm,
-      fontSize: 13,
-      color: 'rgba(255,255,255,0.75)',
+      fontSize: 12,
+      color: 'rgba(255,255,255,0.65)',
     },
     heroDivider: {
       marginTop: spacing.md,
@@ -460,21 +508,33 @@ function createStyles(colors: ThemeColors) {
     profileStat: {
       flexDirection: 'row',
       justifyContent: 'space-between',
-      alignItems: 'center',
+      alignItems: 'flex-start',
+      marginBottom: 10,
+    },
+    completionTitle: {
+      fontSize: 14,
+      fontWeight: '600',
+      marginBottom: 2,
     },
     completionNote: {
-      fontSize: 13,
-      marginTop: 2,
+      fontSize: 12,
     },
+    // A success-tinted pill, not a neutral chip: the percentage is progress,
+    // and the reference colours it accordingly.
     completionBadge: {
-      backgroundColor: colors.surfaceElevated,
-      paddingHorizontal: spacing.md,
-      paddingVertical: spacing.sm,
-      borderRadius: spacing.sm,
+      backgroundColor: `${colors.success}26`,
+      paddingHorizontal: 10,
+      paddingVertical: 3,
+      borderRadius: radius.pill,
+    },
+    completionBadgeText: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: colors.success,
     },
     quickActions: {
       flexDirection: 'row',
-      gap: spacing.md,
+      gap: 10,
       marginBottom: spacing.lg,
     },
     quickAction: {
@@ -484,20 +544,35 @@ function createStyles(colors: ThemeColors) {
     // border here with the full-saturation accent made the card shout louder
     // than the reference's rose tint intends.
     sosCard: {},
+    sosRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: spacing.md,
+    },
     sosHeader: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: spacing.sm,
+      gap: 6,
+      marginBottom: 4,
     },
+    sosTitle: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: colors.danger,
+    },
+    // The halo around the dot is the reference's `box-shadow: 0 0 0 3px`
+    // ring, rendered here as a border on a slightly larger box.
     sosPulseDot: {
       width: 8,
       height: 8,
       borderRadius: 4,
       backgroundColor: colors.danger,
+      borderWidth: 3,
+      borderColor: 'rgba(216,83,96,0.30)',
     },
     sosText: {
-      marginTop: spacing.xs,
-      marginBottom: spacing.md,
+      fontSize: 12,
     },
     appointmentCard: {
       padding: spacing.lg,

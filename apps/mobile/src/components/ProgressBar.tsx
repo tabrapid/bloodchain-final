@@ -9,8 +9,8 @@ export interface ProgressBarProps {
   height?: number;
 }
 
-export function ProgressBar({ progress, color, height = 6 }: ProgressBarProps) {
-  const { colors } = useTheme();
+export function ProgressBar({ progress, color, height = 5 }: ProgressBarProps) {
+  const { colors, isDark } = useTheme();
   const clamped = Math.min(100, Math.max(0, progress));
 
   // `clamped` is read straight from the worklet closure -- reanimated
@@ -25,7 +25,7 @@ export function ProgressBar({ progress, color, height = 6 }: ProgressBarProps) {
       style={{
         height,
         borderRadius: radius.pill,
-        backgroundColor: colors.surfaceElevated,
+        backgroundColor: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(15,23,42,0.08)',
         overflow: 'hidden',
       }}
     >
