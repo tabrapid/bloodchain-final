@@ -122,15 +122,20 @@ const darkColors: ThemeColors = {
   // rose stays the dominant one behind the hero.
   //
   // Each is centred where the reference puts it, but drawn roughly 1.65x wider
-  // than the reference's 280/252/224 and at a lower peak alpha: a wider bloom
-  // spends its falloff over more pixels, which is what makes it read as light
-  // diffusing through the backdrop rather than a coloured disc laid on top of
-  // it. The peaks came down with it so the blooms sit closer to the background
-  // they are tinting.
+  // than the reference's 280/252/224 and at a much lower peak alpha: a wider
+  // bloom spends its falloff over more pixels, which is what makes it read as
+  // light diffusing through the backdrop rather than a coloured disc laid on
+  // top of it.
+  //
+  // The peaks are deliberately low. A bloom bright enough to be looked at
+  // competes with the cards for attention, and worse, washes out whichever
+  // card happens to sit over it -- the overview tile above the blue bloom read
+  // as a different, lighter material than the two beside it. These are here to
+  // keep the backdrop from being flat black, nothing more.
   ambientOrbs: [
-    { color: 'rgba(216,83,96,0.20)', size: 460, top: -216, left: -188 },
-    { color: 'rgba(104,183,209,0.15)', size: 420, top: 211, left: 180 },
-    { color: 'rgba(142,130,223,0.13)', size: 380, top: 654, left: -39 },
+    { color: 'rgba(216,83,96,0.10)', size: 460, top: -216, left: -188 },
+    { color: 'rgba(104,183,209,0.075)', size: 420, top: 211, left: 180 },
+    { color: 'rgba(142,130,223,0.065)', size: 380, top: 654, left: -39 },
   ],
   glass: {
     nav: {
@@ -203,9 +208,9 @@ const lightColors: ThemeColors = {
   backgroundGradient: ['#F8F0FC', '#EEEEFC', '#E6EFF9'],
   heroGradient: ['#D85360', '#8E3A59', '#5B3080'],
   ambientOrbs: [
-    { color: 'rgba(216,83,96,0.10)', size: 460, top: -216, left: -188 },
-    { color: 'rgba(104,183,209,0.075)', size: 420, top: 211, left: 180 },
-    { color: 'rgba(142,130,223,0.065)', size: 380, top: 654, left: -39 },
+    { color: 'rgba(216,83,96,0.055)', size: 460, top: -216, left: -188 },
+    { color: 'rgba(104,183,209,0.04)', size: 420, top: 211, left: 180 },
+    { color: 'rgba(142,130,223,0.035)', size: 380, top: 654, left: -39 },
   ],
   glass: {
     nav: {
