@@ -6462,3 +6462,58 @@ Next up: the remainder of **P3-2** (Next.js app pages, more
 `packages/ui` components — the mobile/Expo test setup half is now done
 as part of P3-9), or **P3-4** through **P3-7** (env docs, stale docs,
 dead admin DTOs), or **P3-10**.
+
+---
+
+## Open follow-ups from the Create Design (2) port
+
+The Figma reference was ported screen by screen against real backend data.
+Six things it draws have no field behind them anywhere in this system, so
+they were deliberately left out rather than faked. Each needs a backend
+decision before the matching UI can exist:
+
+- [ ] **Password reset.** The reference's Login screen has a "Forgot
+  password?" link. There is no reset endpoint, handler, or client function
+  anywhere in the API — the link would go nowhere, so it was not added.
+  Needs the flow (request → emailed token → set new password) first.
+- [ ] **Which session is *this* device.** The reference's Security screen
+  marks the current session with a "Current" badge and hides its Revoke
+  action. `Session` carries no field saying which one is current, and
+  inferring it from `lastUsedAt` would be a guess about a security fact, so
+  every session currently shows a Revoke link — including, potentially, the
+  one you are using.
+- [ ] **Privacy toggles with no stored consent.** The reference's Privacy
+  screen has five switches; four of them (public profile, donation-history
+  visibility, leaderboard opt-out, anonymized analytics sharing) have no
+  field on any model. Only `consentLocation` is offered. A privacy switch
+  that silently does nothing is worse than one that is absent.
+- [ ] **AI insight confidence.** Each insight card in the reference ends
+  with a "94% confidence" meter. Nothing in the AI pipeline produces a
+  confidence value. The card shows the insight's real `safetyLevel`
+  instead. If confidence is wanted, the generator has to emit it.
+- [ ] **Organization phone number.** The reference's Appointment Detail has
+  a tappable contact card for the donation centre. `Organization` has no
+  phone field; the card carries the appointment's reference number instead.
+- [ ] **Distance to a hospital.** The reference's SOS cards show "0.8 km".
+  The emergency payload carries `latitude`/`longitude` but no computed
+  distance, and the donor's own position is only available once location
+  permission is granted. Cards show time remaining and units needed.
+
+### Also open
+
+- [ ] **`apps/mobile/Create Design/` is still tracked** (62 files). It is
+  the superseded first Figma export, replaced by `Create Design (2)`, and
+  is excluded from lint, typecheck and the build — but it still ships in
+  every clone. Deleting it was blocked by a tooling guard in the session
+  that ported the design; it needs a human to remove it.
+- [ ] **`apps/api` carries 500 lint warnings** (0 errors), nearly all
+  `@typescript-eslint/no-explicit-any`. Worth a typed pass, but none of
+  them fail the build.
+- [ ] **~12 `exhaustive-deps` warnings in the web apps**, all the
+  load-on-mount pattern where adding the dependency loops unless the
+  loader is stabilised into a `useCallback` first.
+- [ ] **No visual verification of the mobile app has been possible.** Every
+  design change in this port was made against the reference source and
+  verified by typecheck, lint and tests — there is no simulator or device
+  in the environment it was done in, so nothing here has been *seen*
+  running.
