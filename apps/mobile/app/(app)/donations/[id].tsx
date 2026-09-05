@@ -4,7 +4,7 @@ import { View, StyleSheet, ScrollView } from 'react-native';
 import { Droplet, Calendar, Clock, Building2, MapPin, AlertCircle } from 'lucide-react-native';
 import { AppButton, AppText, Card, GlassCard, Screen, ScreenHeader } from '../../../src/components';
 import { useDonation } from '../../../src/hooks/useDonations';
-import { spacing, useTheme, ThemeColors } from '../../../src/theme';
+import { layout, spacing, useTheme, ThemeColors } from '../../../src/theme';
 
 export default function DonationDetailScreen() {
   const { colors } = useTheme();
@@ -253,7 +253,7 @@ function createStyles(colors: ThemeColors) {
     },
     summaryCard: {
       padding: spacing.lg,
-      marginBottom: 12,
+      marginBottom: layout.cardGap,
       alignItems: 'center',
     },
     mainInfo: {
@@ -283,7 +283,7 @@ function createStyles(colors: ThemeColors) {
     },
     detailsCard: {
       padding: spacing.lg,
-      marginBottom: 12,
+      marginBottom: layout.cardGap,
     },
     sectionTitle: {
       marginBottom: spacing.lg,
@@ -324,7 +324,7 @@ function createStyles(colors: ThemeColors) {
     nextDateCard: {
       padding: spacing.lg,
       alignItems: 'center',
-      marginBottom: 12,
+      marginBottom: layout.cardGap,
       backgroundColor: colors.successMuted,
     },
     nextDateLabel: {
@@ -339,7 +339,7 @@ function createStyles(colors: ThemeColors) {
     reasonCard: {
       padding: spacing.lg,
       backgroundColor: colors.dangerMuted,
-      marginBottom: 12,
+      marginBottom: layout.cardGap,
     },
     reasonHeader: {
       flexDirection: 'row',

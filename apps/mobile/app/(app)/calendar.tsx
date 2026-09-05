@@ -4,7 +4,7 @@ import { router } from 'expo-router';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react-native';
 import { AppButton, AppText, Card, EmptyState, GlassCard, Screen } from '../../src/components';
 import { useMyAppointments } from '../../src/hooks/useAppointments';
-import { spacing, radius, useTheme, ThemeColors } from '../../src/theme';
+import { layout, spacing, radius, useTheme, ThemeColors } from '../../src/theme';
 
 const LEGEND: { label: string; type: string }[] = [
   { label: 'Donation', type: 'BLOOD_DONATION' },
@@ -318,7 +318,7 @@ function createStyles(colors: ThemeColors) {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'flex-start',
-      marginBottom: spacing.lg,
+      marginBottom: layout.cardGap,
     },
     headerSubtitle: {
       fontSize: 13,
@@ -345,7 +345,7 @@ function createStyles(colors: ThemeColors) {
     },
     calendarCard: {
       padding: spacing.md,
-      marginBottom: 12,
+      marginBottom: layout.cardGap,
     },
     legendRow: {
       flexDirection: 'row',

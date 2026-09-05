@@ -34,7 +34,7 @@ import { useGamificationProfile } from '../../src/hooks/useGamification';
 import { useUnreadCount } from '../../src/hooks/useNotifications';
 import { useDonorEmergencies } from '../../src/hooks/useEmergency';
 import { useAuthStore } from '../../src/stores/auth.store';
-import { spacing, radius, useTheme, ThemeColors } from '../../src/theme';
+import { layout, spacing, radius, useTheme, ThemeColors } from '../../src/theme';
 
 export default function Home() {
   const { colors } = useTheme();
@@ -359,7 +359,7 @@ function createStyles(colors: ThemeColors) {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      marginBottom: spacing.xl,
+      marginBottom: layout.cardGap,
     },
     headerText: {
       flex: 1,
@@ -384,7 +384,7 @@ function createStyles(colors: ThemeColors) {
       marginTop: 2,
     },
     onboardingPrompt: {
-      marginBottom: 12,
+      marginBottom: layout.cardGap,
       borderColor: colors.primary,
       borderWidth: 1,
     },
@@ -396,7 +396,7 @@ function createStyles(colors: ThemeColors) {
       alignSelf: 'flex-start',
     },
     bloodTypeCard: {
-      marginBottom: 12,
+      marginBottom: layout.cardGap,
     },
     heroTopRow: {
       flexDirection: 'row',
@@ -503,7 +503,7 @@ function createStyles(colors: ThemeColors) {
     statsRow: {
       flexDirection: 'row',
       gap: 10,
-      marginBottom: 12,
+      marginBottom: layout.cardGap,
     },
     profileStat: {
       flexDirection: 'row',
@@ -535,7 +535,7 @@ function createStyles(colors: ThemeColors) {
     quickActions: {
       flexDirection: 'row',
       gap: 10,
-      marginBottom: 12,
+      marginBottom: layout.cardGap,
     },
     quickAction: {
       flex: 1,

@@ -15,7 +15,7 @@ import {
   Screen,
   ScreenHeader,
 } from '../../../src/components';
-import { spacing, radius, useTheme, ThemeColors } from '../../../src/theme';
+import { layout, spacing, radius, useTheme, ThemeColors } from '../../../src/theme';
 
 export default function ChallengesScreen() {
   const { colors } = useTheme();
@@ -186,11 +186,11 @@ function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
     errorCard: {
       padding: spacing.md,
-      marginBottom: 12,
+      marginBottom: layout.cardGap,
       backgroundColor: colors.dangerMuted,
     },
     list: {
-      gap: spacing.md,
+      gap: layout.cardGap,
       paddingBottom: spacing.xl,
     },
     badgeRow: {

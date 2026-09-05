@@ -13,7 +13,7 @@ import {
   SkeletonCard,
 } from '../../../../src/components';
 import { AppText } from '../../../../src/components/AppText';
-import { spacing, radius, useTheme, ThemeColors } from '../../../../src/theme';
+import { layout, spacing, radius, useTheme, ThemeColors } from '../../../../src/theme';
 import type { LeaderboardEntry } from '../../../../src/api/gamification';
 
 /** Gold / silver / bronze, and the podium bar gradient for each. */
@@ -226,7 +226,7 @@ function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
     scroll: { flex: 1 },
     content: {
-      gap: 12,
+      gap: layout.cardGap,
       paddingBottom: spacing.xl,
     },
 

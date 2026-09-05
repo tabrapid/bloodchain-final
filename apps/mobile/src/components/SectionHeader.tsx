@@ -1,19 +1,11 @@
 import { View, TouchableOpacity } from 'react-native';
 import { AppText } from './AppText';
-import { radius, typography, useTheme } from '../theme';
+import { layout, radius, typography, useTheme } from '../theme';
 
 export interface SectionHeaderAction {
   label: string;
   onPress: () => void;
 }
-
-/**
- * Space around a section label. These were 24 above and 12 below, which on a
- * screen that also gaps its cards by 12-16 left a band of empty background
- * before every heading -- the reference sets 20/10 and reads much denser.
- */
-const SECTION_GAP_TOP = 20;
-const SECTION_GAP_BOTTOM = 10;
 
 export interface SectionHeaderProps {
   children: string;
@@ -30,8 +22,8 @@ export function SectionHeader({ children, action }: SectionHeaderProps) {
           ...typography.caption,
           color: colors.text,
           opacity: 0.55,
-          marginTop: SECTION_GAP_TOP,
-          marginBottom: SECTION_GAP_BOTTOM,
+          marginTop: layout.sectionGapTop,
+          marginBottom: layout.sectionGapBottom,
         }}
       >
         {children.toUpperCase()}
@@ -45,8 +37,8 @@ export function SectionHeader({ children, action }: SectionHeaderProps) {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        marginTop: SECTION_GAP_TOP,
-        marginBottom: SECTION_GAP_BOTTOM,
+        marginTop: layout.sectionGapTop,
+        marginBottom: layout.sectionGapBottom,
       }}
     >
       <AppText style={{ ...typography.caption, color: colors.text, opacity: 0.55 }}>

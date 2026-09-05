@@ -7,7 +7,7 @@ import { useDonationStatistics, useMyDonations } from '../../src/hooks/useDonati
 import { getCampaigns } from '../../src/api/campaigns';
 import { getActiveChallenges } from '../../src/api/challenges';
 import { getCommunityStats } from '../../src/api/community';
-import { spacing, useTheme } from '../../src/theme';
+import { layout, spacing, useTheme } from '../../src/theme';
 
 /**
  * The four donation types the backend's `DonationType` enum actually
@@ -131,7 +131,7 @@ export default function Donate() {
           <SectionHeader action={{ label: 'See all', onPress: () => router.push('/campaigns') }}>
             ACTIVE CAMPAIGNS
           </SectionHeader>
-          <View style={{ gap: spacing.sm, marginBottom: spacing.lg }}>
+          <View style={{ gap: spacing.sm, marginBottom: layout.cardGap }}>
             {activeCampaigns.map((campaign) => (
               <TouchableOpacity
                 key={campaign.id}
@@ -181,7 +181,7 @@ export default function Donate() {
             CHALLENGES
           </SectionHeader>
           <TouchableOpacity onPress={() => router.push('/challenges')} activeOpacity={0.8}>
-            <GlassCard style={{ marginBottom: spacing.lg }}>
+            <GlassCard style={{ marginBottom: layout.cardGap }}>
               <View style={{ flexDirection: 'row', gap: spacing.md, alignItems: 'center' }}>
                 <View
                   style={{
@@ -221,7 +221,7 @@ export default function Donate() {
       {communityStats && (
         <>
           <SectionHeader>COMMUNITY IMPACT</SectionHeader>
-          <GlassCard style={{ marginBottom: spacing.lg }}>
+          <GlassCard style={{ marginBottom: layout.cardGap }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-around' }}>
               <View style={{ alignItems: 'center' }}>
                 <AppText variant="heading" style={{ fontSize: 22 }}>

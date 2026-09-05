@@ -21,7 +21,7 @@ import {
   Screen,
   ScreenHeader,
 } from '../../../src/components';
-import { spacing, useTheme, ThemeColors } from '../../../src/theme';
+import { layout, spacing, useTheme, ThemeColors } from '../../../src/theme';
 
 export default function EducationScreen() {
   const { colors } = useTheme();
@@ -255,11 +255,11 @@ function EducationCard({
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
     statsCard: {
-      marginBottom: 12,
+      marginBottom: layout.cardGap,
     },
     errorCard: {
       padding: spacing.md,
-      marginBottom: 12,
+      marginBottom: layout.cardGap,
       backgroundColor: colors.dangerMuted,
     },
     statsRow: {
@@ -283,7 +283,7 @@ function createStyles(colors: ThemeColors) {
       marginBottom: spacing.md,
     },
     list: {
-      gap: spacing.md,
+      gap: layout.cardGap,
       paddingBottom: spacing.xl,
     },
     badgeRow: {

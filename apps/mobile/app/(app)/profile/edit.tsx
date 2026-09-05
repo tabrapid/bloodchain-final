@@ -10,7 +10,7 @@ import {
   ScreenHeader,
 } from '../../../src/components';
 import { useUserProfile, useUpdateUserProfile } from '../../../src/hooks/useUsers';
-import { spacing, useTheme, ThemeColors } from '../../../src/theme';
+import { layout, spacing, useTheme, ThemeColors } from '../../../src/theme';
 import { ApiRequestError } from '../../../src/api/client';
 
 export default function EditProfile() {
@@ -135,7 +135,7 @@ function createStyles(colors: ThemeColors) {
     flex: { flex: 1 },
     content: {
       paddingBottom: spacing.xl,
-      gap: 20,
+      gap: layout.cardGap,
     },
     avatarBlock: {
       alignItems: 'center',

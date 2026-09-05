@@ -20,7 +20,7 @@ import {
   Screen,
 } from '../../../src/components';
 import { useAppointment, useCancelAppointment } from '../../../src/hooks/useAppointments';
-import { spacing, radius, useTheme, ThemeColors } from '../../../src/theme';
+import { layout, spacing, radius, useTheme, ThemeColors } from '../../../src/theme';
 import type { BadgeProps } from '../../../src/components/Badge';
 
 /**
@@ -346,7 +346,7 @@ function createStyles(colors: ThemeColors) {
       color: colors.text,
     },
     content: {
-      gap: 14,
+      gap: layout.cardGap,
       paddingBottom: spacing.xl,
     },
 
@@ -394,7 +394,7 @@ function createStyles(colors: ThemeColors) {
       fontSize: 13,
       fontWeight: '600',
       color: colors.text,
-      marginBottom: 12,
+      marginBottom: layout.cardGap,
     },
     tipRow: {
       flexDirection: 'row',

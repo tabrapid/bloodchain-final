@@ -17,7 +17,7 @@ import {
   useRescheduleAppointment,
 } from '../../src/hooks/useAppointments';
 import { ApiRequestError } from '../../src/api/client';
-import { radius, spacing, useTheme, ThemeColors } from '../../src/theme';
+import { layout, radius, spacing, useTheme, ThemeColors } from '../../src/theme';
 
 const TYPE_LABELS: Record<string, string> = {
   BLOOD_DONATION: 'Blood Donation',
@@ -307,7 +307,7 @@ function createStyles(colors: ThemeColors) {
       fontSize: 12,
       lineHeight: 18,
       color: colors.textMuted,
-      marginTop: 12,
+      marginTop: layout.cardGap,
     },
 
     blockingError: {

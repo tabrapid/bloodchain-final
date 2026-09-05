@@ -21,7 +21,7 @@ import {
 import { AppText } from '../../../src/components/AppText';
 import { XpProgressBar } from '../../../src/components/gamification/XpProgressBar';
 import { BadgeDisplay } from '../../../src/components/gamification/BadgeDisplay';
-import { spacing, radius, useTheme, ThemeColors } from '../../../src/theme';
+import { layout, spacing, radius, useTheme, ThemeColors } from '../../../src/theme';
 import type { Achievement, Badge } from '../../../src/api/gamification';
 
 export default function GamificationScreen() {
@@ -261,7 +261,7 @@ function ChallengeCard({ achievement }: { achievement: Achievement }) {
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
     content: {
-      gap: 12,
+      gap: layout.cardGap,
       paddingBottom: spacing.xl,
     },
 

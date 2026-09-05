@@ -274,6 +274,20 @@ export const spacing = {
  * `lg` and `xl` carry the card and hero values so the ~40 existing call sites
  * pick up the new geometry without a rename churn.
  */
+/**
+ * Vertical rhythm for stacked content. Kept here rather than as numbers in
+ * forty screens so the density of the whole app is one decision.
+ *
+ * `cardGap` is for a stack of cards; dense *row* lists (notifications, a
+ * donation history, leaderboard places) stay tighter at `spacing.sm`, because
+ * a row is not a card and reads better packed.
+ */
+export const layout = {
+  cardGap: 10,
+  sectionGapTop: 16,
+  sectionGapBottom: 8,
+} as const;
+
 export const radius = {
   sm: 12,
   md: 18,

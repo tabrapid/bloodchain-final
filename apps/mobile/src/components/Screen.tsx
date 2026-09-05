@@ -23,26 +23,42 @@ export function Screen({
 
   // 16px, matching the reference's content gutter. This was 24px, which made
   // every card noticeably narrower than the reference's.
-  const content = <View style={[{ flex: 1, padding: spacing.md }, style]}>{children}</View>;
+  const padding = spacing.md;
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
       {scroll ? (
         <ScrollView
           style={{ flex: 1 }}
-          contentContainerStyle={[
-            { flexGrow: 1, paddingBottom: tabBarHeight },
-            contentContainerStyle,
-          ]}
+          contentContainerStyle={[{ flexGrow: 1 }, contentContainerStyle]}
           showsVerticalScrollIndicator={false}
           {...props}
         >
-          {content}
+          {/*
+            `flexGrow`, never `flex`. `flex: 1` sets `flexBasis: 0`, which
+            inside a scroll container resolves the child's height against the
+            *viewport* -- so content longer than one screen was clamped to one
+            screen and everything past it became unreachable: scrolling simply
+            stopped, with the last card cut in half. `flexGrow: 1` still fills
+            the viewport when the content is short, and lets it grow past when
+            it is not.
+          */}
+          <View
+            style={[
+              { flexGrow: 1, padding, paddingBottom: padding + tabBarHeight },
+              style,
+            ]}
+          >
+            {children}
+          </View>
         </ScrollView>
       ) : (
-        // A non-scrolling screen keeps its own list/scroller inside, so the
-        // clearance goes on the frame instead of a content container.
-        <View style={{ flex: 1, paddingBottom: tabBarHeight }}>{content}</View>
+        // A non-scrolling screen keeps its own list or scroller inside, so it
+        // does fill the frame -- and the clearance goes to the frame, since
+        // the inner scroller needs to know where the bar starts.
+        <View style={[{ flex: 1, padding, paddingBottom: padding + tabBarHeight }, style]}>
+          {children}
+        </View>
       )}
     </SafeAreaView>
   );

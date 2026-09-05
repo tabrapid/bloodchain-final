@@ -1,21 +1,33 @@
+import { useContext } from 'react';
 import { Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import {
+  BottomTabBarHeightCallbackContext,
+  type BottomTabBarProps,
+} from '@react-navigation/bottom-tabs';
 import { radius, spacing, useTheme } from '../theme';
 import { AppText } from './AppText';
 
 /**
- * A floating, glass-styled bottom tab bar, replacing React Navigation's
- * default flat bar. Docked (not `position: absolute`) so scroll content
- * never needs manual bottom-inset padding to avoid being hidden behind it --
- * it still reads as a "floating pill" thanks to its own margin and rounded
- * corners, it just occupies its own row instead of overlapping content.
+ * A floating, glass-styled bottom tab bar, replacing React Navigation's flat
+ * default.
+ *
+ * It overlays the content rather than taking a row below it -- that is what
+ * lets it read as glass, since there is something behind it to blur. Two
+ * things follow from that, and both have to be done here: it positions itself
+ * (a navigator given a custom `tabBar` never applies `tabBarStyle`), and it
+ * reports its measured height so `Screen` can pad content clear of it.
  */
 export function GlassTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  // The navigator only knows how tall a *default* tab bar would be; a custom
+  // one has to report its own size or every screen pads its content by the
+  // wrong amount. This pill is roughly twice the default height, so without
+  // it the last card still ended up behind the bar.
+  const setTabBarHeight = useContext(BottomTabBarHeightCallbackContext);
 
   // `state.routes` is EVERY route registered in the navigator, including the
   // ones marked `href: null` to keep them out of the tab bar. Expo Router
@@ -140,6 +152,7 @@ export function GlassTabBar({ state, descriptors, navigation }: BottomTabBarProp
 
   return (
     <View
+      onLayout={(event) => setTabBarHeight?.(event.nativeEvent.layout.height)}
       style={{
         // Floats over the content rather than taking a strip below it. The
         // navigator ignores `tabBarStyle` when a custom `tabBar` is supplied,

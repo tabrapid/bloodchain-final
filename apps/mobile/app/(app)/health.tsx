@@ -17,7 +17,7 @@ import {
   type LucideIcon,
 } from 'lucide-react-native';
 import { AppText, Badge, Divider, GlassCard, GradientCard, LoadingState, Screen, SectionHeader, Sparkline } from '../../src/components';
-import { spacing, useTheme } from '../../src/theme';
+import { layout, spacing, useTheme } from '../../src/theme';
 import { getTrendSummary, TrendSummary } from '../../src/api/health-trends';
 import { getDonorResults, LaboratoryResult } from '../../src/api/laboratory';
 import { getInsightHistory, AiInsight } from '../../src/api/ai-health';
@@ -147,7 +147,7 @@ export default function Health() {
           <TouchableOpacity
             onPress={() => router.push('/health-trends' as RelativePathString)}
             activeOpacity={0.9}
-            style={{ marginTop: spacing.lg }}
+            style={{ marginTop: layout.cardGap }}
           >
             {/* Health's hero is a two-stop rose, distinct from the app's
                 rose-to-plum brand hero -- the reference keeps the plum for
@@ -358,7 +358,7 @@ export default function Health() {
           </>
         )}
 
-        <GlassCard style={{ marginTop: spacing.lg, paddingVertical: spacing.sm }}>
+        <GlassCard style={{ marginTop: layout.cardGap, paddingVertical: spacing.sm }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
             <ShieldCheck size={16} color={colors.onMuted.success} />
             <AppText muted style={{ fontSize: 12 }}>

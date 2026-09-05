@@ -5,7 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Check } from 'lucide-react-native';
 import { AppButton, AppText, Badge, GlassCard, Screen } from '../../src/components';
 import { useAppointment } from '../../src/hooks/useAppointments';
-import { spacing, useTheme, ThemeColors } from '../../src/theme';
+import { layout, spacing, useTheme, ThemeColors } from '../../src/theme';
 
 export default function BookingConfirmation() {
   const { colors } = useTheme();
@@ -167,7 +167,7 @@ function createStyles(colors: ThemeColors) {
     },
     detailsCard: {
       padding: spacing.lg,
-      marginBottom: 12,
+      marginBottom: layout.cardGap,
     },
     refRow: {
       alignItems: 'center',

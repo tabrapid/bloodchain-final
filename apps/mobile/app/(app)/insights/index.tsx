@@ -27,7 +27,7 @@ import {
   SectionHeader,
   SkeletonCard,
 } from '../../../src/components';
-import { spacing, radius, useTheme, type ThemeColors } from '../../../src/theme';
+import { layout, spacing, radius, useTheme, type ThemeColors } from '../../../src/theme';
 import {
   generateInsight,
   analyzeTrend,
@@ -572,7 +572,7 @@ function createStyles(colors: ThemeColors) {
     content: {
       paddingHorizontal: spacing.md,
       paddingBottom: spacing.xl,
-      gap: 12,
+      gap: layout.cardGap,
     },
 
     disclaimer: {},
@@ -632,7 +632,7 @@ function createStyles(colors: ThemeColors) {
       flexDirection: 'row',
       alignItems: 'flex-start',
       gap: 12,
-      marginBottom: 12,
+      marginBottom: layout.cardGap,
     },
     insightHeadBody: {
       flex: 1,
@@ -657,11 +657,11 @@ function createStyles(colors: ThemeColors) {
     insightDate: {
       fontSize: 11,
       color: colors.textSubtle,
-      marginTop: 12,
+      marginTop: layout.cardGap,
     },
 
     bulletList: {
-      marginTop: 12,
+      marginTop: layout.cardGap,
     },
     bulletRow: {
       flexDirection: 'row',
@@ -685,7 +685,7 @@ function createStyles(colors: ThemeColors) {
     },
 
     dataBlock: {
-      marginTop: 12,
+      marginTop: layout.cardGap,
       backgroundColor: colors.surfaceElevated,
       borderRadius: radius.sm,
       padding: spacing.md,
@@ -714,7 +714,7 @@ function createStyles(colors: ThemeColors) {
     },
 
     section: {
-      marginTop: 12,
+      marginTop: layout.cardGap,
       paddingTop: 12,
       borderTopWidth: 1,
       borderTopColor: colors.borderSubtle,
@@ -734,7 +734,7 @@ function createStyles(colors: ThemeColors) {
     },
 
     feedbackBlock: {
-      marginTop: 12,
+      marginTop: layout.cardGap,
       paddingTop: 12,
       borderTopWidth: 1,
       borderTopColor: colors.borderSubtle,
@@ -780,7 +780,7 @@ function createStyles(colors: ThemeColors) {
       marginTop: spacing.sm,
     },
     chatResponse: {
-      marginTop: 12,
+      marginTop: layout.cardGap,
       paddingTop: 12,
       borderTopWidth: 1,
       borderTopColor: colors.borderSubtle,

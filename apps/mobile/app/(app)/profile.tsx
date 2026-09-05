@@ -20,7 +20,7 @@ import { useUserProfile } from '../../src/hooks/useUsers';
 import { useDonorProfile } from '../../src/hooks/useDonors';
 import { useProfileCompletion } from '../../src/hooks/useDonors';
 import { useGamificationProfile, useLevelProgress, useAchievements } from '../../src/hooks/useGamification';
-import { spacing, radius, typography, useTheme, ThemeColors } from '../../src/theme';
+import { layout, spacing, radius, typography, useTheme, ThemeColors } from '../../src/theme';
 import { Award, Bell, ChevronRight, Droplet, Lock, Shield, User } from 'lucide-react-native';
 import { useMemo } from 'react';
 
@@ -306,8 +306,8 @@ export default function Profile() {
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
     profileCard: {
-      marginTop: 12,
-      marginBottom: 12,
+      marginTop: layout.cardGap,
+      marginBottom: layout.cardGap,
     },
     // Centred identity block, as the reference has it: avatar over name over
     // email over a pair of badges -- not a left-aligned row.
@@ -339,7 +339,7 @@ function createStyles(colors: ThemeColors) {
       flexDirection: 'row',
       justifyContent: 'space-around',
       alignItems: 'center',
-      marginTop: spacing.lg,
+      marginTop: layout.sectionGapTop,
       paddingTop: spacing.md,
       borderTopWidth: 1,
       borderTopColor: colors.border,
@@ -376,7 +376,7 @@ function createStyles(colors: ThemeColors) {
       marginTop: spacing.md,
     },
     gamificationTeaser: {
-      marginBottom: 12,
+      marginBottom: layout.cardGap,
     },
     gamificationTeaserRow: {
       flexDirection: 'row',
@@ -404,7 +404,7 @@ function createStyles(colors: ThemeColors) {
       justifyContent: 'center',
     },
     completionCard: {
-      marginBottom: 12,
+      marginBottom: layout.cardGap,
     },
     completionHeader: {
       flexDirection: 'row',
@@ -439,7 +439,7 @@ function createStyles(colors: ThemeColors) {
       textTransform: 'capitalize',
     },
     bloodTypeCard: {
-      marginBottom: 12,
+      marginBottom: layout.cardGap,
     },
     bloodTypeWatermark: {
       position: 'absolute',
@@ -483,7 +483,7 @@ function createStyles(colors: ThemeColors) {
       marginTop: spacing.sm,
     },
     signOutCard: {
-      marginTop: 12,
+      marginTop: layout.cardGap,
     },
     footer: {
       marginTop: spacing.lg,
