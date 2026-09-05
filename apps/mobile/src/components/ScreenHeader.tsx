@@ -1,10 +1,9 @@
 import { useMemo } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import { ArrowLeft } from 'lucide-react-native';
 import { spacing, useTheme, ThemeColors } from '../theme';
 import { AppText } from './AppText';
-import { IconButton } from './IconButton';
 
 export interface ScreenHeaderProps {
   title: string;
@@ -16,9 +15,13 @@ export interface ScreenHeaderProps {
  * Every screen in this app renders `headerShown: false` at the navigator
  * level (Tabs and root Stack both set it), so a bare `<Stack.Screen
  * options={{ headerLeft: ... }}>` never actually renders -- there is no
- * native header to attach it to. This is the in-content replacement: a
- * back button paired with the screen's title, used by every pushed screen
- * that isn't a bottom-tab root.
+ * native header to attach it to. This is the in-content replacement, used by
+ * every pushed screen that isn't a bottom-tab root.
+ *
+ * The back affordance is a labelled link above the title rather than an icon
+ * button beside it: it reads unambiguously, gives the 44pt touch target real
+ * width instead of relying on invisible hit-slop, and leaves the title the
+ * full width of the screen.
  */
 export function ScreenHeader({ title, subtitle, onBack }: ScreenHeaderProps) {
   const { colors } = useTheme();
@@ -26,19 +29,18 @@ export function ScreenHeader({ title, subtitle, onBack }: ScreenHeaderProps) {
 
   return (
     <View style={styles.container}>
-      <IconButton
-        icon={ArrowLeft}
+      <Pressable
         onPress={onBack ?? (() => router.back())}
-        style={styles.backButton}
-      />
-      <View style={styles.titleContainer}>
-        <AppText variant="title">{title}</AppText>
-        {subtitle && (
-          <AppText muted variant="bodySmall" style={styles.subtitle}>
-            {subtitle}
-          </AppText>
-        )}
-      </View>
+        accessibilityRole="button"
+        accessibilityLabel="Go back"
+        style={({ pressed }) => [styles.backLink, { opacity: pressed ? 0.6 : 1 }]}
+      >
+        <ArrowLeft size={16} color={colors.primary} strokeWidth={2.5} />
+        <AppText style={styles.backLabel}>Back</AppText>
+      </Pressable>
+
+      <AppText style={styles.title}>{title}</AppText>
+      {subtitle && <AppText style={styles.subtitle}>{subtitle}</AppText>}
     </View>
   );
 }
@@ -46,19 +48,32 @@ export function ScreenHeader({ title, subtitle, onBack }: ScreenHeaderProps) {
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
     container: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      gap: spacing.md,
       marginBottom: spacing.lg,
     },
-    backButton: {
-      marginTop: 2,
+    backLink: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      minHeight: 44,
+      alignSelf: 'flex-start',
+      paddingRight: spacing.sm,
     },
-    titleContainer: {
-      flex: 1,
+    backLabel: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: colors.primary,
+    },
+    title: {
+      fontSize: 27,
+      fontWeight: '700',
+      letterSpacing: -0.8,
+      color: colors.text,
+      marginTop: spacing.sm,
     },
     subtitle: {
-      marginTop: spacing.xs,
+      fontSize: 13,
+      color: colors.textMuted,
+      marginTop: 2,
     },
   });
 }

@@ -166,7 +166,7 @@ export default function AppointmentDetail() {
           </AppText>
         </View>
 
-        <GlassCard style={styles.detailsCard}>
+        <GlassCard tier="elevated" style={styles.detailsCard}>
           <View style={styles.detailRow}>
             <View style={styles.detailIcon}>
               <Droplet size={20} color={colors.primary} />

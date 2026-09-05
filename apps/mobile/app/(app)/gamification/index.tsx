@@ -212,7 +212,7 @@ export default function GamificationScreen() {
           onPress={() => router.push('/gamification/leaderboard' as any)}
           activeOpacity={0.8}
         >
-          <GlassCard style={styles.leaderboardButton}>
+          <GlassCard tier="elevated" style={styles.leaderboardButton}>
             <AppText variant="button">
               View Leaderboard
             </AppText>

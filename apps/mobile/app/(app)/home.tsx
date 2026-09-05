@@ -171,7 +171,7 @@ export default function Home() {
             onPress={() => router.push(`/appointment/${nextAppointment.id}`)}
             activeOpacity={0.8}
           >
-            <GlassCard style={styles.appointmentCard}>
+            <GlassCard tier="elevated" style={styles.appointmentCard}>
               <View style={styles.appointmentHeader}>
                 <View style={styles.appointmentType}>
                   <Droplet size={18} color={colors.primary} />
@@ -302,7 +302,7 @@ export default function Home() {
       </View>
 
       <SectionHeader>EMERGENCY</SectionHeader>
-      <GlassCard danger={activeEmergencyCount > 0} style={styles.sosCard}>
+      <GlassCard tier="danger" style={styles.sosCard}>
         <View style={styles.sosHeader}>
           <AppText variant="heading" style={{ color: colors.danger }}>
             SOS Blood Requests
@@ -480,9 +480,10 @@ function createStyles(colors: ThemeColors) {
     quickAction: {
       flex: 1,
     },
-    sosCard: {
-      borderColor: colors.danger,
-    },
+    // Border and fill come from the danger tier itself -- overriding the
+    // border here with the full-saturation accent made the card shout louder
+    // than the reference's rose tint intends.
+    sosCard: {},
     sosHeader: {
       flexDirection: 'row',
       alignItems: 'center',

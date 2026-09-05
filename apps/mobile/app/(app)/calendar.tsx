@@ -173,7 +173,7 @@ export default function Calendar() {
         </View>
       </View>
 
-      <GlassCard style={styles.calendarCard}>
+      <GlassCard tier="elevated" style={styles.calendarCard}>
         <View style={styles.monthNav}>
           <TouchableOpacity onPress={goToPreviousMonth} style={styles.navButton}>
             <ChevronLeft size={20} color={colors.text} />
