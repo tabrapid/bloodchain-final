@@ -32,7 +32,7 @@ export function XpProgressBar({
 
   React.useEffect(() => {
     animatedWidth.value = withTiming(progress, { duration: 800 });
-  }, [progress]);
+  }, [progress, animatedWidth]);
 
   const height = size === 'small' ? 6 : size === 'large' ? 12 : 8;
   const borderRadius = height / 2;

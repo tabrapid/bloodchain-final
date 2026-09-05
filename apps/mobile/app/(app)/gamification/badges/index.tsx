@@ -17,7 +17,7 @@ export default function BadgesScreen() {
     setRefreshing(true);
     await refetch();
     setRefreshing(false);
-  }, []);
+  }, [refetch]);
 
   const earnedBadges = badges?.filter((b) => b.earnedAt) || [];
   const unearnedBadges = badges?.filter((b) => !b.earnedAt) || [];
