@@ -16,22 +16,38 @@ export function EmptyState({
 }: EmptyStateProps) {
   const { colors } = useTheme();
   return (
-    <View style={{ alignItems: 'center', paddingVertical: spacing.xl }}>
+    <View
+      style={{
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 48,
+        paddingHorizontal: spacing.xl,
+        gap: 12,
+      }}
+    >
+      {/* A rounded square held back to 60% opacity: present enough to anchor
+          the message, quiet enough that an empty screen stays calm. */}
       <View
         style={{
-          width: 56,
-          height: 56,
-          borderRadius: 28,
-          backgroundColor: colors.surfaceElevated,
+          width: 64,
+          height: 64,
+          borderRadius: 20,
+          backgroundColor: colors.glass.standard.fill,
+          borderWidth: 1,
+          borderColor: colors.glass.standard.border,
           alignItems: 'center',
           justifyContent: 'center',
-          marginBottom: spacing.md,
+          opacity: 0.6,
+          marginBottom: spacing.xs,
         }}
       >
         <Icon size={28} color={colors.textMuted} />
       </View>
-      <AppText style={{ textAlign: 'center' }}>{title}</AppText>
-      <AppText muted style={{ textAlign: 'center', marginTop: spacing.xs }}>
+      <AppText style={{ fontSize: 16, fontWeight: '600', textAlign: 'center' }}>{title}</AppText>
+      <AppText
+        muted
+        style={{ fontSize: 14, lineHeight: 22, textAlign: 'center', maxWidth: 260 }}
+      >
         {description}
       </AppText>
     </View>

@@ -20,7 +20,15 @@ export function Screen({
   const content = <View style={[{ flex: 1, padding: spacing.lg }, style]}>{children}</View>;
 
   return (
-    <LinearGradient colors={colors.backgroundGradient} style={{ flex: 1 }}>
+    <LinearGradient
+      colors={colors.backgroundGradient}
+      // The reference's background is a 160deg gradient — mostly top-to-bottom
+      // with a slight rightward lean, not the 135deg diagonal this used before.
+      start={{ x: 0, y: 0 }}
+      end={{ x: 0.34, y: 0.94 }}
+      locations={[0, 0.55, 1]}
+      style={{ flex: 1 }}
+    >
       {/*
         Soft color blooms behind the content. Glass panels blur whatever sits
         behind them, so a flat single-color background blurs to that exact same

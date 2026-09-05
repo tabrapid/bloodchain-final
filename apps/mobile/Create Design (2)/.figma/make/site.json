@@ -1,0 +1,10 @@
+{
+  "description": "Enables users to transform design concepts into interactive, user-friendly web interfaces that enhance user engagement and streamline development.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}

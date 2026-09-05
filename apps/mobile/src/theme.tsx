@@ -20,6 +20,21 @@ const accent = {
 export type ColorScheme = 'light' | 'dark';
 export type ColorSchemePreference = ColorScheme | 'system';
 
+/**
+ * One complete glass material. `blur` is an expo-blur intensity (0-100), not a
+ * CSS pixel radius — the reference's `blur(48/32/20px)` maps to the relative
+ * strengths below, keeping the tiers distinguishable on device.
+ */
+export interface GlassTierTokens {
+  fill: string;
+  border: string;
+  blur: number;
+  shadowOpacity: number;
+  shadowRadius: number;
+  shadowOffsetY: number;
+  elevation: number;
+}
+
 export interface ThemeColors {
   primary: string;
   secondary: string;
@@ -34,7 +49,22 @@ export interface ThemeColors {
   heroGradient: [string, string, string];
   /** Soft ambient color blooms painted behind content, so blur has depth to pick up. */
   ambientOrbs: { color: string; size: number; top: number; left: number }[];
-  /** Top-lit specular gradient painted inside every glass panel. */
+  /**
+   * The three glass tiers of the Create Design system. Each tier is a complete
+   * material — its own fill, border, blur strength and shadow — rather than a
+   * single surface with an opacity knob, which is what makes "floating chrome"
+   * read as physically closer to the viewer than "a settings row".
+   *
+   * `nav`      — floating chrome (the tab bar). Strongest blur and depth.
+   * `elevated` — hero/identity/appointment cards. Carries the specular sheen.
+   * `standard` — settings rows, secondary content. No sheen, lighter shadow.
+   */
+  glass: {
+    nav: GlassTierTokens;
+    elevated: GlassTierTokens;
+    standard: GlassTierTokens;
+  };
+  /** Top-lit specular gradient painted inside `nav` and `elevated` panels only. */
   glassSheen: [string, string];
   /** Brighter than `border` — the lit edge of a glass panel. */
   glassBorder: string;
@@ -45,6 +75,8 @@ export interface ThemeColors {
   surfaceSolidElevated: string;
   text: string;
   textMuted: string;
+  /** Dimmer than `textMuted` — timestamps, footnotes, disabled captions. */
+  textSubtle: string;
   border: string;
   borderSubtle: string;
   overlay: string;
@@ -76,24 +108,56 @@ export interface ThemeColors {
 const darkColors: ThemeColors = {
   ...accent,
   background: '#070B12',
-  backgroundGradient: ['#141C2E', '#0B1119', '#06090F'],
+  backgroundGradient: ['#0E1625', '#08101C', '#040609'],
   heroGradient: ['#D85360', '#8E3A59', '#5B3080'],
-  // Matches the Create Design reference's ColorBlooms spec exactly: 3
-  // blooms ~280-320px, ~24% opacity in dark mode.
+  // The reference's ColorBlooms: one 280px rose bloom hanging off the
+  // top-left corner, a 252px blue one off the right edge at ~35% height, and
+  // a 224px violet one off the bottom-left — each progressively fainter
+  // (x1 / x0.75 / x0.65) so the rose stays the dominant one behind the hero.
   ambientOrbs: [
-    { color: 'rgba(216,83,96,0.24)', size: 320, top: -80, left: -60 },
-    { color: 'rgba(104,183,209,0.24)', size: 300, top: 300, left: 220 },
-    { color: 'rgba(142,130,223,0.24)', size: 280, top: 620, left: -70 },
+    { color: 'rgba(216,83,96,0.28)', size: 280, top: -126, left: -98 },
+    { color: 'rgba(104,183,209,0.21)', size: 252, top: 295, left: 264 },
+    { color: 'rgba(142,130,223,0.18)', size: 224, top: 732, left: 39 },
   ],
-  glassSheen: ['rgba(255,255,255,0.16)', 'rgba(255,255,255,0.03)'],
-  glassBorder: 'rgba(255,255,255,0.26)',
-  surface: 'rgba(255,255,255,0.08)',
+  glass: {
+    nav: {
+      fill: 'rgba(255,255,255,0.11)',
+      border: 'rgba(255,255,255,0.22)',
+      blur: 70,
+      shadowOpacity: 0.55,
+      shadowRadius: 48,
+      shadowOffsetY: 12,
+      elevation: 12,
+    },
+    elevated: {
+      fill: 'rgba(255,255,255,0.13)',
+      border: 'rgba(255,255,255,0.18)',
+      blur: 48,
+      shadowOpacity: 0.45,
+      shadowRadius: 32,
+      shadowOffsetY: 8,
+      elevation: 8,
+    },
+    standard: {
+      fill: 'rgba(255,255,255,0.07)',
+      border: 'rgba(255,255,255,0.10)',
+      blur: 30,
+      shadowOpacity: 0.3,
+      shadowRadius: 16,
+      shadowOffsetY: 4,
+      elevation: 4,
+    },
+  },
+  glassSheen: ['rgba(255,255,255,0.18)', 'rgba(255,255,255,0.04)'],
+  glassBorder: 'rgba(255,255,255,0.18)',
+  surface: 'rgba(255,255,255,0.07)',
   surfaceElevated: 'rgba(255,255,255,0.13)',
   surfaceHighlight: 'rgba(255,255,255,0.18)',
   surfaceSolid: '#111A24',
   surfaceSolidElevated: '#182431',
-  text: '#F2F5F7',
-  textMuted: '#8495A3',
+  text: '#FFFFFF',
+  textMuted: '#8FA3B4',
+  textSubtle: '#5B7080',
   border: 'rgba(255,255,255,0.10)',
   borderSubtle: 'rgba(255,255,255,0.06)',
   overlay: 'rgba(0,0,0,0.6)',
@@ -123,23 +187,53 @@ const darkColors: ThemeColors = {
 const lightColors: ThemeColors = {
   ...accent,
   background: '#EFF1F9',
-  backgroundGradient: ['#FBF2FA', '#F1F1FC', '#E9F1FB'],
+  backgroundGradient: ['#F8F0FC', '#EEEEFC', '#E6EFF9'],
   heroGradient: ['#D85360', '#8E3A59', '#5B3080'],
   ambientOrbs: [
-    { color: 'rgba(216,83,96,0.16)', size: 320, top: -80, left: -60 },
-    { color: 'rgba(104,183,209,0.16)', size: 300, top: 300, left: 220 },
-    { color: 'rgba(142,130,223,0.16)', size: 280, top: 620, left: -70 },
+    { color: 'rgba(216,83,96,0.14)', size: 280, top: -126, left: -98 },
+    { color: 'rgba(104,183,209,0.105)', size: 252, top: 295, left: 264 },
+    { color: 'rgba(142,130,223,0.091)', size: 224, top: 732, left: 39 },
   ],
-  glassSheen: ['rgba(255,255,255,0.8)', 'rgba(255,255,255,0.4)'],
-  glassBorder: 'rgba(255,255,255,0.9)',
-  surface: 'rgba(255,255,255,0.62)',
-  surfaceElevated: 'rgba(255,255,255,0.8)',
-  surfaceHighlight: 'rgba(255,255,255,0.92)',
+  glass: {
+    nav: {
+      fill: 'rgba(255,255,255,0.88)',
+      border: 'rgba(255,255,255,1)',
+      blur: 85,
+      shadowOpacity: 0.1,
+      shadowRadius: 48,
+      shadowOffsetY: 12,
+      elevation: 12,
+    },
+    elevated: {
+      fill: 'rgba(255,255,255,0.92)',
+      border: 'rgba(255,255,255,0.95)',
+      blur: 62,
+      shadowOpacity: 0.1,
+      shadowRadius: 28,
+      shadowOffsetY: 6,
+      elevation: 8,
+    },
+    standard: {
+      fill: 'rgba(255,255,255,0.72)',
+      border: 'rgba(255,255,255,0.80)',
+      blur: 40,
+      shadowOpacity: 0.07,
+      shadowRadius: 12,
+      shadowOffsetY: 3,
+      elevation: 4,
+    },
+  },
+  glassSheen: ['rgba(255,255,255,0.85)', 'rgba(255,255,255,0.40)'],
+  glassBorder: 'rgba(255,255,255,0.95)',
+  surface: 'rgba(255,255,255,0.72)',
+  surfaceElevated: 'rgba(255,255,255,0.92)',
+  surfaceHighlight: 'rgba(255,255,255,0.96)',
   surfaceSolid: '#FFFFFF',
   surfaceSolidElevated: '#FAFAFC',
-  text: '#12161C',
-  textMuted: '#5B6674',
-  border: 'rgba(15,23,42,0.09)',
+  text: '#06080D',
+  textMuted: '#4D6070',
+  textSubtle: '#7A93A5',
+  border: 'rgba(255,255,255,0.80)',
   borderSubtle: 'rgba(15,23,42,0.05)',
   overlay: 'rgba(15,23,42,0.45)',
   blurTint: 'light',
@@ -169,25 +263,35 @@ export const spacing = {
   '3xl': 64,
 } as const;
 
+/**
+ * The reference's scale is `sm 12 / md 18 / card 22 / hero 30 / pill 999`.
+ * `lg` and `xl` carry the card and hero values so the ~40 existing call sites
+ * pick up the new geometry without a rename churn.
+ */
 export const radius = {
   sm: 12,
   md: 18,
-  lg: 26,
-  xl: 34,
+  /** The reference's `card` radius — the default for a GlassCard. */
+  lg: 22,
+  /** The reference's `hero` radius — full-bleed gradient cards. */
+  xl: 30,
   pill: 999,
 } as const;
 
 export const typography = {
   display: { fontSize: 38, fontWeight: '700' as const, lineHeight: 44, letterSpacing: -0.5 },
-  title: { fontSize: 32, fontWeight: '700' as const, lineHeight: 38, letterSpacing: -0.6 },
-  heading: { fontSize: 19, fontWeight: '600' as const, lineHeight: 26, letterSpacing: -0.2 },
+  /** The reference's `screenTitle`. */
+  title: { fontSize: 32, fontWeight: '700' as const, lineHeight: 36, letterSpacing: -0.6 },
+  /** The reference's `cardTitle` — smaller and tighter than the old 19pt heading. */
+  heading: { fontSize: 16, fontWeight: '600' as const, lineHeight: 22 },
   body: { fontSize: 15, fontWeight: '400' as const, lineHeight: 22 },
   bodySmall: { fontSize: 13, fontWeight: '400' as const, lineHeight: 19 },
-  caption: { fontSize: 11, fontWeight: '700' as const, letterSpacing: 1.2 },
+  /** The reference's `sectionLabel`, as rendered by its SectionHeader. */
+  caption: { fontSize: 11, fontWeight: '700' as const, letterSpacing: 1.5 },
   button: { fontSize: 15, fontWeight: '700' as const },
-  numeric: { fontSize: 36, fontWeight: '700' as const, lineHeight: 42, letterSpacing: -0.5 },
-  /** Reserved for the blood-type value itself -- the single strongest number in the app. */
-  bloodType: { fontSize: 58, fontWeight: '800' as const, lineHeight: 60, letterSpacing: -1.5 },
+  numeric: { fontSize: 28, fontWeight: '700' as const, lineHeight: 34, letterSpacing: -0.5 },
+  /** The reference's `heroNumber` — the blood-type value, the strongest number in the app. */
+  bloodType: { fontSize: 56, fontWeight: '800' as const, lineHeight: 58, letterSpacing: -2 },
 } as const;
 
 export type ColorToken = keyof typeof darkColors;
