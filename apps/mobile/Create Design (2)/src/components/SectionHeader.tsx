@@ -14,10 +14,11 @@ export default function SectionHeader({ label, action }: Props) {
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
       <span style={{
         fontSize: 11,
-        fontWeight: 600,
-        letterSpacing: '0.12em',
+        fontWeight: 700,
+        letterSpacing: '0.14em',
         textTransform: 'uppercase',
-        color: T.textMuted,
+        color: T.text,
+        opacity: 0.55,
       }}>
         {label}
       </span>

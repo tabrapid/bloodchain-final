@@ -100,7 +100,7 @@ export default function BookingWizard() {
               {DONATION_TYPES.map((t) => (
                 <GlassCard
                   key={t.id}
-                  elevated={selectedType === t.id}
+                  tier={selectedType === t.id ? 'elevated' : 'standard'}
                   style={{ borderColor: selectedType === t.id ? 'rgba(216, 83, 96, 0.45)' : undefined, cursor: 'pointer' }}
                   onClick={() => setSelectedType(t.id)}
                 >
@@ -131,7 +131,7 @@ export default function BookingWizard() {
               {ORGS.map((org) => (
                 <GlassCard
                   key={org.id}
-                  elevated={selectedOrg === org.id}
+                  tier={selectedOrg === org.id ? 'elevated' : 'standard'}
                   style={{ borderColor: selectedOrg === org.id ? 'rgba(216, 83, 96, 0.45)' : undefined, cursor: 'pointer' }}
                   onClick={() => setSelectedOrg(org.id)}
                 >
@@ -163,7 +163,7 @@ export default function BookingWizard() {
           <div className="slide-up">
             <h2 style={{ fontSize: 22, fontWeight: 700, color: T.text, letterSpacing: '-0.02em', marginBottom: 6 }}>Select date</h2>
             <p style={{ fontSize: 13, color: T.textMuted, marginBottom: 20 }}>When would you like to donate?</p>
-            <GlassCard elevated>
+            <GlassCard tier="elevated">
               <div style={{ textAlign: 'center', marginBottom: 14, fontSize: 15, fontWeight: 700, color: T.text }}>September 2026</div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2, marginBottom: 8 }}>
                 {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((d, i) => (
@@ -236,7 +236,7 @@ export default function BookingWizard() {
           <div className="slide-up">
             <h2 style={{ fontSize: 22, fontWeight: 700, color: T.text, letterSpacing: '-0.02em', marginBottom: 6 }}>Review booking</h2>
             <p style={{ fontSize: 13, color: T.textMuted, marginBottom: 20 }}>Confirm your appointment details</p>
-            <GlassCard elevated>
+            <GlassCard tier="elevated">
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
                   <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(216, 83, 96, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -301,7 +301,7 @@ export default function BookingWizard() {
             <p style={{ fontSize: 14, color: T.textMuted, lineHeight: 1.6, marginBottom: 32, maxWidth: 260 }}>
               Your {typeData.name.toLowerCase()} donation at {orgData.name} on Sep {selectedDay} at {selectedTime} is confirmed.
             </p>
-            <GlassCard elevated padding={16} style={{ width: '100%', textAlign: 'left' }}>
+            <GlassCard tier="elevated" padding={16} style={{ width: '100%', textAlign: 'left' }}>
               <div style={{ display: 'flex', gap: 10 }}>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 11, color: T.textMuted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Summary</div>

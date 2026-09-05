@@ -42,7 +42,7 @@ export default function CalendarScreen() {
       <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 20, paddingBottom: 110 }}>
 
         {/* Month + Calendar */}
-        <GlassCard elevated>
+        <GlassCard tier="elevated">
           {/* Month nav */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
             <button style={{ background: 'none', color: T.textMuted }}><ChevronLeft size={18} /></button>

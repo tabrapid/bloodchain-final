@@ -42,15 +42,15 @@ export default function DonationHistory() {
 
         {/* Summary */}
         <div style={{ display: 'flex', gap: 10 }}>
-          <GlassCard padding={14} style={{ flex: 1, textAlign: 'center' }} elevated>
+          <GlassCard padding={14} style={{ flex: 1, textAlign: 'center' }} tier="elevated">
             <div style={{ fontSize: 28, fontWeight: 800, color: T.text, letterSpacing: '-0.03em' }}>12</div>
             <div style={{ fontSize: 11, color: T.textMuted, marginTop: 2 }}>Total donations</div>
           </GlassCard>
-          <GlassCard padding={14} style={{ flex: 1, textAlign: 'center' }} elevated>
+          <GlassCard padding={14} style={{ flex: 1, textAlign: 'center' }} tier="elevated">
             <div style={{ fontSize: 28, fontWeight: 800, color: T.text, letterSpacing: '-0.03em' }}>{totalVolume}</div>
             <div style={{ fontSize: 11, color: T.textMuted, marginTop: 2 }}>Volume donated</div>
           </GlassCard>
-          <GlassCard padding={14} style={{ flex: 1, textAlign: 'center' }} elevated>
+          <GlassCard padding={14} style={{ flex: 1, textAlign: 'center' }} tier="elevated">
             <div style={{ fontSize: 28, fontWeight: 800, color: T.text, letterSpacing: '-0.03em' }}>{totalLives}</div>
             <div style={{ fontSize: 11, color: T.textMuted, marginTop: 2 }}>Lives helped</div>
           </GlassCard>

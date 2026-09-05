@@ -75,7 +75,7 @@ export default function Community() {
 
       {/* Leaderboard Teaser */}
       <div style={{ padding: '0 16px 16px' }}>
-        <GlassCard onClick={() => navigate('leaderboard')} elevated style={{ cursor: 'pointer' }}>
+        <GlassCard onClick={() => navigate('leaderboard')} tier="elevated" style={{ cursor: 'pointer' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(229, 184, 109, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Award size={20} color="#E5B86D" />

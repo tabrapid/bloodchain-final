@@ -63,7 +63,7 @@ export default function SOS() {
         </div>
 
         {/* Your blood type */}
-        <GlassCard danger style={{ marginTop: 16 }} padding={12}>
+        <GlassCard tier="danger" style={{ marginTop: 16 }} padding={12}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ fontSize: 24, fontWeight: 800, color: '#D85360' }}>O+</div>
             <div>
@@ -78,7 +78,7 @@ export default function SOS() {
       {/* Requests */}
       <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 12, paddingBottom: 32 }}>
         {REQUESTS.map((req, i) => (
-          <GlassCard key={req.id} danger={req.urgency === 'Critical'} elevated={req.urgency !== 'Critical'}>
+          <GlassCard key={req.id} tier={req.urgency === 'Critical' ? 'danger' : 'elevated'}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>

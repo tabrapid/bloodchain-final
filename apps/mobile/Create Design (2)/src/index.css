@@ -101,6 +101,11 @@ body,
   animation: pulse-ring 2s ease-out infinite;
 }
 
+@keyframes skeleton-shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+
 @keyframes pulse {
   0%, 100% { opacity: 1; box-shadow: 0 0 0 3px rgba(216, 83, 96, 0.3); }
   50% { opacity: 0.6; box-shadow: 0 0 0 6px rgba(216, 83, 96, 0.1); }

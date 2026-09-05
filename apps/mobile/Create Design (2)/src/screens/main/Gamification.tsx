@@ -127,7 +127,7 @@ export default function Gamification() {
         </div>
 
         {/* Leaderboard link */}
-        <GlassCard elevated onClick={() => navigate('leaderboard')} style={{ cursor: 'pointer' }}>
+        <GlassCard tier="elevated" onClick={() => navigate('leaderboard')} style={{ cursor: 'pointer' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(142, 130, 223, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Trophy size={20} color="#8E82DF" />

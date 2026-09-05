@@ -30,7 +30,7 @@ export default function InputField({ label, error, trailing, wrapperStyle, ...pr
             borderRadius: 14,
             backdropFilter: 'blur(20px)',
             WebkitBackdropFilter: 'blur(20px)',
-            background: T.surface,
+            background: T.surfaceHigh,
             border: `1px solid ${error ? '#D85360' : T.border}`,
             color: T.text,
             fontSize: 15,

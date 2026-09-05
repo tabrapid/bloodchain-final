@@ -48,7 +48,7 @@ export default function Profile() {
       <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: 20, paddingBottom: 110 }}>
 
         {/* Profile Card */}
-        <GlassCard elevated style={{ textAlign: 'center' }}>
+        <GlassCard tier="elevated" style={{ textAlign: 'center' }}>
           <Avatar name="Alex Johnson" size={72} ring="#D85360" />
           <div style={{ marginTop: 14 }}>
             <div style={{ fontSize: 20, fontWeight: 700, color: T.text, letterSpacing: '-0.02em' }}>Alex Johnson</div>

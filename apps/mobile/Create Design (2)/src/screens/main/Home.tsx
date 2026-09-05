@@ -93,7 +93,7 @@ export default function Home() {
         {/* Next Appointment */}
         <div>
           <SectionHeader label="Next Appointment" action={{ label: 'View all', onClick: () => navigate('calendar') }} />
-          <GlassCard onClick={() => navigate('appointment-detail')} elevated>
+          <GlassCard onClick={() => navigate('appointment-detail')} tier="elevated">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div style={{ flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
@@ -176,7 +176,7 @@ export default function Home() {
         </div>
 
         {/* Emergency SOS */}
-        <GlassCard danger>
+        <GlassCard tier="danger">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <div style={{ fontSize: 14, fontWeight: 700, color: '#D85360', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>

@@ -44,7 +44,7 @@ export default function Notifications() {
         {NOTIFICATIONS.map((n) => {
           const Icon = n.icon;
           return (
-            <GlassCard key={n.id} elevated={n.unread} padding="14px">
+            <GlassCard key={n.id} tier={n.unread ? 'elevated' : 'standard'} padding="14px">
               <div style={{ display: 'flex', gap: 12 }}>
                 <div style={{
                   width: 42,

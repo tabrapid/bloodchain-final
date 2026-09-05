@@ -1,5 +1,4 @@
 import { useState, useCallback } from 'react';
-import { Sun, Moon } from 'lucide-react';
 import type { Theme, Screen, Tab } from './types';
 import { DARK, LIGHT } from './types';
 import { ThemeContext, NavContext } from './context';
@@ -108,59 +107,49 @@ export default function App() {
   }, []);
 
   const showTabBar = MAIN_TABS.includes(screen);
-  const showStatusBar = screen !== 'booking';
   const isBooking = screen === 'booking';
-
-  const bgStyle = {
-    background: T.bgGrad,
-  };
 
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme: () => setTheme((t) => t === 'dark' ? 'light' : 'dark') }}>
       <NavContext.Provider value={{ screen, navigate, back, activeTab, setActiveTab: handleTabChange }}>
-        {/* Outer wrapper */}
+        {/* Outer shell — ambient background */}
         <div style={{
           minHeight: '100vh',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          ...bgStyle,
+          background: T.bgGrad,
           position: 'relative',
           overflow: 'hidden',
           fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
         }}>
-          {/* Outer blooms */}
           <ColorBlooms />
 
           {/* Phone frame */}
           <div style={{
             width: 390,
             height: 844,
-            borderRadius: 50,
+            borderRadius: 52,
             overflow: 'hidden',
             position: 'relative',
             flexShrink: 0,
             boxShadow: theme === 'dark'
-              ? '0 48px 96px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.08), inset 0 0 0 1px rgba(255,255,255,0.04)'
-              : '0 48px 96px rgba(0,0,0,0.2), 0 0 0 1px rgba(255,255,255,0.9)',
+              ? '0 56px 110px rgba(0,0,0,0.85), 0 0 0 1.5px rgba(255,255,255,0.13), inset 0 0 0 1px rgba(255,255,255,0.05)'
+              : '0 56px 110px rgba(0,0,0,0.22), 0 0 0 1.5px rgba(255,255,255,1), inset 0 0 0 1px rgba(255,255,255,0.6)',
           }}>
-            {/* Phone background */}
-            <div style={{ position: 'absolute', inset: 0, ...bgStyle }} />
-
-            {/* Inner blooms */}
+            {/* Inner background */}
+            <div style={{ position: 'absolute', inset: 0, background: T.bgGrad }} />
             <ColorBlooms />
 
-            {/* Status bar */}
-            {showStatusBar && (
-              <div style={{ position: 'relative', zIndex: 10, flexShrink: 0 }}>
-                <StatusBar />
-              </div>
-            )}
+            {/* Status bar with theme toggle baked in */}
+            <div style={{ position: 'relative', zIndex: 10, flexShrink: 0 }}>
+              <StatusBar />
+            </div>
 
-            {/* Screen content */}
+            {/* Scrollable screen content */}
             <div style={{
               position: 'absolute',
-              top: showStatusBar ? 44 : 0,
+              top: 44,
               left: 0,
               right: 0,
               bottom: 0,
@@ -178,9 +167,16 @@ export default function App() {
               </div>
             )}
 
-            {/* Tab bar overlay */}
+            {/* Floating tab bar */}
             {showTabBar && !isBooking && (
-              <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 20 }}>
+              <div style={{
+                position: 'absolute',
+                bottom: 0,
+                left: 0,
+                right: 0,
+                zIndex: 20,
+                pointerEvents: 'none',
+              }}>
                 <div style={{ pointerEvents: 'all' }}>
                   <TabBar activeTab={activeTab} onTabChange={handleTabChange} />
                 </div>
@@ -190,64 +186,16 @@ export default function App() {
             {/* Home indicator */}
             <div style={{
               position: 'absolute',
-              bottom: 8,
+              bottom: 6,
               left: '50%',
               transform: 'translateX(-50%)',
-              width: 130,
-              height: 5,
+              width: 120,
+              height: 4,
               borderRadius: 999,
-              background: theme === 'dark' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.2)',
+              background: theme === 'dark' ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.18)',
               zIndex: 30,
+              pointerEvents: 'none',
             }} />
-          </div>
-
-          {/* Theme toggle — outside phone */}
-          <button
-            onClick={() => setTheme((t) => t === 'dark' ? 'light' : 'dark')}
-            style={{
-              position: 'fixed',
-              top: 24,
-              right: 24,
-              width: 44,
-              height: 44,
-              borderRadius: 14,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              backdropFilter: 'blur(20px)',
-              WebkitBackdropFilter: 'blur(20px)',
-              background: theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.7)',
-              border: `1px solid ${T.border}`,
-              boxShadow: T.shadow,
-              cursor: 'pointer',
-              zIndex: 1000,
-            }}
-          >
-            {theme === 'dark'
-              ? <Sun size={18} color="#F2F5F7" />
-              : <Moon size={18} color="#12161C" />
-            }
-          </button>
-
-          {/* Screen label */}
-          <div style={{
-            position: 'fixed',
-            bottom: 24,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            fontSize: 11,
-            fontWeight: 500,
-            color: T.textMuted,
-            letterSpacing: '0.06em',
-            textTransform: 'uppercase',
-            zIndex: 1000,
-            backdropFilter: 'blur(10px)',
-            background: theme === 'dark' ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.5)',
-            padding: '5px 12px',
-            borderRadius: 999,
-            border: `1px solid ${T.border}`,
-          }}>
-            {theme === 'dark' ? '🌙 Dark' : '☀️ Light'} · {screen}
           </div>
         </div>
       </NavContext.Provider>

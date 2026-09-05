@@ -26,7 +26,7 @@ export default function AppointmentDetail() {
 
       <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 14, paddingBottom: 32 }}>
 
-        <GlassCard elevated>
+        <GlassCard tier="elevated">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
               <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(99, 194, 155, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

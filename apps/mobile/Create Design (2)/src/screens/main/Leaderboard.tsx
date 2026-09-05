@@ -91,7 +91,7 @@ export default function Leaderboard() {
             <GlassCard
               key={user.rank}
               padding="12px 14px"
-              elevated={(user as any).isMe}
+              tier={(user as any).isMe ? 'elevated' : 'standard'}
               style={(user as any).isMe ? { borderColor: 'rgba(216, 83, 96, 0.35)' } : {}}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
