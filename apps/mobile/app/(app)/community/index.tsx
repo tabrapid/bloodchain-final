@@ -2,26 +2,17 @@ import React, { useMemo, useState } from 'react';
 import { FlatList, Image, RefreshControl, Share, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import { Trophy, Users, Calendar, BookOpen, TrendingUp, Award, Share2 } from 'lucide-react-native';
-import {
-  getFeed,
-  getImpactStats,
-  type CommunityPost,
-} from '../../../src/api/community';
-import { getActiveChallenges, type Challenge } from '../../../src/api/challenges';
-import { getCampaigns, type Campaign } from '../../../src/api/campaigns';
+import { Award, BookOpen, Share2 } from 'lucide-react-native';
+import { getFeed, type CommunityPost } from '../../../src/api/community';
 import { getUserRank } from '../../../src/api/gamification';
 import {
   AppHeader,
   AppText,
   Avatar,
   Badge,
-  Card,
-  Divider,
   GlassCard,
   IconButton,
   LoadingState,
-  ProgressBar,
   Screen,
 } from '../../../src/components';
 import { radius, spacing, useTheme, ThemeColors } from '../../../src/theme';
@@ -34,21 +25,6 @@ export default function CommunityScreen() {
   const { data: feed, isLoading: feedLoading, refetch: refetchFeed } = useQuery({
     queryKey: ['community-feed'],
     queryFn: () => getFeed({ page: 1, limit: 20 }),
-  });
-
-  const { data: impactStats } = useQuery({
-    queryKey: ['impact-stats'],
-    queryFn: getImpactStats,
-  });
-
-  const { data: activeChallenges } = useQuery({
-    queryKey: ['active-challenges'],
-    queryFn: getActiveChallenges,
-  });
-
-  const { data: campaigns } = useQuery({
-    queryKey: ['active-campaigns'],
-    queryFn: () => getCampaigns({ page: 1, limit: 5, status: 'ACTIVE' }),
   });
 
   const { data: userRank } = useQuery({
@@ -132,117 +108,6 @@ export default function CommunityScreen() {
   );
 }
 
-function ImpactStat({
-  icon,
-  label,
-  value,
-  onPress,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: number;
-  onPress?: () => void;
-}) {
-  const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
-  const content = (
-    <>
-      <View style={styles.impactStatLabel}>
-        {icon}
-        <AppText muted variant="bodySmall">
-          {label}
-        </AppText>
-      </View>
-      <AppText variant="heading" style={styles.impactStatValue}>
-        {value}
-      </AppText>
-    </>
-  );
-
-  if (onPress) {
-    return (
-      <TouchableOpacity style={styles.impactStat} activeOpacity={0.7} onPress={onPress}>
-        {content}
-      </TouchableOpacity>
-    );
-  }
-
-  return <View style={styles.impactStat}>{content}</View>;
-}
-
-function ChallengeCard({ challenge }: { challenge: Challenge }) {
-  const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
-  const current = challenge.userProgress || 0;
-  const progress = current / challenge.goal;
-
-  return (
-    <TouchableOpacity
-      style={styles.nestedCard}
-      activeOpacity={0.8}
-      onPress={() => router.push('/challenges')}
-    >
-      <AppText style={styles.nestedTitle}>{challenge.title}</AppText>
-      <AppText muted variant="bodySmall" style={styles.nestedDescription} numberOfLines={2}>
-        {challenge.description}
-      </AppText>
-
-      <View style={styles.progressSection}>
-        <View style={styles.progressLabels}>
-          <AppText muted style={styles.tinyText}>
-            Progress
-          </AppText>
-          <AppText style={[styles.tinyText, styles.tinyTextStrong]}>
-            {current} / {challenge.goal}
-          </AppText>
-        </View>
-        <ProgressBar progress={progress * 100} height={6} />
-      </View>
-
-      {challenge.xpReward > 0 && (
-        <View style={styles.iconRow}>
-          <Trophy size={14} color={colors.primary} />
-          <AppText style={[styles.tinyText, styles.xpReward]}>+{challenge.xpReward} XP</AppText>
-        </View>
-      )}
-    </TouchableOpacity>
-  );
-}
-
-function CampaignCard({ campaign }: { campaign: Campaign }) {
-  const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
-  return (
-    <TouchableOpacity
-      style={styles.nestedCard}
-      activeOpacity={0.8}
-      onPress={() => router.push('/campaigns')}
-    >
-      <AppText style={styles.nestedTitle}>{campaign.title}</AppText>
-      <AppText muted variant="bodySmall" style={styles.nestedDescription} numberOfLines={2}>
-        {campaign.description}
-      </AppText>
-
-      <View style={styles.iconRow}>
-        <Calendar size={14} color={colors.textMuted} />
-        <AppText muted style={styles.tinyText}>
-          {new Date(campaign.startDate).toLocaleDateString()} -{' '}
-          {new Date(campaign.endDate).toLocaleDateString()}
-        </AppText>
-      </View>
-
-      {campaign.participantCount && (
-        <View style={styles.iconRow}>
-          <Users size={14} color={colors.textMuted} />
-          <AppText muted style={styles.tinyText}>
-            {campaign.participantCount} participants
-          </AppText>
-        </View>
-      )}
-    </TouchableOpacity>
-  );
-}
-
 function FeedPostCard({ post }: { post: CommunityPost }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -298,10 +163,6 @@ function FeedPostCard({ post }: { post: CommunityPost }) {
 
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
-    section: {
-      padding: spacing.lg,
-      marginBottom: spacing.md,
-    },
     leaderboardTeaser: {
       marginBottom: spacing.md,
     },
@@ -322,71 +183,9 @@ function createStyles(colors: ThemeColors) {
       fontSize: 13,
       fontWeight: '600',
     },
-    sectionHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.sm,
-      marginBottom: spacing.md,
-    },
-    statsGrid: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-    },
-    impactStat: {
-      width: '50%',
-      marginBottom: spacing.md,
-    },
-    impactStatLabel: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.xs,
-    },
-    impactStatValue: {
-      marginTop: spacing.xs,
-    },
-    totalsRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      marginTop: spacing.md,
-    },
-    itemList: {
-      gap: spacing.md,
-    },
-    nestedCard: {
-      backgroundColor: colors.surfaceElevated,
-      borderRadius: radius.sm,
-      padding: spacing.md,
-    },
-    nestedTitle: {
-      fontWeight: '600',
-    },
-    nestedDescription: {
-      marginTop: spacing.xs,
-    },
-    progressSection: {
-      marginTop: spacing.md,
-    },
-    progressLabels: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      marginBottom: spacing.xs,
-    },
-    iconRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.xs,
-      marginTop: spacing.sm,
-    },
     tinyText: {
       fontSize: 11,
       lineHeight: 16,
-    },
-    tinyTextStrong: {
-      fontWeight: '600',
-    },
-    xpReward: {
-      fontWeight: '600',
-      color: colors.primary,
     },
     feedHeading: {
       marginBottom: spacing.md,
