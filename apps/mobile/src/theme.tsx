@@ -30,6 +30,12 @@ export interface GlassTierTokens {
   border: string;
   blur: number;
   shadowOpacity: number;
+  /**
+   * Gaussian sigma, NOT the CSS blur length. The reference states these as
+   * `box-shadow: 0 12px 48px`, where 48 is a blur diameter clipped to outside
+   * the border box; React Native takes a sigma and clips nothing, so these are
+   * about half the reference's numbers to land on the same visual weight.
+   */
   shadowRadius: number;
   shadowOffsetY: number;
   elevation: number;
@@ -125,7 +131,7 @@ const darkColors: ThemeColors = {
       border: 'rgba(255,255,255,0.22)',
       blur: 70,
       shadowOpacity: 0.55,
-      shadowRadius: 48,
+      shadowRadius: 24,
       shadowOffsetY: 12,
       elevation: 12,
     },
@@ -134,7 +140,7 @@ const darkColors: ThemeColors = {
       border: 'rgba(255,255,255,0.18)',
       blur: 48,
       shadowOpacity: 0.45,
-      shadowRadius: 32,
+      shadowRadius: 16,
       shadowOffsetY: 8,
       elevation: 8,
     },
@@ -143,7 +149,7 @@ const darkColors: ThemeColors = {
       border: 'rgba(255,255,255,0.10)',
       blur: 30,
       shadowOpacity: 0.3,
-      shadowRadius: 16,
+      shadowRadius: 8,
       shadowOffsetY: 4,
       elevation: 4,
     },
@@ -200,7 +206,7 @@ const lightColors: ThemeColors = {
       border: 'rgba(255,255,255,1)',
       blur: 85,
       shadowOpacity: 0.1,
-      shadowRadius: 48,
+      shadowRadius: 24,
       shadowOffsetY: 12,
       elevation: 12,
     },
@@ -209,7 +215,7 @@ const lightColors: ThemeColors = {
       border: 'rgba(255,255,255,0.95)',
       blur: 62,
       shadowOpacity: 0.1,
-      shadowRadius: 28,
+      shadowRadius: 14,
       shadowOffsetY: 6,
       elevation: 8,
     },
@@ -218,7 +224,7 @@ const lightColors: ThemeColors = {
       border: 'rgba(255,255,255,0.80)',
       blur: 40,
       shadowOpacity: 0.07,
-      shadowRadius: 12,
+      shadowRadius: 6,
       shadowOffsetY: 3,
       elevation: 4,
     },
