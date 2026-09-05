@@ -1,22 +1,33 @@
-'use client';
-
-import { useCallback, useEffect, useState } from 'react';
-import { ScrollView, View, TouchableOpacity, TextInput, RefreshControl } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ScrollView, View, StyleSheet, Pressable, RefreshControl } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { router } from 'expo-router';
 import {
+  ArrowLeft,
   Brain,
   ChevronRight,
   Lightbulb,
   MessageSquare,
-  RefreshCw,
   Shield,
   TrendingUp,
   AlertTriangle,
   ThumbsUp,
   ThumbsDown,
-  History,
+  HelpCircle,
+  Activity,
+  type LucideIcon,
 } from 'lucide-react-native';
-import { AppText, Card, GlassCard, LoadingState, Screen, ScreenHeader, SectionHeader } from '../../../src/components';
-import { spacing, useTheme } from '../../../src/theme';
+import {
+  AppButton,
+  AppText,
+  AppTextInput,
+  Badge,
+  GlassCard,
+  Screen,
+  SectionHeader,
+  SkeletonCard,
+} from '../../../src/components';
+import { spacing, radius, useTheme, type ThemeColors } from '../../../src/theme';
 import {
   generateInsight,
   analyzeTrend,
@@ -25,48 +36,74 @@ import {
   getInsightHistory,
   InsightType,
   SafetyLevel,
-  AiInsight,
-  ChatResponse,
+  type AiInsight,
+  type ChatResponse,
   FeedbackType,
 } from '../../../src/api/ai-health';
-import { getAvailableParameters, AvailableParameter } from '../../../src/api/health-trends';
+import { getAvailableParameters, type AvailableParameter } from '../../../src/api/health-trends';
+import type { BadgeProps } from '../../../src/components/Badge';
+
+/** Each insight kind gets the reference's icon square, keyed to what it is. */
+const TYPE_META: Record<InsightType, { icon: LucideIcon; label: string }> = {
+  [InsightType.TREND_SUMMARY]: { icon: TrendingUp, label: 'Trend' },
+  [InsightType.RESULT_EXPLANATION]: { icon: Lightbulb, label: 'Results' },
+  [InsightType.DATA_CHANGE]: { icon: Activity, label: 'Change' },
+  [InsightType.REFERENCE_RANGE_CONTEXT]: { icon: Shield, label: 'Reference range' },
+  [InsightType.GENERAL_HEALTH_INFORMATION]: { icon: Brain, label: 'General health' },
+  [InsightType.QUESTION_SUGGESTION]: { icon: HelpCircle, label: 'Questions' },
+  [InsightType.DATA_QUALITY_WARNING]: { icon: AlertTriangle, label: 'Data quality' },
+};
+
+/**
+ * The reference ends each insight card with a "94% confidence" meter. Nothing
+ * in this system produces a confidence number, and inventing one on health
+ * content would be the worst possible place to fake a number -- so the card
+ * ends with the insight's real `safetyLevel` instead, which is the field that
+ * actually tells a donor how far to trust what they just read.
+ */
+function safetyBadge(level: SafetyLevel): { label: string; variant: BadgeProps['variant'] } {
+  switch (level) {
+    case SafetyLevel.SAFE_INFORMATIONAL:
+      return { label: 'Informational', variant: 'success' };
+    case SafetyLevel.NEEDS_CONTEXT:
+      return { label: 'Context needed', variant: 'warning' };
+    case SafetyLevel.PROFESSIONAL_REVIEW_SUGGESTED:
+      return { label: 'Review suggested', variant: 'warning' };
+    case SafetyLevel.EMERGENCY_REDIRECT:
+      return { label: 'Seek help', variant: 'danger' };
+    default:
+      return { label: 'Outside scope', variant: 'default' };
+  }
+}
 
 export default function InsightsScreen() {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [latestInsight, setLatestInsight] = useState<AiInsight | null>(null);
+  const [history, setHistory] = useState<AiInsight[]>([]);
   const [availableParams, setAvailableParams] = useState<AvailableParameter[]>([]);
-  const [selectedParam, setSelectedParam] = useState<string | null>(null);
   const [chatMessage, setChatMessage] = useState('');
   const [chatResponse, setChatResponse] = useState<ChatResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [showHistory, setShowHistory] = useState(false);
-  const [insightHistory, setInsightHistory] = useState<AiInsight[]>([]);
   const [feedbackGiven, setFeedbackGiven] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     try {
-      const params = await getAvailableParameters();
+      const [params, historyResult] = await Promise.all([
+        getAvailableParameters(),
+        getInsightHistory({ limit: 10 }).catch(() => ({ insights: [], total: 0 })),
+      ]);
       setAvailableParams(params);
-      if (params.length > 0 && params[0]) {
-        setSelectedParam(params[0].code);
-      }
-    } catch (err) {
-      console.error('Failed to load data:', err);
+      setHistory(historyResult.insights);
+    } catch {
+      setError('Insights are temporarily unavailable.');
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
-    }
-  }, []);
-
-  const loadHistory = useCallback(async () => {
-    try {
-      const result = await getInsightHistory({ limit: 10 });
-      setInsightHistory(result.insights);
-    } catch (err) {
-      console.error('Failed to load history:', err);
     }
   }, []);
 
@@ -81,62 +118,29 @@ export default function InsightsScreen() {
     loadData();
   }, [loadData]);
 
+  const runGeneration = useCallback(async (generator: () => Promise<AiInsight>) => {
+    setIsGenerating(true);
+    setError(null);
+    setFeedbackGiven(null);
+    try {
+      const insight = await generator();
+      setLatestInsight(insight);
+      // A newly generated insight belongs in the history list too, without a
+      // second round trip to fetch what we already hold.
+      setHistory((previous) => [insight, ...previous.filter((i) => i.id !== insight.id)]);
+    } catch {
+      setError('Insights are temporarily unavailable.');
+    } finally {
+      setIsGenerating(false);
+    }
+  }, []);
+
   const handleFeedback = useCallback(async (insightId: string, type: FeedbackType) => {
     try {
       await submitFeedback({ insightId, type });
       setFeedbackGiven(insightId);
-    } catch (err) {
-      console.error('Failed to submit feedback:', err);
-    }
-  }, []);
-
-  const handleGenerateTrendInsight = useCallback(async () => {
-    if (!selectedParam) return;
-    setIsGenerating(true);
-    setError(null);
-    setFeedbackGiven(null);
-    try {
-      const insight = await analyzeTrend({ parameterCode: selectedParam });
-      setLatestInsight(insight);
-    } catch (err) {
-      console.error('Failed to generate insight:', err);
-      setError('Insights are temporarily unavailable.');
-    } finally {
-      setIsGenerating(false);
-    }
-  }, [selectedParam]);
-
-  const handleExplainLatest = useCallback(async () => {
-    if (availableParams.length === 0) return;
-    setIsGenerating(true);
-    setError(null);
-    setFeedbackGiven(null);
-    try {
-      const insight = await generateInsight({
-        type: InsightType.RESULT_EXPLANATION,
-        parameterCode: availableParams[0]?.code,
-      });
-      setLatestInsight(insight);
-    } catch (err) {
-      console.error('Failed to generate insight:', err);
-      setError('Insights are temporarily unavailable.');
-    } finally {
-      setIsGenerating(false);
-    }
-  }, [availableParams]);
-
-  const handleGenerateQuestions = useCallback(async () => {
-    setIsGenerating(true);
-    setError(null);
-    setFeedbackGiven(null);
-    try {
-      const insight = await generateInsight({ type: InsightType.QUESTION_SUGGESTION });
-      setLatestInsight(insight);
-    } catch (err) {
-      console.error('Failed to generate insight:', err);
-      setError('Insights are temporarily unavailable.');
-    } finally {
-      setIsGenerating(false);
+    } catch {
+      setError('Could not send your feedback. Please try again.');
     }
   }, []);
 
@@ -148,445 +152,650 @@ export default function InsightsScreen() {
     try {
       const response = await sendChatMessage({ message: chatMessage });
       setChatResponse(response);
-      if (response.message.insight) {
-        setLatestInsight(response.message.insight);
-      }
+      if (response.message.insight) setLatestInsight(response.message.insight);
       setChatMessage('');
-    } catch (err) {
-      console.error('Failed to send chat:', err);
+    } catch {
       setError('Chat is temporarily unavailable.');
     } finally {
       setIsGenerating(false);
     }
   }, [chatMessage]);
 
-  const getSafetyBadge = (level: SafetyLevel) => {
-    switch (level) {
-      case SafetyLevel.SAFE_INFORMATIONAL:
-        return { bg: colors.successMuted, color: colors.onMuted.success, label: 'Informational' };
-      case SafetyLevel.NEEDS_CONTEXT:
-        return { bg: colors.warningMuted, color: colors.onMuted.warning, label: 'Context needed' };
-      case SafetyLevel.PROFESSIONAL_REVIEW_SUGGESTED:
-        return { bg: colors.warningMuted, color: colors.onMuted.warning, label: 'Professional review suggested' };
-      case SafetyLevel.EMERGENCY_REDIRECT:
-        return { bg: colors.dangerMuted, color: colors.onMuted.danger, label: 'Seek help' };
-      case SafetyLevel.OUT_OF_SCOPE:
-        return { bg: colors.surfaceElevated, color: colors.textMuted, label: 'Outside scope' };
-      default:
-        return { bg: colors.surfaceElevated, color: colors.textMuted, label: 'Unknown' };
-    }
-  };
-
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
-  };
-
-  if (isLoading) {
-    return (
-      <Screen>
-        <ScreenHeader title="AI Insights" subtitle="Personalized health recommendations" />
-        <LoadingState />
-      </Screen>
-    );
-  }
-
-  if (showHistory) {
-    return (
-      <Screen>
-        <ScreenHeader title="AI Insight History" onBack={() => setShowHistory(false)} />
-        <ScrollView
-          style={{ flex: 1 }}
-          contentContainerStyle={{ padding: spacing.lg }}
-          refreshControl={
-            <RefreshControl refreshing={isRefreshing} onRefresh={() => { setIsRefreshing(true); loadHistory(); setIsRefreshing(false); }} tintColor={colors.primary} />
-          }
-        >
-          {insightHistory.length === 0 ? (
-            <Card>
-              <View style={{ alignItems: 'center', padding: spacing.xl }}>
-                <History size={48} color={colors.textMuted} />
-                <AppText variant="heading" style={{ marginTop: spacing.md, textAlign: 'center' }}>
-                  No history yet
-                </AppText>
-                <AppText muted style={{ marginTop: spacing.sm, textAlign: 'center' }}>
-                  Generate your first AI insight to see it here.
-                </AppText>
-              </View>
-            </Card>
-          ) : (
-            insightHistory.map((insight) => (
-              <TouchableOpacity
-                key={insight.id}
-                onPress={() => { setLatestInsight(insight); setShowHistory(false); }}
-              >
-                <Card style={{ marginBottom: spacing.md }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
-                    <View
-                      style={{
-                        width: 40,
-                        height: 40,
-                        borderRadius: 10,
-                        backgroundColor: colors.aiMuted,
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      <Brain size={20} color={colors.onMuted.ai} />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <AppText variant="heading" style={{ fontSize: 14 }}>{insight.title}</AppText>
-                      <AppText muted style={{ fontSize: 12 }}>{formatDate(insight.generatedAt)}</AppText>
-                    </View>
-                    <ChevronRight size={20} color={colors.textMuted} />
-                  </View>
-                </Card>
-              </TouchableOpacity>
-            ))
-          )}
-          <TouchableOpacity
-            onPress={() => setShowHistory(false)}
-            style={{ padding: spacing.md, alignItems: 'center' }}
-          >
-            <AppText style={{ color: colors.primary, fontWeight: '600' }}>Back to Insights</AppText>
-          </TouchableOpacity>
-        </ScrollView>
-      </Screen>
-    );
-  }
+  const actions = useMemo(
+    () => [
+      {
+        key: 'results',
+        icon: Brain,
+        title: 'Analyze my results',
+        subtitle: 'Insights based on your latest laboratory data',
+        disabled: availableParams.length === 0,
+        onPress: () =>
+          runGeneration(() =>
+            generateInsight({
+              type: InsightType.RESULT_EXPLANATION,
+              parameterCode: availableParams[0]?.code,
+            }),
+          ),
+      },
+      {
+        key: 'trends',
+        icon: TrendingUp,
+        title: 'Summarize trends',
+        subtitle: 'Patterns in your health data over time',
+        disabled: availableParams.length === 0,
+        onPress: () => {
+          const code = availableParams[0]?.code;
+          if (!code) return;
+          return runGeneration(() => analyzeTrend({ parameterCode: code }));
+        },
+      },
+      {
+        key: 'questions',
+        icon: MessageSquare,
+        title: 'Questions to discuss',
+        subtitle: 'Suggested questions for your healthcare provider',
+        disabled: false,
+        onPress: () =>
+          runGeneration(() => generateInsight({ type: InsightType.QUESTION_SUGGESTION })),
+      },
+    ],
+    [availableParams, runGeneration],
+  );
 
   return (
-    <Screen>
-      <ScreenHeader title="AI Insights" subtitle="Personalized health recommendations" />
+    <Screen scroll={false} style={styles.screen}>
+      <LinearGradient
+        colors={[
+          isDark ? 'rgba(142, 130, 223, 0.20)' : 'rgba(142, 130, 223, 0.14)',
+          'transparent',
+        ]}
+        style={styles.headerBlock}
+      >
+        <Pressable
+          onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+          style={({ pressed }) => [styles.backLink, { opacity: pressed ? 0.6 : 1 }]}
+        >
+          <ArrowLeft size={16} color={colors.ai} strokeWidth={2.5} />
+          <AppText style={styles.backLabel}>Back</AppText>
+        </Pressable>
+
+        <View style={styles.headerRow}>
+          <View style={styles.headerIcon}>
+            <Brain size={22} color={colors.onMuted.ai} />
+          </View>
+          <View style={styles.headerText}>
+            <View style={styles.headerTitleLine}>
+              <AppText style={styles.headerTitle}>AI Insights</AppText>
+              <Badge variant="ai">Powered by AI</Badge>
+            </View>
+            <AppText style={styles.headerSubtitle}>
+              Personalized health recommendations
+            </AppText>
+          </View>
+        </View>
+      </LinearGradient>
+
       <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={{ padding: spacing.lg }}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+          <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor={colors.ai} />
         }
       >
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm }}>
-          <Brain size={20} color={colors.ai} />
-          <AppText muted style={{ fontSize: 13 }}>
-            Personalized information based on your recorded health data
-          </AppText>
-        </View>
-
-        <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginBottom: spacing.md }}>
-          <TouchableOpacity
-            onPress={() => { setShowHistory(true); loadHistory(); }}
-            style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}
-          >
-            <History size={16} color={colors.primary} />
-            <AppText style={{ fontSize: 13, color: colors.primary, fontWeight: '600' }}>History</AppText>
-          </TouchableOpacity>
-        </View>
-
-        <GlassCard style={{ marginBottom: spacing.lg }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-            <Shield size={16} color={colors.secondary} />
-            <AppText muted style={{ fontSize: 12, flex: 1 }}>
-              AI-generated informational content. Not a medical diagnosis.
+        <GlassCard style={styles.disclaimer}>
+          <View style={styles.disclaimerRow}>
+            <Shield size={16} color={colors.onMuted.secondary} />
+            <AppText style={styles.disclaimerText}>
+              AI-generated informational content, drawn from your own recorded health data. It is
+              not a medical diagnosis — always consult your doctor.
             </AppText>
           </View>
         </GlassCard>
 
-        {availableParams.length === 0 ? (
-          <Card>
-            <View style={{ alignItems: 'center', padding: spacing.xl }}>
-              <Lightbulb size={48} color={colors.textMuted} />
-              <AppText variant="heading" style={{ marginTop: spacing.md, textAlign: 'center' }}>
-                No data available
-              </AppText>
-              <AppText muted style={{ marginTop: spacing.sm, textAlign: 'center' }}>
-                Complete a blood test to receive AI-powered health insights.
-              </AppText>
+        {error && (
+          <GlassCard danger>
+            <View style={styles.disclaimerRow}>
+              <AlertTriangle size={16} color={colors.onMuted.danger} />
+              <AppText style={styles.errorText}>{error}</AppText>
             </View>
-          </Card>
-        ) : (
+          </GlassCard>
+        )}
+
+        <SectionHeader>Generate an insight</SectionHeader>
+        {actions.map((action) => (
+          <ActionRow
+            key={action.key}
+            icon={action.icon}
+            title={action.title}
+            subtitle={action.subtitle}
+            disabled={action.disabled || isGenerating}
+            onPress={action.onPress}
+          />
+        ))}
+
+        {isGenerating && <SkeletonCard />}
+
+        {latestInsight && (
           <>
-            <SectionHeader>INSIGHTS</SectionHeader>
-
-            <TouchableOpacity onPress={handleExplainLatest} disabled={isGenerating}>
-              <Card style={{ marginBottom: spacing.md }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
-                  <View
-                    style={{
-                      width: 48,
-                      height: 48,
-                      borderRadius: 12,
-                      backgroundColor: colors.aiMuted,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <Brain size={24} color={colors.onMuted.ai} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <AppText variant="heading">Analyze My Results</AppText>
-                    <AppText muted style={{ fontSize: 13 }}>
-                      Get insights based on your latest laboratory data
-                    </AppText>
-                  </View>
-                  {isGenerating ? (
-                    <RefreshCw size={20} color={colors.textMuted} />
-                  ) : (
-                    <ChevronRight size={20} color={colors.textMuted} />
-                  )}
+            <SectionHeader>Latest insight</SectionHeader>
+            <InsightCard insight={latestInsight} expanded>
+              {feedbackGiven === latestInsight.id ? (
+                <View style={styles.feedbackBlock}>
+                  <AppText style={styles.feedbackThanks}>Thank you for your feedback</AppText>
                 </View>
-              </Card>
-            </TouchableOpacity>
-
-            <TouchableOpacity onPress={handleGenerateTrendInsight} disabled={isGenerating || !selectedParam}>
-              <Card style={{ marginBottom: spacing.md }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
-                  <View
-                    style={{
-                      width: 48,
-                      height: 48,
-                      borderRadius: 12,
-                      backgroundColor: colors.successMuted,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <TrendingUp size={24} color={colors.onMuted.success} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <AppText variant="heading">Summarize Trends</AppText>
-                    <AppText muted style={{ fontSize: 13 }}>
-                      Review patterns in your health data over time
-                    </AppText>
-                  </View>
-                  {isGenerating ? (
-                    <RefreshCw size={20} color={colors.textMuted} />
-                  ) : (
-                    <ChevronRight size={20} color={colors.textMuted} />
-                  )}
-                </View>
-              </Card>
-            </TouchableOpacity>
-
-            <TouchableOpacity onPress={handleGenerateQuestions} disabled={isGenerating}>
-              <Card style={{ marginBottom: spacing.lg }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
-                  <View
-                    style={{
-                      width: 48,
-                      height: 48,
-                      borderRadius: 12,
-                      backgroundColor: colors.secondaryMuted,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <MessageSquare size={24} color={colors.onMuted.secondary} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <AppText variant="heading">Questions to Discuss</AppText>
-                    <AppText muted style={{ fontSize: 13 }}>
-                      Get suggested questions for your healthcare provider
-                    </AppText>
-                  </View>
-                  {isGenerating ? (
-                    <RefreshCw size={20} color={colors.textMuted} />
-                  ) : (
-                    <ChevronRight size={20} color={colors.textMuted} />
-                  )}
-                </View>
-              </Card>
-            </TouchableOpacity>
-
-            {error && (
-              <GlassCard style={{ marginBottom: spacing.lg }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-                  <AlertTriangle size={16} color={colors.warning} />
-                  <AppText muted style={{ flex: 1 }}>{error}</AppText>
-                </View>
-              </GlassCard>
-            )}
-
-            {latestInsight && (
-              <>
-                <SectionHeader>LATEST INSIGHT</SectionHeader>
-                <Card style={{ marginBottom: spacing.lg }}>
-                  <View style={{ marginBottom: spacing.md }}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                      <AppText variant="heading">{latestInsight.title}</AppText>
-                      <View
-                        style={{
-                          paddingHorizontal: spacing.sm,
-                          paddingVertical: 2,
-                          borderRadius: 4,
-                          backgroundColor: getSafetyBadge(latestInsight.safetyLevel).bg,
-                        }}
-                      >
-                        <AppText style={{ fontSize: 10, color: getSafetyBadge(latestInsight.safetyLevel).color }}>
-                          {getSafetyBadge(latestInsight.safetyLevel).label}
-                        </AppText>
-                      </View>
-                    </View>
-                    <AppText muted style={{ fontSize: 12, marginTop: spacing.xs }}>
-                      {formatDate(latestInsight.generatedAt)}
-                    </AppText>
-                  </View>
-
-                  <AppText style={{ marginBottom: spacing.md }}>{latestInsight.summary}</AppText>
-
-                  {latestInsight.observations.length > 0 && (
-                    <View style={{ marginBottom: spacing.md }}>
-                      {latestInsight.observations.map((obs, idx) => (
-                        <View key={idx} style={{ flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.xs }}>
-                          <AppText muted>•</AppText>
-                          <AppText muted style={{ flex: 1 }}>{obs}</AppText>
-                        </View>
-                      ))}
-                    </View>
-                  )}
-
-                  {latestInsight.dataPoints && latestInsight.dataPoints.length > 0 && (
-                    <View
-                      style={{
-                        backgroundColor: colors.surfaceElevated,
-                        borderRadius: 8,
-                        padding: spacing.md,
-                        marginBottom: spacing.md,
-                      }}
+              ) : (
+                <View style={styles.feedbackBlock}>
+                  <AppText style={styles.feedbackPrompt}>Was this insight helpful?</AppText>
+                  <View style={styles.feedbackRow}>
+                    <Pressable
+                      onPress={() => handleFeedback(latestInsight.id, FeedbackType.HELPFUL)}
+                      style={({ pressed }) => [styles.feedbackButton, { opacity: pressed ? 0.6 : 1 }]}
+                      accessibilityRole="button"
                     >
-                      <AppText muted style={{ fontSize: 12, marginBottom: spacing.sm }}>
-                        Referenced Data
+                      <ThumbsUp size={16} color={colors.onMuted.success} />
+                      <AppText style={[styles.feedbackLabel, { color: colors.onMuted.success }]}>
+                        Helpful
                       </AppText>
-                      {latestInsight.dataPoints.map((dp, idx) => (
-                        <View key={idx} style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.xs }}>
-                          <AppText muted style={{ fontSize: 13 }}>{dp.label}</AppText>
-                          <AppText style={{ fontSize: 13 }}>
-                            {dp.value} {dp.unit}
-                          </AppText>
-                        </View>
-                      ))}
-                    </View>
-                  )}
-
-                  {latestInsight.questionsForProfessional && latestInsight.questionsForProfessional.length > 0 && (
-                    <View style={{ borderTopWidth: 1, borderTopColor: colors.border, paddingTop: spacing.md }}>
-                      <AppText variant="heading" style={{ fontSize: 14, marginBottom: spacing.sm }}>
-                        Questions for your healthcare provider
+                    </Pressable>
+                    <Pressable
+                      onPress={() => handleFeedback(latestInsight.id, FeedbackType.NOT_HELPFUL)}
+                      style={({ pressed }) => [styles.feedbackButton, { opacity: pressed ? 0.6 : 1 }]}
+                      accessibilityRole="button"
+                    >
+                      <ThumbsDown size={16} color={colors.textMuted} />
+                      <AppText style={[styles.feedbackLabel, { color: colors.textMuted }]}>
+                        Not helpful
                       </AppText>
-                      {latestInsight.questionsForProfessional.map((q, idx) => (
-                        <View key={idx} style={{ flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.xs }}>
-                          <AppText muted>•</AppText>
-                          <AppText muted style={{ flex: 1 }}>{q}</AppText>
-                        </View>
-                      ))}
-                    </View>
-                  )}
-
-                  {latestInsight.caveats.length > 0 && (
-                    <View style={{ borderTopWidth: 1, borderTopColor: colors.border, paddingTop: spacing.md, marginTop: spacing.md }}>
-                      {latestInsight.caveats.map((caveat, idx) => (
-                        <AppText key={idx} muted style={{ fontSize: 11, fontStyle: 'italic', marginBottom: spacing.xs }}>
-                          {caveat}
-                        </AppText>
-                      ))}
-                    </View>
-                  )}
-
-                  {latestInsight.id && feedbackGiven !== latestInsight.id && (
-                    <View style={{ borderTopWidth: 1, borderTopColor: colors.border, paddingTop: spacing.md, marginTop: spacing.md }}>
-                      <AppText muted style={{ fontSize: 12, marginBottom: spacing.sm }}>Was this insight helpful?</AppText>
-                      <View style={{ flexDirection: 'row', gap: spacing.md }}>
-                        <TouchableOpacity
-                          onPress={() => handleFeedback(latestInsight.id, FeedbackType.HELPFUL)}
-                          style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}
-                        >
-                          <ThumbsUp size={18} color={colors.success} />
-                          <AppText style={{ fontSize: 13, color: colors.success }}>Helpful</AppText>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          onPress={() => handleFeedback(latestInsight.id, FeedbackType.NOT_HELPFUL)}
-                          style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}
-                        >
-                          <ThumbsDown size={18} color={colors.textMuted} />
-                          <AppText style={{ fontSize: 13, color: colors.textMuted }}>Not helpful</AppText>
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                  )}
-
-                  {feedbackGiven === latestInsight.id && (
-                    <View style={{ borderTopWidth: 1, borderTopColor: colors.border, paddingTop: spacing.md, marginTop: spacing.md }}>
-                      <AppText style={{ fontSize: 12, color: colors.success, fontWeight: '600' }}>Thank you for your feedback</AppText>
-                    </View>
-                  )}
-                </Card>
-              </>
-            )}
-
-            <SectionHeader>ASK ABOUT MY RESULTS</SectionHeader>
-            <Card style={{ marginBottom: spacing.lg }}>
-              <TextInput
-                value={chatMessage}
-                onChangeText={setChatMessage}
-                placeholder="Ask a question about your health data..."
-                placeholderTextColor={colors.textMuted}
-                style={{
-                  backgroundColor: colors.surfaceSolid,
-                  borderRadius: 8,
-                  padding: spacing.md,
-                  color: colors.text,
-                  fontSize: 14,
-                  minHeight: 80,
-                  textAlignVertical: 'top',
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                }}
-                multiline
-              />
-              <TouchableOpacity
-                onPress={handleChat}
-                disabled={isGenerating || !chatMessage.trim()}
-                style={{
-                  marginTop: spacing.md,
-                  padding: spacing.md,
-                  borderRadius: 8,
-                  backgroundColor: chatMessage.trim() && !isGenerating ? colors.primary : colors.surfaceElevated,
-                  alignItems: 'center',
-                }}
-              >
-                <AppText
-                  style={{
-                    color: chatMessage.trim() && !isGenerating ? colors.white : colors.textMuted,
-                    fontWeight: '600',
-                  }}
-                >
-                  {isGenerating ? 'Sending...' : 'Send'}
-                </AppText>
-              </TouchableOpacity>
-
-              {chatResponse && (
-                <View
-                  style={{
-                    marginTop: spacing.md,
-                    paddingTop: spacing.md,
-                    borderTopWidth: 1,
-                    borderTopColor: colors.border,
-                  }}
-                >
-                  <AppText muted style={{ fontSize: 12, marginBottom: spacing.xs }}>
-                    Response
-                  </AppText>
-                  <AppText>{chatResponse.message.content}</AppText>
+                    </Pressable>
+                  </View>
                 </View>
               )}
-            </Card>
+            </InsightCard>
           </>
         )}
 
-        <View style={{ height: spacing.xl }} />
+        <SectionHeader>Your insights</SectionHeader>
+        {isLoading ? (
+          <>
+            <SkeletonCard />
+            <SkeletonCard />
+          </>
+        ) : history.length === 0 ? (
+          <GlassCard>
+            <AppText style={styles.emptyTitle}>No insights yet</AppText>
+            <AppText style={styles.emptyBody}>
+              {availableParams.length === 0
+                ? 'Complete a blood test and your insights will be generated from it.'
+                : 'Generate your first insight above and it will be kept here.'}
+            </AppText>
+          </GlassCard>
+        ) : (
+          history
+            .filter((insight) => insight.id !== latestInsight?.id)
+            .map((insight) => (
+              <Pressable
+                key={insight.id}
+                onPress={() => setLatestInsight(insight)}
+                style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+                accessibilityRole="button"
+              >
+                <InsightCard insight={insight} />
+              </Pressable>
+            ))
+        )}
+
+        <SectionHeader>Ask about my results</SectionHeader>
+        <GlassCard>
+          <AppTextInput
+            placeholder="Ask a question about your health data…"
+            value={chatMessage}
+            onChangeText={setChatMessage}
+            multiline
+          />
+          <AppButton
+            onPress={handleChat}
+            disabled={isGenerating || !chatMessage.trim()}
+            style={styles.sendButton}
+          >
+            {isGenerating ? 'Sending…' : 'Send'}
+          </AppButton>
+
+          {chatResponse && (
+            <View style={styles.chatResponse}>
+              <AppText style={styles.chatLabel}>RESPONSE</AppText>
+              <AppText style={styles.chatText}>{chatResponse.message.content}</AppText>
+            </View>
+          )}
+        </GlassCard>
       </ScrollView>
     </Screen>
   );
+}
+
+function ActionRow({
+  icon: Icon,
+  title,
+  subtitle,
+  disabled,
+  onPress,
+}: {
+  icon: LucideIcon;
+  title: string;
+  subtitle: string;
+  disabled: boolean;
+  onPress: () => void;
+}) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      accessibilityRole="button"
+      accessibilityState={{ disabled }}
+      style={({ pressed }) => ({ opacity: disabled ? 0.45 : pressed ? 0.7 : 1 })}
+    >
+      <GlassCard style={styles.actionCard}>
+        <View style={styles.actionRow}>
+          <View style={styles.aiIcon}>
+            <Icon size={18} color={colors.onMuted.ai} />
+          </View>
+          <View style={styles.actionBody}>
+            <AppText style={styles.actionTitle}>{title}</AppText>
+            <AppText style={styles.actionSubtitle}>{subtitle}</AppText>
+          </View>
+          <ChevronRight size={16} color={colors.textSubtle} />
+        </View>
+      </GlassCard>
+    </Pressable>
+  );
+}
+
+function InsightCard({
+  insight,
+  expanded = false,
+  children,
+}: {
+  insight: AiInsight;
+  expanded?: boolean;
+  children?: React.ReactNode;
+}) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  const meta = TYPE_META[insight.type] ?? TYPE_META[InsightType.GENERAL_HEALTH_INFORMATION];
+  const Icon = meta.icon;
+  const safety = safetyBadge(insight.safetyLevel);
+
+  return (
+    <GlassCard style={styles.insightCard}>
+      <View style={styles.insightHead}>
+        <View style={styles.aiIcon}>
+          <Icon size={18} color={colors.onMuted.ai} />
+        </View>
+        <View style={styles.insightHeadBody}>
+          <AppText style={styles.insightTitle}>{insight.title}</AppText>
+          <View style={styles.insightBadges}>
+            <Badge variant="ai">{meta.label}</Badge>
+            <Badge variant={safety.variant}>{safety.label}</Badge>
+          </View>
+        </View>
+      </View>
+
+      <AppText style={styles.insightBody}>{insight.summary}</AppText>
+
+      {expanded && insight.observations.length > 0 && (
+        <View style={styles.bulletList}>
+          {insight.observations.map((observation) => (
+            <View key={observation} style={styles.bulletRow}>
+              <View style={styles.bulletDot} />
+              <AppText style={styles.bulletText}>{observation}</AppText>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {expanded && insight.dataPoints && insight.dataPoints.length > 0 && (
+        <View style={styles.dataBlock}>
+          <AppText style={styles.dataLabel}>REFERENCED DATA</AppText>
+          {insight.dataPoints.map((point) => (
+            <View key={`${point.label}-${point.value}`} style={styles.dataRow}>
+              <AppText style={styles.dataRowLabel}>{point.label}</AppText>
+              <AppText style={styles.dataRowValue}>
+                {point.value}
+                {point.unit ? ` ${point.unit}` : ''}
+              </AppText>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {expanded &&
+        insight.questionsForProfessional &&
+        insight.questionsForProfessional.length > 0 && (
+          <View style={styles.section}>
+            <AppText style={styles.sectionTitle}>Questions for your healthcare provider</AppText>
+            {insight.questionsForProfessional.map((question) => (
+              <View key={question} style={styles.bulletRow}>
+                <View style={styles.bulletDot} />
+                <AppText style={styles.bulletText}>{question}</AppText>
+              </View>
+            ))}
+          </View>
+        )}
+
+      {expanded && insight.caveats.length > 0 && (
+        <View style={styles.section}>
+          {insight.caveats.map((caveat) => (
+            <AppText key={caveat} style={styles.caveat}>
+              {caveat}
+            </AppText>
+          ))}
+        </View>
+      )}
+
+      <AppText style={styles.insightDate}>
+        {new Date(insight.generatedAt).toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+        })}
+      </AppText>
+
+      {children}
+    </GlassCard>
+  );
+}
+
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    screen: {
+      padding: 0,
+    },
+    headerBlock: {
+      paddingHorizontal: spacing.md,
+      paddingTop: spacing.md,
+      paddingBottom: spacing.lg,
+    },
+    backLink: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      minHeight: 44,
+      alignSelf: 'flex-start',
+      paddingRight: spacing.sm,
+    },
+    backLabel: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: colors.ai,
+    },
+    headerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      marginTop: spacing.sm,
+    },
+    headerIcon: {
+      width: 44,
+      height: 44,
+      borderRadius: 14,
+      backgroundColor: colors.aiMuted,
+      borderWidth: 1,
+      borderColor: `${colors.onMuted.ai}4D`,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    headerText: {
+      flex: 1,
+    },
+    headerTitleLine: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      flexWrap: 'wrap',
+    },
+    headerTitle: {
+      fontSize: 24,
+      fontWeight: '700',
+      letterSpacing: -0.48,
+      color: colors.text,
+    },
+    headerSubtitle: {
+      fontSize: 12,
+      color: colors.textMuted,
+      marginTop: 2,
+    },
+
+    content: {
+      paddingHorizontal: spacing.md,
+      paddingBottom: spacing.xl,
+      gap: 12,
+    },
+
+    disclaimer: {},
+    disclaimerRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: spacing.sm,
+    },
+    disclaimerText: {
+      flex: 1,
+      fontSize: 12,
+      lineHeight: 18,
+      color: colors.textMuted,
+    },
+    errorText: {
+      flex: 1,
+      fontSize: 13,
+      color: colors.onMuted.danger,
+    },
+
+    aiIcon: {
+      width: 40,
+      height: 40,
+      borderRadius: radius.sm,
+      backgroundColor: colors.aiMuted,
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexShrink: 0,
+    },
+
+    actionCard: {
+      padding: 14,
+    },
+    actionRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+    },
+    actionBody: {
+      flex: 1,
+    },
+    actionTitle: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: colors.text,
+    },
+    actionSubtitle: {
+      fontSize: 12,
+      color: colors.textMuted,
+      marginTop: 2,
+    },
+
+    insightCard: {
+      borderColor: `${colors.onMuted.ai}33`,
+    },
+    insightHead: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: 12,
+      marginBottom: 12,
+    },
+    insightHeadBody: {
+      flex: 1,
+    },
+    insightTitle: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: colors.text,
+      marginBottom: 6,
+    },
+    insightBadges: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      flexWrap: 'wrap',
+    },
+    insightBody: {
+      fontSize: 13,
+      lineHeight: 21,
+      color: colors.text,
+    },
+    insightDate: {
+      fontSize: 11,
+      color: colors.textSubtle,
+      marginTop: 12,
+    },
+
+    bulletList: {
+      marginTop: 12,
+    },
+    bulletRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: 10,
+      marginBottom: 8,
+    },
+    bulletDot: {
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+      backgroundColor: colors.onMuted.ai,
+      marginTop: 6,
+      flexShrink: 0,
+    },
+    bulletText: {
+      flex: 1,
+      fontSize: 13,
+      lineHeight: 20,
+      color: colors.textMuted,
+    },
+
+    dataBlock: {
+      marginTop: 12,
+      backgroundColor: colors.surfaceElevated,
+      borderRadius: radius.sm,
+      padding: spacing.md,
+    },
+    dataLabel: {
+      fontSize: 11,
+      fontWeight: '700',
+      letterSpacing: 1.5,
+      color: colors.textMuted,
+      marginBottom: spacing.sm,
+    },
+    dataRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      gap: spacing.sm,
+      marginBottom: spacing.xs,
+    },
+    dataRowLabel: {
+      fontSize: 13,
+      color: colors.textMuted,
+    },
+    dataRowValue: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: colors.text,
+    },
+
+    section: {
+      marginTop: 12,
+      paddingTop: 12,
+      borderTopWidth: 1,
+      borderTopColor: colors.borderSubtle,
+    },
+    sectionTitle: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: colors.text,
+      marginBottom: spacing.sm,
+    },
+    caveat: {
+      fontSize: 11,
+      fontStyle: 'italic',
+      lineHeight: 17,
+      color: colors.textMuted,
+      marginBottom: spacing.xs,
+    },
+
+    feedbackBlock: {
+      marginTop: 12,
+      paddingTop: 12,
+      borderTopWidth: 1,
+      borderTopColor: colors.borderSubtle,
+    },
+    feedbackPrompt: {
+      fontSize: 12,
+      color: colors.textMuted,
+      marginBottom: spacing.sm,
+    },
+    feedbackRow: {
+      flexDirection: 'row',
+      gap: spacing.lg,
+    },
+    feedbackButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      minHeight: 36,
+    },
+    feedbackLabel: {
+      fontSize: 13,
+      fontWeight: '600',
+    },
+    feedbackThanks: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: colors.onMuted.success,
+    },
+
+    emptyTitle: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: colors.text,
+    },
+    emptyBody: {
+      fontSize: 13,
+      lineHeight: 20,
+      color: colors.textMuted,
+      marginTop: 4,
+    },
+
+    sendButton: {
+      marginTop: spacing.sm,
+    },
+    chatResponse: {
+      marginTop: 12,
+      paddingTop: 12,
+      borderTopWidth: 1,
+      borderTopColor: colors.borderSubtle,
+    },
+    chatLabel: {
+      fontSize: 11,
+      fontWeight: '700',
+      letterSpacing: 1.5,
+      color: colors.textMuted,
+      marginBottom: spacing.xs,
+    },
+    chatText: {
+      fontSize: 13,
+      lineHeight: 21,
+      color: colors.text,
+    },
+  });
 }
