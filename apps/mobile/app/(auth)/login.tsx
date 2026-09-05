@@ -39,7 +39,11 @@ export default function Login() {
   return (
     <Screen>
       <View style={{ marginTop: spacing['2xl'] }}>
-        <AppText variant="title">Welcome back.</AppText>
+        {/* The auth headlines are the one place the reference goes bigger and
+            heavier than the standard screen title. */}
+        <AppText variant="title" style={{ fontSize: 32, fontWeight: '800', letterSpacing: -0.96 }}>
+          Welcome back.
+        </AppText>
         <AppText muted style={{ marginTop: spacing.sm, marginBottom: spacing.xl }}>
           Sign in to your private health space.
         </AppText>
