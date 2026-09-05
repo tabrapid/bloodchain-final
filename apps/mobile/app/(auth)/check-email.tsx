@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { Mail } from 'lucide-react-native';
 import { AppButton, AppText, Screen } from '../../src/components';
 import { useResendVerification, getAuthErrorMessage } from '../../src/hooks/useAuth';
@@ -35,7 +35,7 @@ export default function CheckEmail() {
             borderRadius: 24,
             backgroundColor: colors.secondaryMuted,
             borderWidth: 1,
-            borderColor: colors.secondary,
+            borderColor: `${colors.onMuted.secondary}4D`,
             alignItems: 'center',
             justifyContent: 'center',
             marginBottom: spacing.lg,
@@ -66,16 +66,31 @@ export default function CheckEmail() {
           </AppText>
         )}
 
+        {/* The reference leads with one full-width action and puts the
+            secondary path under it as a plain link. */}
         <AppButton
-          variant="ghost"
-          onPress={onResend}
-          disabled={resend.isPending || !params.email}
-          style={{ marginBottom: spacing.md }}
+          onPress={() => router.replace('/(auth)/login')}
+          style={{ alignSelf: 'stretch' }}
         >
-          {resend.isPending ? 'Sending...' : "Didn't get it? Resend email"}
+          Back to sign in
         </AppButton>
 
-        <AppButton onPress={() => router.replace('/(auth)/login')}>Back to sign in</AppButton>
+        <Pressable
+          onPress={onResend}
+          disabled={resend.isPending || !params.email}
+          accessibilityRole="button"
+          hitSlop={8}
+          style={({ pressed }) => ({
+            marginTop: 20,
+            minHeight: 44,
+            justifyContent: 'center',
+            opacity: pressed || resend.isPending || !params.email ? 0.6 : 1,
+          })}
+        >
+          <AppText style={{ fontSize: 13, fontWeight: '500', color: colors.primary }}>
+            {resend.isPending ? 'Sending…' : 'Resend email'}
+          </AppText>
+        </Pressable>
       </View>
     </Screen>
   );
