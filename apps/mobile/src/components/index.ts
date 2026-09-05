@@ -15,6 +15,7 @@ export * from './SegmentedControl';
 export * from './ScreenHeader';
 export * from './AppHeader';
 export * from './BackHeader';
+export * from './BookingStep';
 export * from './OfflineBanner';
 export * from './ProgressBar';
 export * from './Sparkline';

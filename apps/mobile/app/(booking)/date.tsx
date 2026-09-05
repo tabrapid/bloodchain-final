@@ -1,12 +1,13 @@
 import { useState, useMemo } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
-import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, Pressable } from 'react-native';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
-import { AppButton, AppText, Card, GlassCard, Screen } from '../../src/components';
+import { AppButton, AppText, BookingStep, GlassCard } from '../../src/components';
 import { useAvailability } from '../../src/hooks/useAppointments';
 import { spacing, useTheme, ThemeColors } from '../../src/theme';
 
-const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+/** Monday-first, matching the reference and the app's own Calendar screen. */
+const WEEKDAY_INITIALS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December',
@@ -16,8 +17,15 @@ function getDaysInMonth(year: number, month: number): number {
   return new Date(year, month + 1, 0).getDate();
 }
 
-function getFirstDayOfMonth(year: number, month: number): number {
-  return new Date(year, month, 1).getDay();
+/** Weekday index of the 1st, shifted so Monday is 0. */
+function getFirstWeekdayIndex(year: number, month: number): number {
+  return (new Date(year, month, 1).getDay() + 6) % 7;
+}
+
+function toDateParam(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(
+    date.getDate(),
+  ).padStart(2, '0')}`;
 }
 
 export default function SelectDate() {
@@ -30,6 +38,7 @@ export default function SelectDate() {
   }>();
 
   const [viewDate, setViewDate] = useState(new Date());
+  const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const year = viewDate.getFullYear();
   const month = viewDate.getMonth();
 
@@ -42,286 +51,249 @@ export default function SelectDate() {
   } = useAvailability({
     organizationId: params.organizationId,
     appointmentType: params.type,
-    startDate: new Date(year, month, 1).toISOString().split('T')[0],
-    endDate: new Date(year, month + 1, 0).toISOString().split('T')[0],
+    startDate: toDateParam(new Date(year, month, 1)),
+    endDate: toDateParam(new Date(year, month + 1, 0)),
   });
 
-  const availableDates = useMemo(() => {
-    const dates = new Set<string>();
-    availableSlots.forEach((slot) => {
-      const date = new Date(slot.startAt).toDateString();
-      dates.add(date);
-    });
-    return dates;
-  }, [availableSlots]);
-
-  const daysInMonth = getDaysInMonth(year, month);
-  const firstDayOfMonth = getFirstDayOfMonth(year, month);
+  const availableDates = useMemo(
+    () => new Set(availableSlots.map((slot) => new Date(slot.startAt).toDateString())),
+    [availableSlots],
+  );
 
   const calendarDays = useMemo(() => {
-    const days: (number | null)[] = [];
-    for (let i = 0; i < firstDayOfMonth; i++) {
-      days.push(null);
-    }
-    for (let i = 1; i <= daysInMonth; i++) {
-      days.push(i);
-    }
+    const leading = getFirstWeekdayIndex(year, month);
+    const days: (number | null)[] = Array.from({ length: leading }, () => null);
+    for (let day = 1; day <= getDaysInMonth(year, month); day++) days.push(day);
     return days;
-  }, [daysInMonth, firstDayOfMonth]);
+  }, [year, month]);
 
-  const goToPreviousMonth = () => {
-    setViewDate(new Date(year, month - 1, 1));
+  const today = useMemo(() => {
+    const date = new Date();
+    date.setHours(0, 0, 0, 0);
+    return date;
+  }, []);
+
+  const changeMonth = (delta: number) => {
+    setViewDate(new Date(year, month + delta, 1));
+    setSelectedDay(null);
   };
 
-  const goToNextMonth = () => {
-    setViewDate(new Date(year, month + 1, 1));
-  };
+  // The month grid only ever shows dates from the currently viewed month, so
+  // stepping back is only useful while that month can still contain a
+  // bookable day.
+  const canGoBack = new Date(year, month, 1) > today;
 
-  const handleDateSelect = (day: number) => {
-    const selectedDate = new Date(year, month, day);
-    router.push({
-      pathname: '/(booking)/time',
-      params: {
-        organizationId: params.organizationId,
-        type: params.type,
-        date: selectedDate.toISOString().split('T')[0],
-        ...(params.rescheduleAppointmentId && {
-          rescheduleAppointmentId: params.rescheduleAppointmentId,
-        }),
-      },
-    });
-  };
-
-  const hasAvailability = (day: number) => {
-    const date = new Date(year, month, day).toDateString();
-    return availableDates.has(date);
-  };
-
-  const canGoNext = () => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const nextMonth = new Date(year, month + 1, 1);
-    return nextMonth >= today;
-  };
+  const isBookable = (day: number) =>
+    availableDates.has(new Date(year, month, day).toDateString()) &&
+    new Date(year, month, day) >= today;
 
   return (
-    <Screen>
-      <ScrollView contentContainerStyle={styles.content}>
-        <AppText variant="title" style={styles.title}>
-          {params.rescheduleAppointmentId ? 'Reschedule Appointment' : 'Select Date'}
-        </AppText>
-        <AppText muted style={styles.subtitle}>
-          {params.rescheduleAppointmentId
-            ? 'Choose a new date for your appointment.'
-            : 'Choose a date for your appointment.'}
-        </AppText>
-
-        {isLoading && (
-          <AppText muted style={styles.statusText}>
-            Loading availability...
+    <BookingStep
+      step={3}
+      title={params.rescheduleAppointmentId ? 'Pick a new date' : 'Select date'}
+      subtitle="Only dates with open slots can be picked"
+      nextDisabled={selectedDay === null}
+      onNext={() =>
+        router.push({
+          pathname: '/(booking)/time',
+          params: {
+            organizationId: params.organizationId,
+            type: params.type,
+            date: toDateParam(new Date(year, month, selectedDay!)),
+            ...(params.rescheduleAppointmentId && {
+              rescheduleAppointmentId: params.rescheduleAppointmentId,
+            }),
+          },
+        })
+      }
+    >
+      {isError && (
+        <GlassCard danger style={styles.errorCard}>
+          <AppText style={styles.errorText}>
+            Couldn&apos;t load availability. Check your connection and try again.
           </AppText>
-        )}
-
-        {isError && (
-          <Card style={styles.errorCard}>
-            <AppText style={{ color: colors.danger }}>
-              Couldn't load availability. Check your connection and try again.
-            </AppText>
-            <AppButton
-              variant="secondary"
-              onPress={() => refetch()}
-              disabled={isRefetching}
-              style={styles.retryButton}
-            >
-              {isRefetching ? 'Retrying...' : 'Retry'}
-            </AppButton>
-          </Card>
-        )}
-
-        <GlassCard tier="elevated" style={styles.calendarCard}>
-          <View style={styles.monthNav}>
-            <TouchableOpacity onPress={goToPreviousMonth} style={styles.navButton}>
-              <ChevronLeft size={20} color={colors.text} />
-            </TouchableOpacity>
-            <AppText variant="heading">
-              {MONTHS[month]} {year}
-            </AppText>
-            <TouchableOpacity
-              onPress={goToNextMonth}
-              style={styles.navButton}
-              disabled={!canGoNext()}
-            >
-              <ChevronRight
-                size={20}
-                color={canGoNext() ? colors.text : colors.textMuted}
-              />
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.weekdayRow}>
-            {WEEKDAYS.map((day) => (
-              <View key={day} style={styles.weekdayCell}>
-                <AppText muted style={styles.weekdayText}>
-                  {day}
-                </AppText>
-              </View>
-            ))}
-          </View>
-
-          <View style={styles.daysGrid}>
-            {calendarDays.map((day, index) => {
-              const hasSlots = day && hasAvailability(day);
-              const isPast = day
-                ? new Date(year, month, day) < new Date(new Date().setHours(0, 0, 0, 0))
-                : false;
-
-              return (
-                <TouchableOpacity
-                  key={index}
-                  style={styles.dayCell}
-                  onPress={() => day && hasSlots && !isPast && handleDateSelect(day)}
-                  disabled={!day || !hasSlots || isPast}
-                >
-                  {day && (
-                    <View
-                      style={[
-                        styles.dayCircle,
-                        !hasSlots && styles.dayDisabled,
-                        isPast && styles.dayDisabled,
-                      ]}
-                    >
-                      <AppText
-                        style={[
-                          styles.dayText,
-                          !hasSlots && styles.dayTextDisabled,
-                          isPast && styles.dayTextDisabled,
-                        ]}
-                      >
-                        {day}
-                      </AppText>
-                    </View>
-                  )}
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+          <AppButton
+            variant="secondary"
+            onPress={() => refetch()}
+            disabled={isRefetching}
+            loading={isRefetching}
+            style={styles.retry}
+          >
+            Retry
+          </AppButton>
         </GlassCard>
+      )}
 
-        <Card style={styles.legendCard}>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: colors.success }]} />
-            <AppText muted style={styles.legendText}>
-              Available dates
-            </AppText>
-          </View>
-        </Card>
-      </ScrollView>
+      <GlassCard tier="elevated">
+        <View style={styles.monthNav}>
+          <Pressable
+            onPress={() => changeMonth(-1)}
+            disabled={!canGoBack}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Previous month"
+            style={styles.navButton}
+          >
+            <ChevronLeft size={20} color={canGoBack ? colors.text : colors.textSubtle} />
+          </Pressable>
+          <AppText style={styles.monthLabel}>
+            {MONTHS[month]} {year}
+          </AppText>
+          <Pressable
+            onPress={() => changeMonth(1)}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Next month"
+            style={styles.navButton}
+          >
+            <ChevronRight size={20} color={colors.text} />
+          </Pressable>
+        </View>
 
-      <View style={styles.footer}>
-        <AppButton variant="secondary" onPress={() => router.back()}>
-          Back
-        </AppButton>
+        <View style={styles.weekdayRow}>
+          {WEEKDAY_INITIALS.map((initial, index) => (
+            <View key={`${initial}-${index}`} style={styles.cell}>
+              <AppText style={styles.weekdayText}>{initial}</AppText>
+            </View>
+          ))}
+        </View>
+
+        <View style={styles.grid}>
+          {calendarDays.map((day, index) => {
+            if (day === null) return <View key={`pad-${index}`} style={styles.cell} />;
+            const bookable = isBookable(day);
+            const selected = selectedDay === day;
+            return (
+              <View key={day} style={styles.cell}>
+                <Pressable
+                  onPress={() => setSelectedDay(day)}
+                  disabled={!bookable}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected, disabled: !bookable }}
+                  accessibilityLabel={`${MONTHS[month]} ${day}${bookable ? '' : ', unavailable'}`}
+                  style={[
+                    styles.day,
+                    bookable && styles.dayAvailable,
+                    selected && styles.daySelected,
+                  ]}
+                >
+                  <AppText
+                    style={[
+                      styles.dayText,
+                      !bookable && styles.dayTextMuted,
+                      selected && styles.dayTextSelected,
+                    ]}
+                  >
+                    {day}
+                  </AppText>
+                </Pressable>
+              </View>
+            );
+          })}
+        </View>
+      </GlassCard>
+
+      <View style={styles.legend}>
+        <View style={styles.legendSwatch} />
+        <AppText style={styles.legendText}>
+          {isLoading ? 'Loading availability…' : 'Dates with open slots'}
+        </AppText>
       </View>
-    </Screen>
+    </BookingStep>
   );
 }
 
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
-    content: {
-      paddingBottom: spacing.xl,
-    },
-    title: {
-      marginBottom: spacing.xs,
-    },
-    subtitle: {
-      marginBottom: spacing.xl,
-    },
-    statusText: {
+    errorCard: {
       marginBottom: spacing.md,
     },
-    errorCard: {
-      marginBottom: spacing.lg,
-      alignItems: 'center',
+    errorText: {
+      fontSize: 13,
+      color: colors.onMuted.danger,
     },
-    retryButton: {
+    retry: {
       marginTop: spacing.md,
       alignSelf: 'center',
     },
-    calendarCard: {
-      padding: spacing.md,
-      marginBottom: spacing.lg,
-    },
+
     monthNav: {
       flexDirection: 'row',
-      justifyContent: 'space-between',
       alignItems: 'center',
-      marginBottom: spacing.md,
+      justifyContent: 'space-between',
+      marginBottom: 14,
     },
     navButton: {
-      padding: spacing.sm,
+      minWidth: 32,
+      minHeight: 32,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    monthLabel: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: colors.text,
     },
     weekdayRow: {
       flexDirection: 'row',
       marginBottom: spacing.sm,
     },
-    weekdayCell: {
-      flex: 1,
-      alignItems: 'center',
-    },
     weekdayText: {
-      fontSize: 11,
+      fontSize: 10,
       fontWeight: '600',
-      textTransform: 'uppercase',
+      color: colors.textMuted,
     },
-    daysGrid: {
+    grid: {
       flexDirection: 'row',
       flexWrap: 'wrap',
     },
-    dayCell: {
-      width: '14.28%',
-      aspectRatio: 1,
+    cell: {
+      width: `${100 / 7}%`,
       alignItems: 'center',
       justifyContent: 'center',
-      paddingVertical: spacing.xs,
+      paddingVertical: 2,
     },
-    dayCircle: {
-      width: 36,
-      height: 36,
-      borderRadius: 18,
+    day: {
+      width: '100%',
+      aspectRatio: 1,
+      borderRadius: 8,
       alignItems: 'center',
       justifyContent: 'center',
+    },
+    dayAvailable: {
       backgroundColor: colors.successMuted,
     },
-    dayDisabled: {
-      backgroundColor: colors.surfaceElevated,
+    daySelected: {
+      backgroundColor: colors.primary,
     },
     dayText: {
-      fontSize: 14,
-      color: colors.onMuted.success,
+      fontSize: 12,
+      color: colors.text,
     },
-    dayTextDisabled: {
-      color: colors.textMuted,
+    dayTextMuted: {
+      color: colors.textSubtle,
     },
-    legendCard: {
-      flexDirection: 'row',
-      justifyContent: 'center',
+    dayTextSelected: {
+      fontWeight: '700',
+      color: colors.white,
     },
-    legendItem: {
+
+    legend: {
       flexDirection: 'row',
       alignItems: 'center',
+      justifyContent: 'center',
       gap: spacing.sm,
+      marginTop: spacing.md,
     },
-    legendDot: {
-      width: 8,
-      height: 8,
+    legendSwatch: {
+      width: 12,
+      height: 12,
       borderRadius: 4,
+      backgroundColor: colors.successMuted,
     },
     legendText: {
-      fontSize: 13,
-    },
-    footer: {
-      paddingTop: spacing.lg,
+      fontSize: 12,
+      color: colors.textMuted,
     },
   });
 }

@@ -1,15 +1,24 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
-import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { MapPin, Building2 } from 'lucide-react-native';
-import { AppButton, AppText, Card, EmptyState, GlassCard, Screen } from '../../src/components';
+import { View, StyleSheet, Pressable } from 'react-native';
+import { MapPin, Building2, Check } from 'lucide-react-native';
+import {
+  AppButton,
+  AppText,
+  BookingStep,
+  EmptyState,
+  GlassCard,
+  SkeletonCard,
+} from '../../src/components';
 import { useOrganizations } from '../../src/hooks/useAppointments';
-import { spacing, useTheme, ThemeColors } from '../../src/theme';
+import { radius, spacing, useTheme, ThemeColors } from '../../src/theme';
 
 export default function SelectOrganization() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const params = useLocalSearchParams<{ type: string }>();
+  const [selected, setSelected] = useState<string | null>(null);
+
   const {
     data: organizations = [],
     isLoading,
@@ -18,151 +27,167 @@ export default function SelectOrganization() {
     isRefetching,
   } = useOrganizations(params.type ? { type: params.type } : undefined);
 
-  const handleSelect = (organizationId: string) => {
-    router.push({
-      pathname: '/(booking)/date',
-      params: {
-        organizationId,
-        type: params.type,
-      },
-    });
-  };
-
   return (
-    <Screen>
-      <ScrollView contentContainerStyle={styles.content}>
-        <AppText variant="title" style={styles.title}>
-          Select Organization
-        </AppText>
-        <AppText muted style={styles.subtitle}>
-          Choose a {params.type === 'BLOOD_DONATION' ? 'hospital or blood center' : 'healthcare facility'} for your appointment.
-        </AppText>
-
-        {isLoading ? (
-          <AppText muted>Loading organizations...</AppText>
-        ) : isError ? (
-          <Card style={styles.emptyCard}>
-            <EmptyState
-              title="Couldn't load organizations"
-              description="Something went wrong reaching the server. Check your connection and try again."
-            />
-            <AppButton
-              variant="secondary"
-              onPress={() => refetch()}
-              disabled={isRefetching}
-              style={styles.retryButton}
-            >
-              {isRefetching ? 'Retrying...' : 'Retry'}
-            </AppButton>
-          </Card>
-        ) : organizations.length === 0 ? (
-          <Card style={styles.emptyCard}>
-            <EmptyState
-              title="No organizations found"
-              description="There are no active organizations available for this appointment type."
-            />
-          </Card>
-        ) : (
-          <View style={styles.organizationsList}>
-            {organizations.map((org) => (
-              <TouchableOpacity
+    <BookingStep
+      step={2}
+      title="Select location"
+      subtitle={
+        params.type === 'BLOOD_DONATION'
+          ? 'Choose a hospital or blood center'
+          : 'Choose a healthcare facility'
+      }
+      nextDisabled={!selected}
+      onNext={() =>
+        router.push({
+          pathname: '/(booking)/date',
+          params: { organizationId: selected!, type: params.type },
+        })
+      }
+    >
+      {isLoading ? (
+        <View style={styles.list}>
+          {[0, 1, 2].map((i) => (
+            <SkeletonCard key={i} />
+          ))}
+        </View>
+      ) : isError ? (
+        <GlassCard style={styles.stateCard}>
+          <EmptyState
+            title="Couldn't load locations"
+            description="Something went wrong reaching the server. Check your connection and try again."
+          />
+          <AppButton
+            variant="secondary"
+            onPress={() => refetch()}
+            disabled={isRefetching}
+            loading={isRefetching}
+            style={styles.retry}
+          >
+            Retry
+          </AppButton>
+        </GlassCard>
+      ) : organizations.length === 0 ? (
+        <GlassCard style={styles.stateCard}>
+          <EmptyState
+            title="No locations found"
+            description="There are no active organizations available for this appointment type."
+          />
+        </GlassCard>
+      ) : (
+        <View style={styles.list}>
+          {organizations.map((org) => {
+            const isSelected = selected === org.id;
+            const isHospital = org.type === 'HOSPITAL';
+            return (
+              <Pressable
                 key={org.id}
-                onPress={() => handleSelect(org.id)}
-                activeOpacity={0.8}
+                onPress={() => setSelected(org.id)}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: isSelected }}
+                style={({ pressed }) => ({ opacity: pressed && !isSelected ? 0.7 : 1 })}
               >
-                <GlassCard style={styles.orgCard}>
-                  <View
-                    style={[
-                      styles.iconContainer,
-                      {
-                        backgroundColor:
-                          org.type === 'HOSPITAL'
+                <GlassCard
+                  tier={isSelected ? 'elevated' : 'standard'}
+                  style={isSelected ? styles.cardSelected : undefined}
+                >
+                  <View style={styles.row}>
+                    <View
+                      style={[
+                        styles.icon,
+                        {
+                          backgroundColor: isHospital
                             ? colors.primaryMuted
                             : colors.secondaryMuted,
-                      },
-                    ]}
-                  >
-                    <Building2
-                      size={24}
-                      color={org.type === 'HOSPITAL' ? colors.onMuted.primary : colors.onMuted.secondary}
-                    />
-                  </View>
-                  <View style={styles.orgInfo}>
-                    <AppText variant="heading">{org.name}</AppText>
-                    {org.address && (
-                      <View style={styles.addressRow}>
-                        <MapPin size={14} color={colors.textMuted} />
-                        <AppText muted style={styles.address}>
-                          {org.address}
-                        </AppText>
+                        },
+                      ]}
+                    >
+                      <Building2
+                        size={18}
+                        color={isHospital ? colors.onMuted.primary : colors.onMuted.secondary}
+                      />
+                    </View>
+                    <View style={styles.body}>
+                      <AppText style={styles.name}>{org.name}</AppText>
+                      {org.address && (
+                        <View style={styles.addressRow}>
+                          <MapPin size={11} color={colors.textMuted} />
+                          <AppText style={styles.address} numberOfLines={2}>
+                            {org.address}
+                          </AppText>
+                        </View>
+                      )}
+                    </View>
+                    {isSelected && (
+                      <View style={styles.check}>
+                        <Check size={13} color="#FFFFFF" strokeWidth={3} />
                       </View>
                     )}
                   </View>
                 </GlassCard>
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
-      </ScrollView>
-
-      <View style={styles.footer}>
-        <AppButton variant="secondary" onPress={() => router.back()}>
-          Back
-        </AppButton>
-      </View>
-    </Screen>
+              </Pressable>
+            );
+          })}
+        </View>
+      )}
+    </BookingStep>
   );
 }
 
-function createStyles(_colors: ThemeColors) {
+function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
-    content: {
-      paddingBottom: spacing.xl,
+    list: {
+      gap: 10,
     },
-    title: {
-      marginBottom: spacing.xs,
+    stateCard: {
+      paddingVertical: spacing.lg,
     },
-    subtitle: {
-      marginBottom: spacing.xl,
-    },
-    emptyCard: {
-      paddingVertical: spacing.xl,
-    },
-    retryButton: {
+    retry: {
       marginTop: spacing.md,
       alignSelf: 'center',
     },
-    organizationsList: {
-      gap: spacing.md,
+    cardSelected: {
+      borderColor: 'rgba(216, 83, 96, 0.45)',
     },
-    orgCard: {
+    row: {
       flexDirection: 'row',
-      alignItems: 'center',
-      padding: spacing.lg,
+      alignItems: 'flex-start',
+      gap: 12,
     },
-    iconContainer: {
-      width: 48,
-      height: 48,
-      borderRadius: 12,
+    icon: {
+      width: 40,
+      height: 40,
+      borderRadius: radius.sm,
       alignItems: 'center',
       justifyContent: 'center',
-      marginRight: spacing.md,
+      flexShrink: 0,
     },
-    orgInfo: {
+    body: {
       flex: 1,
+    },
+    name: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: colors.text,
     },
     addressRow: {
       flexDirection: 'row',
-      alignItems: 'center',
+      alignItems: 'flex-start',
       gap: 4,
-      marginTop: 4,
+      marginTop: 2,
     },
     address: {
-      fontSize: 13,
       flex: 1,
+      fontSize: 12,
+      color: colors.textMuted,
     },
-    footer: {
-      paddingTop: spacing.lg,
+    check: {
+      width: 22,
+      height: 22,
+      borderRadius: 11,
+      backgroundColor: colors.primary,
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexShrink: 0,
     },
   });
 }
