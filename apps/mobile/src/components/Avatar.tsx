@@ -24,13 +24,15 @@ export function Avatar({ name, size = 48 }: AvatarProps) {
 
   return (
     <LinearGradient
-      colors={colors.heroGradient}
+      colors={['#D85360', '#8E4A75']}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={{
         width: size,
         height: size,
         borderRadius: size / 2,
+        borderWidth: 2,
+        borderColor: 'rgba(255,255,255,0.2)',
         alignItems: 'center',
         justifyContent: 'center',
       }}

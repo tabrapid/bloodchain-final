@@ -29,9 +29,14 @@ export function ListItem({
         />
       )}
       <View style={{ flex: 1 }}>
-        <AppText style={{ color: destructive ? colors.danger : colors.text }}>{title}</AppText>
+        <AppText
+          style={{ fontSize: 14, fontWeight: '500', color: destructive ? colors.danger : colors.text }}
+          numberOfLines={1}
+        >
+          {title}
+        </AppText>
         {subtitle && (
-          <AppText muted style={{ marginTop: spacing.xs }}>
+          <AppText muted style={{ fontSize: 12, marginTop: 1 }}>
             {subtitle}
           </AppText>
         )}
