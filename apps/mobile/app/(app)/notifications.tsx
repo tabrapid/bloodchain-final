@@ -15,7 +15,16 @@ import {
   Settings,
   type LucideIcon,
 } from 'lucide-react-native';
-import { AppButton, AppText, Card, Screen, ScreenHeader, EmptyState, LoadingState } from '../../src/components';
+import {
+  AppButton,
+  AppText,
+  Card,
+  Screen,
+  ScreenHeader,
+  SegmentedControl,
+  EmptyState,
+  LoadingState,
+} from '../../src/components';
 import {
   useNotifications,
   useNotificationStats,
@@ -153,10 +162,16 @@ export default function NotificationsCenter() {
     }
   }, [router, markAsRead]);
 
-  const tabs: { key: 'all' | 'unread' | NotificationType; label: string }[] = [
-    { key: 'all', label: 'All' },
-    { key: 'unread', label: `Unread${stats?.unread ? ` (${stats.unread})` : ''}` },
-  ];
+  const tabs = useMemo(
+    () => [
+      { value: 'all' as const, label: 'All' },
+      {
+        value: 'unread' as const,
+        label: `Unread${stats?.unread ? ` (${stats.unread})` : ''}`,
+      },
+    ],
+    [stats?.unread],
+  );
 
   const renderNotification = ({ item }: { item: Notification }) => (
     <NotificationItem
@@ -188,22 +203,12 @@ export default function NotificationsCenter() {
         }
         ListHeaderComponent={
           <View style={styles.header}>
-            <View style={styles.tabs}>
-              {tabs.map((tab) => (
-                <TouchableOpacity
-                  key={tab.key}
-                  style={[styles.tab, activeTab === tab.key && styles.activeTab]}
-                  onPress={() => setActiveTab(tab.key)}
-                >
-                  <AppText
-                    variant="body"
-                    style={[styles.tabText, activeTab === tab.key && styles.activeTabText]}
-                  >
-                    {tab.label}
-                  </AppText>
-                </TouchableOpacity>
-              ))}
-            </View>
+            <SegmentedControl
+              options={tabs}
+              value={activeTab === 'unread' ? 'unread' : 'all'}
+              onChange={setActiveTab}
+              style={styles.tabs}
+            />
             {notifications.some((n) => !n.readAt) && (
               <AppButton variant="ghost" size="small" onPress={() => markAllRead.mutate()}>
                 Mark all read
@@ -234,29 +239,12 @@ function createStyles(colors: ThemeColors) {
     header: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'space-between',
+      gap: spacing.sm,
       paddingHorizontal: spacing.md,
-      paddingVertical: spacing.sm,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
+      paddingBottom: spacing.sm,
     },
     tabs: {
-      flexDirection: 'row',
-      gap: spacing.sm,
-    },
-    tab: {
-      paddingVertical: spacing.xs,
-      paddingHorizontal: spacing.sm,
-    },
-    activeTab: {
-      borderBottomWidth: 2,
-      borderBottomColor: colors.primary,
-    },
-    tabText: {
-      fontSize: 14,
-    },
-    activeTabText: {
-      color: colors.primary,
+      flex: 1,
     },
     notificationCard: {
       marginHorizontal: spacing.md,
@@ -324,22 +312,6 @@ function createStyles(colors: ThemeColors) {
       fontSize: 10,
       color: colors.white,
       fontWeight: '600',
-    },
-    toggleItem: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingVertical: spacing.md,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.borderSubtle,
-    },
-    toggleText: {
-      flex: 1,
-      marginRight: spacing.md,
-    },
-    toggleDescription: {
-      fontSize: 13,
-      marginTop: 2,
     },
   });
 }

@@ -1,120 +1,61 @@
-import { useMemo, useState } from 'react';
-import { View, StyleSheet, FlatList, TouchableOpacity, RefreshControl } from 'react-native';
+import { useCallback, useMemo, useState } from 'react';
+import { View, StyleSheet, FlatList, Pressable, RefreshControl } from 'react-native';
 import { router } from 'expo-router';
-import { Droplet, Calendar, Building2, ChevronRight } from 'lucide-react-native';
-import { AppText, Card, EmptyState, GlassCard, Screen, ScreenHeader } from '../../../src/components';
+import { Droplet, MapPin, ChevronRight } from 'lucide-react-native';
+import {
+  AppText,
+  EmptyState,
+  GlassCard,
+  Screen,
+  ScreenHeader,
+  SectionHeader,
+  SegmentedControl,
+  Badge,
+  SkeletonCard,
+} from '../../../src/components';
 import { useMyDonations, useDonationStatistics } from '../../../src/hooks/useDonations';
 import { type Donation } from '../../../src/api/donations';
 import { spacing, radius, useTheme, ThemeColors } from '../../../src/theme';
 
+type Filter = 'all' | 'completed' | 'cancelled';
+
+const FILTERS = [
+  { label: 'All', value: 'all' },
+  { label: 'Completed', value: 'completed' },
+  { label: 'Cancelled', value: 'cancelled' },
+] as const satisfies readonly { label: string; value: Filter }[];
+
+const FILTER_PARAMS: Record<Filter, Parameters<typeof useMyDonations>[0]> = {
+  all: { past: true },
+  completed: { status: 'COMPLETED', past: true },
+  cancelled: { status: 'CANCELLED', past: true },
+};
+
 export default function DonationsScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const [filter, setFilter] = useState<'all' | 'completed' | 'cancelled'>('all');
+  const [filter, setFilter] = useState<Filter>('all');
 
-  const { data, isLoading, refetch, isRefetching } = useMyDonations(
-    filter === 'all' ? { past: true } : filter === 'completed' ? { status: 'COMPLETED', past: true } : { status: 'CANCELLED', past: true }
-  );
+  const { data, isLoading, refetch, isRefetching } = useMyDonations(FILTER_PARAMS[filter]);
   const { data: stats } = useDonationStatistics();
 
-  const donations: Donation[] = data?.data || [];
+  const donations: Donation[] = data?.data ?? [];
 
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'COMPLETED':
-        return { bg: colors.successMuted, text: colors.onMuted.success };
-      case 'CANCELLED':
-      case 'ABORTED':
-      case 'REJECTED':
-        return { bg: colors.dangerMuted, text: colors.onMuted.danger };
-      case 'IN_PROGRESS':
-        return { bg: colors.warningMuted, text: colors.onMuted.warning };
-      default:
-        return { bg: colors.surfaceElevated, text: colors.textMuted };
-    }
-  };
-
-  const renderDonation = ({ item: donation }: { item: Donation }) => (
-    <TouchableOpacity
-      onPress={() => router.push(`/donations/${donation.id}`)}
-      activeOpacity={0.8}
-    >
-      <GlassCard style={styles.donationCard}>
-        <View style={styles.donationHeader}>
-          <View style={styles.donationType}>
-            <Droplet size={18} color={colors.primary} />
-            <AppText style={styles.donationTypeText}>
-              {donation.donationType.replace('_', ' ')}
-            </AppText>
-          </View>
-          <View
-            style={[
-              styles.statusBadge,
-              { backgroundColor: getStatusColor(donation.status).bg },
-            ]}
-          >
-            <AppText
-              style={[styles.statusText, { color: getStatusColor(donation.status).text }]}
-            >
-              {donation.status}
-            </AppText>
-          </View>
-        </View>
-
-        <View style={styles.donationDetails}>
-          <View style={styles.detailRow}>
-            <Calendar size={14} color={colors.textMuted} />
-            <AppText muted style={styles.detailText}>
-              {donation.collectionCompletedAt
-                ? formatDate(donation.collectionCompletedAt)
-                : formatDate(donation.createdAt)}
-            </AppText>
-          </View>
-          <View style={styles.detailRow}>
-            <Building2 size={14} color={colors.textMuted} />
-            <AppText muted style={styles.detailText}>
-              {donation.organization.name}
-            </AppText>
-          </View>
-        </View>
-
-        <View style={styles.donationFooter}>
-          <View>
-            <AppText muted style={styles.refLabel}>
-              Reference
-            </AppText>
-            <AppText style={styles.refText}>
-              {donation.donationReference}
-            </AppText>
-          </View>
-          {donation.volumeMl && (
-            <View style={styles.volumeBadge}>
-              <AppText style={styles.volumeText}>{donation.volumeMl} ml</AppText>
-            </View>
-          )}
-          <ChevronRight size={18} color={colors.textMuted} />
-        </View>
-      </GlassCard>
-    </TouchableOpacity>
+  const renderDonation = useCallback(
+    ({ item }: { item: Donation }) => <DonationRow donation={item} />,
+    [],
   );
 
   return (
     <Screen scroll={false}>
       <ScreenHeader title="Donation History" subtitle="All your previous donations" />
       <FlatList
-        style={styles.scrollView}
+        style={styles.list}
         data={donations}
         renderItem={renderDonation}
         keyExtractor={(donation) => donation.id}
-        contentContainerStyle={styles.donationsList}
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
             refreshing={isRefetching}
@@ -123,71 +64,39 @@ export default function DonationsScreen() {
           />
         }
         ListHeaderComponent={
-          <>
+          <View style={styles.header}>
             {stats && (
-              <GlassCard tier="elevated" style={styles.statsCard}>
-                <View style={styles.statsRow}>
-                  <View style={styles.statItem}>
-                    <AppText variant="heading" style={styles.statValue}>
-                      {stats.totalDonations}
-                    </AppText>
-                    <AppText muted style={styles.statLabel}>
-                      Total donations
-                    </AppText>
-                  </View>
-                  <View style={styles.statItem}>
-                    <AppText variant="heading" style={styles.statValue}>
-                      {(stats.totalVolumeMl / 1000).toFixed(1)}L
-                    </AppText>
-                    <AppText muted style={styles.statLabel}>
-                      Volume donated
-                    </AppText>
-                  </View>
-                  <View style={styles.statItem}>
-                    <AppText variant="heading" style={styles.statValue}>
-                      {stats.completedCount}
-                    </AppText>
-                    <AppText muted style={styles.statLabel}>
-                      Completed
-                    </AppText>
-                  </View>
-                </View>
-              </GlassCard>
+              <View style={styles.summaryRow}>
+                <SummaryTile value={String(stats.totalDonations)} label="Total donations" />
+                <SummaryTile
+                  value={`${(stats.totalVolumeMl / 1000).toFixed(1)}L`}
+                  label="Volume donated"
+                />
+                <SummaryTile value={String(stats.completedCount)} label="Completed" />
+              </View>
             )}
 
-            <View style={styles.filterTabs}>
-              {(['all', 'completed', 'cancelled'] as const).map((tab) => (
-                <TouchableOpacity
-                  key={tab}
-                  style={[styles.filterTab, filter === tab && styles.filterTabActive]}
-                  onPress={() => setFilter(tab)}
-                >
-                  <AppText
-                    style={[styles.filterTabText, filter === tab && styles.filterTabTextActive]}
-                  >
-                    {tab === 'all' ? 'All' : tab === 'completed' ? 'Completed' : 'Cancelled'}
-                  </AppText>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </>
+            <SegmentedControl options={FILTERS} value={filter} onChange={setFilter} />
+
+            <SectionHeader>History</SectionHeader>
+          </View>
         }
         ListEmptyComponent={
           isLoading ? (
-            <Card style={styles.loadingCard}>
-              <AppText muted>Loading donations...</AppText>
-            </Card>
+            <View style={styles.skeletons}>
+              {[0, 1, 2, 3].map((i) => (
+                <SkeletonCard key={i} />
+              ))}
+            </View>
           ) : (
-            <Card style={styles.emptyCard}>
-              <EmptyState
-                title="No donations yet"
-                description={
-                  filter === 'all'
-                    ? "Your donation history will appear here once you complete a donation."
-                    : `No ${filter} donations found.`
-                }
-              />
-            </Card>
+            <EmptyState
+              title="No donations yet"
+              description={
+                filter === 'all'
+                  ? 'Your donation history will appear here once you complete a donation.'
+                  : `No ${filter} donations found.`
+              }
+            />
           )
         }
       />
@@ -195,130 +104,166 @@ export default function DonationsScreen() {
   );
 }
 
+function SummaryTile({ value, label }: { value: string; label: string }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
+  return (
+    <GlassCard tier="elevated" style={styles.summaryTile}>
+      <AppText style={styles.summaryValue} numberOfLines={1} adjustsFontSizeToFit>
+        {value}
+      </AppText>
+      <AppText style={styles.summaryLabel}>{label}</AppText>
+    </GlassCard>
+  );
+}
+
+/**
+ * The badge slot carries the volume for a donation that actually happened --
+ * that is the number a donor looks for -- and falls back to the status for
+ * one that did not, so a cancelled or aborted record is never presented in
+ * the same shape as a completed one.
+ */
+function statusBadge(donation: Donation): { label: string; variant: 'success' | 'warning' | 'danger' | 'default' } {
+  if (donation.status === 'COMPLETED') {
+    return donation.volumeMl
+      ? { label: `${donation.volumeMl} ml`, variant: 'success' }
+      : { label: 'Completed', variant: 'success' };
+  }
+  if (donation.status === 'IN_PROGRESS') return { label: 'In progress', variant: 'warning' };
+  if (['CANCELLED', 'ABORTED', 'REJECTED'].includes(donation.status)) {
+    return { label: donation.status.toLowerCase(), variant: 'danger' };
+  }
+  return { label: donation.status.replace(/_/g, ' ').toLowerCase(), variant: 'default' };
+}
+
+function DonationRow({ donation }: { donation: Donation }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  const badge = statusBadge(donation);
+  const date = new Date(donation.collectionCompletedAt ?? donation.createdAt).toLocaleDateString(
+    'en-US',
+    { month: 'short', day: 'numeric', year: 'numeric' },
+  );
+
+  return (
+    <Pressable
+      onPress={() => router.push(`/donations/${donation.id}`)}
+      style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+      accessibilityRole="button"
+      accessibilityLabel={`${donation.donationType.replace(/_/g, ' ')} donation on ${date}`}
+    >
+      <GlassCard style={styles.rowCard}>
+        <View style={styles.row}>
+          <View style={styles.rowIcon}>
+            <Droplet size={18} color={colors.primary} fill="rgba(216, 83, 96, 0.4)" />
+          </View>
+
+          <View style={styles.rowBody}>
+            <View style={styles.rowTitleLine}>
+              <AppText style={styles.rowTitle} numberOfLines={1}>
+                {donation.donationType.replace(/_/g, ' ')}
+              </AppText>
+              <Badge variant={badge.variant}>{badge.label}</Badge>
+            </View>
+            <AppText style={styles.rowDate}>{date}</AppText>
+            <View style={styles.rowOrgLine}>
+              <MapPin size={10} color={colors.textMuted} />
+              <AppText style={styles.rowOrg} numberOfLines={1}>
+                {donation.organization.name}
+              </AppText>
+            </View>
+          </View>
+
+          <ChevronRight size={16} color={colors.textSubtle} />
+        </View>
+      </GlassCard>
+    </Pressable>
+  );
+}
+
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
-    statsCard: {
-      marginBottom: spacing.lg,
-    },
-    statsRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-around',
-    },
-    statItem: {
-      alignItems: 'center',
-    },
-    statValue: {
-      fontSize: 20,
-    },
-    statLabel: {
-      fontSize: 11,
-      marginTop: 2,
-    },
-    filterTabs: {
-      flexDirection: 'row',
-      backgroundColor: colors.surfaceSolid,
-      borderRadius: radius.sm,
-      padding: spacing.xs,
-      marginBottom: spacing.lg,
-    },
-    filterTab: {
-      flex: 1,
-      paddingVertical: spacing.sm,
-      alignItems: 'center',
-      borderRadius: radius.sm - 2,
-    },
-    filterTabActive: {
-      backgroundColor: colors.primary,
-    },
-    filterTabText: {
-      fontSize: 13,
-      fontWeight: '600',
-      color: colors.textMuted,
-    },
-    filterTabTextActive: {
-      color: colors.white,
-    },
-    scrollView: {
-      flex: 1,
-    },
-    loadingCard: {
-      paddingVertical: spacing.xl,
-      alignItems: 'center',
-    },
-    emptyCard: {
-      paddingVertical: spacing.xl,
-    },
-    donationsList: {
-      gap: spacing.md,
+    list: { flex: 1 },
+    listContent: {
+      gap: spacing.sm,
       paddingBottom: spacing.xl,
     },
-    donationCard: {
-      padding: spacing.lg,
+    header: {
+      gap: spacing.md,
     },
-    donationHeader: {
+    summaryRow: {
       flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: spacing.sm,
+      gap: 10,
     },
-    donationType: {
+    summaryTile: {
+      flex: 1,
+      padding: 14,
+      alignItems: 'center',
+    },
+    summaryValue: {
+      fontSize: 28,
+      fontWeight: '800',
+      letterSpacing: -0.84,
+      color: colors.text,
+    },
+    summaryLabel: {
+      fontSize: 11,
+      color: colors.textMuted,
+      marginTop: 2,
+      textAlign: 'center',
+    },
+    skeletons: {
+      gap: spacing.sm,
+    },
+
+    rowCard: {
+      padding: 14,
+    },
+    row: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: spacing.xs,
+      gap: 12,
     },
-    donationTypeText: {
-      fontSize: 15,
+    rowIcon: {
+      width: 40,
+      height: 40,
+      borderRadius: radius.sm,
+      backgroundColor: 'rgba(216, 83, 96, 0.12)',
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexShrink: 0,
+    },
+    rowBody: {
+      flex: 1,
+    },
+    rowTitleLine: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      marginBottom: 4,
+    },
+    rowTitle: {
+      flexShrink: 1,
+      fontSize: 14,
       fontWeight: '600',
+      color: colors.text,
       textTransform: 'capitalize',
     },
-    statusBadge: {
-      paddingHorizontal: spacing.sm,
-      paddingVertical: spacing.xs,
-      borderRadius: radius.sm,
+    rowDate: {
+      fontSize: 12,
+      color: colors.textMuted,
     },
-    statusText: {
-      fontSize: 10,
-      fontWeight: '600',
-      textTransform: 'uppercase',
-      letterSpacing: 0.5,
-    },
-    donationDetails: {
-      gap: spacing.xs,
-      marginBottom: spacing.md,
-    },
-    detailRow: {
+    rowOrgLine: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: spacing.xs,
+      gap: 3,
+      marginTop: 2,
     },
-    detailText: {
-      fontSize: 13,
-    },
-    donationFooter: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-    },
-    refLabel: {
-      fontSize: 10,
-      textTransform: 'uppercase',
-      letterSpacing: 0.5,
-    },
-    refText: {
-      fontSize: 12,
-      fontWeight: '600',
-      letterSpacing: 0.5,
-    },
-    volumeBadge: {
-      backgroundColor: colors.primaryMuted,
-      paddingHorizontal: spacing.sm,
-      paddingVertical: spacing.xs,
-      borderRadius: radius.sm,
-    },
-    volumeText: {
-      fontSize: 12,
-      fontWeight: '600',
-      color: colors.onMuted.primary,
+    rowOrg: {
+      flex: 1,
+      fontSize: 11,
+      color: colors.textMuted,
     },
   });
 }

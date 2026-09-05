@@ -11,6 +11,7 @@ export * from './Badge';
 export * from './Divider';
 export * from './Avatar';
 export * from './SectionHeader';
+export * from './SegmentedControl';
 export * from './ScreenHeader';
 export * from './AppHeader';
 export * from './BackHeader';
