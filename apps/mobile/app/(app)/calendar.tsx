@@ -12,7 +12,7 @@ const LEGEND: { label: string; type: string }[] = [
   { label: 'Consultation', type: 'CONSULTATION' },
 ];
 
-const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December',
@@ -22,8 +22,12 @@ function getDaysInMonth(year: number, month: number): number {
   return new Date(year, month + 1, 0).getDate();
 }
 
+/**
+ * Leading blank cells before the 1st, for a week that starts on Monday.
+ * `getDay()` is Sunday-indexed, so Sunday (0) has to wrap to the end.
+ */
 function getFirstDayOfMonth(year: number, month: number): number {
-  return new Date(year, month, 1).getDay();
+  return (new Date(year, month, 1).getDay() + 6) % 7;
 }
 
 export default function Calendar() {
@@ -383,7 +387,7 @@ function createStyles(colors: ThemeColors) {
       alignItems: 'center',
     },
     weekdayText: {
-      fontSize: 11,
+      fontSize: 10,
       fontWeight: '600',
       textTransform: 'uppercase',
     },
@@ -393,28 +397,29 @@ function createStyles(colors: ThemeColors) {
     },
     dayCell: {
       width: '14.28%',
-      aspectRatio: 1,
       alignItems: 'center',
       justifyContent: 'center',
-      paddingVertical: spacing.xs,
+      padding: 2,
     },
     dayWithAppointment: {},
     dayCircle: {
-      width: 36,
-      height: 36,
-      borderRadius: 18,
+      width: '100%',
+      aspectRatio: 1,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: 'transparent',
       alignItems: 'center',
       justifyContent: 'center',
     },
     dayToday: {
-      borderWidth: 1,
-      borderColor: colors.primary,
+      backgroundColor: `${colors.primary}1F`,
+      borderColor: `${colors.primary}66`,
     },
     daySelected: {
       backgroundColor: colors.primary,
     },
     dayText: {
-      fontSize: 14,
+      fontSize: 13,
     },
     dayTextToday: {
       color: colors.primary,

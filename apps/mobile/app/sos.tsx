@@ -133,27 +133,35 @@ export default function SosScreen() {
     };
   }, [status, selectedEmergency?.responseId]);
 
+  // Read defensively. The declared response type says `locations` and
+  // `emergencyRequest` are always present, but the type describes the
+  // contract, not what the socket actually delivers -- and an unguarded
+  // property access here crashes the whole screen at the worst possible
+  // moment, with a donor already en route to a hospital and no error boundary
+  // above to catch it.
+  const donorPing = tracking?.locations?.[0];
+  const trackedHospital = tracking?.emergencyRequest?.hospital;
   const trackingMarkers: MapMarkerPoint[] = tracking
     ? [
-        ...(tracking.locations[0]
+        ...(donorPing
           ? [
               {
                 id: 'donor',
-                latitude: Number(tracking.locations[0].latitude),
-                longitude: Number(tracking.locations[0].longitude),
+                latitude: Number(donorPing.latitude),
+                longitude: Number(donorPing.longitude),
                 label: 'You',
                 variant: 'donor' as const,
               },
             ]
           : []),
-        ...(tracking.emergencyRequest.hospital.latitude && tracking.emergencyRequest.hospital.longitude
+        ...(trackedHospital?.latitude && trackedHospital?.longitude
           ? [
               {
                 id: 'hospital',
-                latitude: Number(tracking.emergencyRequest.hospital.latitude),
-                longitude: Number(tracking.emergencyRequest.hospital.longitude),
-                label: tracking.emergencyRequest.hospital.name,
-                sublabel: tracking.emergencyRequest.hospital.address,
+                latitude: Number(trackedHospital.latitude),
+                longitude: Number(trackedHospital.longitude),
+                label: trackedHospital.name,
+                sublabel: trackedHospital.address,
                 variant: 'hospital' as const,
               },
             ]
@@ -175,11 +183,18 @@ export default function SosScreen() {
   const handleAcceptEmergency = async (emergency: EmergencyRequest) => {
     if (!emergency.matchId) return;
     try {
-      await acceptEmergency(emergency.matchId);
+      const response = await acceptEmergency(emergency.matchId);
       await loadEmergencies();
-      Alert.alert('Success', 'You have accepted this emergency request. Please proceed to the hospital.');
-      setStatus('idle');
-      setSelectedEmergency(null);
+      // Carry the donor straight into their accepted response rather than
+      // dropping them back on the list to hunt for it again. They have just
+      // committed to travelling to a hospital under time pressure; the next
+      // thing they need is "Start Journey", not a list.
+      setSelectedEmergency({
+        ...emergency,
+        responseId: response.id,
+        responseStatus: response.status ?? 'ACCEPTED',
+      });
+      setStatus('responding');
     } catch (err: any) {
       Alert.alert('Error', err.message || 'Failed to accept emergency');
     }
