@@ -95,7 +95,7 @@ export default function SosScreen() {
       if (permissionStatus !== 'granted') {
         Alert.alert(
           'Location Permission Needed',
-          'DONOR needs your location while en route so the hospital can track your journey.',
+          'Bloodchainga needs your location while en route so the hospital can track your journey.',
         );
         return;
       }

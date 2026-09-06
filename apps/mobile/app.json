@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "DONOR",
+    "name": "Bloodchainga",
     "slug": "donor",
     "scheme": "donor",
     "version": "0.1.0",
@@ -14,7 +14,7 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "DONOR uses your location during an active emergency response so the hospital can track your journey."
+          "locationAlwaysAndWhenInUsePermission": "Bloodchainga uses your location during an active emergency response so the hospital can track your journey."
         }
       ]
     ],

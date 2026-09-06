@@ -296,7 +296,7 @@ export default function Profile() {
 
       <View style={styles.footer}>
         <AppText muted style={styles.version}>
-          DONOR v0.2.0 — Phase 3
+          Bloodchainga v0.2.0 — Phase 3
         </AppText>
       </View>
     </Screen>

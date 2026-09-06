@@ -32,6 +32,10 @@ export function Screen({
           style={{ flex: 1 }}
           contentContainerStyle={[{ flexGrow: 1 }, contentContainerStyle]}
           showsVerticalScrollIndicator={false}
+          // Without this, the first tap with a keyboard open only dismisses
+          // the keyboard -- so every button on a form screen needs pressing
+          // twice, including the one that submits it.
+          keyboardShouldPersistTaps="handled"
           {...props}
         >
           {/*

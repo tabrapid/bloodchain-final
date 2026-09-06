@@ -49,12 +49,29 @@ export default function Welcome() {
   const [heroHeight, setHeroHeight] = useState(0);
 
   /**
+   * Short phones get a smaller mark and a tighter gap. The brand block, the
+   * hero block and the padding add up to more than a 568pt screen at full
+   * size, and the screen does not scroll -- so on the shortest devices the
+   * pieces have to give a little rather than run off the bottom.
+   */
+  const compact = height < 700;
+
+  /**
    * The band is sized from the hero block it has to sit behind, measured, plus
    * the run-up the curve needs above the headline. Deriving it from a fraction
    * of the window instead put the crest through the middle of the headline on
    * short phones and left it stranded below the text on tall ones.
+   *
+   * The run-up is generous on purpose. At 104 the crest sat low enough to
+   * leave a tall empty stripe above the mark; carrying the band higher pulls
+   * the brand up with it, since the brand is anchored to the crest. The cap
+   * keeps a real dark field above it on short screens, where the same run-up
+   * would swallow the whole background.
    */
-  const waveHeight = heroHeight > 0 ? heroHeight + 104 : Math.round(height * 0.5);
+  const waveHeight =
+    heroHeight > 0
+      ? Math.min(heroHeight + 176, Math.round(height * 0.66))
+      : Math.round(height * 0.55);
 
   const onHeroLayout = (event: LayoutChangeEvent) => {
     setHeroHeight(event.nativeEvent.layout.height);
@@ -82,13 +99,13 @@ export default function Welcome() {
           group, and what is left over reads as headroom.
         */}
         <View style={{ flex: 1 }} />
-        <View style={{ alignItems: 'center', marginBottom: 56 }}>
-          <BrandMark size={84} />
+        <View style={{ alignItems: 'center', marginBottom: compact ? 32 : 52 }}>
+          <BrandMark size={compact ? 68 : 84} />
           <AppText
             maxFontSizeMultiplier={1.3}
             style={{
               marginTop: spacing.md,
-              fontSize: 30,
+              fontSize: compact ? 26 : 30,
               fontWeight: '800',
               letterSpacing: -0.6,
               color: colors.text,

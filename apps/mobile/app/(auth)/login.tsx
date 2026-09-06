@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Pressable, View } from 'react-native';
+import { Pressable, TextInput, View } from 'react-native';
 import { ArrowRight, ChevronLeft, Eye, EyeOff, Lock, Mail, ShieldCheck } from 'lucide-react-native';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema, type LoginInput } from '@bloodchain/validation';
@@ -16,6 +16,7 @@ export default function Login() {
   const [serverError, setServerError] = useState<string | null>(null);
   const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const passwordRef = useRef<TextInput>(null);
   const { control, handleSubmit, formState } = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: '', password: '' },
@@ -52,7 +53,7 @@ export default function Login() {
           Welcome back
         </AppText>
         <AppText muted style={{ fontSize: 15, marginTop: 6, marginBottom: spacing.xl }}>
-          Sign in to your DONOR account
+          Sign in to your Bloodchainga account
         </AppText>
 
         <Controller
@@ -66,6 +67,11 @@ export default function Login() {
               autoComplete="email"
               keyboardType="email-address"
               leading={<Mail size={19} color={colors.textMuted} />}
+              // The return key walks the form instead of dismissing the
+              // keyboard, which on a two-field form is the whole interaction.
+              returnKeyType="next"
+              blurOnSubmit={false}
+              onSubmitEditing={() => passwordRef.current?.focus()}
               error={fieldState.error?.message}
               wrapperStyle={{ marginBottom: layout.cardGap }}
               value={field.value}
@@ -80,10 +86,13 @@ export default function Login() {
           name="password"
           render={({ field, fieldState }) => (
             <AppTextInput
+              ref={passwordRef}
               label="Password"
               placeholder="••••••••"
               secureTextEntry={!showPassword}
               autoComplete="password"
+              returnKeyType="go"
+              onSubmitEditing={onSubmit}
               leading={<Lock size={19} color={colors.textMuted} />}
               error={fieldState.error?.message}
               wrapperStyle={{ marginBottom: spacing.lg }}
@@ -117,6 +126,9 @@ export default function Login() {
         <AppButton
           gradient
           trailingIcon={ArrowRight}
+          accessibilityRole="button"
+          accessibilityLabel="Sign in to Bloodchainga"
+          style={{ height: 54 }}
           onPress={onSubmit}
           disabled={login.isPending || formState.isSubmitting}
           loading={login.isPending}
@@ -136,6 +148,14 @@ export default function Login() {
           </AppButton>
         )}
 
+      </View>
+
+      {/* The alternate path sits at the foot of the screen, not directly under
+          the form. Stacked tight beneath the primary it competed with it, and
+          left the bottom third of the screen empty besides. */}
+      <View style={{ flex: 1, minHeight: spacing.xl }} />
+
+      <View>
         {/* A labelled rule, not a third stacked button with a sentence over it:
             the label *is* the separator, which is what keeps "Create Account"
             reading as the other path rather than a second way to sign in. */}
@@ -144,7 +164,6 @@ export default function Login() {
             flexDirection: 'row',
             alignItems: 'center',
             gap: spacing.md,
-            marginTop: spacing.xl,
             marginBottom: spacing.md,
           }}
         >
@@ -155,7 +174,21 @@ export default function Login() {
           <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
         </View>
 
-        <AppButton variant="secondary" onPress={() => router.push('/(auth)/register')}>
+        {/* Near-white on a light film, not the variant's rose on a dark tile.
+            Rose text at this weight on `surfaceElevated` is the weakest
+            contrast on the screen, and it read as disabled next to the CTA. */}
+        <AppButton
+          variant="secondary"
+          textColor={colors.text}
+          onPress={() => router.push('/(auth)/register')}
+          accessibilityRole="button"
+          accessibilityLabel="Create a Bloodchainga account"
+          style={{
+            height: 54,
+            backgroundColor: 'rgba(255,255,255,0.07)',
+            borderColor: 'rgba(255,255,255,0.16)',
+          }}
+        >
           Create Account
         </AppButton>
 
@@ -165,7 +198,7 @@ export default function Login() {
             alignItems: 'center',
             justifyContent: 'center',
             gap: 6,
-            marginTop: spacing.xl,
+            marginTop: spacing.lg,
           }}
         >
           <ShieldCheck size={15} color={colors.onMuted.success} />

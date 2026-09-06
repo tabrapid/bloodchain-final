@@ -1,6 +1,7 @@
-import { ReactNode, useState } from 'react';
+import { ForwardedRef, forwardRef, MutableRefObject, ReactNode, useRef, useState } from 'react';
 import {
   NativeSyntheticEvent,
+  Pressable,
   StyleSheet,
   TextInput,
   TextInputFocusEventData,
@@ -34,6 +35,13 @@ export interface AppTextInputProps extends TextInputProps {
  * Focus is a rose border plus a soft glow of the same colour -- the only
  * moment in a form where the accent belongs to a field rather than the button.
  *
+ * The whole field takes the tap, not just the text line. At 68pt tall with the
+ * label and the icon inside it, most of what looks like the control was dead
+ * space you could press without anything happening.
+ *
+ * It forwards its ref so a form can move focus down the fields from the
+ * keyboard's return key.
+ *
  * Deliberately NOT a `BlurView` like `GlassCard`/`IconButton`: a form with
  * several fields would mean several stacked blur views on one screen, and
  * `expo-blur`'s Android method is explicitly experimental -- stacking that
@@ -41,20 +49,35 @@ export interface AppTextInputProps extends TextInputProps {
  * during the login/register transition. A solid tint reads close enough
  * without the native rendering risk.
  */
-export function AppTextInput({
-  label,
-  error,
-  leading,
-  trailing,
-  wrapperStyle,
-  style,
-  onFocus,
-  onBlur,
-  ...props
-}: AppTextInputProps) {
+export const AppTextInput = forwardRef(function AppTextInput(
+  {
+    label,
+    error,
+    leading,
+    trailing,
+    wrapperStyle,
+    style,
+    onFocus,
+    onBlur,
+    ...props
+  }: AppTextInputProps,
+  ref: ForwardedRef<TextInput>,
+) {
   const { colors } = useTheme();
   const [focused, setFocused] = useState(false);
   const flattenedStyle = StyleSheet.flatten(style);
+  const inputRef = useRef<TextInput | null>(null);
+
+  // Kept alongside whatever the caller passed, rather than instead of it: the
+  // field needs its own handle to focus itself when the padding is tapped.
+  const attachRef = (node: TextInput | null) => {
+    inputRef.current = node;
+    if (typeof ref === 'function') {
+      ref(node);
+    } else if (ref) {
+      (ref as MutableRefObject<TextInput | null>).current = node;
+    }
+  };
 
   const handleFocus = (event: NativeSyntheticEvent<TextInputFocusEventData>) => {
     setFocused(true);
@@ -73,7 +96,9 @@ export function AppTextInput({
 
   return (
     <View style={wrapperStyle}>
-      <View
+      <Pressable
+        onPress={() => inputRef.current?.focus()}
+        accessible={false}
         style={{
           flexDirection: 'row',
           alignItems: 'center',
@@ -98,6 +123,7 @@ export function AppTextInput({
             </AppText>
           )}
           <TextInput
+            ref={attachRef}
             placeholderTextColor={colors.textMuted}
             onFocus={handleFocus}
             onBlur={handleBlur}
@@ -116,7 +142,7 @@ export function AppTextInput({
           />
         </View>
         {trailing}
-      </View>
+      </Pressable>
       {error && (
         <AppText style={{ fontSize: 12, color: colors.danger, marginTop: spacing.xs }}>
           {error}
@@ -124,4 +150,4 @@ export function AppTextInput({
       )}
     </View>
   );
-}
+});
