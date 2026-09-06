@@ -13,7 +13,7 @@ export interface BrandMarkProps {
  * surface in the app looks like that. The mark on the welcome screen is the
  * one thing on the screen that is not an affordance, so it is drawn as a shape
  * in its own right -- hollow, so the backdrop reads through it, in the same
- * rose-to-violet the CTA uses.
+ * rose-to-violet the wave band below it uses.
  */
 export function BrandMark({ size = 96 }: BrandMarkProps) {
   const { colors } = useTheme();
@@ -21,9 +21,14 @@ export function BrandMark({ size = 96 }: BrandMarkProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 48 48">
       <Defs>
+        {/* The same three stops the wave band uses. The mark drawn in the
+            two-stop CTA blend read a shade brighter and more violet than the
+            band right below it, which is the sort of near-miss that makes a
+            brand look assembled rather than designed. */}
         <LinearGradient id="brand-mark" x1="0" y1="0" x2="1" y2="1">
-          <Stop offset="0" stopColor={colors.ctaGradient[0]} />
-          <Stop offset="1" stopColor={colors.ctaGradient[1]} />
+          <Stop offset="0" stopColor={colors.heroGradient[0]} />
+          <Stop offset="0.5" stopColor={colors.heroGradient[1]} />
+          <Stop offset="1" stopColor={colors.heroGradient[2]} />
         </LinearGradient>
       </Defs>
       {/*

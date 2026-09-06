@@ -74,13 +74,15 @@ export default function Welcome() {
         }}
       >
         {/*
-          The brand block is centred in whatever the hero block leaves rather
-          than pinned under the status bar. That splits the empty space above
-          and below it instead of collecting it all into one hole in the middle
-          of the screen, and it keeps the mark clear of the notch on every
-          device without a hardcoded offset.
+          All the slack collects here, above the brand. Centring the brand in
+          the leftover space instead split that slack in two and left a visible
+          gap between the wordmark and the wave -- the brand floated between
+          two empty halves rather than belonging to anything. Sitting a fixed
+          56pt above the crest, the mark, the wordmark and the band read as one
+          group, and what is left over reads as headroom.
         */}
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+        <View style={{ flex: 1 }} />
+        <View style={{ alignItems: 'center', marginBottom: 56 }}>
           <BrandMark size={84} />
           <AppText
             maxFontSizeMultiplier={1.3}
@@ -108,9 +110,13 @@ export default function Welcome() {
             maxFontSizeMultiplier={1.3}
             style={{
               fontSize: headlineSize(width),
-              lineHeight: Math.round(headlineSize(width) * 1.18),
+              // Tight, because the copy breaks at its comma into a long line
+              // and a short one. Nothing in React Native balances a wrap, so
+              // the two lines are pulled together into a single mass instead,
+              // which is what stops the short line reading as left over.
+              lineHeight: Math.round(headlineSize(width) * 1.14),
               fontWeight: '700',
-              letterSpacing: -0.8,
+              letterSpacing: -1.1,
               color: ON_WAVE_PRIMARY,
             }}
           >
@@ -123,6 +129,9 @@ export default function Welcome() {
               marginTop: 14,
               fontSize: 15,
               lineHeight: 23,
+              // Stops the sentence running the full width into the right
+              // margin, which it did by a hair on a 390pt screen.
+              maxWidth: '92%',
               color: ON_WAVE_SECONDARY,
             }}
           >
@@ -137,17 +146,20 @@ export default function Welcome() {
             onPress={() => router.push('/(auth)/register')}
             accessibilityRole="button"
             accessibilityLabel="Create Bloodchainga account"
-            style={{ height: 54, marginTop: 30 }}
+            // The variant's 0.4 glow is tuned for the app's dark ground; on
+            // colour it haloes.
+            style={{ height: 54, marginTop: 30, shadowOpacity: 0.22 }}
           >
             Create Account
           </AppButton>
 
           {/*
-            A dark glass plate with a light hairline, not the variant's default
-            rose-on-tint. Over the wave that default is rose text on a warm
-            translucent surface -- the two lowest-contrast things on the screen
-            stacked on each other -- and it read as a second primary button
-            rather than the quieter of the two.
+            Glass, not a hole. The variant's default is rose text on a warm
+            translucent tint, which over the wave stacks the two lowest
+            contrasts on the screen on each other; a dark plate fixed that and
+            overshot, reading as a disabled control cut out of the band. A
+            light film with a visible hairline sits where it should: clearly
+            secondary, clearly still a button.
           */}
           <AppButton
             variant="secondary"
@@ -158,8 +170,8 @@ export default function Welcome() {
             style={{
               height: 54,
               marginTop: 12,
-              backgroundColor: 'rgba(7,11,18,0.45)',
-              borderColor: 'rgba(255,255,255,0.26)',
+              backgroundColor: 'rgba(255,255,255,0.13)',
+              borderColor: 'rgba(255,255,255,0.34)',
             }}
           >
             Sign In
@@ -169,6 +181,11 @@ export default function Welcome() {
             maxFontSizeMultiplier={1.4}
             style={{
               marginTop: 22,
+              // Narrower than the buttons on purpose: at full width the
+              // sentence broke after "Privacy", leaving "Policy." alone on the
+              // second line. Given a measure it breaks near its middle.
+              maxWidth: 300,
+              alignSelf: 'center',
               fontSize: 12,
               lineHeight: 18,
               textAlign: 'center',
@@ -185,15 +202,17 @@ export default function Welcome() {
 }
 
 /**
- * Underlined either way, so the phrase reads as the named document rather than
- * as running text -- but only pressable once there is somewhere for it to go.
+ * The phrase is lifted out of the sentence by colour alone until it has
+ * somewhere to go. Underlining it first was worse than leaving it plain: an
+ * underline in running text is a promise of a tap, and these two do not
+ * respond to one yet. The underline comes back with the URL.
  */
 function LegalLink({ url, children }: { url: string | null; children: ReactNode }) {
   const style = {
     fontSize: 12,
     lineHeight: 18,
-    color: ON_WAVE_PRIMARY,
-    textDecorationLine: 'underline' as const,
+    fontWeight: '600' as const,
+    color: 'rgba(255,255,255,0.92)',
   };
 
   if (!url) {
@@ -204,7 +223,7 @@ function LegalLink({ url, children }: { url: string | null; children: ReactNode 
     <AppText
       accessibilityRole="link"
       onPress={() => Linking.openURL(url)}
-      style={style}
+      style={{ ...style, textDecorationLine: 'underline' }}
     >
       {children}
     </AppText>

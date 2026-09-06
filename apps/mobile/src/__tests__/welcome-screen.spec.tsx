@@ -82,6 +82,22 @@ describe('Welcome', () => {
     expect(secondary.props.textColor).not.toBe(darkColors.primary);
   });
 
+  /**
+   * The first attempt at fixing the contrast overshot into a near-black plate,
+   * which read as a disabled control cut out of the band. It has to stay a
+   * light film over the wave, with a border you can actually see.
+   */
+  it('keeps the secondary a light film, not a hole punched in the wave', () => {
+    const style = (
+      buttonWithLabel(render(), 'Sign in to Bloodchainga').props as {
+        style: { backgroundColor: string; borderColor: string };
+      }
+    ).style;
+
+    expect(style.backgroundColor).toMatch(/^rgba\(255,255,255,0\.1[0-9]?\)$/);
+    expect(style.borderColor).toMatch(/^rgba\(255,255,255,0\.[23][0-9]?\)$/);
+  });
+
   it('keeps both actions above the 44pt touch target', () => {
     const tree = render();
 
