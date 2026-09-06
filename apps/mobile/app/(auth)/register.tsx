@@ -8,6 +8,7 @@ import { registerSchema, type RegisterInput } from '@bloodchain/validation';
 import { AppButton, AppText, AppTextInput, IconButton, Screen } from '../../src/components';
 import { useRegister, getAuthErrorMessage } from '../../src/hooks/useAuth';
 import { layout, spacing, useTheme } from '../../src/theme';
+import { BRAND_NAME } from '../../src/brand';
 
 export default function Register() {
   const { colors } = useTheme();
@@ -48,7 +49,7 @@ export default function Register() {
           Create account
         </AppText>
         <AppText muted style={{ fontSize: 15, marginTop: 6, marginBottom: spacing.xl }}>
-          Join Bloodchainga and start saving lives
+          Join {BRAND_NAME} and start saving lives
         </AppText>
 
         {/*
@@ -174,7 +175,7 @@ export default function Register() {
           gradient
           trailingIcon={ArrowRight}
           accessibilityRole="button"
-          accessibilityLabel="Create a Bloodchainga account"
+          accessibilityLabel="Create a Bloodchain account"
           style={{ height: 54 }}
           onPress={onSubmit}
           disabled={registerUser.isPending || formState.isSubmitting}
@@ -214,7 +215,7 @@ export default function Register() {
           textColor={colors.text}
           onPress={() => router.push('/(auth)/login')}
           accessibilityRole="button"
-          accessibilityLabel="Sign in to Bloodchainga"
+          accessibilityLabel="Sign in to Bloodchain"
           style={{
             height: 54,
             backgroundColor: 'rgba(255,255,255,0.07)',

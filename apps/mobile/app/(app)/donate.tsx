@@ -1,31 +1,80 @@
 import { router } from 'expo-router';
-import { TouchableOpacity, View } from 'react-native';
+import { Pressable, TouchableOpacity, View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
-import { Award, ChevronRight, Clock, Droplet, Droplets, Layers, MapPin, TestTube } from 'lucide-react-native';
-import { AppButton, AppText, Badge, Card, GlassCard, GradientCard, ProgressBar, Screen, SectionHeader } from '../../src/components';
+import {
+  BarChart3,
+  CalendarDays,
+  ChevronRight,
+  Droplet,
+  Droplets,
+  Heart,
+  Award,
+  Layers,
+  TestTube,
+  Users,
+} from 'lucide-react-native';
+import {
+  AppText,
+  BrandMark,
+  Card,
+  GlassCard,
+  GradientCard,
+  ProgressBar,
+  Screen,
+  SectionHeader,
+} from '../../src/components';
+import { LucideIcon } from '../../src/types/icons';
 import { useDonationStatistics, useMyDonations } from '../../src/hooks/useDonations';
 import { getCampaigns } from '../../src/api/campaigns';
 import { getActiveChallenges } from '../../src/api/challenges';
-import { getCommunityStats } from '../../src/api/community';
-import { layout, spacing, useTheme } from '../../src/theme';
+import { BRAND_NAME, BRAND_TAGLINE } from '../../src/brand';
+import { layout, radius, spacing, useTheme } from '../../src/theme';
+
+type AccentKey = 'primary' | 'secondary' | 'warning' | 'ai';
 
 /**
- * The four donation types the backend's `DonationType` enum actually
- * supports. The reference lists a "Double Red" tile with a donation cadence
- * beside each type; neither exists here, so each tile carries the donor's own
- * real count for that type instead.
+ * The four donation types the backend's `DonationType` enum supports, each
+ * with the interval between donations of that kind.
+ *
+ * The intervals are standard donation medicine -- 56 days for whole blood, 28
+ * for plasma, 7 for platelets -- and are static reference copy, like the
+ * marker definitions on Health. `OTHER` has no fixed interval and shows none.
+ *
+ * The reference's fourth tile is "Double Red", which the enum has no value
+ * for. Labelling `OTHER` as Double Red would put every other kind of donation
+ * into its count, so the tile keeps the honest label until the enum gains the
+ * value.
  */
-const DONATION_TYPES = [
-  { value: 'WHOLE_BLOOD', label: 'Whole Blood', icon: Droplet, color: 'primary' },
-  { value: 'PLASMA', label: 'Plasma', icon: TestTube, color: 'secondary' },
-  { value: 'PLATELETS', label: 'Platelets', icon: Layers, color: 'warning' },
-  { value: 'OTHER', label: 'Other', icon: Droplets, color: 'ai' },
-] as const;
+const DONATION_TYPES: {
+  value: string;
+  label: string;
+  icon: LucideIcon;
+  accent: AccentKey;
+  intervalDays?: number;
+}[] = [
+  { value: 'WHOLE_BLOOD', label: 'Whole Blood', icon: Droplet, accent: 'primary', intervalDays: 56 },
+  { value: 'PLASMA', label: 'Plasma', icon: TestTube, accent: 'secondary', intervalDays: 28 },
+  { value: 'PLATELETS', label: 'Platelets', icon: Layers, accent: 'warning', intervalDays: 7 },
+  { value: 'OTHER', label: 'Other', icon: Droplets, accent: 'ai' },
+];
+
+/** The figure every blood service quotes, and the screen says so beside it. */
+const LIVES_PER_DONATION = 3;
+
+function daysBetween(from: number, to: number): number {
+  return Math.ceil((to - from) / 86_400_000);
+}
+
+function formatDate(date: Date): string {
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
 
 export default function Donate() {
   const { colors } = useTheme();
   const { data: stats } = useDonationStatistics();
-  const { data: donationsData } = useMyDonations({ limit: 3 });
+  // Enough history to count every donation per type -- at 3, the tiles below
+  // were counting the three most recent donations and calling it a total.
+  const { data: donationsData } = useMyDonations({ limit: 100 });
   const { data: campaignsData } = useQuery({
     queryKey: ['campaigns', 'active-preview'],
     queryFn: () => getCampaigns({ status: 'ACTIVE', limit: 3 }),
@@ -33,10 +82,6 @@ export default function Donate() {
   const { data: challenges } = useQuery({
     queryKey: ['active-challenges'],
     queryFn: getActiveChallenges,
-  });
-  const { data: communityStats } = useQuery({
-    queryKey: ['community', 'stats'],
-    queryFn: getCommunityStats,
   });
 
   const donationCountByType = (donationsData?.data ?? []).reduce<Record<string, number>>(
@@ -50,7 +95,12 @@ export default function Donate() {
   const activeCampaigns = campaignsData?.items ?? [];
   const featuredChallenge = challenges?.[0];
 
-  const isEligible = !stats?.nextDonationDate || new Date(stats.nextDonationDate) <= new Date();
+  const nextDate = stats?.nextDonationDate ? new Date(stats.nextDonationDate) : null;
+  const daysToEligible = nextDate ? daysBetween(Date.now(), nextDate.getTime()) : 0;
+  const isEligible = !nextDate || daysToEligible <= 0;
+  const lastDonated = stats?.lastDonationAt ? new Date(stats.lastDonationAt) : null;
+  const daysSinceLast = lastDonated ? daysBetween(lastDonated.getTime(), Date.now()) : null;
+  const completedCount = stats?.completedCount ?? 0;
 
   const goToBooking = () => {
     router.push({ pathname: '/(booking)/organizations', params: { type: 'BLOOD_DONATION' } });
@@ -58,136 +108,312 @@ export default function Donate() {
 
   return (
     <Screen>
-      <AppText variant="title">Donate</AppText>
-      <AppText muted style={{ fontSize: 13, marginTop: 2 }}>
-        Schedule your next donation
-      </AppText>
+      <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.sm }}>
+        <View style={{ flex: 1 }}>
+          <AppText style={{ fontSize: 32, fontWeight: '800', letterSpacing: -1, color: colors.text }}>
+            Donate
+          </AppText>
+          <AppText muted style={{ fontSize: 14, marginTop: 2 }}>
+            Plan your next donation.
+          </AppText>
+        </View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <BrandMark size={30} />
+          <View>
+            <AppText style={{ fontSize: 16, fontWeight: '700', color: colors.text }}>
+              {BRAND_NAME}
+            </AppText>
+            <AppText muted style={{ fontSize: 7, fontWeight: '600', letterSpacing: 1.6 }}>
+              {BRAND_TAGLINE}
+            </AppText>
+          </View>
+        </View>
+      </View>
 
       {/* Donate's hero is its own two-stop rose-to-mulberry, distinct from
           both the brand hero and Health's. */}
-      <GradientCard colors={['#D85360', '#7B3266']} style={{ marginTop: spacing.xl }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: spacing.md }}>
+      <GradientCard colors={['#D85360', '#8E2E63']} style={{ marginTop: spacing.md }}>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
           <View style={{ flex: 1 }}>
-            <Badge variant={isEligible ? 'success' : 'warning'} style={{ alignSelf: 'flex-start', marginBottom: spacing.sm }}>
-              {isEligible ? 'Eligible to donate' : 'Not yet eligible'}
-            </Badge>
-            <AppText style={{ fontSize: 20, fontWeight: '700', color: '#FFFFFF', lineHeight: 26 }}>
-              Ready for your{'\n'}next donation?
+            <View
+              style={{
+                alignSelf: 'flex-start',
+                paddingHorizontal: 12,
+                minHeight: 30,
+                justifyContent: 'center',
+                borderRadius: radius.pill,
+                backgroundColor: isEligible ? 'rgba(255,255,255,0.22)' : colors.warningMuted,
+              }}
+            >
+              <AppText
+                style={{
+                  fontSize: 11,
+                  fontWeight: '700',
+                  letterSpacing: 0.8,
+                  color: isEligible ? '#FFFFFF' : colors.onMuted.warning,
+                }}
+              >
+                {isEligible ? 'ELIGIBLE NOW' : 'NOT YET ELIGIBLE'}
+              </AppText>
+            </View>
+
+            <AppText
+              style={{
+                fontSize: 26,
+                lineHeight: 33,
+                fontWeight: '800',
+                letterSpacing: -0.8,
+                color: '#FFFFFF',
+                marginTop: spacing.md,
+              }}
+            >
+              {isEligible ? (
+                'You can donate today.'
+              ) : (
+                <>
+                  Your next donation opens in{' '}
+                  <AppText style={{ fontSize: 26, lineHeight: 33, fontWeight: '800', color: '#FFC9D2' }}>
+                    {daysToEligible} {daysToEligible === 1 ? 'day' : 'days'}
+                  </AppText>
+                </>
+              )}
             </AppText>
-            {stats?.lastDonationAt ? (
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: spacing.sm }}>
-                <Clock size={11} color="rgba(255,255,255,0.65)" />
-                <AppText style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)' }}>
-                  Last donated {Math.floor((Date.now() - new Date(stats.lastDonationAt).getTime()) / 86400000)} days ago
+          </View>
+          <Droplet size={54} color="#FFFFFF" strokeWidth={1.4} />
+        </View>
+
+        {(daysSinceLast !== null || nextDate) && (
+          <View style={styleRow}>
+            {daysSinceLast !== null && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <CalendarDays size={14} color="rgba(255,255,255,0.7)" />
+                <AppText style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.82)' }}>
+                  Last donated {daysSinceLast === 0 ? 'today' : `${daysSinceLast} days ago`}
                 </AppText>
               </View>
-            ) : (
-              !isEligible && (
-                <AppText style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', marginTop: spacing.sm }}>
-                  Eligible from {new Date(stats!.nextDonationDate!).toLocaleDateString()}
-                </AppText>
-              )
+            )}
+            {daysSinceLast !== null && nextDate && (
+              <AppText style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.45)' }}>•</AppText>
+            )}
+            {nextDate && !isEligible && (
+              <AppText style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.82)' }}>
+                Estimated eligible date: {formatDate(nextDate)}
+              </AppText>
             )}
           </View>
-          <Droplet size={36} color="#FFFFFF" fill="rgba(255,255,255,0.3)" strokeWidth={1.5} />
-        </View>
-        <AppButton
-          onPress={goToBooking}
-          style={{ backgroundColor: 'rgba(255,255,255,0.2)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)' }}
+        )}
+
+        {/*
+          The reference calls this "View eligibility timeline". There is no
+          timeline screen, and there is no point sending someone to one that
+          does not exist -- so it goes where the answer actually lives: the
+          booking flow when you can donate, your donation history when you
+          cannot, since that is where the date it counts from comes from.
+        */}
+        <Pressable
+          onPress={() => (isEligible ? goToBooking() : router.push('/donations'))}
+          accessibilityRole="button"
+          accessibilityLabel={isEligible ? 'Schedule a donation' : 'View donation history'}
+          style={({ pressed }) => ({
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: spacing.sm,
+            minHeight: 54,
+            paddingHorizontal: spacing.md,
+            marginTop: spacing.md,
+            borderRadius: radius.pill,
+            backgroundColor: 'rgba(255,255,255,0.18)',
+            borderWidth: 1,
+            borderColor: 'rgba(255,255,255,0.3)',
+            opacity: pressed ? 0.85 : 1,
+          })}
         >
-          Schedule a Donation
-        </AppButton>
+          <CalendarDays size={19} color="#FFFFFF" />
+          <AppText style={{ flex: 1, fontSize: 16, fontWeight: '700', color: '#FFFFFF' }}>
+            {isEligible ? 'Schedule a donation' : 'View donation history'}
+          </AppText>
+          <ChevronRight size={19} color="#FFFFFF" />
+        </Pressable>
       </GradientCard>
 
-      <SectionHeader>DONATION TYPES</SectionHeader>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+      <SectionHeader
+        action={{ label: 'Learn about types', onPress: () => router.push('/education') }}
+      >
+        Donation types
+      </SectionHeader>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: layout.cardGap }}>
         {DONATION_TYPES.map((type) => {
           const Icon = type.icon;
+          const count = donationCountByType[type.value] ?? 0;
           return (
-            <TouchableOpacity
+            <Pressable
               key={type.value}
-              activeOpacity={0.8}
               onPress={goToBooking}
-              style={{ width: '48%' }}
+              accessibilityRole="button"
+              accessibilityLabel={`${type.label}. ${
+                count ? `${count} donations` : 'Not yet donated'
+              }. Book a donation`}
+              style={({ pressed }) => ({
+                width: `${(100 - 3) / 2}%`,
+                opacity: pressed ? 0.85 : 1,
+              })}
             >
               <Card style={{ padding: 14 }}>
-                <Icon size={24} color={colors[type.color]} />
-                <AppText style={{ fontSize: 13, fontWeight: '600', marginTop: spacing.sm }}>
-                  {type.label}
-                </AppText>
-                <AppText muted style={{ fontSize: 11, marginTop: 2 }}>
-                  {donationCountByType[type.value]
-                    ? `${donationCountByType[type.value]} donated`
-                    : 'Not yet donated'}
-                </AppText>
+                <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10 }}>
+                  <Icon size={24} color={colors[type.accent]} />
+                  <View style={{ flex: 1 }}>
+                    <AppText style={{ fontSize: 15, fontWeight: '700', color: colors.text }}>
+                      {type.label}
+                    </AppText>
+                    <AppText muted style={{ fontSize: 12, marginTop: 1 }}>
+                      {type.intervalDays ? `Every ${type.intervalDays} days` : 'Special donations'}
+                    </AppText>
+                  </View>
+                  <ChevronRight size={16} color={colors.textMuted} />
+                </View>
+                {/* The donor's own count for this type, on its own inset strip
+                    -- it is a different kind of fact from the label above it. */}
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 7,
+                    marginTop: 12,
+                    paddingVertical: 7,
+                    paddingHorizontal: 10,
+                    borderRadius: 12,
+                    backgroundColor: colors.surfaceElevated,
+                  }}
+                >
+                  <BarChart3 size={13} color={colors.textMuted} />
+                  <AppText muted style={{ fontSize: 12 }} numberOfLines={1}>
+                    {count ? `${count} donation${count === 1 ? '' : 's'}` : 'Not yet donated'}
+                  </AppText>
+                </View>
               </Card>
-            </TouchableOpacity>
+            </Pressable>
           );
         })}
       </View>
 
+      <SectionHeader
+        action={{ label: 'View impact', onPress: () => router.push('/(app)/gamification') }}
+      >
+        Your journey
+      </SectionHeader>
+      <GlassCard style={{ borderColor: `${colors.ai}44` }}>
+        <View style={{ flexDirection: 'row', alignItems: 'stretch' }}>
+          <JourneyStat
+            icon={Heart}
+            accent={colors.primary}
+            value={`${completedCount}`}
+            label="Total Donations"
+            note={completedCount ? "You're making a difference" : 'Your first one starts it'}
+          />
+          <View style={{ width: 1, backgroundColor: colors.border, marginHorizontal: spacing.sm }} />
+          <JourneyStat
+            icon={Users}
+            accent={colors.secondary}
+            value={`${completedCount * LIVES_PER_DONATION}`}
+            label="Lives Supported"
+            note={`About ${LIVES_PER_DONATION} lives per donation`}
+          />
+          <View style={{ width: 1, backgroundColor: colors.border, marginHorizontal: spacing.sm }} />
+          <JourneyStat
+            icon={CalendarDays}
+            accent={colors.ai}
+            value={isEligible ? 'Now' : `${daysToEligible}`}
+            label={isEligible ? 'Ready to give' : 'Days to Go'}
+            note={
+              isEligible
+                ? 'You can donate today'
+                : `Next eligible date: ${formatDate(nextDate!)}`
+            }
+          />
+        </View>
+      </GlassCard>
+
       {activeCampaigns.length > 0 && (
         <>
-          <SectionHeader action={{ label: 'See all', onPress: () => router.push('/campaigns') }}>
-            ACTIVE CAMPAIGNS
+          <SectionHeader action={{ label: 'View all', onPress: () => router.push('/campaigns') }}>
+            Active campaigns
           </SectionHeader>
-          <View style={{ gap: spacing.sm, marginBottom: layout.cardGap }}>
-            {activeCampaigns.map((campaign) => (
-              <TouchableOpacity
-                key={campaign.id}
-                onPress={() => router.push('/campaigns')}
-                activeOpacity={0.8}
-              >
-                <GlassCard style={{ padding: spacing.md }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <View style={{ flex: 1 }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: 4 }}>
-                        <AppText style={{ fontSize: 13, fontWeight: '600' }}>
-                          {campaign.organization?.name ?? campaign.title}
-                        </AppText>
-                        {campaign.bloodGroupsNeeded.length > 0 && (
-                          <Badge variant="danger">{campaign.bloodGroupsNeeded.join(', ')}</Badge>
-                        )}
-                      </View>
-                      <View style={{ flexDirection: 'row', gap: spacing.md }}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-                          <Clock size={10} color={colors.textMuted} />
-                          <AppText muted style={{ fontSize: 11 }}>
-                            Until {new Date(campaign.endDate).toLocaleDateString()}
-                          </AppText>
-                        </View>
-                        {campaign.location && (
-                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-                            <MapPin size={10} color={colors.textMuted} />
-                            <AppText muted style={{ fontSize: 11 }}>
-                              {campaign.location}
-                            </AppText>
-                          </View>
-                        )}
-                      </View>
-                    </View>
-                    <ChevronRight size={14} color={colors.textMuted} />
+          {activeCampaigns.map((campaign) => (
+            <TouchableOpacity
+              key={campaign.id}
+              onPress={() => router.push('/campaigns')}
+              activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel={`Campaign: ${campaign.title}`}
+            >
+              <GlassCard style={{ marginBottom: layout.cardGap }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+                  <View
+                    style={{
+                      width: 46,
+                      height: 46,
+                      borderRadius: radius.md,
+                      backgroundColor: colors.primaryMuted,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Droplet size={22} color={colors.onMuted.primary} />
                   </View>
-                </GlassCard>
-              </TouchableOpacity>
-            ))}
-          </View>
+                  <View style={{ flex: 1 }}>
+                    <AppText style={{ fontSize: 15, fontWeight: '700', color: colors.text }} numberOfLines={1}>
+                      {campaign.title}
+                    </AppText>
+                    <AppText muted style={{ fontSize: 12.5, marginTop: 2 }} numberOfLines={1}>
+                      {campaign.description || campaign.organization?.name || 'Ongoing campaign'}
+                    </AppText>
+                  </View>
+                  <View
+                    style={{
+                      paddingHorizontal: 10,
+                      minHeight: 26,
+                      justifyContent: 'center',
+                      borderRadius: radius.pill,
+                      backgroundColor: colors.primaryMuted,
+                      borderWidth: 1,
+                      borderColor: `${colors.onMuted.primary}33`,
+                    }}
+                  >
+                    <AppText style={{ fontSize: 10, fontWeight: '700', letterSpacing: 0.6, color: colors.onMuted.primary }}>
+                      ONGOING
+                    </AppText>
+                  </View>
+                  <ChevronRight size={16} color={colors.textMuted} />
+                </View>
+              </GlassCard>
+            </TouchableOpacity>
+          ))}
         </>
       )}
 
+      {/*
+        Below the reference's crop, and kept: this screen is the only route
+        into Challenges. Dropping the section to match a screenshot would
+        strand a whole screen with nothing linking to it.
+      */}
       {featuredChallenge && (
         <>
           <SectionHeader action={{ label: 'View all', onPress: () => router.push('/challenges') }}>
-            CHALLENGES
+            Challenges
           </SectionHeader>
-          <TouchableOpacity onPress={() => router.push('/challenges')} activeOpacity={0.8}>
+          <TouchableOpacity
+            onPress={() => router.push('/challenges')}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel={`Challenge: ${featuredChallenge.title}`}
+          >
             <GlassCard style={{ marginBottom: layout.cardGap }}>
-              <View style={{ flexDirection: 'row', gap: spacing.md, alignItems: 'center' }}>
+              <View style={{ flexDirection: 'row', gap: spacing.sm, alignItems: 'center' }}>
                 <View
                   style={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: 14,
+                    width: 46,
+                    height: 46,
+                    borderRadius: radius.md,
                     backgroundColor: colors.warningMuted,
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -196,64 +422,83 @@ export default function Donate() {
                   <Award size={22} color={colors.onMuted.warning} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <AppText style={{ fontSize: 13, fontWeight: '600' }}>{featuredChallenge.title}</AppText>
-                  <AppText muted style={{ fontSize: 12 }}>
+                  <AppText style={{ fontSize: 15, fontWeight: '700', color: colors.text }} numberOfLines={1}>
+                    {featuredChallenge.title}
+                  </AppText>
+                  <AppText muted style={{ fontSize: 12.5, marginTop: 2 }} numberOfLines={1}>
                     {featuredChallenge.description}
                   </AppText>
-                  <View style={{ marginTop: spacing.xs, flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+                  <View style={{ marginTop: 8, flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
                     <View style={{ flex: 1 }}>
                       <ProgressBar
-                        progress={Math.min((featuredChallenge.userProgress ?? 0) / featuredChallenge.goal, 1) * 100}
+                        progress={
+                          Math.min((featuredChallenge.userProgress ?? 0) / featuredChallenge.goal, 1) * 100
+                        }
                         color={colors.warning}
                       />
                     </View>
-                    <AppText style={{ fontSize: 11, fontWeight: '600', color: colors.warning }}>
+                    <AppText style={{ fontSize: 11, fontWeight: '700', color: colors.onMuted.warning }}>
                       {featuredChallenge.userProgress ?? 0}/{featuredChallenge.goal}
                     </AppText>
                   </View>
                 </View>
+                <ChevronRight size={16} color={colors.textMuted} />
               </View>
             </GlassCard>
           </TouchableOpacity>
         </>
       )}
-
-      {communityStats && (
-        <>
-          <SectionHeader>COMMUNITY IMPACT</SectionHeader>
-          <GlassCard style={{ marginBottom: layout.cardGap }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-around' }}>
-              <View style={{ alignItems: 'center' }}>
-                <AppText variant="heading" style={{ fontSize: 22 }}>
-                  {communityStats.participants}
-                </AppText>
-                <AppText muted style={{ fontSize: 11 }}>
-                  Donors participating
-                </AppText>
-              </View>
-              <View style={{ width: 1, backgroundColor: colors.border }} />
-              <View style={{ alignItems: 'center' }}>
-                <AppText variant="heading" style={{ fontSize: 22 }}>
-                  {communityStats.activeCampaigns}
-                </AppText>
-                <AppText muted style={{ fontSize: 11 }}>
-                  Active campaigns
-                </AppText>
-              </View>
-              <View style={{ width: 1, backgroundColor: colors.border }} />
-              <View style={{ alignItems: 'center' }}>
-                <AppText variant="heading" style={{ fontSize: 22 }}>
-                  {communityStats.activeChallenges}
-                </AppText>
-                <AppText muted style={{ fontSize: 11 }}>
-                  Active challenges
-                </AppText>
-              </View>
-            </View>
-          </GlassCard>
-        </>
-      )}
-
     </Screen>
+  );
+}
+
+const styleRow = {
+  flexDirection: 'row' as const,
+  alignItems: 'center' as const,
+  flexWrap: 'wrap' as const,
+  gap: 10,
+  marginTop: spacing.md,
+};
+
+function JourneyStat({
+  icon: Icon,
+  accent,
+  value,
+  label,
+  note,
+}: {
+  icon: LucideIcon;
+  accent: string;
+  value: string;
+  label: string;
+  note: string;
+}) {
+  const { colors } = useTheme();
+  return (
+    <View style={{ flex: 1 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <View
+          style={{
+            width: 34,
+            height: 34,
+            borderRadius: 17,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: `${accent}26`,
+          }}
+        >
+          <Icon size={17} color={accent} />
+        </View>
+        <AppText style={{ fontSize: 22, fontWeight: '800', letterSpacing: -0.6, color: colors.text }}>
+          {value}
+        </AppText>
+      </View>
+      <AppText style={{ fontSize: 12.5, fontWeight: '600', marginTop: 6, color: colors.text }}>
+        {label}
+      </AppText>
+      <AppText muted style={{ fontSize: 11, lineHeight: 15, marginTop: 2 }}>
+        {note}
+      </AppText>
+    </View>
   );
 }

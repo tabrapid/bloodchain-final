@@ -335,7 +335,7 @@ describe('P3-9: the four screens that used className render with real styles', (
 
   it('donate: tapping a campaign card navigates to the campaigns list (there is no per-campaign detail route)', async () => {
     const tree = await renderScreen(DonateScreen);
-    const card = findPressableByText(tree, campaignFixture.organization.name);
+    const card = findPressableByText(tree, campaignFixture.title);
     expect(card).toBeDefined();
 
     act(() => {

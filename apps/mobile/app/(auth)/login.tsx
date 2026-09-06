@@ -9,6 +9,7 @@ import { AppButton, AppText, AppTextInput, IconButton, Screen } from '../../src/
 import { useLogin, getAuthErrorMessage } from '../../src/hooks/useAuth';
 import { getPostAuthRoute } from '../../src/utils/postAuthRoute';
 import { layout, spacing, useTheme } from '../../src/theme';
+import { BRAND_NAME } from '../../src/brand';
 
 export default function Login() {
   const { colors } = useTheme();
@@ -53,7 +54,7 @@ export default function Login() {
           Welcome back
         </AppText>
         <AppText muted style={{ fontSize: 15, marginTop: 6, marginBottom: spacing.xl }}>
-          Sign in to your Bloodchainga account
+          Sign in to your {BRAND_NAME} account
         </AppText>
 
         <Controller
@@ -127,7 +128,7 @@ export default function Login() {
           gradient
           trailingIcon={ArrowRight}
           accessibilityRole="button"
-          accessibilityLabel="Sign in to Bloodchainga"
+          accessibilityLabel="Sign in to Bloodchain"
           style={{ height: 54 }}
           onPress={onSubmit}
           disabled={login.isPending || formState.isSubmitting}
@@ -182,7 +183,7 @@ export default function Login() {
           textColor={colors.text}
           onPress={() => router.push('/(auth)/register')}
           accessibilityRole="button"
-          accessibilityLabel="Create a Bloodchainga account"
+          accessibilityLabel="Create a Bloodchain account"
           style={{
             height: 54,
             backgroundColor: 'rgba(255,255,255,0.07)',

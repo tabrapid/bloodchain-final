@@ -40,7 +40,7 @@ import { ApiRequestError } from '../../src/api/client';
 const STEPS: { icon: LucideIcon; title: string; subtitle: string }[] = [
   {
     icon: HeartHandshake,
-    title: 'Welcome to Bloodchainga',
+    title: 'Welcome to Bloodchain',
     subtitle: 'Your journey to becoming a life-saver starts here. Let us set up your donor profile.',
   },
   {
@@ -134,7 +134,7 @@ export default function OnboardingWelcome() {
       if (status !== 'granted') {
         Alert.alert(
           'Location Permission Needed',
-          'Bloodchainga uses your location to match you with nearby emergency requests faster. You can still donate without it.',
+          'Bloodchain uses your location to match you with nearby emergency requests faster. You can still donate without it.',
         );
         return;
       }

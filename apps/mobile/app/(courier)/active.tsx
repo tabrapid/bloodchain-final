@@ -91,7 +91,7 @@ export default function CourierActive() {
     async function startTracking() {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Location Permission Needed', 'Bloodchainga needs your location while in transit so the hospital can track the delivery.');
+        Alert.alert('Location Permission Needed', 'Bloodchain needs your location while in transit so the hospital can track the delivery.');
         return;
       }
 

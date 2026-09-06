@@ -59,12 +59,12 @@ describe('Welcome', () => {
     const tree = render();
 
     act(() => {
-      buttonWithLabel(tree, 'Create Bloodchainga account').props.onPress();
+      buttonWithLabel(tree, 'Create Bloodchain account').props.onPress();
     });
     expect(mockPush).toHaveBeenCalledWith('/(auth)/register');
 
     act(() => {
-      buttonWithLabel(tree, 'Sign in to Bloodchainga').props.onPress();
+      buttonWithLabel(tree, 'Sign in to Bloodchain').props.onPress();
     });
     expect(mockPush).toHaveBeenCalledWith('/(auth)/login');
   });
@@ -76,7 +76,7 @@ describe('Welcome', () => {
    * brand colour.
    */
   it('gives the secondary action a legible label on the wave', () => {
-    const secondary = buttonWithLabel(render(), 'Sign in to Bloodchainga');
+    const secondary = buttonWithLabel(render(), 'Sign in to Bloodchain');
 
     expect(secondary.props.textColor).toBe('#FFFFFF');
     expect(secondary.props.textColor).not.toBe(darkColors.primary);
@@ -89,7 +89,7 @@ describe('Welcome', () => {
    */
   it('keeps the secondary a light film, not a hole punched in the wave', () => {
     const style = (
-      buttonWithLabel(render(), 'Sign in to Bloodchainga').props as {
+      buttonWithLabel(render(), 'Sign in to Bloodchain').props as {
         style: { backgroundColor: string; borderColor: string };
       }
     ).style;
@@ -101,7 +101,7 @@ describe('Welcome', () => {
   it('keeps both actions above the 44pt touch target', () => {
     const tree = render();
 
-    for (const label of ['Create Bloodchainga account', 'Sign in to Bloodchainga']) {
+    for (const label of ['Create Bloodchain account', 'Sign in to Bloodchain']) {
       const height = (buttonWithLabel(tree, label).props as { style: { height: number } }).style
         .height;
       expect(height).toBeGreaterThanOrEqual(44);

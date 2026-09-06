@@ -5,13 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowRight } from 'lucide-react-native';
 import { AppButton, AppText, BrandMark, HeroWave } from '../../src/components';
 import { spacing, useTheme } from '../../src/theme';
-
-/**
- * The wordmark, in one place. Changing what the welcome screen calls the
- * product means changing these two lines and nothing else.
- */
-const WORDMARK = 'Bloodchainga';
-const TAGLINE = 'PEOPLE SAVE LIVES';
+import { BRAND_NAME, BRAND_TAGLINE } from '../../src/brand';
 
 /**
  * Point these at the published legal pages and the two phrases below become
@@ -111,14 +105,14 @@ export default function Welcome() {
               color: colors.text,
             }}
           >
-            {WORDMARK}
+            {BRAND_NAME}
           </AppText>
           <AppText
             muted
             maxFontSizeMultiplier={1.3}
             style={{ marginTop: 8, fontSize: 11, fontWeight: '600', letterSpacing: 4.4 }}
           >
-            {TAGLINE}
+            {BRAND_TAGLINE}
           </AppText>
         </View>
 
@@ -162,7 +156,7 @@ export default function Welcome() {
             trailingIcon={ArrowRight}
             onPress={() => router.push('/(auth)/register')}
             accessibilityRole="button"
-            accessibilityLabel="Create Bloodchainga account"
+            accessibilityLabel="Create Bloodchain account"
             // The variant's 0.4 glow is tuned for the app's dark ground; on
             // colour it haloes.
             style={{ height: 54, marginTop: 30, shadowOpacity: 0.22 }}
@@ -183,7 +177,7 @@ export default function Welcome() {
             textColor={ON_WAVE_PRIMARY}
             onPress={() => router.push('/(auth)/login')}
             accessibilityRole="button"
-            accessibilityLabel="Sign in to Bloodchainga"
+            accessibilityLabel="Sign in to Bloodchain"
             style={{
               height: 54,
               marginTop: 12,
