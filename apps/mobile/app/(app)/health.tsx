@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { router } from 'expo-router';
 import type { RelativePathString } from 'expo-router';
-import { TouchableOpacity, View, RefreshControl } from 'react-native';
+import { Pressable, TouchableOpacity, View, RefreshControl } from 'react-native';
 import {
   Activity,
   Brain,
@@ -12,15 +12,23 @@ import {
   Layers,
   Percent,
   ShieldCheck,
-  TrendingDown,
-  TrendingUp,
   type LucideIcon,
 } from 'lucide-react-native';
-import { AppText, Badge, Divider, GlassCard, GradientCard, LoadingState, Screen, SectionHeader, Sparkline } from '../../src/components';
-import { layout, spacing, useTheme } from '../../src/theme';
+import {
+  AppText,
+  Divider,
+  GlassCard,
+  GradientCard,
+  LoadingState,
+  Screen,
+  SectionHeader,
+  Sparkline,
+} from '../../src/components';
+import { layout, radius, spacing, useTheme } from '../../src/theme';
 import { getTrendSummary, TrendSummary } from '../../src/api/health-trends';
 import { getDonorResults, LaboratoryResult } from '../../src/api/laboratory';
 import { getInsightHistory, AiInsight } from '../../src/api/ai-health';
+import { formatUpdated, isWithinReferenceRange } from '../../src/utils/health';
 
 type VitalColorKey = 'primary' | 'secondary' | 'warning' | 'ai' | 'success';
 
@@ -39,6 +47,28 @@ const VITAL_ICON_BY_CODE: Record<string, { icon: LucideIcon; color: VitalColorKe
   BLOOD_GROUP: { icon: Fingerprint, color: 'secondary' },
   ABO: { icon: Fingerprint, color: 'secondary' },
   RH_FACTOR: { icon: Fingerprint, color: 'secondary' },
+};
+
+/**
+ * What each marker is, in one line of plain language.
+ *
+ * Static explanatory copy, the same kind of thing as the icon above -- these
+ * are textbook definitions of standard haematology markers, not anything read
+ * from a donor's results. A code with no entry simply shows no description
+ * rather than a guess: the screen never invents a meaning for a marker it does
+ * not recognise.
+ */
+const VITAL_DESCRIPTION_BY_CODE: Record<string, string> = {
+  HEMOGLOBIN: 'Oxygen-carrying protein',
+  HEMATOCRIT: 'Proportion of red blood cells',
+  RBC: 'Carries oxygen throughout the body',
+  WBC: 'Helps fight infection',
+  PLATELETS: 'Helps with blood clotting',
+  FERRITIN: 'Iron stored in your body',
+  FERRITIN_LEVEL: 'Iron stored in your body',
+  BLOOD_GROUP: 'Your ABO blood group',
+  ABO: 'Your ABO blood group',
+  RH_FACTOR: 'Rh positive or negative',
 };
 
 const VITAL_FALLBACK_ORDER: VitalColorKey[] = ['primary', 'secondary', 'warning', 'ai', 'success'];
@@ -92,7 +122,7 @@ export default function Health() {
   const anyFlagged = publishedResults.some((r) =>
     r.items.some((item) => item.flag && item.flag !== 'NORMAL'),
   );
-  // Latest known flag per parameter code, so a vital row can carry the same
+  // Latest known flag per parameter code, so a marker row can carry the same
   // Normal/Review badge the reference puts there.
   const flagByParameterCode = new Map<string, string>();
   publishedResults.forEach((result) => {
@@ -116,9 +146,11 @@ export default function Health() {
   const latestParam = summary?.availableParameters[0];
   const trend = summary?.recentTrend;
   const trendValues = trend?.points.map((p) => p.value) ?? [];
-  const trendMin = trendValues.length ? Math.min(...trendValues) : undefined;
-  const trendMax = trendValues.length ? Math.max(...trendValues) : undefined;
-  const TrendIcon = trend?.trend === 'INCREASING' ? TrendingUp : trend?.trend === 'DECREASING' ? TrendingDown : undefined;
+
+  const inRange = isWithinReferenceRange(trend);
+
+  const measurementCount = trend ? trend.points.length : (latestParam?.measurementCount ?? 0);
+  const updatedLabel = formatUpdated(trend?.latestValueDate ?? latestParam?.latestValueDate);
 
   return (
     <Screen
@@ -126,243 +158,315 @@ export default function Health() {
         <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor={colors.primary} />
       }
     >
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <View style={{ flex: 1 }}>
-            <AppText variant="title">Health</AppText>
-            <AppText muted style={{ fontSize: 13, marginTop: 2 }}>
-              Your vitals overview
-            </AppText>
-          </View>
-          {publishedResults.length > 0 && (
-            <Badge variant={anyFlagged ? 'warning' : 'success'}>
-              {anyFlagged ? 'Review' : 'All Normal'}
-            </Badge>
-          )}
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: spacing.sm }}>
+        <View style={{ flex: 1 }}>
+          <AppText style={{ fontSize: 32, fontWeight: '800', letterSpacing: -1, color: colors.text }}>
+            Health
+          </AppText>
+          <AppText muted style={{ fontSize: 14, marginTop: 2 }}>
+            Your laboratory overview
+          </AppText>
         </View>
-
-        {(trend || latestParam) && (
-          <TouchableOpacity
-            onPress={() => router.push('/health-trends' as RelativePathString)}
-            activeOpacity={0.9}
-            style={{ marginTop: layout.cardGap }}
-          >
-            {/* Health's hero is a two-stop rose, distinct from the app's
-                rose-to-plum brand hero -- the reference keeps the plum for
-                blood-type moments only. */}
-            <GradientCard colors={['#D85360', '#C83B6C']}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <View style={{ flex: 1 }}>
-                  <AppText style={{ fontSize: 11, fontWeight: '700', letterSpacing: 1.2, color: 'rgba(255,255,255,0.8)' }}>
-                    LATEST TRACKED
-                  </AppText>
-                  <AppText style={{ fontSize: 16, fontWeight: '600', color: '#FFFFFF', marginTop: 2 }}>
-                    {(trend?.parameterName ?? latestParam?.name)!}
-                  </AppText>
-                  <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 4, marginTop: spacing.xs }}>
-                    <AppText style={{ fontSize: 52, fontWeight: '800', lineHeight: 52, letterSpacing: -2.08, color: '#FFFFFF' }}>
-                      {trend?.latestValue ?? latestParam?.latestValue ?? '—'}
-                    </AppText>
-                    {(trend?.unit ?? latestParam?.unit) && (
-                      <AppText style={{ fontSize: 16, color: 'rgba(255,255,255,0.75)' }}>
-                        {trend?.unit ?? latestParam?.unit}
-                      </AppText>
-                    )}
-                  </View>
-                  <AppText style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', marginTop: 2 }}>
-                    {trend ? `${trend.points.length} measurement${trend.points.length !== 1 ? 's' : ''}` : `${latestParam?.measurementCount} measurement${latestParam?.measurementCount !== 1 ? 's' : ''}`}
-                  </AppText>
-                </View>
-                <View style={{ alignItems: 'flex-end', gap: spacing.sm }}>
-                  <Activity size={28} color="#FFFFFF" />
-                  {TrendIcon && trend?.percentageChange != null && (
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-                      <TrendIcon size={13} color="rgba(255,255,255,0.85)" />
-                      <AppText style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)' }}>
-                        {Math.abs(trend.percentageChange).toFixed(1)}%
-                      </AppText>
-                    </View>
-                  )}
-                </View>
-              </View>
-
-              {trendValues.length >= 2 && (
-                <>
-                  <View style={{ marginTop: spacing.md }}>
-                    <Sparkline values={trendValues} color="rgba(255,255,255,0.55)" />
-                  </View>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: spacing.xs }}>
-                    <AppText style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)' }}>Min {trendMin}</AppText>
-                    <AppText style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)' }}>Max {trendMax}</AppText>
-                  </View>
-                </>
-              )}
-
-            </GradientCard>
-          </TouchableOpacity>
+        {publishedResults.length > 0 && (
+          <StatusPill
+            label={anyFlagged ? 'Needs review' : 'All normal'}
+            tone={anyFlagged ? 'warning' : 'success'}
+          />
         )}
+      </View>
 
-        {summary && summary.availableParameters.length > 0 && (
-          <>
-            <SectionHeader action={{ label: 'Trends', onPress: () => router.push('/health-trends' as RelativePathString) }}>
-              VITALS
-            </SectionHeader>
-            <GlassCard style={{ paddingVertical: 16 }}>
-              {summary.availableParameters.slice(0, 5).map((param, index) => {
-                const { icon: Icon, color: colorKey } = getVitalIconAndColor(param.code, index);
-                return (
-                  <View key={param.code}>
-                    {index > 0 && <Divider style={{ marginVertical: 18 }} />}
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-                      <View
-                        style={{
-                          width: 40,
-                          height: 40,
-                          borderRadius: 12,
-                          backgroundColor: `${colors[colorKey]}20`,
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                      >
-                        <Icon size={18} color={colors[colorKey]} />
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <AppText muted style={{ fontSize: 12 }}>
-                          {param.name}
-                        </AppText>
-                        <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 3, marginTop: 1 }}>
-                          <AppText style={{ fontSize: 22, fontWeight: '700', letterSpacing: -0.44 }}>
-                            {param.latestValue ?? '—'}
-                          </AppText>
-                          {param.unit && (
-                            <AppText muted style={{ fontSize: 12 }}>
-                              {param.unit}
-                            </AppText>
-                          )}
-                        </View>
-                      </View>
-                      {flagByParameterCode.has(param.code.toUpperCase()) && (
-                        <Badge
-                          variant={
-                            flagByParameterCode.get(param.code.toUpperCase()) === 'NORMAL'
-                              ? 'success'
-                              : 'warning'
-                          }
-                        >
-                          {flagByParameterCode.get(param.code.toUpperCase()) === 'NORMAL'
-                            ? 'Normal'
-                            : 'Review'}
-                        </Badge>
-                      )}
-                    </View>
-                  </View>
-                );
-              })}
-            </GlassCard>
-          </>
-        )}
-
-        <SectionHeader action={{ label: 'View all', onPress: () => router.push('/insights' as RelativePathString) }}>
-          AI INSIGHTS
-        </SectionHeader>
-        <TouchableOpacity onPress={() => router.push('/insights' as RelativePathString)} activeOpacity={0.8}>
-          <GlassCard style={{ borderColor: `${colors.ai}40` }}>
-            <View style={{ flexDirection: 'row', gap: spacing.md, alignItems: 'flex-start' }}>
-              <View
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 10,
-                  backgroundColor: `${colors.ai}33`,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <Brain size={16} color={colors.ai} />
-              </View>
+      {(trend || latestParam) && (
+        <TouchableOpacity
+          onPress={() => router.push('/health-trends' as RelativePathString)}
+          activeOpacity={0.9}
+          accessibilityRole="button"
+          accessibilityLabel="Latest tracked marker. Open health trends"
+          style={{ marginTop: spacing.md }}
+        >
+          {/* Health's hero is a two-stop rose, distinct from the app's
+              rose-to-plum brand hero -- the plum is kept for blood-type
+              moments only. */}
+          <GradientCard colors={['#D85360', '#C0356B']}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <View style={{ flex: 1 }}>
-                {latestInsight ? (
-                  <>
-                    <AppText style={{ fontSize: 13, fontWeight: '600', color: colors.ai, marginBottom: spacing.xs }}>
-                      {latestInsight.title}
-                    </AppText>
-                    <AppText style={{ fontSize: 13, lineHeight: 18 }} numberOfLines={3}>
-                      {latestInsight.summary}
-                    </AppText>
-                  </>
-                ) : (
-                  <>
-                    <AppText variant="heading">AI Insights</AppText>
-                    <AppText muted style={{ fontSize: 13, marginTop: 2 }}>
-                      Get AI-powered explanations of your results
-                    </AppText>
-                  </>
+                <AppText style={{ fontSize: 11, fontWeight: '700', letterSpacing: 1.6, color: 'rgba(255,255,255,0.8)' }}>
+                  LATEST TRACKED
+                </AppText>
+                <AppText style={{ fontSize: 17, fontWeight: '600', color: '#FFFFFF', marginTop: 3 }}>
+                  {(trend?.parameterName ?? latestParam?.name)!}
+                </AppText>
+              </View>
+              <Activity size={26} color="#FFFFFF" strokeWidth={2.5} />
+            </View>
+
+            {/*
+              The figure and its shape on one line. The sparkline used to sit
+              in a band below the card with Min and Max captions under it,
+              which made the trend a second, smaller chart rather than the
+              backdrop to the number it belongs to.
+            */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginTop: 2 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 3 }}>
+                <AppText style={{ fontSize: 52, lineHeight: 60, fontWeight: '800', letterSpacing: -2.2, color: '#FFFFFF' }}>
+                  {trend?.latestValue ?? latestParam?.latestValue ?? '—'}
+                </AppText>
+                {(trend?.unit ?? latestParam?.unit) && (
+                  <AppText style={{ fontSize: 17, fontWeight: '600', color: 'rgba(255,255,255,0.75)' }}>
+                    {trend?.unit ?? latestParam?.unit}
+                  </AppText>
                 )}
               </View>
+              {trendValues.length >= 2 && (
+                <View style={{ flex: 1, height: 56, justifyContent: 'center' }}>
+                  <Sparkline values={trendValues} color="rgba(255,255,255,0.72)" />
+                </View>
+              )}
             </View>
-          </GlassCard>
+
+            {inRange !== null && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 4 }}>
+                <View
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: 4,
+                    backgroundColor: inRange ? colors.success : colors.warning,
+                  }}
+                />
+                <AppText style={{ fontSize: 14, fontWeight: '500', color: 'rgba(255,255,255,0.95)' }}>
+                  {inRange ? 'Within healthy range' : 'Outside healthy range'}
+                </AppText>
+              </View>
+            )}
+
+            <AppText style={{ fontSize: 12, color: 'rgba(255,255,255,0.68)', marginTop: 8 }}>
+              {[updatedLabel, measurementCount ? `${measurementCount} measurement${measurementCount === 1 ? '' : 's'} tracked` : null]
+                .filter(Boolean)
+                .join(' · ')}
+            </AppText>
+          </GradientCard>
         </TouchableOpacity>
+      )}
 
-        {labResults.filter((r) => r.status === 'PUBLISHED').length > 0 && (
-          <>
-            <SectionHeader action={{ label: 'View all', onPress: () => router.push('/laboratory' as RelativePathString) }}>
-              LAB RESULTS
-            </SectionHeader>
-            {labResults
-              .filter((r) => r.status === 'PUBLISHED')
-              .slice(0, 2)
-              .map((result) => {
-                const hasFlaggedItem = result.items.some((item) => item.flag && item.flag !== 'NORMAL');
-                return (
-                  <TouchableOpacity
-                    key={result.id}
-                    onPress={() => router.push('/laboratory' as RelativePathString)}
-                    activeOpacity={0.8}
+      {summary && summary.availableParameters.length > 0 && (
+        <>
+          <SectionHeader
+            action={{
+              label: 'View trends',
+              onPress: () => router.push('/health-trends' as RelativePathString),
+            }}
+          >
+            Laboratory markers
+          </SectionHeader>
+          <GlassCard style={{ paddingVertical: spacing.sm }}>
+            {summary.availableParameters.slice(0, 5).map((param, index) => {
+              const code = param.code.toUpperCase();
+              const { icon: Icon, color: colorKey } = getVitalIconAndColor(param.code, index);
+              const flag = flagByParameterCode.get(code);
+              const description = VITAL_DESCRIPTION_BY_CODE[code];
+              return (
+                <View key={param.code}>
+                  {index > 0 && <Divider style={{ marginVertical: spacing.sm }} />}
+                  <Pressable
+                    onPress={() => router.push('/health-trends' as RelativePathString)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${param.name}${param.latestValue !== undefined ? `, ${param.latestValue} ${param.unit ?? ''}` : ''}. Open trends`}
+                    style={({ pressed }) => ({
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 12,
+                      paddingVertical: 10,
+                      opacity: pressed ? 0.7 : 1,
+                    })}
                   >
-                    <GlassCard style={{ padding: spacing.md, marginBottom: spacing.sm }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <View style={{ flex: 1 }}>
-                          <AppText style={{ fontSize: 14, fontWeight: '500' }}>{result.testType.name}</AppText>
-                          <AppText muted style={{ fontSize: 12, marginTop: 2 }}>
-                            {result.publishedAt ? new Date(result.publishedAt).toLocaleDateString() : 'Date unknown'}
+                    <View
+                      style={{
+                        width: 42,
+                        height: 42,
+                        borderRadius: 13,
+                        backgroundColor: `${colors[colorKey]}26`,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <Icon size={19} color={colors[colorKey]} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <AppText style={{ fontSize: 15, fontWeight: '700', color: colors.text }}>
+                        {param.name}
+                      </AppText>
+                      {description && (
+                        <AppText muted style={{ fontSize: 12, marginTop: 1 }}>
+                          {description}
+                        </AppText>
+                      )}
+                    </View>
+                    <View style={{ alignItems: 'flex-end', maxWidth: 96 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 3 }}>
+                        <AppText style={{ fontSize: 17, fontWeight: '700', letterSpacing: -0.4 }}>
+                          {param.latestValue ?? '—'}
+                        </AppText>
+                        {param.unit && (
+                          <AppText muted style={{ fontSize: 11 }}>
+                            {param.unit}
                           </AppText>
-                        </View>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-                          <View
-                            style={{
-                              paddingHorizontal: spacing.sm,
-                              paddingVertical: 2,
-                              borderRadius: 4,
-                              backgroundColor: hasFlaggedItem ? colors.warningMuted : colors.successMuted,
-                            }}
-                          >
-                            <AppText
-                              style={{
-                                fontSize: 11,
-                                fontWeight: '600',
-                                color: hasFlaggedItem ? colors.onMuted.warning : colors.onMuted.success,
-                              }}
-                            >
-                              {hasFlaggedItem ? 'Review' : 'Normal'}
-                            </AppText>
-                          </View>
-                          <ChevronRight size={14} color={colors.textMuted} />
-                        </View>
+                        )}
                       </View>
-                    </GlassCard>
-                  </TouchableOpacity>
-                );
-              })}
-          </>
-        )}
+                    </View>
+                    {flag && (
+                      <StatusPill
+                        label={flag === 'NORMAL' ? 'Normal' : 'Review'}
+                        tone={flag === 'NORMAL' ? 'success' : 'warning'}
+                        compact
+                      />
+                    )}
+                    <ChevronRight size={16} color={colors.textMuted} />
+                  </Pressable>
+                </View>
+              );
+            })}
+          </GlassCard>
+        </>
+      )}
 
-        <GlassCard style={{ marginTop: layout.cardGap, paddingVertical: spacing.sm }}>
+      <SectionHeader>AI insights</SectionHeader>
+      <TouchableOpacity
+        onPress={() => router.push('/insights' as RelativePathString)}
+        activeOpacity={0.85}
+        accessibilityRole="button"
+        accessibilityLabel="AI insights"
+      >
+        <GlassCard style={{ borderColor: `${colors.ai}55`, backgroundColor: `${colors.ai}14` }}>
+          <View style={{ flexDirection: 'row', gap: spacing.md, alignItems: 'flex-start' }}>
+            <View
+              style={{
+                width: 46,
+                height: 46,
+                borderRadius: radius.md,
+                backgroundColor: `${colors.ai}2E`,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Brain size={22} color={colors.ai} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <AppText style={{ fontSize: 17, fontWeight: '700', color: colors.text }}>
+                {latestInsight?.title ?? 'AI Insights'}
+              </AppText>
+              <AppText muted style={{ fontSize: 14, lineHeight: 20, marginTop: 4 }} numberOfLines={3}>
+                {latestInsight?.summary ??
+                  'Get plain-language explanations of your latest blood results.'}
+              </AppText>
+            </View>
+            <ChevronRight size={18} color={colors.textMuted} />
+          </View>
+
+          {/* The privacy line lives inside this card rather than in one of its
+              own at the foot of the screen: it is a statement about the thing
+              reading your results, and it means nothing floating on its own. */}
+          <Divider style={{ marginVertical: spacing.md }} />
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-            <ShieldCheck size={16} color={colors.onMuted.success} />
-            <AppText muted style={{ fontSize: 12 }}>
+            <ShieldCheck size={17} color={colors.onMuted.success} />
+            <AppText muted style={{ fontSize: 13 }}>
               Your health data is private and secure.
             </AppText>
           </View>
         </GlassCard>
+      </TouchableOpacity>
+
+      {publishedResults.length > 0 && (
+        <>
+          <SectionHeader
+            action={{
+              label: 'View all',
+              onPress: () => router.push('/laboratory' as RelativePathString),
+            }}
+          >
+            Lab results
+          </SectionHeader>
+          {publishedResults.slice(0, 2).map((result) => {
+            const hasFlaggedItem = result.items.some((item) => item.flag && item.flag !== 'NORMAL');
+            return (
+              <TouchableOpacity
+                key={result.id}
+                onPress={() => router.push('/laboratory' as RelativePathString)}
+                activeOpacity={0.8}
+                accessibilityRole="button"
+                accessibilityLabel={`${result.testType.name} result`}
+              >
+                <GlassCard style={{ marginBottom: layout.cardGap }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+                    <View style={{ flex: 1 }}>
+                      <AppText style={{ fontSize: 15, fontWeight: '600' }}>
+                        {result.testType.name}
+                      </AppText>
+                      <AppText muted style={{ fontSize: 12, marginTop: 2 }}>
+                        {result.publishedAt
+                          ? new Date(result.publishedAt).toLocaleDateString('en-US', {
+                              day: 'numeric',
+                              month: 'short',
+                              year: 'numeric',
+                            })
+                          : 'Date unknown'}
+                      </AppText>
+                    </View>
+                    <StatusPill
+                      label={hasFlaggedItem ? 'Review' : 'Normal'}
+                      tone={hasFlaggedItem ? 'warning' : 'success'}
+                      compact
+                    />
+                    <ChevronRight size={16} color={colors.textMuted} />
+                  </View>
+                </GlassCard>
+              </TouchableOpacity>
+            );
+          })}
+        </>
+      )}
     </Screen>
+  );
+}
+
+/**
+ * A dot plus a word, on a tinted pill.
+ *
+ * The dot is what carries the status at a glance, and the word is what carries
+ * it for anyone who cannot separate the greens from the ambers -- neither one
+ * alone would do.
+ */
+function StatusPill({
+  label,
+  tone,
+  compact,
+}: {
+  label: string;
+  tone: 'success' | 'warning';
+  compact?: boolean;
+}) {
+  const { colors } = useTheme();
+  const fill = tone === 'success' ? colors.successMuted : colors.warningMuted;
+  const text = tone === 'success' ? colors.onMuted.success : colors.onMuted.warning;
+  const dot = tone === 'success' ? colors.success : colors.warning;
+
+  return (
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        minHeight: compact ? 26 : 34,
+        paddingHorizontal: compact ? 9 : 14,
+        borderRadius: radius.pill,
+        backgroundColor: fill,
+        borderWidth: 1,
+        borderColor: `${text}33`,
+      }}
+    >
+      <View style={{ width: compact ? 6 : 8, height: compact ? 6 : 8, borderRadius: 4, backgroundColor: dot }} />
+      <AppText style={{ fontSize: compact ? 11 : 14, fontWeight: '600', color: text }}>
+        {label}
+      </AppText>
+    </View>
   );
 }
