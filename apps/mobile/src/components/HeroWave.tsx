@@ -8,14 +8,17 @@ export interface HeroWaveProps {
 }
 
 /**
- * The welcome screen's bottom half: a band of rose-to-violet colour whose top
- * edge is a pair of soft, overlapping curves.
+ * The welcome screen's lower half: a band of the brand gradient whose top edge
+ * is a single long curve, with one translucent crest riding over it.
  *
- * It is one shape with two lighter curves layered over it rather than a
- * gradient fade, because a fade has no edge and this needs one -- the curve is
- * what separates "the app's brand" below from "the app's content" above. Drawn
- * with `preserveAspectRatio="none"` so the curve stretches to any phone width
- * instead of being cropped on narrow ones.
+ * Two layers, not four. Every extra crest adds another edge for the eye to
+ * follow across the screen, and four of them read as a slide template rather
+ * than as one surface -- the calm comes from the band being one shape.
+ *
+ * The crest of the primary curve sits near the top of the viewBox, so the
+ * `height` a caller passes is very nearly where the colour actually starts.
+ * That is what lets the screen size this band from its own measured content
+ * instead of a fraction of the window guessed per device.
  */
 export function HeroWave({ height }: HeroWaveProps) {
   const { colors } = useTheme();
@@ -31,29 +34,22 @@ export function HeroWave({ height }: HeroWaveProps) {
     >
       <Defs>
         <LinearGradient id="hero-wave-base" x1="0" y1="0" x2="1" y2="1">
-          <Stop offset="0" stopColor={colors.ctaGradient[0]} stopOpacity={0.92} />
-          <Stop offset="0.55" stopColor="#A2437F" stopOpacity={0.86} />
-          <Stop offset="1" stopColor={colors.ctaGradient[1]} stopOpacity={0.8} />
+          <Stop offset="0" stopColor={colors.heroGradient[0]} />
+          <Stop offset="0.5" stopColor={colors.heroGradient[1]} />
+          <Stop offset="1" stopColor={colors.heroGradient[2]} />
         </LinearGradient>
         <LinearGradient id="hero-wave-crest" x1="0" y1="0" x2="1" y2="0">
-          <Stop offset="0" stopColor="#FFFFFF" stopOpacity={0.16} />
-          <Stop offset="1" stopColor="#FFFFFF" stopOpacity={0.02} />
+          <Stop offset="0" stopColor="#FFFFFF" stopOpacity={0.14} />
+          <Stop offset="1" stopColor="#FFFFFF" stopOpacity={0.03} />
         </LinearGradient>
       </Defs>
 
-      {/* The band itself. */}
       <Path
-        d="M0 148 C 78 78, 150 176, 232 140 C 300 110, 344 132, 390 108 L 390 520 L 0 520 Z"
+        d="M0 74 C 96 12, 188 108, 274 66 C 328 40, 356 54, 390 34 L 390 520 L 0 520 Z"
         fill="url(#hero-wave-base)"
       />
-      {/* Two crests riding over it, each a little further down, which is what
-          gives the band depth instead of one flat silhouette. */}
       <Path
-        d="M0 214 C 92 142, 168 240, 254 198 C 318 166, 350 190, 390 168 L 390 520 L 0 520 Z"
-        fill="url(#hero-wave-crest)"
-      />
-      <Path
-        d="M0 300 C 104 236, 186 322, 272 286 C 330 262, 356 278, 390 262 L 390 520 L 0 520 Z"
+        d="M0 176 C 104 108, 190 208, 278 166 C 332 140, 358 156, 390 136 L 390 520 L 0 520 Z"
         fill="url(#hero-wave-crest)"
       />
     </Svg>

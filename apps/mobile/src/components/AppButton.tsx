@@ -17,6 +17,15 @@ export interface AppButtonProps extends PressableProps {
    */
   gradient?: boolean;
   /**
+   * Overrides the label colour the variant would otherwise pick. The one real
+   * use is a secondary button sitting on colour rather than on the app's dark
+   * ground: the variant's rose label is legible on the dark surface it was
+   * designed for, and washes out on anything warmer.
+   */
+  textColor?: string;
+  /** Overrides the gradient `gradient` paints. Defaults to the CTA gradient. */
+  gradientColors?: readonly [string, string, ...string[]];
+  /**
    * An icon pinned to the right edge. It sits outside the centred content row
    * on purpose: laid out as a sibling of the label it drags the label off
    * centre, and a CTA whose text is not centred reads as a mistake.
@@ -61,6 +70,8 @@ export function AppButton({
   size = 'default',
   loading = false,
   gradient = false,
+  gradientColors,
+  textColor: textColorOverride,
   trailingIcon: TrailingIcon,
   disabled,
   style,
@@ -70,7 +81,9 @@ export function AppButton({
   const variants = getVariants(colors);
   const flattenedStyle = StyleSheet.flatten(style);
   const isDisabled = disabled || loading;
-  const textColor = variant === 'secondary' || variant === 'ghost' ? colors.primary : colors.white;
+  const textColor =
+    textColorOverride ??
+    (variant === 'secondary' || variant === 'ghost' ? colors.primary : colors.white);
   const textStyle = { ...typography.button, color: textColor };
   // A gradient only makes sense over a filled variant -- painting one across a
   // ghost button would quietly turn it into a second primary.
@@ -97,7 +110,7 @@ export function AppButton({
           hidden` on the Pressable would clip the coloured glow too. */}
       {showGradient && (
         <LinearGradient
-          colors={colors.ctaGradient}
+          colors={gradientColors ?? colors.ctaGradient}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={[StyleSheet.absoluteFillObject, { borderRadius: radius.pill }]}
