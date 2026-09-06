@@ -172,3 +172,21 @@ describe('the tab bar keeps its blur', () => {
     expect(tree.root.findAllByType(BlurView)).toHaveLength(1);
   });
 });
+
+/**
+ * The bar labelled only the tab you were already on, which is the one tab you
+ * do not need told. Five unlabelled glyphs is a guess -- a droplet next to a
+ * heart, a calendar next to a person -- so every tab carries its name.
+ */
+describe('every tab is labelled', () => {
+  it('renders a label for unfocused tabs, not just the focused one', () => {
+    const { props } = buildProps(['home', 'health', 'donate'], 0);
+    const tree = renderBar(props);
+
+    for (const name of ['home', 'health', 'donate']) {
+      expect(
+        tree.root.findAll((node) => node.children.includes(name)).length,
+      ).toBeGreaterThan(0);
+    }
+  });
+});

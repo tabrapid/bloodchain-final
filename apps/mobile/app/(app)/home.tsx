@@ -1,36 +1,40 @@
 import { useMemo } from 'react';
 import { router } from 'expo-router';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, Pressable, TouchableOpacity } from 'react-native';
 import {
+  BarChart3,
   Bell,
-  Calendar,
+  BookOpen,
+  CalendarCheck,
+  CalendarDays,
+  ChevronRight,
   Droplet,
+  FileText,
+  Heart,
+  Info,
   MapPin,
   Shield,
-  TrendingUp,
-  Zap,
-  ChevronRight,
-  Clock,
+  Siren,
+  Star,
+  UserRound,
 } from 'lucide-react-native';
 import {
   AppButton,
   AppText,
   Avatar,
-  Card,
   GlassCard,
   GradientCard,
   IconButton,
-  OverviewStat,
   ProgressBar,
   Screen,
   SectionHeader,
 } from '../../src/components';
+import { LucideIcon } from '../../src/types/icons';
 import { useUserProfile } from '../../src/hooks/useUsers';
-import { useDonorProfile } from '../../src/hooks/useDonors';
-import { useProfileCompletion } from '../../src/hooks/useDonors';
+import { useDonorProfile, useProfileCompletion } from '../../src/hooks/useDonors';
 import { useNextAppointment } from '../../src/hooks/useAppointments';
 import { useDonationStatistics } from '../../src/hooks/useDonations';
-import { useGamificationProfile } from '../../src/hooks/useGamification';
+import { useGamificationProfile, useLevelProgress } from '../../src/hooks/useGamification';
 import { useUnreadCount } from '../../src/hooks/useNotifications';
 import { useDonorEmergencies } from '../../src/hooks/useEmergency';
 import { useAuthStore } from '../../src/stores/auth.store';
@@ -46,45 +50,35 @@ export default function Home() {
   const { data: nextAppointment } = useNextAppointment();
   const { data: donationStats } = useDonationStatistics();
   const { data: gamificationProfile } = useGamificationProfile();
+  const { data: levelProgress } = useLevelProgress();
   const { data: unreadCount } = useUnreadCount();
   const { data: emergencies } = useDonorEmergencies();
 
-  const fullName = userProfile ? [userProfile.firstName, userProfile.lastName].filter(Boolean).join(' ') : undefined;
+  const fullName = userProfile
+    ? [userProfile.firstName, userProfile.lastName].filter(Boolean).join(' ')
+    : undefined;
   const activeEmergencyCount = emergencies?.active.length ?? 0;
-
   const completion = completionData?.data;
+  const completionPercentage = completion?.percentage ?? 0;
 
   const firstName = userProfile?.firstName || user?.firstName || 'there';
   const greeting = getGreeting(firstName);
 
-  const bloodTypeDisplay = donorProfile?.bloodType && donorProfile?.rhFactor
-    ? `${donorProfile.bloodType}${donorProfile.rhFactor === 'POSITIVE' ? '+' : '-'}`
-    : '—';
+  const bloodTypeDisplay =
+    donorProfile?.bloodType && donorProfile?.rhFactor
+      ? `${donorProfile.bloodType}${donorProfile.rhFactor === 'POSITIVE' ? '+' : '-'}`
+      : '—';
 
-  const bloodTypeStatus = donorProfile?.verificationStatus === 'VERIFIED'
-    ? 'Verified'
-    : donorProfile?.verificationStatus === 'REQUIRES_REVIEW'
-    ? 'Under Review'
-    : 'Unverified';
+  const verification = getVerification(colors, donorProfile?.verificationStatus);
 
-  const bloodTypeColor = donorProfile?.verificationStatus === 'VERIFIED'
-    ? colors.successMuted
-    : donorProfile?.verificationStatus === 'REQUIRES_REVIEW'
-    ? colors.warningMuted
-    : colors.surfaceElevated;
-  const bloodTypeTextColor = donorProfile?.verificationStatus === 'VERIFIED'
-    ? colors.onMuted.success
-    : donorProfile?.verificationStatus === 'REQUIRES_REVIEW'
-    ? colors.onMuted.warning
-    : colors.textMuted;
+  // `nextEligibleDonationDate` is absent until the first donation sets a
+  // cooldown, so "no date" means eligible, not unknown.
+  const nextEligible = gamificationProfile?.nextEligibleDonationDate
+    ? new Date(gamificationProfile.nextEligibleDonationDate)
+    : null;
+  const isEligible = !nextEligible || nextEligible.getTime() <= Date.now();
 
-  const needsOnboarding = completion && completion.percentage < 50;
-
-  const handleCompleteProfile = () => {
-    if (needsOnboarding) {
-      router.push('/(onboarding)/complete-profile');
-    }
-  };
+  const appointmentDate = nextAppointment ? new Date(nextAppointment.scheduledStart) : null;
 
   return (
     <Screen>
@@ -97,244 +91,372 @@ export default function Home() {
               month: 'short',
             })}
           </AppText>
-          <AppText style={styles.greeting}>{greeting}</AppText>
+          <AppText style={styles.greeting}>{greeting} 👋</AppText>
+          <AppText muted style={styles.greetingNote}>
+            Every donation makes a difference.
+          </AppText>
         </View>
         <View style={styles.headerActions}>
           <IconButton
             icon={Bell}
             onPress={() => router.push('/(app)/notifications')}
             badge={unreadCount?.count}
+            accessibilityRole="button"
+            accessibilityLabel="Notifications"
           />
-          <TouchableOpacity onPress={() => router.push('/(app)/profile')}>
+          <TouchableOpacity
+            onPress={() => router.push('/(app)/profile')}
+            accessibilityRole="button"
+            accessibilityLabel="Your profile"
+          >
             <Avatar name={fullName ?? user?.firstName ?? 'Donor'} size={40} />
           </TouchableOpacity>
         </View>
       </View>
 
-      {needsOnboarding && (
-        <GlassCard style={styles.onboardingPrompt}>
-          <AppText variant="heading">Complete Your Profile</AppText>
-          <AppText muted style={styles.onboardingText}>
-            Your profile is {completion.percentage}% complete. Complete it to access all features.
-          </AppText>
-          <AppButton onPress={handleCompleteProfile} style={styles.onboardingButton}>
-            Complete Profile
-          </AppButton>
-        </GlassCard>
-      )}
-
-      <GradientCard
-        colors={colors.heroGradient}
-        style={styles.bloodTypeCard}
-      >
+      <GradientCard colors={colors.heroGradient} style={styles.heroCard}>
         <View style={styles.heroTopRow}>
           <View style={styles.heroTopLeft}>
-            <View style={styles.bloodTypeHeader}>
-              <Droplet size={14} color="rgba(255,255,255,0.7)" fill="rgba(255,255,255,0.5)" />
-              <AppText style={styles.bloodTypeLabel}>BLOOD TYPE</AppText>
+            <View style={styles.heroEyebrow}>
+              <Droplet size={13} color="rgba(255,255,255,0.75)" fill="rgba(255,255,255,0.5)" />
+              <AppText style={styles.heroEyebrowText}>BLOOD TYPE</AppText>
             </View>
-            <AppText style={styles.bloodTypeValue}>{bloodTypeDisplay}</AppText>
-            <View style={styles.bloodTypeContent}>
-              <View style={[styles.statusBadge, { backgroundColor: bloodTypeColor }]}>
-                <AppText style={[styles.statusText, { color: bloodTypeTextColor }]}>
-                  {bloodTypeStatus}
+            <View style={styles.heroTypeRow}>
+              <AppText style={styles.heroTypeValue}>{bloodTypeDisplay}</AppText>
+              {/*
+                The badge and the (i) are one control, and it goes where the
+                status can actually be changed. An info glyph that only sits
+                there is a question the screen refuses to answer.
+              */}
+              <Pressable
+                onPress={() => router.push('/(app)/profile/donor')}
+                accessibilityRole="button"
+                accessibilityLabel={`Blood type status: ${verification.badge}. Open donor profile`}
+                style={[styles.statusBadge, { backgroundColor: verification.badgeFill }]}
+              >
+                <AppText style={[styles.statusText, { color: verification.badgeText }]}>
+                  {verification.badge}
+                </AppText>
+                <Info size={13} color={verification.badgeText} />
+              </Pressable>
+            </View>
+            {donorProfile?.city && (
+              <View style={styles.heroLocation}>
+                <MapPin size={12} color="rgba(255,255,255,0.7)" />
+                <AppText style={styles.heroLocationText}>
+                  {donorProfile.city}
+                  {donorProfile.district ? `, ${donorProfile.district}` : ''}
                 </AppText>
               </View>
-              {donorProfile?.city && (
-                <View style={styles.locationRow}>
-                  <MapPin size={11} color="rgba(255,255,255,0.65)" />
-                  <AppText style={styles.locationText}>
-                    {donorProfile.city}
-                    {donorProfile.district ? `, ${donorProfile.district}` : ''}
-                  </AppText>
-                </View>
-              )}
+            )}
+          </View>
+
+          <Pressable
+            onPress={() => router.push('/(app)/profile/donor')}
+            accessibilityRole="button"
+            accessibilityLabel={verification.note}
+            style={styles.heroVerification}
+          >
+            <View style={styles.heroShield}>
+              <Shield size={26} color="#FFFFFF" strokeWidth={1.5} />
             </View>
-          </View>
-          <View style={styles.heroShield}>
-            <Shield size={28} color="#FFFFFF" strokeWidth={1.5} />
-          </View>
+            <View style={styles.heroVerificationRow}>
+              <AppText style={styles.heroVerificationText}>{verification.note}</AppText>
+              <ChevronRight size={15} color="rgba(255,255,255,0.75)" />
+            </View>
+          </Pressable>
         </View>
+
         <View style={styles.heroDivider} />
+
         <View style={styles.heroStatsRow}>
-          <View style={styles.heroStatItem}>
-            <AppText style={styles.heroStatValue}>{donationStats?.completedCount ?? 0}</AppText>
-            <AppText style={styles.heroStatLabel}>Donations</AppText>
-          </View>
-          <View style={styles.heroStatItem}>
-            <View style={styles.heroStatValueRow}>
-              <AppText style={styles.heroStatValue}>
-                {donationStats?.totalVolumeMl ? (donationStats.totalVolumeMl / 1000).toFixed(1) : '0'}
-              </AppText>
-              <AppText style={styles.heroStatUnit}>L</AppText>
-            </View>
-            <AppText style={styles.heroStatLabel}>Total volume</AppText>
-          </View>
-          <View style={styles.heroStatItem}>
-            <AppText style={styles.heroStatValue}>{gamificationProfile?.emergencyResponseCount ?? 0}</AppText>
-            <AppText style={styles.heroStatLabel}>Emergency responses</AppText>
-          </View>
+          <HeroStat
+            icon={Droplet}
+            value={`${donationStats?.completedCount ?? 0}`}
+            label="Donations"
+          />
+          <HeroStat
+            icon={BarChart3}
+            value={
+              donationStats?.totalVolumeMl
+                ? (donationStats.totalVolumeMl / 1000).toFixed(1)
+                : '0'
+            }
+            unit="L"
+            label="Total volume"
+          />
+          <HeroStat
+            icon={Heart}
+            value={`${gamificationProfile?.emergencyResponseCount ?? 0}`}
+            label="Emergency responses"
+          />
         </View>
       </GradientCard>
 
-      {nextAppointment && (
-        <>
-          <SectionHeader>NEXT APPOINTMENT</SectionHeader>
-          <TouchableOpacity
-            onPress={() => router.push(`/appointment/${nextAppointment.id}`)}
-            activeOpacity={0.8}
-          >
-            <GlassCard tier="elevated" style={styles.appointmentCard}>
-              <View style={styles.appointmentHeader}>
-                <View style={styles.appointmentType}>
-                  <Droplet size={18} color={colors.primary} />
-                  <AppText style={styles.appointmentTypeText}>
-                    {nextAppointment.appointmentType.replace('_', ' ')}
-                  </AppText>
-                </View>
-                <View
-                  style={[
-                    styles.appointmentStatus,
-                    {
-                      backgroundColor:
-                        nextAppointment.status === 'CONFIRMED'
-                          ? colors.successMuted
-                          : colors.warningMuted,
-                    },
-                  ]}
-                >
-                  <AppText
-                    style={{
-                      fontSize: 10,
-                      fontWeight: '600',
-                      textTransform: 'uppercase',
-                      color:
-                        nextAppointment.status === 'CONFIRMED'
-                          ? colors.onMuted.success
-                          : colors.onMuted.warning,
-                    }}
-                  >
-                    {nextAppointment.status}
-                  </AppText>
-                </View>
+      {/*
+        Three questions a donor opens the app with -- can I give, when am I
+        booked, how far along am I -- answered side by side instead of stacked
+        down the screen as three full-width cards.
+      */}
+      <View style={styles.statusRow}>
+        <StatusCard
+          icon={CalendarCheck}
+          accent={colors.success}
+          label="Donation eligibility"
+          value={isEligible ? 'Eligible now' : formatDay(nextEligible!)}
+          valueColor={isEligible ? colors.onMuted.success : colors.text}
+          note={
+            isEligible
+              ? 'You can schedule a donation today.'
+              : 'Your next donation window opens then.'
+          }
+          onPress={() => router.push('/(booking)/select-type')}
+        />
+        <StatusCard
+          icon={CalendarDays}
+          accent={colors.secondary}
+          label="Next appointment"
+          value={appointmentDate ? formatDay(appointmentDate) : 'No appointment'}
+          note={
+            appointmentDate
+              ? `${formatTime(appointmentDate)} · ${nextAppointment!.organization.name}`
+              : 'Schedule your next donation.'
+          }
+          onPress={() =>
+            nextAppointment
+              ? router.push(`/appointment/${nextAppointment.id}`)
+              : router.push('/(booking)/select-type')
+          }
+        />
+        <StatusCard
+          icon={Star}
+          accent={colors.ai}
+          label="Level & XP"
+          value={`Level ${levelProgress?.currentLevel ?? gamificationProfile?.level ?? 1}`}
+          note={
+            levelProgress
+              ? `${levelProgress.currentXp} / ${levelProgress.xpForNextLevel} XP`
+              : `${gamificationProfile?.totalXp ?? 0} XP`
+          }
+          progress={levelProgress?.progress ?? gamificationProfile?.progress}
+          onPress={() => router.push('/(app)/gamification')}
+        />
+      </View>
+
+      {completionPercentage < 100 && (
+        <Pressable
+          onPress={() => router.push('/(onboarding)/complete-profile')}
+          accessibilityRole="button"
+          accessibilityLabel={`Complete your donor profile, ${completionPercentage} percent done`}
+        >
+          <GlassCard style={styles.completionCard}>
+            <View style={styles.completionRow}>
+              <View style={styles.completionIcon}>
+                <UserRound size={22} color={colors.textMuted} />
               </View>
-              <View style={styles.appointmentDetails}>
-                <View style={styles.appointmentInfo}>
-                  <Calendar size={14} color={colors.textMuted} />
-                  <AppText muted style={styles.appointmentInfoText}>
-                    {new Date(nextAppointment.scheduledStart).toLocaleDateString('en-US', {
-                      weekday: 'short',
-                      month: 'short',
-                      day: 'numeric',
-                    })}
-                  </AppText>
-                </View>
-                <View style={styles.appointmentInfo}>
-                  <Clock size={14} color={colors.textMuted} />
-                  <AppText muted style={styles.appointmentInfoText}>
-                    {new Date(nextAppointment.scheduledStart).toLocaleTimeString('en-US', {
-                      hour: 'numeric',
-                      minute: '2-digit',
-                      hour12: true,
-                    })}
-                  </AppText>
-                </View>
-              </View>
-              <View style={styles.appointmentFooter}>
-                <AppText numberOfLines={1} style={styles.appointmentOrg}>
-                  {nextAppointment.organization.name}
+              <View style={{ flex: 1 }}>
+                <AppText style={styles.completionTitle}>Complete your donor profile</AppText>
+                <AppText muted style={styles.completionNote}>
+                  Add the remaining information to finish setup.
                 </AppText>
-                <ChevronRight size={18} color={colors.textMuted} />
               </View>
-            </GlassCard>
-          </TouchableOpacity>
-        </>
+              <ChevronRight size={18} color={colors.textMuted} />
+            </View>
+            <View style={styles.completionProgressRow}>
+              <View style={{ flex: 1 }}>
+                <ProgressBar progress={completionPercentage} />
+              </View>
+              <AppText muted style={styles.completionPercent}>
+                {completionPercentage}%
+              </AppText>
+            </View>
+          </GlassCard>
+        </Pressable>
       )}
 
-      <SectionHeader>YOUR OVERVIEW</SectionHeader>
-      <View style={styles.statsRow}>
-        <OverviewStat
-          icon={Droplet}
-          color="primary"
-          value={donationStats?.completedCount ?? 0}
-          label="Donations"
-          onPress={() => router.push('/donations')}
-          style={styles.donationStatCard}
-        />
-        <OverviewStat
-          icon={TrendingUp}
-          color="secondary"
-          value={donationStats?.totalVolumeMl ? (donationStats.totalVolumeMl / 1000).toFixed(1) : '0'}
-          unit="L"
-          label="Total volume"
-          style={styles.donationStatCard}
-        />
-        <OverviewStat
-          icon={Zap}
-          color="warning"
-          value={gamificationProfile?.totalXp ?? 0}
-          label="XP points"
-          onPress={() => router.push('/(app)/gamification')}
-          style={styles.donationStatCard}
-        />
-      </View>
-
-      <SectionHeader>PROFILE</SectionHeader>
-      <Card>
-        <View style={styles.profileStat}>
-          <View style={{ flex: 1 }}>
-            <AppText style={styles.completionTitle}>Complete your profile</AppText>
-            <AppText muted style={styles.completionNote}>
-              Add medical info to unlock all features
-            </AppText>
-          </View>
-          <View style={styles.completionBadge}>
-            <AppText style={styles.completionBadgeText}>{completion?.percentage || 0}%</AppText>
-          </View>
-        </View>
-        <ProgressBar progress={completion?.percentage || 0} color={colors.success} />
-      </Card>
-
-      <SectionHeader>QUICK ACTIONS</SectionHeader>
-      <View style={styles.quickActions}>
-        <AppButton
-          variant="secondary"
-          size="small"
-          onPress={() => router.push('/(app)/profile/donor')}
-          style={styles.quickAction}
-        >
-          Edit Donor Profile
-        </AppButton>
-        <AppButton
-          variant="secondary"
-          size="small"
-          onPress={() => router.push('/(app)/profile/edit')}
-          style={styles.quickAction}
-        >
-          Edit Personal Info
-        </AppButton>
-      </View>
-
-      <SectionHeader>EMERGENCY</SectionHeader>
-      <GlassCard tier="danger" style={styles.sosCard}>
-        <View style={styles.sosRow}>
-          <View style={{ flex: 1 }}>
-            <View style={styles.sosHeader}>
-              {activeEmergencyCount > 0 && <View style={styles.sosPulseDot} />}
-              <AppText style={styles.sosTitle}>Emergency Requests</AppText>
+      <SectionHeader action={{ label: 'View all', onPress: () => router.push('/sos') }}>
+        Emergency
+      </SectionHeader>
+      <Pressable
+        onPress={() => router.push('/sos')}
+        accessibilityRole="button"
+        accessibilityLabel={
+          activeEmergencyCount > 0
+            ? `${activeEmergencyCount} emergency requests matched to you`
+            : 'Emergency requests'
+        }
+      >
+        <GlassCard tier="danger">
+          <View style={styles.emergencyRow}>
+            <View style={styles.emergencyIcon}>
+              <Siren size={24} color={colors.onMuted.danger} />
             </View>
-            <AppText muted style={styles.sosText}>
-              {activeEmergencyCount > 0
-                ? `${activeEmergencyCount} urgent ${activeEmergencyCount === 1 ? 'request' : 'requests'} near you`
-                : 'No active emergency requests right now'}
-            </AppText>
+            <View style={{ flex: 1 }}>
+              <AppText style={styles.emergencyTitle}>
+                {activeEmergencyCount > 0
+                  ? `${activeEmergencyCount} emergency ${
+                      activeEmergencyCount === 1 ? 'request' : 'requests'
+                    } matched to you`
+                  : 'No emergency requests right now'}
+              </AppText>
+              <AppText muted style={styles.emergencyNote}>
+                {activeEmergencyCount > 0
+                  ? 'Nearby patients need your help.'
+                  : "We'll alert you the moment someone nearby needs your blood type."}
+              </AppText>
+            </View>
+            {activeEmergencyCount > 0 ? (
+              <AppButton variant="danger" size="small" onPress={() => router.push('/sos')}>
+                View requests
+              </AppButton>
+            ) : (
+              <ChevronRight size={18} color={colors.textMuted} />
+            )}
           </View>
-          <AppButton variant="danger" size="small" onPress={() => router.push('/sos')}>
-            SOS Area
-          </AppButton>
+        </GlassCard>
+      </Pressable>
+
+      <SectionHeader>Quick actions</SectionHeader>
+      <View style={styles.quickActions}>
+        <QuickAction
+          icon={Droplet}
+          accent={colors.primary}
+          label={'Schedule\nDonation'}
+          onPress={() => router.push('/(booking)/select-type')}
+        />
+        <QuickAction
+          icon={FileText}
+          accent={colors.secondary}
+          label={'Edit Donor\nProfile'}
+          onPress={() => router.push('/(app)/profile/donor')}
+        />
+        <QuickAction
+          icon={UserRound}
+          accent={colors.secondary}
+          label={'Edit Personal\nInfo'}
+          onPress={() => router.push('/(app)/profile/edit')}
+        />
+        <QuickAction
+          icon={BookOpen}
+          accent={colors.ai}
+          label={'Learn About\nDonation'}
+          onPress={() => router.push('/education')}
+        />
+      </View>
+    </Screen>
+  );
+}
+
+function HeroStat({
+  icon: Icon,
+  value,
+  unit,
+  label,
+}: {
+  icon: LucideIcon;
+  value: string;
+  unit?: string;
+  label: string;
+}) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  return (
+    <View style={styles.heroStat}>
+      <View style={styles.heroStatIcon}>
+        <Icon size={14} color="#FFFFFF" />
+      </View>
+      <View style={{ flex: 1 }}>
+        <View style={styles.heroStatValueRow}>
+          <AppText style={styles.heroStatValue}>{value}</AppText>
+          {unit && <AppText style={styles.heroStatUnit}>{unit}</AppText>}
+        </View>
+        <AppText style={styles.heroStatLabel}>{label}</AppText>
+      </View>
+    </View>
+  );
+}
+
+function StatusCard({
+  icon: Icon,
+  accent,
+  label,
+  value,
+  valueColor,
+  note,
+  progress,
+  onPress,
+}: {
+  icon: LucideIcon;
+  accent: string;
+  label: string;
+  value: string;
+  valueColor?: string;
+  note: string;
+  progress?: number;
+  onPress: () => void;
+}) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`${label}: ${value}. ${note}`}
+      style={styles.statusCardWrapper}
+    >
+      <GlassCard style={styles.statusCard}>
+        <View style={[styles.statusIcon, { backgroundColor: `${accent}26` }]}>
+          <Icon size={17} color={accent} />
+        </View>
+        <AppText muted style={styles.statusLabel} numberOfLines={2}>
+          {label}
+        </AppText>
+        <AppText style={[styles.statusValue, valueColor ? { color: valueColor } : null]} numberOfLines={1}>
+          {value}
+        </AppText>
+        {progress !== undefined && (
+          <View style={styles.statusProgress}>
+            <ProgressBar progress={progress} color={accent} />
+          </View>
+        )}
+        <View style={styles.statusFooter}>
+          <AppText muted style={styles.statusNote} numberOfLines={2}>
+            {note}
+          </AppText>
+          <ChevronRight size={14} color={colors.textMuted} />
         </View>
       </GlassCard>
-    </Screen>
+    </Pressable>
+  );
+}
+
+function QuickAction({
+  icon: Icon,
+  accent,
+  label,
+  onPress,
+}: {
+  icon: LucideIcon;
+  accent: string;
+  label: string;
+  onPress: () => void;
+}) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label.replace('\n', ' ')}
+      style={styles.quickActionWrapper}
+    >
+      <GlassCard style={styles.quickActionCard}>
+        <View style={[styles.quickActionIcon, { backgroundColor: `${accent}26` }]}>
+          <Icon size={19} color={accent} />
+        </View>
+        <AppText style={styles.quickActionLabel}>{label}</AppText>
+      </GlassCard>
+    </Pressable>
   );
 }
 
@@ -353,13 +475,53 @@ function getGreeting(name: string): string {
   return `${timeGreeting}, ${name}`;
 }
 
+/** Badge wording, badge colour and the sentence beside the shield, in one place. */
+function getVerification(colors: ThemeColors, status: string | undefined): {
+  badge: string;
+  badgeFill: string;
+  badgeText: string;
+  note: string;
+} {
+  if (status === 'VERIFIED') {
+    return {
+      badge: 'VERIFIED',
+      badgeFill: colors.successMuted,
+      badgeText: colors.onMuted.success,
+      note: 'Blood type verified',
+    };
+  }
+  if (status === 'REQUIRES_REVIEW') {
+    return {
+      badge: 'UNDER REVIEW',
+      badgeFill: colors.warningMuted,
+      badgeText: colors.onMuted.warning,
+      note: 'Verification in progress',
+    };
+  }
+  return {
+    badge: 'UNVERIFIED',
+    badgeFill: 'rgba(255,255,255,0.18)',
+    badgeText: '#FFFFFF',
+    note: 'Verify your blood type',
+  };
+}
+
+function formatDay(date: Date): string {
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function formatTime(date: Date): string {
+  return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+}
+
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
     headerRow: {
       flexDirection: 'row',
-      alignItems: 'center',
+      alignItems: 'flex-start',
       justifyContent: 'space-between',
-      marginBottom: layout.cardGap,
+      gap: spacing.sm,
+      marginBottom: spacing.md,
     },
     headerText: {
       flex: 1,
@@ -369,116 +531,130 @@ function createStyles(colors: ThemeColors) {
       alignItems: 'center',
       gap: spacing.sm,
     },
-    // The reference's greeting block is deliberately smaller than a screen
-    // title: a sentence-cased date over a 22pt greeting, not a shouted
-    // all-caps label over a 27pt heading.
     dateLabel: {
-      fontSize: 12,
-      fontWeight: '500',
-      letterSpacing: 0.24,
+      fontSize: 13,
+      marginBottom: 2,
     },
     greeting: {
-      fontSize: 22,
-      fontWeight: '700',
-      letterSpacing: -0.44,
-      marginTop: 2,
+      fontSize: 24,
+      lineHeight: 30,
+      fontWeight: '800',
+      letterSpacing: -0.6,
+      color: colors.text,
     },
-    onboardingPrompt: {
-      marginBottom: layout.cardGap,
-      borderColor: colors.primary,
-      borderWidth: 1,
+    greetingNote: {
+      fontSize: 13,
+      marginTop: 4,
     },
-    onboardingText: {
-      marginTop: spacing.xs,
-      marginBottom: spacing.md,
-    },
-    onboardingButton: {
-      alignSelf: 'flex-start',
-    },
-    bloodTypeCard: {
+
+    heroCard: {
       marginBottom: layout.cardGap,
     },
     heroTopRow: {
       flexDirection: 'row',
-      justifyContent: 'space-between',
       alignItems: 'flex-start',
+      gap: spacing.md,
     },
     heroTopLeft: {
       flex: 1,
     },
-    // A translucent white chip holding the verification shield, top-right of
-    // the hero -- the reference's counterweight to the blood-type letter.
-    heroShield: {
-      width: 60,
-      height: 60,
-      borderRadius: 18,
-      backgroundColor: 'rgba(255,255,255,0.15)',
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    bloodTypeHeader: {
+    heroEyebrow: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: spacing.sm,
-      marginBottom: 4,
+      gap: 6,
     },
-    bloodTypeContent: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.sm,
-      marginTop: 10,
-    },
-    locationRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 4,
-    },
-    // The blood type card is a vivid, saturated brand gradient rather than a
-    // theme surface, so its text is fixed white in both themes -- the same
-    // choice the reference design makes -- instead of `colors.text`, which
-    // would go near-black and vanish in light mode.
-    bloodTypeLabel: {
+    heroEyebrowText: {
       fontSize: 11,
-      fontWeight: '600',
-      letterSpacing: 1.1,
-      color: 'rgba(255,255,255,0.7)',
+      fontWeight: '700',
+      letterSpacing: 1.3,
+      color: 'rgba(255,255,255,0.78)',
     },
-    // 64pt on Home specifically -- larger than the shared `bloodType` token,
-    // matching the reference, where this is the single biggest glyph anywhere.
-    bloodTypeValue: {
-      fontSize: 64,
+    heroTypeRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flexWrap: 'wrap',
+      gap: spacing.sm,
+      marginTop: 2,
+    },
+    heroTypeValue: {
+      fontSize: 46,
+      lineHeight: 54,
       fontWeight: '800',
-      lineHeight: 64,
-      letterSpacing: -2.56,
+      letterSpacing: -2,
       color: '#FFFFFF',
     },
     statusBadge: {
-      paddingHorizontal: spacing.sm,
-      paddingVertical: spacing.xs,
-      borderRadius: spacing.xs,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 5,
+      minHeight: 28,
+      paddingHorizontal: 10,
+      borderRadius: radius.pill,
     },
     statusText: {
       fontSize: 11,
-      fontWeight: '600',
-      textTransform: 'uppercase',
-      letterSpacing: 0.5,
+      fontWeight: '700',
+      letterSpacing: 0.4,
     },
-    locationText: {
+    heroLocation: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      marginTop: 6,
+    },
+    heroLocationText: {
       fontSize: 12,
-      color: 'rgba(255,255,255,0.65)',
+      color: 'rgba(255,255,255,0.8)',
+    },
+    heroVerification: {
+      width: 104,
+      alignItems: 'center',
+    },
+    heroShield: {
+      width: 56,
+      height: 56,
+      borderRadius: radius.md,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: 'rgba(255,255,255,0.16)',
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.22)',
+    },
+    heroVerificationRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 2,
+      marginTop: 8,
+    },
+    heroVerificationText: {
+      flex: 1,
+      fontSize: 11,
+      lineHeight: 15,
+      textAlign: 'center',
+      color: 'rgba(255,255,255,0.86)',
     },
     heroDivider: {
-      marginTop: spacing.md,
       height: 1,
-      backgroundColor: 'rgba(255,255,255,0.15)',
+      backgroundColor: 'rgba(255,255,255,0.2)',
+      marginVertical: spacing.md,
     },
     heroStatsRow: {
       flexDirection: 'row',
-      justifyContent: 'space-between',
-      marginTop: spacing.md,
+      gap: spacing.sm,
     },
-    heroStatItem: {
+    heroStat: {
+      flex: 1,
+      flexDirection: 'row',
       alignItems: 'center',
+      gap: 8,
+    },
+    heroStatIcon: {
+      width: 28,
+      height: 28,
+      borderRadius: 10,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: 'rgba(255,255,255,0.18)',
     },
     heroStatValueRow: {
       flexDirection: 'row',
@@ -486,144 +662,157 @@ function createStyles(colors: ThemeColors) {
       gap: 2,
     },
     heroStatValue: {
-      fontSize: 18,
-      fontWeight: '700',
+      fontSize: 19,
+      fontWeight: '800',
+      letterSpacing: -0.5,
       color: '#FFFFFF',
     },
     heroStatUnit: {
-      fontSize: 12,
-      fontWeight: '500',
-      color: 'rgba(255,255,255,0.7)',
+      fontSize: 11,
+      fontWeight: '600',
+      color: 'rgba(255,255,255,0.8)',
     },
     heroStatLabel: {
-      fontSize: 11,
-      color: 'rgba(255,255,255,0.6)',
-      marginTop: 2,
+      fontSize: 10,
+      lineHeight: 13,
+      color: 'rgba(255,255,255,0.78)',
     },
-    statsRow: {
+
+    statusRow: {
       flexDirection: 'row',
-      gap: 10,
+      gap: layout.cardGap,
       marginBottom: layout.cardGap,
     },
-    profileStat: {
+    statusCardWrapper: {
+      flex: 1,
+    },
+    statusCard: {
+      flex: 1,
+      padding: 12,
+    },
+    statusIcon: {
+      width: 32,
+      height: 32,
+      borderRadius: 10,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: spacing.sm,
+    },
+    statusLabel: {
+      fontSize: 11,
+      lineHeight: 14,
+    },
+    statusValue: {
+      fontSize: 15,
+      fontWeight: '700',
+      letterSpacing: -0.3,
+      marginTop: 2,
+      color: colors.text,
+    },
+    statusProgress: {
+      marginTop: 8,
+    },
+    statusFooter: {
       flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'flex-start',
-      marginBottom: 10,
+      alignItems: 'flex-end',
+      gap: 4,
+      marginTop: 6,
+    },
+    statusNote: {
+      flex: 1,
+      fontSize: 10,
+      lineHeight: 13,
+    },
+
+    completionCard: {
+      marginBottom: layout.cardGap,
+    },
+    completionRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
+    completionIcon: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.surfaceElevated,
+      borderWidth: 1,
+      borderColor: colors.border,
     },
     completionTitle: {
-      fontSize: 14,
-      fontWeight: '600',
-      marginBottom: 2,
+      fontSize: 15,
+      fontWeight: '700',
+      color: colors.text,
     },
     completionNote: {
       fontSize: 12,
+      marginTop: 2,
     },
-    // A success-tinted pill, not a neutral chip: the percentage is progress,
-    // and the reference colours it accordingly.
-    completionBadge: {
-      backgroundColor: `${colors.success}26`,
-      paddingHorizontal: 10,
-      paddingVertical: 3,
-      borderRadius: radius.pill,
+    completionProgressRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      marginTop: spacing.sm,
     },
-    completionBadgeText: {
-      fontSize: 14,
+    completionPercent: {
+      fontSize: 12,
       fontWeight: '700',
-      color: colors.success,
     },
+
+    emergencyRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
+    emergencyIcon: {
+      width: 46,
+      height: 46,
+      borderRadius: radius.md,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.dangerMuted,
+    },
+    emergencyTitle: {
+      fontSize: 14,
+      lineHeight: 19,
+      fontWeight: '700',
+      color: colors.text,
+    },
+    emergencyNote: {
+      fontSize: 12,
+      lineHeight: 16,
+      marginTop: 2,
+    },
+
     quickActions: {
       flexDirection: 'row',
-      gap: 10,
-      marginBottom: layout.cardGap,
+      gap: layout.cardGap,
     },
-    quickAction: {
+    quickActionWrapper: {
       flex: 1,
     },
-    // Border and fill come from the danger tier itself -- overriding the
-    // border here with the full-saturation accent made the card shout louder
-    // than the reference's rose tint intends.
-    sosCard: {},
-    sosRow: {
-      flexDirection: 'row',
+    quickActionCard: {
+      flex: 1,
+      padding: 10,
       alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: spacing.md,
     },
-    sosHeader: {
-      flexDirection: 'row',
+    quickActionIcon: {
+      width: 38,
+      height: 38,
+      borderRadius: 12,
       alignItems: 'center',
-      gap: 6,
-      marginBottom: 4,
+      justifyContent: 'center',
+      marginBottom: 8,
     },
-    sosTitle: {
-      fontSize: 14,
-      fontWeight: '700',
-      color: colors.danger,
-    },
-    // The halo around the dot is the reference's `box-shadow: 0 0 0 3px`
-    // ring, rendered here as a border on a slightly larger box.
-    sosPulseDot: {
-      width: 8,
-      height: 8,
-      borderRadius: 4,
-      backgroundColor: colors.danger,
-      borderWidth: 3,
-      borderColor: 'rgba(216,83,96,0.30)',
-    },
-    sosText: {
-      fontSize: 12,
-    },
-    appointmentCard: {
-      padding: spacing.lg,
-      marginBottom: layout.cardGap,
-    },
-    appointmentHeader: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: spacing.sm,
-    },
-    appointmentType: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.xs,
-    },
-    appointmentTypeText: {
-      fontSize: 14,
+    quickActionLabel: {
+      fontSize: 11,
+      lineHeight: 14,
       fontWeight: '600',
-      textTransform: 'capitalize',
-    },
-    appointmentStatus: {
-      paddingHorizontal: spacing.sm,
-      paddingVertical: spacing.xs,
-      borderRadius: radius.sm,
-    },
-    appointmentDetails: {
-      flexDirection: 'row',
-      gap: spacing.lg,
-      marginBottom: spacing.sm,
-    },
-    appointmentInfo: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.xs,
-    },
-    appointmentInfoText: {
-      fontSize: 13,
-    },
-    appointmentFooter: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-    },
-    appointmentOrg: {
-      fontSize: 13,
-      flex: 1,
-      marginRight: spacing.sm,
-    },
-    donationStatCard: {
-      flex: 1,
+      textAlign: 'center',
+      color: colors.text,
     },
   });
 }

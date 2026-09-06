@@ -61,8 +61,8 @@ export function GlassTabBar({ state, descriptors, navigation }: BottomTabBarProp
         borderRadius: radius.pill,
         borderWidth: 1,
         borderColor: nav.border,
-        paddingVertical: 10,
-        paddingHorizontal: 6,
+        paddingVertical: 8,
+        paddingHorizontal: 4,
         overflow: 'hidden',
       }}
     >
@@ -108,40 +108,51 @@ export function GlassTabBar({ state, descriptors, navigation }: BottomTabBarProp
                 style={{
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: 2,
+                  gap: 3,
                   minWidth: 44,
                   minHeight: 44,
-                  paddingVertical: 6,
-                  paddingHorizontal: 10,
-                  borderRadius: radius.pill,
-                  backgroundColor: focused ? colors.primary : 'transparent',
                   transform: [{ scale: pressed ? 0.94 : 1 }],
-                  // The active pill carries its own rose glow, so the selected
-                  // tab lifts off the bar rather than just changing color.
-                  shadowColor: colors.primary,
-                  shadowOpacity: focused ? 0.38 : 0,
-                  shadowRadius: 10,
-                  shadowOffset: { width: 0, height: 2 },
-                  elevation: focused ? 4 : 0,
                 }}
               >
-                {options.tabBarIcon?.({ focused, color, size: focused ? 17 : 20 })}
-                {/* Only the active tab is labelled -- the reference keeps the
-                    inactive tabs icon-only so the selected one reads clearly. */}
-                {focused && (
-                  <AppText
-                    style={{
-                      fontSize: 9,
-                      fontWeight: '700',
-                      color,
-                      letterSpacing: 0.36,
-                      lineHeight: 11,
-                    }}
-                    numberOfLines={1}
-                  >
-                    {label}
-                  </AppText>
-                )}
+                {/*
+                  The pill wraps the icon alone, with the label underneath it.
+                  Wrapping both meant only the active tab could be labelled --
+                  a bar of five unlabelled glyphs, where a droplet and a heart
+                  next to each other are a guess. Every tab is named now, and
+                  the pill still says which one you are on.
+                */}
+                <View
+                  style={{
+                    width: 42,
+                    height: 30,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderRadius: radius.pill,
+                    backgroundColor: focused ? colors.primary : 'transparent',
+                    // The active pill carries its own rose glow, so the
+                    // selected tab lifts off the bar rather than just changing
+                    // color.
+                    shadowColor: colors.primary,
+                    shadowOpacity: focused ? 0.38 : 0,
+                    shadowRadius: 10,
+                    shadowOffset: { width: 0, height: 2 },
+                    elevation: focused ? 4 : 0,
+                  }}
+                >
+                  {options.tabBarIcon?.({ focused, color, size: 19 })}
+                </View>
+                <AppText
+                  style={{
+                    fontSize: 9.5,
+                    fontWeight: focused ? '700' : '500',
+                    color: focused ? colors.text : colors.textMuted,
+                    letterSpacing: 0.2,
+                    lineHeight: 12,
+                  }}
+                  numberOfLines={1}
+                >
+                  {label}
+                </AppText>
               </View>
             )}
           </Pressable>
