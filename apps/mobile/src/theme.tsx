@@ -54,6 +54,12 @@ export interface ThemeColors {
   /** The monochrome rose/plum hero gradient used on every "featured" GradientCard (blood type, donate CTA, health trend). */
   heroGradient: [string, string, string];
   /**
+   * The call-to-action gradient: rose on the left running to violet on the
+   * right. Brighter and shorter than `heroGradient`, which ends in a plum dark
+   * enough to swallow white label text at the right edge of a button.
+   */
+  ctaGradient: [string, string];
+  /**
    * The three glass tiers of the Create Design system. Each tier is a complete
    * material — its own fill, border, blur strength and shadow — rather than a
    * single surface with an opacity knob, which is what makes "floating chrome"
@@ -114,6 +120,7 @@ const darkColors: ThemeColors = {
   background: '#070B12',
   backgroundGradient: ['#0E1625', '#08101C', '#040609'],
   heroGradient: ['#D85360', '#8E3A59', '#5B3080'],
+  ctaGradient: ['#E2495F', '#8B4BC8'],
   glass: {
     nav: {
       fill: 'rgba(255,255,255,0.11)',
@@ -184,6 +191,7 @@ const lightColors: ThemeColors = {
   background: '#EFF1F9',
   backgroundGradient: ['#F8F0FC', '#EEEEFC', '#E6EFF9'],
   heroGradient: ['#D85360', '#8E3A59', '#5B3080'],
+  ctaGradient: ['#D8455B', '#7E43B8'],
   glass: {
     nav: {
       fill: 'rgba(255,255,255,0.88)',

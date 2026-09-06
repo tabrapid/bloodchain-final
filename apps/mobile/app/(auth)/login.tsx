@@ -2,13 +2,13 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Pressable, View } from 'react-native';
-import { ArrowLeft, Eye, EyeOff } from 'lucide-react-native';
+import { ArrowRight, ChevronLeft, Eye, EyeOff, Lock, Mail, ShieldCheck } from 'lucide-react-native';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema, type LoginInput } from '@bloodchain/validation';
-import { AppButton, AppText, AppTextInput, Screen } from '../../src/components';
+import { AppButton, AppText, AppTextInput, IconButton, Screen } from '../../src/components';
 import { useLogin, getAuthErrorMessage } from '../../src/hooks/useAuth';
 import { getPostAuthRoute } from '../../src/utils/postAuthRoute';
-import { spacing, useTheme } from '../../src/theme';
+import { layout, spacing, useTheme } from '../../src/theme';
 
 export default function Login() {
   const { colors } = useTheme();
@@ -38,32 +38,21 @@ export default function Login() {
 
   return (
     <Screen>
-      <Pressable
+      <IconButton
+        icon={ChevronLeft}
         onPress={() => router.back()}
         accessibilityRole="button"
         accessibilityLabel="Go back"
-        style={({ pressed }) => ({
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: 6,
-          minHeight: 44,
-          alignSelf: 'flex-start',
-          paddingRight: spacing.sm,
-          opacity: pressed ? 0.6 : 1,
-        })}
-      >
-        <ArrowLeft size={16} color={colors.primary} strokeWidth={2.5} />
-        <AppText style={{ fontSize: 14, fontWeight: '600', color: colors.primary }}>Back</AppText>
-      </Pressable>
+      />
 
       <View style={{ marginTop: spacing.xl }}>
         {/* The auth headlines are the one place the reference goes bigger and
             heavier than the standard screen title. */}
-        <AppText variant="title" style={{ fontSize: 32, fontWeight: '800', letterSpacing: -0.96 }}>
-          Welcome back.
+        <AppText style={{ fontSize: 34, fontWeight: '800', letterSpacing: -1, color: colors.text }}>
+          Welcome back
         </AppText>
-        <AppText muted style={{ fontSize: 14, marginTop: 6, marginBottom: spacing.xl }}>
-          Sign in to continue saving lives.
+        <AppText muted style={{ fontSize: 15, marginTop: 6, marginBottom: spacing.xl }}>
+          Sign in to your DONOR account
         </AppText>
 
         <Controller
@@ -74,9 +63,11 @@ export default function Login() {
               label="Email address"
               placeholder="you@example.com"
               autoCapitalize="none"
+              autoComplete="email"
               keyboardType="email-address"
+              leading={<Mail size={19} color={colors.textMuted} />}
               error={fieldState.error?.message}
-              wrapperStyle={{ marginBottom: spacing.md }}
+              wrapperStyle={{ marginBottom: layout.cardGap }}
               value={field.value}
               onChangeText={field.onChange}
               onBlur={field.onBlur}
@@ -92,10 +83,17 @@ export default function Login() {
               label="Password"
               placeholder="••••••••"
               secureTextEntry={!showPassword}
+              autoComplete="password"
+              leading={<Lock size={19} color={colors.textMuted} />}
               error={fieldState.error?.message}
               wrapperStyle={{ marginBottom: spacing.lg }}
               trailing={
-                <Pressable onPress={() => setShowPassword((v) => !v)} hitSlop={8}>
+                <Pressable
+                  onPress={() => setShowPassword((v) => !v)}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+                >
                   {showPassword ? (
                     <EyeOff size={20} color={colors.textMuted} />
                   ) : (
@@ -117,11 +115,13 @@ export default function Login() {
         )}
 
         <AppButton
+          gradient
+          trailingIcon={ArrowRight}
           onPress={onSubmit}
           disabled={login.isPending || formState.isSubmitting}
           loading={login.isPending}
         >
-          Sign in
+          Sign In
         </AppButton>
 
         {unverifiedEmail && (
@@ -136,19 +136,43 @@ export default function Login() {
           </AppButton>
         )}
 
-        {/* The reference closes the form with a sentence, not a third
-            button -- a ghost button here reads as an equal alternative to
-            signing in, which it is not. */}
-        <AppText style={{ textAlign: 'center', fontSize: 13, color: colors.textMuted, marginTop: spacing.lg }}>
-          Don&apos;t have an account?{' '}
-          <AppText
-            onPress={() => router.push('/(auth)/register')}
-            accessibilityRole="link"
-            style={{ fontSize: 13, fontWeight: '600', color: colors.primary }}
-          >
-            Create one
+        {/* A labelled rule, not a third stacked button with a sentence over it:
+            the label *is* the separator, which is what keeps "Create Account"
+            reading as the other path rather than a second way to sign in. */}
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: spacing.md,
+            marginTop: spacing.xl,
+            marginBottom: spacing.md,
+          }}
+        >
+          <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
+          <AppText muted style={{ fontSize: 13 }}>
+            Don&apos;t have an account?
           </AppText>
-        </AppText>
+          <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
+        </View>
+
+        <AppButton variant="secondary" onPress={() => router.push('/(auth)/register')}>
+          Create Account
+        </AppButton>
+
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 6,
+            marginTop: spacing.xl,
+          }}
+        >
+          <ShieldCheck size={15} color={colors.onMuted.success} />
+          <AppText muted style={{ fontSize: 12 }}>
+            Your data is private and secure.
+          </AppText>
+        </View>
       </View>
     </Screen>
   );

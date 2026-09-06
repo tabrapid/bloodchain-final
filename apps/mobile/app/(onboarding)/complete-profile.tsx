@@ -1,17 +1,91 @@
 import { useMemo, useState } from 'react';
-import { Alert, View, StyleSheet } from 'react-native';
+import { Alert, Pressable, View, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import * as Location from 'expo-location';
-import { AppButton, AppText, AppTextInput, Screen, ProgressBar } from '../../src/components';
-import { spacing, radius, useTheme, ThemeColors } from '../../src/theme';
+import {
+  ArrowRight,
+  Bell,
+  CheckCircle2,
+  ChevronLeft,
+  Droplet,
+  HeartHandshake,
+  Info,
+  MapPin,
+  UserRound,
+} from 'lucide-react-native';
+import {
+  AppButton,
+  AppText,
+  AppTextInput,
+  GlassCard,
+  IconButton,
+  Screen,
+  StepRail,
+} from '../../src/components';
+import { LucideIcon } from '../../src/types/icons';
+import { layout, spacing, radius, useTheme, ThemeColors } from '../../src/theme';
 import { useUpdateDonorProfile } from '../../src/hooks/useDonors';
 import { useUpdateUserProfile } from '../../src/hooks/useUsers';
 import { useUpdateNotificationPreferences } from '../../src/hooks/useNotifications';
 import { useAuthStore } from '../../src/stores/auth.store';
 import { ApiRequestError } from '../../src/api/client';
 
-const STEPS = ['Welcome', 'Personal', 'Blood Type', 'Location', 'Notifications', 'Review'];
+/**
+ * Each step's icon, headline and one-line explanation live here rather than
+ * inside the six branches of `renderStep`, so the header renders them once and
+ * every step is guaranteed the same anatomy: badge, headline, explanation,
+ * controls. The branches are left with only the controls that differ.
+ */
+const STEPS: { icon: LucideIcon; title: string; subtitle: string }[] = [
+  {
+    icon: HeartHandshake,
+    title: 'Welcome to DONOR',
+    subtitle: 'Your journey to becoming a life-saver starts here. Let us set up your donor profile.',
+  },
+  {
+    icon: UserRound,
+    title: 'What should we call you?',
+    subtitle: 'This is the name blood centres will see on your appointments.',
+  },
+  {
+    icon: Droplet,
+    title: "What's your blood type?",
+    subtitle: 'This helps us match you with the requests you can actually answer.',
+  },
+  {
+    icon: MapPin,
+    title: 'Where are you based?',
+    subtitle: 'So we can point you at the donation centres nearest to you.',
+  },
+  {
+    icon: Bell,
+    title: 'What should we tell you about?',
+    subtitle: 'You can change any of these later in your profile.',
+  },
+  {
+    icon: CheckCircle2,
+    title: 'Does this look right?',
+    subtitle: 'One last check before we save your profile.',
+  },
+];
+
+/**
+ * The eight types a donor actually picks between. The previous flow asked for
+ * the ABO group and the Rh factor as two separate questions, which is how a
+ * blood type is *stored*, not how anyone knows their own -- people know "A-",
+ * not "A, negative".
+ */
+const BLOOD_TYPES: { label: string; type: string; rh: string }[] = [
+  { label: 'A+', type: 'A', rh: 'POSITIVE' },
+  { label: 'A-', type: 'A', rh: 'NEGATIVE' },
+  { label: 'B+', type: 'B', rh: 'POSITIVE' },
+  { label: 'B-', type: 'B', rh: 'NEGATIVE' },
+  { label: 'O+', type: 'O', rh: 'POSITIVE' },
+  { label: 'O-', type: 'O', rh: 'NEGATIVE' },
+  { label: 'AB+', type: 'AB', rh: 'POSITIVE' },
+  { label: 'AB-', type: 'AB', rh: 'NEGATIVE' },
+];
 
 export default function OnboardingWelcome() {
   const { colors } = useTheme();
@@ -130,19 +204,11 @@ export default function OnboardingWelcome() {
     }
   };
 
-  const progress = ((currentStep + 1) / STEPS.length) * 100;
-
   const renderStep = () => {
     switch (currentStep) {
       case 0:
         return (
           <View style={styles.stepContent}>
-            <AppText variant="title" style={styles.title}>
-              Welcome to DONOR
-            </AppText>
-            <AppText muted style={styles.subtitle}>
-              Your journey to becoming a life-saver starts here. Let's set up your donor profile.
-            </AppText>
             <View style={styles.featureList}>
               <FeatureItem text="Track your donation history" />
               <FeatureItem text="Get notified about emergencies" />
@@ -155,26 +221,23 @@ export default function OnboardingWelcome() {
       case 1:
         return (
           <View style={styles.stepContent}>
-            <AppText variant="title" style={styles.title}>
-              Personal Information
-            </AppText>
-            <AppText muted style={styles.subtitle}>
-              Tell us a bit about yourself.
-            </AppText>
             <AppTextInput
-              placeholder="First Name"
+              label="First name"
+              placeholder="Alex"
               wrapperStyle={styles.inputWrapper}
               value={formData.firstName}
               onChangeText={(v) => updateField('firstName', v)}
             />
             <AppTextInput
-              placeholder="Last Name"
+              label="Last name"
+              placeholder="Johnson"
               wrapperStyle={styles.inputWrapper}
               value={formData.lastName}
               onChangeText={(v) => updateField('lastName', v)}
             />
             <AppTextInput
-              placeholder="Phone (optional)"
+              label="Phone (optional)"
+              placeholder="+998 90 000 00 00"
               keyboardType="phone-pad"
               value={formData.phone}
               onChangeText={(v) => updateField('phone', v)}
@@ -185,62 +248,49 @@ export default function OnboardingWelcome() {
       case 2:
         return (
           <View style={styles.stepContent}>
-            <AppText variant="title" style={styles.title}>
-              Blood Type
-            </AppText>
-            <AppText muted style={styles.subtitle}>
-              Select your blood type. If unknown, you can skip this step.
-            </AppText>
-            <View style={styles.bloodTypeGrid}>
-              {['A', 'B', 'AB', 'O'].map((type) => (
-                <BloodTypeButton
-                  key={type}
-                  type={type}
-                  selected={formData.bloodType === type}
-                  onPress={() => updateField('bloodType', type)}
-                />
-              ))}
-            </View>
-            {formData.bloodType && (
-              <View style={styles.rhGroup}>
-                <AppText variant="heading" style={styles.rhLabel}>Rh Factor</AppText>
-                <View style={styles.rhButtons}>
-                  <RhButton
-                    label="Positive +"
-                    selected={formData.rhFactor === 'POSITIVE'}
-                    onPress={() => updateField('rhFactor', 'POSITIVE')}
+            {/* Two rows of four rather than one wrapping row: the pairs read
+                as A / B / O / AB with their sign, which is how the grid is
+                scanned, and no row can end up with a single orphan chip. */}
+            {[BLOOD_TYPES.slice(0, 4), BLOOD_TYPES.slice(4)].map((row, index) => (
+              <View key={index} style={styles.bloodTypeRow}>
+                {row.map((entry) => (
+                  <BloodTypeChip
+                    key={entry.label}
+                    label={entry.label}
+                    selected={formData.bloodType === entry.type && formData.rhFactor === entry.rh}
+                    onPress={() => {
+                      updateField('bloodType', entry.type);
+                      updateField('rhFactor', entry.rh);
+                    }}
                   />
-                  <RhButton
-                    label="Negative -"
-                    selected={formData.rhFactor === 'NEGATIVE'}
-                    onPress={() => updateField('rhFactor', 'NEGATIVE')}
-                  />
-                </View>
+                ))}
               </View>
-            )}
-            <AppText muted style={styles.disclaimer}>
-              Your blood type will be marked as unverified until confirmed by an authorized healthcare provider.
-            </AppText>
+            ))}
+            <GlassCard style={styles.infoCard}>
+              <View style={styles.infoRow}>
+                <Info size={18} color={colors.onMuted.secondary} />
+                <AppText muted style={styles.infoText}>
+                  Not sure? Skip this — you can always set it later, and a blood centre confirms it
+                  at your first donation either way.
+                </AppText>
+              </View>
+            </GlassCard>
           </View>
         );
 
       case 3:
         return (
           <View style={styles.stepContent}>
-            <AppText variant="title" style={styles.title}>
-              Location
-            </AppText>
-            <AppText muted style={styles.subtitle}>
-              Where are you located? This helps us find nearby donation centers.
-            </AppText>
             <AppTextInput
-              placeholder="City"
+              label="City"
+              placeholder="Tashkent"
               wrapperStyle={styles.inputWrapper}
               value={formData.city}
               onChangeText={(v) => updateField('city', v)}
             />
             <AppTextInput
-              placeholder="District (optional)"
+              label="District (optional)"
+              placeholder="Yunusabad"
               value={formData.district}
               onChangeText={(v) => updateField('district', v)}
             />
@@ -266,12 +316,6 @@ export default function OnboardingWelcome() {
       case 4:
         return (
           <View style={styles.stepContent}>
-            <AppText variant="title" style={styles.title}>
-              Notifications
-            </AppText>
-            <AppText muted style={styles.subtitle}>
-              How would you like to be notified?
-            </AppText>
             <NotificationToggle
               label="Emergency blood requests"
               description="Be alerted when there is an urgent need"
@@ -302,12 +346,6 @@ export default function OnboardingWelcome() {
       case 5:
         return (
           <View style={styles.stepContent}>
-            <AppText variant="title" style={styles.title}>
-              Review
-            </AppText>
-            <AppText muted style={styles.subtitle}>
-              Review your information before finishing.
-            </AppText>
             <View style={styles.reviewCard}>
               <ReviewItem label="Name" value={`${formData.firstName} ${formData.lastName}`} />
               <ReviewItem label="Phone" value={formData.phone || 'Not provided'} />
@@ -356,14 +394,40 @@ export default function OnboardingWelcome() {
   const isLoading =
     updateUserProfile.isPending || updateDonorProfile.isPending || updateNotificationPreferences.isPending;
 
+  const step = STEPS[currentStep]!;
+  const StepIcon = step.icon;
+
   return (
     <Screen>
-      <View style={styles.header}>
+      <View style={styles.headerRow}>
+        {/* Back is one control in the header, not a second button in the
+            footer competing with Continue. On step one it keeps its slot so
+            the rail beside it does not jump left when you advance. */}
+        {currentStep > 0 ? (
+          <IconButton
+            icon={ChevronLeft}
+            onPress={handleBack}
+            accessibilityRole="button"
+            accessibilityLabel="Previous step"
+          />
+        ) : (
+          <View style={styles.backSpacer} />
+        )}
         <AppText muted style={styles.stepLabel}>
-          STEP {currentStep + 1} OF {STEPS.length}
+          {currentStep + 1} of {STEPS.length}
         </AppText>
-        <ProgressBar progress={progress} />
       </View>
+      <View style={styles.rail}>
+        <StepRail steps={STEPS.length} current={currentStep} />
+      </View>
+
+      <View style={styles.stepBadge}>
+        <StepIcon size={26} color={colors.primary} />
+      </View>
+      <AppText style={styles.title}>{step.title}</AppText>
+      <AppText muted style={styles.subtitle}>
+        {step.subtitle}
+      </AppText>
 
       <View style={styles.content}>{renderStep()}</View>
 
@@ -372,21 +436,14 @@ export default function OnboardingWelcome() {
       )}
 
       <View style={styles.footer}>
-        {currentStep > 0 && (
-          <AppButton variant="secondary" onPress={handleBack} style={styles.backButton}>
-            Back
-          </AppButton>
-        )}
         <AppButton
+          gradient
+          trailingIcon={ArrowRight}
           onPress={isLastStep ? handleFinish : handleNext}
           disabled={!canProceed() || isLoading}
-          style={styles.nextButton}
+          loading={isLoading}
         >
-          {isLoading
-            ? 'Saving...'
-            : isLastStep
-            ? 'Complete Setup'
-            : 'Continue'}
+          {isLastStep ? 'Complete Setup' : 'Continue'}
         </AppButton>
       </View>
     </Screen>
@@ -404,27 +461,7 @@ function FeatureItem({ text }: { text: string }) {
   );
 }
 
-function BloodTypeButton({
-  type,
-  selected,
-  onPress,
-}: {
-  type: string;
-  selected: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <AppButton
-      variant={selected ? 'primary' : 'secondary'}
-      onPress={onPress}
-      style={{ flex: 1, height: 80 }}
-    >
-      {type}
-    </AppButton>
-  );
-}
-
-function RhButton({
+function BloodTypeChip({
   label,
   selected,
   onPress,
@@ -433,14 +470,40 @@ function RhButton({
   selected: boolean;
   onPress: () => void;
 }) {
+  const { colors } = useTheme();
   return (
-    <AppButton
-      variant={selected ? 'primary' : 'secondary'}
+    <Pressable
       onPress={onPress}
-      style={{ flex: 1 }}
+      accessibilityRole="button"
+      accessibilityState={{ selected }}
+      accessibilityLabel={`Blood type ${label}`}
+      style={({ pressed }) => ({
+        flex: 1,
+        height: 62,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: radius.md,
+        borderWidth: 1,
+        // Selection is a tinted fill plus a rose border, not a solid rose
+        // block: eight solid blocks would read as eight primary actions, and
+        // the chosen one has to stand out from seven neighbours, not from the
+        // background.
+        borderColor: selected ? colors.primary : colors.border,
+        backgroundColor: selected ? colors.primaryMuted : colors.surfaceElevated,
+        opacity: pressed ? 0.85 : 1,
+        transform: [{ scale: pressed ? 0.97 : 1 }],
+      })}
     >
-      {label}
-    </AppButton>
+      <AppText
+        style={{
+          fontSize: 18,
+          fontWeight: '700',
+          color: selected ? colors.onMuted.primary : colors.text,
+        }}
+      >
+        {label}
+      </AppText>
+    </Pressable>
   );
 }
 
@@ -487,12 +550,36 @@ function ReviewItem({ label, value }: { label: string; value: string }) {
 
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
-  header: {
-    marginBottom: spacing.lg,
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  // Matches IconButton's 40x40, so the rail below keeps the same left edge on
+  // every step whether or not there is a back button above it.
+  backSpacer: {
+    width: 40,
+    height: 40,
   },
   stepLabel: {
-    letterSpacing: 1,
-    marginBottom: spacing.sm,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  rail: {
+    flexDirection: 'row',
+    marginTop: spacing.md,
+    marginBottom: spacing.xl,
+  },
+  stepBadge: {
+    width: 56,
+    height: 56,
+    borderRadius: radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primaryMuted,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginBottom: spacing.md,
   },
   content: {
     flex: 1,
@@ -501,9 +588,16 @@ function createStyles(colors: ThemeColors) {
     flex: 1,
   },
   title: {
-    marginBottom: spacing.sm,
+    fontSize: 30,
+    lineHeight: 36,
+    fontWeight: '800',
+    letterSpacing: -0.9,
+    color: colors.text,
   },
   subtitle: {
+    fontSize: 15,
+    lineHeight: 22,
+    marginTop: spacing.sm,
     marginBottom: spacing.xl,
   },
   featureList: {
@@ -522,34 +616,25 @@ function createStyles(colors: ThemeColors) {
     backgroundColor: colors.primary,
   },
   inputWrapper: {
-    marginBottom: spacing.md,
+    marginBottom: layout.cardGap,
   },
-  bloodTypeGrid: {
+  bloodTypeRow: {
     flexDirection: 'row',
-    gap: spacing.md,
-    marginBottom: spacing.xl,
+    gap: layout.cardGap,
+    marginBottom: layout.cardGap,
   },
-  bloodTypeButton: {
-    flex: 1,
-    height: 80,
-    fontSize: 24,
+  infoCard: {
+    marginTop: spacing.sm,
   },
-  rhGroup: {
-    marginBottom: spacing.lg,
-  },
-  rhLabel: {
-    marginBottom: spacing.md,
-  },
-  rhButtons: {
+  infoRow: {
     flexDirection: 'row',
-    gap: spacing.md,
+    alignItems: 'flex-start',
+    gap: spacing.sm,
   },
-  rhButton: {
+  infoText: {
     flex: 1,
-  },
-  disclaimer: {
     fontSize: 13,
-    marginTop: spacing.lg,
+    lineHeight: 19,
   },
   notificationItem: {
     flexDirection: 'row',
@@ -574,15 +659,7 @@ function createStyles(colors: ThemeColors) {
     gap: spacing.md,
   },
   footer: {
-    flexDirection: 'row',
-    gap: spacing.md,
     marginTop: spacing.xl,
-  },
-  backButton: {
-    flex: 1,
-  },
-  nextButton: {
-    flex: 2,
   },
   });
 }
