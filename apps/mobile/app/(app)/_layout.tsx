@@ -31,8 +31,15 @@ export default function AppLayout() {
         name="donate"
         options={{ title: 'Donate', tabBarIcon: ({ color }) => <Droplet color={color} /> }}
       />
+      {/*
+        `community/index`, not `community`. Without a `community/_layout.tsx`
+        the router flattens the folder and names the route after the file, so
+        the short name matched nothing: the navigator warned, and the Community
+        tab simply never appeared in the bar -- while the real route sat below
+        with `href: null`, hidden.
+      */}
       <Tabs.Screen
-        name="community"
+        name="community/index"
         options={{ title: 'Community', tabBarIcon: ({ color }) => <Users color={color} /> }}
       />
       <Tabs.Screen
@@ -59,7 +66,6 @@ export default function AppLayout() {
       <Tabs.Screen name="appointment/[id]" options={{ href: null }} />
       <Tabs.Screen name="campaigns/index" options={{ href: null }} />
       <Tabs.Screen name="challenges/index" options={{ href: null }} />
-      <Tabs.Screen name="community/index" options={{ href: null }} />
       <Tabs.Screen name="donations/index" options={{ href: null }} />
       <Tabs.Screen name="donations/[id]" options={{ href: null }} />
       <Tabs.Screen name="education/index" options={{ href: null }} />

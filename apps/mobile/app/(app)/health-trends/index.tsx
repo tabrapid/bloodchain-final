@@ -243,7 +243,16 @@ export default function HealthTrendsScreen() {
             </AppText>
           )}
         </View>
-        <ChevronDown size={20} color={colors.textMuted} style={{ transform: showParamSelector ? 'rotate(180deg)' : undefined }} />
+        {/* The array form, not the CSS string: this is an `Svg`, and
+            react-native-svg parses `transform` with an SVG transform-list
+            parser that rejects `rotate(180deg)` outright -- which is the
+            "Expected transform functions but \"r\" found" the screen threw on
+            every render. */}
+        <ChevronDown
+          size={20}
+          color={colors.textMuted}
+          style={{ transform: [{ rotate: showParamSelector ? '180deg' : '0deg' }] }}
+        />
       </TouchableOpacity>
 
       {showParamSelector && (
