@@ -1,4 +1,5 @@
 import { apiRequest } from './client';
+import { apiBasePath } from './config';
 
 export interface Challenge {
   id: string;
@@ -61,26 +62,26 @@ export async function getChallenges(params?: {
   if (params?.visibility) searchParams.set('visibility', params.visibility);
   
   const query = searchParams.toString();
-  return apiRequest<ChallengeListResponse>(`/challenges${query ? `?${query}` : ''}`);
+  return apiRequest<ChallengeListResponse>(`${apiBasePath}/challenges${query ? `?${query}` : ''}`);
 }
 
 export async function getActiveChallenges(): Promise<Challenge[]> {
-  return apiRequest<Challenge[]>('/challenges/active');
+  return apiRequest<Challenge[]>(`${apiBasePath}/challenges/active`);
 }
 
 export async function getChallenge(challengeId: string): Promise<Challenge> {
-  return apiRequest<Challenge>(`/challenges/${challengeId}`);
+  return apiRequest<Challenge>(`${apiBasePath}/challenges/${challengeId}`);
 }
 
 export async function joinChallenge(challengeId: string): Promise<ChallengeParticipant> {
-  return apiRequest<ChallengeParticipant>(`/challenges/${challengeId}/join`, {
+  return apiRequest<ChallengeParticipant>(`${apiBasePath}/challenges/${challengeId}/join`, {
     method: 'POST',
   });
 }
 
 /** Progress is derived server-side from the donor's real activity - there is nothing for the client to submit. */
 export async function recalculateChallengeProgress(challengeId: string): Promise<ChallengeParticipant> {
-  return apiRequest<ChallengeParticipant>(`/challenges/${challengeId}/progress`, {
+  return apiRequest<ChallengeParticipant>(`${apiBasePath}/challenges/${challengeId}/progress`, {
     method: 'PUT',
   });
 }
@@ -94,5 +95,5 @@ export async function getMyChallenges(params?: {
   if (params?.limit) searchParams.set('limit', params.limit.toString());
   
   const query = searchParams.toString();
-  return apiRequest<ChallengeListResponse>(`/challenges/my/challenges${query ? `?${query}` : ''}`);
+  return apiRequest<ChallengeListResponse>(`${apiBasePath}/challenges/my/challenges${query ? `?${query}` : ''}`);
 }

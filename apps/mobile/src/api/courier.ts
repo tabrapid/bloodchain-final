@@ -1,4 +1,5 @@
 import { apiRequest, apiRequestEnvelope } from './client';
+import { apiBasePath } from './config';
 
 export interface Shipment {
   id: string;
@@ -120,12 +121,12 @@ export interface ShipmentTracking {
 }
 
 export async function getCourierProfile(): Promise<CourierProfile> {
-  const response = await apiRequest<CourierProfile>('/courier/profile');
+  const response = await apiRequest<CourierProfile>(`${apiBasePath}/courier/profile`);
   return response;
 }
 
 export async function updateCourierStatus(status: string): Promise<{ id: string; status: string }> {
-  const response = await apiRequest<{ id: string; status: string }>('/courier/status', {
+  const response = await apiRequest<{ id: string; status: string }>(`${apiBasePath}/courier/status`, {
     method: 'POST',
     body: JSON.stringify({ status }),
   });
@@ -137,7 +138,7 @@ export async function updateCourierProfile(data: {
   phone?: string;
 }): Promise<{ id: string; displayName: string; phone: string | null }> {
   const response = await apiRequest<{ id: string; displayName: string; phone: string | null }>(
-    '/courier/profile',
+    `${apiBasePath}/courier/profile`,
     {
       method: 'PATCH',
       body: JSON.stringify(data),
@@ -157,7 +158,7 @@ export async function getCourierShipments(filters?: {
   if (filters?.offset) params.set('offset', String(filters.offset));
   const query = params.toString();
   const envelope = await apiRequestEnvelope<Shipment[]>(
-    `/courier/shipments${query ? `?${query}` : ''}`
+    `${apiBasePath}/courier/shipments${query ? `?${query}` : ''}`
   );
   return {
     data: envelope.data,
@@ -166,7 +167,7 @@ export async function getCourierShipments(filters?: {
 }
 
 export async function getActiveShipment(): Promise<Shipment | null> {
-  const response = await apiRequest<Shipment | null>('/courier/shipments/active');
+  const response = await apiRequest<Shipment | null>(`${apiBasePath}/courier/shipments/active`);
   return response;
 }
 
@@ -175,19 +176,19 @@ export async function getCourierStats(startDate?: string, endDate?: string): Pro
   if (startDate) params.set('startDate', startDate);
   if (endDate) params.set('endDate', endDate);
   const query = params.toString();
-  const response = await apiRequest<CourierStats>(`/courier/stats${query ? `?${query}` : ''}`);
+  const response = await apiRequest<CourierStats>(`${apiBasePath}/courier/stats${query ? `?${query}` : ''}`);
   return response;
 }
 
 export async function acceptShipment(shipmentId: string): Promise<Shipment> {
-  const response = await apiRequest<Shipment>(`/courier/shipments/${shipmentId}/accept`, {
+  const response = await apiRequest<Shipment>(`${apiBasePath}/courier/shipments/${shipmentId}/accept`, {
     method: 'POST',
   });
   return response;
 }
 
 export async function declineShipment(shipmentId: string, reason?: string): Promise<Shipment> {
-  const response = await apiRequest<Shipment>(`/courier/shipments/${shipmentId}/decline`, {
+  const response = await apiRequest<Shipment>(`${apiBasePath}/courier/shipments/${shipmentId}/decline`, {
     method: 'POST',
     body: JSON.stringify({ reason }),
   });
@@ -195,21 +196,21 @@ export async function declineShipment(shipmentId: string, reason?: string): Prom
 }
 
 export async function startPickup(shipmentId: string): Promise<Shipment> {
-  const response = await apiRequest<Shipment>(`/courier/shipments/${shipmentId}/start-pickup`, {
+  const response = await apiRequest<Shipment>(`${apiBasePath}/courier/shipments/${shipmentId}/start-pickup`, {
     method: 'POST',
   });
   return response;
 }
 
 export async function confirmPickup(shipmentId: string): Promise<Shipment> {
-  const response = await apiRequest<Shipment>(`/courier/shipments/${shipmentId}/confirm-pickup`, {
+  const response = await apiRequest<Shipment>(`${apiBasePath}/courier/shipments/${shipmentId}/confirm-pickup`, {
     method: 'POST',
   });
   return response;
 }
 
 export async function startDelivery(shipmentId: string): Promise<Shipment> {
-  const response = await apiRequest<Shipment>(`/courier/shipments/${shipmentId}/start-delivery`, {
+  const response = await apiRequest<Shipment>(`${apiBasePath}/courier/shipments/${shipmentId}/start-delivery`, {
     method: 'POST',
   });
   return response;
@@ -226,7 +227,7 @@ export async function updateLocation(
   }
 ): Promise<{ success: boolean }> {
   const response = await apiRequest<{ success: boolean }>(
-    `/courier/shipments/${shipmentId}/update-location`,
+    `${apiBasePath}/courier/shipments/${shipmentId}/update-location`,
     {
       method: 'POST',
       body: JSON.stringify(data),
@@ -236,7 +237,7 @@ export async function updateLocation(
 }
 
 export async function arriveAtHospital(shipmentId: string): Promise<Shipment> {
-  const response = await apiRequest<Shipment>(`/courier/shipments/${shipmentId}/arrive`, {
+  const response = await apiRequest<Shipment>(`${apiBasePath}/courier/shipments/${shipmentId}/arrive`, {
     method: 'POST',
   });
   return response;
@@ -246,7 +247,7 @@ export async function failShipment(
   shipmentId: string,
   data: { reason: string; notes?: string }
 ): Promise<Shipment> {
-  const response = await apiRequest<Shipment>(`/courier/shipments/${shipmentId}/fail`, {
+  const response = await apiRequest<Shipment>(`${apiBasePath}/courier/shipments/${shipmentId}/fail`, {
     method: 'POST',
     body: JSON.stringify(data),
   });
@@ -254,7 +255,7 @@ export async function failShipment(
 }
 
 export async function getShipmentTracking(shipmentId: string): Promise<ShipmentTracking> {
-  const response = await apiRequest<ShipmentTracking>(`/shipments/${shipmentId}/tracking`);
+  const response = await apiRequest<ShipmentTracking>(`${apiBasePath}/shipments/${shipmentId}/tracking`);
   return response;
 }
 

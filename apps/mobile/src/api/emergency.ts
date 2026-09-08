@@ -1,4 +1,5 @@
 import { apiRequest } from './client';
+import { apiBasePath } from './config';
 
 export interface EmergencyMatch {
   id: string;
@@ -72,29 +73,29 @@ export interface DonorEmergenciesResponse {
 }
 
 export async function getDonorEmergencies(): Promise<DonorEmergenciesResponse> {
-  return apiRequest<DonorEmergenciesResponse>('/donor/emergencies');
+  return apiRequest<DonorEmergenciesResponse>(`${apiBasePath}/donor/emergencies`);
 }
 
 export async function viewEmergencyMatch(matchId: string): Promise<EmergencyMatch> {
-  return apiRequest<EmergencyMatch>(`/donor/emergency-matches/${matchId}/view`, {
+  return apiRequest<EmergencyMatch>(`${apiBasePath}/donor/emergency-matches/${matchId}/view`, {
     method: 'POST',
   });
 }
 
 export async function acceptEmergency(matchId: string): Promise<EmergencyResponse> {
-  return apiRequest<EmergencyResponse>(`/donor/emergency-matches/${matchId}/accept`, {
+  return apiRequest<EmergencyResponse>(`${apiBasePath}/donor/emergency-matches/${matchId}/accept`, {
     method: 'POST',
   });
 }
 
 export async function declineEmergency(matchId: string): Promise<{ success: boolean }> {
-  return apiRequest<{ success: boolean }>(`/donor/emergency-matches/${matchId}/decline`, {
+  return apiRequest<{ success: boolean }>(`${apiBasePath}/donor/emergency-matches/${matchId}/decline`, {
     method: 'POST',
   });
 }
 
 export async function startJourney(responseId: string): Promise<EmergencyResponse> {
-  return apiRequest<EmergencyResponse>(`/donor/emergency-responses/${responseId}/start-journey`, {
+  return apiRequest<EmergencyResponse>(`${apiBasePath}/donor/emergency-responses/${responseId}/start-journey`, {
     method: 'POST',
   });
 }
@@ -103,14 +104,14 @@ export async function updateLocation(
   responseId: string,
   location: { latitude: number; longitude: number; accuracy?: number; heading?: number; speed?: number }
 ): Promise<EmergencyLocation> {
-  return apiRequest<EmergencyLocation>(`/donor/emergency-responses/${responseId}/update-location`, {
+  return apiRequest<EmergencyLocation>(`${apiBasePath}/donor/emergency-responses/${responseId}/update-location`, {
     method: 'POST',
     body: JSON.stringify(location),
   });
 }
 
 export async function arriveAtHospital(responseId: string): Promise<EmergencyResponse> {
-  return apiRequest<EmergencyResponse>(`/donor/emergency-responses/${responseId}/arrive`, {
+  return apiRequest<EmergencyResponse>(`${apiBasePath}/donor/emergency-responses/${responseId}/arrive`, {
     method: 'POST',
   });
 }
@@ -133,14 +134,14 @@ export interface DonorTrackingResponse extends EmergencyResponse {
 }
 
 export async function getDonorTracking(responseId: string): Promise<DonorTrackingResponse> {
-  return apiRequest<DonorTrackingResponse>(`/donor/emergency-responses/${responseId}/tracking`);
+  return apiRequest<DonorTrackingResponse>(`${apiBasePath}/donor/emergency-responses/${responseId}/tracking`);
 }
 
 export async function cancelResponse(
   responseId: string,
   reason?: string
 ): Promise<EmergencyResponse> {
-  return apiRequest<EmergencyResponse>(`/donor/emergency-responses/${responseId}/cancel`, {
+  return apiRequest<EmergencyResponse>(`${apiBasePath}/donor/emergency-responses/${responseId}/cancel`, {
     method: 'POST',
     body: JSON.stringify({ reason }),
   });

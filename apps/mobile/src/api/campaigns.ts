@@ -1,4 +1,5 @@
 import { apiRequest } from './client';
+import { apiBasePath } from './config';
 
 export interface Campaign {
   id: string;
@@ -54,21 +55,21 @@ export async function getCampaigns(params?: {
   if (params?.organizationId) searchParams.set('organizationId', params.organizationId);
   
   const query = searchParams.toString();
-  return apiRequest<CampaignListResponse>(`/campaigns${query ? `?${query}` : ''}`);
+  return apiRequest<CampaignListResponse>(`${apiBasePath}/campaigns${query ? `?${query}` : ''}`);
 }
 
 export async function getCampaign(campaignId: string): Promise<Campaign> {
-  return apiRequest<Campaign>(`/campaigns/${campaignId}`);
+  return apiRequest<Campaign>(`${apiBasePath}/campaigns/${campaignId}`);
 }
 
 export async function joinCampaign(campaignId: string): Promise<CampaignParticipant> {
-  return apiRequest<CampaignParticipant>(`/campaigns/${campaignId}/join`, {
+  return apiRequest<CampaignParticipant>(`${apiBasePath}/campaigns/${campaignId}/join`, {
     method: 'POST',
   });
 }
 
 export async function leaveCampaign(campaignId: string): Promise<{ success: boolean }> {
-  return apiRequest<{ success: boolean }>(`/campaigns/${campaignId}/leave`, {
+  return apiRequest<{ success: boolean }>(`${apiBasePath}/campaigns/${campaignId}/leave`, {
     method: 'DELETE',
   });
 }
@@ -82,5 +83,5 @@ export async function getMyCampaigns(params?: {
   if (params?.limit) searchParams.set('limit', params.limit.toString());
   
   const query = searchParams.toString();
-  return apiRequest<CampaignListResponse>(`/campaigns/my/campaigns${query ? `?${query}` : ''}`);
+  return apiRequest<CampaignListResponse>(`${apiBasePath}/campaigns/my/campaigns${query ? `?${query}` : ''}`);
 }

@@ -1,4 +1,5 @@
 import { apiRequest } from './client';
+import { apiBasePath } from './config';
 
 export interface TestType {
   id: string;
@@ -99,19 +100,19 @@ export interface ParameterTrend {
 
 export async function getTestTypes(category?: string): Promise<TestType[]> {
   const params = category ? `?category=${category}` : '';
-  return apiRequest<TestType[]>(`/test-types${params}`);
+  return apiRequest<TestType[]>(`${apiBasePath}/test-types${params}`);
 }
 
 export async function getTestType(testTypeId: string): Promise<TestType> {
-  return apiRequest<TestType>(`/test-types/${testTypeId}`);
+  return apiRequest<TestType>(`${apiBasePath}/test-types/${testTypeId}`);
 }
 
 export async function getLaboratories(): Promise<Laboratory[]> {
-  return apiRequest<Laboratory[]>('/laboratories');
+  return apiRequest<Laboratory[]>(`${apiBasePath}/laboratories`);
 }
 
 export async function getLaboratory(laboratoryId: string): Promise<Laboratory> {
-  return apiRequest<Laboratory>(`/laboratories/${laboratoryId}`);
+  return apiRequest<Laboratory>(`${apiBasePath}/laboratories/${laboratoryId}`);
 }
 
 export async function getAvailableSlots(
@@ -120,7 +121,7 @@ export async function getAvailableSlots(
   date: string
 ): Promise<AppointmentSlot[]> {
   return apiRequest<AppointmentSlot[]>(
-    `/laboratories/${laboratoryId}/slots?testTypeId=${testTypeId}&date=${date}`
+    `${apiBasePath}/laboratories/${laboratoryId}/slots?testTypeId=${testTypeId}&date=${date}`
   );
 }
 
@@ -130,7 +131,7 @@ export async function bookLaboratoryAppointment(data: {
   slotId: string;
   notes?: string;
 }): Promise<LaboratoryAppointment> {
-  return apiRequest<LaboratoryAppointment>('/laboratory-appointments', {
+  return apiRequest<LaboratoryAppointment>(`${apiBasePath}/laboratory-appointments`, {
     method: 'POST',
     body: JSON.stringify(data),
   });
@@ -145,12 +146,12 @@ export async function getDonorAppointments(filters?: {
   if (filters?.laboratoryId) params.append('laboratoryId', filters.laboratoryId);
   const queryString = params.toString();
   return apiRequest<LaboratoryAppointment[]>(
-    `/me/laboratory-appointments${queryString ? `?${queryString}` : ''}`
+    `${apiBasePath}/me/laboratory-appointments${queryString ? `?${queryString}` : ''}`
   );
 }
 
 export async function getDonorAppointment(appointmentId: string): Promise<LaboratoryAppointment> {
-  return apiRequest<LaboratoryAppointment>(`/me/laboratory-appointments/${appointmentId}`);
+  return apiRequest<LaboratoryAppointment>(`${apiBasePath}/me/laboratory-appointments/${appointmentId}`);
 }
 
 export async function cancelDonorAppointment(
@@ -158,7 +159,7 @@ export async function cancelDonorAppointment(
   reason?: string
 ): Promise<LaboratoryAppointment> {
   return apiRequest<LaboratoryAppointment>(
-    `/me/laboratory-appointments/${appointmentId}/cancel`,
+    `${apiBasePath}/me/laboratory-appointments/${appointmentId}/cancel`,
     {
       method: 'POST',
       body: JSON.stringify({ reason }),
@@ -173,12 +174,12 @@ export async function getDonorResults(filters?: {
   if (filters?.testTypeId) params.append('testTypeId', filters.testTypeId);
   const queryString = params.toString();
   return apiRequest<LaboratoryResult[]>(
-    `/me/laboratory-results${queryString ? `?${queryString}` : ''}`
+    `${apiBasePath}/me/laboratory-results${queryString ? `?${queryString}` : ''}`
   );
 }
 
 export async function getDonorResult(resultId: string): Promise<LaboratoryResult> {
-  return apiRequest<LaboratoryResult>(`/me/laboratory-results/${resultId}`);
+  return apiRequest<LaboratoryResult>(`${apiBasePath}/me/laboratory-results/${resultId}`);
 }
 
 export async function getParameterTrend(
@@ -189,6 +190,6 @@ export async function getParameterTrend(
   if (options?.limit) params.append('limit', String(options.limit));
   const queryString = params.toString();
   return apiRequest<ParameterTrend[]>(
-    `/me/laboratory-results/parameter/${parameterId}/trend${queryString ? `?${queryString}` : ''}`
+    `${apiBasePath}/me/laboratory-results/parameter/${parameterId}/trend${queryString ? `?${queryString}` : ''}`
   );
 }

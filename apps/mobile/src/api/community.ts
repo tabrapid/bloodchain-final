@@ -1,4 +1,5 @@
 import { apiRequest } from './client';
+import { apiBasePath } from './config';
 
 export interface CommunityPost {
   id: string;
@@ -80,11 +81,11 @@ export async function getFeed(params?: {
   if (params?.type) searchParams.set('type', params.type);
   
   const query = searchParams.toString();
-  return apiRequest<FeedResponse>(`/community/feed${query ? `?${query}` : ''}`);
+  return apiRequest<FeedResponse>(`${apiBasePath}/community/feed${query ? `?${query}` : ''}`);
 }
 
 export async function getPost(postId: string): Promise<CommunityPost> {
-  return apiRequest<CommunityPost>(`/community/posts/${postId}`);
+  return apiRequest<CommunityPost>(`${apiBasePath}/community/posts/${postId}`);
 }
 
 export async function reportContent(
@@ -92,16 +93,16 @@ export async function reportContent(
   reason: string,
   description?: string
 ): Promise<ContentReport> {
-  return apiRequest<ContentReport>(`/community/posts/${postId}/report`, {
+  return apiRequest<ContentReport>(`${apiBasePath}/community/posts/${postId}/report`, {
     method: 'POST',
     body: JSON.stringify({ reason, description }),
   });
 }
 
 export async function getImpactStats(): Promise<ImpactStats> {
-  return apiRequest<ImpactStats>('/community/impact');
+  return apiRequest<ImpactStats>(`${apiBasePath}/community/impact`);
 }
 
 export async function getCommunityStats(): Promise<CommunityStats> {
-  return apiRequest<CommunityStats>('/community/stats');
+  return apiRequest<CommunityStats>(`${apiBasePath}/community/stats`);
 }

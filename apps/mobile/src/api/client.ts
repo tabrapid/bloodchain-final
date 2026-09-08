@@ -6,7 +6,7 @@ import {
   getRefreshToken,
   setAccessToken,
 } from '../auth/storage';
-import { apiBaseUrl } from './config';
+import { apiBaseUrl, apiBasePath } from './config';
 import { useAuthStore } from '../stores/auth.store';
 
 export interface ApiError {
@@ -68,7 +68,7 @@ async function refreshAccessToken(): Promise<string | null> {
       try {
         const refreshToken = await getRefreshToken();
         if (!refreshToken) return null;
-        const response = await fetchWithTimeout(`${apiBaseUrl}/auth/refresh`, {
+        const response = await fetchWithTimeout(`${apiBaseUrl}${apiBasePath}/auth/refresh`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ refreshToken }),

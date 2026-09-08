@@ -1,4 +1,5 @@
 import { apiRequest } from './client';
+import { apiBasePath } from './config';
 
 export interface EducationalContent {
   id: string;
@@ -60,21 +61,21 @@ export async function getEducationalContent(params?: {
   if (params?.category) searchParams.set('category', params.category);
   
   const query = searchParams.toString();
-  return apiRequest<EducationalContentListResponse>(`/education${query ? `?${query}` : ''}`);
+  return apiRequest<EducationalContentListResponse>(`${apiBasePath}/education${query ? `?${query}` : ''}`);
 }
 
 export async function getEducationalContentById(contentId: string): Promise<EducationalContent> {
-  return apiRequest<EducationalContent>(`/education/${contentId}`);
+  return apiRequest<EducationalContent>(`${apiBasePath}/education/${contentId}`);
 }
 
 export async function startContent(contentId: string): Promise<EducationProgress> {
-  return apiRequest<EducationProgress>(`/education/${contentId}/start`, {
+  return apiRequest<EducationProgress>(`${apiBasePath}/education/${contentId}/start`, {
     method: 'POST',
   });
 }
 
 export async function completeContent(contentId: string): Promise<EducationProgress> {
-  return apiRequest<EducationProgress>(`/education/${contentId}/complete`, {
+  return apiRequest<EducationProgress>(`${apiBasePath}/education/${contentId}/complete`, {
     method: 'POST',
   });
 }
@@ -88,9 +89,9 @@ export async function getMyEducationProgress(params?: {
   if (params?.limit) searchParams.set('limit', params.limit.toString());
   
   const query = searchParams.toString();
-  return apiRequest<EducationProgressListResponse>(`/education/my/progress${query ? `?${query}` : ''}`);
+  return apiRequest<EducationProgressListResponse>(`${apiBasePath}/education/my/progress${query ? `?${query}` : ''}`);
 }
 
 export async function getMyEducationStats(): Promise<EducationStats> {
-  return apiRequest<EducationStats>('/education/my/stats');
+  return apiRequest<EducationStats>(`${apiBasePath}/education/my/stats`);
 }
