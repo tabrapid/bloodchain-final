@@ -132,7 +132,21 @@ export default function EmergencyPage() {
     if (!organizationId) return;
     setIsSubmitting(true);
     try {
-      await createEmergency(organizationId, newEmergency);
+      // Every optional text field in this form starts as an empty string, and
+      // the API validates them as an ISO date / non-empty string rather than
+      // ignoring them -- so submitting the form without filling in the optional
+      // deadline failed with "requiredBefore must be a valid ISO 8601 date
+      // string", which is the ordinary case, not the edge one. Send only what
+      // was actually filled in.
+      await createEmergency(organizationId, {
+        ...newEmergency,
+        requiredBefore: newEmergency.requiredBefore
+          ? new Date(newEmergency.requiredBefore).toISOString()
+          : undefined,
+        patientReference: newEmergency.patientReference || undefined,
+        description: newEmergency.description || undefined,
+        donationLocation: newEmergency.donationLocation || undefined,
+      });
       setShowCreateModal(false);
       setNewEmergency({
         bloodType: 'O',

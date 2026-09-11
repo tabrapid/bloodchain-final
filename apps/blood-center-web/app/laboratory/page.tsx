@@ -11,6 +11,7 @@ import {
   DataTable,
   DataTableColumn,
   EmptyState,
+  Modal,
   StatCard,
   StatusBadge,
 } from '@bloodchain/ui/components';
@@ -26,7 +27,12 @@ import {
   startLaboratoryTest,
   completeLaboratoryAppointment,
   markLaboratoryNoShow,
+  createLaboratoryResult,
+  reviewLaboratoryResult,
+  publishLaboratoryResult,
+  getLaboratory,
   LaboratoryAppointment,
+  TestType,
 } from '../../lib/laboratory';
 import { AppShell } from '../../components/AppShell';
 
@@ -54,6 +60,14 @@ export default function LaboratoryPage() {
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  // Result entry. The booked test type is not stored on the appointment, so
+  // staff choose it here -- the API requires it explicitly when the result is
+  // created, and a laboratory usually offers only a handful.
+  const [testTypes, setTestTypes] = useState<TestType[]>([]);
+  const [entering, setEntering] = useState<LaboratoryAppointment | null>(null);
+  const [selectedTestTypeId, setSelectedTestTypeId] = useState('');
+  const [values, setValues] = useState<Record<string, string>>({});
 
   const loadAppointments = useCallback(async () => {
     if (!organizationId) return;
@@ -104,6 +118,85 @@ export default function LaboratoryPage() {
       loadAppointments();
     }
   }, [organizationId, loadAppointments]);
+
+  useEffect(() => {
+    if (!organizationId) return;
+    getLaboratory(organizationId)
+      .then((lab) => setTestTypes(lab.laboratoryProfile?.testTypes ?? []))
+      .catch(() => setTestTypes([]));
+  }, [organizationId]);
+
+  const selectedTestType = testTypes.find((t) => t.id === selectedTestTypeId);
+
+  const openEntry = (appointment: LaboratoryAppointment) => {
+    setEntering(appointment);
+    const first = testTypes[0];
+    setSelectedTestTypeId(first?.id ?? '');
+    setValues({});
+  };
+
+  const submitResults = async () => {
+    if (!entering || !organizationId || !selectedTestType) return;
+    const items = selectedTestType.parameters
+      .filter((param) => (values[param.id] ?? '').trim() !== '')
+      .map((param) => {
+        const raw = values[param.id]!.trim();
+        const numeric = Number(raw);
+        return {
+          parameterId: param.id,
+          value: raw,
+          // A non-numeric parameter (blood group, Rh) has no numeric value, and
+          // sending NaN would store a null the flag logic then cannot read.
+          ...(Number.isFinite(numeric) ? { numericValue: numeric } : {}),
+          ...(param.unit ? { unit: param.unit } : {}),
+        };
+      });
+    if (!items.length) {
+      setError('Enter at least one measurement before saving.');
+      return;
+    }
+    setActionLoading(entering.id);
+    try {
+      await createLaboratoryResult(organizationId, entering.id, {
+        testTypeId: selectedTestType.id,
+        items,
+      });
+      setEntering(null);
+      await loadAppointments();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to save the results');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleReview = async (appointment: LaboratoryAppointment) => {
+    const resultId = appointment.laboratoryResult?.id;
+    if (!organizationId || !resultId) return;
+    setActionLoading(appointment.id);
+    try {
+      await reviewLaboratoryResult(organizationId, resultId);
+      await loadAppointments();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to review the result');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handlePublish = async (appointment: LaboratoryAppointment) => {
+    const resultId = appointment.laboratoryResult?.id;
+    if (!organizationId || !resultId) return;
+    setActionLoading(appointment.id);
+    try {
+      await publishLaboratoryResult(organizationId, resultId);
+      await loadAppointments();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to publish the result');
+    } finally {
+      setActionLoading(null);
+    }
+  };
 
   const handleConfirm = async (appointmentId: string) => {
     if (!organizationId) return;
@@ -187,8 +280,21 @@ export default function LaboratoryPage() {
         actions.push({ label: 'Start Test', onClick: () => handleStart(appointment.id), variant: 'primary' });
         break;
       case 'IN_PROGRESS':
-        actions.push({ label: 'Complete Test', onClick: () => handleComplete(appointment.id), variant: 'primary' });
+        actions.push({ label: 'Sample collected', onClick: () => handleComplete(appointment.id), variant: 'primary' });
         break;
+    }
+
+    // Entering, reviewing and publishing a result are the steps that put a
+    // number in front of the donor, and none of them had a control here: the
+    // console could take a sample and then had nowhere to write down what it
+    // found.
+    const result = appointment.laboratoryResult;
+    if (!result && appointment.status === 'RESULT_PENDING') {
+      actions.push({ label: 'Enter results', onClick: () => openEntry(appointment), variant: 'primary' });
+    } else if (result?.status === 'ENTERED') {
+      actions.push({ label: 'Review', onClick: () => handleReview(appointment), variant: 'primary' });
+    } else if (result?.status === 'REVIEWED') {
+      actions.push({ label: 'Publish to donor', onClick: () => handlePublish(appointment), variant: 'primary' });
     }
 
     return actions;
@@ -426,6 +532,81 @@ export default function LaboratoryPage() {
       ) : (
         <DataTable columns={columns} rows={appointments} keyExtractor={(a) => a.id} />
       )}
+
+      <Modal open={entering !== null} onClose={() => setEntering(null)} title="Enter test results">
+        {entering && (
+          <div className="space-y-4">
+            <p className="text-sm text-donor-muted">
+              {entering.donor.firstName} {entering.donor.lastName} — {entering.referenceNumber}
+            </p>
+            <div>
+              <label htmlFor="test-type" className="mb-1 block text-xs font-semibold text-donor-muted">
+                Test type
+              </label>
+              <select
+                id="test-type"
+                value={selectedTestTypeId}
+                onChange={(e) => {
+                  setSelectedTestTypeId(e.target.value);
+                  setValues({});
+                }}
+                className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-sm text-donor-text"
+              >
+                {testTypes.map((type) => (
+                  <option key={type.id} value={type.id}>
+                    {type.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {selectedTestType?.parameters.length ? (
+              <div className="space-y-3">
+                {selectedTestType.parameters.map((param) => (
+                  <div key={param.id}>
+                    <label
+                      htmlFor={`param-${param.id}`}
+                      className="mb-1 block text-xs font-semibold text-donor-muted"
+                    >
+                      {param.name}
+                      {param.unit ? ` (${param.unit})` : ''}
+                    </label>
+                    <input
+                      id={`param-${param.id}`}
+                      type="text"
+                      value={values[param.id] ?? ''}
+                      onChange={(e) => setValues({ ...values, [param.id]: e.target.value })}
+                      className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-sm text-donor-text"
+                    />
+                  </div>
+                ))}
+                <p className="text-xs text-donor-muted">
+                  Values are compared against this laboratory&apos;s reference range for each
+                  parameter; the normal/low/high flag the donor sees is derived from that.
+                </p>
+              </div>
+            ) : (
+              <p className="text-sm text-donor-muted">This test type has no parameters configured.</p>
+            )}
+
+            <div className="flex gap-2 pt-2">
+              <button
+                onClick={submitResults}
+                disabled={actionLoading === entering.id || !selectedTestType?.parameters.length}
+                className="rounded-lg bg-donor-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-donor-primary/80 disabled:opacity-50"
+              >
+                {actionLoading === entering.id ? 'Saving...' : 'Save results'}
+              </button>
+              <button
+                onClick={() => setEntering(null)}
+                className="rounded-lg bc-solid px-4 py-2 text-sm text-donor-text transition-colors hover:bg-donor-elevated"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </AppShell>
   );
 }

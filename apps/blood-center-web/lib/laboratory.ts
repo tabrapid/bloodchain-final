@@ -32,7 +32,9 @@ export interface LaboratoryOrganization {
     id: string;
     name: string;
     isActive: boolean;
-    testTypes: Array<{ id: string; code: string; name: string; category: string }>;
+    // GET /laboratories/:id returns each test type with its parameters, which
+    // is what the result-entry form is built from.
+    testTypes: TestType[];
   };
 }
 
