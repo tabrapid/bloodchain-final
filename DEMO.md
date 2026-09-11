@@ -293,13 +293,57 @@ client shares one address, so raise it:
 AUTH_THROTTLE_LIMIT=100 pnpm --filter @bloodchain/api dev
 ```
 
+### 7.1 When the phone cannot reach the API
+
+The error names the address it tried. Start there.
+
+**If it is an `exp.direct`, `ngrok` or `trycloudflare` host** — Metro is
+tunnelled and the API is not. See the two cases above.
+
+**If it is an ordinary address** (`192.168.…`, `172.20.…`, `10.…`) then the app
+picked the right machine, and the question is only whether port 3001 on it is
+reachable. The bundle already arrived from that address on port 8081, so the
+network path itself works.
+
+Note *which* error you got — they mean different things:
+
+| Message | What it means |
+| --- | --- |
+| "Could not reach the server" (fails immediately) | Nothing is listening. The API is not running — start it. |
+| "The server took too long to respond" (hangs, then fails) | Something is dropping the packets. On a Mac this is almost always the firewall. |
+
+To confirm, open this in the **phone's own browser** (`pnpm demo:check` prints
+the exact URLs):
+
+```
+http://<that same address>:3001/api/v1/health
+```
+
+- **JSON comes back** → the API is reachable and the problem is in the app.
+- **The page hangs** → the connection is being dropped. On macOS: System
+  Settings → Network → Firewall → either turn it off for the demo, or open
+  Options and set `node` to "Allow incoming connections". Metro on port 8081 was
+  allowed the first time you ran it; the API is a separate binary and gets asked
+  separately — which is why the bundle loads and the API does not.
+
+The API prints the addresses it answers on when it starts:
+
+```
+BloodChain API listening on port 3001
+  reachable at http://localhost:3001/api/v1
+  reachable at http://192.168.1.14:3001/api/v1
+```
+
+If the address the app named is not in that list, the laptop changed networks
+after the API started — restart it.
+
 ---
 
 ## 8. If something goes wrong
 
 | Problem | What to do |
 | --- | --- |
-| **"Server took too long to respond" on sign-in** | In a development build the message names the address it tried — read it. `exp.direct` or `ngrok` means Metro is tunnelled and the API is not; a `192.168.*` address that fails means the phone is not on that network, or a firewall is dropping the connection. See §7. |
+| **"Server took too long to respond" on sign-in** | The message names the address it tried. Work through §7.1. |
 | **429 / "too many attempts"** | The login throttle. Restart the API with `AUTH_THROTTLE_LIMIT=100`, or wait a minute. |
 | **Everything is signed out after a reset** | Expected: a reset issues new user ids. Sign in again. |
 | **GPS is slow in the emulator** | Set a location first: Android emulator → ⋯ → Location → enter 40.1158 / 67.8422 → Send. iOS simulator → Features → Location → Custom Location. The donor screen shows a waiting state until the first fix; it is not stuck. |

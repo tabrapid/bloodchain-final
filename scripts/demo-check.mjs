@@ -8,6 +8,7 @@
  * listening, a portal not started, a seeded account that no longer exists, an
  * organisation with no bookable slot left.
  */
+import { networkInterfaces } from 'node:os';
 import { assertLocalDatabase, fail } from './demo-guard.mjs';
 
 const API = process.env.DEMO_API_URL ?? 'http://localhost:3001';
@@ -152,6 +153,28 @@ for (const [name, url] of PORTALS) {
   const ok = await reachable(url);
   // A portal that is not started yet is a warning: the demo may only need one.
   record(name, ok, url, true);
+}
+
+/**
+ * The addresses a phone can try.
+ *
+ * When a device cannot reach the API, the useful next step is to open one of
+ * these in the phone's own browser: a page means the network is fine and the
+ * app is misconfigured, a hang means something between them is dropping the
+ * connection (on macOS, usually the firewall).
+ */
+const lanUrls = [];
+for (const addresses of Object.values(networkInterfaces())) {
+  for (const address of addresses ?? []) {
+    if (address.family === 'IPv4' && !address.internal) {
+      lanUrls.push(`http://${address.address}:3001/api/v1/health`);
+    }
+  }
+}
+if (lanUrls.length) {
+  console.log('\n  From a phone on this network, this should return JSON:');
+  for (const url of lanUrls) console.log(`    ${url}`);
+  console.log('    A hang here means the connection is being dropped — check the firewall.');
 }
 
 console.log('');
