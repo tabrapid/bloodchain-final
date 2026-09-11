@@ -1,11 +1,18 @@
 import {
+  AchievementRarity,
+  AchievementType,
   AppointmentStatus,
   AppointmentType,
   BloodType,
+  ChallengeStatus,
+  ChallengeType,
+  ChallengeVisibility,
+  CommunityPostType,
   ComponentType,
   CourierStatus,
   DonationStatus,
   DonationType,
+  EducationContentType,
   EmergencyMatchStatus,
   EmergencyStatus,
   LocationType,
@@ -17,6 +24,7 @@ import {
   RoleCode,
   SlotStatus,
   TestCategory,
+  XpTransactionType,
 } from '@prisma/client';
 import * as argon2 from 'argon2';
 
@@ -290,6 +298,7 @@ async function main() {
       email: 'donor@donor.local',
       firstName: 'Sample',
       lastName: 'Donor',
+      displayName: 'Sample D.',
       passwordHash,
       status: 'ACTIVE',
       emailVerified: true,
@@ -503,6 +512,9 @@ async function main() {
         email: spec.email,
         firstName: spec.firstName,
         lastName: spec.lastName,
+        // The leaderboard falls back to "Anonymous Donor" without this, so an
+        // unnamed seed made every row on the board identical.
+        displayName: `${spec.firstName} ${spec.lastName.charAt(0)}.`,
         passwordHash,
         status: 'ACTIVE',
         emailVerified: true,
@@ -1531,6 +1543,353 @@ async function main() {
     },
   });
 
+
+  /**
+   * Gamification, community and education content.
+   *
+   * All of these tables were empty, so the Donate screen's campaigns and
+   * challenges rows, the Community feed, the Education list, the achievements
+   * grid and the leaderboard each rendered their empty state -- five screens
+   * that look broken in a demo. Everything below is ordinary product content
+   * seeded through the real models, so the screens read it the same way they
+   * read anything else.
+   */
+  const achievementSpecs = [
+    { code: 'FIRST_DONATION', type: AchievementType.DONATION_COUNT, name: 'First Drop',
+      description: 'Complete your first blood donation.', icon: 'droplet',
+      rarity: AchievementRarity.COMMON, criteria: { donations: 1 }, xpReward: 50, displayOrder: 1 },
+    { code: 'DONATION_5', type: AchievementType.DONATION_COUNT, name: 'Regular Donor',
+      description: 'Complete five blood donations.', icon: 'heart',
+      rarity: AchievementRarity.RARE, criteria: { donations: 5 }, xpReward: 150, displayOrder: 2 },
+    { code: 'DONATION_10', type: AchievementType.DONATION_COUNT, name: 'Lifeline',
+      description: 'Complete ten blood donations.', icon: 'award',
+      rarity: AchievementRarity.EPIC, criteria: { donations: 10 }, xpReward: 300, displayOrder: 3 },
+    { code: 'EMERGENCY_HERO', type: AchievementType.EMERGENCY_RESPONSE_COUNT, name: 'Emergency Hero',
+      description: 'Answer an emergency call and donate.', icon: 'siren',
+      rarity: AchievementRarity.EPIC, criteria: { responses: 1 }, xpReward: 200, displayOrder: 4 },
+    { code: 'HEALTH_AWARE', type: AchievementType.BLOOD_TEST_COUNT, name: 'Health Aware',
+      description: 'Complete a laboratory blood test.', icon: 'activity',
+      rarity: AchievementRarity.COMMON, criteria: { tests: 1 }, xpReward: 40, displayOrder: 5 },
+    { code: 'PROFILE_COMPLETE', type: AchievementType.CUSTOM_EVENT, name: 'Ready to Give',
+      description: 'Complete your donor profile.', icon: 'user-check',
+      rarity: AchievementRarity.COMMON, criteria: { profile: true }, xpReward: 25, displayOrder: 6 },
+    { code: 'XP_500', type: AchievementType.XP_MILESTONE, name: 'Five Hundred',
+      description: 'Reach 500 XP.', icon: 'star',
+      rarity: AchievementRarity.RARE, criteria: { xp: 500 }, xpReward: 100, displayOrder: 7 },
+    { code: 'SCHOLAR', type: AchievementType.EDUCATION_COMPLETED, name: 'Scholar',
+      description: 'Finish an education module.', icon: 'book-open',
+      rarity: AchievementRarity.COMMON, criteria: { modules: 1 }, xpReward: 30, displayOrder: 8 },
+  ];
+  const achievements: Record<string, { id: string; xpReward: number }> = {};
+  for (const spec of achievementSpecs) {
+    const created = await db.achievement.create({ data: { ...spec, isActive: true } });
+    achievements[spec.code] = { id: created.id, xpReward: created.xpReward };
+  }
+
+  const badgeSpecs = [
+    { code: 'BADGE_FIRST_DONATION', name: 'First Drop', description: 'Awarded for a first donation.',
+      icon: 'droplet', rarity: AchievementRarity.COMMON, achievementCode: 'FIRST_DONATION', displayOrder: 1 },
+    { code: 'BADGE_EMERGENCY_HERO', name: 'Emergency Hero', description: 'Awarded for answering an emergency.',
+      icon: 'siren', rarity: AchievementRarity.EPIC, achievementCode: 'EMERGENCY_HERO', displayOrder: 2 },
+    { code: 'BADGE_HEALTH_AWARE', name: 'Health Aware', description: 'Awarded for a completed blood test.',
+      icon: 'activity', rarity: AchievementRarity.COMMON, achievementCode: 'HEALTH_AWARE', displayOrder: 3 },
+    { code: 'BADGE_CONSISTENCY', name: 'Steady Hand', description: 'Awarded for donating on schedule.',
+      icon: 'calendar-check', rarity: AchievementRarity.RARE, achievementCode: null, displayOrder: 4 },
+  ];
+  const badges: Record<string, string> = {};
+  for (const spec of badgeSpecs) {
+    const { achievementCode, ...rest } = spec;
+    const created = await db.badge.create({
+      data: {
+        ...rest,
+        isActive: true,
+        achievementId: achievementCode ? achievements[achievementCode]!.id : null,
+      },
+    });
+    badges[spec.code] = created.id;
+  }
+
+  /**
+   * Gamification standing for the demo donor and the supporting pool.
+   *
+   * The demo donor starts with the XP their seeded history earned, so the
+   * profile does not open on "Level 1, 0 XP" next to a donation history. The
+   * supporting donors get their own totals so the leaderboard has rows to rank.
+   */
+  const gamificationSpecs: { userId: string; xp: number; level: number; reputation: number }[] = [
+    { userId: donor.id, xp: 340, level: 3, reputation: 45 },
+    { userId: supportDonors[0]!.id, xp: 820, level: 5, reputation: 96 },
+    { userId: supportDonors[1]!.id, xp: 610, level: 4, reputation: 71 },
+    { userId: supportDonors[2]!.id, xp: 275, level: 2, reputation: 38 },
+    { userId: supportDonors[3]!.id, xp: 150, level: 2, reputation: 22 },
+  ];
+  for (const spec of gamificationSpecs) {
+    await db.gamificationProfile.upsert({
+      where: { userId: spec.userId },
+      update: { totalXp: spec.xp, level: spec.level, reputationScore: spec.reputation },
+      create: {
+        userId: spec.userId,
+        totalXp: spec.xp,
+        level: spec.level,
+        reputationScore: spec.reputation,
+        leaderboardVisibility: true,
+      },
+    });
+  }
+
+  // The demo donor's XP ledger, so the history behind the total is real.
+  const donorXpLedger = [
+    { amount: 25, type: XpTransactionType.PROFILE_COMPLETED, sourceType: 'PROFILE', sourceId: donor.id,
+      description: 'Donor profile completed', daysAgo: 120 },
+    { amount: 50, type: XpTransactionType.DONATION_COMPLETED, sourceType: 'DONATION', sourceId: completedDonation.id,
+      description: 'Blood donation completed', daysAgo: DEMO_DONOR_LAST_DONATION_DAYS_AGO },
+    { amount: 40, type: XpTransactionType.BLOOD_TEST_COMPLETED, sourceType: 'LAB_RESULT', sourceId: labResult.id,
+      description: 'Blood test completed', daysAgo: 7 },
+    { amount: 50, type: XpTransactionType.ACHIEVEMENT_UNLOCKED, sourceType: 'ACHIEVEMENT', sourceId: achievements.FIRST_DONATION!.id,
+      description: 'Achievement unlocked: First Drop', daysAgo: DEMO_DONOR_LAST_DONATION_DAYS_AGO },
+    { amount: 40, type: XpTransactionType.ACHIEVEMENT_UNLOCKED, sourceType: 'ACHIEVEMENT', sourceId: achievements.HEALTH_AWARE!.id,
+      description: 'Achievement unlocked: Health Aware', daysAgo: 7 },
+    { amount: 25, type: XpTransactionType.ACHIEVEMENT_UNLOCKED, sourceType: 'ACHIEVEMENT', sourceId: achievements.PROFILE_COMPLETE!.id,
+      description: 'Achievement unlocked: Ready to Give', daysAgo: 120 },
+    { amount: 30, type: XpTransactionType.EDUCATION_COMPLETED, sourceType: 'EDUCATION', sourceId: 'seed-education-1',
+      description: 'Education module completed', daysAgo: 30 },
+    { amount: 80, type: XpTransactionType.APPOINTMENT_COMPLETED, sourceType: 'APPOINTMENT', sourceId: completedAppointment.id,
+      description: 'Appointment attended', daysAgo: DEMO_DONOR_LAST_DONATION_DAYS_AGO },
+  ];
+  for (const entry of donorXpLedger) {
+    const { daysAgo: ago, ...rest } = entry;
+    await db.xpTransaction.create({ data: { userId: donor.id, ...rest, createdAt: daysAgo(ago) } });
+  }
+
+  for (const code of ['FIRST_DONATION', 'HEALTH_AWARE', 'PROFILE_COMPLETE'] as const) {
+    await db.achievementUnlock.create({
+      data: {
+        userId: donor.id,
+        achievementId: achievements[code]!.id,
+        unlockedAt: daysAgo(code === 'HEALTH_AWARE' ? 7 : DEMO_DONOR_LAST_DONATION_DAYS_AGO),
+        progress: 1,
+        target: 1,
+      },
+    });
+  }
+  for (const code of ['BADGE_FIRST_DONATION', 'BADGE_HEALTH_AWARE'] as const) {
+    await db.userBadge.create({
+      data: { userId: donor.id, badgeId: badges[code]!, earnedAt: daysAgo(DEMO_DONOR_LAST_DONATION_DAYS_AGO) },
+    });
+  }
+
+  const campaignSpecs = [
+    { organizationId: centerOrg.id, title: 'Jizzakh Winter Blood Drive',
+      description: 'A week-long drive across Jizzakh to rebuild winter reserves. Walk-ins welcome.',
+      startDate: daysAgo(3), endDate: daysAfter(new Date(), 11), location: 'Jizzakh city centre',
+      bloodGroupsNeeded: [BloodType.O, BloodType.A, BloodType.B], targetParticipants: 200,
+      status: 'ACTIVE' as const },
+    { organizationId: createdExtraOrgs[0]!.id, title: 'University Donor Day',
+      description: 'One day on campus with the mobile collection unit. First-time donors especially welcome.',
+      startDate: daysAfter(new Date(), 5), endDate: daysAfter(new Date(), 6), location: 'Jizzakh State Pedagogical University',
+      bloodGroupsNeeded: [BloodType.O, BloodType.AB], targetParticipants: 80,
+      status: 'PUBLISHED' as const },
+    { organizationId: createdExtraOrgs[2]!.id, title: 'Rare Types Register',
+      description: 'Building a standing register of O-negative and AB donors for emergency call-outs.',
+      startDate: daysAgo(20), endDate: daysAfter(new Date(), 40), location: 'Republican Blood Center — Jizzakh',
+      bloodGroupsNeeded: [BloodType.O, BloodType.AB], targetParticipants: 120,
+      status: 'ACTIVE' as const },
+  ];
+  const campaigns = [];
+  for (const spec of campaignSpecs) campaigns.push(await db.campaign.create({ data: spec }));
+
+  await db.campaignParticipant.create({
+    data: { campaignId: campaigns[0]!.id, userId: donor.id, joinedAt: daysAgo(2) },
+  });
+  for (const [index, sd] of supportDonors.entries()) {
+    await db.campaignParticipant.create({
+      data: { campaignId: campaigns[index % campaigns.length]!.id, userId: sd.id, joinedAt: daysAgo(index + 1) },
+    });
+  }
+
+  const challengeSpecs = [
+    { title: 'Give twice this season', description: 'Complete two donations before the end of the season.',
+      type: ChallengeType.DONATION_MILESTONE, status: ChallengeStatus.ACTIVE, visibility: ChallengeVisibility.PUBLIC,
+      startDate: daysAgo(14), endDate: daysAfter(new Date(), 45), goal: 2, xpReward: 200,
+      badgeId: badges.BADGE_CONSISTENCY! },
+    { title: 'Know your blood', description: 'Finish the three education modules on blood donation.',
+      type: ChallengeType.EDUCATION, status: ChallengeStatus.ACTIVE, visibility: ChallengeVisibility.PUBLIC,
+      startDate: daysAgo(7), endDate: daysAfter(new Date(), 21), goal: 3, xpReward: 90, badgeId: null },
+    { title: 'Campaign supporter', description: 'Join a blood drive campaign in your region.',
+      type: ChallengeType.CAMPAIGN_PARTICIPATION, status: ChallengeStatus.ACTIVE, visibility: ChallengeVisibility.PUBLIC,
+      startDate: daysAgo(10), endDate: daysAfter(new Date(), 30), goal: 1, xpReward: 60, badgeId: null },
+  ];
+  const challenges = [];
+  for (const spec of challengeSpecs) challenges.push(await db.challenge.create({ data: spec }));
+
+  await db.challengeParticipant.create({
+    data: { challengeId: challenges[0]!.id, userId: donor.id, progress: 1, joinedAt: daysAgo(12) },
+  });
+  await db.challengeParticipant.create({
+    data: { challengeId: challenges[2]!.id, userId: donor.id, progress: 1, joinedAt: daysAgo(2) },
+  });
+
+  const educationSpecs = [
+    { type: EducationContentType.ARTICLE, title: 'Who can donate blood?',
+      description: 'Age, weight and health requirements, and the common reasons for deferral.',
+      body: 'Most healthy adults between 18 and 60 who weigh at least 50 kg can donate whole blood. You will be asked about recent illness, medication, tattoos and travel, and your haemoglobin is measured before every donation. Deferral is usually temporary: it protects both you and the person receiving your blood.',
+      category: 'Eligibility', difficulty: 'BEGINNER', xpReward: 30, estimatedMinutes: 4, displayOrder: 1 },
+    { type: EducationContentType.ARTICLE, title: 'What happens during a donation',
+      description: 'Registration, screening, collection and recovery, step by step.',
+      body: 'A whole blood donation takes about 10 minutes of actual collection and around 45 minutes end to end. You register, answer a short health questionnaire, have your haemoglobin and blood pressure checked, then give roughly 450 mL. Afterwards you rest for 10-15 minutes with something to drink before leaving.',
+      category: 'Process', difficulty: 'BEGINNER', xpReward: 30, estimatedMinutes: 5, displayOrder: 2 },
+    { type: EducationContentType.ARTICLE, title: 'Recovering well after you donate',
+      description: 'Iron, fluids and the 56-day window between whole blood donations.',
+      body: 'Your body replaces the fluid within a day and the red cells over about eight weeks, which is why whole blood donation is limited to once every 56 days. Drink extra water, eat iron-rich food, and avoid heavy lifting or strenuous exercise for the rest of the day.',
+      category: 'Aftercare', difficulty: 'BEGINNER', xpReward: 30, estimatedMinutes: 4, displayOrder: 3 },
+    { type: EducationContentType.ARTICLE, title: 'Blood groups and who you can help',
+      description: 'ABO and Rh, universal donors, and why O-negative is always in demand.',
+      body: 'The ABO system and the Rh factor together give the eight common blood groups. O-negative red cells can be given to anyone, which is why they are held for emergencies before a patient is typed; AB-positive donors are universal plasma donors. Knowing your group tells you exactly who your donation can reach.',
+      category: 'Basics', difficulty: 'BEGINNER', xpReward: 30, estimatedMinutes: 6, displayOrder: 4 },
+  ];
+  const educationContent = [];
+  for (const spec of educationSpecs) {
+    educationContent.push(await db.educationalContent.create({ data: { ...spec, isActive: true } }));
+  }
+  await db.educationProgress.create({
+    data: { userId: donor.id, contentId: educationContent[0]!.id, status: 'COMPLETED',
+            startedAt: daysAgo(31), completedAt: daysAgo(30) },
+  });
+  await db.educationProgress.create({
+    data: { userId: donor.id, contentId: educationContent[1]!.id, status: 'STARTED', startedAt: daysAgo(2) },
+  });
+
+  const postSpecs = [
+    { type: CommunityPostType.CAMPAIGN, title: 'Winter blood drive is live',
+      body: 'The Jizzakh Winter Blood Drive runs all week. O, A and B donors are especially needed — walk in any day between 9:00 and 17:00.',
+      organizationId: centerOrg.id, campaignId: campaigns[0]!.id, publishedAt: daysAgo(3) },
+    { type: CommunityPostType.IMPACT, title: 'Three lives from one donation',
+      body: 'A single whole blood donation is separated into red cells, plasma and platelets — three components that can reach three different patients.',
+      organizationId: centerOrg.id, publishedAt: daysAgo(6) },
+    { type: CommunityPostType.MILESTONE, title: 'Aziza reached her fifth donation',
+      body: 'Aziza K. completed her fifth donation this month. O-negative donors like her are the ones we call first in an emergency.',
+      authorId: supportDonors[0]!.id, publishedAt: daysAgo(9) },
+    { type: CommunityPostType.ANNOUNCEMENT, title: 'Republican Blood Center now takes online bookings',
+      body: 'You can now reserve a donation or a laboratory test slot at the Republican Blood Center directly from the app.',
+      organizationId: createdExtraOrgs[2]!.id, publishedAt: daysAgo(12) },
+    { type: CommunityPostType.EDUCATION, title: 'What to eat before you donate',
+      body: 'Have a full meal and plenty of water in the hours before your appointment, and go easy on fatty food — it can interfere with the tests run on your donation.',
+      publishedAt: daysAgo(15) },
+  ];
+  for (const spec of postSpecs) {
+    await db.communityPost.create({ data: { ...spec, status: 'PUBLISHED' } });
+  }
+
+  /**
+   * The demo donor's notification inbox.
+   *
+   * The inbox rendered its empty state on an account with a donation, a
+   * published lab result and a campaign it had joined -- every one of which
+   * notifies in normal use. Deep links point at real routes so tapping a
+   * notification goes somewhere.
+   */
+  const notificationSpecs = [
+    { type: 'LABORATORY' as const, priority: 'NORMAL' as const,
+      title: 'Your blood test results are ready',
+      body: 'Complete Blood Count from Northstar Blood Center has been published. All parameters are within range.',
+      deepLink: '/(app)/health', daysAgo: 7 },
+    { type: 'DONATION' as const, priority: 'NORMAL' as const,
+      title: 'Thank you for donating',
+      body: 'Your 450 mL whole blood donation has been recorded. You earned 50 XP.',
+      deepLink: '/(app)/donations', daysAgo: DEMO_DONOR_LAST_DONATION_DAYS_AGO },
+    { type: 'GAMIFICATION' as const, priority: 'LOW' as const,
+      title: 'Achievement unlocked: First Drop',
+      body: 'You completed your first blood donation.',
+      deepLink: '/(app)/gamification', daysAgo: DEMO_DONOR_LAST_DONATION_DAYS_AGO },
+    { type: 'CAMPAIGN' as const, priority: 'NORMAL' as const,
+      title: 'Jizzakh Winter Blood Drive is live',
+      body: 'The drive runs all week at the Northstar Blood Center. You are signed up.',
+      deepLink: '/(app)/campaigns', daysAgo: 3 },
+    { type: 'APPOINTMENT' as const, priority: 'HIGH' as const,
+      title: 'Upcoming blood test',
+      body: 'Your laboratory appointment at Northstar Blood Center is in two days.',
+      deepLink: '/(app)/calendar', daysAgo: 1 },
+  ];
+  for (const [index, spec] of notificationSpecs.entries()) {
+    const { daysAgo: ago, ...rest } = spec;
+    await db.notification.create({
+      data: {
+        recipientId: donor.id,
+        ...rest,
+        // The two oldest are already read, so the inbox shows both states.
+        status: index >= 3 ? 'DELIVERED' : 'READ',
+        readAt: index >= 3 ? null : daysAgo(ago),
+        createdAt: daysAgo(ago),
+      },
+    });
+  }
+
+  /**
+   * Demo Donor B: inside the recovery window.
+   *
+   * The primary demo donor is deliberately eligible so every flow is reachable.
+   * Showing the other half of the rule -- "you gave 12 days ago, you are not
+   * eligible until..." -- needs a second account rather than a contradictory
+   * state on the first one.
+   */
+  const recentDonorUser = await db.user.upsert({
+    where: { email: 'recent.donor@donor.local' },
+    update: {},
+    create: {
+      email: 'recent.donor@donor.local',
+      firstName: 'Nodira',
+      lastName: 'Ergasheva',
+      displayName: 'Nodira E.',
+      passwordHash,
+      status: 'ACTIVE',
+      emailVerified: true,
+      donorProfile: {
+        create: {
+          bloodType: BloodType.A,
+          rhFactor: RhFactor.NEGATIVE,
+          donorStatus: 'ACTIVE',
+          verificationStatus: 'VERIFIED',
+          city: 'Jizzakh',
+          consentLocation: true,
+          latitude: 40.1205,
+          longitude: 67.8440,
+        },
+      },
+    },
+  });
+  await db.organizationMembership.upsert({
+    where: {
+      userId_organizationId_roleId: {
+        userId: recentDonorUser.id, organizationId: centerOrg.id, roleId: donorRole.id,
+      },
+    },
+    update: {},
+    create: { userId: recentDonorUser.id, organizationId: centerOrg.id, roleId: donorRole.id, status: 'ACTIVE' },
+  });
+  const recentDonationAt = daysAgo(12);
+  await db.donation.create({
+    data: {
+      donationReference: `DONATION-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 999999)).padStart(6, '0')}`,
+      donorId: recentDonorUser.id,
+      organizationId: centerOrg.id,
+      donationType: DonationType.WHOLE_BLOOD,
+      status: DonationStatus.COMPLETED,
+      bloodType: BloodType.A,
+      rhFactor: RhFactor.NEGATIVE,
+      volumeMl: 450,
+      collectionStartedAt: recentDonationAt,
+      collectionCompletedAt: new Date(recentDonationAt.getTime() + 30 * 60000),
+      completedAt: new Date(recentDonationAt.getTime() + 30 * 60000),
+      completedBy: bloodCenterStaffUser.id,
+      nextDonationDate: daysAfter(recentDonationAt, DONATION_COOLDOWN_DAYS),
+    },
+  });
+  await db.gamificationProfile.upsert({
+    where: { userId: recentDonorUser.id },
+    update: {},
+    create: { userId: recentDonorUser.id, totalXp: 95, level: 1, reputationScore: 12, leaderboardVisibility: true },
+  });
+
   console.log('Seeded development data:');
   console.log('=== SUPER_ADMIN ===');
   console.log('  admin@donor.local / DevelopmentOnly!123');
@@ -1552,7 +1911,10 @@ async function main() {
   console.log('  lab.technician@donor.local / DevelopmentOnly!123 (LAB_TECHNICIAN)');
   console.log('  lab.reviewer@donor.local / DevelopmentOnly!123 (LAB_REVIEWER)');
   console.log('  lab.admin@donor.local / DevelopmentOnly!123 (LAB_ADMIN)');
+  console.log('=== SECOND DONOR (inside recovery window) ===');
+  console.log('  recent.donor@donor.local / DevelopmentOnly!123 (A-, donated 12 days ago, not yet eligible)');
   console.log('=== SUPPORTING DONORS (emergency match pool) ===');
+
   for (const spec of supportDonorSpecs) {
     console.log(`  ${spec.email} / DevelopmentOnly!123 (${spec.bloodType}${spec.rhFactor === 'POSITIVE' ? '+' : '-'})`);
   }
@@ -1563,6 +1925,11 @@ async function main() {
     console.log(`  ${org.name} - ${org.type}`);
   }
   console.log(`=== BOOKABLE SLOTS === ${await db.appointmentSlot.count({ where: { status: SlotStatus.AVAILABLE } })} available`);
+  console.log(
+    `=== CONTENT === ${achievementSpecs.length} achievements, ${badgeSpecs.length} badges, ` +
+      `${campaigns.length} campaigns, ${challenges.length} challenges, ${postSpecs.length} community posts, ` +
+      `${educationContent.length} education modules`,
+  );
   console.log('=== EMERGENCY REQUESTS ===');
   console.log(`  ${emergency1.emergencyReference} - O- (CRITICAL, ACTIVE)`);
   console.log(`  ${emergency2.emergencyReference} - A+ (HIGH, MATCHING)`);

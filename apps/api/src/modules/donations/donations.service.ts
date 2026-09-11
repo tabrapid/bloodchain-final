@@ -962,6 +962,17 @@ export class DonationsService {
               referenceNumber: true,
             },
           },
+          // Whether the donor has been assessed is the difference between
+          // "waiting to be seen" and "cleared to donate", and the staff console
+          // has no other way to tell: an approved assessment leaves the
+          // donation on CHECKED_IN, so status alone cannot say.
+          assessment: {
+            select: {
+              id: true,
+              decision: true,
+              assessedAt: true,
+            },
+          },
         },
       }),
       this.db.donation.count({ where }),
@@ -976,10 +987,13 @@ export class DonationsService {
         bloodType: d.bloodType,
         rhFactor: d.rhFactor,
         volumeMl: d.volumeMl,
+        collectionStartedAt: d.collectionStartedAt,
         collectionCompletedAt: d.collectionCompletedAt,
+        completedAt: d.completedAt,
         createdAt: d.createdAt,
         donor: d.donor,
         appointment: d.appointment,
+        assessment: d.assessment,
       })),
       meta: {
         page,

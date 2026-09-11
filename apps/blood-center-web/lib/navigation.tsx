@@ -3,6 +3,7 @@ import {
   Beaker,
   CalendarDays,
   Droplet,
+  HeartPulse,
   LayoutDashboard,
   Package,
   Settings,
@@ -13,6 +14,7 @@ import type { SidebarItem } from '@bloodchain/ui/components';
 
 export const sidebarItems: SidebarItem[] = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, href: '/' },
+  { id: 'donations', label: 'Donations', icon: HeartPulse, href: '/donations' },
   { id: 'requests', label: 'Blood Requests', icon: Droplet, href: '/requests' },
   { id: 'inventory', label: 'Inventory', icon: Package, href: '/inventory' },
   { id: 'laboratory', label: 'Laboratory', icon: Beaker, href: '/laboratory' },

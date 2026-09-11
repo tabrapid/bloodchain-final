@@ -4,15 +4,11 @@ import { useEffect, useState, useCallback } from 'react';
 import {
   Activity,
   AlertTriangle,
-  ArrowRightLeft,
   CheckCircle,
   Clock,
   Filter,
   Package,
-  Pencil,
-  Plus,
   Search,
-  XCircle,
 } from 'lucide-react';
 import {
   EmptyState,
@@ -30,10 +26,8 @@ import {
 import {
   getInventorySummary,
   getInventory,
-  getLocations,
   InventorySummary,
   InventoryUnit,
-  InventoryLocation,
   GetInventoryParams,
 } from '../../lib/inventory';
 import { AppShell } from '../../components/AppShell';
@@ -53,7 +47,6 @@ export default function InventoryPage() {
 
   const [summary, setSummary] = useState<InventorySummary | null>(null);
   const [units, setUnits] = useState<InventoryUnit[]>([]);
-  const [locations, setLocations] = useState<InventoryLocation[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(false);
 
   const [filters, setFilters] = useState<GetInventoryParams>({ page: 1, limit: 20 });
@@ -64,12 +57,8 @@ export default function InventoryPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [showUnitModal, setShowUnitModal] = useState(false);
   const [selectedUnit, setSelectedUnit] = useState<InventoryUnit | null>(null);
-  const [showMovementModal, setShowMovementModal] = useState(false);
-  const [showLocationModal, setShowLocationModal] = useState(false);
-  const [showAdjustModal, setShowAdjustModal] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
 
-  const [newLocation, setNewLocation] = useState({ name: '', code: '', type: 'STORAGE' });
 
   useEffect(() => {
     async function checkAuth() {
@@ -100,12 +89,12 @@ export default function InventoryPage() {
     if (!organizationId) return;
     setIsLoadingData(true);
     try {
-      const [summaryData, locationsData] = await Promise.all([
-        getInventorySummary(organizationId),
-        getLocations(organizationId),
-      ]);
-      setSummary(summaryData);
-      setLocations(locationsData);
+      // Storage locations are a blood-centre concern: the API restricts
+      // /inventory/locations (and every stock-movement endpoint) to blood
+      // centre roles. Fetching it here threw a 403 inside Promise.all, which
+      // took the summary down with it -- so a hospital's inventory page showed
+      // four empty stat cards because of a request it had no business making.
+      setSummary(await getInventorySummary(organizationId));
     } catch (err: unknown) {
       console.error('Failed to load inventory data:', err);
     } finally {
@@ -159,73 +148,6 @@ export default function InventoryPage() {
     setShowUnitModal(true);
   };
 
-  const handleCreateLocation = async () => {
-    if (!organizationId || !newLocation.name || !newLocation.code) return;
-    setActionLoading(true);
-    try {
-      const { createLocation: createLoc } = await import('../../lib/inventory');
-      await createLoc(organizationId, newLocation);
-      setNewLocation({ name: '', code: '', type: 'STORAGE' });
-      setShowLocationModal(false);
-      loadData();
-    } catch (err: unknown) {
-      setError((err as Error).message);
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleMoveUnit = async (unitId: string, toLocationId: string, reason: string) => {
-    if (!organizationId) return;
-    setActionLoading(true);
-    try {
-      const { moveUnit: move } = await import('../../lib/inventory');
-      await move(organizationId, unitId, { toLocationId, reason });
-      setShowMovementModal(false);
-      setSelectedUnit(null);
-      loadUnits();
-      loadData();
-    } catch (err: unknown) {
-      setError((err as Error).message);
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleQuarantineUnit = async (unitId: string, reason: string) => {
-    if (!organizationId) return;
-    setActionLoading(true);
-    try {
-      const { quarantineUnit: quarantine } = await import('../../lib/inventory');
-      await quarantine(organizationId, unitId, reason);
-      setShowUnitModal(false);
-      setSelectedUnit(null);
-      loadUnits();
-      loadData();
-    } catch (err: unknown) {
-      setError((err as Error).message);
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleDiscardUnit = async (unitId: string, reason: string) => {
-    if (!organizationId) return;
-    setActionLoading(true);
-    try {
-      const { discardUnit: discard } = await import('../../lib/inventory');
-      await discard(organizationId, unitId, reason);
-      setShowUnitModal(false);
-      setSelectedUnit(null);
-      loadUnits();
-      loadData();
-    } catch (err: unknown) {
-      setError((err as Error).message);
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
   const handleIssueUnit = async (unitId: string, reason: string) => {
     if (!organizationId) return;
     setActionLoading(true);
@@ -233,26 +155,6 @@ export default function InventoryPage() {
       const { issueUnit: issue } = await import('../../lib/inventory');
       await issue(organizationId, unitId, reason);
       setShowUnitModal(false);
-      setSelectedUnit(null);
-      loadUnits();
-      loadData();
-    } catch (err: unknown) {
-      setError((err as Error).message);
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleAdjustUnit = async (
-    unitId: string,
-    params: { reason: string; volumeMl?: number; componentType?: string; expiresAt?: string },
-  ) => {
-    if (!organizationId) return;
-    setActionLoading(true);
-    try {
-      const { adjustUnit: adjust } = await import('../../lib/inventory');
-      await adjust(organizationId, unitId, params);
-      setShowAdjustModal(false);
       setSelectedUnit(null);
       loadUnits();
       loadData();
@@ -272,18 +174,6 @@ export default function InventoryPage() {
       case 'EXPIRED': return 'danger';
       case 'DISCARDED': return 'danger';
       default: return 'default';
-    }
-  };
-
-  const getLocationTypeLabel = (type: string) => {
-    switch (type) {
-      case 'STORAGE': return 'Storage';
-      case 'TESTING': return 'Testing Lab';
-      case 'QUARANTINE': return 'Quarantine';
-      case 'ISSUING': return 'Issuing';
-      case 'PROCESSING': return 'Processing';
-      case 'DISTRIBUTION': return 'Distribution';
-      default: return type;
     }
   };
 
@@ -378,13 +268,6 @@ export default function InventoryPage() {
         >
           <Filter size={16} />
           Filters
-        </button>
-        <button
-          onClick={() => setShowLocationModal(true)}
-          className="flex items-center gap-2 rounded-lg bc-solid px-4 py-2 text-sm text-donor-text transition-colors hover:bg-donor-elevated"
-        >
-          <Plus size={16} />
-          Add Location
         </button>
       </div>
 
@@ -540,41 +423,6 @@ export default function InventoryPage() {
               )}
             </div>
 
-            {selectedUnit.status === 'QUARANTINED' && (
-              <div className="flex flex-wrap gap-2 pt-4 border-t border-donor-border">
-                <button
-                  onClick={() => {
-                    setShowUnitModal(false);
-                    setShowMovementModal(true);
-                  }}
-                  className="flex items-center gap-2 rounded-lg bc-solid px-4 py-2 text-sm text-donor-text transition-colors hover:bg-donor-elevated"
-                >
-                  <ArrowRightLeft size={16} />
-                  Move
-                </button>
-                <button
-                  onClick={() => {
-                    setShowUnitModal(false);
-                    setShowAdjustModal(true);
-                  }}
-                  className="flex items-center gap-2 rounded-lg bc-solid px-4 py-2 text-sm text-donor-text transition-colors hover:bg-donor-elevated"
-                >
-                  <Pencil size={16} />
-                  Adjust
-                </button>
-                <button
-                  onClick={() => {
-                    const reason = prompt('Enter discard reason:');
-                    if (reason) handleDiscardUnit(selectedUnit.id, reason);
-                  }}
-                  className="flex items-center gap-2 rounded-lg border border-donor-danger/30 bg-donor-dangerMuted px-4 py-2 text-sm text-donor-onDangerMuted transition-colors hover:bg-donor-danger/20"
-                >
-                  <XCircle size={16} />
-                  Discard
-                </button>
-              </div>
-            )}
-
             {selectedUnit.status === 'AVAILABLE' && (
               <div className="flex flex-wrap gap-2 pt-4 border-t border-donor-border">
                 <button
@@ -582,40 +430,11 @@ export default function InventoryPage() {
                     const reason = prompt('Enter issue reason (include patient/recipient reference if applicable):');
                     if (reason) handleIssueUnit(selectedUnit.id, reason);
                   }}
-                  className="flex items-center gap-2 rounded-lg border border-donor-success/30 bg-donor-successMuted px-4 py-2 text-sm text-donor-onSuccessMuted transition-colors hover:bg-donor-success/20"
+                  disabled={actionLoading}
+                  className="flex items-center gap-2 rounded-lg border border-donor-success/30 bg-donor-successMuted px-4 py-2 text-sm text-donor-onSuccessMuted transition-colors hover:bg-donor-success/20 disabled:opacity-50"
                 >
                   <CheckCircle size={16} />
-                  Issue
-                </button>
-                <button
-                  onClick={() => {
-                    setShowUnitModal(false);
-                    setShowMovementModal(true);
-                  }}
-                  className="flex items-center gap-2 rounded-lg bc-solid px-4 py-2 text-sm text-donor-text transition-colors hover:bg-donor-elevated"
-                >
-                  <ArrowRightLeft size={16} />
-                  Move
-                </button>
-                <button
-                  onClick={() => {
-                    setShowUnitModal(false);
-                    setShowAdjustModal(true);
-                  }}
-                  className="flex items-center gap-2 rounded-lg bc-solid px-4 py-2 text-sm text-donor-text transition-colors hover:bg-donor-elevated"
-                >
-                  <Pencil size={16} />
-                  Adjust
-                </button>
-                <button
-                  onClick={() => {
-                    const reason = prompt('Enter quarantine reason:');
-                    if (reason) handleQuarantineUnit(selectedUnit.id, reason);
-                  }}
-                  className="flex items-center gap-2 rounded-lg border border-donor-warning/30 bg-donor-warningMuted px-4 py-2 text-sm text-donor-onWarningMuted transition-colors hover:bg-donor-warning/20"
-                >
-                  <AlertTriangle size={16} />
-                  Quarantine
+                  {actionLoading ? 'Issuing...' : 'Issue'}
                 </button>
               </div>
             )}
@@ -627,20 +446,11 @@ export default function InventoryPage() {
                     const reason = prompt('Enter issue reason (include patient/recipient reference if applicable):');
                     if (reason) handleIssueUnit(selectedUnit.id, reason);
                   }}
-                  className="flex items-center gap-2 rounded-lg border border-donor-success/30 bg-donor-successMuted px-4 py-2 text-sm text-donor-onSuccessMuted transition-colors hover:bg-donor-success/20"
+                  disabled={actionLoading}
+                  className="flex items-center gap-2 rounded-lg border border-donor-success/30 bg-donor-successMuted px-4 py-2 text-sm text-donor-onSuccessMuted transition-colors hover:bg-donor-success/20 disabled:opacity-50"
                 >
                   <CheckCircle size={16} />
-                  Issue
-                </button>
-                <button
-                  onClick={() => {
-                    setShowUnitModal(false);
-                    setShowAdjustModal(true);
-                  }}
-                  className="flex items-center gap-2 rounded-lg bc-solid px-4 py-2 text-sm text-donor-text transition-colors hover:bg-donor-elevated"
-                >
-                  <Pencil size={16} />
-                  Adjust
+                  {actionLoading ? 'Issuing...' : 'Issue'}
                 </button>
               </div>
             )}
@@ -648,209 +458,6 @@ export default function InventoryPage() {
         )}
       </Modal>
 
-      <Modal
-        open={showMovementModal}
-        onClose={() => { setShowMovementModal(false); setSelectedUnit(null); }}
-        title="Move Unit"
-      >
-        {selectedUnit && (
-          <div className="space-y-4">
-            <div>
-              <p className="mb-2 text-sm">Moving unit: <span className="font-mono">{selectedUnit.unitReference}</span></p>
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-semibold text-donor-muted">To Location</label>
-              <select
-                id="move-location"
-                className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-sm text-donor-text"
-              >
-                <option value="">Select location</option>
-                {locations.filter((l) => l.active).map((loc) => (
-                  <option key={loc.id} value={loc.id}>{loc.name} ({getLocationTypeLabel(loc.type)})</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-semibold text-donor-muted">Reason (optional)</label>
-              <input
-                type="text"
-                id="move-reason"
-                placeholder="e.g., Quality control transfer"
-                className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-sm text-donor-text placeholder:text-donor-muted"
-              />
-            </div>
-            <div className="flex gap-2 pt-4">
-              <button
-                onClick={() => {
-                  const locationId = (document.getElementById('move-location') as HTMLSelectElement).value;
-                  const reason = (document.getElementById('move-reason') as HTMLInputElement).value;
-                  if (locationId) handleMoveUnit(selectedUnit.id, locationId, reason);
-                }}
-                disabled={actionLoading}
-                className="rounded-lg bg-donor-secondary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-donor-secondary/80 disabled:opacity-50"
-              >
-                {actionLoading ? 'Moving...' : 'Confirm Move'}
-              </button>
-              <button
-                onClick={() => { setShowMovementModal(false); setSelectedUnit(null); }}
-                className="rounded-lg bc-solid px-4 py-2 text-sm text-donor-text transition-colors hover:bg-donor-elevated"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        )}
-      </Modal>
-
-      <Modal
-        open={showAdjustModal}
-        onClose={() => { setShowAdjustModal(false); setSelectedUnit(null); }}
-        title="Adjust Unit"
-      >
-        {selectedUnit && (
-          <div className="space-y-4">
-            <div>
-              <p className="mb-2 text-sm">
-                Correcting unit: <span className="font-mono">{selectedUnit.unitReference}</span>
-              </p>
-              <p className="text-xs text-donor-muted">
-                Leave a field blank to keep its current value. A reason is required.
-              </p>
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-semibold text-donor-muted">
-                Volume (ml) — current: {selectedUnit.volumeMl}
-              </label>
-              <input
-                type="number"
-                id="adjust-volume"
-                min={1}
-                placeholder={String(selectedUnit.volumeMl)}
-                className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-sm text-donor-text placeholder:text-donor-muted"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-semibold text-donor-muted">
-                Component — current: {selectedUnit.componentType?.replace('_', ' ') ?? 'Whole Blood'}
-              </label>
-              <select
-                id="adjust-component"
-                defaultValue=""
-                className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-sm text-donor-text"
-              >
-                <option value="">Keep current</option>
-                {COMPONENT_TYPES.map((ct) => (
-                  <option key={ct} value={ct}>{ct.replace('_', ' ')}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-semibold text-donor-muted">
-                Expires — current: {selectedUnit.expiresAt ? new Date(selectedUnit.expiresAt).toLocaleDateString() : '—'}
-              </label>
-              <input
-                type="date"
-                id="adjust-expires"
-                className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-sm text-donor-text"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-semibold text-donor-muted">Reason (required)</label>
-              <input
-                type="text"
-                id="adjust-reason"
-                placeholder="e.g., Correcting clerical volume entry error"
-                className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-sm text-donor-text placeholder:text-donor-muted"
-              />
-            </div>
-            <div className="flex gap-2 pt-4">
-              <button
-                onClick={() => {
-                  const volumeMlRaw = (document.getElementById('adjust-volume') as HTMLInputElement).value;
-                  const componentType = (document.getElementById('adjust-component') as HTMLSelectElement).value;
-                  const expiresAt = (document.getElementById('adjust-expires') as HTMLInputElement).value;
-                  const reason = (document.getElementById('adjust-reason') as HTMLInputElement).value;
-                  if (!reason) return;
-                  if (!volumeMlRaw && !componentType && !expiresAt) return;
-                  handleAdjustUnit(selectedUnit.id, {
-                    reason,
-                    volumeMl: volumeMlRaw ? Number(volumeMlRaw) : undefined,
-                    componentType: componentType || undefined,
-                    expiresAt: expiresAt || undefined,
-                  });
-                }}
-                disabled={actionLoading}
-                className="rounded-lg bg-donor-secondary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-donor-secondary/80 disabled:opacity-50"
-              >
-                {actionLoading ? 'Saving...' : 'Save Adjustment'}
-              </button>
-              <button
-                onClick={() => { setShowAdjustModal(false); setSelectedUnit(null); }}
-                className="rounded-lg bc-solid px-4 py-2 text-sm text-donor-text transition-colors hover:bg-donor-elevated"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        )}
-      </Modal>
-
-      <Modal
-        open={showLocationModal}
-        onClose={() => { setShowLocationModal(false); setNewLocation({ name: '', code: '', type: 'STORAGE' }); }}
-        title="Add Location"
-      >
-        <div className="space-y-4">
-          <div>
-            <label className="mb-1 block text-xs font-semibold text-donor-muted">Name</label>
-            <input
-              type="text"
-              value={newLocation.name}
-              onChange={(e) => setNewLocation({ ...newLocation, name: e.target.value })}
-              placeholder="e.g., Main Storage Freezer A"
-              className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-sm text-donor-text placeholder:text-donor-muted"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-semibold text-donor-muted">Code</label>
-            <input
-              type="text"
-              value={newLocation.code}
-              onChange={(e) => setNewLocation({ ...newLocation, code: e.target.value.toUpperCase() })}
-              placeholder="e.g., MSA-01"
-              className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-sm text-donor-text placeholder:text-donor-muted"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-semibold text-donor-muted">Type</label>
-            <select
-              value={newLocation.type}
-              onChange={(e) => setNewLocation({ ...newLocation, type: e.target.value })}
-              className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-sm text-donor-text"
-            >
-              <option value="STORAGE">Storage</option>
-              <option value="QUARANTINE">Quarantine</option>
-              <option value="PROCESSING">Processing</option>
-              <option value="DISTRIBUTION">Distribution</option>
-            </select>
-          </div>
-          <div className="flex gap-2 pt-4">
-            <button
-              onClick={handleCreateLocation}
-              disabled={actionLoading || !newLocation.name || !newLocation.code}
-              className="rounded-lg bg-donor-secondary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-donor-secondary/80 disabled:opacity-50"
-            >
-              {actionLoading ? 'Creating...' : 'Create Location'}
-            </button>
-            <button
-              onClick={() => { setShowLocationModal(false); setNewLocation({ name: '', code: '', type: 'STORAGE' }); }}
-              className="rounded-lg bc-solid px-4 py-2 text-sm text-donor-text transition-colors hover:bg-donor-elevated"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      </Modal>
     </AppShell>
   );
 }

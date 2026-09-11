@@ -19,7 +19,10 @@
     "db:generate": "pnpm --filter @bloodchain/api prisma:generate",
     "db:migrate": "pnpm --filter @bloodchain/api prisma:migrate",
     "db:seed": "pnpm --filter @bloodchain/api prisma:seed",
-    "db:reset": "pnpm --filter @bloodchain/api prisma:reset"
+    "db:reset": "pnpm --filter @bloodchain/api prisma:reset",
+    "demo:reset": "node scripts/demo-reset.mjs",
+    "demo:check": "node scripts/demo-check.mjs",
+    "demo:start": "node scripts/demo-start.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",
