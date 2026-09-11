@@ -956,6 +956,11 @@ export class EmergencyService {
     const rhFactor = dto.rhFactor ?? response.donor.donorProfile?.rhFactor ?? response.emergencyRequest.rhFactor;
     const componentType = dto.componentType ?? response.emergencyRequest.componentType;
     const volumeMl = dto.volumeMl ?? DEFAULT_WHOLE_BLOOD_VOLUME_ML;
+    // An emergency donation opens the same recovery window as a booked one.
+    // Leaving it null made the donation-detail screen show no next date for
+    // exactly the donations a donor is proudest of.
+    const collectionCompletedAt = new Date();
+    const nextDonationDate = this.donationEligibility.computeDefaultNextEligibleDate(collectionCompletedAt);
 
     const result = await withUniqueRetry(
       () =>
@@ -970,10 +975,11 @@ export class EmergencyService {
               bloodType,
               rhFactor,
               volumeMl,
-              collectionStartedAt: response.donationStartedAt ?? new Date(),
-              collectionCompletedAt: new Date(),
-              completedAt: new Date(),
+              collectionStartedAt: response.donationStartedAt ?? collectionCompletedAt,
+              collectionCompletedAt,
+              completedAt: collectionCompletedAt,
               completedBy: staff.id,
+              nextDonationDate,
             },
           });
 

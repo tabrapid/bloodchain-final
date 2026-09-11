@@ -22,7 +22,71 @@ import * as argon2 from 'argon2';
 
 const db = new PrismaClient();
 
+/**
+ * How long ago the demo donor last gave blood.
+ *
+ * It was 7 days, which is inside the 56-day recovery window
+ * (DONATION_COOLDOWN_DAYS) -- so the one account a demo signs in with could
+ * neither book a donation nor accept an emergency: both are refused for a donor
+ * still recovering, correctly and unhelpfully. Past the window, the account
+ * opens on "Eligible now" and every flow is reachable.
+ */
+const DEMO_DONOR_LAST_DONATION_DAYS_AGO = 70;
+
+/** Days before now, as a Date. */
+function daysAgo(days: number): Date {
+  return new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+}
+
+/** Days after a reference date, as a Date. */
+function daysAfter(from: Date, days: number): Date {
+  return new Date(from.getTime() + days * 24 * 60 * 60 * 1000);
+}
+
+/**
+ * The 56-day recovery window the API enforces (DONATION_COOLDOWN_DAYS).
+ *
+ * The seeded donation carried `nextDonationDate: now + 56 days`, which made
+ * every freshly seeded database put the demo donor back into recovery no matter
+ * how long ago the donation was: the eligibility service prefers an explicit
+ * `nextDonationDate` over the date it would compute from `completedAt`. The
+ * window has to run from the donation, not from the seed run.
+ */
+const DONATION_COOLDOWN_DAYS = 56;
+
+/**
+ * Empty every table the seed owns, so seeding twice is the same as seeding
+ * once.
+ *
+ * Only the users, roles and memberships were upserted; donations, appointments,
+ * emergencies and laboratory results were plain creates keyed by a unique
+ * reference, so the second run died on `donationReference` and left the
+ * database half-populated. A demo needs to be able to return to a known state
+ * on demand, which is exactly what that prevented.
+ *
+ * TRUNCATE rather than a hand-ordered list of deletes: the order is the FK
+ * graph's business, not the seed's, and CASCADE already knows it. The
+ * migration table is excluded -- dropping it would make Prisma re-run every
+ * migration.
+ */
+async function resetSeedData(): Promise<void> {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('The seed refuses to run with NODE_ENV=production.');
+  }
+
+  const tables = await db.$queryRaw<{ tablename: string }[]>`
+    SELECT tablename FROM pg_tables
+    WHERE schemaname = 'public' AND tablename <> '_prisma_migrations'
+  `;
+  if (tables.length === 0) return;
+
+  const list = tables.map((t) => `"public"."${t.tablename}"`).join(', ');
+  await db.$executeRawUnsafe(`TRUNCATE TABLE ${list} RESTART IDENTITY CASCADE`);
+}
+
 async function main() {
+  await resetSeedData();
+
   const permissions = [
     { code: 'user.read.self', name: 'Read own profile' },
     { code: 'user.update.self', name: 'Update own profile' },
@@ -408,6 +472,202 @@ async function main() {
     },
   });
 
+  /**
+   * A pool of supporting donors, and more places to donate.
+   *
+   * With one donor and one blood centre, half the product cannot be shown: the
+   * booking list has a single entry, a leaderboard has one row, and emergency
+   * matching has nobody to rank. These exist so the demo has a system to walk
+   * through rather than a single record.
+   *
+   * `donor@donor.local` is deliberately NOT among them -- it stays the empty,
+   * free account the demo drives.
+   */
+  const supportDonorSpecs = [
+    { email: 'aziza.donor@donor.local', firstName: 'Aziza', lastName: 'Karimova',
+      bloodType: BloodType.O, rhFactor: RhFactor.NEGATIVE, city: 'Jizzakh', lat: 40.1180, lon: 67.8400 },
+    { email: 'bekzod.donor@donor.local', firstName: 'Bekzod', lastName: 'Rahimov',
+      bloodType: BloodType.A, rhFactor: RhFactor.POSITIVE, city: 'Jizzakh', lat: 40.1201, lon: 67.8461 },
+    { email: 'dilnoza.donor@donor.local', firstName: 'Dilnoza', lastName: 'Yusupova',
+      bloodType: BloodType.B, rhFactor: RhFactor.POSITIVE, city: 'Jizzakh', lat: 40.1093, lon: 67.8355 },
+    { email: 'sardor.donor@donor.local', firstName: 'Sardor', lastName: 'Tursunov',
+      bloodType: BloodType.O, rhFactor: RhFactor.POSITIVE, city: 'Arnasoy', lat: 40.1330, lon: 67.8710 },
+  ];
+
+  const supportDonors: { id: string }[] = [];
+  for (const spec of supportDonorSpecs) {
+    const user = await db.user.upsert({
+      where: { email: spec.email },
+      update: {},
+      create: {
+        email: spec.email,
+        firstName: spec.firstName,
+        lastName: spec.lastName,
+        passwordHash,
+        status: 'ACTIVE',
+        emailVerified: true,
+        donorProfile: {
+          create: {
+            bloodType: spec.bloodType,
+            rhFactor: spec.rhFactor,
+            donorStatus: 'ACTIVE',
+            verificationStatus: 'VERIFIED',
+            city: spec.city,
+            consentLocation: true,
+            latitude: spec.lat,
+            longitude: spec.lon,
+          },
+        },
+      },
+    });
+    await db.organizationMembership.upsert({
+      where: {
+        userId_organizationId_roleId: {
+          userId: user.id,
+          organizationId: centerOrg.id,
+          roleId: donorRole.id,
+        },
+      },
+      update: {},
+      create: {
+        userId: user.id,
+        organizationId: centerOrg.id,
+        roleId: donorRole.id,
+        status: 'ACTIVE',
+      },
+    });
+    supportDonors.push(user);
+  }
+
+  // The demo donor gets a location too: without consent and coordinates the
+  // hospital's live map has nothing to draw during an emergency response.
+  await db.donorProfile.update({
+    where: { userId: donor.id },
+    data: { city: 'Jizzakh', district: 'Arnasoy', consentLocation: true,
+            latitude: 40.1158, longitude: 67.8422 },
+  });
+
+  /** Two more hospitals and one more blood centre, so booking has a real list. */
+  const extraOrgs = [
+    { name: 'Jizzakh City Hospital', type: OrganizationType.HOSPITAL, slug: 'jizzakh',
+      email: 'contact@jizzakh-city-hospital.local', city: 'Jizzakh', lat: 40.1250, lon: 67.8500 },
+    { name: 'Arnasoy District Hospital', type: OrganizationType.HOSPITAL, slug: 'arnasoy',
+      email: 'contact@arnasoy-hospital.local', city: 'Arnasoy', lat: 40.1400, lon: 67.9000 },
+    { name: 'Republican Blood Center — Jizzakh', type: OrganizationType.BLOOD_CENTER, slug: 'rbc',
+      email: 'contact@rbc-jizzakh.local', city: 'Jizzakh', lat: 40.1100, lon: 67.8300 },
+  ];
+
+  /**
+   * Every organisation needs someone who can sign in to it.
+   *
+   * An organisation with no membership is invisible: the appointment a donor
+   * books there reaches no portal, its emergencies can't be raised, and its lab
+   * results can't be entered -- the record exists and nobody can act on it. The
+   * extra organisations were seeded without staff, so booking anywhere but
+   * Northstar was a dead end.
+   */
+  const extraStaffAccounts: { email: string; org: string; role: string }[] = [];
+  const createdExtraOrgs = [];
+  for (const org of extraOrgs) {
+    const created = await db.organization.create({
+      data: {
+        name: org.name,
+        type: org.type,
+        email: org.email,
+        phone: '+998 72 000 00 00',
+        address: `${org.city}, Uzbekistan`,
+        latitude: org.lat,
+        longitude: org.lon,
+        status: 'ACTIVE',
+        ...(org.type === OrganizationType.HOSPITAL
+          ? { hospital: { create: {} } }
+          : { bloodCenter: { create: {} } }),
+      },
+    });
+    createdExtraOrgs.push(created);
+
+    const isHospital = org.type === OrganizationType.HOSPITAL;
+    const staffRoles = [
+      { suffix: 'admin', role: isHospital ? hospitalAdminRole : bloodCenterAdminRole,
+        firstName: org.city, lastName: 'Admin' },
+      { suffix: 'staff', role: isHospital ? hospitalStaffRole : bloodCenterStaffRole,
+        firstName: org.city, lastName: 'Staff' },
+    ];
+    for (const spec of staffRoles) {
+      const email = `${org.slug}.${spec.suffix}@donor.local`;
+      const user = await db.user.upsert({
+        where: { email },
+        update: {},
+        create: {
+          email,
+          firstName: spec.firstName,
+          lastName: spec.lastName,
+          passwordHash,
+          status: 'ACTIVE',
+          emailVerified: true,
+        },
+      });
+      await db.organizationMembership.upsert({
+        where: {
+          userId_organizationId_roleId: {
+            userId: user.id,
+            organizationId: created.id,
+            roleId: spec.role.id,
+          },
+        },
+        update: {},
+        create: {
+          userId: user.id,
+          organizationId: created.id,
+          roleId: spec.role.id,
+          status: 'ACTIVE',
+        },
+      });
+      extraStaffAccounts.push({ email, org: org.name, role: spec.role.code });
+    }
+  }
+
+  /**
+   * Bookable slots from today onward, at every place that takes appointments.
+   *
+   * The seed's only donation slot was already FULL and its test slot was two
+   * days out, so "book a donation" had one option and the blood centre's
+   * today-list was empty -- the two screens a demo opens first.
+   */
+  /**
+   * Donations happen at hospitals as well as blood centres; laboratory tests
+   * only at blood centres. Slots were seeded at blood centres alone, so three
+   * of the five organisations showed "no available slots" and could not be
+   * booked at all.
+   */
+  const slotHosts = [hospitalOrg, centerOrg, ...createdExtraOrgs];
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+
+  for (const host of slotHosts) {
+    for (let day = 0; day < 5; day += 1) {
+      for (const hour of [9, 10, 11, 14, 15, 16]) {
+        for (const type of [AppointmentType.BLOOD_DONATION, AppointmentType.BLOOD_TEST]) {
+          const startAt = new Date(startOfToday);
+          startAt.setDate(startAt.getDate() + day);
+          startAt.setHours(type === AppointmentType.BLOOD_DONATION ? hour : hour, 0, 0, 0);
+          if (startAt.getTime() < Date.now()) continue;
+          await db.appointmentSlot.create({
+            data: {
+              organizationId: host.id,
+              appointmentType: type,
+              startAt,
+              endAt: new Date(startAt.getTime() + 30 * 60000),
+              capacity: 5,
+              bookedCount: 0,
+              status: SlotStatus.AVAILABLE,
+            },
+          });
+        }
+      }
+    }
+  }
+
   const todaySlot = await db.appointmentSlot.create({
     data: {
       organizationId: hospitalOrg.id,
@@ -420,6 +680,9 @@ async function main() {
     },
   });
 
+  /** When the demo donor's historical donation happened. */
+  const lastDonationAt = daysAgo(DEMO_DONOR_LAST_DONATION_DAYS_AGO);
+
   const completedAppointment = await db.appointment.create({
     data: {
       referenceNumber: `DON-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 999999)).padStart(6, '0')}`,
@@ -428,9 +691,9 @@ async function main() {
       slotId: todaySlot.id,
       appointmentType: AppointmentType.BLOOD_DONATION,
       status: AppointmentStatus.COMPLETED,
-      scheduledStart: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-      scheduledEnd: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000 + 30 * 60000),
-      completedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+      scheduledStart: lastDonationAt,
+      scheduledEnd: new Date(lastDonationAt.getTime() + 30 * 60000),
+      completedAt: lastDonationAt,
     },
   });
 
@@ -445,11 +708,11 @@ async function main() {
       bloodType: BloodType.O,
       rhFactor: RhFactor.POSITIVE,
       volumeMl: 450,
-      collectionStartedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000 + 5 * 60000),
-      collectionCompletedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000 + 35 * 60000),
-      completedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000 + 35 * 60000),
+      collectionStartedAt: new Date(lastDonationAt.getTime() + 5 * 60000),
+      collectionCompletedAt: new Date(lastDonationAt.getTime() + 35 * 60000),
+      completedAt: new Date(lastDonationAt.getTime() + 35 * 60000),
       completedBy: hospitalStaffUser.id,
-      nextDonationDate: new Date(Date.now() + 56 * 24 * 60 * 60 * 1000),
+      nextDonationDate: daysAfter(lastDonationAt, DONATION_COOLDOWN_DAYS),
     },
   });
 
@@ -547,7 +810,12 @@ async function main() {
       const seedDonation = await db.donation.create({
         data: {
           donationReference: `SEED-DONATION-${new Date().getFullYear()}-${String(index + 1).padStart(6, '0')}`,
-          donorId: donor.id,
+          // The stock on the shelf came from the supporting donors, not the
+          // demo account. Ten donations dated 1-12 days ago put the demo donor
+          // inside the recovery window, so the account could not book or answer
+          // an emergency -- while the units themselves need recent dates to
+          // have any shelf life left.
+          donorId: supportDonors[index % supportDonors.length]!.id,
           organizationId: centerOrg.id,
           donationType: DonationType.WHOLE_BLOOD,
           status: DonationStatus.COMPLETED,
@@ -903,10 +1171,21 @@ async function main() {
     },
   });
 
+  /**
+   * The seeded emergencies are answered by the *supporting* donors, never by
+   * `donor@donor.local`.
+   *
+   * Matching skips any donor who already has an open match or response
+   * (emergency.service.ts) -- correct behaviour, since a donor already on their
+   * way to one emergency should not be pulled toward another. But it meant the
+   * one account a demo signs in with arrived pre-occupied by seeded matches, so
+   * every new emergency found nobody and the flow could not be shown at all.
+   * The demo donor now starts free.
+   */
   const emergencyMatch1 = await db.emergencyMatch.create({
     data: {
       emergencyRequestId: emergency1.id,
-      donorId: donor.id,
+      donorId: supportDonors[0]!.id,
       status: EmergencyMatchStatus.MATCHED,
     },
   });
@@ -914,7 +1193,7 @@ async function main() {
   const emergencyMatch2 = await db.emergencyMatch.create({
     data: {
       emergencyRequestId: emergency2.id,
-      donorId: donor.id,
+      donorId: supportDonors[1]!.id,
       status: EmergencyMatchStatus.VIEWED,
       viewedAt: new Date(),
     },
@@ -924,7 +1203,7 @@ async function main() {
     data: {
       emergencyRequestId: emergency1.id,
       matchId: emergencyMatch1.id,
-      donorId: donor.id,
+      donorId: supportDonors[0]!.id,
       status: 'ACCEPTED',
       acceptedAt: new Date(),
     },
@@ -1045,7 +1324,7 @@ async function main() {
     },
   });
 
-  await db.testParameter.create({
+  const ferritinParam = await db.testParameter.create({
     data: {
       testTypeId: ferritinTestType.id,
       code: 'FERRITIN_LEVEL',
@@ -1057,27 +1336,37 @@ async function main() {
     },
   });
 
-  await db.testReferenceRange.create({
-    data: {
-      testTypeId: cbcTestType.id,
-      minValue: new Prisma.Decimal(12.0),
-      maxValue: new Prisma.Decimal(17.5),
-      unit: 'g/dL',
-      notes: 'Normal range for adults',
-      isActive: true,
-    },
-  });
-
-  await db.testReferenceRange.create({
-    data: {
-      testTypeId: ferritinTestType.id,
-      minValue: new Prisma.Decimal(20.0),
-      maxValue: new Prisma.Decimal(200.0),
-      unit: 'ng/mL',
-      notes: 'Normal range for adults',
-      isActive: true,
-    },
-  });
+  /**
+   * Adult reference ranges, one per parameter.
+   *
+   * There used to be a single range per test type, so the whole Complete Blood
+   * Count was measured against 12-17.5 g/dL -- haemoglobin's range, applied to
+   * platelet counts in the hundreds of thousands. A result flag derived from
+   * that would be confidently wrong, so the API refuses to derive one unless
+   * the range names the parameter it belongs to. These are the ranges that let
+   * a published result read "Normal" or "High" on the donor's Health screen.
+   */
+  const referenceRanges = [
+    { testTypeId: cbcTestType.id, parameterId: hemoglobinParam.id, min: 12.0, max: 17.5, unit: 'g/dL' },
+    { testTypeId: cbcTestType.id, parameterId: rbcParam.id, min: 4.2, max: 6.1, unit: 'million cells/mcL' },
+    { testTypeId: cbcTestType.id, parameterId: wbcParam.id, min: 4500, max: 11000, unit: 'cells/mcL' },
+    { testTypeId: cbcTestType.id, parameterId: hematocritParam.id, min: 36.0, max: 52.0, unit: '%' },
+    { testTypeId: cbcTestType.id, parameterId: plateletParam.id, min: 150000, max: 450000, unit: 'cells/mcL' },
+    { testTypeId: ferritinTestType.id, parameterId: ferritinParam.id, min: 20.0, max: 200.0, unit: 'ng/mL' },
+  ];
+  for (const range of referenceRanges) {
+    await db.testReferenceRange.create({
+      data: {
+        testTypeId: range.testTypeId,
+        parameterId: range.parameterId,
+        minValue: new Prisma.Decimal(range.min),
+        maxValue: new Prisma.Decimal(range.max),
+        unit: range.unit,
+        notes: 'Normal range for adults',
+        isActive: true,
+      },
+    });
+  }
 
   const labProfile = await db.laboratoryProfile.create({
     data: {
@@ -1099,6 +1388,34 @@ async function main() {
       },
     },
   });
+
+  /**
+   * The second blood centre runs a laboratory too.
+   *
+   * With one laboratory profile in the database the "choose a laboratory" step
+   * of the blood-test booking had exactly one entry, which is not a choice.
+   */
+  for (const org of createdExtraOrgs.filter((o) => o.type === OrganizationType.BLOOD_CENTER)) {
+    const profile = await db.laboratoryProfile.create({
+      data: {
+        organizationId: org.id,
+        name: `${org.name} Laboratory`,
+        address: org.address ?? 'Jizzakh, Uzbekistan',
+        phone: '+998 72 000 00 01',
+        email: `lab.${org.id.slice(-6)}@donor.local`,
+        workingHours: 'Mon-Sat: 8:00 - 18:00',
+        isActive: true,
+      },
+    });
+    await db.laboratoryProfile.update({
+      where: { id: profile.id },
+      data: {
+        testTypes: {
+          connect: [{ id: cbcTestType.id }, { id: bloodGroupTestType.id }, { id: ferritinTestType.id }],
+        },
+      },
+    });
+  }
 
   const labSlot = await db.appointmentSlot.create({
     data: {
@@ -1225,15 +1542,27 @@ async function main() {
   console.log('=== BLOOD CENTER STAFF ===');
   console.log('  blood.center.admin@donor.local / DevelopmentOnly!123 (BLOOD_CENTER_ADMIN)');
   console.log('  blood.center.staff@donor.local / DevelopmentOnly!123 (BLOOD_CENTER_STAFF)');
+  console.log('=== PER-ORGANIZATION STAFF ===');
+  for (const acct of extraStaffAccounts) {
+    console.log(`  ${acct.email} / DevelopmentOnly!123 (${acct.role} @ ${acct.org})`);
+  }
   console.log('=== COURIER ===');
   console.log('  courier@donor.local / DevelopmentOnly!123 (COURIER)');
   console.log('=== LABORATORY STAFF ===');
   console.log('  lab.technician@donor.local / DevelopmentOnly!123 (LAB_TECHNICIAN)');
   console.log('  lab.reviewer@donor.local / DevelopmentOnly!123 (LAB_REVIEWER)');
   console.log('  lab.admin@donor.local / DevelopmentOnly!123 (LAB_ADMIN)');
+  console.log('=== SUPPORTING DONORS (emergency match pool) ===');
+  for (const spec of supportDonorSpecs) {
+    console.log(`  ${spec.email} / DevelopmentOnly!123 (${spec.bloodType}${spec.rhFactor === 'POSITIVE' ? '+' : '-'})`);
+  }
   console.log('=== ORGANIZATIONS ===');
   console.log('  Northstar Hospital (Development) - Hospital');
   console.log('  Northstar Blood Center (Development) - Blood Center');
+  for (const org of createdExtraOrgs) {
+    console.log(`  ${org.name} - ${org.type}`);
+  }
+  console.log(`=== BOOKABLE SLOTS === ${await db.appointmentSlot.count({ where: { status: SlotStatus.AVAILABLE } })} available`);
   console.log('=== EMERGENCY REQUESTS ===');
   console.log(`  ${emergency1.emergencyReference} - O- (CRITICAL, ACTIVE)`);
   console.log(`  ${emergency2.emergencyReference} - A+ (HIGH, MATCHING)`);

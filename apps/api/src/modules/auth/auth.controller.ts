@@ -15,6 +15,17 @@ import { RegisterOrganizationDto } from './dto/register-organization.dto';
 import { ResendVerificationDto } from './dto/resend-verification.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
 
+/**
+ * Sign-in attempts allowed per minute, per IP.
+ *
+ * Five is the right number against credential stuffing and the wrong one
+ * behind a single shared address: three web consoles and a phone signing in
+ * together are four, and one mistyped password makes five. `AUTH_THROTTLE_LIMIT`
+ * raises it where every client shares an IP -- a demo laptop, an office NAT --
+ * without loosening the default for anyone who does not set it.
+ */
+const LOGIN_LIMIT = Number(process.env.AUTH_THROTTLE_LIMIT ?? 5);
+
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
@@ -81,7 +92,7 @@ export class AuthController {
   @Post('login')
   @Public()
   @HttpCode(HttpStatus.OK)
-  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @Throttle({ default: { limit: LOGIN_LIMIT, ttl: 60000 } })
   @ApiOperation({ summary: 'Authenticate and receive token pair' })
   @ApiResponse({ status: 200, type: AuthResponseDto, description: 'Authenticated' })
   @ApiResponse({ status: 401, description: 'Invalid credentials' })

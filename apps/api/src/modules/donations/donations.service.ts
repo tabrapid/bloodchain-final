@@ -857,11 +857,13 @@ export class DonationsService {
       ? completed.sort((a, b) => (b.collectionCompletedAt?.getTime() || 0) - (a.collectionCompletedAt?.getTime() || 0))[0]
       : null;
 
-    const nextDonationDate = completed.length > 0
-      ? completed
-          .filter((d) => d.nextDonationDate)
-          .sort((a, b) => (a.nextDonationDate?.getTime() || 0) - (b.nextDonationDate?.getTime() || 0))[0]?.nextDonationDate
-      : null;
+    // The shared eligibility service, not a local re-derivation. The local one
+    // took the *earliest* nextDonationDate across every completed donation, so
+    // the first donation's long-past date won forever, and it skipped donations
+    // that carry no explicit date at all -- which is every emergency donation.
+    // The donor's home screen therefore kept showing an eligibility date from
+    // months ago right after giving blood.
+    const nextDonationDate = await this.donationEligibility.getNextEligibleDonationDate(donorId);
 
     return {
       data: {

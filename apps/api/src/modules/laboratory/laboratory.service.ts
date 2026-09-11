@@ -18,6 +18,35 @@ import { withUniqueRetry } from '../../common/utils/unique-retry.util';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { BLOOD_TEST_COMPLETED_EVENT, BloodTestCompletedPayload } from '../gamification/events/gamification-event.handler';
 
+/**
+ * The in-range / out-of-range flag a result item carries when staff did not
+ * type one.
+ *
+ * Every item used to be stored as NOT_AVAILABLE unless a flag was supplied by
+ * hand, even though the reference range for the parameter had just been looked
+ * up two lines above. The donor's Health screen reads this flag to decide
+ * whether a value is highlighted, so a published result showed every number as
+ * "no reference" -- the one thing a lab result is for. Staff's own flag still
+ * wins; this only fills the blank.
+ */
+function deriveResultFlag(
+  numericValue: number | null | undefined,
+  referenceMin: Prisma.Decimal | null,
+  referenceMax: Prisma.Decimal | null,
+  rangeAppliesToThisParameter: boolean,
+): ResultFlag {
+  // A range that was defined for the whole test type says nothing about an
+  // individual parameter, and comparing against it would produce a confidently
+  // wrong LOW/HIGH -- a platelet count read against a haemoglobin range. No
+  // flag is the honest answer there.
+  if (!rangeAppliesToThisParameter) return ResultFlag.NOT_AVAILABLE;
+  if (numericValue === undefined || numericValue === null) return ResultFlag.NOT_AVAILABLE;
+  if (referenceMin === null && referenceMax === null) return ResultFlag.NOT_AVAILABLE;
+  if (referenceMin !== null && numericValue < referenceMin.toNumber()) return ResultFlag.LOW;
+  if (referenceMax !== null && numericValue > referenceMax.toNumber()) return ResultFlag.HIGH;
+  return ResultFlag.NORMAL;
+}
+
 @Injectable()
 export class LaboratoryService {
   constructor(
@@ -69,9 +98,15 @@ export class LaboratoryService {
   }
 
   async getLaboratories(organizationId?: string) {
+    // An organisation is a laboratory only if it has an *active* laboratory
+    // profile. The filter used to be `laboratoryProfile?.isActive !== false`
+    // applied after the query, which is true for an organisation that has no
+    // profile at all -- so every hospital appeared in the list and then answered
+    // "Laboratory is not active" when the donor tapped it.
     const where: Prisma.OrganizationWhereInput = {
       type: { in: ['BLOOD_CENTER', 'HOSPITAL'] },
       status: 'ACTIVE',
+      laboratoryProfile: { isActive: true },
     };
 
     if (organizationId) {
@@ -92,7 +127,7 @@ export class LaboratoryService {
       },
     });
 
-    return organizations.filter((org) => org.laboratoryProfile?.isActive !== false);
+    return organizations;
   }
 
   async getLaboratory(laboratoryId: string, userId?: string) {
@@ -757,22 +792,28 @@ export class LaboratoryService {
 
         let referenceMin: Prisma.Decimal | null = null;
         let referenceMax: Prisma.Decimal | null = null;
+        let refRangeIsParameterScoped = false;
 
         if (parameter) {
+          // Most specific range wins: this laboratory's range for this exact
+          // parameter, then any laboratory's range for it, then the test
+          // type's own range (which only makes sense for a single-parameter
+          // test). Ordering by parameterId descending puts the rows that name
+          // a parameter ahead of the ones that leave it null.
           const refRange = await tx.testReferenceRange.findFirst({
             where: {
               testTypeId: parameter.testTypeId,
-              OR: [
-                { laboratoryId: organizationId },
-                { laboratoryId: null },
-              ],
+              OR: [{ parameterId: item.parameterId }, { parameterId: null }],
+              AND: [{ OR: [{ laboratoryId: organizationId }, { laboratoryId: null }] }],
               isActive: true,
             },
+            orderBy: [{ parameterId: 'desc' }, { laboratoryId: 'desc' }],
           });
 
           if (refRange) {
             referenceMin = refRange.minValue;
             referenceMax = refRange.maxValue;
+            refRangeIsParameterScoped = refRange.parameterId !== null;
           }
         }
 
@@ -793,7 +834,7 @@ export class LaboratoryService {
             unit: item.unit || parameter?.unit,
             referenceMin,
             referenceMax,
-            flag: item.flag || ResultFlag.NOT_AVAILABLE,
+            flag: item.flag ?? deriveResultFlag(item.numericValue, referenceMin, referenceMax, refRangeIsParameterScoped),
             notes: item.notes,
           },
         });

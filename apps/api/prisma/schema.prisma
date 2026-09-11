@@ -1270,8 +1270,9 @@ model TestParameter {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  testType    TestType               @relation(fields: [testTypeId], references: [id], onDelete: Cascade)
-  resultItems LaboratoryResultItem[]
+  testType        TestType               @relation(fields: [testTypeId], references: [id], onDelete: Cascade)
+  resultItems     LaboratoryResultItem[]
+  referenceRanges TestReferenceRange[]
 
   @@unique([testTypeId, code])
   @@index([testTypeId])
@@ -1280,6 +1281,12 @@ model TestParameter {
 model TestReferenceRange {
   id            String    @id @default(cuid())
   testTypeId    String
+  // A range belongs to one parameter. Without this the only range available
+  // was the test type's, so a Complete Blood Count had a single min/max that
+  // got compared against haemoglobin, platelets and white cells alike --
+  // ranges three orders of magnitude apart. Null still means "applies to the
+  // whole test type", which is right for a single-parameter test.
+  parameterId   String?
   laboratoryId  String?
   minValue      Decimal?  @db.Decimal(10, 3)
   maxValue      Decimal?  @db.Decimal(10, 3)
@@ -1291,10 +1298,12 @@ model TestReferenceRange {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  testType   TestType      @relation(fields: [testTypeId], references: [id], onDelete: Cascade)
-  laboratory Organization? @relation(fields: [laboratoryId], references: [id], onDelete: SetNull)
+  testType   TestType       @relation(fields: [testTypeId], references: [id], onDelete: Cascade)
+  parameter  TestParameter? @relation(fields: [parameterId], references: [id], onDelete: Cascade)
+  laboratory Organization?  @relation(fields: [laboratoryId], references: [id], onDelete: SetNull)
 
   @@index([testTypeId])
+  @@index([parameterId])
   @@index([laboratoryId])
   @@index([isActive])
 }

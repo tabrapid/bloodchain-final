@@ -23,6 +23,7 @@ export const envValidationSchema = Joi.object({
   MOBILE_DEEP_LINK: Joi.string().default('donor://'),
   THROTTLER_TTL: Joi.number().default(60),
   THROTTLER_LIMIT: Joi.number().default(100),
+  AUTH_THROTTLE_LIMIT: Joi.number().default(5),
   SMTP_HOST: Joi.string().allow('').optional(),
   SMTP_PORT: Joi.number().port().default(587),
   SMTP_SECURE: Joi.boolean().default(false),
