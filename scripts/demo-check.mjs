@@ -10,6 +10,7 @@
  */
 import { networkInterfaces } from 'node:os';
 import { assertLocalDatabase, fail } from './demo-guard.mjs';
+import { macFirewall } from './demo-firewall.mjs';
 
 const API = process.env.DEMO_API_URL ?? 'http://localhost:3001';
 const BASE = `${API}/api/v1`;
@@ -153,6 +154,27 @@ for (const [name, url] of PORTALS) {
   const ok = await reachable(url);
   // A portal that is not started yet is a warning: the demo may only need one.
   record(name, ok, url, true);
+}
+
+const firewall = macFirewall();
+if (firewall) {
+  if (firewall.stealth) {
+    record(
+      'macOS firewall stealth mode is off',
+      false,
+      'Stealth mode is ON — it silently drops incoming connections, which is why a phone hangs instead of failing fast. ' +
+        'System Settings → Network → Firewall → Options → turn off "Enable stealth mode".',
+      true,
+    );
+  } else if (firewall.enabled) {
+    record(
+      'macOS firewall',
+      true,
+      'enabled, stealth off — allow incoming connections for node if a phone still cannot reach the API',
+    );
+  } else {
+    record('macOS firewall', true, 'disabled');
+  }
 }
 
 /**

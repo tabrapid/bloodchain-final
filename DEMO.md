@@ -320,11 +320,22 @@ http://<that same address>:3001/api/v1/health
 ```
 
 - **JSON comes back** → the API is reachable and the problem is in the app.
-- **The page hangs** → the connection is being dropped. On macOS: System
-  Settings → Network → Firewall → either turn it off for the demo, or open
-  Options and set `node` to "Allow incoming connections". Metro on port 8081 was
-  allowed the first time you ran it; the API is a separate binary and gets asked
-  separately — which is why the bundle loads and the API does not.
+- **The page hangs, or the browser sits there and gives up** → the connection is
+  being dropped. On macOS, in order:
+
+  1. `pnpm demo:check` reports the firewall state. If it says **stealth mode is
+     on**, that is the cause: stealth mode drops incoming connections silently,
+     which is exactly a hang. System Settings → Network → Firewall → Options →
+     turn off **Enable stealth mode**.
+  2. Still hanging: in the same Options list, set **node** to *Allow incoming
+     connections*. Metro was allowed the first time you ran it; if the API runs
+     from a different Node install it is a different binary and is asked
+     separately — which is why the bundle loads and the API does not.
+  3. Quickest for a demo: turn the firewall off entirely until you are done.
+
+- **The browser says it cannot connect, immediately** → nothing is listening.
+  The API is not running, or not on that machine. Start it and check its
+  startup log.
 
 The API prints the addresses it answers on when it starts:
 
