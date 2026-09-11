@@ -11,6 +11,7 @@
 import { networkInterfaces } from 'node:os';
 import { assertLocalDatabase, fail } from './demo-guard.mjs';
 import { macFirewall } from './demo-firewall.mjs';
+import { checkPrismaClient } from './demo-prisma.mjs';
 
 const API = process.env.DEMO_API_URL ?? 'http://localhost:3001';
 const BASE = `${API}/api/v1`;
@@ -36,15 +37,24 @@ async function get(path, token) {
   return { status: res.status, body: body?.data ?? body };
 }
 
+/**
+ * Returns the token, or a reason it could not be had.
+ *
+ * A 429 is not a bad password, and reporting it as "login refused" is how a
+ * throttled run gets misread as broken seed data -- sign-in allows five
+ * attempts per minute per IP and this script makes nine, so running it twice in
+ * a minute reports every account as failing. The two have to be told apart.
+ */
 async function login(email) {
   const res = await fetch(`${BASE}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password: PW }),
   });
-  if (!res.ok) return null;
+  if (res.status === 429) return { token: null, throttled: true };
+  if (!res.ok) return { token: null, throttled: false };
   const body = await res.json();
-  return body?.data?.accessToken ?? null;
+  return { token: body?.data?.accessToken ?? null, throttled: false };
 }
 
 async function reachable(url) {
@@ -64,6 +74,20 @@ try {
   record('Database target is local', true, `${target.database} @ ${target.host}`);
 } catch (error) {
   record('Database target is local', false, error.message);
+}
+
+const prisma = checkPrismaClient();
+if (prisma) {
+  record(
+    'Prisma client matches the schema',
+    prisma.missing.length === 0,
+    prisma.missing.length
+      ? `generated from an older schema — missing ${prisma.missing.join(', ')}. ` +
+        'Run `pnpm db:generate` (or `pnpm demo:reset`, which now does it first). ' +
+        'Until then the API will not compile and the seed cannot run, so every ' +
+        'other failure below is downstream of this one.'
+      : 'up to date',
+  );
 }
 
 let apiUp = false;
@@ -88,13 +112,28 @@ if (apiUp) {
     'admin@donor.local',
   ];
   const tokens = {};
+  let throttled = false;
   for (const email of accounts) {
-    const token = await login(email);
-    tokens[email] = token;
-    if (!token) record(`Sign in: ${email}`, false, 'login refused');
+    const result = await login(email);
+    tokens[email] = result.token;
+    if (result.throttled) {
+      throttled = true;
+    } else if (!result.token) {
+      record(`Sign in: ${email}`, false, 'login refused — wrong password, or the account is not seeded');
+    }
   }
   const signedIn = accounts.filter((e) => tokens[e]).length;
-  record('Seeded accounts can sign in', signedIn === accounts.length, `${signedIn}/${accounts.length}`);
+  if (throttled) {
+    record(
+      'Seeded accounts can sign in',
+      false,
+      `${signedIn}/${accounts.length} — rate limited before finishing. Sign-in allows 5 attempts per minute ` +
+        'per IP and this check makes nine. Restart the API with AUTH_THROTTLE_LIMIT=100 (pnpm demo:start does ' +
+        'this), or wait a minute and re-run.',
+    );
+  } else {
+    record('Seeded accounts can sign in', signedIn === accounts.length, `${signedIn}/${accounts.length}`);
+  }
 
   const donor = tokens['donor@donor.local'];
   if (donor) {

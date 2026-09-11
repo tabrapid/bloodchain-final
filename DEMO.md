@@ -47,7 +47,7 @@ pnpm dev:mobile                                # Expo
 pnpm demo:reset
 ```
 
-Runs migrations and reseeds. The seed truncates every table it owns first, so
+Regenerates the Prisma client, runs migrations, and reseeds. The seed truncates every table it owns first, so
 this is repeatable — run it between rehearsals and before you present.
 
 **Sign in again after every reset.** A reset issues new user ids, so any session
@@ -287,7 +287,9 @@ reason is shown in the sign-in error in development builds, so you can read it
 off the phone without a console.
 
 Sign-in is rate limited to 5 attempts per minute per IP. On a demo laptop every
-client shares one address, so raise it:
+client shares one address — three consoles, a phone, and `demo:check`'s own nine
+logins — so `pnpm demo:start` sets `AUTH_THROTTLE_LIMIT=100`. Starting the API
+by hand, raise it yourself:
 
 ```bash
 AUTH_THROTTLE_LIMIT=100 pnpm --filter @bloodchain/api dev
@@ -363,6 +365,8 @@ after the API started — restart it.
 | **Realtime updates look stale** | The hospital tracking screen reconnects on its own; pressing Refresh forces a reload. Nothing in the demo depends on a socket staying up. |
 | **No slots on the date you picked** | Slots are seeded for five days from the day you last reset. Reset again, or pick a nearer date. |
 | **The donor cannot accept an emergency** | They are inside the 56-day recovery window — probably because you already ran Part 4. Reset, or use a different donor. |
+| **The API logs dozens of "property does not exist" errors, and seeded accounts cannot sign in** | The generated Prisma client is older than the schema, so the API will not compile and the seed cannot run — every other symptom is downstream of this. Run `pnpm db:generate`, or just `pnpm demo:reset`, which now does it first. `pnpm demo:check` reports it as the first line. |
+| **`demo:check` says accounts cannot sign in, right after a run that passed** | Sign-in allows 5 attempts per minute per IP and the check makes nine. It now says so explicitly instead of reporting "login refused". `pnpm demo:start` sets `AUTH_THROTTLE_LIMIT=100` for you; otherwise wait a minute. |
 | **No internet** | Nothing here needs it. The consoles load their fonts from Google Fonts and fall back to system fonts without them; everything else is local. |
 
 ---

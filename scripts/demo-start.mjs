@@ -41,11 +41,17 @@ if (!dockerComposeUp()) {
   console.log('  ! Docker Compose not available — assuming PostgreSQL is already running.\n');
 }
 
+// Sign-in is throttled to 5 attempts per minute per IP. On one laptop every
+// client -- three consoles, a phone, and demo:check's own nine logins -- shares
+// a single address, so the default turns an ordinary rehearsal into "login
+// refused" and sends you looking for a problem that is not there.
+const env = { ...process.env, AUTH_THROTTLE_LIMIT: process.env.AUTH_THROTTLE_LIMIT ?? '100' };
+
 const children = [];
 for (const service of SERVICES) {
   const child = spawn('pnpm', ['--filter', service.filter, service.script], {
     cwd: root,
-    env: process.env,
+    env,
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   children.push(child);

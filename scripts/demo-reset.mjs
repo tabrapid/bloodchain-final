@@ -29,6 +29,12 @@ const run = (cmd, args, cwd) => {
 };
 
 try {
+  // Regenerate first. A generated client left over from an older schema is the
+  // worst failure mode this repo has: the API stops compiling with dozens of
+  // "property does not exist" errors, the seed dies on the first unknown field,
+  // and the database quietly keeps whatever it had -- so every symptom points
+  // at the data while the cause is a stale file in node_modules.
+  run('npx', ['prisma', 'generate'], api);
   run('npx', ['prisma', 'migrate', 'deploy'], api);
   run('npx', ['prisma', 'db', 'seed'], api);
 } catch {
