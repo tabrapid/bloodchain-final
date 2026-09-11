@@ -60,8 +60,17 @@ A URL that cannot be parsed is refused too.
 ## 3. Check before presenting
 
 ```bash
-pnpm demo:check
+pnpm demo:check    # is everything present?
+pnpm demo:verify   # does it still work?
 ```
+
+`demo:verify` drives all three flows against the running API — books a
+donation, has staff complete it, books and publishes a lab test, raises an
+emergency and takes a donor through accepting, travelling, arriving and being
+completed — then puts the data back at its starting state. It is the one
+command that answers "is the demo going to work", because it does the demo.
+Every step is a real request and a real database change; nothing is mocked.
+
 
 Prints PASS/FAIL for the database, the API, every seeded account, the seeded
 organisations, today's bookable slots, the demo donor's eligibility, and each
@@ -251,9 +260,15 @@ follows the laptop between networks.
 | iOS simulator | `localhost:3001` |
 | A real phone on the same network as the laptop | the laptop's address, taken from Metro |
 
-**This only works while the phone and the laptop are on the same network.** The
-app can reach the API because it reaches the machine that served it; if that
-machine is somewhere else, no address can be derived.
+The app does not guess once and hope. It probes every candidate address at
+startup — the machine that served the bundle, `10.0.2.2` on Android, and
+`localhost` — and keeps the first that answers, because `Platform.OS` is
+"android" for both an emulator and a phone and the two need different
+addresses. So an emulator and a real phone both work with nothing configured.
+
+**What it cannot do is reach a machine on another network.** The app reaches the
+API because it reaches the machine that served it; if that machine is somewhere
+else, no address exists to find.
 
 Two cases break it:
 
@@ -365,6 +380,7 @@ after the API started — restart it.
 | **Realtime updates look stale** | The hospital tracking screen reconnects on its own; pressing Refresh forces a reload. Nothing in the demo depends on a socket staying up. |
 | **No slots on the date you picked** | Slots are seeded for five days from the day you last reset. Reset again, or pick a nearer date. |
 | **The donor cannot accept an emergency** | They are inside the 56-day recovery window — probably because you already ran Part 4. Reset, or use a different donor. |
+| **"You already have an appointment at this time" when booking** | Fixed: the seed used to book the demo donor at the exact moment of seeding, which collided with the hours a presenter picks from. Pull and `pnpm demo:reset`. |
 | **The API logs dozens of "property does not exist" errors, and seeded accounts cannot sign in** | The generated Prisma client is older than the schema, so the API will not compile and the seed cannot run — every other symptom is downstream of this. Run `pnpm db:generate`, or just `pnpm demo:reset`, which now does it first. `pnpm demo:check` reports it as the first line. |
 | **`demo:check` says accounts cannot sign in, right after a run that passed** | Sign-in allows 5 attempts per minute per IP and the check makes nine. It now says so explicitly instead of reporting "login refused". `pnpm demo:start` sets `AUTH_THROTTLE_LIMIT=100` for you; otherwise wait a minute. |
 | **No internet** | Nothing here needs it. The consoles load their fonts from Google Fonts and fall back to system fonts without them; everything else is local. |

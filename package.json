@@ -23,7 +23,8 @@
     "demo:reset": "node scripts/demo-reset.mjs",
     "demo:check": "node scripts/demo-check.mjs",
     "demo:start": "node scripts/demo-start.mjs",
-    "test:scripts": "node --test scripts/*.spec.mjs"
+    "test:scripts": "node --test scripts/*.spec.mjs",
+    "demo:verify": "node scripts/demo-verify.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",

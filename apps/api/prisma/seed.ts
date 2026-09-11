@@ -791,16 +791,45 @@ async function main() {
     },
   });
 
+  /**
+   * The demo donor's upcoming appointment, at a time nothing else can occupy.
+   *
+   * It used to be booked at `new Date()` -- the exact moment of seeding -- and
+   * the API refuses a second appointment overlapping an existing one. So
+   * whenever the seed happened to run near a bookable hour, the first thing a
+   * presenter does ("book a donation") failed with "You already have an
+   * appointment at this time", on the account the whole demo runs on.
+   *
+   * Noon tomorrow sits between the bookable blocks (09:00-11:00 and
+   * 14:00-16:00), so it can never collide, and it still gives Home a real
+   * "next appointment" card to show.
+   */
+  const upcomingAt = new Date();
+  upcomingAt.setDate(upcomingAt.getDate() + 1);
+  upcomingAt.setHours(12, 0, 0, 0);
+
+  const upcomingSlot = await db.appointmentSlot.create({
+    data: {
+      organizationId: hospitalOrg.id,
+      appointmentType: AppointmentType.BLOOD_DONATION,
+      startAt: upcomingAt,
+      endAt: new Date(upcomingAt.getTime() + 30 * 60000),
+      capacity: 1,
+      bookedCount: 1,
+      status: SlotStatus.FULL,
+    },
+  });
+
   const todayAppointment = await db.appointment.create({
     data: {
       referenceNumber: `DON-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 999999)).padStart(6, '0')}`,
       donorId: donor.id,
       organizationId: hospitalOrg.id,
-      slotId: todaySlot.id,
+      slotId: upcomingSlot.id,
       appointmentType: AppointmentType.BLOOD_DONATION,
       status: AppointmentStatus.CONFIRMED,
-      scheduledStart: new Date(),
-      scheduledEnd: new Date(Date.now() + 30 * 60000),
+      scheduledStart: upcomingAt,
+      scheduledEnd: new Date(upcomingAt.getTime() + 30 * 60000),
     },
   });
 

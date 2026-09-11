@@ -148,18 +148,34 @@ if (apiUp) {
     const labList = Array.isArray(labs.body) ? labs.body : (labs.body?.items ?? []);
     record('Laboratories available', labList.length >= 2, `${labList.length} laboratories`);
 
-    const today = new Date().toISOString().slice(0, 10);
+    // Look across the next few days, not just today. Slots run 09:00-11:00 and
+    // 14:00-16:00, so a check run at 17:00 would report every organisation as
+    // unbookable and send someone reseeding an hour before presenting -- when
+    // booking tomorrow is a perfectly good demo.
+    const day = (offset) => {
+      const d = new Date();
+      d.setDate(d.getDate() + offset);
+      return d.toISOString().slice(0, 10);
+    };
     let bookable = 0;
+    let soonest = null;
     for (const org of list) {
-      const av = await get(
-        `/appointments/availability?organizationId=${org.id}&appointmentType=BLOOD_DONATION&date=${today}`,
-        donor,
-      );
-      const slots = Array.isArray(av.body) ? av.body : (av.body?.items ?? av.body?.slots ?? []);
-      if (slots.length) bookable += 1;
+      for (let offset = 0; offset < 5; offset += 1) {
+        const av = await get(
+          `/appointments/availability?organizationId=${org.id}&appointmentType=BLOOD_DONATION&date=${day(offset)}`,
+          donor,
+        );
+        const slots = Array.isArray(av.body) ? av.body : (av.body?.items ?? av.body?.slots ?? []);
+        if (slots.length) {
+          bookable += 1;
+          if (soonest === null || offset < soonest) soonest = offset;
+          break;
+        }
+      }
     }
-    record('Donation slots available today', bookable >= 3,
-      `${bookable}/${list.length} organizations bookable today`);
+    const when = soonest === 0 ? 'today' : soonest === 1 ? 'from tomorrow' : `in ${soonest} days`;
+    record('Donation slots are bookable', bookable >= 3,
+      `${bookable}/${list.length} organizations${soonest === null ? '' : `, soonest ${when}`}`);
 
     const stats = await get('/donations/me/statistics', donor);
     const next = stats.body?.nextDonationDate;

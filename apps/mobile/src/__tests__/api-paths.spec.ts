@@ -43,10 +43,15 @@ describe('every API path carries the server prefix', () => {
     expect(unprefixed).toEqual([]);
   });
 
-  /** The token refresh builds its own URL, outside `apiRequest`, and was missed. */
+  /**
+   * The token refresh builds its own URL, outside `apiRequest`, and was missed.
+   * Assert the prefix rather than the whole expression: how the base address is
+   * obtained is free to change (it is now resolved by probing), but the
+   * `/api/v1` in front of the path is the thing this guards.
+   */
   it('prefixes the token refresh, which builds its URL by hand', () => {
     const client = readFileSync(join(API_DIR, 'client.ts'), 'utf8');
 
-    expect(client).toContain('${apiBaseUrl}${apiBasePath}/auth/refresh');
+    expect(client).toMatch(/\$\{apiBasePath\}\/auth\/refresh/);
   });
 });

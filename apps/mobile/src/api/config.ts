@@ -94,10 +94,34 @@ function diagnoseHost(): string | undefined {
  * read at runtime: changing one means restarting `expo start`, and a value set
  * only in the shell that launched the app will not reach it.
  */
-export const apiBaseUrl =
-  (Constants.expoConfig?.extra?.apiUrl as string | undefined) ??
-  process.env.EXPO_PUBLIC_API_URL ??
-  defaultBaseUrl();
+const explicitBaseUrl =
+  (Constants.expoConfig?.extra?.apiUrl as string | undefined) ?? process.env.EXPO_PUBLIC_API_URL;
+
+/**
+ * Every address worth trying, best guess first.
+ *
+ * One derived address is right often enough to look correct and wrong often
+ * enough to lose an afternoon: the emulator needs 10.0.2.2, the simulator needs
+ * localhost, a phone needs the laptop's LAN address, and which of those applies
+ * cannot be known from inside the bundle -- `Platform.OS` says android for both
+ * an emulator and a phone. So offer all of them and let the one that answers
+ * win. An explicitly configured address skips this entirely: someone who said
+ * where the API is should not be second-guessed.
+ */
+export const apiCandidates: string[] = explicitBaseUrl
+  ? [explicitBaseUrl]
+  : Array.from(
+      new Set(
+        [
+          defaultBaseUrl(),
+          Platform.OS === 'android' ? `http://10.0.2.2:${API_PORT}` : undefined,
+          `http://localhost:${API_PORT}`,
+        ].filter((url): url is string => url !== undefined),
+      ),
+    );
+
+/** The best guess, used until a probe finds one that actually answers. */
+export const apiBaseUrl = apiCandidates[0]!;
 
 export const apiBasePath = '/api/v1';
 
@@ -107,7 +131,7 @@ export const apiHostWarning = diagnoseHost();
 // One line, once, so the address in use is visible instead of guessed at when
 // a request fails.
 if (__DEV__) {
-  console.log(`[api] ${apiBaseUrl}${apiBasePath}`);
+  console.log(`[api] trying ${apiCandidates.join(', ')}`);
   if (apiHostWarning) {
     console.warn(`[api] ${apiHostWarning}`);
   }

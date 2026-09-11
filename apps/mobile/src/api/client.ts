@@ -6,7 +6,7 @@ import {
   getRefreshToken,
   setAccessToken,
 } from '../auth/storage';
-import { apiBaseUrl, apiBasePath, apiHostWarning } from './config';
+import { apiBaseUrl, apiBasePath, apiCandidates, apiHostWarning } from './config';
 import { useAuthStore } from '../stores/auth.store';
 
 export interface ApiError {
@@ -49,7 +49,72 @@ function unreachableMessage(prefix: string): string {
     return `${prefix} Check your connection and try again.`;
   }
   const detail = apiHostWarning ? ` ${apiHostWarning}` : '';
-  return `${prefix} Tried ${apiBaseUrl}${apiBasePath}.${detail}`;
+  return `${prefix} Tried ${currentBaseUrl()}${apiBasePath}.${detail}`;
+}
+
+/** How long to wait for a candidate address to prove itself. */
+const PROBE_TIMEOUT_MS = 2500;
+
+let resolvedBaseUrl: string | undefined;
+let resolving: Promise<string> | undefined;
+
+/**
+ * The first candidate address that answers, remembered for the session.
+ *
+ * `Platform.OS` is "android" for both an emulator and a phone, and the two need
+ * different addresses -- so the right one cannot be derived, only discovered.
+ * Every candidate is probed at once and the first healthy reply wins, which
+ * makes the app work on a phone, an emulator and a simulator with nothing
+ * configured.
+ *
+ * When none answers the best guess is returned anyway, so the request proceeds
+ * and fails with a real error naming a real address rather than being swallowed
+ * here. The probe is never retried after it succeeds; a laptop that changes
+ * network mid-session needs a reload either way.
+ */
+async function resolveBaseUrl(): Promise<string> {
+  if (resolvedBaseUrl) return resolvedBaseUrl;
+  if (apiCandidates.length === 1) {
+    resolvedBaseUrl = apiCandidates[0]!;
+    return resolvedBaseUrl;
+  }
+  if (resolving) return resolving;
+
+  resolving = new Promise<string>((resolve) => {
+    let settled = false;
+    let pending = apiCandidates.length;
+    const done = (url: string) => {
+      if (settled) return;
+      settled = true;
+      resolvedBaseUrl = url;
+      if (__DEV__) console.log(`[api] using ${url}${apiBasePath}`);
+      resolve(url);
+    };
+
+    for (const candidate of apiCandidates) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), PROBE_TIMEOUT_MS);
+      fetch(`${candidate}${apiBasePath}/health`, { signal: controller.signal })
+        .then((response) => {
+          if (response.ok) done(candidate);
+        })
+        .catch(() => undefined)
+        .then(() => {
+          clearTimeout(timer);
+          pending -= 1;
+          if (pending === 0 && !settled) done(apiCandidates[0]!);
+        });
+    }
+  }).finally(() => {
+    resolving = undefined;
+  });
+
+  return resolving;
+}
+
+/** The address in use, for error messages. Falls back to the best guess. */
+function currentBaseUrl(): string {
+  return resolvedBaseUrl ?? apiBaseUrl;
 }
 
 async function fetchWithTimeout(url: string, options: RequestInit): Promise<Response> {
@@ -85,7 +150,7 @@ async function refreshAccessToken(): Promise<string | null> {
       try {
         const refreshToken = await getRefreshToken();
         if (!refreshToken) return null;
-        const response = await fetchWithTimeout(`${apiBaseUrl}${apiBasePath}/auth/refresh`, {
+        const response = await fetchWithTimeout(`${await resolveBaseUrl()}${apiBasePath}/auth/refresh`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ refreshToken }),
@@ -125,7 +190,7 @@ export async function apiRequestEnvelope<T>(
   path: string,
   options: RequestOptions = {},
 ): Promise<ResponseEnvelope<T>> {
-  const url = `${apiBaseUrl}${path}`;
+  const url = `${await resolveBaseUrl()}${path}`;
   const headers = new Headers(options.headers);
 
   if (!headers.has('Content-Type') && options.body && typeof options.body === 'string') {
