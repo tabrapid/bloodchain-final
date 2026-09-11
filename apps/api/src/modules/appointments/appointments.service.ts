@@ -5,7 +5,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { AppointmentStatus, Prisma, RoleCode, SlotStatus } from '@prisma/client';
+import { AppointmentStatus, AppointmentType, Prisma, RoleCode, SlotStatus } from '@prisma/client';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../database/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
@@ -13,6 +13,12 @@ import { CreateAppointmentDto, CancelAppointmentDto, RescheduleAppointmentDto, G
 import { APPOINTMENT_COMPLETED_EVENT } from '../gamification/events/gamification-event.handler';
 import { assertOrganizationActive } from '../../common/utils/organization-status.util';
 import { withUniqueRetry } from '../../common/utils/unique-retry.util';
+
+const REFERENCE_PREFIX: Record<AppointmentType, string> = {
+  [AppointmentType.BLOOD_DONATION]: 'DON',
+  [AppointmentType.BLOOD_TEST]: 'LAB',
+  [AppointmentType.CONSULTATION]: 'CON',
+};
 
 @Injectable()
 export class AppointmentsService {
@@ -22,10 +28,20 @@ export class AppointmentsService {
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
-  private generateReferenceNumber(): string {
+  /**
+   * Appointment references are prefixed by what the appointment is for.
+   *
+   * Every booking made here was labelled DON- regardless of type, so a blood
+   * test booked from the app arrived in the laboratory console as DON-2026-…
+   * while the ones the laboratory books itself read LAB-2026-… -- two naming
+   * schemes for one queue, and staff reading down a list for a donor's
+   * reference cannot tell which is which.
+   */
+  private generateReferenceNumber(appointmentType: AppointmentType): string {
     const year = new Date().getFullYear();
     const random = Math.floor(Math.random() * 999999).toString().padStart(6, '0');
-    return `DON-${year}-${random}`;
+    const prefix = REFERENCE_PREFIX[appointmentType] ?? 'APT';
+    return `${prefix}-${year}-${random}`;
   }
 
   async bookAppointment(
@@ -118,7 +134,7 @@ export class AppointmentsService {
             throw new ConflictException('This slot is no longer available.');
           }
 
-          const referenceNumber = this.generateReferenceNumber();
+          const referenceNumber = this.generateReferenceNumber(dto.appointmentType);
 
           const appointment = await tx.appointment.create({
             data: {

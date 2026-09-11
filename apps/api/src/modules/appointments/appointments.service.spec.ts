@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConflictException, ForbiddenException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { AppointmentStatus, OrganizationStatus, Prisma, SlotStatus } from '@prisma/client';
+import { AppointmentStatus, AppointmentType, OrganizationStatus, Prisma, SlotStatus } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { APPOINTMENT_COMPLETED_EVENT } from '../gamification/events/gamification-event.handler';
@@ -388,5 +388,42 @@ describe('AppointmentsService', () => {
 
       await expect(service.confirmAppointment('apt-1', 'staff-1')).rejects.toThrow(ForbiddenException);
     });
+  });
+});
+
+describe('AppointmentsService reference numbers', () => {
+  /**
+   * Every booking was labelled DON- regardless of type, so a blood test booked
+   * from the app arrived in the laboratory console as DON-2026-… next to the
+   * LAB-2026-… ones the laboratory books itself.
+   */
+  function reference(service: any, type: AppointmentType): string {
+    return service.generateReferenceNumber(type);
+  }
+
+  let service: any;
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        AppointmentsService,
+        { provide: PrismaService, useValue: {} },
+        { provide: AuditLogsService, useValue: { log: jest.fn() } },
+        { provide: EventEmitter2, useValue: { emit: jest.fn() } },
+      ],
+    }).compile();
+    service = module.get(AppointmentsService);
+  });
+
+  it('prefixes a donation with DON', () => {
+    expect(reference(service, AppointmentType.BLOOD_DONATION)).toMatch(/^DON-\d{4}-\d{6}$/);
+  });
+
+  it('prefixes a blood test with LAB, matching what the laboratory issues', () => {
+    expect(reference(service, AppointmentType.BLOOD_TEST)).toMatch(/^LAB-\d{4}-\d{6}$/);
+  });
+
+  it('prefixes a consultation with CON', () => {
+    expect(reference(service, AppointmentType.CONSULTATION)).toMatch(/^CON-\d{4}-\d{6}$/);
   });
 });

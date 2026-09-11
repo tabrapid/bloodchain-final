@@ -75,7 +75,17 @@ describe('EmergencyService.completeEmergency', () => {
         { provide: AuditLogsService, useValue: { log: jest.fn().mockResolvedValue({}) } },
         { provide: EventEmitter2, useValue: eventEmitter },
         { provide: EmergencyGateway, useValue: gateway },
-        { provide: DonationEligibilityService, useValue: { getNextEligibleDonationDate: jest.fn() } },
+        {
+          provide: DonationEligibilityService,
+          useValue: {
+            getNextEligibleDonationDate: jest.fn(),
+            // Completing an emergency donation opens the same recovery window a
+            // booked one does, so it asks the shared service for the date.
+            computeDefaultNextEligibleDate: jest.fn(
+              (from: Date) => new Date(from.getTime() + 56 * 24 * 60 * 60 * 1000),
+            ),
+          },
+        },
         { provide: PlatformSettingsService, useValue: { isEnabled: jest.fn().mockResolvedValue(true) } },
       ],
     }).compile();

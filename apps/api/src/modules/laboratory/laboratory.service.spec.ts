@@ -392,3 +392,144 @@ describe('LaboratoryService.createResult', () => {
     ).rejects.toThrow(BadRequestException);
   });
 });
+
+describe('LaboratoryService.getLaboratories', () => {
+  let service: LaboratoryService;
+  let prisma: any;
+
+  beforeEach(async () => {
+    prisma = { organization: { findMany: jest.fn().mockResolvedValue([]) } };
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        LaboratoryService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: AuditLogsService, useValue: { log: jest.fn().mockResolvedValue({}) } },
+        { provide: EventEmitter2, useValue: { emit: jest.fn() } },
+      ],
+    }).compile();
+    service = module.get<LaboratoryService>(LaboratoryService);
+  });
+
+  /**
+   * The filter used to be `laboratoryProfile?.isActive !== false`, applied in
+   * JavaScript after the query -- which is true for an organisation that has no
+   * laboratory profile at all. Every hospital appeared in the donor's "choose a
+   * laboratory" list and then answered "Laboratory is not active" when tapped.
+   */
+  it('only returns organizations that have an active laboratory profile', async () => {
+    await service.getLaboratories();
+
+    const where = prisma.organization.findMany.mock.calls[0][0].where;
+    expect(where.laboratoryProfile).toEqual({ isActive: true });
+    expect(where.status).toBe('ACTIVE');
+  });
+
+  it('narrows to a single organization when one is named', async () => {
+    await service.getLaboratories('lab-1');
+
+    const where = prisma.organization.findMany.mock.calls[0][0].where;
+    expect(where.id).toBe('lab-1');
+    expect(where.laboratoryProfile).toEqual({ isActive: true });
+  });
+});
+
+describe('LaboratoryService.createResult reference flags', () => {
+  let service: LaboratoryService;
+  let prisma: any;
+  let tx: any;
+  const created: any[] = [];
+
+  const range = (overrides: Record<string, any> = {}) => ({
+    parameterId: 'param-hgb',
+    minValue: new Prisma.Decimal(12),
+    maxValue: new Prisma.Decimal(17.5),
+    ...overrides,
+  });
+
+  beforeEach(async () => {
+    created.length = 0;
+    tx = {
+      laboratoryResult: { create: jest.fn().mockResolvedValue({ id: 'result-1' }) },
+      testParameter: {
+        findUnique: jest.fn().mockResolvedValue({ id: 'param-hgb', testTypeId: 'tt-cbc', unit: 'g/dL' }),
+      },
+      testReferenceRange: { findFirst: jest.fn() },
+      laboratoryResultItem: {
+        create: jest.fn().mockImplementation(async ({ data }: any) => {
+          created.push(data);
+          return data;
+        }),
+      },
+      laboratoryResultVersion: { create: jest.fn().mockResolvedValue({}) },
+      appointment: { update: jest.fn().mockResolvedValue({}) },
+      appointmentHistory: { create: jest.fn().mockResolvedValue({}) },
+    };
+    prisma = {
+      appointment: {
+        findFirst: jest.fn().mockResolvedValue({
+          id: 'apt-1',
+          donorId: 'donor-1',
+          status: 'RESULT_PENDING',
+          laboratoryResult: null,
+        }),
+      },
+      $transaction: jest.fn().mockImplementation(async (cb: any) => cb(tx)),
+    };
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        LaboratoryService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: AuditLogsService, useValue: { log: jest.fn().mockResolvedValue({}) } },
+        { provide: EventEmitter2, useValue: { emit: jest.fn() } },
+      ],
+    }).compile();
+    service = module.get<LaboratoryService>(LaboratoryService);
+  });
+
+  const enter = (value: string, numericValue?: number) =>
+    service.createResult('lab-1', 'staff-1', 'apt-1', {
+      items: [{ parameterId: 'param-hgb', value, ...(numericValue === undefined ? {} : { numericValue }) }],
+    }, 'tt-cbc');
+
+  it('flags a value inside a parameter-scoped range as NORMAL', async () => {
+    tx.testReferenceRange.findFirst.mockResolvedValue(range());
+    await enter('14.2', 14.2);
+    expect(created[0].flag).toBe('NORMAL');
+  });
+
+  it('flags a value below the range as LOW and above it as HIGH', async () => {
+    tx.testReferenceRange.findFirst.mockResolvedValue(range());
+    await enter('9.1', 9.1);
+    expect(created[0].flag).toBe('LOW');
+
+    created.length = 0;
+    await enter('19.4', 19.4);
+    expect(created[0].flag).toBe('HIGH');
+  });
+
+  /**
+   * Ranges were keyed by test type alone, so a Complete Blood Count carried one
+   * min/max that would be compared against haemoglobin, platelets and white
+   * cells alike -- three orders of magnitude apart. A flag derived from that is
+   * confidently wrong, which is worse than no flag.
+   */
+  it('refuses to flag against a range that does not name this parameter', async () => {
+    tx.testReferenceRange.findFirst.mockResolvedValue(range({ parameterId: null }));
+    await enter('250000', 250000);
+    expect(created[0].flag).toBe('NOT_AVAILABLE');
+  });
+
+  it('leaves a non-numeric value unflagged', async () => {
+    tx.testReferenceRange.findFirst.mockResolvedValue(range());
+    await enter('O');
+    expect(created[0].flag).toBe('NOT_AVAILABLE');
+  });
+
+  it("prefers a range naming the parameter over the test type's own", async () => {
+    tx.testReferenceRange.findFirst.mockResolvedValue(range());
+    await enter('14.2', 14.2);
+    const orderBy = tx.testReferenceRange.findFirst.mock.calls[0][0].orderBy;
+    expect(orderBy[0]).toEqual({ parameterId: 'desc' });
+  });
+});

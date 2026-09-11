@@ -190,3 +190,75 @@ describe('DonationsService.checkInDonation', () => {
     expect(prisma.$transaction).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('DonationsService.getMyDonationStatistics', () => {
+  let service: DonationsService;
+  let prisma: any;
+  let donationEligibility: { getNextEligibleDonationDate: jest.Mock };
+
+  const completed = (overrides: Record<string, any> = {}) => ({
+    status: DonationStatus.COMPLETED,
+    volumeMl: 450,
+    collectionCompletedAt: new Date('2026-07-03T10:00:00Z'),
+    nextDonationDate: new Date('2026-08-28T10:00:00Z'),
+    ...overrides,
+  });
+
+  beforeEach(async () => {
+    prisma = { donation: { findMany: jest.fn() } };
+    donationEligibility = { getNextEligibleDonationDate: jest.fn() };
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        DonationsService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: AuditLogsService, useValue: { log: jest.fn() } },
+        { provide: EventEmitter2, useValue: { emit: jest.fn() } },
+        { provide: DonationEligibilityService, useValue: donationEligibility },
+      ],
+    }).compile();
+
+    service = module.get(DonationsService);
+  });
+
+  /**
+   * The statistics endpoint used to re-derive the next eligible date itself, by
+   * taking the *earliest* nextDonationDate across every completed donation. The
+   * first donation's date therefore won forever: a donor who gave blood this
+   * morning still saw an eligibility date from months ago on their home screen.
+   */
+  it('reports the eligibility date from the shared service, not the earliest one on record', async () => {
+    prisma.donation.findMany.mockResolvedValue([
+      completed({ nextDonationDate: new Date('2026-03-01T00:00:00Z') }),
+      completed({
+        collectionCompletedAt: new Date('2026-09-11T10:00:00Z'),
+        nextDonationDate: new Date('2026-11-06T10:00:00Z'),
+      }),
+    ]);
+    donationEligibility.getNextEligibleDonationDate.mockResolvedValue(new Date('2026-11-06T10:00:00Z'));
+
+    const { data } = await service.getMyDonationStatistics('donor-1');
+
+    expect(donationEligibility.getNextEligibleDonationDate).toHaveBeenCalledWith('donor-1');
+    expect(data.nextDonationDate).toEqual(new Date('2026-11-06T10:00:00Z'));
+  });
+
+  /**
+   * An emergency donation records no explicit nextDonationDate, and the old
+   * derivation skipped every donation that had none -- so answering an
+   * emergency left the donor's eligibility frozen at whatever a booked donation
+   * had last set.
+   */
+  it('still reports an eligibility date when the latest donation carries none', async () => {
+    prisma.donation.findMany.mockResolvedValue([
+      completed({ collectionCompletedAt: new Date('2026-09-11T10:00:00Z'), nextDonationDate: null }),
+    ]);
+    donationEligibility.getNextEligibleDonationDate.mockResolvedValue(new Date('2026-11-06T10:00:00Z'));
+
+    const { data } = await service.getMyDonationStatistics('donor-1');
+
+    expect(data.nextDonationDate).toEqual(new Date('2026-11-06T10:00:00Z'));
+    expect(data.totalVolumeMl).toBe(450);
+    expect(data.completedCount).toBe(1);
+  });
+});

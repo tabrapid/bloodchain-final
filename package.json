@@ -22,7 +22,8 @@
     "db:reset": "pnpm --filter @bloodchain/api prisma:reset",
     "demo:reset": "node scripts/demo-reset.mjs",
     "demo:check": "node scripts/demo-check.mjs",
-    "demo:start": "node scripts/demo-start.mjs"
+    "demo:start": "node scripts/demo-start.mjs",
+    "test:scripts": "node --test scripts/*.spec.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",
