@@ -249,14 +249,42 @@ follows the laptop between networks.
 | --- | --- |
 | Android emulator | `10.0.2.2:3001` — the host machine as seen from inside the emulator |
 | iOS simulator | `localhost:3001` |
-| A real phone on the same Wi-Fi | the laptop's LAN address, taken from Metro |
+| A real phone on the same network as the laptop | the laptop's address, taken from Metro |
+
+**This only works while the phone and the laptop are on the same network.** The
+app can reach the API because it reaches the machine that served it; if that
+machine is somewhere else, no address can be derived.
+
+Two cases break it:
+
+- **`expo start --tunnel`.** The tunnel relays Metro and nothing else, so the
+  API is not reachable at that hostname. The app detects this and says so in the
+  error rather than blaming your connection.
+- **The phone is on mobile data while the laptop is on Wi-Fi.** Different
+  networks, same outcome.
+
+The fix for both is to put them on one network: turn on the phone's hotspot,
+**connect the laptop to it**, and start Expo without `--tunnel`. Metro then
+reports the laptop's hotspot address and the API follows it. Being "on the
+phone's internet" is not enough on its own — the laptop has to be on it too.
+
+If you genuinely cannot share a network, expose the API yourself and point the
+app at it:
+
+```bash
+# a tunnel for the API, alongside Metro's
+npx ngrok http 3001
+EXPO_PUBLIC_API_URL=https://<the-ngrok-host> pnpm dev:mobile
+```
 
 Override it only if the API is somewhere else: set `EXPO_PUBLIC_API_URL` (or
 `extra.apiUrl` in `app.json`) and restart `expo start` — `EXPO_PUBLIC_*` values
 are baked into the bundle when it is built, not read at runtime.
 
-The API prints the address it is using in the app's console on startup:
-`[api] http://…:3001/api/v1`.
+The app prints the address it is using on startup: `[api] http://…:3001/api/v1`,
+followed by `[api] <reason>` when that address is unlikely to work. The same
+reason is shown in the sign-in error in development builds, so you can read it
+off the phone without a console.
 
 Sign-in is rate limited to 5 attempts per minute per IP. On a demo laptop every
 client shares one address, so raise it:
@@ -271,7 +299,7 @@ AUTH_THROTTLE_LIMIT=100 pnpm --filter @bloodchain/api dev
 
 | Problem | What to do |
 | --- | --- |
-| **"Server took too long to respond" on sign-in** | The API is not running or not reachable. Check `pnpm demo:check`. On an emulator, confirm the app logged `10.0.2.2`. |
+| **"Server took too long to respond" on sign-in** | In a development build the message names the address it tried — read it. `exp.direct` or `ngrok` means Metro is tunnelled and the API is not; a `192.168.*` address that fails means the phone is not on that network, or a firewall is dropping the connection. See §7. |
 | **429 / "too many attempts"** | The login throttle. Restart the API with `AUTH_THROTTLE_LIMIT=100`, or wait a minute. |
 | **Everything is signed out after a reset** | Expected: a reset issues new user ids. Sign in again. |
 | **GPS is slow in the emulator** | Set a location first: Android emulator → ⋯ → Location → enter 40.1158 / 67.8422 → Send. iOS simulator → Features → Location → Custom Location. The donor screen shows a waiting state until the first fix; it is not stuck. |

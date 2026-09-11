@@ -41,9 +41,47 @@ function resolveHost(host: string): string {
   return isLoopback && Platform.OS === 'android' ? '10.0.2.2' : host;
 }
 
+/**
+ * Hosts that only carry Metro, never the API.
+ *
+ * `expo start --tunnel` serves the bundle through a public relay, so the host
+ * the app was loaded from is something like `xy-anon-8081.exp.direct`. Only
+ * Metro's port is relayed -- nothing answers on 3001 there -- so deriving the
+ * API address from it produces a URL that hangs until the request times out
+ * and reports "the server took too long to respond". That is the one case this
+ * file cannot solve on its own: the phone and the API are on different
+ * networks, and no address can be guessed. Say so instead of failing silently.
+ */
+const TUNNEL_HOST = /\.(exp\.direct|ngrok\.io|ngrok-free\.app|trycloudflare\.com|loca\.lt)$/i;
+
 function defaultBaseUrl(): string {
   const host = metroHost();
   return `http://${resolveHost(host ?? 'localhost')}:${API_PORT}`;
+}
+
+/**
+ * Why the derived address is likely to fail, when it is. Empty when the address
+ * looks reachable. The API client appends this to a timeout so the message
+ * names the actual problem rather than blaming the connection.
+ */
+function diagnoseHost(): string | undefined {
+  if (Constants.expoConfig?.extra?.apiUrl || process.env.EXPO_PUBLIC_API_URL) {
+    return undefined;
+  }
+
+  const host = metroHost();
+  if (!host) {
+    return 'The app could not tell which machine served it, so it fell back to localhost.';
+  }
+  if (TUNNEL_HOST.test(host)) {
+    return (
+      `Metro is running through a tunnel (${host}), which relays only the bundle -- ` +
+      'nothing answers on port 3001 there. Put this device and the API on the same ' +
+      'network and restart Expo without --tunnel, or set EXPO_PUBLIC_API_URL to an ' +
+      'address this device can reach and restart Expo.'
+    );
+  }
+  return undefined;
 }
 
 /**
@@ -63,8 +101,14 @@ export const apiBaseUrl =
 
 export const apiBasePath = '/api/v1';
 
+/** Set when the derived address is unlikely to work, explaining why. */
+export const apiHostWarning = diagnoseHost();
+
 // One line, once, so the address in use is visible instead of guessed at when
 // a request fails.
 if (__DEV__) {
   console.log(`[api] ${apiBaseUrl}${apiBasePath}`);
+  if (apiHostWarning) {
+    console.warn(`[api] ${apiHostWarning}`);
+  }
 }

@@ -6,7 +6,7 @@ import {
   getRefreshToken,
   setAccessToken,
 } from '../auth/storage';
-import { apiBaseUrl, apiBasePath } from './config';
+import { apiBaseUrl, apiBasePath, apiHostWarning } from './config';
 import { useAuthStore } from '../stores/auth.store';
 
 export interface ApiError {
@@ -35,6 +35,23 @@ const REQUEST_TIMEOUT_MS = 15000;
  * recover from its loading state. Race it against an abort instead, so a
  * dead network surfaces as a real, catchable error.
  */
+/**
+ * In development, say which address failed and why it was chosen.
+ *
+ * "The server took too long to respond" is true and useless: it reads as a slow
+ * network when the actual cause is almost always an address this device cannot
+ * reach -- a tunnelled Metro host, a laptop on a different network, a firewall.
+ * Naming the URL turns a guessing game into one glance. Released builds keep
+ * the plain message; an internal address is not something to show a donor.
+ */
+function unreachableMessage(prefix: string): string {
+  if (!__DEV__) {
+    return `${prefix} Check your connection and try again.`;
+  }
+  const detail = apiHostWarning ? ` ${apiHostWarning}` : '';
+  return `${prefix} Tried ${apiBaseUrl}${apiBasePath}.${detail}`;
+}
+
 async function fetchWithTimeout(url: string, options: RequestInit): Promise<Response> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
@@ -45,13 +62,13 @@ async function fetchWithTimeout(url: string, options: RequestInit): Promise<Resp
       throw new ApiRequestError({
         statusCode: 0,
         code: 'REQUEST_TIMEOUT',
-        message: 'The server took too long to respond. Check your connection and try again.',
+        message: unreachableMessage('The server took too long to respond.'),
       });
     }
     throw new ApiRequestError({
       statusCode: 0,
       code: 'NETWORK_ERROR',
-      message: 'Could not reach the server. Check your connection and try again.',
+      message: unreachableMessage('Could not reach the server.'),
     });
   } finally {
     clearTimeout(timeoutId);

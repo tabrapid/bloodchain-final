@@ -86,3 +86,43 @@ describe('apiBaseUrl', () => {
     expect(load({ platform: 'ios' }).apiBaseUrl).toBe('http://localhost:3001');
   });
 });
+
+describe('apiHostWarning', () => {
+  it('warns that a tunnelled Metro host relays only the bundle', () => {
+    const { apiHostWarning } = load({ hostUri: 'xy-anon-8081.exp.direct' });
+    expect(apiHostWarning).toMatch(/tunnel/i);
+    expect(apiHostWarning).toContain('xy-anon-8081.exp.direct');
+  });
+
+  it('warns for an ngrok tunnel too', () => {
+    const { apiHostWarning } = load({ hostUri: 'abc123.ngrok-free.app:8081' });
+    expect(apiHostWarning).toMatch(/tunnel/i);
+  });
+
+  it('stays silent for an ordinary LAN host', () => {
+    const { apiHostWarning } = load({ hostUri: '192.168.1.14:8081' });
+    expect(apiHostWarning).toBeUndefined();
+  });
+
+  it('stays silent on an emulator reaching the host machine', () => {
+    const { apiHostWarning } = load({ hostUri: 'localhost:8081', platform: 'android' });
+    expect(apiHostWarning).toBeUndefined();
+  });
+
+  /**
+   * An explicit address is the escape hatch for exactly the tunnel case, so it
+   * must not carry the warning that tells people to set it.
+   */
+  it('stays silent when an explicit address is configured, tunnel or not', () => {
+    const { apiHostWarning } = load({
+      hostUri: 'xy-anon-8081.exp.direct',
+      extraApiUrl: 'https://api.example.test',
+    });
+    expect(apiHostWarning).toBeUndefined();
+  });
+
+  it('explains a missing Metro host rather than silently using localhost', () => {
+    const { apiHostWarning } = load({ hostUri: undefined });
+    expect(apiHostWarning).toMatch(/could not tell which machine/i);
+  });
+});
