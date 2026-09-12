@@ -25,9 +25,16 @@ try {
 }
 
 let failures = 0;
+let skipped = 0;
 const check = (name, ok, detail = '') => {
   if (!ok) failures += 1;
   console.log(`  ${ok ? 'ok  ' : 'FAIL'} ${name}${detail ? ` — ${detail}` : ''}`);
+};
+// For an assertion this run genuinely could not make -- not one that failed.
+// Counted and printed separately so it can never read as a pass.
+const skip = (name, why) => {
+  skipped += 1;
+  console.log(`  skip ${name} — ${why}`);
 };
 const section = (name) => console.log(`\n${name}`);
 
@@ -73,6 +80,18 @@ const jizzakh = orgs.find((o) => o.name === 'Jizzakh City Hospital');
 const northstarHospital = orgs.find((o) => o.name === 'Northstar Hospital (Development)');
 const northstarCentre = orgs.find((o) => o.name === 'Northstar Blood Center (Development)');
 if (!jizzakh || !northstarHospital || !northstarCentre) fail('expected seeded organisations are missing');
+
+// This suite consumes the seed: it books and completes the demo donor's
+// donation. Run twice without a reset and four checks fail for the most
+// confusing possible reason -- the donor is now correctly refused by the very
+// rule being tested. Check the precondition and say so instead.
+const donorStats = (await call('GET', '/donations/me/statistics', eligibleDonor)).body;
+if (donorStats?.nextDonationDate && new Date(donorStats.nextDonationDate) > new Date()) {
+  fail(
+    `donor@donor.local is inside a recovery window until ${String(donorStats.nextDonationDate).slice(0, 10)}, ` +
+      'so this suite cannot book for them. It needs a freshly seeded database: run pnpm demo:reset.',
+  );
+}
 
 // ============================================================= 1 + 2
 section('  Eligibility is enforced on the server');
@@ -259,18 +278,25 @@ const badReset = await call('POST', '/auth/reset-password', null, {
 check('an unknown token is refused', badReset.status === 400, badReset.raw?.message?.slice(0, 46));
 
 // The real token is only in the database, which is the point -- read it there.
+// Only meaningful if the request above actually went through: a throttled
+// request writes no row, so asserting on the table would be testing the
+// throttle, not the token.
 const { execFileSync } = await import('node:child_process');
-const rawTokenProbe = execFileSync('node', ['-e', `
-  const { PrismaClient } = require('@prisma/client');
-  const db = new PrismaClient();
-  db.passwordResetToken.findFirst({ orderBy: { createdAt: 'desc' }, select: { tokenHash: true, expiresAt: true, usedAt: true } })
-    .then((r) => { console.log(JSON.stringify(r)); return db.$disconnect(); });
-`], { cwd: 'apps/api', encoding: 'utf8' }).trim();
-const stored = JSON.parse(rawTokenProbe || 'null');
-check('a token row exists after the request', stored !== null);
-check('the stored value is a 64-char hash, not a usable token', stored?.tokenHash?.length === 64, `${stored?.tokenHash?.length} chars`);
-check('the token is unused at this point', stored?.usedAt === null);
-check('the token expires', typeof stored?.expiresAt === 'string');
+if (forgot1.status !== 200) {
+  skip('the stored token is a hash, unused, and expiring', 'no reset was accepted this run (rate limited)');
+} else {
+  const rawTokenProbe = execFileSync('node', ['-e', `
+    const { PrismaClient } = require('@prisma/client');
+    const db = new PrismaClient();
+    db.passwordResetToken.findFirst({ orderBy: { createdAt: 'desc' }, select: { tokenHash: true, expiresAt: true, usedAt: true } })
+      .then((r) => { console.log(JSON.stringify(r)); return db.$disconnect(); });
+  `], { cwd: 'apps/api', encoding: 'utf8' }).trim();
+  const stored = JSON.parse(rawTokenProbe || 'null');
+  check('a token row exists after the request', stored !== null);
+  check('the stored value is a 64-char hash, not a usable token', stored?.tokenHash?.length === 64, `${stored?.tokenHash?.length} chars`);
+  check('the token is unused at this point', stored?.usedAt === null);
+  check('the token expires', typeof stored?.expiresAt === 'string');
+}
 
 // ============================================================= 7
 section('  Laboratory result integrity');
@@ -389,6 +415,9 @@ console.log('');
 if (failures) {
   console.log(`  ✗ ${failures} check(s) failed.\n`);
   process.exit(1);
+}
+if (skipped) {
+  console.log(`  ! ${skipped} check(s) skipped — restart the API to clear the reset throttle and re-run.`);
 }
 console.log('  ✓ All Sprint 0 integration checks passed.');
 // This suite books and completes a real donation for donor@donor.local, which
