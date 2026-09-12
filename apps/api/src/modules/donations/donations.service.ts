@@ -110,6 +110,15 @@ export class DonationsService {
       throw new ConflictException('A donation record already exists for this appointment.');
     }
 
+    // Re-checked here, not inherited from the booking.
+    //
+    // Eligibility is a function of time and of donations recorded since, so an
+    // appointment that was valid when booked is not evidence of eligibility
+    // now: the donor may have donated elsewhere in between, or staff may have
+    // extended their window on a previous donation. Asked about now, because
+    // this is the moment the donation would happen.
+    await this.donationEligibility.assertEligibleToDonateAt(appointment.donorId, new Date());
+
     const result = await withUniqueRetry(
       () =>
         this.db.$transaction(async (tx) => {

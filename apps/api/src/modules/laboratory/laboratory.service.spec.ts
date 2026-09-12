@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { Prisma } from '@prisma/client';
+import { LaboratoryResultStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { LaboratoryService } from './laboratory.service';
@@ -317,6 +317,11 @@ describe('LaboratoryService.createResult', () => {
           makeLabAppointment({ status: 'RESULT_PENDING', laboratoryResult: null }),
         ),
       },
+      // createResult validates the test type it is about to record, exactly as
+      // the booking path does, so the mock has to answer for it.
+      testType: {
+        findUnique: jest.fn().mockResolvedValue({ id: 'test-type-1', code: 'CBC', isActive: true }),
+      },
       $transaction: jest.fn().mockImplementation(async (cb: any) => cb(tx)),
     };
 
@@ -473,6 +478,9 @@ describe('LaboratoryService.createResult reference flags', () => {
           laboratoryResult: null,
         }),
       },
+      testType: {
+        findUnique: jest.fn().mockResolvedValue({ id: 'tt-cbc', code: 'CBC', isActive: true }),
+      },
       $transaction: jest.fn().mockImplementation(async (cb: any) => cb(tx)),
     };
 
@@ -531,5 +539,179 @@ describe('LaboratoryService.createResult reference flags', () => {
     await enter('14.2', 14.2);
     const orderBy = tx.testReferenceRange.findFirst.mock.calls[0][0].orderBy;
     expect(orderBy[0]).toEqual({ parameterId: 'desc' });
+  });
+});
+
+/**
+ * S0-7 regression tests.
+ *
+ * `LaboratoryResult.status` used to be a free-text column written with string
+ * literals, and one of those literals ('PROCESSING') was never produced by any
+ * code path -- the analytics "pending" count read it and was therefore always
+ * zero. A typed enum makes the state machine checkable at compile time; these
+ * tests cover the part the compiler cannot see: that the donor-facing reads are
+ * scoped to PUBLISHED, so an entered-but-unreviewed result is not readable.
+ */
+describe('LaboratoryService donor result visibility', () => {
+  let service: LaboratoryService;
+  let prisma: any;
+
+  beforeEach(async () => {
+    prisma = {
+      laboratoryResult: {
+        findMany: jest.fn().mockResolvedValue([]),
+        findFirst: jest.fn().mockResolvedValue(null),
+      },
+      laboratoryResultItem: { findMany: jest.fn().mockResolvedValue([]) },
+    };
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        LaboratoryService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: AuditLogsService, useValue: { log: jest.fn().mockResolvedValue({}) } },
+        { provide: EventEmitter2, useValue: { emit: jest.fn() } },
+      ],
+    }).compile();
+    service = module.get<LaboratoryService>(LaboratoryService);
+  });
+
+  it('lists only published results, scoped to the caller', async () => {
+    await service.getDonorResults('donor-1');
+
+    const [{ where }] = prisma.laboratoryResult.findMany.mock.calls[0];
+    expect(where.donorId).toBe('donor-1');
+    expect(where.status).toBe(LaboratoryResultStatus.PUBLISHED);
+  });
+
+  it('reads a single result through a caller-scoped query, not an ownership check after the fact', async () => {
+    await expect(service.getDonorResult('donor-1', 'result-9')).rejects.toThrow(NotFoundException);
+
+    const [{ where }] = prisma.laboratoryResult.findFirst.mock.calls[0];
+    expect(where).toEqual({ id: 'result-9', donorId: 'donor-1' });
+  });
+
+  it("refuses the donor's own result while it is still unpublished", async () => {
+    prisma.laboratoryResult.findFirst.mockResolvedValue({
+      id: 'result-1',
+      donorId: 'donor-1',
+      status: LaboratoryResultStatus.ENTERED,
+    });
+
+    await expect(service.getDonorResult('donor-1', 'result-1')).rejects.toThrow(ForbiddenException);
+  });
+
+  it('returns the result once it is published', async () => {
+    prisma.laboratoryResult.findFirst.mockResolvedValue({
+      id: 'result-1',
+      donorId: 'donor-1',
+      status: LaboratoryResultStatus.PUBLISHED,
+    });
+
+    const result = await service.getDonorResult('donor-1', 'result-1');
+    expect(result.id).toBe('result-1');
+  });
+
+  it('scopes the parameter trend to published results as well', async () => {
+    await service.getParameterTrend('donor-1', 'param-hgb');
+
+    const [{ where }] = prisma.laboratoryResultItem.findMany.mock.calls[0];
+    expect(where.parameterId).toBe('param-hgb');
+    expect(where.result).toEqual({
+      donorId: 'donor-1',
+      status: LaboratoryResultStatus.PUBLISHED,
+    });
+  });
+});
+
+/**
+ * S0-8 regression tests.
+ *
+ * The test type the donor picked at booking was validated, then thrown away:
+ * the appointment row carried no reference to it, so staff had to re-pick it
+ * when entering the result and could silently record a different panel than the
+ * one that was booked. It is now persisted on the appointment and used as the
+ * default.
+ */
+describe('LaboratoryService.createResult test type resolution', () => {
+  let service: LaboratoryService;
+  let prisma: any;
+  let tx: any;
+
+  const buildService = async (appointment: Record<string, any>) => {
+    tx = {
+      laboratoryResult: { create: jest.fn().mockResolvedValue({ id: 'result-1' }) },
+      testParameter: { findUnique: jest.fn().mockResolvedValue(null) },
+      testReferenceRange: { findFirst: jest.fn().mockResolvedValue(null) },
+      laboratoryResultItem: { create: jest.fn().mockResolvedValue({}) },
+      laboratoryResultVersion: { create: jest.fn().mockResolvedValue({}) },
+      appointment: { update: jest.fn().mockResolvedValue({}) },
+      appointmentHistory: { create: jest.fn().mockResolvedValue({}) },
+    };
+    prisma = {
+      appointment: { findFirst: jest.fn().mockResolvedValue(appointment) },
+      testType: {
+        findUnique: jest.fn().mockImplementation(async ({ where }: any) => ({
+          id: where.id,
+          code: 'CBC',
+          isActive: true,
+        })),
+      },
+      $transaction: jest.fn().mockImplementation(async (cb: any) => cb(tx)),
+    };
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        LaboratoryService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: AuditLogsService, useValue: { log: jest.fn().mockResolvedValue({}) } },
+        { provide: EventEmitter2, useValue: { emit: jest.fn() } },
+      ],
+    }).compile();
+    service = module.get<LaboratoryService>(LaboratoryService);
+  };
+
+  const pending = (overrides: Record<string, any> = {}) =>
+    makeLabAppointment({ status: 'RESULT_PENDING', laboratoryResult: null, ...overrides });
+
+  it('falls back to the test type recorded on the appointment', async () => {
+    await buildService(pending({ testTypeId: 'tt-booked' }));
+
+    await service.createResult('lab-1', 'staff-1', 'apt-1', { items: [] });
+
+    expect(tx.laboratoryResult.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ testTypeId: 'tt-booked' }) }),
+    );
+  });
+
+  it('lets staff override it when they genuinely ran a different panel', async () => {
+    await buildService(pending({ testTypeId: 'tt-booked' }));
+
+    await service.createResult('lab-1', 'staff-1', 'apt-1', { items: [] }, 'tt-actually-run');
+
+    expect(tx.laboratoryResult.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ testTypeId: 'tt-actually-run' }) }),
+    );
+  });
+
+  it('refuses when neither the appointment nor the caller names a test type', async () => {
+    await buildService(pending({ testTypeId: null }));
+
+    await expect(
+      service.createResult('lab-1', 'staff-1', 'apt-1', { items: [] }),
+    ).rejects.toThrow(BadRequestException);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('records the result as ENTERED, the one state review can move on from', async () => {
+    await buildService(pending({ testTypeId: 'tt-booked' }));
+
+    await service.createResult('lab-1', 'staff-1', 'apt-1', { items: [] });
+
+    expect(tx.laboratoryResult.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ status: LaboratoryResultStatus.ENTERED }),
+      }),
+    );
   });
 });

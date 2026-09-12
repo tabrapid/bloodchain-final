@@ -77,6 +77,22 @@ organisations, today's bookable slots, the demo donor's eligibility, and each
 content surface. The three consoles are reported as warnings, since you may only
 have started one.
 
+There is a third command, for the safety rules rather than the happy path:
+
+```bash
+pnpm verify:safety   # does the server refuse what it should refuse?
+```
+
+It makes the calls a buggy client or an attacker would make — booking a
+donation for a donor who is still in their recovery window, checking one in,
+reading another donor's laboratory result or journey, listing another
+organisation's donations — and asserts the server refuses each one. Run it
+after changing eligibility, laboratory or emergency code.
+
+It is not read-only: it completes a real donation, which leaves the demo donor
+inside a fresh recovery window. **Run `pnpm demo:reset` after it** — otherwise
+`demo:check` will correctly report the demo donor as ineligible.
+
 ---
 
 ## 4. Accounts
@@ -380,6 +396,9 @@ after the API started — restart it.
 | **Realtime updates look stale** | The hospital tracking screen reconnects on its own; pressing Refresh forces a reload. Nothing in the demo depends on a socket staying up. |
 | **No slots on the date you picked** | Slots are seeded for five days from the day you last reset. Reset again, or pick a nearer date. |
 | **The donor cannot accept an emergency** | They are inside the 56-day recovery window — probably because you already ran Part 4. Reset, or use a different donor. |
+| **"This donor is in the post-donation recovery window until …" when booking or checking in** | Working as intended: the server refuses a donation for a donor who is not yet due, at booking and again at check-in. It happens to `donor@donor.local` once you have completed a donation in this session — `pnpm demo:reset` puts them back. `recent.donor@donor.local` is seeded inside the window deliberately. |
+| **`demo:check` says the demo donor is not eligible, right after `verify:safety` passed** | `verify:safety` completes a real donation, so it leaves the demo donor inside a fresh recovery window. Run `pnpm demo:reset`. |
+| **The reset email never arrives** | With no `SMTP_HOST` set, mail is logged instead of sent. The full message, including the link, is in the API log. |
 | **"You already have an appointment at this time" when booking** | Fixed: the seed used to book the demo donor at the exact moment of seeding, which collided with the hours a presenter picks from. Pull and `pnpm demo:reset`. |
 | **The API logs dozens of "property does not exist" errors, and seeded accounts cannot sign in** | The generated Prisma client is older than the schema, so the API will not compile and the seed cannot run — every other symptom is downstream of this. Run `pnpm db:generate`, or just `pnpm demo:reset`, which now does it first. `pnpm demo:check` reports it as the first line. |
 | **`demo:check` says accounts cannot sign in, right after a run that passed** | Sign-in allows 5 attempts per minute per IP and the check makes nine. It now says so explicitly instead of reporting "login refused". `pnpm demo:start` sets `AUTH_THROTTLE_LIMIT=100` for you; otherwise wait a minute. |
@@ -396,3 +415,17 @@ after the API started — restart it.
 - **The donor never completes their own donation.** Check-in, assessment,
   collection and completion are all staff actions, and the volume the donor sees
   is the one staff typed.
+- **The recovery window is enforced by the server**, at booking (against the
+  slot's time) and again at check-in (against now). `recent.donor@donor.local`
+  is seeded inside that window on purpose: trying to book a donation as that
+  account is a 409 with `DONOR_IN_RECOVERY_WINDOW`, and they are not alerted for
+  emergencies either. Use them to show a refusal; use `donor@donor.local` for
+  everything that should succeed.
+- **Password reset works locally without SMTP.** `POST /auth/forgot-password`
+  always answers the same way, and with no `SMTP_HOST` configured the message —
+  including the reset link — is written to the API log instead of being sent.
+  Copy the link from there.
+- **Emergency location history is pruned** once a journey is closed, after
+  `EMERGENCY_LOCATION_RETENTION_HOURS` (72 by default in development). That
+  default is a development convenience, not a retention decision for
+  production.

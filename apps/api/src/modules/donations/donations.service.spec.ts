@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { ConflictException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { DonationStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
@@ -117,12 +118,14 @@ describe('DonationsService.checkInDonation', () => {
   let service: DonationsService;
   let prisma: any;
   let tx: any;
+  let eligibility: { assertEligibleToDonateAt: jest.Mock };
 
   const appointment = {
     id: 'appt-1',
     organizationId: 'org-1',
     appointmentType: 'BLOOD_DONATION',
     status: 'PENDING',
+    donorId: 'donor-1',
     donor: {
       id: 'donor-1',
       firstName: 'Test',
@@ -156,17 +159,50 @@ describe('DonationsService.checkInDonation', () => {
       $transaction: jest.fn().mockImplementation(async (cb: any) => cb(tx)),
     };
 
+    eligibility = { assertEligibleToDonateAt: jest.fn().mockResolvedValue(undefined) };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         DonationsService,
         { provide: PrismaService, useValue: prisma },
         { provide: AuditLogsService, useValue: { log: jest.fn().mockResolvedValue({}) } },
         { provide: EventEmitter2, useValue: { emit: jest.fn() } },
-        { provide: DonationEligibilityService, useValue: {} },
+        { provide: DonationEligibilityService, useValue: eligibility },
       ],
     }).compile();
 
     service = module.get<DonationsService>(DonationsService);
+  });
+
+  // S0-2 regression tests.
+  //
+  // An appointment is a claim made at booking time; by the day of the donation
+  // the donor may have given blood elsewhere, or answered an emergency. The
+  // booking gate cannot see that, so check-in asks again -- against now, not
+  // against the slot.
+  it('re-checks eligibility at check-in, against the current moment', async () => {
+    const before = Date.now();
+
+    await service.checkInDonation('appt-1', 'org-1', 'staff-1', {} as any);
+
+    expect(eligibility.assertEligibleToDonateAt).toHaveBeenCalledTimes(1);
+    const [donorId, when] = eligibility.assertEligibleToDonateAt.mock.calls[0];
+    expect(donorId).toBe(appointment.donorId);
+    expect(when.getTime()).toBeGreaterThanOrEqual(before);
+    expect(when.getTime()).toBeLessThanOrEqual(Date.now());
+  });
+
+  it('refuses check-in without creating a donation when the donor is inside their recovery window', async () => {
+    eligibility.assertEligibleToDonateAt.mockRejectedValue(
+      new ConflictException({ code: 'DONOR_IN_RECOVERY_WINDOW' }),
+    );
+
+    await expect(
+      service.checkInDonation('appt-1', 'org-1', 'staff-1', {} as any),
+    ).rejects.toThrow(ConflictException);
+
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(tx.donation.create).not.toHaveBeenCalled();
   });
 
   it('retries the whole transaction on a donationReference collision and succeeds with a fresh reference', async () => {

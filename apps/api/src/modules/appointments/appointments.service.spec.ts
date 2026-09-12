@@ -4,6 +4,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { AppointmentStatus, AppointmentType, OrganizationStatus, Prisma, SlotStatus } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
+import { DonationEligibilityService } from '../donation-eligibility/donation-eligibility.service';
 import { APPOINTMENT_COMPLETED_EVENT } from '../gamification/events/gamification-event.handler';
 import { AppointmentsService } from './appointments.service';
 
@@ -37,6 +38,7 @@ describe('AppointmentsService', () => {
   let prisma: any;
   let tx: any;
   let eventEmitter: { emit: jest.Mock };
+  let eligibility: { assertEligibleToDonateAt: jest.Mock };
 
   beforeEach(async () => {
     tx = {
@@ -68,6 +70,7 @@ describe('AppointmentsService', () => {
     };
 
     eventEmitter = { emit: jest.fn() };
+    eligibility = { assertEligibleToDonateAt: jest.fn().mockResolvedValue(undefined) };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -75,6 +78,7 @@ describe('AppointmentsService', () => {
         { provide: PrismaService, useValue: prisma },
         { provide: AuditLogsService, useValue: { log: jest.fn().mockResolvedValue({}) } },
         { provide: EventEmitter2, useValue: eventEmitter },
+        { provide: DonationEligibilityService, useValue: eligibility },
       ],
     }).compile();
 
@@ -98,6 +102,61 @@ describe('AppointmentsService', () => {
       });
       expect(tx.appointment.create).toHaveBeenCalled();
       expect(result.data.id).toBe('apt-1');
+    });
+
+    // S0-1 regression tests.
+    //
+    // The recovery window used to be shown by the mobile app and never checked
+    // by the server, so any client that skipped the hint -- or any direct API
+    // call -- could book a donation the donor is not medically due for. The
+    // rule itself is unchanged; what changed is who enforces it.
+    it('asks the eligibility service about the slot time, not the moment of booking', async () => {
+      const slot = makeSlot();
+      prisma.user.findUnique.mockResolvedValue(makeDonor());
+      prisma.appointmentSlot.findUnique.mockResolvedValue(slot);
+      prisma.appointment.findFirst.mockResolvedValue(null);
+
+      await service.bookAppointment('donor-1', {
+        slotId: 'slot-1',
+        appointmentType: AppointmentType.BLOOD_DONATION,
+      });
+
+      expect(eligibility.assertEligibleToDonateAt).toHaveBeenCalledWith('donor-1', slot.startAt);
+    });
+
+    it('does not open a transaction when the donor is inside their recovery window', async () => {
+      prisma.user.findUnique.mockResolvedValue(makeDonor());
+      prisma.appointmentSlot.findUnique.mockResolvedValue(makeSlot());
+      prisma.appointment.findFirst.mockResolvedValue(null);
+      eligibility.assertEligibleToDonateAt.mockRejectedValue(
+        new ConflictException({ code: 'DONOR_IN_RECOVERY_WINDOW' }),
+      );
+
+      await expect(
+        service.bookAppointment('donor-1', {
+          slotId: 'slot-1',
+          appointmentType: AppointmentType.BLOOD_DONATION,
+        }),
+      ).rejects.toThrow(ConflictException);
+
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+      expect(tx.appointment.create).not.toHaveBeenCalled();
+    });
+
+    it('does not apply the donation recovery window to a blood test', async () => {
+      prisma.user.findUnique.mockResolvedValue(makeDonor());
+      prisma.appointmentSlot.findUnique.mockResolvedValue(
+        makeSlot({ appointmentType: AppointmentType.BLOOD_TEST }),
+      );
+      prisma.appointment.findFirst.mockResolvedValue(null);
+
+      await service.bookAppointment('donor-1', {
+        slotId: 'slot-1',
+        appointmentType: AppointmentType.BLOOD_TEST,
+      });
+
+      expect(eligibility.assertEligibleToDonateAt).not.toHaveBeenCalled();
+      expect(tx.appointment.create).toHaveBeenCalled();
     });
 
     it('rejects with a clean conflict when a concurrent booking already claimed the last seat', async () => {
@@ -410,6 +469,10 @@ describe('AppointmentsService reference numbers', () => {
         { provide: PrismaService, useValue: {} },
         { provide: AuditLogsService, useValue: { log: jest.fn() } },
         { provide: EventEmitter2, useValue: { emit: jest.fn() } },
+        {
+          provide: DonationEligibilityService,
+          useValue: { assertEligibleToDonateAt: jest.fn().mockResolvedValue(undefined) },
+        },
       ],
     }).compile();
     service = module.get(AppointmentsService);

@@ -9,6 +9,7 @@ import {
   Appointment,
   AppointmentStatus,
   AppointmentType,
+  LaboratoryResultStatus,
   Prisma,
   ResultFlag,
   RoleCode,
@@ -305,6 +306,10 @@ export class LaboratoryService {
               status: AppointmentStatus.PENDING,
               scheduledStart: slot.startAt,
               scheduledEnd: slot.endAt,
+              // Carry the donor's choice through to the laboratory. Previously
+              // it was validated here and then dropped, so staff had to
+              // re-select it at result entry.
+              testTypeId: testType.id,
               notes,
             },
           });
@@ -511,6 +516,11 @@ export class LaboratoryService {
     return this.db.appointment.findMany({
       where,
       include: {
+        // The booked test type, so the console can show what the donor chose
+        // and default the result form to it instead of asking again.
+        testType: {
+          select: { id: true, code: true, name: true, category: true },
+        },
         donor: {
           select: {
             id: true,
@@ -738,7 +748,7 @@ export class LaboratoryService {
         notes?: string;
       }>;
     },
-    testTypeId: string,
+    testTypeId?: string,
   ) {
     // Prisma silently omits an undefined filter field rather than matching
     // nothing, so a missing appointmentId here wouldn't 404 -- it would
@@ -772,14 +782,30 @@ export class LaboratoryService {
       throw new BadRequestException('Result already exists for this appointment.');
     }
 
+    // The test type now travels with the appointment, so staff do not have to
+    // re-pick what the donor already chose. An explicit value still wins --
+    // staff may legitimately have run a different panel -- but it cannot be
+    // omitted for an appointment that never recorded one (the generic
+    // POST /appointments path creates BLOOD_TEST appointments without a type).
+    const effectiveTestTypeId = testTypeId ?? appointment.testTypeId;
+    if (!effectiveTestTypeId) {
+      throw new BadRequestException(
+        'This appointment has no booked test type, so testTypeId must be supplied.',
+      );
+    }
+
+    // Validates existence and that it is active, exactly as the booking path
+    // does, so an explicit override cannot smuggle in an unknown type.
+    await this.getTestType(effectiveTestTypeId);
+
     const result = await this.db.$transaction(async (tx) => {
       const labResult = await tx.laboratoryResult.create({
         data: {
           appointmentId,
           donorId: appointment.donorId,
           laboratoryId: organizationId,
-          testTypeId,
-          status: 'ENTERED',
+          testTypeId: effectiveTestTypeId,
+          status: LaboratoryResultStatus.ENTERED,
           performedAt: new Date(),
           performedBy: userId,
         },
@@ -844,7 +870,7 @@ export class LaboratoryService {
         data: {
           resultId: labResult.id,
           version: 1,
-          status: 'ENTERED',
+          status: LaboratoryResultStatus.ENTERED,
           changedBy: userId,
         },
       });
@@ -908,7 +934,7 @@ export class LaboratoryService {
       throw new ForbiddenException('Access denied.');
     }
 
-    if (result.status !== 'ENTERED') {
+    if (result.status !== LaboratoryResultStatus.ENTERED) {
       throw new BadRequestException('Only entered results can be reviewed.');
     }
 
@@ -921,7 +947,7 @@ export class LaboratoryService {
       const newResult = await tx.laboratoryResult.update({
         where: { id: resultId },
         data: {
-          status: 'REVIEWED',
+          status: LaboratoryResultStatus.REVIEWED,
           reviewedAt: new Date(),
           reviewedBy: userId,
         },
@@ -931,7 +957,7 @@ export class LaboratoryService {
         data: {
           resultId,
           version: (currentVersion?.version || 0) + 1,
-          status: 'REVIEWED',
+          status: LaboratoryResultStatus.REVIEWED,
           changedBy: userId,
         },
       });
@@ -963,7 +989,7 @@ export class LaboratoryService {
       throw new ForbiddenException('Access denied.');
     }
 
-    if (result.status !== 'REVIEWED') {
+    if (result.status !== LaboratoryResultStatus.REVIEWED) {
       throw new BadRequestException('Only reviewed results can be published.');
     }
 
@@ -976,7 +1002,7 @@ export class LaboratoryService {
       const newResult = await tx.laboratoryResult.update({
         where: { id: resultId },
         data: {
-          status: 'PUBLISHED',
+          status: LaboratoryResultStatus.PUBLISHED,
           publishedAt: new Date(),
           publishedBy: userId,
         },
@@ -991,7 +1017,7 @@ export class LaboratoryService {
         data: {
           resultId,
           version: (currentVersion?.version || 0) + 1,
-          status: 'PUBLISHED',
+          status: LaboratoryResultStatus.PUBLISHED,
           changedBy: userId,
         },
       });
@@ -1018,7 +1044,7 @@ export class LaboratoryService {
   async getDonorResults(userId: string, filters?: { testTypeId?: string; startDate?: string; endDate?: string }) {
     const where: Prisma.LaboratoryResultWhereInput = {
       donorId: userId,
-      status: 'PUBLISHED',
+      status: LaboratoryResultStatus.PUBLISHED,
     };
 
     if (filters?.testTypeId) {
@@ -1058,8 +1084,11 @@ export class LaboratoryService {
   }
 
   async getDonorResult(userId: string, resultId: string) {
-    const result = await this.db.laboratoryResult.findUnique({
-      where: { id: resultId },
+    // Scoped to the caller in the query itself: a result belonging to another
+    // donor must be indistinguishable from one that does not exist, or the
+    // endpoint becomes an oracle that confirms result ids by probing them.
+    const result = await this.db.laboratoryResult.findFirst({
+      where: { id: resultId, donorId: userId },
       include: {
         testType: true,
         laboratory: {
@@ -1082,11 +1111,9 @@ export class LaboratoryService {
       throw new NotFoundException('Result not found.');
     }
 
-    if (result.donorId !== userId) {
-      throw new ForbiddenException('Access denied.');
-    }
-
-    if (result.status !== 'PUBLISHED') {
+    // The donor knows their own test exists -- they booked it -- so telling
+    // them it is not published yet reveals nothing they did not already know.
+    if (result.status !== LaboratoryResultStatus.PUBLISHED) {
       throw new ForbiddenException('Result is not yet published.');
     }
 
@@ -1247,7 +1274,7 @@ export class LaboratoryService {
         parameterId,
         result: {
           donorId: userId,
-          status: 'PUBLISHED',
+          status: LaboratoryResultStatus.PUBLISHED,
         },
       },
       include: {

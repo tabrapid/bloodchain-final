@@ -1,7 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { EmergencyMatchStatus, EmergencyStatus } from '@prisma/client';
+import { EmergencyMatchStatus, EmergencyResponseStatus, EmergencyStatus } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 
@@ -19,6 +20,20 @@ const OPEN_MATCH_STATUSES: EmergencyMatchStatus[] = [
   EmergencyMatchStatus.VIEWED,
 ];
 
+/**
+ * The statuses in which a journey is over.
+ *
+ * Listed positively rather than as "not the active ones" so that adding a new
+ * response status defaults to *keeping* its location data. Getting that
+ * backwards would silently start deleting the track of a journey still under
+ * way, which is the one thing this job must never do.
+ */
+const CLOSED_RESPONSE_STATUSES: EmergencyResponseStatus[] = [
+  EmergencyResponseStatus.COMPLETED,
+  EmergencyResponseStatus.CANCELLED,
+  EmergencyResponseStatus.FAILED,
+];
+
 @Injectable()
 export class EmergencyCronService {
   private readonly logger = new Logger(EmergencyCronService.name);
@@ -27,7 +42,12 @@ export class EmergencyCronService {
     private readonly db: PrismaService,
     private readonly eventEmitter: EventEmitter2,
     private readonly audit: AuditLogsService,
+    private readonly config: ConfigService,
   ) {}
+
+  private get locationRetentionHours(): number {
+    return this.config.get<number>('EMERGENCY_LOCATION_RETENTION_HOURS', 72);
+  }
 
   @Cron(CronExpression.EVERY_5_MINUTES)
   async runMaintenance(): Promise<void> {
@@ -41,6 +61,61 @@ export class EmergencyCronService {
         metadata: { requestsExpired: expired },
       });
     }
+
+    const locationsPruned = await this.pruneExpiredLocationHistory();
+
+    if (locationsPruned > 0) {
+      this.logger.log(`Emergency maintenance: pruned ${locationsPruned} expired location point(s).`);
+      await this.audit.log({
+        action: 'EMERGENCY_LOCATION_PRUNE_RUN',
+        entityType: 'EmergencyLocation',
+        metadata: { pointsDeleted: locationsPruned, retentionHours: this.locationRetentionHours },
+      });
+    }
+  }
+
+  /**
+   * Deletes the GPS track of journeys that have been over for longer than the
+   * configured retention window.
+   *
+   * A donor's movements are among the most sensitive things this system
+   * records, and they were kept forever: rows survived the response closing,
+   * so the database accumulated a movement history of identifiable people with
+   * nothing ever removing it.
+   *
+   * Two constraints shape this:
+   *
+   * - **An active journey is never touched.** Eligibility for deletion is
+   *   decided by the response's status being terminal, not by the age of the
+   *   point. A donor stuck in traffic for four hours still needs the hospital
+   *   to see where they are, however old the retention window.
+   * - **The window is configuration, not a product decision.** What the lawful
+   *   retention period is for location data on identifiable citizens is a legal
+   *   question this sprint does not answer. The default is a development
+   *   convenience; the variable exists so the answer, when it arrives, is a
+   *   config change.
+   *
+   * Measured from when the journey closed, not from when each point was
+   * recorded, so a single journey's track is deleted as one piece rather than
+   * eroding from the front while it is still readable.
+   */
+  async pruneExpiredLocationHistory(now: Date = new Date()): Promise<number> {
+    const cutoff = new Date(now.getTime() - this.locationRetentionHours * 60 * 60 * 1000);
+
+    const deleted = await this.db.emergencyLocation.deleteMany({
+      where: {
+        emergencyResponse: {
+          status: { in: CLOSED_RESPONSE_STATUSES },
+          // `updatedAt` is the reliable closure marker: a FAILED response may
+          // carry neither completedAt nor cancelledAt, and falling back to the
+          // point's own timestamp would prune a long journey's early history
+          // while it is still in progress.
+          updatedAt: { lt: cutoff },
+        },
+      },
+    });
+
+    return deleted.count;
   }
 
   /**

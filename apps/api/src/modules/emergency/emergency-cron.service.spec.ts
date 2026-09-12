@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { EmergencyMatchStatus, EmergencyStatus } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
@@ -22,6 +23,7 @@ describe('EmergencyCronService', () => {
 
     prisma = {
       emergencyRequest: { findMany: jest.fn().mockResolvedValue([]) },
+      emergencyLocation: { deleteMany: jest.fn().mockResolvedValue({ count: 0 }) },
       $transaction: jest.fn().mockImplementation(async (cb: any) => cb(tx)),
     };
 
@@ -33,6 +35,10 @@ describe('EmergencyCronService', () => {
         { provide: PrismaService, useValue: prisma },
         { provide: EventEmitter2, useValue: eventEmitter },
         { provide: AuditLogsService, useValue: { log: jest.fn().mockResolvedValue({}) } },
+        {
+          provide: ConfigService,
+          useValue: { get: jest.fn((_key: string, fallback?: unknown) => fallback) },
+        },
       ],
     }).compile();
 
@@ -111,6 +117,10 @@ describe('EmergencyCronService', () => {
           { provide: PrismaService, useValue: prisma },
           { provide: EventEmitter2, useValue: eventEmitter },
           { provide: AuditLogsService, useValue: audit },
+          {
+            provide: ConfigService,
+            useValue: { get: jest.fn((_key: string, fallback?: unknown) => fallback) },
+          },
         ],
       }).compile();
       const svc = module.get<EmergencyCronService>(EmergencyCronService);

@@ -27,6 +27,11 @@ import {
   XpTransactionType,
 } from '@prisma/client';
 import * as argon2 from 'argon2';
+// The same guard the demo scripts use, imported rather than reimplemented:
+// this file holds the TRUNCATE, so it is the one place that must not be able
+// to disagree with them about what counts as a safe target.
+// @ts-expect-error -- plain ESM module shared with scripts/, no declarations
+import { checkLocalDatabase } from '../../../scripts/demo-guard.mjs';
 
 const db = new PrismaClient();
 
@@ -78,9 +83,19 @@ const DONATION_COOLDOWN_DAYS = 56;
  * migration.
  */
 async function resetSeedData(): Promise<void> {
-  if (process.env.NODE_ENV === 'production') {
-    throw new Error('The seed refuses to run with NODE_ENV=production.');
-  }
+  // `pnpm demo:reset` checks this before calling the seed, but the seed is also
+  // reachable directly -- `pnpm prisma:seed`, `prisma db seed`, `prisma migrate
+  // reset` -- and those paths bypassed the wrapper entirely. The only check
+  // that ran here was NODE_ENV !== 'production', which passes for
+  // NODE_ENV=staging, for an unset NODE_ENV pointed at a remote host, and for
+  // any database name at all. Since the destructive statement lives in this
+  // function, the guard has to live here too.
+  const target = checkLocalDatabase({
+    url: process.env.DATABASE_URL,
+    nodeEnv: process.env.NODE_ENV,
+    allowDatabase: process.env.DEMO_ALLOW_DATABASE,
+  }) as { host: string; database: string };
+  console.log(`Seeding "${target.database}" on ${target.host} (all seed-owned tables will be emptied).`);
 
   const tables = await db.$queryRaw<{ tablename: string }[]>`
     SELECT tablename FROM pg_tables
@@ -551,6 +566,68 @@ async function main() {
     supportDonors.push(user);
   }
 
+  /**
+   * Donors who exist only to be the recorded source of seeded stock.
+   *
+   * The units on the shelf need recent collection dates to have any shelf life
+   * left, and a recent donation puts its donor inside the recovery window. When
+   * that donor was also in the emergency match pool, the pool was entirely
+   * ineligible: before eligibility was checked during matching those donors
+   * were alerted and then refused at Accept, and once it was checked the pool
+   * became empty and no SOS could be demonstrated at all.
+   *
+   * Separating the two roles fixes both. These accounts hold the inventory
+   * history; the supporting donors stay eligible so emergency matching has
+   * somebody to find. They are ordinary donor accounts -- nothing about them is
+   * special beyond who the stock is attributed to.
+   */
+  const inventorySourceSpecs = [
+    { email: 'stock.donor1@donor.local', firstName: 'Kamola', lastName: 'Nazarova',
+      bloodType: BloodType.A, rhFactor: RhFactor.POSITIVE },
+    { email: 'stock.donor2@donor.local', firstName: 'Ulugbek', lastName: 'Saidov',
+      bloodType: BloodType.B, rhFactor: RhFactor.NEGATIVE },
+    { email: 'stock.donor3@donor.local', firstName: 'Gulnora', lastName: 'Abdullaeva',
+      bloodType: BloodType.AB, rhFactor: RhFactor.POSITIVE },
+  ];
+
+  const inventorySourceDonors: { id: string }[] = [];
+  for (const spec of inventorySourceSpecs) {
+    const user = await db.user.upsert({
+      where: { email: spec.email },
+      update: {},
+      create: {
+        email: spec.email,
+        firstName: spec.firstName,
+        lastName: spec.lastName,
+        displayName: `${spec.firstName} ${spec.lastName.charAt(0)}.`,
+        passwordHash,
+        status: 'ACTIVE',
+        emailVerified: true,
+        donorProfile: {
+          create: {
+            bloodType: spec.bloodType,
+            rhFactor: spec.rhFactor,
+            donorStatus: 'ACTIVE',
+            verificationStatus: 'VERIFIED',
+            city: 'Jizzakh',
+          },
+        },
+      },
+    });
+    await db.organizationMembership.upsert({
+      where: {
+        userId_organizationId_roleId: {
+          userId: user.id,
+          organizationId: centerOrg.id,
+          roleId: donorRole.id,
+        },
+      },
+      update: {},
+      create: { userId: user.id, organizationId: centerOrg.id, roleId: donorRole.id, status: 'ACTIVE' },
+    });
+    inventorySourceDonors.push(user);
+  }
+
   // The demo donor gets a location too: without consent and coordinates the
   // hospital's live map has nothing to draw during an emergency response.
   await db.donorProfile.update({
@@ -851,12 +928,12 @@ async function main() {
       const seedDonation = await db.donation.create({
         data: {
           donationReference: `SEED-DONATION-${new Date().getFullYear()}-${String(index + 1).padStart(6, '0')}`,
-          // The stock on the shelf came from the supporting donors, not the
-          // demo account. Ten donations dated 1-12 days ago put the demo donor
-          // inside the recovery window, so the account could not book or answer
-          // an emergency -- while the units themselves need recent dates to
-          // have any shelf life left.
-          donorId: supportDonors[index % supportDonors.length]!.id,
+          // Attributed to the inventory-source donors, not to the demo account
+          // and not to the emergency match pool. Ten donations dated 1-12 days
+          // ago put whoever owns them inside the recovery window: on the demo
+          // account that blocked booking, and on the match pool it left
+          // emergency matching with no eligible donor to find.
+          donorId: inventorySourceDonors[index % inventorySourceDonors.length]!.id,
           organizationId: centerOrg.id,
           donationType: DonationType.WHOLE_BLOOD,
           status: DonationStatus.COMPLETED,
@@ -1942,7 +2019,11 @@ async function main() {
   console.log('  lab.admin@donor.local / DevelopmentOnly!123 (LAB_ADMIN)');
   console.log('=== SECOND DONOR (inside recovery window) ===');
   console.log('  recent.donor@donor.local / DevelopmentOnly!123 (A-, donated 12 days ago, not yet eligible)');
-  console.log('=== SUPPORTING DONORS (emergency match pool) ===');
+  console.log('=== INVENTORY SOURCE DONORS (recorded source of seeded stock) ===');
+  for (const spec of inventorySourceSpecs) {
+    console.log(`  ${spec.email} / DevelopmentOnly!123 (${spec.bloodType}${spec.rhFactor === 'POSITIVE' ? '+' : '-'}, inside recovery window)`);
+  }
+  console.log('=== SUPPORTING DONORS (emergency match pool, all eligible) ===');
 
   for (const spec of supportDonorSpecs) {
     console.log(`  ${spec.email} / DevelopmentOnly!123 (${spec.bloodType}${spec.rhFactor === 'POSITIVE' ? '+' : '-'})`);

@@ -12,6 +12,8 @@ import { LoginDto } from './dto/login.dto';
 import { RefreshDto } from './dto/refresh.dto';
 import { RegisterDto } from './dto/register.dto';
 import { RegisterOrganizationDto } from './dto/register-organization.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 import { ResendVerificationDto } from './dto/resend-verification.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
 
@@ -99,6 +101,37 @@ export class AuthController {
   @ApiResponse({ status: 403, description: 'Account suspended or deactivated' })
   login(@Body() dto: LoginDto, @Req() req: Request) {
     return this.auth.login(dto.email, dto.password, this.getIp(req));
+  }
+
+  /**
+   * Account recovery had no path at all: a donor who forgot their password was
+   * locked out permanently, and the only workaround available to staff was to
+   * share credentials -- which destroys the audit trail this system depends on.
+   *
+   * Throttled harder than login. A reset request sends mail to a third party,
+   * so the abuse here is using the endpoint to flood someone's inbox or to
+   * enumerate which addresses are registered. The response is identical either
+   * way; the limit stops the volume.
+   */
+  @Post('forgot-password')
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 3, ttl: 900000 } })
+  @ApiOperation({ summary: 'Request a password reset link' })
+  @ApiResponse({ status: 200, description: 'If the account exists, a reset link was sent' })
+  forgotPassword(@Body() dto: ForgotPasswordDto, @Req() req: Request) {
+    return this.auth.requestPasswordReset(dto.email, this.getIp(req));
+  }
+
+  @Post('reset-password')
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 5, ttl: 900000 } })
+  @ApiOperation({ summary: 'Set a new password using a reset token' })
+  @ApiResponse({ status: 200, description: 'Password reset; all sessions revoked' })
+  @ApiResponse({ status: 400, description: 'Invalid, used or expired token' })
+  resetPassword(@Body() dto: ResetPasswordDto, @Req() req: Request) {
+    return this.auth.resetPassword(dto.token, dto.newPassword, this.getIp(req));
   }
 
   @Post('refresh')

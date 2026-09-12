@@ -96,6 +96,40 @@ export class EmailService implements OnModuleInit {
       </div>`;
     await this.send({ to, subject, html, text });
   }
+
+  async sendPasswordResetEmail(
+    to: string,
+    firstName: string,
+    resetUrl: string,
+    deepLink: string,
+    ttlDescription: string,
+  ): Promise<void> {
+    const subject = 'Reset your DONOR password';
+    const text =
+      `Hi ${firstName},\n\nSomeone asked to reset the password for your DONOR account.\n` +
+      `If it was you, use this link:\n${resetUrl}\n\n` +
+      `Or open it directly in the app: ${deepLink}\n\n` +
+      `This link can be used once and expires in ${ttlDescription}.\n` +
+      `If it was not you, ignore this email -- your password has not changed. ` +
+      `Resetting it will also sign you out everywhere.`;
+    const html = `
+      <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; color: #1f2933;">
+        <h2>Reset your password, ${escapeHtml(firstName)}.</h2>
+        <p>Someone asked to reset the password for your DONOR account.</p>
+        <p>
+          <a href="${resetUrl}" style="display:inline-block;padding:12px 24px;background:#DC2626;color:#fff;border-radius:8px;text-decoration:none;">
+            Reset password
+          </a>
+        </p>
+        <p>On your phone, you can also open the app directly: <a href="${deepLink}">${deepLink}</a></p>
+        <p style="color:#888;font-size:12px;">
+          This link can be used once and expires in ${escapeHtml(ttlDescription)}.
+          If it was not you, you can ignore this email &mdash; your password has not changed.
+          Resetting your password also signs you out on every device.
+        </p>
+      </div>`;
+    await this.send({ to, subject, html, text });
+  }
 }
 
 function escapeHtml(value: string): string {

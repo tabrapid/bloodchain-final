@@ -10,7 +10,7 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { OrganizationStatus, OrganizationType, RoleCode } from '@prisma/client';
 import * as argon2 from 'argon2';
-import { createHmac, randomBytes } from 'node:crypto';
+import { createHash, createHmac, randomBytes } from 'node:crypto';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { PrismaService } from '../../database/prisma.service';
 import { EmailService } from '../email/email.service';
@@ -22,6 +22,18 @@ import { PlatformSettingsService } from '../platform-settings/platform-settings.
 export interface TokenPair {
   accessToken: string;
   refreshToken: string;
+}
+
+/**
+ * The stored form of a reset token.
+ *
+ * SHA-256 rather than a password hash: the input is 32 bytes of CSPRNG output,
+ * so there is nothing to brute-force and no salt to add -- and the lookup has
+ * to be a single indexed equality read, which a deliberately slow hash cannot
+ * give. Argon2 is for low-entropy secrets chosen by people.
+ */
+function hashResetToken(token: string): string {
+  return createHash('sha256').update(token).digest('hex');
 }
 
 @Injectable()
@@ -699,6 +711,160 @@ export class AuthService {
     });
 
     return { data: { success: true } };
+  }
+
+  /**
+   * Starts account recovery, and says nothing about whether the account exists.
+   *
+   * The response is identical for a registered address, an unregistered one and
+   * a suspended account. Anything else turns this endpoint into a way to test
+   * whether a given person is a donor here -- which, for a blood service, is
+   * medical information about them.
+   */
+  async requestPasswordReset(email: string, ipAddress?: string) {
+    const normalisedEmail = email.trim().toLowerCase();
+    const user = await this.db.user.findUnique({ where: { email: normalisedEmail } });
+
+    // Log the attempt whether or not it matched, so a burst against many
+    // addresses is visible in the audit trail rather than only the successes.
+    await this.audit.log({
+      actorId: user?.id,
+      action: 'PASSWORD_RESET_REQUESTED',
+      entityType: 'User',
+      entityId: user?.id,
+      metadata: { matched: Boolean(user), email: normalisedEmail },
+      ipAddress,
+    });
+
+    if (user && user.status === 'ACTIVE') {
+      const existing = await this.db.passwordResetToken.findUnique({ where: { userId: user.id } });
+      // Per-account cooldown on top of the per-IP throttle. The throttle alone
+      // does not stop someone cycling addresses to flood one person's inbox.
+      const cooldownMs = this.config.get<number>('PASSWORD_RESET_COOLDOWN_SECONDS', 60) * 1000;
+      const withinCooldown =
+        existing !== null &&
+        existing.usedAt === null &&
+        existing.createdAt.getTime() > Date.now() - cooldownMs;
+
+      if (!withinCooldown) {
+        const rawToken = randomBytes(32).toString('hex');
+        const ttlMinutes = this.config.get<number>('PASSWORD_RESET_TTL_MINUTES', 60);
+        const expiresAt = new Date(Date.now() + ttlMinutes * 60 * 1000);
+
+        await this.db.passwordResetToken.upsert({
+          where: { userId: user.id },
+          create: { userId: user.id, tokenHash: hashResetToken(rawToken), expiresAt, requestedIp: ipAddress },
+          update: { tokenHash: hashResetToken(rawToken), expiresAt, usedAt: null, requestedIp: ipAddress },
+        });
+
+        const { resetUrl, deepLink } = this.buildPasswordResetLinks(rawToken);
+        const ttlDescription = `${ttlMinutes} minutes`;
+        try {
+          await this.email.sendPasswordResetEmail(
+            user.email,
+            user.firstName,
+            resetUrl,
+            deepLink,
+            ttlDescription,
+          );
+        } catch (error) {
+          // A mail failure must not tell the caller the address was real.
+          this.logger.error({ userId: user.id, err: String(error) }, 'password reset email failed');
+        }
+      }
+    }
+
+    return {
+      data: {
+        success: true,
+        message: 'If an account exists for that address, a password reset link has been sent.',
+      },
+    };
+  }
+
+  /**
+   * Completes account recovery.
+   *
+   * Every session is revoked on success, not just the one in use. A reset is
+   * often the response to a suspected compromise, so leaving other refresh
+   * tokens alive would leave the intruder signed in behind the new password.
+   */
+  async resetPassword(token: string, newPassword: string, ipAddress?: string) {
+    const record = await this.db.passwordResetToken.findUnique({
+      where: { tokenHash: hashResetToken(token) },
+      include: { user: true },
+    });
+
+    // One message for every failure mode -- unknown, expired, already used --
+    // so a caller cannot probe which tokens ever existed.
+    const invalid = new BadRequestException('This password reset link is invalid or has expired.');
+
+    if (!record || record.usedAt !== null || record.expiresAt.getTime() <= Date.now()) {
+      await this.audit.log({
+        actorId: record?.userId,
+        action: 'PASSWORD_RESET_FAILED',
+        entityType: 'User',
+        entityId: record?.userId,
+        metadata: {
+          reason: !record ? 'unknown_token' : record.usedAt ? 'already_used' : 'expired',
+        },
+        ipAddress,
+      });
+      throw invalid;
+    }
+
+    if (record.user.status !== 'ACTIVE') {
+      await this.audit.log({
+        actorId: record.userId,
+        action: 'PASSWORD_RESET_FAILED',
+        entityType: 'User',
+        entityId: record.userId,
+        metadata: { reason: 'account_not_active' },
+        ipAddress,
+      });
+      throw invalid;
+    }
+
+    const passwordHash = await argon2.hash(newPassword);
+
+    // One transaction: the token must be spent in the same commit that changes
+    // the password, or a retry could reuse it.
+    await this.db.$transaction([
+      this.db.user.update({ where: { id: record.userId }, data: { passwordHash } }),
+      this.db.passwordResetToken.update({
+        where: { id: record.id },
+        data: { usedAt: new Date() },
+      }),
+      this.db.refreshToken.updateMany({
+        where: { userId: record.userId, revokedAt: null },
+        data: { revokedAt: new Date() },
+      }),
+    ]);
+
+    await this.audit.log({
+      actorId: record.userId,
+      action: 'PASSWORD_RESET_COMPLETED',
+      entityType: 'User',
+      entityId: record.userId,
+      metadata: { sessionsRevoked: true },
+      ipAddress,
+    });
+
+    return {
+      data: {
+        success: true,
+        message: 'Your password has been reset. Please sign in with your new password.',
+      },
+    };
+  }
+
+  private buildPasswordResetLinks(token: string): { resetUrl: string; deepLink: string } {
+    const webUrl = this.config.get<string>('WEB_URL', 'http://localhost:3000').split(',')[0]!.trim();
+    const deepLinkBase = this.config.get<string>('MOBILE_DEEP_LINK', 'donor://');
+    return {
+      resetUrl: `${webUrl}/reset-password?token=${token}`,
+      deepLink: `${deepLinkBase}reset-password?token=${token}`,
+    };
   }
 
   private async createEmailVerificationToken(userId: string): Promise<string> {

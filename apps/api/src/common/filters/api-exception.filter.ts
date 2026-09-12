@@ -46,15 +46,22 @@ export class ApiExceptionFilter implements ExceptionFilter {
 
     let message: string | string[] = 'An unexpected error occurred.';
     let details: unknown;
+    let domainCode: string | undefined;
 
     if (exception instanceof HttpException) {
       const body = exception.getResponse();
       if (typeof body === 'string') {
         message = body;
       } else {
-        const typed = body as { message?: string | string[]; details?: unknown };
+        const typed = body as { message?: string | string[]; details?: unknown; code?: string };
         message = typed.message ?? message;
         details = typed.details;
+        // An explicit code from the thrower wins over classification by status.
+        // Several distinct refusals share one status -- a donation booking can
+        // be refused because the slot is taken or because the donor is inside
+        // their recovery window, and both are 409 -- so a client that needs to
+        // tell them apart otherwise has to match on prose.
+        domainCode = typed.code;
       }
     }
 
@@ -62,7 +69,7 @@ export class ApiExceptionFilter implements ExceptionFilter {
 
     const body: ExceptionBody = {
       statusCode: status,
-      code: classifyErrorCode(status),
+      code: domainCode ?? classifyErrorCode(status),
       message: finalMessage,
     };
 

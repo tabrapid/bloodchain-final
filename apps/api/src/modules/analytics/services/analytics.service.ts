@@ -1,6 +1,9 @@
 import { Injectable, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../../database/prisma.service';
-import { ShipmentStatus } from '@prisma/client';
+import {
+  LaboratoryResultStatus,
+  ShipmentStatus,
+} from '@prisma/client';
 
 export enum DateRangeType {
   TODAY = 'TODAY',
@@ -840,8 +843,26 @@ export class AnalyticsService {
   private async getLaboratorySummary(organizationId: string, startDate: Date, endDate: Date) {
     const [total, pending, completed] = await Promise.all([
       this.prisma.laboratoryResult.count({ where: { laboratoryId: organizationId, createdAt: { gte: startDate, lte: endDate } } }),
-      this.prisma.laboratoryResult.count({ where: { laboratoryId: organizationId, status: { in: ['PENDING', 'PROCESSING'] }, createdAt: { gte: startDate, lte: endDate } } }),
-      this.prisma.laboratoryResult.count({ where: { laboratoryId: organizationId, status: 'PUBLISHED', createdAt: { gte: startDate, lte: endDate } } }),
+      // "Pending" means entered but not yet published -- i.e. awaiting review or
+      // publication. This counted ['PENDING', 'PROCESSING'], and neither value
+      // is ever written: a result is created as ENTERED, and PROCESSING is not
+      // a status this system has. The figure was therefore always zero, which
+      // typing the column is what exposed. PENDING stays in the list because it
+      // remains the column default, so a row could still carry it.
+      this.prisma.laboratoryResult.count({
+        where: {
+          laboratoryId: organizationId,
+          status: {
+            in: [
+              LaboratoryResultStatus.PENDING,
+              LaboratoryResultStatus.ENTERED,
+              LaboratoryResultStatus.REVIEWED,
+            ],
+          },
+          createdAt: { gte: startDate, lte: endDate },
+        },
+      }),
+      this.prisma.laboratoryResult.count({ where: { laboratoryId: organizationId, status: LaboratoryResultStatus.PUBLISHED, createdAt: { gte: startDate, lte: endDate } } }),
     ]);
 
     return { totalTests: total, pendingTests: pending, completedTests: completed, avgProcessingTimeHours: null };

@@ -325,8 +325,23 @@ async function donationFlow() {
   step('the reference is labelled as a donation', String(booked.body.referenceNumber).startsWith('DON-'));
 
   const staff = await login('jizzakh.staff@donor.local');
-  const todays = list((await call('GET', `/organizations/${target.id}/donations/today-appointments`, staff)).body);
-  step("booking reaches that hospital's console", todays.some((a) => a.id === appointmentId));
+  // The console's queue is per-day: `today-appointments` is the right list only
+  // when the free slot the donor took is today. Late in the day every remaining
+  // slot is tomorrow's, so the date-independent check-in lookup -- the same call
+  // the console makes when staff open a booking -- is what proves it arrived.
+  const bookedDay = String(slot.startAt).slice(0, 10);
+  const isToday = bookedDay === new Date().toISOString().slice(0, 10);
+  if (isToday) {
+    const todays = list((await call('GET', `/organizations/${target.id}/donations/today-appointments`, staff)).body);
+    step("booking reaches that hospital's console", todays.some((a) => a.id === appointmentId), `today (${bookedDay})`);
+  } else {
+    const details = await call('GET', `/organizations/${target.id}/donations/check-in/${appointmentId}`, staff);
+    step(
+      "booking reaches that hospital's console",
+      details.status === 200 && details.body?.appointment?.id === appointmentId,
+      `scheduled ${bookedDay}, opened from the check-in queue`,
+    );
+  }
 
   const checkedIn = await call('POST', `/organizations/${target.id}/donations/check-in/${appointmentId}`, staff, {});
   if (!step('staff check the donor in', checkedIn.status === 201, checkedIn.raw?.message)) return;

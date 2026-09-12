@@ -98,10 +98,16 @@ export class CreateLaboratoryResultDto {
   @IsNotEmpty()
   appointmentId!: string;
 
-  @ApiProperty()
+  /**
+   * Optional now that the appointment carries the booked test type. Supplying
+   * it overrides that -- staff may have run a different panel -- but omitting
+   * it is the normal case and no longer means re-picking the donor's choice.
+   */
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsString()
   @IsNotEmpty()
-  testTypeId!: string;
+  testTypeId?: string;
 
   @ApiProperty({ type: [LaboratoryResultItemDto] })
   @IsArray()

@@ -465,12 +465,28 @@ describe('EmergencyService.activateEmergency', () => {
   let prisma: any;
   let tx: any;
   let eventEmitter: { emit: jest.Mock };
+  // Matching now asks the shared service which donors are still inside a
+  // recovery window, so the mock answers with real Map/predicate semantics:
+  // tests that care put dates in `nextEligible`, the rest leave it empty.
+  let nextEligible: Map<string, Date>;
+  let donationEligibility: {
+    getNextEligibleDonationDates: jest.Mock;
+    isEligibleAt: jest.Mock;
+  };
 
   beforeEach(async () => {
     tx = {
       emergencyRequest: { update: jest.fn().mockResolvedValue({ id: 'req-1' }) },
       user: { findMany: jest.fn().mockResolvedValue([]) },
       emergencyMatch: { create: jest.fn().mockResolvedValue({}) },
+    };
+
+    nextEligible = new Map<string, Date>();
+    donationEligibility = {
+      getNextEligibleDonationDates: jest.fn().mockImplementation(async () => nextEligible),
+      isEligibleAt: jest.fn(
+        (date: Date | null | undefined, when: Date) => !date || date.getTime() <= when.getTime(),
+      ),
     };
 
     prisma = {
@@ -500,7 +516,7 @@ describe('EmergencyService.activateEmergency', () => {
         { provide: AuditLogsService, useValue: { log: jest.fn().mockResolvedValue({}) } },
         { provide: EventEmitter2, useValue: eventEmitter },
         { provide: EmergencyGateway, useValue: {} },
-        { provide: DonationEligibilityService, useValue: {} },
+        { provide: DonationEligibilityService, useValue: donationEligibility },
         { provide: PlatformSettingsService, useValue: { isEnabled: jest.fn().mockResolvedValue(true) } },
       ],
     }).compile();
@@ -547,6 +563,58 @@ describe('EmergencyService.activateEmergency', () => {
 
     const matchedOrder = tx.emergencyMatch.create.mock.calls.map((call: any) => call[0].data.donorId);
     expect(matchedOrder).toEqual(['near-donor', 'far-donor', 'no-location-donor']);
+  });
+
+  // S0-3 regression tests.
+  //
+  // The cooldown used to be checked only when a donor tapped Accept, so an
+  // ineligible donor was alerted for an emergency they could never answer --
+  // noise for them, a false hope for the hospital. The predicate now runs
+  // during matching, and it must not disturb the ranking or the other filters.
+  it('does not alert a donor who is still inside their recovery window', async () => {
+    const inRecovery = makeDonor({
+      id: 'recovering-donor',
+      donorProfile: { bloodType: 'O', rhFactor: 'NEGATIVE', consentLocation: true, latitude: '40.72', longitude: '-74.01' },
+    });
+    const eligible = makeDonor({
+      id: 'eligible-donor',
+      donorProfile: { bloodType: 'O', rhFactor: 'NEGATIVE', consentLocation: true, latitude: '41.5', longitude: '-73.5' },
+    });
+    tx.user.findMany.mockResolvedValue([inRecovery, eligible]);
+    nextEligible.set('recovering-donor', new Date(Date.now() + 30 * 24 * 60 * 60 * 1000));
+
+    await service.activateEmergency('org-1', 'staff-1', 'req-1');
+
+    const matched = tx.emergencyMatch.create.mock.calls.map((call: any) => call[0].data.donorId);
+    expect(matched).toEqual(['eligible-donor']);
+    // Asked once for the whole candidate set, not once per donor.
+    expect(donationEligibility.getNextEligibleDonationDates).toHaveBeenCalledTimes(1);
+  });
+
+  it('alerts a donor whose recovery window has already closed', async () => {
+    tx.user.findMany.mockResolvedValue([
+      makeDonor({ id: 'past-window-donor', donorProfile: { bloodType: 'O', rhFactor: 'NEGATIVE', consentLocation: true, latitude: '40.72', longitude: '-74.01' } }),
+    ]);
+    nextEligible.set('past-window-donor', new Date(Date.now() - 24 * 60 * 60 * 1000));
+
+    await service.activateEmergency('org-1', 'staff-1', 'req-1');
+
+    const matched = tx.emergencyMatch.create.mock.calls.map((call: any) => call[0].data.donorId);
+    expect(matched).toEqual(['past-window-donor']);
+  });
+
+  it('keeps ranking nearest-first among donors the cooldown leaves in the pool', async () => {
+    tx.user.findMany.mockResolvedValue([
+      makeDonor({ id: 'far-donor', donorProfile: { bloodType: 'O', rhFactor: 'NEGATIVE', consentLocation: true, latitude: '41.5', longitude: '-73.5' } }),
+      makeDonor({ id: 'nearest-but-recovering', donorProfile: { bloodType: 'O', rhFactor: 'NEGATIVE', consentLocation: true, latitude: '40.7129', longitude: '-74.0061' } }),
+      makeDonor({ id: 'near-donor', donorProfile: { bloodType: 'O', rhFactor: 'NEGATIVE', consentLocation: true, latitude: '40.72', longitude: '-74.01' } }),
+    ]);
+    nextEligible.set('nearest-but-recovering', new Date(Date.now() + 7 * 24 * 60 * 60 * 1000));
+
+    await service.activateEmergency('org-1', 'staff-1', 'req-1');
+
+    const matched = tx.emergencyMatch.create.mock.calls.map((call: any) => call[0].data.donorId);
+    expect(matched).toEqual(['near-donor', 'far-donor']);
   });
 
   it('leaves distanceKm null for every donor when the emergency itself has no location', async () => {

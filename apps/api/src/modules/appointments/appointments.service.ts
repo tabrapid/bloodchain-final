@@ -13,6 +13,7 @@ import { CreateAppointmentDto, CancelAppointmentDto, RescheduleAppointmentDto, G
 import { APPOINTMENT_COMPLETED_EVENT } from '../gamification/events/gamification-event.handler';
 import { assertOrganizationActive } from '../../common/utils/organization-status.util';
 import { withUniqueRetry } from '../../common/utils/unique-retry.util';
+import { DonationEligibilityService } from '../donation-eligibility/donation-eligibility.service';
 
 const REFERENCE_PREFIX: Record<AppointmentType, string> = {
   [AppointmentType.BLOOD_DONATION]: 'DON',
@@ -26,6 +27,7 @@ export class AppointmentsService {
     private readonly db: PrismaService,
     private readonly audit: AuditLogsService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly donationEligibility: DonationEligibilityService,
   ) {}
 
   /**
@@ -90,6 +92,22 @@ export class AppointmentsService {
 
     if (slot.appointmentType !== dto.appointmentType) {
       throw new BadRequestException('Appointment type does not match the slot.');
+    }
+
+    // The recovery window was enforced in exactly one place -- accepting an
+    // emergency -- while the ordinary booking path checked nothing. The next
+    // eligible date was computed and shown to donors, and then not applied, so
+    // a donor who gave blood yesterday could book and complete another
+    // donation today. The rule itself is unchanged: this is the existing
+    // service, asked about the right moment.
+    //
+    // Asked about the slot's start, not now: a donor three days from the end of
+    // their window may legitimately book a slot next week, and refusing that
+    // would be a new restriction rather than enforcement of the existing one.
+    // Only blood donation is gated -- a laboratory test or a consultation is
+    // not a donation and carries no recovery window.
+    if (dto.appointmentType === AppointmentType.BLOOD_DONATION) {
+      await this.donationEligibility.assertEligibleToDonateAt(donorId, slot.startAt);
     }
 
     const conflictingAppointment = await this.db.appointment.findFirst({
@@ -449,6 +467,14 @@ export class AppointmentsService {
 
     if (newSlot.startAt < new Date()) {
       throw new BadRequestException('Cannot reschedule to a slot in the past.');
+    }
+
+    // Rescheduling moves the date the donation would happen, so the window has
+    // to be re-checked against the new slot -- otherwise a donation booked
+    // legitimately could be moved into the donor's recovery window and the
+    // check at booking would have been pointless.
+    if (appointment.appointmentType === AppointmentType.BLOOD_DONATION) {
+      await this.donationEligibility.assertEligibleToDonateAt(donorId, newSlot.startAt);
     }
 
     const conflictingAppointment = await this.db.appointment.findFirst({

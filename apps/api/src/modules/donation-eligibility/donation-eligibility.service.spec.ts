@@ -1,111 +1,176 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
+import { ConflictException } from '@nestjs/common';
 import { DonationStatus } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import { DonationEligibilityService } from './donation-eligibility.service';
 
+/**
+ * The recovery window used to be computed and displayed but enforced in only
+ * one place -- accepting an emergency. Booking and check-in applied nothing, so
+ * a donor who gave blood yesterday could book and complete another donation
+ * today. These tests pin the rule itself; the call sites are covered by the
+ * live integration run.
+ */
 describe('DonationEligibilityService', () => {
   let service: DonationEligibilityService;
-  let prisma: { donation: { findFirst: jest.Mock } };
-  let config: { get: jest.Mock };
+  let prisma: any;
+
+  const COOLDOWN_DAYS = 56;
 
   beforeEach(async () => {
-    prisma = { donation: { findFirst: jest.fn().mockResolvedValue(null) } };
-    config = { get: jest.fn().mockReturnValue(56) };
-
+    prisma = { donation: { findFirst: jest.fn(), findMany: jest.fn() } };
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         DonationEligibilityService,
         { provide: PrismaService, useValue: prisma },
-        { provide: ConfigService, useValue: config },
+        {
+          provide: ConfigService,
+          useValue: { get: jest.fn((_key: string, fallback: number) => fallback) },
+        },
       ],
     }).compile();
-
-    service = module.get<DonationEligibilityService>(DonationEligibilityService);
-  });
-
-  describe('computeDefaultNextEligibleDate', () => {
-    it('adds the configured cooldown in days to the given date', () => {
-      const from = new Date('2026-01-01T00:00:00.000Z');
-
-      const result = service.computeDefaultNextEligibleDate(from);
-
-      expect(result.toISOString()).toBe('2026-02-26T00:00:00.000Z'); // +56 days
-    });
-
-    it('reads the cooldown from DONATION_COOLDOWN_DAYS with a 56-day default', () => {
-      service.computeDefaultNextEligibleDate(new Date());
-
-      expect(config.get).toHaveBeenCalledWith('DONATION_COOLDOWN_DAYS', 56);
-    });
-
-    it('respects a configured cooldown other than the default', () => {
-      config.get.mockReturnValue(28);
-      const from = new Date('2026-01-01T00:00:00.000Z');
-
-      const result = service.computeDefaultNextEligibleDate(from);
-
-      expect(result.toISOString()).toBe('2026-01-29T00:00:00.000Z'); // +28 days
-    });
+    service = module.get(DonationEligibilityService);
   });
 
   describe('getNextEligibleDonationDate', () => {
-    it('returns null when the donor has no completed donation', async () => {
+    it('returns null when the donor has never completed a donation', async () => {
       prisma.donation.findFirst.mockResolvedValue(null);
+      expect(await service.getNextEligibleDonationDate('donor-1')).toBeNull();
+    });
 
-      const result = await service.getNextEligibleDonationDate('donor-1');
-
-      expect(result).toBeNull();
-      expect(prisma.donation.findFirst).toHaveBeenCalledWith({
-        where: { donorId: 'donor-1', status: DonationStatus.COMPLETED },
-        orderBy: { completedAt: 'desc' },
-        select: { completedAt: true, nextDonationDate: true },
+    it('prefers the explicit staff-entered next date', async () => {
+      const staffDate = new Date('2026-12-01T00:00:00Z');
+      prisma.donation.findFirst.mockResolvedValue({
+        completedAt: new Date('2026-09-01T00:00:00Z'),
+        nextDonationDate: staffDate,
       });
+      expect(await service.getNextEligibleDonationDate('donor-1')).toEqual(staffDate);
     });
 
-    it('falls back to the computed default when no explicit nextDonationDate is stored', async () => {
-      const completedAt = new Date('2026-01-01T00:00:00.000Z');
-      prisma.donation.findFirst.mockResolvedValue({ completedAt, nextDonationDate: null });
-
-      const result = await service.getNextEligibleDonationDate('donor-1');
-
-      expect(result?.toISOString()).toBe('2026-02-26T00:00:00.000Z');
+    it('falls back to the configured cooldown from the completion date', async () => {
+      prisma.donation.findFirst.mockResolvedValue({
+        completedAt: new Date('2026-09-01T00:00:00Z'),
+        nextDonationDate: null,
+      });
+      const expected = new Date('2026-09-01T00:00:00Z');
+      expected.setDate(expected.getDate() + COOLDOWN_DAYS);
+      expect(await service.getNextEligibleDonationDate('donor-1')).toEqual(expected);
     });
 
-    it('prefers an explicit staff-entered nextDonationDate over the computed default', async () => {
-      const completedAt = new Date('2026-01-01T00:00:00.000Z');
-      const nextDonationDate = new Date('2026-06-01T00:00:00.000Z');
-      prisma.donation.findFirst.mockResolvedValue({ completedAt, nextDonationDate });
-
-      const result = await service.getNextEligibleDonationDate('donor-1');
-
-      expect(result).toBe(nextDonationDate);
+    /**
+     * Postgres sorts NULLs first on DESC, so a COMPLETED row with no completion
+     * date would be selected as "most recent" and then, having no date, read
+     * back as "no donation on record" -- i.e. always eligible.
+     */
+    it('excludes completed donations that carry no completion date', async () => {
+      await service.getNextEligibleDonationDate('donor-1');
+      expect(prisma.donation.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            donorId: 'donor-1',
+            status: DonationStatus.COMPLETED,
+            completedAt: { not: null },
+          },
+        }),
+      );
     });
   });
 
-  describe('isEligibleToDonate', () => {
-    it('is true when there is no completed donation on record', async () => {
+  describe('isEligibleAt', () => {
+    const nextEligible = new Date('2026-10-01T00:00:00Z');
+
+    it('treats no recovery window as always eligible', () => {
+      expect(service.isEligibleAt(null, new Date('2020-01-01T00:00:00Z'))).toBe(true);
+      expect(service.isEligibleAt(undefined, new Date('2020-01-01T00:00:00Z'))).toBe(true);
+    });
+
+    it('is ineligible strictly before the next eligible date', () => {
+      expect(service.isEligibleAt(nextEligible, new Date('2026-09-30T23:59:59Z'))).toBe(false);
+    });
+
+    it('is eligible exactly on and after the next eligible date', () => {
+      expect(service.isEligibleAt(nextEligible, nextEligible)).toBe(true);
+      expect(service.isEligibleAt(nextEligible, new Date('2026-10-02T00:00:00Z'))).toBe(true);
+    });
+
+    /**
+     * The reason the moment is a parameter: a donor three days from the end of
+     * their window may legitimately book a slot next week. Answering every
+     * caller against `now` would refuse valid future bookings, which would be a
+     * new restriction rather than enforcement of the existing rule.
+     */
+    it('allows a future moment past the window even while currently ineligible', () => {
+      const now = new Date('2026-09-20T00:00:00Z');
+      const slotNextMonth = new Date('2026-10-15T00:00:00Z');
+      expect(service.isEligibleAt(nextEligible, now)).toBe(false);
+      expect(service.isEligibleAt(nextEligible, slotNextMonth)).toBe(true);
+    });
+  });
+
+  describe('assertEligibleToDonateAt', () => {
+    it('passes silently when the donor has no recovery window', async () => {
       prisma.donation.findFirst.mockResolvedValue(null);
-
-      await expect(service.isEligibleToDonate('donor-1')).resolves.toBe(true);
+      await expect(service.assertEligibleToDonateAt('donor-1', new Date())).resolves.toBeUndefined();
     });
 
-    it('is true once the eligible date has passed', async () => {
+    it('throws a ConflictException carrying a machine-readable domain code', async () => {
+      const nextDonationDate = new Date('2026-11-06T00:00:00Z');
       prisma.donation.findFirst.mockResolvedValue({
-        completedAt: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000),
-        nextDonationDate: null,
+        completedAt: new Date('2026-09-11T00:00:00Z'),
+        nextDonationDate,
       });
 
-      await expect(service.isEligibleToDonate('donor-1')).resolves.toBe(true);
+      let thrown: ConflictException | undefined;
+      try {
+        await service.assertEligibleToDonateAt('donor-1', new Date('2026-09-12T00:00:00Z'));
+      } catch (err) {
+        thrown = err as ConflictException;
+      }
+
+      expect(thrown).toBeInstanceOf(ConflictException);
+      const body = thrown!.getResponse() as {
+        code: string;
+        message: string;
+        details: { nextEligibleDonationDate: string };
+      };
+      expect(body.code).toBe('DONOR_IN_RECOVERY_WINDOW');
+      expect(body.message).toContain('2026-11-06');
+      expect(body.details.nextEligibleDonationDate).toBe(nextDonationDate.toISOString());
+    });
+  });
+
+  describe('getNextEligibleDonationDates', () => {
+    it('returns an empty map without querying for an empty donor list', async () => {
+      const dates = await service.getNextEligibleDonationDates([]);
+      expect(dates.size).toBe(0);
+      expect(prisma.donation.findMany).not.toHaveBeenCalled();
     });
 
-    it('is false while still inside the cooldown window', async () => {
-      prisma.donation.findFirst.mockResolvedValue({
-        completedAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
-        nextDonationDate: null,
-      });
+    /**
+     * One query for the whole candidate set: emergency matching needs this for
+     * every donor it is about to alert, and a query per donor would run inside
+     * the matching transaction.
+     */
+    it('resolves the latest completed donation per donor in one query', async () => {
+      prisma.donation.findMany.mockResolvedValue([
+        { donorId: 'a', completedAt: new Date('2026-09-01T00:00:00Z'), nextDonationDate: new Date('2026-11-01T00:00:00Z') },
+        { donorId: 'b', completedAt: new Date('2026-08-01T00:00:00Z'), nextDonationDate: null },
+      ]);
 
-      await expect(service.isEligibleToDonate('donor-1')).resolves.toBe(false);
+      const dates = await service.getNextEligibleDonationDates(['a', 'b', 'c']);
+
+      expect(prisma.donation.findMany).toHaveBeenCalledTimes(1);
+      expect(prisma.donation.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ distinct: ['donorId'] }),
+      );
+      expect(dates.get('a')).toEqual(new Date('2026-11-01T00:00:00Z'));
+      const computed = new Date('2026-08-01T00:00:00Z');
+      computed.setDate(computed.getDate() + COOLDOWN_DAYS);
+      expect(dates.get('b')).toEqual(computed);
+      // A donor with no completed donation is absent, which callers read as
+      // "no recovery window" -- the same meaning as the single-donor null.
+      expect(dates.has('c')).toBe(false);
     });
   });
 });

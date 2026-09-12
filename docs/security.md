@@ -21,6 +21,27 @@ This document describes the security measures implemented in the DONOR healthcar
   - At least one number
   - At least one special character
 
+### Password Reset (Account Recovery)
+- `POST /auth/forgot-password` takes an email address and always answers
+  identically, whether or not an account exists, so the endpoint cannot be used
+  to learn which addresses are registered
+- The link carries 32 bytes of CSPRNG output; only its SHA-256 hash is stored,
+  so a database reader cannot use a stored row to reset anyone's password
+  (SHA-256 rather than Argon2 here is deliberate: the input is full-entropy
+  random, so there is nothing to brute-force, and lookup must be a single
+  indexed equality read)
+- One live token per account: requesting a reset replaces the previous one
+- Single use, and expiring after `PASSWORD_RESET_TTL_MINUTES` (default 60)
+- A completed reset revokes every refresh token for that user, so a session an
+  attacker already holds does not survive the recovery
+- Requests are limited per IP (3 per 15 minutes) and per account
+  (`PASSWORD_RESET_COOLDOWN_SECONDS`, default 60), since each one sends mail to
+  a third party
+- Every request, failure and completion is audit-logged; the audit record keeps
+  the real reason a reset failed (unknown, used, expired, inactive) even though
+  the caller is told only that the link is invalid
+- Reset delivery is email-only. No SMS path exists
+
 ### Brute-Force Protection
 - Account lockout after 5 failed login attempts
 - Lockout duration: 15 minutes
@@ -102,6 +123,17 @@ The following are automatically redacted from logs:
 - AI insights only accessible by the generating user
 - Organization-based access control for institutional data
 - Data minimization: only necessary data sent to AI
+- A laboratory result is visible to the donor only in the `PUBLISHED` state.
+  `LaboratoryResult.status` is a database enum
+  (`PENDING → ENTERED → REVIEWED → PUBLISHED`), each transition is refused out
+  of order, and the donor-facing list, single read and parameter trend all
+  filter on `PUBLISHED` — an entered-but-unreviewed value is not readable
+- Donor-owned reads are scoped to the caller in the query itself, so another
+  donor's result id or emergency-response id answers 404 rather than 403 and
+  cannot be used to confirm that a record exists
+- Emergency location history is deleted once the journey that produced it is
+  closed, after `EMERGENCY_LOCATION_RETENTION_HOURS`; an active journey is never
+  pruned, and each prune run is audit-logged
 
 ### Database Security
 - All connections use PostgreSQL

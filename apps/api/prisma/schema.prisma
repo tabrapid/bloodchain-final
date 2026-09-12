@@ -81,6 +81,24 @@ enum VerificationSource {
   OTHER_AUTHORIZED_SOURCE
 }
 
+/**
+ * The lifecycle of a laboratory result, as the service already implements it:
+ * values are entered, then verified by a reviewer, then published to the donor.
+ * Was a free-text String. Nothing stopped a typo, and a misspelled status would
+ * silently fail the `!== 'ENTERED'` guard that protects the review step -- so a
+ * result could skip verification. The transitions live in laboratory.service.ts;
+ * this makes the values themselves impossible to get wrong.
+ * PENDING is the column's historical default and is retained so the migration
+ * changes no behaviour. Nothing in the write path produces it: a result is
+ * created as ENTERED.
+ */
+enum LaboratoryResultStatus {
+  PENDING
+  ENTERED
+  REVIEWED
+  PUBLISHED
+}
+
 enum TestCategory {
   HEMATOLOGY
   IRON
@@ -357,6 +375,7 @@ model User {
   refreshTokens           RefreshToken[]
   auditLogs               AuditLog[]
   emailVerification       EmailVerificationToken?
+  passwordReset           PasswordResetToken?
   sessions                Session[]
   appointments            Appointment[]
   appointmentHistory      AppointmentHistory[]
@@ -602,6 +621,31 @@ model EmailVerificationToken {
   @@index([expiresAt])
 }
 
+/**
+ * A single-use, expiring credential for regaining access to an account.
+ * Stores a SHA-256 hash of the token, never the token itself. A password-reset
+ * token is account takeover in one string: anyone who can read the table --
+ * a backup, a support query, a log of a row dump -- could use it. Hashing means
+ * the stored value is worthless on its own, and lookup by hash costs nothing
+ * because the client always presents the original.
+ * One row per user, replaced on each request, so a new request invalidates the
+ * previous link and tokens do not accumulate.
+ */
+model PasswordResetToken {
+  id          String    @id @default(cuid())
+  userId      String    @unique
+  tokenHash   String    @unique @db.VarChar(64)
+  expiresAt   DateTime
+  usedAt      DateTime?
+  requestedIp String?   @db.VarChar(64)
+  createdAt   DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tokenHash])
+  @@index([expiresAt])
+}
+
 model AuditLog {
   id             String   @id @default(cuid())
   actorId        String?
@@ -628,15 +672,15 @@ model AuditLog {
 // kill-switches read by AuthService, AiHealthService, EmergencyService,
 // GamificationEventHandler, and NotificationDeliveryService.
 model PlatformSettings {
-  id                        String   @id @default("platform")
-  sessionTimeoutMinutes     Int      @default(43200)
-  aiHealthInsightsEnabled   Boolean  @default(true)
-  sosEmergencyEnabled       Boolean  @default(true)
-  gamificationEnabled       Boolean  @default(true)
-  pushNotificationsEnabled  Boolean  @default(true)
-  maintenanceMode           Boolean  @default(false)
-  updatedAt                 DateTime @updatedAt
-  updatedById               String?
+  id                       String   @id @default("platform")
+  sessionTimeoutMinutes    Int      @default(43200)
+  aiHealthInsightsEnabled  Boolean  @default(true)
+  sosEmergencyEnabled      Boolean  @default(true)
+  gamificationEnabled      Boolean  @default(true)
+  pushNotificationsEnabled Boolean  @default(true)
+  maintenanceMode          Boolean  @default(false)
+  updatedAt                DateTime @updatedAt
+  updatedById              String?
 }
 
 model IdempotencyRecord {
@@ -678,6 +722,18 @@ model Appointment {
   organizationId     String
   slotId             String
   appointmentType    AppointmentType
+  /**
+   * The laboratory test the donor booked, for BLOOD_TEST appointments.
+   * Not a duplicate of LaboratoryResult.testTypeId: this records what was
+   * *booked*, that records what was *performed*, and they can legitimately
+   * differ if staff run a different panel. Without it the booked test was lost
+   * between the donor's screen and the laboratory's, so staff had to re-pick it
+   * from a list at result entry -- guessing, for a choice the donor had already
+   * made.
+   * Nullable because the generic POST /appointments path (used by the mobile
+   * booking wizard) creates BLOOD_TEST appointments without one.
+   */
+  testTypeId         String?
   status             AppointmentStatus @default(PENDING)
   scheduledStart     DateTime
   scheduledEnd       DateTime
@@ -694,6 +750,7 @@ model Appointment {
   history          AppointmentHistory[]
   donation         Donation?
   laboratoryResult LaboratoryResult?
+  testType         TestType?            @relation(fields: [testTypeId], references: [id], onDelete: SetNull)
 
   @@index([donorId])
   @@index([organizationId])
@@ -1251,6 +1308,7 @@ model TestType {
   referenceRanges    TestReferenceRange[]
   laboratoryProfiles LaboratoryProfile[]
   laboratoryResults  LaboratoryResult[]
+  appointments       Appointment[]
 
   @@index([category])
   @@index([isActive])
@@ -1327,20 +1385,20 @@ model LaboratoryProfile {
 }
 
 model LaboratoryResult {
-  id            String    @id @default(cuid())
-  appointmentId String    @unique
+  id            String                 @id @default(cuid())
+  appointmentId String                 @unique
   donorId       String
   laboratoryId  String
   testTypeId    String
-  status        String    @default("PENDING")
+  status        LaboratoryResultStatus @default(PENDING)
   performedAt   DateTime?
   performedBy   String?
   reviewedAt    DateTime?
   reviewedBy    String?
   publishedAt   DateTime?
   publishedBy   String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
 
   appointment Appointment               @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
   donor       User                      @relation("LaboratoryResultDonor", fields: [donorId], references: [id], onDelete: Cascade)
@@ -1379,13 +1437,13 @@ model LaboratoryResultItem {
 }
 
 model LaboratoryResultVersion {
-  id           String   @id @default(cuid())
+  id           String                 @id @default(cuid())
   resultId     String
   version      Int
-  status       String
+  status       LaboratoryResultStatus
   changeReason String?
   changedBy    String?
-  createdAt    DateTime @default(now())
+  createdAt    DateTime               @default(now())
 
   result LaboratoryResult @relation(fields: [resultId], references: [id], onDelete: Cascade)
 

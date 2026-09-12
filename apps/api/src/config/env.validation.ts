@@ -31,6 +31,16 @@ export const envValidationSchema = Joi.object({
   SMTP_PASSWORD: Joi.string().allow('').optional(),
   SMTP_FROM: Joi.string().default('BloodChain <no-reply@donor.local>'),
   EMAIL_VERIFICATION_TTL_HOURS: Joi.number().default(24),
+  // A reset token is account takeover in one string, so its life is measured
+  // in minutes rather than the day an email-verification link gets.
+  PASSWORD_RESET_TTL_MINUTES: Joi.number().min(5).max(1440).default(60),
+  // Per-account floor between reset emails, on top of the per-IP throttle:
+  // the throttle alone does not stop someone flooding one person's inbox.
+  PASSWORD_RESET_COOLDOWN_SECONDS: Joi.number().min(0).default(60),
+  // How long an emergency journey's location history is kept after the
+  // response closes. The default is a development convenience, NOT a legal
+  // retention decision -- see .env.example.
+  EMERGENCY_LOCATION_RETENTION_HOURS: Joi.number().min(1).default(72),
   EXPO_ACCESS_TOKEN: Joi.string().allow('').optional(),
   DONATION_COOLDOWN_DAYS: Joi.number().min(1).default(56),
 

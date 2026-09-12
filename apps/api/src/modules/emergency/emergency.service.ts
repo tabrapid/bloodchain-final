@@ -187,6 +187,11 @@ export class EmergencyService {
       throw new ForbiddenException('Email not verified.');
     }
 
+    // Kept alongside the check that now runs during matching, and not a
+    // duplicate of it: matching decides who is asked, this decides whether the
+    // donation may proceed at the moment of acceptance. An emergency stays open
+    // for hours, and a donor can complete a donation elsewhere in between -- so
+    // being in the candidate set is not standing permission.
     const nextEligibleDate = await this.donationEligibility.getNextEligibleDonationDate(user.id);
     if (nextEligibleDate && nextEligibleDate.getTime() > Date.now()) {
       throw new ForbiddenException(
@@ -345,11 +350,29 @@ export class EmergencyService {
         },
       });
 
+      // The recovery window, applied here rather than at acceptance.
+      //
+      // It used to be checked only when a donor tapped Accept, which meant a
+      // donor inside their window was alerted, decided to help, and was then
+      // refused -- the worst possible order for the one channel that has to be
+      // trusted. Excluding them from the candidate set means they are never
+      // asked. One query for the whole candidate set, not one per donor.
+      //
+      // The window is the existing rule from DonationEligibilityService,
+      // unchanged, asked about now because the emergency is now.
+      const matchedAt = new Date();
+      const nextEligibleDates = await this.donationEligibility.getNextEligibleDonationDates(
+        donors.map((donor) => donor.id),
+      );
+
       const compatibleDonors = donors.filter((donor) => {
         if (!donor.donorProfile || !donor.donorProfile.bloodType || !donor.donorProfile.rhFactor) {
           return false;
         }
         if (donor.emergencyMatches.length > 0 || donor.emergencyResponses.length > 0) {
+          return false;
+        }
+        if (!this.donationEligibility.isEligibleAt(nextEligibleDates.get(donor.id), matchedAt)) {
           return false;
         }
         return this.isBloodCompatible(
@@ -1163,8 +1186,12 @@ export class EmergencyService {
   }
 
   async getDonorTracking(donorId: string, responseId: string) {
-    const response = await this.db.emergencyResponse.findUnique({
-      where: { id: responseId },
+    // Scoped to the caller in the query itself. This endpoint returns location
+    // history, so answering "403, that one is someone else's" instead of "404"
+    // would confirm a response id to anyone who guesses one -- the ownership
+    // check belongs in the `where`, not after the read.
+    const response = await this.db.emergencyResponse.findFirst({
+      where: { id: responseId, donorId },
       include: {
         emergencyRequest: {
           include: {
@@ -1177,10 +1204,6 @@ export class EmergencyService {
 
     if (!response) {
       throw new NotFoundException('Response not found.');
-    }
-
-    if (response.donorId !== donorId) {
-      throw new ForbiddenException('This response does not belong to you.');
     }
 
     return response;

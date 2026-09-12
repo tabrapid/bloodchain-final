@@ -3,9 +3,10 @@ import { AppointmentsController } from './appointments.controller';
 import { AppointmentsService } from './appointments.service';
 import { AuditLogsModule } from '../audit-logs/audit-logs.module';
 import { IdempotencyModule } from '../idempotency/idempotency.module';
+import { DonationEligibilityModule } from '../donation-eligibility/donation-eligibility.module';
 
 @Module({
-  imports: [AuditLogsModule, IdempotencyModule],
+  imports: [AuditLogsModule, IdempotencyModule, DonationEligibilityModule],
   controllers: [AppointmentsController],
   providers: [AppointmentsService],
   exports: [AppointmentsService],

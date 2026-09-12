@@ -1,26 +1,43 @@
-/**
- * The guard every demo command runs before touching anything.
- *
- * These commands drop and rewrite a whole database. That is fine against a
- * laptop and catastrophic anywhere else, and the only thing standing between
- * the two is which DATABASE_URL happens to be exported. So: refuse unless the
- * host is a loopback address and NODE_ENV is not production. A URL that cannot
- * be parsed is refused too -- an unreadable target is not a safe one.
- */
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '::1', '0.0.0.0', 'host.docker.internal']);
-
 /**
- * Read DATABASE_URL out of the repo's .env when the shell has not exported it.
+ * The guard every destructive demo operation runs before touching anything.
  *
- * The API loads .env through dotenv, so a developer who has never exported the
- * variable still has a working API -- and these scripts would refuse to run,
- * reporting a missing database rather than the local one sitting right there.
- * Anything already in the environment wins.
+ * These operations TRUNCATE every table the seed owns. That is routine against
+ * a laptop and unrecoverable anywhere else, and the only thing separating the
+ * two is which DATABASE_URL happens to be exported. So the rule is fail closed:
+ * refuse unless every check affirmatively passes, rather than refusing only on
+ * recognised danger.
+ *
+ * Three independent conditions, because any one alone is defeatable:
+ *
+ * 1. **Environment.** An allowlist of development-ish values, not
+ *    `!== 'production'`. A typo (`NODE_ENV=prod`, `NODE_ENV=staging`) passes
+ *    the negative test and fails this one.
+ * 2. **Host.** The database must be reachable only on a loopback address.
+ * 3. **Identity.** The database *name* must look like a development database,
+ *    or be named explicitly in DEMO_ALLOW_DATABASE. A local Postgres is a
+ *    perfectly good place to have port-forwarded something that matters, so
+ *    "it is on localhost" is not by itself evidence that wiping it is safe.
  */
+const LOCAL_HOSTS = new Set([
+  'localhost',
+  '127.0.0.1',
+  '::1',
+  '0.0.0.0',
+  // Present so the guard works from inside a dev container talking to the
+  // host's Postgres. Still a developer machine, not a shared environment.
+  'host.docker.internal',
+]);
+
+/** NODE_ENV values under which a demo reset is permissible. Unset counts. */
+const ALLOWED_ENVIRONMENTS = new Set(['', 'development', 'dev', 'test']);
+
+/** Names that identify a database as disposable without further confirmation. */
+const DEV_DATABASE_PATTERN = /(^|[^a-z])(dev|development|test|demo|local|sandbox|scratch)([^a-z]|$)/i;
+
 export function loadEnvFile() {
   if (process.env.DATABASE_URL) return;
   const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -37,14 +54,22 @@ export function loadEnvFile() {
   }
 }
 
-export function assertLocalDatabase(url) {
-  loadEnvFile();
-  url = url ?? process.env.DATABASE_URL;
+/**
+ * The pure decision, separated from reading the environment so it can be
+ * tested exhaustively without mutating process.env. Returns the target on
+ * success; throws with an actionable message on refusal.
+ */
+export function checkLocalDatabase({ url, nodeEnv, allowDatabase }) {
   if (!url) {
     throw new Error('DATABASE_URL is not set. Demo commands only run against a local database.');
   }
-  if (process.env.NODE_ENV === 'production') {
-    throw new Error('NODE_ENV=production. Demo commands never run against production.');
+
+  const environment = (nodeEnv ?? '').trim().toLowerCase();
+  if (!ALLOWED_ENVIRONMENTS.has(environment)) {
+    throw new Error(
+      `NODE_ENV is "${nodeEnv}". Demo commands run only with NODE_ENV unset, development or test. ` +
+        'Refusing, because an unrecognised environment is not a safe one.',
+    );
   }
 
   let parsed;
@@ -62,7 +87,39 @@ export function assertLocalDatabase(url) {
     );
   }
 
-  return { host, database: parsed.pathname.replace(/^\//, '') };
+  const database = decodeURIComponent(parsed.pathname.replace(/^\//, ''));
+  if (!database) {
+    throw new Error('DATABASE_URL names no database, so its identity cannot be confirmed. Refusing.');
+  }
+
+  const explicitlyAllowed = (allowDatabase ?? '')
+    .split(',')
+    .map((name) => name.trim())
+    .filter(Boolean)
+    .includes(database);
+
+  if (!explicitlyAllowed && !DEV_DATABASE_PATTERN.test(database)) {
+    throw new Error(
+      `Database "${database}" is on a local host but its name does not identify it as a ` +
+        'development database, so this command will not wipe it.\n\n' +
+        '  If it is disposable, confirm it explicitly:\n' +
+        `    DEMO_ALLOW_DATABASE=${database} pnpm demo:reset\n` +
+        `  or add DEMO_ALLOW_DATABASE=${database} to your .env file.\n\n` +
+        '  A local Postgres is a perfectly good place to have port-forwarded a database\n' +
+        '  that matters, so "it is on localhost" is not on its own enough to destroy it.',
+    );
+  }
+
+  return { host, database, environment: environment || 'unset', explicitlyAllowed };
+}
+
+export function assertLocalDatabase(url) {
+  loadEnvFile();
+  return checkLocalDatabase({
+    url: url ?? process.env.DATABASE_URL,
+    nodeEnv: process.env.NODE_ENV,
+    allowDatabase: process.env.DEMO_ALLOW_DATABASE,
+  });
 }
 
 export function fail(message) {
