@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { PropsWithChildren, useEffect, useState } from 'react';
 import { Sidebar, SidebarItem, type SidebarLinkComponent } from './Sidebar';
 import { Topbar } from './Topbar';
@@ -16,6 +17,8 @@ export interface DashboardShellProps extends PropsWithChildren {
   onSearch?: (query: string) => void;
   onNotifications?: () => void;
   onLogout?: () => void;
+  /** Extra top-bar controls, passed through to `Topbar`. */
+  topbarActions?: ReactNode;
   className?: string;
 }
 
@@ -33,6 +36,7 @@ export function DashboardShell({
   onSearch,
   onNotifications,
   onLogout,
+  topbarActions,
   className,
 }: DashboardShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -65,6 +69,7 @@ export function DashboardShell({
           onNotifications={onNotifications}
           onLogout={onLogout}
           onMenuClick={() => setSidebarOpen((open) => !open)}
+          actions={topbarActions}
         />
         <main className="flex-1 overflow-x-hidden p-4 sm:p-6 lg:p-10">{children}</main>
       </div>

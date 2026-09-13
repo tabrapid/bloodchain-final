@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { LanguageSwitcher, useTranslation } from '@bloodchain/ui/i18n';
 import Link from 'next/link';
 import {
   AlertTriangle,
@@ -46,6 +47,7 @@ interface User {
 }
 
 export default function AdminDashboard() {
+  const { t } = useTranslation();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -120,7 +122,9 @@ export default function AdminDashboard() {
       });
       await loadDashboardData();
     } catch (err: any) {
-      setError(err.message ?? 'Login failed');
+      // The server's own message when it has one; it is not translated yet,
+      // which is a Sprint 1B item, so the generic fallback is.
+      setError(err.message ?? t('common.error'));
     } finally {
       setIsSubmitting(false);
     }
@@ -128,7 +132,7 @@ export default function AdminDashboard() {
 
   if (isLoading) {
     return (
-      <AppShell title="Admin Dashboard" userName={user ? `${user.firstName} ${user.lastName}` : undefined}>
+      <AppShell title={t('portal.admin.dashboard')} userName={user ? `${user.firstName} ${user.lastName}` : undefined}>
         <LoadingState />
       </AppShell>
     );
@@ -138,17 +142,23 @@ export default function AdminDashboard() {
     return (
       <div className="min-h-screen bc-app-bg flex items-center justify-center">
         <div className="bc-glass rounded-card p-8 w-full max-w-md">
+        {/* A signed-out admin who cannot read this page has no other way to
+            change it: the console's switcher lives in the top bar, which only
+            renders once you are inside. */}
+        <div className="mb-4 flex justify-end">
+          <LanguageSwitcher />
+        </div>
           <div className="flex items-center gap-3 mb-6">
             <div className="w-10 h-10 bg-donor-primary rounded-lg flex items-center justify-center">
               <Shield className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-semibold text-donor-text">Admin Portal</h1>
-              <p className="text-sm text-donor-muted">BloodChain Management</p>
+              <h1 className="text-xl font-semibold text-donor-text">{t('portal.admin.name')}</h1>
+              <p className="text-sm text-donor-muted">{t('portal.admin.workspace')}</p>
             </div>
           </div>
 
-          <h2 className="text-lg font-medium text-donor-text mb-4">Sign in to continue</h2>
+          <h2 className="text-lg font-medium text-donor-text mb-4">{t('portal.signInTitle')}</h2>
 
           {error && (
             <div className="mb-4 p-3 bg-donor-dangerMuted border border-donor-danger/30 rounded-lg text-sm text-donor-onDangerMuted">
@@ -159,7 +169,7 @@ export default function AdminDashboard() {
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-donor-text mb-1">
-                Email
+                {t('portal.email')}
               </label>
               <input
                 id="email"
@@ -173,7 +183,7 @@ export default function AdminDashboard() {
             </div>
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-donor-text mb-1">
-                Password
+                {t('portal.password')}
               </label>
               <input
                 id="password"
@@ -192,7 +202,7 @@ export default function AdminDashboard() {
                 href="/forgot-password"
                 className="text-xs font-medium text-donor-primary hover:underline"
               >
-                Forgot password?
+                {t('portal.forgotPassword')}
               </Link>
             </div>
             <button
@@ -200,7 +210,7 @@ export default function AdminDashboard() {
               disabled={isSubmitting}
               className="w-full bg-donor-primary text-white py-2.5 px-4 rounded-lg font-medium hover:bg-donor-primary/85 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {isSubmitting ? 'Signing in...' : 'Sign in'}
+              {isSubmitting ? t('portal.signingIn') : t('portal.signIn')}
             </button>
           </form>
         </div>
@@ -209,7 +219,7 @@ export default function AdminDashboard() {
   }
 
   return (
-    <AppShell title="Admin Dashboard" userName={user ? `${user.firstName} ${user.lastName}` : undefined}>
+    <AppShell title={t('portal.admin.dashboard')} userName={user ? `${user.firstName} ${user.lastName}` : undefined}>
       <div className="p-6">
         <div className="mb-8">
           <h1 className="text-2xl font-semibold text-donor-text">Platform Dashboard</h1>

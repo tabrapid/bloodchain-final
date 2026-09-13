@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from '@bloodchain/ui/i18n';
 import Link from 'next/link';
 import { Activity, AlertTriangle, Calendar, Clock, Droplet, Package } from 'lucide-react';
 import { EmptyState, StatCard } from '@bloodchain/ui/components';
@@ -22,6 +23,7 @@ interface User {
 }
 
 export default function HospitalDashboard() {
+  const { t } = useTranslation();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -95,7 +97,9 @@ export default function HospitalDashboard() {
         organizations: userData.organizations,
       });
     } catch (err: any) {
-      setError(err.message ?? 'Login failed');
+      // The server's own message when it has one; it is not translated yet,
+      // which is a Sprint 1B item, so the generic fallback is.
+      setError(err.message ?? t('common.error'));
     } finally {
       setIsSubmitting(false);
     }
@@ -109,11 +113,11 @@ export default function HospitalDashboard() {
   if (isLoading) {
     return (
       <AppShell
-        title="Loading..."
-        subtitle="HOSPITAL CONSOLE"
-        organizationName="Hospital Console"
-        organizationType="Operations workspace"
-        userName="Loading..."
+        title={t('common.loading')}
+        subtitle={t('portal.hospital.console')}
+        organizationName={t('portal.hospital.name')}
+        organizationType={t('portal.hospital.workspace')}
+        userName={t('common.loading')}
       >
         <div className="flex items-center justify-center p-12">
           <Activity className="animate-spin text-donor-primary" size={32} />
@@ -125,25 +129,25 @@ export default function HospitalDashboard() {
   if (!user) {
     return (
       <AppShell
-        title="Authentication Required"
-        subtitle="HOSPITAL CONSOLE"
-        organizationName="Hospital Console"
-        organizationType="Operations workspace"
-        userName="Guest"
+        title={t('portal.authRequired')}
+        subtitle={t('portal.hospital.console')}
+        organizationName={t('portal.hospital.name')}
+        organizationType={t('portal.hospital.workspace')}
+        userName={t('portal.guest')}
       >
         <div className="flex flex-col items-center justify-center bc-glass rounded-card p-12">
           <Activity className="mb-4 text-donor-primary" size={48} />
           <h2 className="mb-2 font-display text-2xl font-semibold text-donor-text">
-            Hospital Portal
+            {t('portal.hospital.name')}
           </h2>
           <p className="mb-6 text-center text-donor-muted">
-            Sign in to access the hospital dashboard
+            {t('portal.signInSubtitle', { portal: t('portal.hospital.name') })}
           </p>
           {error && <p className="mb-4 text-sm text-donor-danger">{error}</p>}
           <form onSubmit={handleLogin} className="w-full max-w-xs space-y-3">
             <div>
               <label htmlFor="email" className="mb-1 block text-left text-xs font-medium text-donor-muted">
-                Email
+                {t('portal.email')}
               </label>
               <input
                 id="email"
@@ -157,7 +161,7 @@ export default function HospitalDashboard() {
             </div>
             <div>
               <label htmlFor="password" className="mb-1 block text-left text-xs font-medium text-donor-muted">
-                Password
+                {t('portal.password')}
               </label>
               <input
                 id="password"
@@ -176,7 +180,7 @@ export default function HospitalDashboard() {
                 href="/forgot-password"
                 className="text-xs font-semibold text-donor-primary hover:underline"
               >
-                Forgot password?
+                {t('portal.forgotPassword')}
               </Link>
             </div>
             <button
@@ -184,13 +188,13 @@ export default function HospitalDashboard() {
               disabled={isSubmitting}
               className="w-full rounded-lg bg-donor-primary px-6 py-3 font-semibold text-white transition-colors hover:bg-donor-primary/80 disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {isSubmitting ? 'Signing in...' : 'Sign in'}
+              {isSubmitting ? t('portal.signingIn') : t('portal.signIn')}
             </button>
           </form>
           <p className="mt-6 text-center text-sm text-donor-muted">
-            New hospital?{' '}
+            {t('portal.registerPrompt', { portal: t('portal.hospital.name') })}{' '}
             <Link href="/register" className="font-semibold text-donor-primary hover:underline">
-              Register your organization
+              {t('portal.registerLink')}
             </Link>
           </p>
         </div>
@@ -208,10 +212,10 @@ export default function HospitalDashboard() {
     const isPending = hospitalOrg.organizationStatus === 'PENDING_APPROVAL';
     return (
       <AppShell
-        title={isPending ? 'Pending Approval' : 'Organization Unavailable'}
-        subtitle="HOSPITAL CONSOLE"
+        title={isPending ? t('portal.pendingApproval') : 'Organization Unavailable'}
+        subtitle={t('portal.hospital.console')}
         organizationName={hospitalOrg.name}
-        organizationType="Operations workspace"
+        organizationType={t('portal.hospital.workspace')}
         userName={`${user.firstName} ${user.lastName}`}
       >
         <div className="flex flex-col items-center justify-center bc-glass rounded-card p-12 text-center">
@@ -228,7 +232,7 @@ export default function HospitalDashboard() {
             onClick={handleLogout}
             className="rounded-lg bc-solid px-6 py-3 font-semibold text-donor-text transition-colors hover:bg-donor-elevated"
           >
-            Sign out
+            {t('portal.signOut')}
           </button>
         </div>
       </AppShell>
@@ -238,25 +242,25 @@ export default function HospitalDashboard() {
   if (!hasHospitalAccess) {
     return (
       <AppShell
-        title="Access Denied"
-        subtitle="HOSPITAL CONSOLE"
-        organizationName={hospitalOrg?.name ?? user.organizations[0]?.name ?? 'Hospital Console'}
-        organizationType="Operations workspace"
+        title={t('portal.accessDenied')}
+        subtitle={t('portal.hospital.console')}
+        organizationName={hospitalOrg?.name ?? user.organizations[0]?.name ?? t('portal.hospital.name')}
+        organizationType={t('portal.hospital.workspace')}
         userName={`${user.firstName} ${user.lastName}`}
       >
         <div className="flex flex-col items-center justify-center bc-glass rounded-card border-donor-danger/30 bg-donor-dangerMuted p-12">
           <Activity className="mb-4 text-donor-onDangerMuted" size={48} />
           <h2 className="mb-2 font-display text-2xl font-semibold text-donor-text">
-            Access Denied
+            {t('portal.accessDenied')}
           </h2>
           <p className="mb-6 text-center text-donor-muted">
-            You don&apos;t have permission to access the hospital dashboard.
+            {t('portal.accessDeniedBody')}
           </p>
           <button
             onClick={handleLogout}
             className="rounded-lg bc-solid px-6 py-3 font-semibold text-donor-text transition-colors hover:bg-donor-elevated"
           >
-            Sign out
+            {t('portal.signOut')}
           </button>
         </div>
       </AppShell>
@@ -266,9 +270,9 @@ export default function HospitalDashboard() {
   return (
     <AppShell
       title={`Good morning, ${user.firstName}.`}
-      subtitle="HOSPITAL CONSOLE"
-      organizationName={hospitalOrg?.name ?? 'Hospital Console'}
-      organizationType="Operations workspace"
+      subtitle={t('portal.hospital.console')}
+      organizationName={hospitalOrg?.name ?? t('portal.hospital.name')}
+      organizationType={t('portal.hospital.workspace')}
       userName={`${user.firstName} ${user.lastName}`}
     >
       <div className="mb-8 flex items-center justify-between bc-glass rounded-card p-6">

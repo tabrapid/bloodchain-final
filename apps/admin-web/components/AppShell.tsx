@@ -1,6 +1,7 @@
 'use client';
 
 import type { PropsWithChildren } from 'react';
+import { LanguageSwitcher, useTranslation } from '@bloodchain/ui/i18n';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { DashboardShell } from '@bloodchain/ui/components';
@@ -40,6 +41,14 @@ export function AppShell({
   organizationName?: string;
   organizationType?: string;
 }>) {
+  const { t } = useTranslation();
+  // Labels are catalogue keys held in lib/navigation, resolved here because
+  // that list is built at module load where there is no locale.
+  const localizedNav = navItems.map((item) => ({
+    ...item,
+    label: item.labelKey ? t(item.labelKey) : item.label,
+  }));
+
   const pathname = usePathname();
   const router = useRouter();
 
@@ -58,9 +67,10 @@ export function AppShell({
       userName={userName}
       organizationName={organizationName}
       organizationType={organizationType}
-      sidebarItems={navItems}
+      sidebarItems={localizedNav}
       currentPath={pathname}
       linkComponent={Link}
+      topbarActions={<LanguageSwitcher />}
       onLogout={handleLogout}
     >
       {children}

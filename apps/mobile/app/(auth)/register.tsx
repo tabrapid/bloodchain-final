@@ -9,9 +9,11 @@ import { AppButton, AppText, AppTextInput, IconButton, Screen } from '../../src/
 import { useRegister, getAuthErrorMessage } from '../../src/hooks/useAuth';
 import { layout, spacing, useTheme } from '../../src/theme';
 import { BRAND_NAME } from '../../src/brand';
+import { useTranslation } from '../../src/i18n';
 
 export default function Register() {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const registerUser = useRegister();
   const [serverError, setServerError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
@@ -39,17 +41,17 @@ export default function Register() {
         icon={ChevronLeft}
         onPress={() => router.back()}
         accessibilityRole="button"
-        accessibilityLabel="Go back"
+        accessibilityLabel={t('auth.a11y.goBack')}
       />
 
       <View style={{ marginTop: spacing.xl }}>
         {/* The auth headlines are the one place the reference goes bigger and
             heavier than the standard screen title. */}
         <AppText style={{ fontSize: 34, fontWeight: '800', letterSpacing: -1, color: colors.text }}>
-          Create account
+          {t('auth.register.title')}
         </AppText>
         <AppText muted style={{ fontSize: 15, marginTop: 6, marginBottom: spacing.xl }}>
-          Join {BRAND_NAME} and start saving lives
+          {t('auth.register.subtitle', { brand: BRAND_NAME })}
         </AppText>
 
         {/*
@@ -68,13 +70,13 @@ export default function Register() {
             name="firstName"
             render={({ field, fieldState }) => (
               <AppTextInput
-                label="First name"
-                placeholder="Alex"
+                label={t('auth.register.firstName')}
+                placeholder={t('auth.register.firstNamePlaceholder')}
                 autoComplete="given-name"
                 returnKeyType="next"
                 blurOnSubmit={false}
                 onSubmitEditing={() => lastNameRef.current?.focus()}
-                error={fieldState.error?.message}
+                error={fieldState.error?.message ? t(fieldState.error.message) : undefined}
                 wrapperStyle={{ flex: 1 }}
                 value={field.value}
                 onChangeText={field.onChange}
@@ -89,13 +91,13 @@ export default function Register() {
             render={({ field, fieldState }) => (
               <AppTextInput
                 ref={lastNameRef}
-                label="Last name"
-                placeholder="Johnson"
+                label={t('auth.register.lastName')}
+                placeholder={t('auth.register.lastNamePlaceholder')}
                 autoComplete="family-name"
                 returnKeyType="next"
                 blurOnSubmit={false}
                 onSubmitEditing={() => emailRef.current?.focus()}
-                error={fieldState.error?.message}
+                error={fieldState.error?.message ? t(fieldState.error.message) : undefined}
                 wrapperStyle={{ flex: 1 }}
                 value={field.value}
                 onChangeText={field.onChange}
@@ -111,8 +113,8 @@ export default function Register() {
           render={({ field, fieldState }) => (
             <AppTextInput
               ref={emailRef}
-              label="Email address"
-              placeholder="you@example.com"
+              label={t('auth.fields.email')}
+              placeholder={t('auth.fields.emailPlaceholder')}
               autoCapitalize="none"
               autoComplete="email"
               keyboardType="email-address"
@@ -120,7 +122,7 @@ export default function Register() {
               returnKeyType="next"
               blurOnSubmit={false}
               onSubmitEditing={() => passwordRef.current?.focus()}
-              error={fieldState.error?.message}
+              error={fieldState.error?.message ? t(fieldState.error.message) : undefined}
               wrapperStyle={{ marginBottom: layout.cardGap }}
               value={field.value}
               onChangeText={field.onChange}
@@ -135,21 +137,21 @@ export default function Register() {
           render={({ field, fieldState }) => (
             <AppTextInput
               ref={passwordRef}
-              label="Password"
-              placeholder="At least 12 characters"
+              label={t('auth.fields.password')}
+              placeholder={t('auth.fields.passwordPlaceholder')}
               secureTextEntry={!showPassword}
               autoComplete="new-password"
               returnKeyType="go"
               onSubmitEditing={onSubmit}
               leading={<Lock size={19} color={colors.textMuted} />}
-              error={fieldState.error?.message}
+              error={fieldState.error?.message ? t(fieldState.error.message) : undefined}
               wrapperStyle={{ marginBottom: spacing.lg }}
               trailing={
                 <Pressable
                   onPress={() => setShowPassword((v) => !v)}
                   hitSlop={8}
                   accessibilityRole="button"
-                  accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+                  accessibilityLabel={showPassword ? t('auth.fields.hidePassword') : t('auth.fields.showPassword')}
                 >
                   {showPassword ? (
                     <EyeOff size={20} color={colors.textMuted} />
@@ -169,8 +171,7 @@ export default function Register() {
             is one rule; two screens describing it differently is how a person
             concludes the second one is stricter. */}
         <AppText muted style={{ fontSize: 12, marginTop: -spacing.sm, marginBottom: spacing.lg }}>
-          Use at least 12 characters with an uppercase and a lowercase letter, a number and a
-          special character.
+{t('auth.fields.passwordPolicy')}
         </AppText>
 
         {serverError && (
@@ -183,13 +184,13 @@ export default function Register() {
           gradient
           trailingIcon={ArrowRight}
           accessibilityRole="button"
-          accessibilityLabel="Create a Bloodchain account"
+          accessibilityLabel={t('auth.welcome.a11yCreateAccount')}
           style={{ height: 54 }}
           onPress={onSubmit}
           disabled={registerUser.isPending || formState.isSubmitting}
           loading={registerUser.isPending}
         >
-          Create Account
+          {t('auth.register.submit')}
         </AppButton>
 
       </View>
@@ -210,7 +211,7 @@ export default function Register() {
         >
           <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
           <AppText muted style={{ fontSize: 13 }}>
-            Already have an account?
+            {t('auth.register.haveAccount')}
           </AppText>
           <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
         </View>
@@ -223,14 +224,14 @@ export default function Register() {
           textColor={colors.text}
           onPress={() => router.push('/(auth)/login')}
           accessibilityRole="button"
-          accessibilityLabel="Sign in to Bloodchain"
+          accessibilityLabel={t('auth.welcome.a11ySignIn')}
           style={{
             height: 54,
             backgroundColor: 'rgba(255,255,255,0.07)',
             borderColor: 'rgba(255,255,255,0.16)',
           }}
         >
-          Sign In
+          {t('auth.register.signIn')}
         </AppButton>
 
         <View
@@ -244,7 +245,7 @@ export default function Register() {
         >
           <ShieldCheck size={15} color={colors.onMuted.success} />
           <AppText muted style={{ fontSize: 12 }}>
-            Your data is private and secure.
+            {t('auth.login.secure')}
           </AppText>
         </View>
       </View>

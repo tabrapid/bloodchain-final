@@ -43,3 +43,12 @@ jest.mock('expo-blur', () => {
 // mock (`withTiming`/`withSpring` resolve straight to their target value)
 // for exactly this.
 jest.mock('react-native-reanimated', () => require('react-native-reanimated/mock'));
+
+// Screen tests assert the English copy they were written against. The language
+// provider follows the device when it speaks one of ours, and a test runner
+// reports whatever locale the machine has -- so pin detection here and let the
+// localisation specs, which mock this module themselves, override it.
+jest.mock('@bloodchain/i18n', () => {
+  const actual = jest.requireActual('@bloodchain/i18n');
+  return { ...actual, detectPlatformLocales: () => ['en-US'] };
+});

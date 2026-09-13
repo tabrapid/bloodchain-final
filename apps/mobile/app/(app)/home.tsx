@@ -39,9 +39,12 @@ import { useUnreadCount } from '../../src/hooks/useNotifications';
 import { useDonorEmergencies } from '../../src/hooks/useEmergency';
 import { useAuthStore } from '../../src/stores/auth.store';
 import { layout, spacing, radius, useTheme, ThemeColors } from '../../src/theme';
+import { useTranslation } from '../../src/i18n';
+import type { TranslateFn } from '@bloodchain/i18n';
 
 export default function Home() {
   const { colors } = useTheme();
+  const { t, formatDayHeading, formatDate, formatTime } = useTranslation();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const user = useAuthStore((s) => s.user);
   const { data: userProfile } = useUserProfile();
@@ -62,14 +65,14 @@ export default function Home() {
   const completionPercentage = completion?.percentage ?? 0;
 
   const firstName = userProfile?.firstName || user?.firstName || 'there';
-  const greeting = getGreeting(firstName);
+  const greeting = getGreeting(t, firstName);
 
   const bloodTypeDisplay =
     donorProfile?.bloodType && donorProfile?.rhFactor
       ? `${donorProfile.bloodType}${donorProfile.rhFactor === 'POSITIVE' ? '+' : '-'}`
       : '—';
 
-  const verification = getVerification(colors, donorProfile?.verificationStatus);
+  const verification = getVerification(t, colors, donorProfile?.verificationStatus);
 
   // `nextEligibleDonationDate` is absent until the first donation sets a
   // cooldown, so "no date" means eligible, not unknown.
@@ -85,15 +88,11 @@ export default function Home() {
       <View style={styles.headerRow}>
         <View style={styles.headerText}>
           <AppText muted style={styles.dateLabel}>
-            {new Date().toLocaleDateString('en-US', {
-              weekday: 'long',
-              day: 'numeric',
-              month: 'short',
-            })}
+{formatDayHeading(new Date())}
           </AppText>
           <AppText style={styles.greeting}>{greeting} 👋</AppText>
           <AppText muted style={styles.greetingNote}>
-            Every donation makes a difference.
+            {t('home.tagline')}
           </AppText>
         </View>
         <View style={styles.headerActions}>
@@ -102,12 +101,12 @@ export default function Home() {
             onPress={() => router.push('/(app)/notifications')}
             badge={unreadCount?.count}
             accessibilityRole="button"
-            accessibilityLabel="Notifications"
+            accessibilityLabel={t('profile.notifications')}
           />
           <TouchableOpacity
             onPress={() => router.push('/(app)/profile')}
             accessibilityRole="button"
-            accessibilityLabel="Your profile"
+            accessibilityLabel={t('profile.title')}
           >
             <Avatar name={fullName ?? user?.firstName ?? 'Donor'} size={40} />
           </TouchableOpacity>
@@ -119,7 +118,7 @@ export default function Home() {
           <View style={styles.heroTopLeft}>
             <View style={styles.heroEyebrow}>
               <Droplet size={13} color="rgba(255,255,255,0.75)" fill="rgba(255,255,255,0.5)" />
-              <AppText style={styles.heroEyebrowText}>BLOOD TYPE</AppText>
+              <AppText style={styles.heroEyebrowText}>{t('home.bloodTypeLabel')}</AppText>
             </View>
             <View style={styles.heroTypeRow}>
               <AppText style={styles.heroTypeValue}>{bloodTypeDisplay}</AppText>
@@ -173,7 +172,7 @@ export default function Home() {
           <HeroStat
             icon={Droplet}
             value={`${donationStats?.completedCount ?? 0}`}
-            label="Donations"
+            label={t('home.donations')}
           />
           <HeroStat
             icon={BarChart3}
@@ -183,12 +182,12 @@ export default function Home() {
                 : '0'
             }
             unit="L"
-            label="Total volume"
+            label={t('home.totalVolume')}
           />
           <HeroStat
             icon={Heart}
             value={`${gamificationProfile?.emergencyResponseCount ?? 0}`}
-            label="Emergency responses"
+            label={t('home.emergencyResponses')}
           />
         </View>
       </GradientCard>
@@ -202,25 +201,25 @@ export default function Home() {
         <StatusCard
           icon={CalendarCheck}
           accent={colors.success}
-          label="Donation eligibility"
-          value={isEligible ? 'Eligible now' : formatDay(nextEligible!)}
+          label={t('home.eligibilityTitle')}
+          value={isEligible ? t('home.eligibleNow') : formatDate(nextEligible!, 'medium')}
           valueColor={isEligible ? colors.onMuted.success : colors.text}
           note={
             isEligible
-              ? 'You can schedule a donation today.'
-              : 'Your next donation window opens then.'
+              ? t('home.eligibleToday')
+              : t('home.eligibilityOpensThen')
           }
           onPress={() => router.push('/(booking)/select-type')}
         />
         <StatusCard
           icon={CalendarDays}
           accent={colors.secondary}
-          label="Next appointment"
-          value={appointmentDate ? formatDay(appointmentDate) : 'No appointment'}
+          label={t('home.nextAppointment')}
+          value={appointmentDate ? formatDate(appointmentDate, 'medium') : t('home.noAppointment')}
           note={
             appointmentDate
               ? `${formatTime(appointmentDate)} · ${nextAppointment!.organization.name}`
-              : 'Schedule your next donation.'
+              : t('home.scheduleNext')
           }
           onPress={() =>
             nextAppointment
@@ -231,7 +230,7 @@ export default function Home() {
         <StatusCard
           icon={Star}
           accent={colors.ai}
-          label="Level & XP"
+          label={t('home.levelAndXp')}
           value={`Level ${levelProgress?.currentLevel ?? gamificationProfile?.level ?? 1}`}
           note={
             levelProgress
@@ -247,7 +246,7 @@ export default function Home() {
         <Pressable
           onPress={() => router.push('/(onboarding)/complete-profile')}
           accessibilityRole="button"
-          accessibilityLabel={`Complete your donor profile, ${completionPercentage} percent done`}
+          accessibilityLabel={`{t('home.completeProfile')}, ${completionPercentage} percent done`}
         >
           <GlassCard style={styles.completionCard}>
             <View style={styles.completionRow}>
@@ -255,9 +254,9 @@ export default function Home() {
                 <UserRound size={22} color={colors.textMuted} />
               </View>
               <View style={{ flex: 1 }}>
-                <AppText style={styles.completionTitle}>Complete your donor profile</AppText>
+                <AppText style={styles.completionTitle}>{t('home.completeProfile')}</AppText>
                 <AppText muted style={styles.completionNote}>
-                  Add the remaining information to finish setup.
+                  {t('home.completeProfileBody')}
                 </AppText>
               </View>
               <ChevronRight size={18} color={colors.textMuted} />
@@ -275,15 +274,15 @@ export default function Home() {
       )}
 
       <SectionHeader action={{ label: 'View all', onPress: () => router.push('/sos') }}>
-        Emergency
+        {t('home.emergency')}
       </SectionHeader>
       <Pressable
         onPress={() => router.push('/sos')}
         accessibilityRole="button"
         accessibilityLabel={
           activeEmergencyCount > 0
-            ? `${activeEmergencyCount} emergency requests matched to you`
-            : 'Emergency requests'
+            ? t('home.emergenciesMatched', { count: activeEmergencyCount })
+            : t('home.emergencyRequests')
         }
       >
         <GlassCard tier="danger">
@@ -294,20 +293,18 @@ export default function Home() {
             <View style={{ flex: 1 }}>
               <AppText style={styles.emergencyTitle}>
                 {activeEmergencyCount > 0
-                  ? `${activeEmergencyCount} emergency ${
-                      activeEmergencyCount === 1 ? 'request' : 'requests'
-                    } matched to you`
-                  : 'No emergency requests right now'}
+                  ? t('home.emergenciesMatched', { count: activeEmergencyCount })
+                  : t('home.noEmergencies')}
               </AppText>
               <AppText muted style={styles.emergencyNote}>
                 {activeEmergencyCount > 0
-                  ? 'Nearby patients need your help.'
-                  : "We'll alert you the moment someone nearby needs your blood type."}
+                  ? t('home.emergencyNearbyNeed')
+                  : t('home.emergencyWillAlert')}
               </AppText>
             </View>
             {activeEmergencyCount > 0 ? (
               <AppButton variant="danger" size="small" onPress={() => router.push('/sos')}>
-                View requests
+                {t('home.viewRequests')}
               </AppButton>
             ) : (
               <ChevronRight size={18} color={colors.textMuted} />
@@ -316,7 +313,7 @@ export default function Home() {
         </GlassCard>
       </Pressable>
 
-      <SectionHeader>Quick actions</SectionHeader>
+      <SectionHeader>{t('home.quickActions')}</SectionHeader>
       <View style={styles.quickActions}>
         <QuickAction
           icon={Droplet}
@@ -460,23 +457,27 @@ function QuickAction({
   );
 }
 
-function getGreeting(name: string): string {
+function getGreeting(t: TranslateFn, name: string): string {
   const hour = new Date().getHours();
   let timeGreeting: string;
 
   if (hour < 12) {
-    timeGreeting = 'Good morning';
+    timeGreeting = t('home.greetingMorning');
   } else if (hour < 17) {
-    timeGreeting = 'Good afternoon';
+    timeGreeting = t('home.greetingAfternoon');
   } else {
-    timeGreeting = 'Good evening';
+    timeGreeting = t('home.greetingEvening');
   }
 
   return `${timeGreeting}, ${name}`;
 }
 
 /** Badge wording, badge colour and the sentence beside the shield, in one place. */
-function getVerification(colors: ThemeColors, status: string | undefined): {
+function getVerification(
+  t: TranslateFn,
+  colors: ThemeColors,
+  status: string | undefined,
+): {
   badge: string;
   badgeFill: string;
   badgeText: string;
@@ -484,34 +485,26 @@ function getVerification(colors: ThemeColors, status: string | undefined): {
 } {
   if (status === 'VERIFIED') {
     return {
-      badge: 'VERIFIED',
+      badge: t('home.verificationVerified'),
       badgeFill: colors.successMuted,
       badgeText: colors.onMuted.success,
-      note: 'Blood type verified',
+      note: t('home.bloodTypeVerified'),
     };
   }
   if (status === 'REQUIRES_REVIEW') {
     return {
-      badge: 'UNDER REVIEW',
+      badge: t('home.verificationUnderReview'),
       badgeFill: colors.warningMuted,
       badgeText: colors.onMuted.warning,
-      note: 'Verification in progress',
+      note: t('home.verificationInProgress'),
     };
   }
   return {
-    badge: 'UNVERIFIED',
+    badge: t('home.verificationUnverified'),
     badgeFill: 'rgba(255,255,255,0.18)',
     badgeText: '#FFFFFF',
-    note: 'Verify your blood type',
+    note: t('home.verifyBloodType'),
   };
-}
-
-function formatDay(date: Date): string {
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-}
-
-function formatTime(date: Date): string {
-  return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
 }
 
 function createStyles(colors: ThemeColors) {

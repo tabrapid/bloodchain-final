@@ -10,9 +10,11 @@ import { useLogin, getAuthErrorMessage } from '../../src/hooks/useAuth';
 import { getPostAuthRoute } from '../../src/utils/postAuthRoute';
 import { layout, spacing, useTheme } from '../../src/theme';
 import { BRAND_NAME } from '../../src/brand';
+import { useTranslation } from '../../src/i18n';
 
 export default function Login() {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const login = useLogin();
   const [serverError, setServerError] = useState<string | null>(null);
   const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
@@ -44,17 +46,17 @@ export default function Login() {
         icon={ChevronLeft}
         onPress={() => router.back()}
         accessibilityRole="button"
-        accessibilityLabel="Go back"
+        accessibilityLabel={t('auth.a11y.goBack')}
       />
 
       <View style={{ marginTop: spacing.xl }}>
         {/* The auth headlines are the one place the reference goes bigger and
             heavier than the standard screen title. */}
         <AppText style={{ fontSize: 34, fontWeight: '800', letterSpacing: -1, color: colors.text }}>
-          Welcome back
+          {t('auth.login.title')}
         </AppText>
         <AppText muted style={{ fontSize: 15, marginTop: 6, marginBottom: spacing.xl }}>
-          Sign in to your {BRAND_NAME} account
+          {t('auth.login.subtitle', { brand: BRAND_NAME })}
         </AppText>
 
         <Controller
@@ -62,8 +64,8 @@ export default function Login() {
           name="email"
           render={({ field, fieldState }) => (
             <AppTextInput
-              label="Email address"
-              placeholder="you@example.com"
+              label={t('auth.fields.email')}
+              placeholder={t('auth.fields.emailPlaceholder')}
               autoCapitalize="none"
               autoComplete="email"
               keyboardType="email-address"
@@ -73,7 +75,7 @@ export default function Login() {
               returnKeyType="next"
               blurOnSubmit={false}
               onSubmitEditing={() => passwordRef.current?.focus()}
-              error={fieldState.error?.message}
+              error={fieldState.error?.message ? t(fieldState.error.message) : undefined}
               wrapperStyle={{ marginBottom: layout.cardGap }}
               value={field.value}
               onChangeText={field.onChange}
@@ -88,21 +90,21 @@ export default function Login() {
           render={({ field, fieldState }) => (
             <AppTextInput
               ref={passwordRef}
-              label="Password"
+              label={t('auth.fields.password')}
               placeholder="••••••••"
               secureTextEntry={!showPassword}
               autoComplete="password"
               returnKeyType="go"
               onSubmitEditing={onSubmit}
               leading={<Lock size={19} color={colors.textMuted} />}
-              error={fieldState.error?.message}
+              error={fieldState.error?.message ? t(fieldState.error.message) : undefined}
               wrapperStyle={{ marginBottom: spacing.lg }}
               trailing={
                 <Pressable
                   onPress={() => setShowPassword((v) => !v)}
                   hitSlop={8}
                   accessibilityRole="button"
-                  accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+                  accessibilityLabel={showPassword ? t('auth.fields.hidePassword') : t('auth.fields.showPassword')}
                 >
                   {showPassword ? (
                     <EyeOff size={20} color={colors.textMuted} />
@@ -124,7 +126,7 @@ export default function Login() {
         <Pressable
           onPress={() => router.push('/(auth)/forgot-password')}
           accessibilityRole="button"
-          accessibilityLabel="Reset your password"
+          accessibilityLabel={t('auth.login.a11yForgotPassword')}
           hitSlop={8}
           style={({ pressed }) => ({
             alignSelf: 'flex-end',
@@ -136,7 +138,7 @@ export default function Login() {
           })}
         >
           <AppText style={{ fontSize: 13, fontWeight: '500', color: colors.primary }}>
-            Forgot password?
+            {t('auth.login.forgotPassword')}
           </AppText>
         </Pressable>
 
@@ -150,13 +152,13 @@ export default function Login() {
           gradient
           trailingIcon={ArrowRight}
           accessibilityRole="button"
-          accessibilityLabel="Sign in to Bloodchain"
+          accessibilityLabel={t('auth.welcome.a11ySignIn')}
           style={{ height: 54 }}
           onPress={onSubmit}
           disabled={login.isPending || formState.isSubmitting}
           loading={login.isPending}
         >
-          Sign In
+          {t('auth.login.submit')}
         </AppButton>
 
         {unverifiedEmail && (
@@ -167,7 +169,7 @@ export default function Login() {
               router.push({ pathname: '/(auth)/check-email', params: { email: unverifiedEmail } })
             }
           >
-            Resend verification email
+            {t('auth.login.resendVerification')}
           </AppButton>
         )}
 
@@ -192,7 +194,7 @@ export default function Login() {
         >
           <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
           <AppText muted style={{ fontSize: 13 }}>
-            Don&apos;t have an account?
+            {t('auth.login.noAccount')}
           </AppText>
           <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
         </View>
@@ -205,14 +207,14 @@ export default function Login() {
           textColor={colors.text}
           onPress={() => router.push('/(auth)/register')}
           accessibilityRole="button"
-          accessibilityLabel="Create a Bloodchain account"
+          accessibilityLabel={t('auth.welcome.a11yCreateAccount')}
           style={{
             height: 54,
             backgroundColor: 'rgba(255,255,255,0.07)',
             borderColor: 'rgba(255,255,255,0.16)',
           }}
         >
-          Create Account
+          {t('auth.login.createAccount')}
         </AppButton>
 
         <View
@@ -226,7 +228,7 @@ export default function Login() {
         >
           <ShieldCheck size={15} color={colors.onMuted.success} />
           <AppText muted style={{ fontSize: 12 }}>
-            Your data is private and secure.
+            {t('auth.login.secure')}
           </AppText>
         </View>
       </View>

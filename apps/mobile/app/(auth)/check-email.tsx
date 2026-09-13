@@ -5,9 +5,11 @@ import { Mail } from 'lucide-react-native';
 import { AppButton, AppText, Screen } from '../../src/components';
 import { useResendVerification, getAuthErrorMessage } from '../../src/hooks/useAuth';
 import { spacing, useTheme } from '../../src/theme';
+import { useTranslation } from '../../src/i18n';
 
 export default function CheckEmail() {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const params = useLocalSearchParams<{ email?: string }>();
   const resend = useResendVerification();
   const [sent, setSent] = useState(false);
@@ -45,18 +47,18 @@ export default function CheckEmail() {
         </View>
 
         <AppText variant="title" style={{ textAlign: 'center', marginBottom: spacing.sm }}>
-          Check your email
+          {t('auth.checkEmail.title')}
         </AppText>
 
         <AppText muted style={{ textAlign: 'center', marginBottom: spacing.xl }}>
           {params.email
-            ? `We sent a verification link to ${params.email}. Open it on this device to activate your account.`
-            : 'We sent you a verification link. Open it on this device to activate your account.'}
+            ? t('auth.checkEmail.bodyWithEmail', { email: params.email })
+            : t('auth.checkEmail.body')}
         </AppText>
 
         {sent && (
           <AppText style={{ color: colors.success, marginBottom: spacing.md, textAlign: 'center' }}>
-            A new verification email is on its way.
+            {t('auth.checkEmail.resent')}
           </AppText>
         )}
 
@@ -72,7 +74,7 @@ export default function CheckEmail() {
           onPress={() => router.replace('/(auth)/login')}
           style={{ alignSelf: 'stretch' }}
         >
-          Back to sign in
+          {t('auth.checkEmail.backToSignIn')}
         </AppButton>
 
         <Pressable
@@ -88,7 +90,7 @@ export default function CheckEmail() {
           })}
         >
           <AppText style={{ fontSize: 13, fontWeight: '500', color: colors.primary }}>
-            {resend.isPending ? 'Sending…' : 'Resend email'}
+            {resend.isPending ? t('common.sending') : t('auth.checkEmail.resend')}
           </AppText>
         </Pressable>
       </View>

@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest';
+import { z } from 'zod';
+import { createLocalization, SUPPORTED_LOCALES } from '@bloodchain/i18n';
 import {
   bookAppointmentSchema,
   cancelAppointmentSchema,
   changePasswordSchema,
   emailSchema,
+  forgotPasswordSchema,
   idSchema,
   loginSchema,
   nameSchema,
@@ -298,5 +301,91 @@ describe('rescheduleAppointmentSchema', () => {
 
   it('accepts a non-empty newSlotId', () => {
     expect(rescheduleAppointmentSchema.safeParse({ newSlotId: 'slot-2' }).success).toBe(true);
+  });
+});
+
+/**
+ * Sprint 1A: every validation message in the auth flows is a catalogue key.
+ *
+ * These schemas are built at module load, where there is no locale, so their
+ * messages are keys and the screen resolves them with `t`. That only works
+ * while every key exists in every catalogue: `t` returns an unknown key
+ * unchanged, so a missing one does not throw -- it renders
+ * `validation.passwordNumber` under a password field, and nobody notices until
+ * a user reports it.
+ *
+ * Zod's own defaults ("Invalid email", "String must contain at least 1
+ * character(s)") are what this is really guarding against: they are English
+ * sentences, they are what a rule added without a message produces, and they
+ * would reach an Uzbek donor exactly as written.
+ *
+ * The booking schemas are deliberately absent. Their messages are still zod
+ * defaults, and those screens are not part of this sprint's covered flows;
+ * adding them here would fail for a reason the sprint has not addressed yet.
+ */
+describe('auth validation messages resolve in every language', () => {
+  /** Each schema with inputs chosen to break each of its rules in turn. */
+  const cases: Array<[string, z.ZodTypeAny, unknown[]]> = [
+    ['emailSchema', emailSchema, ['not-an-email', `${'a'.repeat(250)}@example.com`]],
+    ['passwordSchema', passwordSchema, ['short', 'a'.repeat(200)]],
+    [
+      'strongPasswordSchema',
+      strongPasswordSchema,
+      ['short', 'a'.repeat(200), 'alllowercase123!', 'ALLUPPERCASE123!', 'NoDigitsHere!!!!', 'NoSpecials1234567'],
+    ],
+    ['phoneSchema', phoneSchema, ['12345', '998901234567']],
+    ['nameSchema', nameSchema, ['', 'a'.repeat(100)]],
+    [
+      'registerSchema',
+      registerSchema,
+      [
+        { email: 'nope', password: 'weak', firstName: '', lastName: '', phone: '12345' },
+        {
+          email: 'someone@example.com',
+          password: 'alllowercase123!',
+          firstName: 'a'.repeat(100),
+          lastName: 'b',
+        },
+      ],
+    ],
+    ['loginSchema', loginSchema, [{ email: 'nope', password: '' }, { email: 'a@b.co', password: 'x'.repeat(200) }]],
+    [
+      'changePasswordSchema',
+      changePasswordSchema,
+      [{ currentPassword: '', newPassword: 'weak' }, { currentPassword: 'x', newPassword: 'alllowercase123!' }],
+    ],
+    [
+      'resetPasswordSchema',
+      resetPasswordSchema,
+      [{ token: '', newPassword: 'weak' }, { token: 'a'.repeat(200), newPassword: 'NoSpecials1234567' }],
+    ],
+    ['forgotPasswordSchema', forgotPasswordSchema, [{ email: 'nope' }]],
+  ];
+
+  /** Every message the schema actually produces for those inputs. */
+  const messagesOf = (schema: z.ZodTypeAny, probes: unknown[]): string[] => {
+    const found = new Set<string>();
+    for (const probe of probes) {
+      const result = schema.safeParse(probe);
+      if (result.success) continue;
+      for (const issue of result.error.issues) found.add(issue.message);
+    }
+    return [...found];
+  };
+
+  it.each(cases)('%s produces only catalogue keys, never an English sentence', (_name, schema, probes) => {
+    const messages = messagesOf(schema, probes);
+    expect(messages.length).toBeGreaterThan(0);
+
+    const notKeys = messages.filter((message) => !/^[a-z][A-Za-z]*(\.[A-Za-z]+)+$/.test(message));
+    expect(notKeys).toEqual([]);
+  });
+
+  it.each(cases)('%s resolves in Uzbek, Russian and English', (_name, schema, probes) => {
+    for (const locale of SUPPORTED_LOCALES) {
+      const { t } = createLocalization(locale);
+      const unresolved = messagesOf(schema, probes).filter((message) => t(message) === message);
+      expect({ locale, unresolved }).toEqual({ locale, unresolved: [] });
+    }
   });
 });

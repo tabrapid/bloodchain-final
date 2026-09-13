@@ -6,6 +6,7 @@ import { ArrowRight } from 'lucide-react-native';
 import { AppButton, AppText, BrandMark, HeroWave } from '../../src/components';
 import { spacing, useTheme } from '../../src/theme';
 import { BRAND_NAME, BRAND_TAGLINE } from '../../src/brand';
+import { useTranslation } from '../../src/i18n';
 
 /**
  * Point these at the published legal pages and the two phrases below become
@@ -37,6 +38,7 @@ function headlineSize(width: number) {
 }
 
 export default function Welcome() {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
@@ -131,7 +133,7 @@ export default function Welcome() {
               color: ON_WAVE_PRIMARY,
             }}
           >
-            A stronger tomorrow, together.
+            {t('auth.welcome.headline')}
           </AppText>
 
           <AppText
@@ -146,7 +148,7 @@ export default function Welcome() {
               color: ON_WAVE_SECONDARY,
             }}
           >
-            Connect. Donate. Make an impact. Every drop counts.
+            {t('auth.welcome.subheadline')}
           </AppText>
 
           <AppButton
@@ -156,12 +158,12 @@ export default function Welcome() {
             trailingIcon={ArrowRight}
             onPress={() => router.push('/(auth)/register')}
             accessibilityRole="button"
-            accessibilityLabel="Create Bloodchain account"
+            accessibilityLabel={t('auth.welcome.a11yCreateAccount')}
             // The variant's 0.4 glow is tuned for the app's dark ground; on
             // colour it haloes.
             style={{ height: 54, marginTop: 30, shadowOpacity: 0.22 }}
           >
-            Create Account
+            {t('auth.welcome.createAccount')}
           </AppButton>
 
           {/*
@@ -177,7 +179,7 @@ export default function Welcome() {
             textColor={ON_WAVE_PRIMARY}
             onPress={() => router.push('/(auth)/login')}
             accessibilityRole="button"
-            accessibilityLabel="Sign in to Bloodchain"
+            accessibilityLabel={t('auth.welcome.a11ySignIn')}
             style={{
               height: 54,
               marginTop: 12,
@@ -185,7 +187,7 @@ export default function Welcome() {
               borderColor: 'rgba(255,255,255,0.34)',
             }}
           >
-            Sign In
+            {t('auth.welcome.signIn')}
           </AppButton>
 
           <AppText
@@ -203,8 +205,9 @@ export default function Welcome() {
               color: ON_WAVE_TERTIARY,
             }}
           >
-            By continuing, you agree to our <LegalLink url={TERMS_URL}>Terms of Service</LegalLink>{' '}
-            and <LegalLink url={PRIVACY_URL}>Privacy Policy</LegalLink>.
+            {t('auth.welcome.legalPrefix')}{' '}
+            <LegalLink url={TERMS_URL}>{t('auth.welcome.terms')}</LegalLink>{' '}
+            {t('auth.welcome.and')} <LegalLink url={PRIVACY_URL}>{t('auth.welcome.privacy')}</LegalLink>.
           </AppText>
         </View>
       </View>

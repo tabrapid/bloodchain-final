@@ -1,6 +1,7 @@
 import React from 'react';
 import renderer, { act } from 'react-test-renderer';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { LocaleProvider } from '../i18n';
 import { ThemeProvider } from '../theme';
 
 jest.mock('expo-router', () => ({ router: { push: jest.fn() } }));
@@ -14,12 +15,13 @@ jest.mock('../hooks/useAppointments', () => ({
   useMyAppointments: (...args: unknown[]) => mockUseMyAppointments(...args),
 }));
 
+import { createLocalization } from '@bloodchain/i18n';
 import Calendar from '../../app/(app)/calendar';
 
-const MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-];
+// The grid labels each day the way the screen does -- through the shared
+// formatter, so the assertion follows the locale instead of restating an
+// English date format that localisation has since moved on from.
+const { formatDate, t } = createLocalization('en');
 
 const now = new Date();
 /** The 1st of the month on screen -- in the past for most of the month. */
@@ -40,14 +42,16 @@ function render() {
   act(() => {
     tree = renderer.create(
       <ThemeProvider>
-        <SafeAreaProvider
-          initialMetrics={{
-            frame: { x: 0, y: 0, width: 390, height: 844 },
-            insets: { top: 47, left: 0, right: 0, bottom: 34 },
-          }}
-        >
-          <Calendar />
-        </SafeAreaProvider>
+        <LocaleProvider>
+          <SafeAreaProvider
+            initialMetrics={{
+              frame: { x: 0, y: 0, width: 390, height: 844 },
+              insets: { top: 47, left: 0, right: 0, bottom: 34 },
+            }}
+          >
+            <Calendar />
+          </SafeAreaProvider>
+        </LocaleProvider>
       </ThemeProvider>,
     );
   });
@@ -82,7 +86,7 @@ describe('Calendar', () => {
 
   it('shows an appointment on a day that has already passed', () => {
     const tree = render();
-    const label = `${MONTHS[earlyInMonth.getMonth()]} 1, 1 appointments`;
+    const label = `${formatDate(earlyInMonth, 'long')}, ${t('calendar.appointmentsCount', { count: 1 })}`;
     const cell = tree.root.find(
       (node) => (node.props as { accessibilityLabel?: string }).accessibilityLabel === label,
     );

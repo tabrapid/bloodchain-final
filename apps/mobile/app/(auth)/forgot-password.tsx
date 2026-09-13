@@ -8,6 +8,7 @@ import { forgotPasswordSchema, type ForgotPasswordInput } from '@bloodchain/vali
 import { AppButton, AppText, AppTextInput, IconButton, Screen } from '../../src/components';
 import { useRequestPasswordReset, getRecoveryErrorMessage } from '../../src/hooks/useAuth';
 import { layout, spacing, useTheme } from '../../src/theme';
+import { useTranslation } from '../../src/i18n';
 
 /**
  * Step one of account recovery: ask for the link.
@@ -22,6 +23,7 @@ import { layout, spacing, useTheme } from '../../src/theme';
  */
 export default function ForgotPassword() {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const request = useRequestPasswordReset();
   const [sentTo, setSentTo] = useState<string | null>(null);
   const [serverError, setServerError] = useState<string | null>(null);
@@ -64,18 +66,17 @@ export default function ForgotPassword() {
           </View>
 
           <AppText variant="title" style={{ textAlign: 'center', marginBottom: spacing.sm }}>
-            Check your email
+            {t('auth.forgotPassword.sentTitle')}
           </AppText>
 
           {/* "If an account exists" is not hedging -- it is the only true thing
               this screen can say, because the server does not tell it. */}
           <AppText muted style={{ textAlign: 'center', marginBottom: spacing.xl }}>
-            If an account exists for {sentTo}, a reset link is on its way. The link can be used once
-            and expires within the hour.
+{t('auth.forgotPassword.sentBody', { email: sentTo })}
           </AppText>
 
           <AppButton onPress={() => router.replace('/(auth)/login')} style={{ alignSelf: 'stretch' }}>
-            Back to sign in
+            {t('auth.checkEmail.backToSignIn')}
           </AppButton>
 
           <Pressable
@@ -85,7 +86,7 @@ export default function ForgotPassword() {
             }}
             disabled={busy}
             accessibilityRole="button"
-            accessibilityLabel="Use a different email address"
+            accessibilityLabel={t('auth.forgotPassword.a11yUseDifferentEmail')}
             hitSlop={8}
             style={({ pressed }) => ({
               marginTop: 20,
@@ -95,7 +96,7 @@ export default function ForgotPassword() {
             })}
           >
             <AppText style={{ fontSize: 13, fontWeight: '500', color: colors.primary }}>
-              Use a different email
+              {t('auth.forgotPassword.useDifferentEmail')}
             </AppText>
           </Pressable>
 
@@ -104,7 +105,7 @@ export default function ForgotPassword() {
           <Pressable
             onPress={() => router.push('/(auth)/reset-password')}
             accessibilityRole="button"
-            accessibilityLabel="I already have a reset code"
+            accessibilityLabel={t('auth.forgotPassword.a11yHaveCode')}
             hitSlop={8}
             style={({ pressed }) => ({
               marginTop: spacing.sm,
@@ -114,7 +115,7 @@ export default function ForgotPassword() {
             })}
           >
             <AppText muted style={{ fontSize: 13 }}>
-              I already have a reset code
+              {t('auth.forgotPassword.haveCode')}
             </AppText>
           </Pressable>
         </View>
@@ -129,16 +130,15 @@ export default function ForgotPassword() {
           icon={ChevronLeft}
           onPress={() => router.back()}
           accessibilityRole="button"
-          accessibilityLabel="Go back"
+          accessibilityLabel={t('auth.a11y.goBack')}
         />
 
         <View style={{ marginTop: spacing.xl }}>
           <AppText style={{ fontSize: 34, fontWeight: '800', letterSpacing: -1, color: colors.text }}>
-            Reset password
+            {t('auth.forgotPassword.title')}
           </AppText>
           <AppText muted style={{ fontSize: 15, marginTop: 6, marginBottom: spacing.xl }}>
-            Enter the email address you signed up with and we&apos;ll send you a link to set a new
-            password.
+{t('auth.forgotPassword.subtitle')}
           </AppText>
 
           <Controller
@@ -146,8 +146,8 @@ export default function ForgotPassword() {
             name="email"
             render={({ field, fieldState }) => (
               <AppTextInput
-                label="Email address"
-                placeholder="you@example.com"
+                label={t('auth.fields.email')}
+                placeholder={t('auth.fields.emailPlaceholder')}
                 autoCapitalize="none"
                 autoComplete="email"
                 keyboardType="email-address"
@@ -156,7 +156,7 @@ export default function ForgotPassword() {
                 returnKeyType="send"
                 onSubmitEditing={onSubmit}
                 editable={!busy}
-                error={fieldState.error?.message}
+                error={fieldState.error?.message ? t(fieldState.error.message) : undefined}
                 wrapperStyle={{ marginBottom: layout.cardGap }}
                 value={field.value}
                 onChangeText={field.onChange}
@@ -178,13 +178,13 @@ export default function ForgotPassword() {
             gradient
             trailingIcon={ArrowRight}
             accessibilityRole="button"
-            accessibilityLabel="Send password reset link"
+            accessibilityLabel={t('auth.forgotPassword.a11ySubmit')}
             style={{ height: 54 }}
             onPress={onSubmit}
             disabled={busy}
             loading={request.isPending}
           >
-            Send reset link
+            {t('auth.forgotPassword.submit')}
           </AppButton>
         </View>
 
@@ -194,7 +194,7 @@ export default function ForgotPassword() {
           <Pressable
             onPress={() => router.push('/(auth)/reset-password')}
             accessibilityRole="button"
-            accessibilityLabel="Enter a reset code you already have"
+            accessibilityLabel={t('auth.forgotPassword.a11yHaveCode')}
             hitSlop={8}
             style={({ pressed }) => ({
               minHeight: 44,
@@ -204,9 +204,9 @@ export default function ForgotPassword() {
             })}
           >
             <AppText muted style={{ fontSize: 13 }}>
-              Already have a reset code?{' '}
+              {t('auth.forgotPassword.haveCode')}{' '}
               <AppText style={{ fontSize: 13, fontWeight: '500', color: colors.primary }}>
-                Enter it
+                {t('auth.forgotPassword.enterIt')}
               </AppText>
             </AppText>
           </Pressable>
@@ -214,7 +214,7 @@ export default function ForgotPassword() {
           <Pressable
             onPress={() => router.replace('/(auth)/login')}
             accessibilityRole="button"
-            accessibilityLabel="Back to sign in"
+            accessibilityLabel={t('auth.checkEmail.backToSignIn')}
             hitSlop={8}
             style={({ pressed }) => ({
               minHeight: 44,
@@ -224,7 +224,7 @@ export default function ForgotPassword() {
             })}
           >
             <AppText style={{ fontSize: 13, fontWeight: '500', color: colors.text }}>
-              Back to sign in
+              {t('auth.checkEmail.backToSignIn')}
             </AppText>
           </Pressable>
         </View>

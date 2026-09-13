@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Bell, LogOut, Menu, Search } from 'lucide-react';
 import { cn } from '../cn';
 
@@ -10,6 +11,13 @@ export interface TopbarProps {
   onLogout?: () => void;
   /** Renders a hamburger button, `lg:hidden`, that opens the off-canvas sidebar. */
   onMenuClick?: () => void;
+  /**
+   * Extra controls for the right-hand side -- the language switcher today.
+   *
+   * A slot rather than a built-in, so this presentational component stays free
+   * of the locale context that the switcher needs.
+   */
+  actions?: ReactNode;
   className?: string;
 }
 
@@ -24,6 +32,7 @@ export function Topbar({
   onNotifications,
   onLogout,
   onMenuClick,
+  actions,
   className,
 }: TopbarProps) {
   return (
@@ -67,6 +76,7 @@ export function Topbar({
             />
           </div>
         )}
+        {actions}
         {onNotifications && (
           <button onClick={onNotifications} className={iconButton} aria-label="Notifications">
             <Bell size={18} />

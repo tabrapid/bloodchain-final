@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { LanguageSwitcher, useTranslation } from '@bloodchain/ui/i18n';
 import Link from 'next/link';
 import { MailCheck, Shield } from 'lucide-react';
 import { requestPasswordReset, recoveryErrorMessage } from '../../lib/auth';
@@ -15,6 +16,7 @@ import { requestPasswordReset, recoveryErrorMessage } from '../../lib/auth';
  * confirmation is worded so it is true either way.
  */
 export default function AdminForgotPasswordPage() {
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [sentTo, setSentTo] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -37,6 +39,12 @@ export default function AdminForgotPasswordPage() {
   return (
     <div className="min-h-screen bc-app-bg flex items-center justify-center">
       <div className="bc-glass rounded-card p-8 w-full max-w-md">
+        {/* A signed-out admin who cannot read this page has no other way to
+            change it: the console's switcher lives in the top bar, which only
+            renders once you are inside. */}
+        <div className="mb-4 flex justify-end">
+          <LanguageSwitcher />
+        </div>
         <div className="flex items-center gap-3 mb-6">
           <div className="w-10 h-10 bg-donor-primary rounded-lg flex items-center justify-center">
             {sentTo ? (
@@ -46,40 +54,40 @@ export default function AdminForgotPasswordPage() {
             )}
           </div>
           <div>
-            <h1 className="text-xl font-semibold text-donor-text">Admin Portal</h1>
-            <p className="text-sm text-donor-muted">BloodChain Management</p>
+            <h1 className="text-xl font-semibold text-donor-text">{t('portal.admin.name')}</h1>
+            <p className="text-sm text-donor-muted">{t('portal.admin.workspace')}</p>
           </div>
         </div>
 
         {sentTo ? (
           <>
-            <h2 className="text-lg font-medium text-donor-text mb-2">Check your email</h2>
+            <h2 className="text-lg font-medium text-donor-text mb-2">
+              {t('auth.forgotPassword.sentTitle')}
+            </h2>
             {/* "If an account exists" is not hedging: it is the only true thing
                 this page can say, because the server does not tell it. */}
             <p className="text-sm text-donor-muted mb-6">
-              If an account exists for <strong className="text-donor-text">{sentTo}</strong>, a reset
-              link is on its way. The link can be used once and expires within the hour.
+              {t('auth.forgotPassword.sentBody', { email: sentTo })}
             </p>
             <Link
               href="/"
               className="block w-full bg-donor-primary text-white py-2.5 px-4 rounded-lg font-medium text-center hover:bg-donor-primary/85 transition-colors"
             >
-              Back to sign in
+              {t('portal.backToSignIn')}
             </Link>
             <button
               onClick={() => setSentTo(null)}
               className="mt-3 w-full text-sm font-medium text-donor-primary hover:underline"
             >
-              Use a different email
+              {t('auth.forgotPassword.useDifferentEmail')}
             </button>
           </>
         ) : (
           <>
-            <h2 className="text-lg font-medium text-donor-text mb-2">Reset your password</h2>
-            <p className="text-sm text-donor-muted mb-4">
-              Enter the email address you sign in with and we&apos;ll send you a link to set a new
-              password.
-            </p>
+            <h2 className="text-lg font-medium text-donor-text mb-2">
+              {t('auth.forgotPassword.title')}
+            </h2>
+            <p className="text-sm text-donor-muted mb-4">{t('auth.forgotPassword.subtitle')}</p>
 
             {error && (
               <div
@@ -93,7 +101,7 @@ export default function AdminForgotPasswordPage() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-donor-text mb-1">
-                  Email
+                  {t('portal.email')}
                 </label>
                 <input
                   id="email"
@@ -112,14 +120,14 @@ export default function AdminForgotPasswordPage() {
                 disabled={isSubmitting}
                 className="w-full bg-donor-primary text-white py-2.5 px-4 rounded-lg font-medium hover:bg-donor-primary/85 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                {isSubmitting ? 'Sending...' : 'Send reset link'}
+                {isSubmitting ? t('common.sending') : t('auth.forgotPassword.submit')}
               </button>
             </form>
 
             <p className="mt-6 text-center text-sm text-donor-muted">
-              Remembered it?{' '}
+              {t('portal.rememberedIt')}{' '}
               <Link href="/" className="font-medium text-donor-primary hover:underline">
-                Back to sign in
+                {t('portal.backToSignIn')}
               </Link>
             </p>
           </>

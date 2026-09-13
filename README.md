@@ -212,6 +212,7 @@ The seed script creates the following development-only accounts:
 - [API](./docs/api.md)
 - [Development](./docs/development.md)
 - [Security](./docs/security.md)
+- [Localization](./docs/localization.md)
 - [Roadmap](./docs/roadmap.md)
 
 `TODO.md` is the live production-readiness audit: what has been fixed, how each

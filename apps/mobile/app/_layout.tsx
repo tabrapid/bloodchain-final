@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryProvider } from '../src/providers/QueryProvider';
 import { ThemeProvider, useTheme } from '../src/theme';
+import { LocaleProvider } from '../src/i18n';
 import { AppBackground } from '../src/components/AppBackground';
 import { useAuthBootstrap } from '../src/hooks/useAuth';
 import { usePushNotifications } from '../src/hooks/usePushNotifications';
@@ -43,11 +44,15 @@ function AppContent() {
 export default function RootLayout() {
   return (
     <ThemeProvider>
-      <SafeAreaProvider>
-        <QueryProvider>
-          <AppContent />
-        </QueryProvider>
-      </SafeAreaProvider>
+      {/* Above the navigator, so a language change re-renders every screen
+          without remounting the query client or touching stored tokens. */}
+      <LocaleProvider>
+        <SafeAreaProvider>
+          <QueryProvider>
+            <AppContent />
+          </QueryProvider>
+        </SafeAreaProvider>
+      </LocaleProvider>
     </ThemeProvider>
   );
 }

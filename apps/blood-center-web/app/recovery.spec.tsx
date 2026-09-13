@@ -1,6 +1,8 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+
+import { renderLocalized } from '../lib/test-render';
 
 /**
  * Sprint 0.6: password recovery in the blood centre console.
@@ -85,7 +87,7 @@ describe('blood centre console: requesting a reset link', () => {
   it('sends the address and confirms without revealing whether the account exists', async () => {
     mockRequestPasswordReset.mockResolvedValue({ success: true, message: 'ok' });
     const user = userEvent.setup();
-    render(<ForgotPasswordPage />);
+    renderLocalized(<ForgotPasswordPage />);
 
     await user.type(screen.getByLabelText('Email'), 'staff@centre.local');
     await user.click(screen.getByRole('button', { name: /send reset link/i }));
@@ -100,7 +102,7 @@ describe('blood centre console: requesting a reset link', () => {
   it('explains the rate limit rather than reporting it as a failure to send', async () => {
     mockRequestPasswordReset.mockRejectedValue(apiError(429, 'Too Many Requests'));
     const user = userEvent.setup();
-    render(<ForgotPasswordPage />);
+    renderLocalized(<ForgotPasswordPage />);
 
     await user.type(screen.getByLabelText('Email'), 'staff@centre.local');
     await user.click(screen.getByRole('button', { name: /send reset link/i }));
@@ -110,7 +112,7 @@ describe('blood centre console: requesting a reset link', () => {
   });
 
   it('offers a way back to this console’s own sign-in', () => {
-    render(<ForgotPasswordPage />);
+    renderLocalized(<ForgotPasswordPage />);
     const back = screen.getAllByRole('link', { name: /back to sign in/i })[0];
     expect(back).toHaveAttribute('href', '/');
   });
@@ -127,7 +129,7 @@ describe('blood centre console: setting a new password', () => {
     mockToken = 'a'.repeat(64);
     mockResetPassword.mockResolvedValue({ success: true, message: 'ok' });
     const user = userEvent.setup();
-    render(<ResetPasswordPage />);
+    renderLocalized(<ResetPasswordPage />);
 
     expect(screen.queryByLabelText('Reset code')).not.toBeInTheDocument();
     await fill(user, 'NewPassword!2026');
@@ -138,14 +140,14 @@ describe('blood centre console: setting a new password', () => {
   });
 
   it('asks for the code when opened without one', async () => {
-    render(<ResetPasswordPage />);
+    renderLocalized(<ResetPasswordPage />);
     expect(await screen.findByLabelText('Reset code')).toBeInTheDocument();
   });
 
   it('enforces the server password policy in the form, not by round trip', async () => {
     mockToken = 'a'.repeat(64);
     const user = userEvent.setup();
-    render(<ResetPasswordPage />);
+    renderLocalized(<ResetPasswordPage />);
 
     // Long enough, but no uppercase, digit or symbol.
     await fill(user, 'abcdefghijklmno');
@@ -157,7 +159,7 @@ describe('blood centre console: setting a new password', () => {
   it('catches a mistyped confirmation before spending the token', async () => {
     mockToken = 'a'.repeat(64);
     const user = userEvent.setup();
-    render(<ResetPasswordPage />);
+    renderLocalized(<ResetPasswordPage />);
 
     await fill(user, 'NewPassword!2026', 'NewPassword!2027');
 
@@ -171,7 +173,7 @@ describe('blood centre console: setting a new password', () => {
       apiError(400, 'This password reset link is invalid or has expired.'),
     );
     const user = userEvent.setup();
-    render(<ResetPasswordPage />);
+    renderLocalized(<ResetPasswordPage />);
 
     await fill(user, 'NewPassword!2026');
 
@@ -189,7 +191,7 @@ describe('blood centre console: setting a new password', () => {
     mockToken = 'a'.repeat(64);
     mockResetPassword.mockRejectedValue(apiError(429, 'Too Many Requests'));
     const user = userEvent.setup();
-    render(<ResetPasswordPage />);
+    renderLocalized(<ResetPasswordPage />);
 
     await fill(user, 'NewPassword!2026');
 
@@ -201,7 +203,7 @@ describe('blood centre console: setting a new password', () => {
     mockToken = 'a'.repeat(64);
     mockResetPassword.mockResolvedValue({ success: true, message: 'ok' });
     const user = userEvent.setup();
-    render(<ResetPasswordPage />);
+    renderLocalized(<ResetPasswordPage />);
 
     await fill(user, 'NewPassword!2026');
 

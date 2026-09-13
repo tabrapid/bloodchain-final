@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from '@bloodchain/ui/i18n';
 import Link from 'next/link';
 import { Activity, AlertTriangle, Beaker, Clock, Droplet, Truck } from 'lucide-react';
 import { EmptyState, StatCard } from '@bloodchain/ui/components';
@@ -26,6 +27,7 @@ interface User {
 }
 
 export default function BloodCenterDashboard() {
+  const { t } = useTranslation();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -105,7 +107,9 @@ export default function BloodCenterDashboard() {
         organizations: userData.organizations,
       });
     } catch (err: any) {
-      setError(err.message ?? 'Login failed');
+      // The server's own message when it has one; it is not translated yet,
+      // which is a Sprint 1B item, so the generic fallback is.
+      setError(err.message ?? t('common.error'));
     } finally {
       setIsSubmitting(false);
     }
@@ -119,11 +123,11 @@ export default function BloodCenterDashboard() {
   if (isLoading) {
     return (
       <AppShell
-        title="Loading..."
-        subtitle="BLOOD CENTER CONSOLE"
-        organizationName="Blood Center Console"
-        organizationType="Operations workspace"
-        userName="Loading..."
+        title={t('common.loading')}
+        subtitle={t('portal.bloodCenter.console')}
+        organizationName={t('portal.bloodCenter.name')}
+        organizationType={t('portal.bloodCenter.workspace')}
+        userName={t('common.loading')}
       >
         <div className="flex items-center justify-center p-12">
           <Activity className="animate-spin text-donor-secondary" size={32} />
@@ -135,25 +139,25 @@ export default function BloodCenterDashboard() {
   if (!user) {
     return (
       <AppShell
-        title="Authentication Required"
-        subtitle="BLOOD CENTER CONSOLE"
-        organizationName="Blood Center Console"
-        organizationType="Operations workspace"
-        userName="Guest"
+        title={t('portal.authRequired')}
+        subtitle={t('portal.bloodCenter.console')}
+        organizationName={t('portal.bloodCenter.name')}
+        organizationType={t('portal.bloodCenter.workspace')}
+        userName={t('portal.guest')}
       >
         <div className="flex flex-col items-center justify-center bc-glass rounded-card p-12">
           <Activity className="mb-4 text-donor-secondary" size={48} />
           <h2 className="mb-2 font-display text-2xl font-semibold text-donor-text">
-            Blood Center Portal
+            {t('portal.bloodCenter.name')}
           </h2>
           <p className="mb-6 text-center text-donor-muted">
-            Sign in to access the blood center dashboard
+            {t('portal.signInSubtitle', { portal: t('portal.bloodCenter.name') })}
           </p>
           {error && <p className="mb-4 text-sm text-donor-danger">{error}</p>}
           <form onSubmit={handleLogin} className="w-full max-w-xs space-y-3">
             <div>
               <label htmlFor="email" className="mb-1 block text-left text-xs font-medium text-donor-muted">
-                Email
+                {t('portal.email')}
               </label>
               <input
                 id="email"
@@ -167,7 +171,7 @@ export default function BloodCenterDashboard() {
             </div>
             <div>
               <label htmlFor="password" className="mb-1 block text-left text-xs font-medium text-donor-muted">
-                Password
+                {t('portal.password')}
               </label>
               <input
                 id="password"
@@ -186,7 +190,7 @@ export default function BloodCenterDashboard() {
                 href="/forgot-password"
                 className="text-xs font-semibold text-donor-secondary hover:underline"
               >
-                Forgot password?
+                {t('portal.forgotPassword')}
               </Link>
             </div>
             <button
@@ -194,13 +198,13 @@ export default function BloodCenterDashboard() {
               disabled={isSubmitting}
               className="w-full rounded-lg bg-donor-secondary px-6 py-3 font-semibold text-white transition-colors hover:bg-donor-secondary/80 disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {isSubmitting ? 'Signing in...' : 'Sign in'}
+              {isSubmitting ? t('portal.signingIn') : t('portal.signIn')}
             </button>
           </form>
           <p className="mt-6 text-center text-sm text-donor-muted">
-            New blood center?{' '}
+            {t('portal.registerPrompt', { portal: t('portal.bloodCenter.name') })}{' '}
             <Link href="/register" className="font-semibold text-donor-secondary hover:underline">
-              Register your organization
+              {t('portal.registerLink')}
             </Link>
           </p>
         </div>
@@ -218,10 +222,10 @@ export default function BloodCenterDashboard() {
     const isPending = bloodCenterOrg.organizationStatus === 'PENDING_APPROVAL';
     return (
       <AppShell
-        title={isPending ? 'Pending Approval' : 'Organization Unavailable'}
-        subtitle="BLOOD CENTER CONSOLE"
+        title={isPending ? t('portal.pendingApproval') : 'Organization Unavailable'}
+        subtitle={t('portal.bloodCenter.console')}
         organizationName={bloodCenterOrg.name}
-        organizationType="Operations workspace"
+        organizationType={t('portal.bloodCenter.workspace')}
         userName={`${user.firstName} ${user.lastName}`}
       >
         <div className="flex flex-col items-center justify-center bc-glass rounded-card p-12 text-center">
@@ -238,7 +242,7 @@ export default function BloodCenterDashboard() {
             onClick={handleLogout}
             className="bc-solid rounded-lg px-6 py-3 font-semibold text-donor-text transition-colors hover:bg-donor-elevated"
           >
-            Sign out
+            {t('portal.signOut')}
           </button>
         </div>
       </AppShell>
@@ -248,25 +252,25 @@ export default function BloodCenterDashboard() {
   if (!hasBloodCenterAccess) {
     return (
       <AppShell
-        title="Access Denied"
-        subtitle="BLOOD CENTER CONSOLE"
-        organizationName={bloodCenterOrg?.name ?? user.organizations[0]?.name ?? 'Blood Center Console'}
-        organizationType="Operations workspace"
+        title={t('portal.accessDenied')}
+        subtitle={t('portal.bloodCenter.console')}
+        organizationName={bloodCenterOrg?.name ?? user.organizations[0]?.name ?? t('portal.bloodCenter.name')}
+        organizationType={t('portal.bloodCenter.workspace')}
         userName={`${user.firstName} ${user.lastName}`}
       >
         <div className="flex flex-col items-center justify-center bc-glass rounded-card border-donor-danger/30 bg-donor-dangerMuted p-12">
           <Activity className="mb-4 text-donor-onDangerMuted" size={48} />
           <h2 className="mb-2 font-display text-2xl font-semibold text-donor-text">
-            Access Denied
+            {t('portal.accessDenied')}
           </h2>
           <p className="mb-6 text-center text-donor-muted">
-            You don&apos;t have permission to access the blood center dashboard.
+            {t('portal.accessDeniedBody')}
           </p>
           <button
             onClick={handleLogout}
             className="bc-solid rounded-lg px-6 py-3 font-semibold text-donor-text transition-colors hover:bg-donor-elevated"
           >
-            Sign out
+            {t('portal.signOut')}
           </button>
         </div>
       </AppShell>
@@ -276,9 +280,9 @@ export default function BloodCenterDashboard() {
   return (
     <AppShell
       title={`Good morning, ${user.firstName}.`}
-      subtitle="BLOOD CENTER CONSOLE"
-      organizationName={bloodCenterOrg?.name ?? 'Blood Center Console'}
-      organizationType="Operations workspace"
+      subtitle={t('portal.bloodCenter.console')}
+      organizationName={bloodCenterOrg?.name ?? t('portal.bloodCenter.name')}
+      organizationType={t('portal.bloodCenter.workspace')}
       userName={`${user.firstName} ${user.lastName}`}
     >
       <div className="mb-8 flex items-center justify-between bc-glass rounded-card p-6">

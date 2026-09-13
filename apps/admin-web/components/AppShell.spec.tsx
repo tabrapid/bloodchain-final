@@ -1,5 +1,7 @@
-import { render, screen, within } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+
+import { renderLocalized } from '../lib/test-render';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const push = vi.fn();
@@ -43,7 +45,7 @@ describe('AppShell', () => {
   });
 
   it('renders the app navigation and the page content', () => {
-    render(<AppShell title="Dashboard">
+    renderLocalized(<AppShell title="Dashboard">
       <p>page body</p>
     </AppShell>);
 
@@ -58,7 +60,7 @@ describe('AppShell', () => {
   });
 
   it('actually logs out, instead of the no-op most pages used to pass', async () => {
-    render(<AppShell title="Dashboard"><p>body</p></AppShell>);
+    renderLocalized(<AppShell title="Dashboard"><p>body</p></AppShell>);
 
     await userEvent.click(screen.getByRole('button', { name: 'Log out' }));
 
@@ -68,7 +70,7 @@ describe('AppShell', () => {
   });
 
   it("navigates with the router's link rather than a plain anchor", () => {
-    const { container } = render(<AppShell title="Dashboard"><p>body</p></AppShell>);
+    const { container } = renderLocalized(<AppShell title="Dashboard"><p>body</p></AppShell>);
 
     const enabled = navItems.filter((item) => item.href && !item.disabled);
     expect(container.querySelectorAll('[data-next-link="true"]')).toHaveLength(enabled.length);
@@ -78,7 +80,7 @@ describe('AppShell', () => {
     const target = navItems.find((item) => item.href && item.href !== '/' && !item.disabled)!;
     pathname.current = target.href!;
 
-    render(<AppShell title="Dashboard"><p>body</p></AppShell>);
+    renderLocalized(<AppShell title="Dashboard"><p>body</p></AppShell>);
 
     expect(screen.getByText(target.label).closest('a')?.className).toContain('bg-donor-primary/12');
   });
@@ -87,13 +89,13 @@ describe('AppShell', () => {
     const target = navItems.find((item) => item.href && item.href !== '/' && !item.disabled)!;
     pathname.current = `${target.href}/some-id`;
 
-    render(<AppShell title="Dashboard"><p>body</p></AppShell>);
+    renderLocalized(<AppShell title="Dashboard"><p>body</p></AppShell>);
 
     expect(screen.getByText(target.label).closest('a')?.className).toContain('bg-donor-primary/12');
   });
 
   it('renders no notifications bell, since this app has no notifications route', () => {
-    render(<AppShell title="Dashboard"><p>body</p></AppShell>);
+    renderLocalized(<AppShell title="Dashboard"><p>body</p></AppShell>);
 
     expect(screen.queryByRole('button', { name: 'Notifications' })).not.toBeInTheDocument();
   });

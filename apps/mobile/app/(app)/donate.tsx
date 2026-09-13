@@ -29,6 +29,7 @@ import { getCampaigns } from '../../src/api/campaigns';
 import { getActiveChallenges } from '../../src/api/challenges';
 import { BRAND_NAME, BRAND_TAGLINE } from '../../src/brand';
 import { layout, radius, spacing, useTheme } from '../../src/theme';
+import { useTranslation } from '../../src/i18n';
 
 type AccentKey = 'primary' | 'secondary' | 'warning' | 'ai';
 
@@ -47,15 +48,16 @@ type AccentKey = 'primary' | 'secondary' | 'warning' | 'ai';
  */
 const DONATION_TYPES: {
   value: string;
-  label: string;
+  /** A catalogue key: this map is built before there is a locale. */
+  labelKey: string;
   icon: LucideIcon;
   accent: AccentKey;
   intervalDays?: number;
 }[] = [
-  { value: 'WHOLE_BLOOD', label: 'Whole Blood', icon: Droplet, accent: 'primary', intervalDays: 56 },
-  { value: 'PLASMA', label: 'Plasma', icon: TestTube, accent: 'secondary', intervalDays: 28 },
-  { value: 'PLATELETS', label: 'Platelets', icon: Layers, accent: 'warning', intervalDays: 7 },
-  { value: 'OTHER', label: 'Other', icon: Droplets, accent: 'ai' },
+  { value: 'WHOLE_BLOOD', labelKey: 'medical.donationTypes.wholeBlood', icon: Droplet, accent: 'primary', intervalDays: 56 },
+  { value: 'PLASMA', labelKey: 'medical.donationTypes.plasma', icon: TestTube, accent: 'secondary', intervalDays: 28 },
+  { value: 'PLATELETS', labelKey: 'medical.donationTypes.platelets', icon: Layers, accent: 'warning', intervalDays: 7 },
+  { value: 'OTHER', labelKey: 'medical.donationTypes.other', icon: Droplets, accent: 'ai' },
 ];
 
 /** The figure every blood service quotes, and the screen says so beside it. */
@@ -71,6 +73,7 @@ function formatDate(date: Date): string {
 
 export default function Donate() {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const { data: stats } = useDonationStatistics();
   // Enough history to count every donation per type -- at 3, the tiles below
   // were counting the three most recent donations and calling it a total.
@@ -111,10 +114,10 @@ export default function Donate() {
       <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.sm }}>
         <View style={{ flex: 1 }}>
           <AppText style={{ fontSize: 32, fontWeight: '800', letterSpacing: -1, color: colors.text }}>
-            Donate
+            {t('donate.title')}
           </AppText>
           <AppText muted style={{ fontSize: 14, marginTop: 2 }}>
-            Plan your next donation.
+            {t('donate.subtitle')}
           </AppText>
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -153,7 +156,7 @@ export default function Donate() {
                   color: isEligible ? '#FFFFFF' : colors.onMuted.warning,
                 }}
               >
-                {isEligible ? 'ELIGIBLE NOW' : 'NOT YET ELIGIBLE'}
+                {isEligible ? 'ELIGIBLE NOW' : t('donate.notYetEligible')}
               </AppText>
             </View>
 
@@ -213,7 +216,7 @@ export default function Donate() {
         <Pressable
           onPress={() => (isEligible ? goToBooking() : router.push('/donations'))}
           accessibilityRole="button"
-          accessibilityLabel={isEligible ? 'Schedule a donation' : 'View donation history'}
+          accessibilityLabel={isEligible ? 'Schedule a donation' : t('donate.viewHistory')}
           style={({ pressed }) => ({
             flexDirection: 'row',
             alignItems: 'center',
@@ -230,16 +233,16 @@ export default function Donate() {
         >
           <CalendarDays size={19} color="#FFFFFF" />
           <AppText style={{ flex: 1, fontSize: 16, fontWeight: '700', color: '#FFFFFF' }}>
-            {isEligible ? 'Schedule a donation' : 'View donation history'}
+            {isEligible ? 'Schedule a donation' : t('donate.viewHistory')}
           </AppText>
           <ChevronRight size={19} color="#FFFFFF" />
         </Pressable>
       </GradientCard>
 
       <SectionHeader
-        action={{ label: 'Learn about types', onPress: () => router.push('/education') }}
+        action={{ label: t('donate.learnAboutTypes'), onPress: () => router.push('/education') }}
       >
-        Donation types
+        {t('donate.donationTypes')}
       </SectionHeader>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: layout.cardGap }}>
         {DONATION_TYPES.map((type) => {
@@ -250,8 +253,8 @@ export default function Donate() {
               key={type.value}
               onPress={goToBooking}
               accessibilityRole="button"
-              accessibilityLabel={`${type.label}. ${
-                count ? `${count} donations` : 'Not yet donated'
+              accessibilityLabel={`${t(type.labelKey)}. ${
+                count ? `${count} donations` : t('donate.notYetDonated')
               }. Book a donation`}
               style={({ pressed }) => ({
                 width: `${(100 - 3) / 2}%`,
@@ -263,10 +266,10 @@ export default function Donate() {
                   <Icon size={24} color={colors[type.accent]} />
                   <View style={{ flex: 1 }}>
                     <AppText style={{ fontSize: 15, fontWeight: '700', color: colors.text }}>
-                      {type.label}
+                      {t(type.labelKey)}
                     </AppText>
                     <AppText muted style={{ fontSize: 12, marginTop: 1 }}>
-                      {type.intervalDays ? `Every ${type.intervalDays} days` : 'Special donations'}
+                      {type.intervalDays ? `Every ${type.intervalDays} days` : t('donate.specialDonations')}
                     </AppText>
                   </View>
                   <ChevronRight size={16} color={colors.textMuted} />
@@ -287,7 +290,7 @@ export default function Donate() {
                 >
                   <BarChart3 size={13} color={colors.textMuted} />
                   <AppText muted style={{ fontSize: 12 }} numberOfLines={1}>
-                    {count ? `${count} donation${count === 1 ? '' : 's'}` : 'Not yet donated'}
+                    {count ? `${count} donation${count === 1 ? '' : 's'}` : t('donate.notYetDonated')}
                   </AppText>
                 </View>
               </Card>
@@ -297,9 +300,9 @@ export default function Donate() {
       </View>
 
       <SectionHeader
-        action={{ label: 'View impact', onPress: () => router.push('/(app)/gamification') }}
+        action={{ label: t('donate.viewImpact'), onPress: () => router.push('/(app)/gamification') }}
       >
-        Your journey
+        {t('donate.journey')}
       </SectionHeader>
       <GlassCard style={{ borderColor: `${colors.ai}44` }}>
         <View style={{ flexDirection: 'row', alignItems: 'stretch' }}>
@@ -307,15 +310,15 @@ export default function Donate() {
             icon={Heart}
             accent={colors.primary}
             value={`${completedCount}`}
-            label="Total Donations"
-            note={completedCount ? "You're making a difference" : 'Your first one starts it'}
+            label={t('donate.totalDonations')}
+            note={completedCount ? "You're making a difference" : t('donate.firstOneStarts')}
           />
           <View style={{ width: 1, backgroundColor: colors.border, marginHorizontal: spacing.sm }} />
           <JourneyStat
             icon={Users}
             accent={colors.secondary}
             value={`${completedCount * LIVES_PER_DONATION}`}
-            label="Lives Supported"
+            label={t('donate.livesSupported')}
             note={`About ${LIVES_PER_DONATION} lives per donation`}
           />
           <View style={{ width: 1, backgroundColor: colors.border, marginHorizontal: spacing.sm }} />
@@ -323,7 +326,7 @@ export default function Donate() {
             icon={CalendarDays}
             accent={colors.ai}
             value={isEligible ? 'Now' : `${daysToEligible}`}
-            label={isEligible ? 'Ready to give' : 'Days to Go'}
+            label={isEligible ? 'Ready to give' : t('donate.daysToGo')}
             note={
               isEligible
                 ? 'You can donate today'
@@ -335,8 +338,8 @@ export default function Donate() {
 
       {activeCampaigns.length > 0 && (
         <>
-          <SectionHeader action={{ label: 'View all', onPress: () => router.push('/campaigns') }}>
-            Active campaigns
+          <SectionHeader action={{ label: t('common.viewAll'), onPress: () => router.push('/campaigns') }}>
+            {t('donate.activeCampaigns')}
           </SectionHeader>
           {activeCampaigns.map((campaign) => (
             <TouchableOpacity
@@ -380,7 +383,7 @@ export default function Donate() {
                     }}
                   >
                     <AppText style={{ fontSize: 10, fontWeight: '700', letterSpacing: 0.6, color: colors.onMuted.primary }}>
-                      ONGOING
+                      {t('donate.ongoing')}
                     </AppText>
                   </View>
                   <ChevronRight size={16} color={colors.textMuted} />
@@ -398,8 +401,8 @@ export default function Donate() {
       */}
       {featuredChallenge && (
         <>
-          <SectionHeader action={{ label: 'View all', onPress: () => router.push('/challenges') }}>
-            Challenges
+          <SectionHeader action={{ label: t('common.viewAll'), onPress: () => router.push('/challenges') }}>
+            {t('donate.challenges')}
           </SectionHeader>
           <TouchableOpacity
             onPress={() => router.push('/challenges')}

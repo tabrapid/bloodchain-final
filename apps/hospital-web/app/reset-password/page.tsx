@@ -1,15 +1,13 @@
 'use client';
 
 import { Suspense, useState } from 'react';
+import { useTranslation } from '@bloodchain/ui/i18n';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { CheckCircle, Link2Off, Lock } from 'lucide-react';
 import { strongPasswordSchema } from '@bloodchain/validation';
 import { resetPassword, isRejectedResetToken, recoveryErrorMessage } from '../../lib/auth';
 import { AppShell } from '../../components/AppShell';
-
-const POLICY_HINT =
-  'Use at least 12 characters with an uppercase and a lowercase letter, a number and a special character.';
 
 /**
  * Step two of account recovery: spend the link and set a new password.
@@ -20,6 +18,7 @@ const POLICY_HINT =
  * rejection at a time.
  */
 function ResetPasswordForm() {
+  const { t } = useTranslation();
   const router = useRouter();
   const searchParams = useSearchParams();
   const linkToken = searchParams.get('token') ?? '';
@@ -40,11 +39,11 @@ function ResetPasswordForm() {
 
     const policy = strongPasswordSchema.safeParse(password);
     if (!policy.success) {
-      setFieldError(policy.error.issues[0]?.message ?? POLICY_HINT);
+      setFieldError(policy.error.issues[0]?.message ?? 'auth.fields.passwordPolicy');
       return;
     }
     if (password !== confirmPassword) {
-      setFieldError('Passwords do not match');
+      setFieldError('auth.errors.passwordsDoNotMatch');
       return;
     }
 
@@ -70,16 +69,16 @@ function ResetPasswordForm() {
       <div className="flex flex-col items-center justify-center bc-glass rounded-card p-12 text-center">
         <CheckCircle className="mb-4 text-donor-success" size={48} />
         <h2 className="mb-2 font-display text-2xl font-semibold text-donor-text">
-          Password updated
+          {t('auth.resetPassword.doneTitle')}
         </h2>
         <p className="mb-6 max-w-md text-donor-muted">
-          You have been signed out everywhere else. Sign in with your new password to continue.
+          {t('auth.resetPassword.doneBody')}
         </p>
         <button
           onClick={() => router.push('/')}
           className="rounded-lg bg-donor-primary px-6 py-3 font-semibold text-white transition-colors hover:bg-donor-primary/80"
         >
-          Sign in
+          {t('auth.resetPassword.goToSignIn')}
         </button>
       </div>
     );
@@ -90,23 +89,22 @@ function ResetPasswordForm() {
       <div className="flex flex-col items-center justify-center bc-glass rounded-card p-12 text-center">
         <Link2Off className="mb-4 text-donor-onDangerMuted" size={48} />
         <h2 className="mb-2 font-display text-2xl font-semibold text-donor-text">
-          This link no longer works
+          {t('auth.resetPassword.rejectedTitle')}
         </h2>
         {/* The server will not say which of the three it is, and all three have
             the same remedy, so guessing would add nothing but the risk of being
             wrong. */}
         <p className="mb-6 max-w-md text-donor-muted">
-          Reset links can be used once and expire within the hour. Request a new one and open the
-          most recent email.
+          {t('auth.resetPassword.rejectedBody')}
         </p>
         <Link
           href="/forgot-password"
           className="rounded-lg bg-donor-primary px-6 py-3 font-semibold text-white transition-colors hover:bg-donor-primary/80"
         >
-          Request a new link
+          {t('auth.resetPassword.requestNewLink')}
         </Link>
         <Link href="/" className="mt-4 text-sm font-semibold text-donor-primary hover:underline">
-          Back to sign in
+          {t('portal.backToSignIn')}
         </Link>
       </div>
     );
@@ -115,11 +113,11 @@ function ResetPasswordForm() {
   return (
     <div className="flex flex-col items-center justify-center bc-glass rounded-card p-12">
       <Lock className="mb-4 text-donor-primary" size={48} />
-      <h2 className="mb-2 font-display text-2xl font-semibold text-donor-text">New password</h2>
+      <h2 className="mb-2 font-display text-2xl font-semibold text-donor-text">{t('auth.resetPassword.title')}</h2>
       <p className="mb-6 max-w-sm text-center text-donor-muted">
         {linkToken
-          ? 'Choose a new password for your account. Signing in elsewhere will stop working.'
-          : 'Paste the code from your reset email, then choose a new password.'}
+          ? t('auth.resetPassword.subtitleFromLink')
+          : t('auth.resetPassword.subtitleManual')}
       </p>
 
       {error && (
@@ -138,7 +136,7 @@ function ResetPasswordForm() {
               htmlFor="token"
               className="mb-1 block text-left text-xs font-medium text-donor-muted"
             >
-              Reset code
+              {t('auth.resetPassword.code')}
             </label>
             <input
               id="token"
@@ -158,7 +156,7 @@ function ResetPasswordForm() {
             htmlFor="password"
             className="mb-1 block text-left text-xs font-medium text-donor-muted"
           >
-            New password
+            {t('auth.resetPassword.newPassword')}
           </label>
           <input
             id="password"
@@ -178,7 +176,7 @@ function ResetPasswordForm() {
             htmlFor="confirmPassword"
             className="mb-1 block text-left text-xs font-medium text-donor-muted"
           >
-            Confirm new password
+            {t('auth.resetPassword.confirmPassword')}
           </label>
           <input
             id="confirmPassword"
@@ -194,10 +192,10 @@ function ResetPasswordForm() {
 
         {fieldError ? (
           <p role="alert" className="text-left text-xs text-donor-danger">
-            {fieldError}
+            {t(fieldError)}
           </p>
         ) : (
-          <p className="text-left text-xs text-donor-muted">{POLICY_HINT}</p>
+          <p className="text-left text-xs text-donor-muted">{t('auth.fields.passwordPolicy')}</p>
         )}
 
         <button
@@ -205,13 +203,13 @@ function ResetPasswordForm() {
           disabled={isSubmitting}
           className="w-full rounded-lg bg-donor-primary px-6 py-3 font-semibold text-white transition-colors hover:bg-donor-primary/80 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {isSubmitting ? 'Saving...' : 'Set new password'}
+          {isSubmitting ? t('common.saving') : t('auth.resetPassword.submit')}
         </button>
       </form>
 
       <p className="mt-6 text-center text-sm text-donor-muted">
         <Link href="/" className="font-semibold text-donor-primary hover:underline">
-          Back to sign in
+          {t('portal.backToSignIn')}
         </Link>
       </p>
     </div>
@@ -219,17 +217,19 @@ function ResetPasswordForm() {
 }
 
 export default function HospitalResetPasswordPage() {
+  const { t } = useTranslation();
+
   return (
     <AppShell
-      title="New password"
-      subtitle="HOSPITAL CONSOLE"
-      organizationName="Hospital Console"
-      organizationType="Operations workspace"
-      userName="Guest"
+      title={t('auth.resetPassword.title')}
+      subtitle={t('portal.hospital.console')}
+      organizationName={t('portal.hospital.name')}
+      organizationType={t('portal.hospital.workspace')}
+      userName={t('portal.guest')}
     >
       {/* `useSearchParams` opts the tree into client-side rendering, which Next
           requires a Suspense boundary for at build time. */}
-      <Suspense fallback={<div className="bc-glass rounded-card p-12 text-donor-muted">Loading…</div>}>
+      <Suspense fallback={<div className="bc-glass rounded-card p-12 text-donor-muted">{t('common.loading')}</div>}>
         <ResetPasswordForm />
       </Suspense>
     </AppShell>

@@ -3,6 +3,7 @@ import renderer, { act } from 'react-test-renderer';
 import { FlatList, ScrollView } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import Welcome from '../../app/(auth)/welcome';
+import { LocaleProvider } from '../i18n';
 import { ThemeProvider, colors as darkColors } from '../theme';
 
 jest.mock('react-native/Libraries/Utilities/useColorScheme', () => ({
@@ -18,14 +19,16 @@ function render() {
   act(() => {
     tree = renderer.create(
       <ThemeProvider>
-        <SafeAreaProvider
-          initialMetrics={{
-            frame: { x: 0, y: 0, width: 390, height: 844 },
-            insets: { top: 47, left: 0, right: 0, bottom: 34 },
-          }}
-        >
-          <Welcome />
-        </SafeAreaProvider>
+        <LocaleProvider>
+          <SafeAreaProvider
+            initialMetrics={{
+              frame: { x: 0, y: 0, width: 390, height: 844 },
+              insets: { top: 47, left: 0, right: 0, bottom: 34 },
+            }}
+          >
+            <Welcome />
+          </SafeAreaProvider>
+        </LocaleProvider>
       </ThemeProvider>,
     );
   });

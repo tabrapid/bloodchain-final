@@ -13,6 +13,7 @@ import {
   isRejectedResetToken,
 } from '../../src/hooks/useAuth';
 import { layout, spacing, useTheme } from '../../src/theme';
+import { useTranslation } from '../../src/i18n';
 
 /**
  * The form, which is not the request body.
@@ -21,15 +22,23 @@ import { layout, spacing, useTheme } from '../../src/theme';
  * is the contract; the confirmation field exists only to catch a typo before it
  * becomes a password nobody knows, so it is validated here.
  */
+/**
+ * Messages are catalogue keys, resolved at render by `t`.
+ *
+ * The schema is built once at module load, where there is no locale, so it
+ * cannot hold translated text. A key that no catalogue has -- the password
+ * policy messages, which come from @bloodchain/validation in English -- passes
+ * through `t` unchanged, so nothing is lost while those are still untranslated.
+ */
 const formSchema = z
   .object({
-    token: z.string().trim().min(1, 'Paste the code from your reset email').max(128),
+    token: z.string().trim().min(1, 'auth.errors.codeRequired').max(128),
     newPassword: strongPasswordSchema,
-    confirmPassword: z.string().min(1, 'Re-enter the new password'),
+    confirmPassword: z.string().min(1, 'auth.errors.confirmRequired'),
   })
   .refine((values) => values.newPassword === values.confirmPassword, {
     path: ['confirmPassword'],
-    message: 'Passwords do not match',
+    message: 'auth.errors.passwordsDoNotMatch',
   });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -46,6 +55,7 @@ type FormValues = z.infer<typeof formSchema>;
  */
 export default function ResetPassword() {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const params = useLocalSearchParams<{ token?: string }>();
   const linkToken = typeof params.token === 'string' ? params.token : '';
   const reset = useResetPassword();
@@ -102,23 +112,23 @@ export default function ResetPassword() {
           </View>
 
           <AppText variant="title" style={{ textAlign: 'center', marginBottom: spacing.sm }}>
-            Password updated
+            {t('auth.resetPassword.doneTitle')}
           </AppText>
 
           {/* Said plainly, because it is a consequence the user will otherwise
               meet as an unexplained sign-out on their other device. */}
           <AppText muted style={{ textAlign: 'center', marginBottom: spacing.xl }}>
-            You have been signed out everywhere else. Sign in with your new password to continue.
+            {t('auth.resetPassword.doneBody')}
           </AppText>
 
           <AppButton
             gradient
             accessibilityRole="button"
-            accessibilityLabel="Go to sign in"
+            accessibilityLabel={t('auth.resetPassword.a11yGoToSignIn')}
             style={{ alignSelf: 'stretch', height: 54 }}
             onPress={() => router.replace('/(auth)/login')}
           >
-            Sign in
+            {t('auth.resetPassword.goToSignIn')}
           </AppButton>
         </View>
       </Screen>
@@ -146,30 +156,29 @@ export default function ResetPassword() {
           </View>
 
           <AppText variant="title" style={{ textAlign: 'center', marginBottom: spacing.sm }}>
-            This link no longer works
+            {t('auth.resetPassword.rejectedTitle')}
           </AppText>
 
           {/* The server will not say which of the three it is, and guessing
               would be worse than saying so: all three have the same remedy. */}
           <AppText muted style={{ textAlign: 'center', marginBottom: spacing.xl }}>
-            Reset links can be used once and expire within the hour. Request a new one and open the
-            most recent email.
+{t('auth.resetPassword.rejectedBody')}
           </AppText>
 
           <AppButton
             gradient
             accessibilityRole="button"
-            accessibilityLabel="Request a new reset link"
+            accessibilityLabel={t('auth.resetPassword.a11yRequestNewLink')}
             style={{ alignSelf: 'stretch', height: 54 }}
             onPress={() => router.replace('/(auth)/forgot-password')}
           >
-            Request a new link
+            {t('auth.resetPassword.requestNewLink')}
           </AppButton>
 
           <Pressable
             onPress={() => router.replace('/(auth)/login')}
             accessibilityRole="button"
-            accessibilityLabel="Back to sign in"
+            accessibilityLabel={t('auth.checkEmail.backToSignIn')}
             hitSlop={8}
             style={({ pressed }) => ({
               marginTop: 20,
@@ -179,7 +188,7 @@ export default function ResetPassword() {
             })}
           >
             <AppText style={{ fontSize: 13, fontWeight: '500', color: colors.primary }}>
-              Back to sign in
+              {t('auth.checkEmail.backToSignIn')}
             </AppText>
           </Pressable>
         </View>
@@ -194,17 +203,17 @@ export default function ResetPassword() {
           icon={ChevronLeft}
           onPress={() => router.back()}
           accessibilityRole="button"
-          accessibilityLabel="Go back"
+          accessibilityLabel={t('auth.a11y.goBack')}
         />
 
         <View style={{ marginTop: spacing.xl }}>
           <AppText style={{ fontSize: 34, fontWeight: '800', letterSpacing: -1, color: colors.text }}>
-            New password
+            {t('auth.resetPassword.title')}
           </AppText>
           <AppText muted style={{ fontSize: 15, marginTop: 6, marginBottom: spacing.xl }}>
             {linkToken
-              ? 'Choose a new password for your account. Signing in elsewhere will stop working.'
-              : 'Paste the code from your reset email, then choose a new password.'}
+              ? t('auth.resetPassword.subtitleFromLink')
+              : t('auth.resetPassword.subtitleManual')}
           </AppText>
 
           {/* Hidden when the deep link supplied it: showing a 64-character
@@ -216,15 +225,15 @@ export default function ResetPassword() {
               name="token"
               render={({ field, fieldState }) => (
                 <AppTextInput
-                  label="Reset code"
-                  placeholder="Paste the code from your email"
+                  label={t('auth.resetPassword.code')}
+                  placeholder={t('auth.resetPassword.codePlaceholder')}
                   autoCapitalize="none"
                   autoCorrect={false}
                   autoFocus
                   leading={<KeyRound size={19} color={colors.textMuted} />}
                   returnKeyType="next"
                   editable={!busy}
-                  error={fieldState.error?.message}
+                  error={fieldState.error?.message ? t(fieldState.error.message) : undefined}
                   wrapperStyle={{ marginBottom: layout.cardGap }}
                   value={field.value}
                   onChangeText={field.onChange}
@@ -239,8 +248,8 @@ export default function ResetPassword() {
             name="newPassword"
             render={({ field, fieldState }) => (
               <AppTextInput
-                label="New password"
-                placeholder="At least 12 characters"
+                label={t('auth.resetPassword.newPassword')}
+                placeholder={t('auth.fields.passwordPlaceholder')}
                 secureTextEntry={!showPassword}
                 autoComplete="new-password"
                 autoCapitalize="none"
@@ -250,14 +259,14 @@ export default function ResetPassword() {
                 blurOnSubmit={false}
                 onSubmitEditing={() => confirmRef.current?.focus()}
                 editable={!busy}
-                error={fieldState.error?.message}
+                error={fieldState.error?.message ? t(fieldState.error.message) : undefined}
                 wrapperStyle={{ marginBottom: layout.cardGap }}
                 trailing={
                   <Pressable
                     onPress={() => setShowPassword((v) => !v)}
                     hitSlop={8}
                     accessibilityRole="button"
-                    accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+                    accessibilityLabel={showPassword ? t('auth.fields.hidePassword') : t('auth.fields.showPassword')}
                   >
                     {showPassword ? (
                       <EyeOff size={20} color={colors.textMuted} />
@@ -279,8 +288,8 @@ export default function ResetPassword() {
             render={({ field, fieldState }) => (
               <AppTextInput
                 ref={confirmRef}
-                label="Confirm new password"
-                placeholder="Type it again"
+                label={t('auth.resetPassword.confirmPassword')}
+                placeholder={t('auth.resetPassword.confirmPlaceholder')}
                 secureTextEntry={!showPassword}
                 autoComplete="new-password"
                 autoCapitalize="none"
@@ -288,7 +297,7 @@ export default function ResetPassword() {
                 returnKeyType="go"
                 onSubmitEditing={onSubmit}
                 editable={!busy}
-                error={fieldState.error?.message}
+                error={fieldState.error?.message ? t(fieldState.error.message) : undefined}
                 wrapperStyle={{ marginBottom: spacing.md }}
                 value={field.value}
                 onChangeText={field.onChange}
@@ -299,8 +308,7 @@ export default function ResetPassword() {
 
           {/* The policy in advance, rather than as four separate rejections. */}
           <AppText muted style={{ fontSize: 12, marginBottom: spacing.lg }}>
-            Use at least 12 characters with an uppercase and a lowercase letter, a number and a
-            special character.
+{t('auth.fields.passwordPolicy')}
           </AppText>
 
           {serverError && (
@@ -315,13 +323,13 @@ export default function ResetPassword() {
           <AppButton
             gradient
             accessibilityRole="button"
-            accessibilityLabel="Set new password"
+            accessibilityLabel={t('auth.resetPassword.a11ySubmit')}
             style={{ height: 54 }}
             onPress={onSubmit}
             disabled={busy}
             loading={reset.isPending}
           >
-            Set new password
+            {t('auth.resetPassword.submit')}
           </AppButton>
         </View>
 
@@ -330,7 +338,7 @@ export default function ResetPassword() {
         <Pressable
           onPress={() => router.replace('/(auth)/login')}
           accessibilityRole="button"
-          accessibilityLabel="Back to sign in"
+          accessibilityLabel={t('auth.checkEmail.backToSignIn')}
           hitSlop={8}
           style={({ pressed }) => ({
             minHeight: 44,
@@ -340,7 +348,7 @@ export default function ResetPassword() {
           })}
         >
           <AppText style={{ fontSize: 13, fontWeight: '500', color: colors.text }}>
-            Back to sign in
+            {t('auth.checkEmail.backToSignIn')}
           </AppText>
         </Pressable>
       </KeyboardAvoidingView>

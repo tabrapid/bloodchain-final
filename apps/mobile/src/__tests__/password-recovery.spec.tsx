@@ -3,6 +3,7 @@ import renderer, { act } from 'react-test-renderer';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { LocaleProvider } from '../i18n';
 import { ThemeProvider } from '../theme';
 import { ApiRequestError } from '../api/client';
 
@@ -75,16 +76,18 @@ function render(Screen: React.ComponentType) {
   act(() => {
     tree = renderer.create(
       <ThemeProvider>
-        <SafeAreaProvider
-          initialMetrics={{
-            frame: { x: 0, y: 0, width: 390, height: 844 },
-            insets: { top: 47, left: 0, right: 0, bottom: 34 },
-          }}
-        >
-          <QueryClientProvider client={queryClient}>
-            <Screen />
-          </QueryClientProvider>
-        </SafeAreaProvider>
+        <LocaleProvider>
+          <SafeAreaProvider
+            initialMetrics={{
+              frame: { x: 0, y: 0, width: 390, height: 844 },
+              insets: { top: 47, left: 0, right: 0, bottom: 34 },
+            }}
+          >
+            <QueryClientProvider client={queryClient}>
+              <Screen />
+            </QueryClientProvider>
+          </SafeAreaProvider>
+        </LocaleProvider>
       </ThemeProvider>,
     );
   });

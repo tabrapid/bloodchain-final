@@ -13,15 +13,15 @@ import {
 import type { SidebarItem } from '@bloodchain/ui/components';
 
 export const sidebarItems: SidebarItem[] = [
-  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, href: '/' },
-  { id: 'donations', label: 'Donations', icon: HeartPulse, href: '/donations' },
-  { id: 'requests', label: 'Blood Requests', icon: Droplet, href: '/requests' },
-  { id: 'inventory', label: 'Inventory', icon: Package, href: '/inventory' },
-  { id: 'laboratory', label: 'Laboratory', icon: Beaker, href: '/laboratory' },
-  { id: 'shipments', label: 'Shipments', icon: Truck, href: '/shipments' },
-  { id: 'couriers', label: 'Couriers', icon: Users, href: '/couriers' },
-  { id: 'appointments', label: 'Appointments', icon: CalendarDays, href: '/appointments' },
-  { id: 'analytics', label: 'Analytics', icon: BarChart3, href: '/analytics' },
-  { id: 'donors', label: 'Donors', icon: Users, href: '/donors' },
-  { id: 'settings', label: 'Settings', icon: Settings, disabled: true },
+  { id: 'dashboard', label: 'Dashboard', labelKey: 'portal.nav.dashboard', icon: LayoutDashboard, href: '/' },
+  { id: 'donations', label: 'Donations', labelKey: 'portal.nav.donations', icon: HeartPulse, href: '/donations' },
+  { id: 'requests', label: 'Blood Requests', labelKey: 'portal.nav.requests', icon: Droplet, href: '/requests' },
+  { id: 'inventory', label: 'Inventory', labelKey: 'portal.nav.inventory', icon: Package, href: '/inventory' },
+  { id: 'laboratory', label: 'Laboratory', labelKey: 'portal.nav.laboratory', icon: Beaker, href: '/laboratory' },
+  { id: 'shipments', label: 'Shipments', labelKey: 'portal.nav.shipments', icon: Truck, href: '/shipments' },
+  { id: 'couriers', label: 'Couriers', labelKey: 'portal.nav.couriers', icon: Users, href: '/couriers' },
+  { id: 'appointments', label: 'Appointments', labelKey: 'portal.nav.appointments', icon: CalendarDays, href: '/appointments' },
+  { id: 'analytics', label: 'Analytics', labelKey: 'portal.nav.analytics', icon: BarChart3, href: '/analytics' },
+  { id: 'donors', label: 'Donors', labelKey: 'portal.nav.donors', icon: Users, href: '/donors' },
+  { id: 'settings', label: 'Settings', labelKey: 'portal.nav.settings', icon: Settings, disabled: true },
 ];

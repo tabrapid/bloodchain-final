@@ -29,6 +29,7 @@ import { getTrendSummary, TrendSummary } from '../../src/api/health-trends';
 import { getDonorResults, LaboratoryResult } from '../../src/api/laboratory';
 import { getInsightHistory, AiInsight } from '../../src/api/ai-health';
 import { formatUpdated, isWithinReferenceRange } from '../../src/utils/health';
+import { useTranslation } from '../../src/i18n';
 
 type VitalColorKey = 'primary' | 'secondary' | 'warning' | 'ai' | 'success';
 
@@ -52,23 +53,25 @@ const VITAL_ICON_BY_CODE: Record<string, { icon: LucideIcon; color: VitalColorKe
 /**
  * What each marker is, in one line of plain language.
  *
- * Static explanatory copy, the same kind of thing as the icon above -- these
- * are textbook definitions of standard haematology markers, not anything read
- * from a donor's results. A code with no entry simply shows no description
- * rather than a guess: the screen never invents a meaning for a marker it does
- * not recognise.
+ * Catalogue keys rather than sentences, because this map is built at module
+ * load where there is no locale; the screen resolves them through `t`. A code
+ * with no entry simply shows no description rather than a guess: the screen
+ * never invents a meaning for a marker it does not recognise.
+ *
+ * Every value here is clinically sensitive and lives in the medical namespace,
+ * so a reviewer finds all of them in one place.
  */
-const VITAL_DESCRIPTION_BY_CODE: Record<string, string> = {
-  HEMOGLOBIN: 'Oxygen-carrying protein',
-  HEMATOCRIT: 'Proportion of red blood cells',
-  RBC: 'Carries oxygen throughout the body',
-  WBC: 'Helps fight infection',
-  PLATELETS: 'Helps with blood clotting',
-  FERRITIN: 'Iron stored in your body',
-  FERRITIN_LEVEL: 'Iron stored in your body',
-  BLOOD_GROUP: 'Your ABO blood group',
-  ABO: 'Your ABO blood group',
-  RH_FACTOR: 'Rh positive or negative',
+const VITAL_DESCRIPTION_KEY_BY_CODE: Record<string, string> = {
+  HEMOGLOBIN: 'medical.markers.hemoglobinNote',
+  HEMATOCRIT: 'medical.markers.hematocritNote',
+  RBC: 'medical.markers.redBloodCellsNote',
+  WBC: 'medical.markers.whiteBloodCellsNote',
+  PLATELETS: 'medical.markers.plateletsNote',
+  FERRITIN: 'medical.markers.ferritinNote',
+  FERRITIN_LEVEL: 'medical.markers.ferritinNote',
+  BLOOD_GROUP: 'medical.markers.bloodGroupNote',
+  ABO: 'medical.markers.bloodGroupNote',
+  RH_FACTOR: 'medical.markers.rhFactorNote',
 };
 
 const VITAL_FALLBACK_ORDER: VitalColorKey[] = ['primary', 'secondary', 'warning', 'ai', 'success'];
@@ -85,6 +88,7 @@ function getVitalIconAndColor(
 
 export default function Health() {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [summary, setSummary] = useState<TrendSummary | null>(null);
@@ -137,7 +141,7 @@ export default function Health() {
   if (isLoading) {
     return (
       <Screen>
-        <AppText variant="title">Health</AppText>
+        <AppText variant="title">{t('health.title')}</AppText>
         <LoadingState />
       </Screen>
     );
@@ -161,15 +165,15 @@ export default function Health() {
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: spacing.sm }}>
         <View style={{ flex: 1 }}>
           <AppText style={{ fontSize: 32, fontWeight: '800', letterSpacing: -1, color: colors.text }}>
-            Health
+            {t('health.title')}
           </AppText>
           <AppText muted style={{ fontSize: 14, marginTop: 2 }}>
-            Your laboratory overview
+            {t('health.subtitle')}
           </AppText>
         </View>
         {publishedResults.length > 0 && (
           <StatusPill
-            label={anyFlagged ? 'Needs review' : 'All normal'}
+            label={anyFlagged ? 'Needs review' : t('health.allNormal')}
             tone={anyFlagged ? 'warning' : 'success'}
           />
         )}
@@ -180,7 +184,7 @@ export default function Health() {
           onPress={() => router.push('/health-trends' as RelativePathString)}
           activeOpacity={0.9}
           accessibilityRole="button"
-          accessibilityLabel="Latest tracked marker. Open health trends"
+          accessibilityLabel={t('health.a11yLatestMarker')}
           style={{ marginTop: spacing.md }}
         >
           {/* Health's hero is a two-stop rose, distinct from the app's
@@ -190,7 +194,7 @@ export default function Health() {
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <View style={{ flex: 1 }}>
                 <AppText style={{ fontSize: 11, fontWeight: '700', letterSpacing: 1.6, color: 'rgba(255,255,255,0.8)' }}>
-                  LATEST TRACKED
+                  {t('health.latestTracked')}
                 </AppText>
                 <AppText style={{ fontSize: 17, fontWeight: '600', color: '#FFFFFF', marginTop: 3 }}>
                   {(trend?.parameterName ?? latestParam?.name)!}
@@ -234,7 +238,7 @@ export default function Health() {
                   }}
                 />
                 <AppText style={{ fontSize: 14, fontWeight: '500', color: 'rgba(255,255,255,0.95)' }}>
-                  {inRange ? 'Within healthy range' : 'Outside healthy range'}
+                  {inRange ? 'Within healthy range' : t('medical.resultFlags.outsideRange')}
                 </AppText>
               </View>
             )}
@@ -252,18 +256,19 @@ export default function Health() {
         <>
           <SectionHeader
             action={{
-              label: 'View trends',
+              label: t('health.viewTrends'),
               onPress: () => router.push('/health-trends' as RelativePathString),
             }}
           >
-            Laboratory markers
+            {t('health.labMarkers')}
           </SectionHeader>
           <GlassCard style={{ paddingVertical: spacing.sm }}>
             {summary.availableParameters.slice(0, 5).map((param, index) => {
               const code = param.code.toUpperCase();
               const { icon: Icon, color: colorKey } = getVitalIconAndColor(param.code, index);
               const flag = flagByParameterCode.get(code);
-              const description = VITAL_DESCRIPTION_BY_CODE[code];
+              const descriptionKey = VITAL_DESCRIPTION_KEY_BY_CODE[code];
+              const description = descriptionKey ? t(descriptionKey) : undefined;
               return (
                 <View key={param.code}>
                   {index > 0 && <Divider style={{ marginVertical: spacing.sm }} />}
@@ -315,7 +320,7 @@ export default function Health() {
                     </View>
                     {flag && (
                       <StatusPill
-                        label={flag === 'NORMAL' ? 'Normal' : 'Review'}
+                        label={flag === 'NORMAL' ? t('medical.resultFlags.normal') : t('health.needsReview')}
                         tone={flag === 'NORMAL' ? 'success' : 'warning'}
                         compact
                       />
@@ -329,12 +334,12 @@ export default function Health() {
         </>
       )}
 
-      <SectionHeader>AI insights</SectionHeader>
+      <SectionHeader>{t('health.aiInsights')}</SectionHeader>
       <TouchableOpacity
         onPress={() => router.push('/insights' as RelativePathString)}
         activeOpacity={0.85}
         accessibilityRole="button"
-        accessibilityLabel="AI insights"
+        accessibilityLabel={t('health.aiInsights')}
       >
         <GlassCard style={{ borderColor: `${colors.ai}55`, backgroundColor: `${colors.ai}14` }}>
           <View style={{ flexDirection: 'row', gap: spacing.md, alignItems: 'flex-start' }}>
@@ -369,7 +374,7 @@ export default function Health() {
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
             <ShieldCheck size={17} color={colors.onMuted.success} />
             <AppText muted style={{ fontSize: 13 }}>
-              Your health data is private and secure.
+              {t('health.privacyNote')}
             </AppText>
           </View>
         </GlassCard>
@@ -379,11 +384,11 @@ export default function Health() {
         <>
           <SectionHeader
             action={{
-              label: 'View all',
+              label: t('common.viewAll'),
               onPress: () => router.push('/laboratory' as RelativePathString),
             }}
           >
-            Lab results
+            {t('health.labResults')}
           </SectionHeader>
           {publishedResults.slice(0, 2).map((result) => {
             const hasFlaggedItem = result.items.some((item) => item.flag && item.flag !== 'NORMAL');
@@ -408,11 +413,11 @@ export default function Health() {
                               month: 'short',
                               year: 'numeric',
                             })
-                          : 'Date unknown'}
+                          : t('health.dateUnknown')}
                       </AppText>
                     </View>
                     <StatusPill
-                      label={hasFlaggedItem ? 'Review' : 'Normal'}
+                      label={hasFlaggedItem ? t('health.needsReview') : t('medical.resultFlags.normal')}
                       tone={hasFlaggedItem ? 'warning' : 'success'}
                       compact
                     />

@@ -1,8 +1,11 @@
 import { Tabs } from 'expo-router';
 import { CalendarDays, Droplet, HeartPulse, Home, UserRound, Users } from 'lucide-react-native';
 import { GlassTabBar } from '../../src/components/GlassTabBar';
+import { useTranslation } from '../../src/i18n';
 
 export default function AppLayout() {
+  const { t } = useTranslation();
+
   return (
     <Tabs
       tabBar={(props) => <GlassTabBar {...props} />}
@@ -21,15 +24,15 @@ export default function AppLayout() {
     >
       <Tabs.Screen
         name="home"
-        options={{ title: 'Home', tabBarIcon: ({ color }) => <Home color={color} /> }}
+        options={{ title: t('nav.home'), tabBarIcon: ({ color }) => <Home color={color} /> }}
       />
       <Tabs.Screen
         name="health"
-        options={{ title: 'Health', tabBarIcon: ({ color }) => <HeartPulse color={color} /> }}
+        options={{ title: t('nav.health'), tabBarIcon: ({ color }) => <HeartPulse color={color} /> }}
       />
       <Tabs.Screen
         name="donate"
-        options={{ title: 'Donate', tabBarIcon: ({ color }) => <Droplet color={color} /> }}
+        options={{ title: t('nav.donate'), tabBarIcon: ({ color }) => <Droplet color={color} /> }}
       />
       {/*
         `community/index`, not `community`. Without a `community/_layout.tsx`
@@ -40,15 +43,15 @@ export default function AppLayout() {
       */}
       <Tabs.Screen
         name="community/index"
-        options={{ title: 'Community', tabBarIcon: ({ color }) => <Users color={color} /> }}
+        options={{ title: t('nav.community'), tabBarIcon: ({ color }) => <Users color={color} /> }}
       />
       <Tabs.Screen
         name="calendar"
-        options={{ title: 'Calendar', tabBarIcon: ({ color }) => <CalendarDays color={color} /> }}
+        options={{ title: t('nav.calendar'), tabBarIcon: ({ color }) => <CalendarDays color={color} /> }}
       />
       <Tabs.Screen
         name="profile"
-        options={{ title: 'Profile', tabBarIcon: ({ color }) => <UserRound color={color} /> }}
+        options={{ title: t('nav.profile'), tabBarIcon: ({ color }) => <UserRound color={color} /> }}
       />
 
       {/*

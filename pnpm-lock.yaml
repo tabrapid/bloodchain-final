@@ -44,6 +44,9 @@ importers:
       '@bloodchain/config':
         specifier: workspace:*
         version: link:../../packages/config
+      '@bloodchain/i18n':
+        specifier: workspace:*
+        version: link:../../packages/i18n
       '@bloodchain/types':
         specifier: workspace:*
         version: link:../../packages/types
@@ -271,6 +274,9 @@ importers:
       '@bloodchain/config':
         specifier: workspace:*
         version: link:../../packages/config
+      '@bloodchain/i18n':
+        specifier: workspace:*
+        version: link:../../packages/i18n
       '@bloodchain/types':
         specifier: workspace:*
         version: link:../../packages/types
@@ -350,6 +356,9 @@ importers:
       '@bloodchain/config':
         specifier: workspace:*
         version: link:../../packages/config
+      '@bloodchain/i18n':
+        specifier: workspace:*
+        version: link:../../packages/i18n
       '@bloodchain/types':
         specifier: workspace:*
         version: link:../../packages/types
@@ -432,6 +441,9 @@ importers:
       '@bloodchain/config':
         specifier: workspace:*
         version: link:../../packages/config
+      '@bloodchain/i18n':
+        specifier: workspace:*
+        version: link:../../packages/i18n
       '@bloodchain/types':
         specifier: workspace:*
         version: link:../../packages/types
@@ -563,6 +575,15 @@ importers:
         specifier: ^5.7.2
         version: 5.9.3
 
+  packages/i18n:
+    devDependencies:
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.9(@types/node@22.20.1)(jsdom@30.0.1(@noble/hashes@1.8.0))(lightningcss@1.27.0)(terser@5.50.0)
+
   packages/types:
     devDependencies:
       typescript:
@@ -570,6 +591,10 @@ importers:
         version: 5.9.3
 
   packages/ui:
+    dependencies:
+      '@bloodchain/i18n':
+        specifier: workspace:*
+        version: link:../i18n
     devDependencies:
       '@testing-library/dom':
         specifier: ^10.4.0
@@ -644,6 +669,9 @@ importers:
         specifier: ^3.24.1
         version: 3.25.76
     devDependencies:
+      '@bloodchain/i18n':
+        specifier: workspace:*
+        version: link:../i18n
       typescript:
         specifier: ^5.7.2
         version: 5.9.3

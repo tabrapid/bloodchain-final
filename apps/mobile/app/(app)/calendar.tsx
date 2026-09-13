@@ -7,19 +7,24 @@ import { LucideIcon } from '../../src/types/icons';
 import { useMyAppointments } from '../../src/hooks/useAppointments';
 import type { Appointment } from '../../src/api/appointments';
 import { layout, spacing, radius, useTheme, ThemeColors } from '../../src/theme';
+import { useTranslation } from '../../src/i18n';
 
 /** Icon, label and colour key per appointment type -- the legend reads from this too. */
-const TYPES: Record<string, { label: string; icon: LucideIcon; color: 'primary' | 'secondary' | 'ai' }> = {
-  BLOOD_DONATION: { label: 'Donation', icon: Droplet, color: 'primary' },
-  BLOOD_TEST: { label: 'Blood test', icon: FlaskConical, color: 'secondary' },
-  CONSULTATION: { label: 'Consultation', icon: Stethoscope, color: 'ai' },
+const TYPES: Record<string, { labelKey: string; icon: LucideIcon; color: 'primary' | 'secondary' | 'ai' }> = {
+  BLOOD_DONATION: { labelKey: 'medical.appointmentTypes.bloodDonation', icon: Droplet, color: 'primary' },
+  BLOOD_TEST: { labelKey: 'medical.appointmentTypes.bloodTest', icon: FlaskConical, color: 'secondary' },
+  CONSULTATION: { labelKey: 'medical.appointmentTypes.consultation', icon: Stethoscope, color: 'ai' },
 };
 
-const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-const MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-];
+/**
+ * Seven dates that happen to be a Monday-to-Sunday week.
+ *
+ * Used only to ask `Intl` for weekday names in the reader's language; January
+ * 2024 opens on a Monday, which is the whole reason these particular dates.
+ * Hardcoding 'Mon' … 'Sun' would have left the grid in English in every
+ * language, above days numbered in the reader's own.
+ */
+const WEEKDAY_SAMPLE = Array.from({ length: 7 }, (_, index) => new Date(2024, 0, 1 + index));
 
 function getDaysInMonth(year: number, month: number): number {
   return new Date(year, month + 1, 0).getDate();
@@ -35,6 +40,7 @@ function getFirstDayOfMonth(year: number, month: number): number {
 
 export default function Calendar() {
   const { colors } = useTheme();
+  const { t, formatMonth, formatWeekday, formatDate } = useTranslation();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [viewDate, setViewDate] = useState<{ year: number; month: number }>({
@@ -136,9 +142,9 @@ export default function Calendar() {
     <Screen>
       <View style={styles.header}>
         <View style={{ flex: 1 }}>
-          <AppText style={styles.title}>Calendar</AppText>
+          <AppText style={styles.title}>{t('calendar.title')}</AppText>
           <AppText muted style={styles.headerSubtitle}>
-            Appointments &amp; donations
+            {t('calendar.subtitle')}
           </AppText>
         </View>
         <AppButton
@@ -146,11 +152,11 @@ export default function Calendar() {
           size="small"
           onPress={() => router.push('/(booking)/select-type')}
           accessibilityRole="button"
-          accessibilityLabel="Schedule an appointment"
+          accessibilityLabel={t('calendar.a11ySchedule')}
           style={styles.bookButton}
         >
           <Plus size={16} color={colors.white} />
-          Schedule
+          {t('calendar.schedule')}
         </AppButton>
       </View>
 
@@ -159,7 +165,7 @@ export default function Calendar() {
           <Pressable
             onPress={goToPreviousMonth}
             accessibilityRole="button"
-            accessibilityLabel="Previous month"
+            accessibilityLabel={t('calendar.a11yPreviousMonth')}
             hitSlop={8}
             style={styles.navButton}
           >
@@ -167,26 +173,26 @@ export default function Calendar() {
           </Pressable>
           <View style={styles.monthLabelGroup}>
             <AppText style={styles.monthLabel}>
-              {MONTHS[viewDate.month]} {viewDate.year}
+              {formatMonth(new Date(viewDate.year, viewDate.month, 1))}
             </AppText>
-            {/* Only when you have wandered off it -- a "Today" button on the
+            {/* Only when you have wandered off it -- a t('common.today') button on the
                 month you are already looking at is a button that does nothing. */}
             {!isViewingCurrentMonth && (
               <Pressable
                 onPress={goToToday}
                 accessibilityRole="button"
-                accessibilityLabel="Back to today"
+                accessibilityLabel={t('calendar.a11yBackToToday')}
                 hitSlop={6}
                 style={styles.todayChip}
               >
-                <AppText style={styles.todayText}>Today</AppText>
+                <AppText style={styles.todayText}>{t('common.today')}</AppText>
               </Pressable>
             )}
           </View>
           <Pressable
             onPress={goToNextMonth}
             accessibilityRole="button"
-            accessibilityLabel="Next month"
+            accessibilityLabel={t('calendar.a11yNextMonth')}
             hitSlop={8}
             style={styles.navButton}
           >
@@ -195,10 +201,10 @@ export default function Calendar() {
         </View>
 
         <View style={styles.weekdayRow}>
-          {WEEKDAYS.map((day) => (
-            <View key={day} style={styles.weekdayCell}>
+          {WEEKDAY_SAMPLE.map((day) => (
+            <View key={day.getDay()} style={styles.weekdayCell}>
               <AppText muted style={styles.weekdayText}>
-                {day}
+                {formatWeekday(day, 'short')}
               </AppText>
             </View>
           ))}
@@ -217,9 +223,10 @@ export default function Calendar() {
                 onPress={() => setSelectedDate(new Date(viewDate.year, viewDate.month, day))}
                 accessibilityRole="button"
                 accessibilityState={{ selected }}
-                accessibilityLabel={`${MONTHS[viewDate.month]} ${day}${
-                  dayItems.length ? `, ${dayItems.length} appointments` : ''
-                }`}
+                accessibilityLabel={`${formatDate(
+                  new Date(viewDate.year, viewDate.month, day),
+                  'long',
+                )}${dayItems.length ? `, ${t('calendar.appointmentsCount', { count: dayItems.length })}` : ''}`}
                 style={styles.dayCell}
               >
                 <View
@@ -260,7 +267,7 @@ export default function Calendar() {
             <View key={type} style={styles.legendItem}>
               <View style={[styles.legendDot, { backgroundColor: colors[entry.color] }]} />
               <AppText muted style={styles.legendLabel}>
-                {entry.label}
+                {t(entry.labelKey)}
               </AppText>
             </View>
           ))}
@@ -272,15 +279,15 @@ export default function Calendar() {
       </SectionHeader>
 
       {isLoading ? (
-        <AppText muted>Loading…</AppText>
+        <AppText muted>{t('common.loading')}</AppText>
       ) : selectedDateAppointments.length === 0 ? (
         <Card style={styles.emptyCard}>
           <View style={styles.emptyIcon}>
             <CalendarDays size={22} color={colors.textMuted} />
           </View>
-          <AppText style={styles.emptyTitle}>Nothing booked</AppText>
+          <AppText style={styles.emptyTitle}>{t('calendar.nothingBooked')}</AppText>
           <AppText muted style={styles.emptyNote}>
-            You have no appointments on this day.
+            {t('calendar.noAppointmentsOnDay')}
           </AppText>
           <AppButton
             variant="secondary"
@@ -288,7 +295,7 @@ export default function Calendar() {
             onPress={() => router.push('/(booking)/select-type')}
             style={styles.emptyAction}
           >
-            Schedule one
+            {t('calendar.scheduleOne')}
           </AppButton>
         </Card>
       ) : (
@@ -302,7 +309,7 @@ export default function Calendar() {
               key={apt.id}
               onPress={() => router.push(`/appointment/${apt.id}`)}
               accessibilityRole="button"
-              accessibilityLabel={`${entry?.label ?? 'Appointment'} at ${formatTime(apt.scheduledStart)}, ${apt.organization.name}`}
+              accessibilityLabel={`${entry ? t(entry.labelKey) : t('calendar.appointment')} · ${formatTime(apt.scheduledStart)}, ${apt.organization.name}`}
               style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
             >
               <Card style={styles.appointmentCard}>
@@ -326,7 +333,7 @@ export default function Calendar() {
                       {apt.organization.name}
                     </AppText>
                     <AppText muted style={styles.appointmentType}>
-                      {entry?.label ?? apt.appointmentType.replace('_', ' ')}
+                      {entry ? t(entry.labelKey) : apt.appointmentType.replace('_', ' ')}
                     </AppText>
                   </View>
                   <ChevronRight size={16} color={colors.textMuted} />

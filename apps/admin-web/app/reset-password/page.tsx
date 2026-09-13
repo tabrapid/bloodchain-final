@@ -1,14 +1,12 @@
 'use client';
 
 import { Suspense, useState } from 'react';
+import { LanguageSwitcher, useTranslation } from '@bloodchain/ui/i18n';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { CheckCircle, Link2Off, Shield } from 'lucide-react';
 import { strongPasswordSchema } from '@bloodchain/validation';
 import { resetPassword, isRejectedResetToken, recoveryErrorMessage } from '../../lib/auth';
-
-const POLICY_HINT =
-  'Use at least 12 characters with an uppercase and a lowercase letter, a number and a special character.';
 
 /**
  * Step two of account recovery: spend the link and set a new password.
@@ -19,6 +17,7 @@ const POLICY_HINT =
  * rejection at a time.
  */
 function ResetPasswordForm() {
+  const { t } = useTranslation();
   const router = useRouter();
   const searchParams = useSearchParams();
   const linkToken = searchParams.get('token') ?? '';
@@ -39,11 +38,11 @@ function ResetPasswordForm() {
 
     const policy = strongPasswordSchema.safeParse(password);
     if (!policy.success) {
-      setFieldError(policy.error.issues[0]?.message ?? POLICY_HINT);
+      setFieldError(policy.error.issues[0]?.message ?? 'auth.fields.passwordPolicy');
       return;
     }
     if (password !== confirmPassword) {
-      setFieldError('Passwords do not match');
+      setFieldError('auth.errors.passwordsDoNotMatch');
       return;
     }
 
@@ -72,18 +71,18 @@ function ResetPasswordForm() {
             <CheckCircle className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h1 className="text-xl font-semibold text-donor-text">Password updated</h1>
-            <p className="text-sm text-donor-muted">BloodChain Management</p>
+            <h1 className="text-xl font-semibold text-donor-text">
+              {t('auth.resetPassword.doneTitle')}
+            </h1>
+            <p className="text-sm text-donor-muted">{t('portal.admin.workspace')}</p>
           </div>
         </div>
-        <p className="text-sm text-donor-muted mb-6">
-          You have been signed out everywhere else. Sign in with your new password to continue.
-        </p>
+        <p className="text-sm text-donor-muted mb-6">{t('auth.resetPassword.doneBody')}</p>
         <button
           onClick={() => router.push('/')}
           className="w-full bg-donor-primary text-white py-2.5 px-4 rounded-lg font-medium hover:bg-donor-primary/85 transition-colors"
         >
-          Sign in
+          {t('auth.resetPassword.goToSignIn')}
         </button>
       </>
     );
@@ -97,28 +96,27 @@ function ResetPasswordForm() {
             <Link2Off className="w-6 h-6 text-donor-onDangerMuted" />
           </div>
           <div>
-            <h1 className="text-xl font-semibold text-donor-text">This link no longer works</h1>
-            <p className="text-sm text-donor-muted">BloodChain Management</p>
+            <h1 className="text-xl font-semibold text-donor-text">
+              {t('auth.resetPassword.rejectedTitle')}
+            </h1>
+            <p className="text-sm text-donor-muted">{t('portal.admin.workspace')}</p>
           </div>
         </div>
         {/* The server will not say which of the three it is, and all three have
             the same remedy, so guessing would add nothing but the risk of being
             wrong. */}
-        <p className="text-sm text-donor-muted mb-6">
-          Reset links can be used once and expire within the hour. Request a new one and open the
-          most recent email.
-        </p>
+        <p className="text-sm text-donor-muted mb-6">{t('auth.resetPassword.rejectedBody')}</p>
         <Link
           href="/forgot-password"
           className="block w-full bg-donor-primary text-white py-2.5 px-4 rounded-lg font-medium text-center hover:bg-donor-primary/85 transition-colors"
         >
-          Request a new link
+          {t('auth.resetPassword.requestNewLink')}
         </Link>
         <Link
           href="/"
           className="mt-3 block w-full text-center text-sm font-medium text-donor-primary hover:underline"
         >
-          Back to sign in
+          {t('portal.backToSignIn')}
         </Link>
       </>
     );
@@ -131,16 +129,16 @@ function ResetPasswordForm() {
           <Shield className="w-6 h-6 text-white" />
         </div>
         <div>
-          <h1 className="text-xl font-semibold text-donor-text">Admin Portal</h1>
-          <p className="text-sm text-donor-muted">BloodChain Management</p>
+          <h1 className="text-xl font-semibold text-donor-text">{t('portal.admin.name')}</h1>
+          <p className="text-sm text-donor-muted">{t('portal.admin.workspace')}</p>
         </div>
       </div>
 
-      <h2 className="text-lg font-medium text-donor-text mb-2">New password</h2>
+      <h2 className="text-lg font-medium text-donor-text mb-2">{t('auth.resetPassword.title')}</h2>
       <p className="text-sm text-donor-muted mb-4">
         {linkToken
-          ? 'Choose a new password for your account. Signing in elsewhere will stop working.'
-          : 'Paste the code from your reset email, then choose a new password.'}
+          ? t('auth.resetPassword.subtitleFromLink')
+          : t('auth.resetPassword.subtitleManual')}
       </p>
 
       {error && (
@@ -159,7 +157,7 @@ function ResetPasswordForm() {
         {!linkToken && (
           <div>
             <label htmlFor="token" className="block text-sm font-medium text-donor-text mb-1">
-              Reset code
+              {t('auth.resetPassword.code')}
             </label>
             <input
               id="token"
@@ -176,7 +174,7 @@ function ResetPasswordForm() {
 
         <div>
           <label htmlFor="password" className="block text-sm font-medium text-donor-text mb-1">
-            New password
+            {t('auth.resetPassword.newPassword')}
           </label>
           <input
             id="password"
@@ -193,7 +191,7 @@ function ResetPasswordForm() {
 
         <div>
           <label htmlFor="confirmPassword" className="block text-sm font-medium text-donor-text mb-1">
-            Confirm new password
+            {t('auth.resetPassword.confirmPassword')}
           </label>
           <input
             id="confirmPassword"
@@ -209,10 +207,10 @@ function ResetPasswordForm() {
 
         {fieldError ? (
           <p role="alert" className="text-xs text-donor-onDangerMuted">
-            {fieldError}
+            {t(fieldError)}
           </p>
         ) : (
-          <p className="text-xs text-donor-muted">{POLICY_HINT}</p>
+          <p className="text-xs text-donor-muted">{t('auth.fields.passwordPolicy')}</p>
         )}
 
         <button
@@ -220,13 +218,13 @@ function ResetPasswordForm() {
           disabled={isSubmitting}
           className="w-full bg-donor-primary text-white py-2.5 px-4 rounded-lg font-medium hover:bg-donor-primary/85 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
         >
-          {isSubmitting ? 'Saving...' : 'Set new password'}
+          {isSubmitting ? t('common.saving') : t('auth.resetPassword.submit')}
         </button>
       </form>
 
       <p className="mt-6 text-center text-sm text-donor-muted">
         <Link href="/" className="font-medium text-donor-primary hover:underline">
-          Back to sign in
+          {t('portal.backToSignIn')}
         </Link>
       </p>
     </>
@@ -234,12 +232,20 @@ function ResetPasswordForm() {
 }
 
 export default function AdminResetPasswordPage() {
+  const { t } = useTranslation();
+
   return (
     <div className="min-h-screen bc-app-bg flex items-center justify-center">
       <div className="bc-glass rounded-card p-8 w-full max-w-md">
+        {/* A signed-out admin who cannot read this page has no other way to
+            change it: the console's switcher lives in the top bar, which only
+            renders once you are inside. */}
+        <div className="mb-4 flex justify-end">
+          <LanguageSwitcher />
+        </div>
         {/* `useSearchParams` opts the tree into client-side rendering, which
             Next requires a Suspense boundary for at build time. */}
-        <Suspense fallback={<p className="text-sm text-donor-muted">Loading…</p>}>
+        <Suspense fallback={<p className="text-sm text-donor-muted">{t('common.loading')}</p>}>
           <ResetPasswordForm />
         </Suspense>
       </div>

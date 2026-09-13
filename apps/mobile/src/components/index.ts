@@ -16,6 +16,7 @@ export * from './Divider';
 export * from './Avatar';
 export * from './SectionHeader';
 export * from './SegmentedControl';
+export * from './LanguageSwitcher';
 export * from './ScreenHeader';
 export * from './AppHeader';
 export * from './BackHeader';

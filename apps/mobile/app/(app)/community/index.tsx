@@ -28,6 +28,7 @@ import {
 } from '../../../src/components';
 import { LucideIcon } from '../../../src/types/icons';
 import { layout, radius, spacing, useTheme, ThemeColors } from '../../../src/theme';
+import { useTranslation } from '../../../src/i18n';
 
 type AccentKey = 'primary' | 'secondary' | 'success' | 'warning' | 'ai';
 
@@ -38,14 +39,14 @@ type AccentKey = 'primary' | 'secondary' | 'success' | 'warning' | 'ai';
  * "COMMUNITY_UPDATE" shouted at the reader beside every author's name. A
  * shaped label and a colour carry the same fact without taking over the card.
  */
-const POST_TYPES: Record<string, { label: string; icon: LucideIcon; accent: AccentKey }> = {
-  CAMPAIGN: { label: 'Campaign', icon: Droplet, accent: 'primary' },
-  EDUCATION: { label: 'Education', icon: GraduationCap, accent: 'secondary' },
-  MILESTONE: { label: 'Milestone', icon: Trophy, accent: 'warning' },
-  ACHIEVEMENT: { label: 'Achievement', icon: Award, accent: 'warning' },
-  COMMUNITY_UPDATE: { label: 'Update', icon: Users, accent: 'ai' },
-  ANNOUNCEMENT: { label: 'Announcement', icon: Megaphone, accent: 'ai' },
-  IMPACT: { label: 'Impact', icon: Sparkles, accent: 'success' },
+const POST_TYPES: Record<string, { labelKey: string; icon: LucideIcon; accent: AccentKey }> = {
+  CAMPAIGN: { labelKey: 'community.postTypes.campaign', icon: Droplet, accent: 'primary' },
+  EDUCATION: { labelKey: 'community.education', icon: GraduationCap, accent: 'secondary' },
+  MILESTONE: { labelKey: 'community.postTypes.milestone', icon: Trophy, accent: 'warning' },
+  ACHIEVEMENT: { labelKey: 'community.postTypes.achievement', icon: Award, accent: 'warning' },
+  COMMUNITY_UPDATE: { labelKey: 'community.postTypes.update', icon: Users, accent: 'ai' },
+  ANNOUNCEMENT: { labelKey: 'community.postTypes.announcement', icon: Megaphone, accent: 'ai' },
+  IMPACT: { labelKey: 'community.impact', icon: Sparkles, accent: 'success' },
 };
 
 /** "today" / "3 days ago" / "12 Mar". */
@@ -61,6 +62,7 @@ function formatWhen(iso: string): string {
 
 export default function CommunityScreen() {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -88,7 +90,7 @@ export default function CommunityScreen() {
   if (feedLoading) {
     return (
       <Screen>
-        <LoadingState message="Loading community..." />
+        <LoadingState message={t('common.loading')} />
       </Screen>
     );
   }
@@ -108,16 +110,16 @@ export default function CommunityScreen() {
           <>
             <View style={styles.header}>
               <View style={{ flex: 1 }}>
-                <AppText style={styles.title}>Community</AppText>
+                <AppText style={styles.title}>{t('community.title')}</AppText>
                 <AppText muted style={styles.subtitle}>
-                  Your donor network
+                  {t('community.subtitle')}
                 </AppText>
               </View>
               <IconButton
                 icon={BookOpen}
                 onPress={() => router.push('/education')}
                 accessibilityRole="button"
-                accessibilityLabel="Education"
+                accessibilityLabel={t('community.education')}
               />
             </View>
 
@@ -137,7 +139,7 @@ export default function CommunityScreen() {
                 <GradientCard colors={['#D85360', '#7B3266']} style={styles.hero}>
                   <View style={styles.heroTopRow}>
                     <View style={{ flex: 1 }}>
-                      <AppText style={styles.heroEyebrow}>THIS MONTH</AppText>
+                      <AppText style={styles.heroEyebrow}>{t('community.thisMonth')}</AppText>
                       <View style={styles.heroRankRow}>
                         <AppText style={styles.heroRank}>#{userRank.rank}</AppText>
                         <AppText style={styles.heroRankOf}>of {userRank.total} donors</AppText>
@@ -152,29 +154,29 @@ export default function CommunityScreen() {
                     <>
                       <View style={styles.heroDivider} />
                       <View style={styles.heroStatsRow}>
-                        <HeroStat value={impact.donations} label="Donations" />
-                        <HeroStat value={impact.campaignParticipations} label="Campaigns" />
-                        <HeroStat value={impact.challengeCompletions} label="Challenges" />
+                        <HeroStat value={impact.donations} label={t('community.donations')} />
+                        <HeroStat value={impact.campaignParticipations} label={t('community.campaigns')} />
+                        <HeroStat value={impact.challengeCompletions} label={t('community.challenges')} />
                       </View>
                     </>
                   )}
 
                   <View style={styles.heroFooter}>
-                    <AppText style={styles.heroFooterText}>See the full leaderboard</AppText>
+                    <AppText style={styles.heroFooterText}>{t('community.leaderboard')}</AppText>
                     <ChevronRight size={16} color="rgba(255,255,255,0.85)" />
                   </View>
                 </GradientCard>
               </Pressable>
             )}
 
-            <SectionHeader>Community feed</SectionHeader>
+            <SectionHeader>{t('community.feed')}</SectionHeader>
           </>
         }
         ListEmptyComponent={
           <GlassCard style={styles.emptyCard}>
-            <AppText style={styles.emptyTitle}>Nothing posted yet</AppText>
+            <AppText style={styles.emptyTitle}>{t('community.empty')}</AppText>
             <AppText muted style={styles.emptyNote}>
-              Campaign news, milestones and updates from your donor network will appear here.
+              {t('community.emptyBody')}
             </AppText>
           </GlassCard>
         }
@@ -197,12 +199,13 @@ function HeroStat({ value, label }: { value: number; label: string }) {
 
 function FeedPostCard({ post }: { post: CommunityPost }) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const authorName =
     post.author?.displayName ||
     [post.author?.firstName, post.author?.lastName].filter(Boolean).join(' ') ||
     'Bloodchain';
-  const type = POST_TYPES[post.type] ?? { label: post.type, icon: Megaphone, accent: 'ai' as const };
+  const type = POST_TYPES[post.type] ?? { labelKey: post.type, icon: Megaphone, accent: 'ai' as const };
   const TypeIcon = type.icon;
   const accent = colors[type.accent];
 
@@ -228,7 +231,7 @@ function FeedPostCard({ post }: { post: CommunityPost }) {
         </View>
         <View style={[styles.typePill, { backgroundColor: `${accent}26`, borderColor: `${accent}40` }]}>
           <TypeIcon size={12} color={accent} />
-          <AppText style={[styles.typeLabel, { color: accent }]}>{type.label}</AppText>
+          <AppText style={[styles.typeLabel, { color: accent }]}>{t(type.labelKey)}</AppText>
         </View>
       </View>
 
@@ -251,7 +254,7 @@ function FeedPostCard({ post }: { post: CommunityPost }) {
       >
         <Share2 size={14} color={colors.textMuted} />
         <AppText muted style={styles.shareLabel}>
-          Share
+          {t('common.share')}
         </AppText>
       </Pressable>
     </GlassCard>

@@ -13,6 +13,7 @@ import {
   ProgressBar,
   Screen,
   SectionHeader,
+  LanguageSwitcher,
 } from '../../src/components';
 import { achievementIconMap } from '../../src/components/gamification/AchievementCard';
 import { useLogout } from '../../src/hooks/useAuth';
@@ -21,11 +22,13 @@ import { useDonorProfile } from '../../src/hooks/useDonors';
 import { useProfileCompletion } from '../../src/hooks/useDonors';
 import { useGamificationProfile, useLevelProgress, useAchievements } from '../../src/hooks/useGamification';
 import { layout, spacing, radius, typography, useTheme, ThemeColors } from '../../src/theme';
+import { useTranslation } from '../../src/i18n';
 import { Award, Bell, ChevronRight, Droplet, Lock, Shield, User } from 'lucide-react-native';
 import { useMemo } from 'react';
 
 export default function Profile() {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const logout = useLogout();
   const { data: user } = useUserProfile();
@@ -42,7 +45,7 @@ export default function Profile() {
 
   const fullName = user
     ? [user.firstName, user.lastName].filter(Boolean).join(' ') || 'Donor'
-    : 'Loading...';
+    : t('common.loading');
 
   const bloodTypeDisplay = donor?.bloodType && donor?.rhFactor
     ? `${donor.bloodType}${donor.rhFactor === 'POSITIVE' ? '+' : '-'}`
@@ -52,7 +55,7 @@ export default function Profile() {
     ? 'Verified'
     : donor?.verificationStatus === 'REQUIRES_REVIEW'
     ? 'Under Review'
-    : 'Unverified';
+    : t('home.verificationUnverified');
 
   const verificationLabel = donor?.verificationStatus === 'VERIFIED'
     ? 'Verified Donor'
@@ -86,7 +89,7 @@ export default function Profile() {
 
   return (
     <Screen>
-      <AppText variant="title">Profile</AppText>
+      <AppText variant="title">{t('profile.title')}</AppText>
 
       <GlassCard elevated style={styles.profileCard}>
         <View style={styles.profileHeader}>
@@ -112,7 +115,7 @@ export default function Profile() {
                 {gamificationProfile.donationCount}
               </AppText>
               <AppText muted style={styles.statLabel}>
-                Donations
+                {t('profile.donations')}
               </AppText>
             </View>
             <View style={styles.statItem}>
@@ -120,7 +123,7 @@ export default function Profile() {
                 {gamificationProfile.emergencyResponseCount}
               </AppText>
               <AppText muted style={styles.statLabel}>
-                Emergency responses
+                {t('profile.emergencyResponses')}
               </AppText>
             </View>
             <View style={styles.statItem}>
@@ -154,7 +157,7 @@ export default function Profile() {
           onPress={() => router.push('/(app)/profile/edit')}
           style={styles.editButton}
         >
-          Edit Profile
+          {t('profile.editProfile')}
         </AppButton>
       </GlassCard>
 
@@ -169,7 +172,7 @@ export default function Profile() {
             </View>
             <View style={{ flex: 1 }}>
               <AppText variant="body" style={{ fontWeight: '600' }}>
-                Achievements & Badges
+                {t('profile.achievements')}
               </AppText>
               <AppText muted style={{ fontSize: 12 }}>
                 {unlockedCount} earned · {inProgressCount} in progress
@@ -199,7 +202,7 @@ export default function Profile() {
         >
           <View style={styles.completionHeader}>
             <AppText variant="heading" style={styles.onGradientText}>
-              Profile Completion
+              {t('profile.completion')}
             </AppText>
             <AppText variant="heading" style={styles.onGradientText}>
               {completion.percentage}%
@@ -233,7 +236,7 @@ export default function Profile() {
         />
         <View style={styles.bloodTypeHeader}>
           <Droplet size={16} color="rgba(255,255,255,0.85)" fill="rgba(255,255,255,0.5)" />
-          <AppText style={styles.bloodTypeEyebrow}>YOUR BLOOD TYPE</AppText>
+          <AppText style={styles.bloodTypeEyebrow}>{t('profile.bloodTypeLabel')}</AppText>
         </View>
         <View style={styles.bloodTypeValue}>
           <AppText style={styles.bloodTypeText}>{bloodTypeDisplay}</AppText>
@@ -250,39 +253,44 @@ export default function Profile() {
         )}
       </GradientCard>
 
-      <SectionHeader>DONOR INFO</SectionHeader>
+      <SectionHeader>{t('profile.donorInfo')}</SectionHeader>
       <Card>
         <ListItem
-          title="Donor Profile"
-          subtitle="Blood type, eligibility, preferences"
+          title={t('profile.donorProfile')}
+          subtitle={t('profile.donorProfileNote')}
           icon={Droplet}
           onPress={() => router.push('/(app)/profile/donor')}
         />
         <Divider />
         <ListItem
-          title="Personal Info"
-          subtitle="Name, contact, address"
+          title={t('profile.personalInfo')}
+          subtitle={t('profile.personalInfoNote')}
           icon={User}
           onPress={() => router.push('/(app)/profile/edit')}
         />
       </Card>
 
-      <SectionHeader>SETTINGS</SectionHeader>
+      <SectionHeader>{t('profile.settings')}</SectionHeader>
+      {/* Above the settings list rather than inside it: the language decides
+          how every row below reads, so it belongs where it is seen first. */}
+      <Card style={{ marginBottom: layout.cardGap }}>
+        <LanguageSwitcher />
+      </Card>
       <Card>
         <ListItem
-          title="Notifications"
+          title={t('profile.notifications')}
           icon={Bell}
           onPress={() => router.push('/(app)/notifications')}
         />
         <Divider />
         <ListItem
-          title="Privacy"
+          title={t('profile.privacy')}
           icon={Lock}
           onPress={() => router.push('/(app)/privacy')}
         />
         <Divider />
         <ListItem
-          title="Security"
+          title={t('profile.security')}
           icon={Shield}
           onPress={() => router.push('/(app)/security')}
         />
@@ -291,7 +299,7 @@ export default function Profile() {
       {/* Sign-out sits in its own card rather than under a section header --
           the reference gives it no label, just the action. */}
       <Card style={styles.signOutCard}>
-        <ListItem title="Sign out" destructive onPress={() => logout.mutate()} />
+        <ListItem title={t('profile.signOut')} destructive onPress={() => logout.mutate()} />
       </Card>
 
       <View style={styles.footer}>

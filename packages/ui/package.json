@@ -6,6 +6,7 @@
   "exports": {
     "./tokens": "./src/tokens/index.ts",
     "./components": "./src/components/index.ts",
+    "./i18n": "./src/i18n/index.ts",
     "./map": "./src/components/map/LocationMap.tsx",
     "./tailwind-preset": "./src/tokens/tailwind-preset.ts",
     "./styles/glass.css": "./src/styles/glass.css"
@@ -14,6 +15,9 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
     "test": "vitest run"
+  },
+  "dependencies": {
+    "@bloodchain/i18n": "workspace:*"
   },
   "peerDependencies": {
     "react": ">=18.0.0",

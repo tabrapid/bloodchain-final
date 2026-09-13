@@ -14,6 +14,7 @@
   "dependencies": {
     "@babel/runtime": "^8.0.0",
     "@bloodchain/config": "workspace:*",
+    "@bloodchain/i18n": "workspace:*",
     "@bloodchain/types": "workspace:*",
     "@bloodchain/utils": "workspace:*",
     "@bloodchain/validation": "workspace:*",

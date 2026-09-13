@@ -1,4 +1,5 @@
 import './globals.css';
+import { LocaleProvider } from '@bloodchain/ui/i18n';
 import 'leaflet/dist/leaflet.css';
 
 export const metadata = {
@@ -8,8 +9,10 @@ export const metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <body className="antialiased">{children}</body>
+    <html lang="uz">
+      <body className="antialiased">
+        <LocaleProvider>{children}</LocaleProvider>
+      </body>
     </html>
   );
 }

@@ -4,7 +4,17 @@ import { Activity, type LucideIcon } from 'lucide-react';
 
 export interface SidebarItem {
   id: string;
+  /**
+   * The rendered text.
+   *
+   * Kept alongside `labelKey` rather than replaced by it: a console builds its
+   * item list at module load, where there is no locale, so it stores the key
+   * and its shell resolves it. `label` remains the fallback for anything that
+   * has no catalogue entry yet.
+   */
   label: string;
+  /** A catalogue key, resolved by the shell that renders this item. */
+  labelKey?: string;
   icon?: LucideIcon;
   href?: string;
   disabled?: boolean;

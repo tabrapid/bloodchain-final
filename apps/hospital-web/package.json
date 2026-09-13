@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@bloodchain/config": "workspace:*",
+    "@bloodchain/i18n": "workspace:*",
     "@bloodchain/types": "workspace:*",
     "@bloodchain/ui": "workspace:*",
     "@bloodchain/validation": "workspace:*",
