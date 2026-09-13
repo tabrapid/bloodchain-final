@@ -13,6 +13,7 @@
     "@bloodchain/config": "workspace:*",
     "@bloodchain/types": "workspace:*",
     "@bloodchain/ui": "workspace:*",
+    "@bloodchain/validation": "workspace:*",
     "@bloodchain/utils": "workspace:*",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.468.0",

@@ -136,7 +136,7 @@ export default function Register() {
             <AppTextInput
               ref={passwordRef}
               label="Password"
-              placeholder="Min 12 characters"
+              placeholder="At least 12 characters"
               secureTextEntry={!showPassword}
               autoComplete="new-password"
               returnKeyType="go"
@@ -165,8 +165,16 @@ export default function Register() {
           )}
         />
 
+        {/* The same sentence, in the same place, as the reset screen. The rule
+            is one rule; two screens describing it differently is how a person
+            concludes the second one is stricter. */}
+        <AppText muted style={{ fontSize: 12, marginTop: -spacing.sm, marginBottom: spacing.lg }}>
+          Use at least 12 characters with an uppercase and a lowercase letter, a number and a
+          special character.
+        </AppText>
+
         {serverError && (
-          <AppText style={{ color: colors.danger, marginBottom: spacing.md }}>
+          <AppText accessibilityRole="alert" style={{ color: colors.danger, marginBottom: spacing.md }}>
             {serverError}
           </AppText>
         )}

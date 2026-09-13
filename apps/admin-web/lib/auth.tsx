@@ -154,3 +154,75 @@ export function isAuthenticated(): boolean {
 export async function me(): Promise<AuthUser> {
   return apiRequest<AuthUser>('/auth/me');
 }
+
+/**
+ * Account recovery.
+ *
+ * Unauthenticated by design -- whoever is using this is locked out -- so these
+ * go through plain `fetch` rather than `apiRequest`, which attaches a token and
+ * tries to refresh one. No reset logic lives here; both calls hand straight to
+ * the API's existing endpoints.
+ *
+ * The one rule this layer must keep is the server's: an unknown address is
+ * answered exactly like a registered one, so nothing here may branch on whether
+ * an account was found.
+ */
+export interface RecoveryMessage {
+  success: boolean;
+  message: string;
+}
+
+async function recoveryRequest(path: string, body: unknown, fallbackCode: string): Promise<RecoveryMessage> {
+  const response = await fetch(`${API_BASE_URL}${API_BASE_PATH}${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+
+  const json = (await response.json().catch(() => ({}))) as {
+    data?: RecoveryMessage;
+    statusCode?: number;
+    code?: string;
+    message?: string;
+  };
+
+  if (!response.ok) {
+    throw new ApiRequestError({
+      statusCode: json.statusCode ?? response.status,
+      code: json.code ?? fallbackCode,
+      message: json.message ?? 'Something went wrong. Please try again.',
+    });
+  }
+
+  return json.data ?? { success: true, message: '' };
+}
+
+export function requestPasswordReset(email: string): Promise<RecoveryMessage> {
+  return recoveryRequest('/auth/forgot-password', { email }, 'PASSWORD_RESET_REQUEST_FAILED');
+}
+
+export function resetPassword(token: string, newPassword: string): Promise<RecoveryMessage> {
+  return recoveryRequest('/auth/reset-password', { token, newPassword }, 'PASSWORD_RESET_FAILED');
+}
+
+/**
+ * True when the server refused the token itself.
+ *
+ * Unknown, expired and already-spent all come back as one 400 with one message,
+ * deliberately, so that a caller cannot probe which tokens ever existed. The UI
+ * cannot tell them apart either and must not pretend to: one state, one remedy.
+ */
+export function isRejectedResetToken(error: unknown): boolean {
+  return error instanceof ApiRequestError && error.error.statusCode === 400;
+}
+
+/** Error copy for the recovery screens, where a 429 is a policy, not a fault. */
+export function recoveryErrorMessage(error: unknown): string {
+  if (error instanceof ApiRequestError) {
+    if (error.error.statusCode === 429) {
+      return 'Too many requests. Password reset is limited to a few attempts every 15 minutes — please wait and try again.';
+    }
+    return error.error.message || 'Something went wrong. Please try again.';
+  }
+  return 'Could not reach the server. Check your connection and try again.';
+}

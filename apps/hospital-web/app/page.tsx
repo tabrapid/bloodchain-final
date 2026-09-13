@@ -169,6 +169,16 @@ export default function HospitalDashboard() {
                 className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2.5 text-sm text-donor-text focus:outline-none focus:ring-2 focus:ring-donor-primary"
               />
             </div>
+            {/* With the password field it belongs to, above the button --
+                where someone looks after mistyping it twice. */}
+            <div className="flex justify-end">
+              <Link
+                href="/forgot-password"
+                className="text-xs font-semibold text-donor-primary hover:underline"
+              >
+                Forgot password?
+              </Link>
+            </div>
             <button
               type="submit"
               disabled={isSubmitting}

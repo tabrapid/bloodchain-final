@@ -723,7 +723,14 @@ export class AuthService {
    */
   async requestPasswordReset(email: string, ipAddress?: string) {
     const normalisedEmail = email.trim().toLowerCase();
-    const user = await this.db.user.findUnique({ where: { email: normalisedEmail } });
+    const user = await this.db.user.findUnique({
+      where: { email: normalisedEmail },
+      // Roles come along so the link can point at the console this person
+      // actually signs in to, rather than whichever origin happens to be first.
+      include: {
+        memberships: { where: { status: 'ACTIVE' }, include: { role: true } },
+      },
+    });
 
     // Log the attempt whether or not it matched, so a burst against many
     // addresses is visible in the audit trail rather than only the successes.
@@ -757,7 +764,10 @@ export class AuthService {
           update: { tokenHash: hashResetToken(rawToken), expiresAt, usedAt: null, requestedIp: ipAddress },
         });
 
-        const { resetUrl, deepLink } = this.buildPasswordResetLinks(rawToken);
+        const { resetUrl, deepLink } = this.buildPasswordResetLinks(
+          rawToken,
+          user.memberships.map((membership) => membership.role.code),
+        );
         const ttlDescription = `${ttlMinutes} minutes`;
         try {
           await this.email.sendPasswordResetEmail(
@@ -858,8 +868,48 @@ export class AuthService {
     };
   }
 
-  private buildPasswordResetLinks(token: string): { resetUrl: string; deepLink: string } {
-    const webUrl = this.config.get<string>('WEB_URL', 'http://localhost:3000').split(',')[0]!.trim();
+  /**
+   * The console a given set of roles signs in to.
+   *
+   * Each is optional and falls back to the first `WEB_URL` entry, so a
+   * deployment that serves every console from one origin needs no extra
+   * configuration and behaves exactly as before. Nothing here hardcodes a host:
+   * the fallback is whatever `WEB_URL` is set to, and that is required
+   * configuration in every environment.
+   *
+   * A donor has no web console. Their link falls back too, but the email also
+   * carries the deep link, which is the one their phone opens.
+   */
+  private resolvePortalUrl(roles: RoleCode[]): string {
+    const fallback = this.config.get<string>('WEB_URL', 'http://localhost:3000').split(',')[0]!.trim();
+    const portal = (key: string) => this.config.get<string>(key)?.trim() || fallback;
+
+    // Ordered, because one person can hold several roles: an admin who is also
+    // hospital staff manages the platform, so the admin console wins.
+    if (roles.includes(RoleCode.SUPER_ADMIN)) return portal('WEB_URL_ADMIN');
+    if (roles.some((role) => role === RoleCode.HOSPITAL_ADMIN || role === RoleCode.HOSPITAL_STAFF)) {
+      return portal('WEB_URL_HOSPITAL');
+    }
+    const bloodCentreRoles: RoleCode[] = [
+      RoleCode.BLOOD_CENTER_ADMIN,
+      RoleCode.BLOOD_CENTER_STAFF,
+      // The laboratory lives inside a blood centre, and its staff sign in to
+      // that console.
+      RoleCode.LAB_ADMIN,
+      RoleCode.LAB_REVIEWER,
+      RoleCode.LAB_TECHNICIAN,
+    ];
+    if (roles.some((role) => bloodCentreRoles.includes(role))) {
+      return portal('WEB_URL_BLOOD_CENTER');
+    }
+    return fallback;
+  }
+
+  private buildPasswordResetLinks(
+    token: string,
+    roles: RoleCode[] = [],
+  ): { resetUrl: string; deepLink: string } {
+    const webUrl = this.resolvePortalUrl(roles);
     const deepLinkBase = this.config.get<string>('MOBILE_DEEP_LINK', 'donor://');
     return {
       resetUrl: `${webUrl}/reset-password?token=${token}`,

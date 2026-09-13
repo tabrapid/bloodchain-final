@@ -19,6 +19,16 @@ export const envValidationSchema = Joi.object({
       return value;
     }, 'comma-separated list of URIs')
     .default('http://localhost:3000'),
+  // Where a password reset link should send each kind of account.
+  //
+  // `WEB_URL` is a list of allowed CORS origins, and its first entry used to be
+  // the reset link for everybody -- so a blood centre user was mailed a link to
+  // the hospital console. These name one origin each, are optional, and fall
+  // back to the first WEB_URL entry when unset, which keeps single-origin
+  // deployments working with no extra configuration.
+  WEB_URL_HOSPITAL: Joi.string().uri().optional(),
+  WEB_URL_BLOOD_CENTER: Joi.string().uri().optional(),
+  WEB_URL_ADMIN: Joi.string().uri().optional(),
   API_URL: Joi.string().uri().default('http://localhost:3001'),
   MOBILE_DEEP_LINK: Joi.string().default('donor://'),
   THROTTLER_TTL: Joi.number().default(60),

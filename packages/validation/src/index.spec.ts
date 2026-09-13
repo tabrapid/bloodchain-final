@@ -12,6 +12,8 @@ import {
   refreshSchema,
   registerSchema,
   rescheduleAppointmentSchema,
+  resetPasswordSchema,
+  strongPasswordSchema,
 } from './index';
 
 describe('idSchema', () => {
@@ -58,6 +60,88 @@ describe('passwordSchema', () => {
 
   it('accepts the real seed password used throughout this project\'s dev environment', () => {
     expect(passwordSchema.safeParse('DevelopmentOnly!123').success).toBe(true);
+  });
+});
+
+/**
+ * Sprint 0.6 parity.
+ *
+ * Every API DTO that accepts a new password -- register, register-organization,
+ * change-password, reset-password -- carries the same four `@Matches` rules on
+ * top of the length check. The client schemas have to agree, or a form accepts
+ * something the server will refuse and the user learns the rule one round trip
+ * and one rejection at a time.
+ *
+ * Each case below is a password the API rejects. Every client schema that
+ * builds a request body containing a new password must reject it too.
+ */
+describe('password policy parity with the API', () => {
+  const rejected: Array<[string, string]> = [
+    ['too short', 'Ab1!efg'],
+    ['no uppercase', 'developmentonly!123'],
+    ['no lowercase', 'DEVELOPMENTONLY!123'],
+    ['no number', 'DevelopmentOnly!abc'],
+    ['no special character', 'DevelopmentOnly1234'],
+    ['over 128 characters', `Aa1!${'x'.repeat(126)}`],
+  ];
+  const accepted = 'DevelopmentOnly!123';
+
+  describe.each(rejected)('a password with %s', (_label, password) => {
+    it('is rejected by strongPasswordSchema', () => {
+      expect(strongPasswordSchema.safeParse(password).success).toBe(false);
+    });
+
+    it('is rejected by registerSchema', () => {
+      const result = registerSchema.safeParse({
+        email: 'donor@example.com',
+        password,
+        firstName: 'Aziz',
+        lastName: 'Karimov',
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it('is rejected by changePasswordSchema', () => {
+      const result = changePasswordSchema.safeParse({
+        currentPassword: 'whatever-is-stored',
+        newPassword: password,
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it('is rejected by resetPasswordSchema', () => {
+      const result = resetPasswordSchema.safeParse({ token: 'a'.repeat(64), newPassword: password });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  it('accepts a password that satisfies every rule, everywhere', () => {
+    expect(strongPasswordSchema.safeParse(accepted).success).toBe(true);
+    expect(
+      registerSchema.safeParse({
+        email: 'donor@example.com',
+        password: accepted,
+        firstName: 'Aziz',
+        lastName: 'Karimov',
+      }).success,
+    ).toBe(true);
+    expect(
+      changePasswordSchema.safeParse({ currentPassword: 'x', newPassword: accepted }).success,
+    ).toBe(true);
+    expect(
+      resetPasswordSchema.safeParse({ token: 'a'.repeat(64), newPassword: accepted }).success,
+    ).toBe(true);
+  });
+
+  /**
+   * Sign-in is the one place the policy must NOT apply: it checks the password
+   * against what is already stored, and an account created before a policy
+   * change still has to be able to get in and change it.
+   */
+  it('does not apply the policy to sign-in', () => {
+    expect(loginSchema.safeParse({ email: 'donor@example.com', password: 'old-weak' }).success).toBe(
+      true,
+    );
   });
 });
 

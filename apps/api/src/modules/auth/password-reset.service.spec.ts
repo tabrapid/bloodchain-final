@@ -26,12 +26,22 @@ describe('AuthService password reset', () => {
   const TTL_MINUTES = 60;
   const hashOf = (token: string) => createHash('sha256').update(token).digest('hex');
 
+  // Memberships come back with the user now: the reset link is addressed to the
+  // console this person signs in to, and a donor has none.
+  const withRoles = (...codes: string[]) =>
+    codes.map((code) => ({ status: 'ACTIVE', role: { code } }));
+
+  // Set per test. Unset means "this deployment serves one origin", which is the
+  // fallback path and has to keep working.
+  let portalUrls: Record<string, string | undefined> = {};
+
   const activeUser = {
     id: 'user-1',
     email: 'donor@donor.local',
     firstName: 'Sample',
     status: 'ACTIVE',
     passwordHash: 'old-hash',
+    memberships: withRoles('DONOR'),
   };
 
   beforeEach(async () => {
@@ -60,8 +70,9 @@ describe('AuthService password reset', () => {
             get: jest.fn((key: string, fallback?: unknown) => {
               if (key === 'PASSWORD_RESET_TTL_MINUTES') return TTL_MINUTES;
               if (key === 'PASSWORD_RESET_COOLDOWN_SECONDS') return 60;
-              if (key === 'WEB_URL') return 'http://localhost:3000,http://localhost:3002';
+              if (key === 'WEB_URL') return 'http://fallback.test,http://localhost:3002';
               if (key === 'MOBILE_DEEP_LINK') return 'donor://';
+              if (key in portalUrls) return portalUrls[key];
               return fallback;
             }),
           },
@@ -134,6 +145,70 @@ describe('AuthService password reset', () => {
      * would break every reset email already in someone's inbox, silently, so
      * the path is pinned here as well as there.
      */
+    /**
+     * Sprint 0.6.
+     *
+     * The reset URL used to be the first entry of `WEB_URL` for everybody --
+     * that list is a CORS allow-list, and its order says nothing about who is
+     * resetting. A blood centre user was mailed a link to the hospital console:
+     * the token still worked, but it dropped them somewhere they cannot sign
+     * in, which for someone locked out is indistinguishable from broken.
+     */
+    describe('routes the link to the console the account signs in to', () => {
+      const linkFor = async (roles: string[]) => {
+        prisma.user.findUnique.mockResolvedValue({ ...activeUser, memberships: withRoles(...roles) });
+        prisma.passwordResetToken.findUnique.mockResolvedValue(null);
+        await service.requestPasswordReset('someone@donor.local');
+        return email.sendPasswordResetEmail.mock.calls.at(-1)![2] as string;
+      };
+
+      beforeEach(() => {
+        portalUrls = {
+          WEB_URL_HOSPITAL: 'https://hospital.example',
+          WEB_URL_BLOOD_CENTER: 'https://centre.example',
+          WEB_URL_ADMIN: 'https://admin.example',
+        };
+      });
+
+      it.each([
+        ['HOSPITAL_ADMIN', 'https://hospital.example'],
+        ['HOSPITAL_STAFF', 'https://hospital.example'],
+        ['BLOOD_CENTER_ADMIN', 'https://centre.example'],
+        ['BLOOD_CENTER_STAFF', 'https://centre.example'],
+        ['LAB_TECHNICIAN', 'https://centre.example'],
+        ['LAB_REVIEWER', 'https://centre.example'],
+        ['LAB_ADMIN', 'https://centre.example'],
+        ['SUPER_ADMIN', 'https://admin.example'],
+      ])('sends %s to %s', async (role, expected) => {
+        const url = new URL(await linkFor([role]));
+        expect(url.origin).toBe(expected);
+        expect(url.pathname).toBe('/reset-password');
+        expect(url.searchParams.get('token')).toMatch(/^[a-f0-9]{64}$/);
+      });
+
+      it('sends a donor to the fallback, since they have no console of their own', async () => {
+        expect(new URL(await linkFor(['DONOR'])).origin).toBe('http://fallback.test');
+      });
+
+      it('prefers the admin console for someone who is both an admin and staff', async () => {
+        expect(new URL(await linkFor(['HOSPITAL_STAFF', 'SUPER_ADMIN'])).origin).toBe(
+          'https://admin.example',
+        );
+      });
+
+      it('falls back to the first WEB_URL entry when no portal URL is configured', async () => {
+        portalUrls = {};
+        expect(new URL(await linkFor(['HOSPITAL_ADMIN'])).origin).toBe('http://fallback.test');
+      });
+
+      it('hardcodes no host: the fallback is whatever WEB_URL says', async () => {
+        portalUrls = {};
+        const url = new URL(await linkFor(['BLOOD_CENTER_STAFF']));
+        expect(url.origin).not.toContain('localhost:3000');
+        expect(url.origin).toBe('http://fallback.test');
+      });
+    });
+
     it('points the deep link at the mobile reset screen', async () => {
       prisma.user.findUnique.mockResolvedValue(activeUser);
       prisma.passwordResetToken.findUnique.mockResolvedValue(null);

@@ -33,6 +33,9 @@ services:
       JWT_ACCESS_EXPIRES_IN: ${JWT_ACCESS_EXPIRES_IN:-15m}
       API_URL: ${API_URL:-http://localhost:3001}
       WEB_URL: ${WEB_URL:-http://localhost:3000,http://localhost:3002,http://localhost:3003}
+      WEB_URL_HOSPITAL: ${WEB_URL_HOSPITAL:-}
+      WEB_URL_BLOOD_CENTER: ${WEB_URL_BLOOD_CENTER:-}
+      WEB_URL_ADMIN: ${WEB_URL_ADMIN:-}
       MOBILE_DEEP_LINK: ${MOBILE_DEEP_LINK:-donor://}
       THROTTLER_TTL: ${THROTTLER_TTL:-60}
       THROTTLER_LIMIT: ${THROTTLER_LIMIT:-100}

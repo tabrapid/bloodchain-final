@@ -465,6 +465,19 @@ Start either one **before** `pnpm demo:start`, which looks for a listener on
 1025 and points the API at it. Without one, mail still "works": the API logs the
 message body rather than sending it.
 
+### The flow, in a console
+
+All three consoles have the same two pages, each in its own house style:
+**Forgot password?** under the password field on the sign-in form →
+`/forgot-password` → `/reset-password`. Success returns to the console you
+started from.
+
+The link in the email is addressed to the console the account actually signs in
+to: hospital staff to :3000, blood centre and laboratory staff to :3002, a
+platform admin to :3003. Set `WEB_URL_HOSPITAL`, `WEB_URL_BLOOD_CENTER` and
+`WEB_URL_ADMIN` to change where each goes; unset, they all fall back to the
+first `WEB_URL` entry.
+
 ### The flow, on the phone
 
 1. **Sign in → "Forgot password?"** under the password field.
@@ -505,3 +518,12 @@ shares a module with them.
 It changes a seeded account's password (`recent.donor@donor.local`), so run
 `pnpm demo:reset` after it. Stop `pnpm mail:dev` first — the script runs its own
 sink on the same port so it can read the message rather than print it.
+
+### What production still needs
+
+Nothing here is production email. A deployment needs real SMTP credentials, a
+sender address the domain is authorised to use, SPF/DKIM/DMARC on that domain,
+and public `WEB_URL*` values so the link in the mail resolves. Rate limiting
+also needs a shared store before a second API instance exists. The full handover
+list is in `docs/security.md` under **Not Yet Configured: Deployment
+Requirements**.

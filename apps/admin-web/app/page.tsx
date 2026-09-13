@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import {
   AlertTriangle,
   Shield,
@@ -183,6 +184,16 @@ export default function AdminDashboard() {
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full rounded-lg bc-solid px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-donor-primary focus:border-transparent"
               />
+            </div>
+            {/* With the password field it belongs to, above the button --
+                where someone looks after mistyping it twice. */}
+            <div className="flex justify-end">
+              <Link
+                href="/forgot-password"
+                className="text-xs font-medium text-donor-primary hover:underline"
+              >
+                Forgot password?
+              </Link>
             </div>
             <button
               type="submit"

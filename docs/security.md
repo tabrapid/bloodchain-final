@@ -232,6 +232,76 @@ The following are automatically redacted from logs:
 - Critical vulnerabilities patched promptly
 - Minimal dependency footprint
 
+## Not Yet Configured: Deployment Requirements
+
+Everything below is **built and tested, but deliberately not configured**. Each
+is infrastructure a deployment supplies, not code the repository is missing, and
+none of it should be filled in with a real value before there is an environment
+to put it in. This section is the handover list.
+
+### Email delivery (required before recovery works outside local dev)
+
+Password reset and email verification both go through nodemailer. With
+`SMTP_HOST` empty — the state of every environment today — `EmailService` falls
+back to a stream transport and writes the message to the API log instead of
+sending it. Nothing fails, and nothing arrives.
+
+To make recovery real, a deployment must supply:
+
+| Variable | What it needs | Notes |
+| --- | --- | --- |
+| `SMTP_HOST` | The provider's SMTP hostname | The single switch: set, mail is sent; empty, mail is logged |
+| `SMTP_PORT` | Usually 587 (STARTTLS) or 465 | Defaults to 587 |
+| `SMTP_SECURE` | `true` only for implicit TLS on 465 | Defaults to false |
+| `SMTP_USER` / `SMTP_PASSWORD` | The provider credentials | Secrets — never committed, never in `.env.example` |
+| `SMTP_FROM` | The sender, e.g. `BloodChain <no-reply@yourdomain>` | Must be an address the domain is authorised to send as |
+
+Also needed, and not an environment variable: **SPF, DKIM and DMARC records on
+the sending domain**. A reset link that lands in spam is indistinguishable from
+one that was never sent, and a locked-out user cannot tell you which happened.
+
+### Public URLs (required for the links in that mail to resolve)
+
+The reset email contains a link, and that link is built from configuration. In
+development everything points at localhost, which is correct there and useless
+anywhere else.
+
+| Variable | What it needs |
+| --- | --- |
+| `WEB_URL` | Comma-separated public origins of the consoles. Also the CORS allow-list, so it must be right regardless |
+| `WEB_URL_HOSPITAL` | Public origin of the hospital console |
+| `WEB_URL_BLOOD_CENTER` | Public origin of the blood centre console |
+| `WEB_URL_ADMIN` | Public origin of the admin console |
+| `API_URL` | Public origin of the API, used in the verification link |
+| `MOBILE_DEEP_LINK` | Must match `expo.scheme` in apps/mobile/app.json (`donor://`) |
+
+The three per-portal URLs are optional: each falls back to the first `WEB_URL`
+entry, which is all a single-origin deployment needs. Set them when the consoles
+are served from different hosts, so that a blood centre user is not mailed a
+link to the hospital console. Nothing in the code hardcodes a host — the
+fallback is whatever `WEB_URL` says, and that is required configuration
+everywhere.
+
+### Shared rate-limit storage (required before a second API instance)
+
+`ThrottlerModule` is configured with no storage adapter, so the counters live in
+the API process's memory. Two consequences, both of which only matter in
+production:
+
+- **They reset on restart or deploy.** A limiter that forgets on every release is
+  not much of a limiter.
+- **They are per-instance.** Behind two replicas, the effective limit doubles;
+  behind ten, the 3-per-15-minutes anti-enumeration limit on
+  `/auth/forgot-password` is 30.
+
+The fix is a shared store (Redis, via `@nest-lab/throttler-storage-redis` or
+equivalent) and it is **deliberately not implemented yet**: with one instance the
+current behaviour is correct, and adding a Redis dependency before there is a
+second instance buys nothing and adds a component that can fail. Do it as part
+of the work that introduces horizontal scaling, not before.
+
+---
+
 ## Reporting Security Issues
 
 To report security vulnerabilities, contact the security team with:

@@ -53,6 +53,9 @@ importers:
       '@bloodchain/utils':
         specifier: workspace:*
         version: link:../../packages/utils
+      '@bloodchain/validation':
+        specifier: workspace:*
+        version: link:../../packages/validation
       lucide-react:
         specifier: ^0.468.0
         version: 0.468.0(react@18.3.1)
@@ -277,6 +280,9 @@ importers:
       '@bloodchain/utils':
         specifier: workspace:*
         version: link:../../packages/utils
+      '@bloodchain/validation':
+        specifier: workspace:*
+        version: link:../../packages/validation
       leaflet:
         specifier: ^1.9.4
         version: 1.9.4
@@ -353,6 +359,9 @@ importers:
       '@bloodchain/utils':
         specifier: workspace:*
         version: link:../../packages/utils
+      '@bloodchain/validation':
+        specifier: workspace:*
+        version: link:../../packages/validation
       leaflet:
         specifier: ^1.9.4
         version: 1.9.4
@@ -1834,7 +1843,7 @@ packages:
 
   '@expo/bunyan@4.0.1':
     resolution: {integrity: sha512-+Lla7nYSiHZirgK+U/uYzsLv/X+HaJienbD5AKX1UQZHYfWaP+9uuQluRB4GrEVWF0GZ7vEVp/jzaOT9k/SQlg==}
-    engines: {node: '>=0.10.0'}
+    engines: {'0': node >=0.10.0}
 
   '@expo/cli@0.22.28':
     resolution: {integrity: sha512-lvt72KNitGuixYD2l3SZmRKVu2G4zJpmg5V7WfUBNpmUU5oODBw/6qmiJ6kSLAlfDozscUk+BBGknBBzxUrwrA==}

@@ -12,10 +12,33 @@ export const idSchema = z.string().cuid();
 
 export const emailSchema = z.string().trim().toLowerCase().email().max(254);
 
+/**
+ * The length rule on its own.
+ *
+ * Not enough on its own for anything the API will accept as a new password --
+ * every DTO that takes one (register, register-organization, change-password,
+ * reset-password) also requires an uppercase, a lowercase, a number and a
+ * symbol. Build on `strongPasswordSchema` below for those; this exists as its
+ * base and for the length message.
+ */
 export const passwordSchema = z
   .string()
   .min(12, 'Password must be at least 12 characters')
   .max(128, 'Password must be at most 128 characters');
+
+/**
+ * The password policy the API actually enforces, in one place.
+ *
+ * Declared above the schemas that use it so it can be their single source: the
+ * four server DTOs carry identical `@Matches` rules, and a form built on
+ * `passwordSchema` alone accepted a 12-character all-lowercase password, then
+ * spent a round trip to be told four things it could have said itself.
+ */
+export const strongPasswordSchema = passwordSchema
+  .regex(/[A-Z]/, 'Password must contain an uppercase letter')
+  .regex(/[a-z]/, 'Password must contain a lowercase letter')
+  .regex(/[0-9]/, 'Password must contain a number')
+  .regex(/[^A-Za-z0-9]/, 'Password must contain a special character');
 
 export const phoneSchema = z
   .string()
@@ -26,7 +49,7 @@ export const nameSchema = z.string().trim().min(1).max(80);
 
 export const registerSchema = z.object({
   email: emailSchema,
-  password: passwordSchema,
+  password: strongPasswordSchema,
   firstName: nameSchema,
   lastName: nameSchema,
   phone: phoneSchema.optional(),
@@ -42,23 +65,11 @@ export const refreshSchema = z.object({
 });
 
 export const changePasswordSchema = z.object({
+  // Any string, because it is checked against what is already stored -- an
+  // account created before a policy change must still be able to move off it.
   currentPassword: z.string().min(1).max(128),
-  newPassword: passwordSchema,
+  newPassword: strongPasswordSchema,
 });
-
-/**
- * The password policy the API actually enforces.
- *
- * `passwordSchema` above checks length only, which is weaker than the server's
- * rules -- a 12-character password of all lowercase passes here and is refused
- * there. Forms built on this one show the rule as a field error instead of
- * spending a round trip to learn it.
- */
-export const strongPasswordSchema = passwordSchema
-  .regex(/[A-Z]/, 'Password must contain an uppercase letter')
-  .regex(/[a-z]/, 'Password must contain a lowercase letter')
-  .regex(/[0-9]/, 'Password must contain a number')
-  .regex(/[^A-Za-z0-9]/, 'Password must contain a special character');
 
 export const forgotPasswordSchema = z.object({
   email: emailSchema,
