@@ -17,6 +17,7 @@ import { AdminModule } from './modules/admin/admin.module';
 import { AppointmentsModule } from './modules/appointments/appointments.module';
 import { AppointmentSlotsModule } from './modules/appointment-slots/appointment-slots.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { SmsModule } from './modules/sms/sms.module';
 import { DonationsModule } from './modules/donations/donations.module';
 import { DonorsModule } from './modules/donors/donors.module';
 import { EmergencyModule } from './modules/emergency/emergency.module';
@@ -87,6 +88,7 @@ import { IdempotencyModule } from './modules/idempotency/idempotency.module';
     AuditLogsModule,
     PlatformSettingsModule,
     AdminModule,
+    SmsModule,
     AuthModule,
     UsersModule,
     OrganizationsModule,

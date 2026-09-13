@@ -211,6 +211,29 @@ export default function ForgotPassword() {
             </AppText>
           </Pressable>
 
+          {/* Recovery by SMS, for the donors who have a number and no inbox.
+              It reuses the same reset token the emailed link carries, so it is
+              the same flow with a different first step -- not a second, weaker
+              way in. */}
+          <Pressable
+            onPress={() =>
+              router.push({ pathname: '/(auth)/phone', params: { purpose: 'PASSWORD_RESET' } })
+            }
+            accessibilityRole="button"
+            accessibilityLabel={t('auth.phone.a11ySubmit')}
+            hitSlop={8}
+            style={({ pressed }) => ({
+              minHeight: 44,
+              alignItems: 'center',
+              justifyContent: 'center',
+              opacity: pressed ? 0.6 : 1,
+            })}
+          >
+            <AppText style={{ fontSize: 13, fontWeight: '500', color: colors.primary }}>
+              {t('auth.phone.usePhone')}
+            </AppText>
+          </Pressable>
+
           <Pressable
             onPress={() => router.replace('/(auth)/login')}
             accessibilityRole="button"

@@ -279,9 +279,14 @@ try {
 
   const unverified = await signIn(fresh, SEED_PASSWORD);
   check(
-    'an unverified account is still refused at sign-in',
-    unverified.status === 403 && /verify your email/i.test(unverified.raw?.message ?? ''),
-    `${unverified.status} ${unverified.raw?.message ?? ''}`,
+    'an account with no confirmed contact is still refused at sign-in',
+    // Matched on the code rather than the prose. Sprint 1B widened this gate
+    // from "verified email" to "verified email or phone" and gave every auth
+    // refusal a machine-readable code -- which is exactly so that a check like
+    // this one stops depending on a sentence that can be reworded or
+    // translated.
+    unverified.status === 403 && unverified.raw?.code === 'AUTH_CONTACT_NOT_VERIFIED',
+    `${unverified.status} ${unverified.raw?.code ?? ''}`,
   );
 
   const seeded = await signIn('donor@donor.local', SEED_PASSWORD);

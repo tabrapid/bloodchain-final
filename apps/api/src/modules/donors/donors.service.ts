@@ -12,6 +12,7 @@ import {
   VerificationStatus,
 } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
+import { hasVerifiedContact } from '../../common/utils/contact-verification.util';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 
 export interface ProfileCompletion {
@@ -134,18 +135,23 @@ export class DonorsService {
       missing.push('basic_identity');
     }
 
+    // Each channel is still reported on its own -- a donor who has confirmed
+    // one and not the other should see which -- but only the pair is required.
+    // Listing `email_verified` as missing for a phone-verified donor told them
+    // to fix something the product no longer asks of them, and dragged their
+    // completion score down for it.
     if (user.emailVerified) {
       completed.push('email_verified');
-    } else {
-      missing.push('email_verified');
     }
 
     if (user.phone && user.phoneVerified) {
       completed.push('phone_verified');
     } else if (user.phone) {
       completed.push('phone_provided');
-    } else {
-      missing.push('phone_provided');
+    }
+
+    if (!hasVerifiedContact(user)) {
+      missing.push('contact_verified');
     }
 
     if (user.donorProfile) {

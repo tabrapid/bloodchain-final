@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { isUzbekPhone, normalizePhone } from './phone';
 import {
   APPOINTMENT_TYPES,
   BLOOD_TYPES,
@@ -18,6 +19,8 @@ import {
  * spec fails if one of them stops resolving -- which is what keeps a dotted path
  * from reaching a user.
  */
+export * from './phone';
+
 export const idSchema = z.string().cuid();
 
 export const emailSchema = z
@@ -55,10 +58,44 @@ export const strongPasswordSchema = passwordSchema
   .regex(/[0-9]/, 'validation.passwordNumber')
   .regex(/[^A-Za-z0-9]/, 'validation.passwordSpecial');
 
+/**
+ * A phone number, stored canonical.
+ *
+ * `.transform` rather than `.regex`: the value that leaves this schema is the
+ * E.164 form, so a screen cannot accidentally send what the user typed. Every
+ * spelling of one number therefore reaches the API as one string, which is the
+ * only way `User.phone`'s uniqueness means anything.
+ */
 export const phoneSchema = z
   .string()
   .trim()
-  .regex(/^\+[1-9]\d{7,14}$/, 'validation.phoneFormat');
+  .transform((value, ctx) => {
+    const normalized = normalizePhone(value);
+    if (normalized === null) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'validation.phoneFormat' });
+      return z.NEVER;
+    }
+    return normalized;
+  });
+
+/** The same, restricted to Uzbekistan -- what donor sign-up accepts. */
+export const uzbekPhoneSchema = z
+  .string()
+  .trim()
+  .transform((value, ctx) => {
+    const normalized = normalizePhone(value);
+    if (normalized === null || !isUzbekPhone(normalized)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'validation.phoneUzbek' });
+      return z.NEVER;
+    }
+    return normalized;
+  });
+
+/** A one-time code as it is typed: six digits, nothing else. */
+export const otpCodeSchema = z
+  .string()
+  .trim()
+  .regex(/^\d{6}$/, 'validation.otpFormat');
 
 export const nameSchema = z
   .string()

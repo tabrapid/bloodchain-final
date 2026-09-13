@@ -156,7 +156,10 @@ export default function Welcome() {
             // The brand's own three-stop gradient, not the two-stop CTA blend.
             gradientColors={colors.heroGradient}
             trailingIcon={ArrowRight}
-            onPress={() => router.push('/(auth)/register')}
+            // Phone-first: the number is the one thing a donor here knows
+            // about themselves without looking it up. Email sign-up is still
+            // reachable from the next screen.
+            onPress={() => router.push('/(auth)/phone')}
             accessibilityRole="button"
             accessibilityLabel={t('auth.welcome.a11yCreateAccount')}
             // The variant's 0.4 glow is tuned for the app's dark ground; on

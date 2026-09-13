@@ -10,6 +10,7 @@ import { EmailService } from '../email/email.service';
 import { PermissionsService } from '../../modules/permissions/permissions.service';
 import { PlatformSettingsService } from '../platform-settings/platform-settings.service';
 import { AuthService } from './auth.service';
+import { PhoneVerificationService } from './phone-verification.service';
 
 type MockPrisma = {
   user: { findUnique: jest.Mock; create: jest.Mock; update: jest.Mock };
@@ -107,6 +108,18 @@ describe('AuthService', () => {
         {
           provide: PlatformSettingsService,
           useValue: platformSettings,
+        },
+        {
+          // Phone verification is exercised on its own, in
+          // phone-verification.service.spec.ts. Here it is a stub, because
+          // these tests are about email sign-in and the reset flow, and a real
+          // one would drag in the SMS provider for no benefit.
+          provide: PhoneVerificationService,
+          useValue: {
+            requestCode: jest.fn(),
+            verifyCode: jest.fn(),
+            resendAvailableIn: jest.fn().mockResolvedValue(0),
+          },
         },
       ],
     }).compile();
@@ -323,7 +336,7 @@ describe('AuthService', () => {
       ],
     });
 
-    const result = await service.login('test@donor.local', 'SecurePassword123!');
+    const result = await service.login({ email: 'test@donor.local' }, 'SecurePassword123!');
 
     expect(result.data.accessToken).toBe('access-token');
     expect(result.data.user.roles).toContain(RoleCode.DONOR);
@@ -331,7 +344,7 @@ describe('AuthService', () => {
 
   it('rejects login with invalid credentials', async () => {
     prisma.user.findUnique.mockResolvedValue(null);
-    await expect(service.login('test@donor.local', 'wrong')).rejects.toThrow(UnauthorizedException);
+    await expect(service.login({ email: 'test@donor.local' }, 'wrong')).rejects.toThrow(UnauthorizedException);
   });
 
   it('rejects login for suspended user', async () => {
@@ -346,7 +359,7 @@ describe('AuthService', () => {
       memberships: [],
     });
 
-    await expect(service.login('test@donor.local', 'SecurePassword123!')).rejects.toThrow(
+    await expect(service.login({ email: 'test@donor.local' }, 'SecurePassword123!')).rejects.toThrow(
       ForbiddenException,
     );
   });
@@ -363,7 +376,7 @@ describe('AuthService', () => {
       memberships: [],
     });
 
-    await expect(service.login('test@donor.local', 'SecurePassword123!')).rejects.toThrow(
+    await expect(service.login({ email: 'test@donor.local' }, 'SecurePassword123!')).rejects.toThrow(
       ForbiddenException,
     );
   });
@@ -382,7 +395,7 @@ describe('AuthService', () => {
       memberships: [{ role: { code: RoleCode.DONOR }, organization: { type: 'HOSPITAL' }, status: 'ACTIVE' }],
     });
 
-    await expect(service.login('test@donor.local', 'SecurePassword123!')).rejects.toThrow(
+    await expect(service.login({ email: 'test@donor.local' }, 'SecurePassword123!')).rejects.toThrow(
       ForbiddenException,
     );
   });
@@ -402,7 +415,7 @@ describe('AuthService', () => {
       memberships: [{ role: { code: RoleCode.SUPER_ADMIN }, organization: { type: 'HOSPITAL' }, status: 'ACTIVE' }],
     });
 
-    const result = await service.login('admin@donor.local', 'SecurePassword123!');
+    const result = await service.login({ email: 'admin@donor.local' }, 'SecurePassword123!');
     expect(result.data.accessToken).toBe('access-token');
   });
 

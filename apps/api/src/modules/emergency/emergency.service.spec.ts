@@ -658,8 +658,14 @@ describe('EmergencyService.activateEmergency', () => {
       expect(where.donorProfile).not.toHaveProperty('rhFactor');
       // The eligibility constraints must survive; only the group narrowing goes.
       expect(where.donorProfile.donorStatus).toBe('ACTIVE');
+      // Medical verification, which a verified phone number does not confer.
       expect(where.donorProfile.verificationStatus).toBe('VERIFIED');
-      expect(where.emailVerified).toBe(true);
+      // Contact verification: either channel will do. This used to read
+      // `emailVerified: true`, which would have excluded every phone-verified
+      // donor from the pool the moment phone sign-up shipped -- in the one
+      // query where a missing donor is a missed transfusion.
+      expect(where.OR).toEqual([{ emailVerified: true }, { phoneVerified: true }]);
+      expect(where).not.toHaveProperty('emailVerified');
     });
 
     it('matches an O-negative universal donor to an A-positive emergency', async () => {

@@ -2,11 +2,13 @@ import { router } from 'expo-router';
 import { useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Pressable, TextInput, View } from 'react-native';
-import { ArrowRight, ChevronLeft, Eye, EyeOff, Lock, Mail, ShieldCheck } from 'lucide-react-native';
+import { ArrowRight, ChevronLeft, Eye, EyeOff, Lock, Mail, Phone, ShieldCheck } from 'lucide-react-native';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { loginSchema, type LoginInput } from '@bloodchain/validation';
-import { AppButton, AppText, AppTextInput, IconButton, Screen } from '../../src/components';
-import { useLogin, getAuthErrorMessage } from '../../src/hooks/useAuth';
+import { normalizePhone } from '@bloodchain/validation';
+import { z } from 'zod';
+import { AppButton, AppText, AppTextInput, IconButton, PhoneInput, Screen } from '../../src/components';
+import { useLogin } from '../../src/hooks/useAuth';
+import { apiErrorCode, apiErrorMessage } from '../../src/api/errors';
 import { getPostAuthRoute } from '../../src/utils/postAuthRoute';
 import { layout, spacing, useTheme } from '../../src/theme';
 import { BRAND_NAME } from '../../src/brand';
@@ -20,21 +22,53 @@ export default function Login() {
   const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const passwordRef = useRef<TextInput>(null);
-  const { control, handleSubmit, formState } = useForm<LoginInput>({
-    resolver: zodResolver(loginSchema),
+  /**
+   * Which identifier this donor is signing in with.
+   *
+   * Phone first, because that is what a donor in Uzbekistan knows about
+   * themselves; email is one tap away and stays the default for staff, who
+   * arrive here from a console that mailed them a link. It is one account
+   * either way -- the same password, the same sessions -- so this switch
+   * changes a field, not a flow.
+   */
+  const [method, setMethod] = useState<'phone' | 'email'>('phone');
+  const [phoneDigits, setPhoneDigits] = useState('');
+
+  // Only the password is validated here. An identifier is checked by whichever
+  // field is on screen, and the server has the last word on both.
+  const { control, handleSubmit, formState } = useForm<{ email: string; password: string }>({
+    resolver: zodResolver(
+      z.object({
+        email: z.union([z.literal(''), z.string().email('validation.emailInvalid')]),
+        password: z.string().min(1, 'validation.passwordRequired'),
+      }),
+    ),
     defaultValues: { email: '', password: '' },
   });
+
+  const phone = normalizePhone(`+998${phoneDigits}`);
 
   const onSubmit = handleSubmit(async (data) => {
     setServerError(null);
     setUnverifiedEmail(null);
+
+    if (method === 'phone' && !phone) {
+      setServerError(t('validation.phoneUzbek'));
+      return;
+    }
+
     try {
-      const result = await login.mutateAsync(data);
+      const result = await login.mutateAsync(
+        method === 'phone'
+          ? { phone: phone!, password: data.password }
+          : { email: data.email, password: data.password },
+      );
       router.replace(getPostAuthRoute(result.user.roles));
     } catch (err: unknown) {
-      const message = getAuthErrorMessage(err);
-      setServerError(message);
-      if (message.toLowerCase().includes('verify your email')) {
+      setServerError(apiErrorMessage(err, t));
+      // An account whose contact was never confirmed can finish the job from
+      // the check-email screen -- but only if it has an address to send to.
+      if (apiErrorCode(err) === 'AUTH_CONTACT_NOT_VERIFIED' && method === 'email') {
         setUnverifiedEmail(data.email);
       }
     }
@@ -59,30 +93,78 @@ export default function Login() {
           {t('auth.login.subtitle', { brand: BRAND_NAME })}
         </AppText>
 
-        <Controller
-          control={control}
-          name="email"
-          render={({ field, fieldState }) => (
-            <AppTextInput
-              label={t('auth.fields.email')}
-              placeholder={t('auth.fields.emailPlaceholder')}
-              autoCapitalize="none"
-              autoComplete="email"
-              keyboardType="email-address"
-              leading={<Mail size={19} color={colors.textMuted} />}
-              // The return key walks the form instead of dismissing the
-              // keyboard, which on a two-field form is the whole interaction.
-              returnKeyType="next"
-              blurOnSubmit={false}
-              onSubmitEditing={() => passwordRef.current?.focus()}
-              error={fieldState.error?.message ? t(fieldState.error.message) : undefined}
-              wrapperStyle={{ marginBottom: layout.cardGap }}
-              value={field.value}
-              onChangeText={field.onChange}
-              onBlur={field.onBlur}
-            />
+        {method === 'phone' ? (
+          <PhoneInput
+            label={t('auth.phone.label')}
+            placeholder={t('auth.phone.placeholder')}
+            accessibilityLabel={t('auth.phone.a11yField')}
+            // The return key walks the form instead of dismissing the
+            // keyboard, which on a two-field form is the whole interaction.
+            returnKeyType="next"
+            blurOnSubmit={false}
+            onSubmitEditing={() => passwordRef.current?.focus()}
+            wrapperStyle={{ marginBottom: layout.cardGap }}
+            value={phoneDigits}
+            onChangeDigits={(next) => {
+              setPhoneDigits(next);
+              if (serverError) setServerError(null);
+            }}
+          />
+        ) : (
+          <Controller
+            control={control}
+            name="email"
+            render={({ field, fieldState }) => (
+              <AppTextInput
+                label={t('auth.fields.email')}
+                placeholder={t('auth.fields.emailPlaceholder')}
+                autoCapitalize="none"
+                autoComplete="email"
+                keyboardType="email-address"
+                leading={<Mail size={19} color={colors.textMuted} />}
+                returnKeyType="next"
+                blurOnSubmit={false}
+                onSubmitEditing={() => passwordRef.current?.focus()}
+                error={fieldState.error?.message ? t(fieldState.error.message) : undefined}
+                wrapperStyle={{ marginBottom: layout.cardGap }}
+                value={field.value}
+                onChangeText={field.onChange}
+                onBlur={field.onBlur}
+              />
+            )}
+          />
+        )}
+
+        {/* One line, not a segmented control: there is a default that is right
+            for almost everyone, and the other option only has to be findable. */}
+        <Pressable
+          onPress={() => {
+            setMethod((current) => (current === 'phone' ? 'email' : 'phone'));
+            setServerError(null);
+          }}
+          accessibilityRole="button"
+          accessibilityLabel={method === 'phone' ? t('auth.phone.useEmail') : t('auth.phone.usePhone')}
+          hitSlop={8}
+          style={({ pressed }) => ({
+            alignSelf: 'flex-start',
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: spacing.xs,
+            minHeight: 44,
+            marginTop: -spacing.xs,
+            marginBottom: spacing.xs,
+            opacity: pressed ? 0.6 : 1,
+          })}
+        >
+          {method === 'phone' ? (
+            <Mail size={14} color={colors.primary} />
+          ) : (
+            <Phone size={14} color={colors.primary} />
           )}
-        />
+          <AppText style={{ fontSize: 13, fontWeight: '500', color: colors.primary }}>
+            {method === 'phone' ? t('auth.phone.useEmail') : t('auth.phone.usePhone')}
+          </AppText>
+        </Pressable>
 
         <Controller
           control={control}

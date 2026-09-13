@@ -38,6 +38,33 @@ export const en: Catalog = {
     offline: 'Could not reach the server. Check your connection and try again.',
   },
 
+  /**
+   * Server refusals, keyed by the code the API sends.
+   *
+   * The API answers in English; these are what the donor actually reads. A code
+   * with no entry here falls through to `common.error`, so a new refusal is
+   * vague rather than raw.
+   */
+  apiErrors: {
+    AUTH_INVALID_CREDENTIALS: 'Those sign-in details are not correct.',
+    AUTH_ACCOUNT_LOCKED: 'Too many attempts. Your account is locked for a short while.',
+    AUTH_ACCOUNT_SUSPENDED: 'Your account has been suspended. Please contact support.',
+    AUTH_ACCOUNT_DEACTIVATED: 'Your account has been deactivated.',
+    AUTH_CONTACT_NOT_VERIFIED: 'Confirm your phone number or email address before signing in.',
+    AUTH_MAINTENANCE_MODE: 'The service is briefly down for maintenance. Please try again shortly.',
+    AUTH_EMAIL_TAKEN: 'That email address is already registered.',
+    AUTH_PHONE_TAKEN: 'That phone number is already registered.',
+    AUTH_PHONE_INVALID: 'Enter a valid Uzbekistan phone number.',
+    AUTH_OTP_INVALID: 'That code is not correct.',
+    AUTH_OTP_EXPIRED: 'That code has expired. Request a new one.',
+    AUTH_OTP_TOO_MANY_ATTEMPTS: 'Too many incorrect attempts. Request a new code.',
+    AUTH_OTP_COOLDOWN: 'Please wait a moment before asking for another code.',
+    AUTH_OTP_RATE_LIMITED: 'Too many codes requested for this number. Try again later.',
+    AUTH_OTP_SEND_FAILED: 'We could not send the code right now. Please try again.',
+    AUTH_VERIFICATION_TICKET_INVALID: 'Phone verification has expired. Request a new code.',
+    AUTH_RESET_TOKEN_INVALID: 'This reset request is no longer valid.',
+    RATE_LIMITED: 'Too many attempts. Please try again later.',
+  },
   validation: {
     emailInvalid: 'Enter a valid email address',
     emailTooLong: 'Email address is too long',
@@ -49,6 +76,8 @@ export const en: Catalog = {
     passwordNumber: 'Password must contain a number',
     passwordSpecial: 'Password must contain a special character',
     phoneFormat: 'Phone number must be in international format (+998901234567)',
+    phoneUzbek: 'Enter an Uzbekistan phone number, for example +998 90 123 45 67',
+    otpFormat: 'The code is six digits',
     nameRequired: 'Enter your name',
     nameTooLong: 'Name is too long',
     codeRequired: 'Paste the code from your reset email',
@@ -120,6 +149,40 @@ export const en: Catalog = {
       failedTitle: 'Verification failed',
       invalidTitle: 'Invalid link',
       invalidBody: 'This verification link is missing its token.',
+    },
+    phone: {
+      title: 'Your phone number',
+      subtitle: 'We will text you a code to confirm it is yours.',
+      label: 'Phone number',
+      placeholder: '90 123 45 67',
+      hint: 'Uzbekistan numbers only, for now.',
+      submit: 'Send code',
+      signInInstead: 'Already have an account?',
+      signIn: 'Sign in',
+      usePhone: 'Use my phone number',
+      useEmail: 'Use my email address',
+      a11ySubmit: 'Send a verification code by SMS',
+      a11yField: 'Phone number, Uzbekistan',
+    },
+    otp: {
+      title: 'Enter the code',
+      subtitle: 'We sent a six-digit code to {{phone}}.',
+      label: 'Verification code',
+      submit: 'Confirm',
+      resend: 'Send a new code',
+      resendIn: 'You can ask for a new code in {{seconds}} s',
+      wrongNumber: 'Change the number',
+      a11ySubmit: 'Confirm the code',
+      a11yResend: 'Send a new verification code',
+      a11yField: 'Six-digit verification code',
+    },
+    details: {
+      title: 'Almost there',
+      subtitle: 'Your number is confirmed. Tell us who you are.',
+      emailLabel: 'Email address (optional)',
+      emailHint: 'For receipts and for recovering your account from a computer.',
+      submit: 'Create account',
+      a11ySubmit: 'Create your account',
     },
     forgotPassword: {
       title: 'Reset password',

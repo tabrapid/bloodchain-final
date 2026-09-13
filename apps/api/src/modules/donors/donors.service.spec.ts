@@ -188,14 +188,40 @@ describe('DonorsService.getProfileCompletion', () => {
     expect(result.data.missing).toEqual(
       expect.arrayContaining([
         'basic_identity',
-        'email_verified',
-        'phone_provided',
+        // One item, not one per channel: the product asks for a confirmed way
+        // to reach this donor, and either an email or a phone answers it.
+        'contact_verified',
         'blood_type_provided',
         'date_of_birth',
         'location',
       ]),
     );
     expect(result.data.percentage).toBe(0);
+  });
+
+  it('asks nothing more of a donor who verified their phone and has no email', async () => {
+    // The shape of a phone-first account: no real address, a confirmed number.
+    // Listing "verify your email" here would tell them to fix something the
+    // product does not ask of them, and dock their score for not doing it.
+    prisma.user.findUnique.mockResolvedValue({
+      firstName: 'Aziz',
+      lastName: 'Karimov',
+      emailVerified: false,
+      phone: '+998901234567',
+      phoneVerified: true,
+      donorProfile: {
+        bloodType: BloodType.O,
+        rhFactor: RhFactor.POSITIVE,
+        dateOfBirth: new Date('1990-01-01'),
+        city: 'Tashkent',
+      },
+    });
+
+    const result = await service.getProfileCompletion('donor-1');
+
+    expect(result.data.missing).toEqual([]);
+    expect(result.data.completed).toContain('phone_verified');
+    expect(result.data.percentage).toBe(100);
   });
 
   it('throws NotFoundException when the user does not exist', async () => {

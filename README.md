@@ -213,6 +213,7 @@ The seed script creates the following development-only accounts:
 - [Development](./docs/development.md)
 - [Security](./docs/security.md)
 - [Localization](./docs/localization.md)
+- [Phone-first authentication](./docs/phone-auth.md)
 - [Roadmap](./docs/roadmap.md)
 
 `TODO.md` is the live production-readiness audit: what has been fixed, how each

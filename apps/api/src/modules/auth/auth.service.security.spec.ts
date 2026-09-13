@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as argon2 from 'argon2';
 import { AuthService } from './auth.service';
+import { PhoneVerificationService } from './phone-verification.service';
 import { PrismaService } from '../../database/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { EmailService } from '../email/email.service';
@@ -110,6 +111,18 @@ describe('AuthService Security Tests', () => {
         { provide: JwtService, useValue: mockJwtService },
         { provide: EmailService, useValue: mockEmailService },
         { provide: PlatformSettingsService, useValue: mockPlatformSettingsService },
+        {
+          // Phone verification is exercised on its own, in
+          // phone-verification.service.spec.ts. Here it is a stub, because
+          // these tests are about email sign-in and the reset flow, and a real
+          // one would drag in the SMS provider for no benefit.
+          provide: PhoneVerificationService,
+          useValue: {
+            requestCode: jest.fn(),
+            verifyCode: jest.fn(),
+            resendAvailableIn: jest.fn().mockResolvedValue(0),
+          },
+        },
       ],
     }).compile();
 
@@ -126,7 +139,7 @@ describe('AuthService Security Tests', () => {
       prisma.user.findUnique.mockResolvedValue(lockedUser);
 
       await expect(
-        authService.login('test@donor.local', mockCorrectPassword),
+        authService.login({ email: 'test@donor.local' }, mockCorrectPassword),
       ).rejects.toThrow(ForbiddenException);
 
       expect(auditLogsService.log).toHaveBeenCalledWith(
@@ -154,7 +167,7 @@ describe('AuthService Security Tests', () => {
       });
       prisma.refreshToken.create.mockResolvedValue({ id: 'token-1' });
 
-      const result = await authService.login('test@donor.local', mockCorrectPassword);
+      const result = await authService.login({ email: 'test@donor.local' }, mockCorrectPassword);
 
       expect(result).toHaveProperty('data');
       expect(prisma.user.update).toHaveBeenCalledWith({
@@ -181,7 +194,7 @@ describe('AuthService Security Tests', () => {
       });
 
       await expect(
-        authService.login('test@donor.local', mockWrongPassword),
+        authService.login({ email: 'test@donor.local' }, mockWrongPassword),
       ).rejects.toThrow(ForbiddenException);
 
       expect(prisma.user.update).toHaveBeenCalledWith({
@@ -208,7 +221,7 @@ describe('AuthService Security Tests', () => {
       });
 
       await expect(
-        authService.login('test@donor.local', mockWrongPassword),
+        authService.login({ email: 'test@donor.local' }, mockWrongPassword),
       ).rejects.toThrow(UnauthorizedException);
 
       expect(prisma.user.update).toHaveBeenCalledWith({
@@ -233,7 +246,7 @@ describe('AuthService Security Tests', () => {
       prisma.user.findUnique.mockResolvedValue(suspendedUser);
 
       await expect(
-        authService.login('test@donor.local', mockCorrectPassword),
+        authService.login({ email: 'test@donor.local' }, mockCorrectPassword),
       ).rejects.toThrow(ForbiddenException);
 
       expect(auditLogsService.log).toHaveBeenCalledWith(
@@ -255,7 +268,7 @@ describe('AuthService Security Tests', () => {
       prisma.user.findUnique.mockResolvedValue(deactivatedUser);
 
       await expect(
-        authService.login('test@donor.local', mockCorrectPassword),
+        authService.login({ email: 'test@donor.local' }, mockCorrectPassword),
       ).rejects.toThrow(ForbiddenException);
     });
 
@@ -271,7 +284,7 @@ describe('AuthService Security Tests', () => {
       prisma.user.findUnique.mockResolvedValue(unverifiedUser);
 
       await expect(
-        authService.login('test@donor.local', mockCorrectPassword),
+        authService.login({ email: 'test@donor.local' }, mockCorrectPassword),
       ).rejects.toThrow(ForbiddenException);
     });
   });
@@ -355,7 +368,7 @@ describe('AuthService Security Tests', () => {
       });
 
       await expect(
-        authService.login('test@donor.local', mockWrongPassword),
+        authService.login({ email: 'test@donor.local' }, mockWrongPassword),
       ).rejects.toThrow();
 
       expect(auditLogsService.log).toHaveBeenCalledWith(
@@ -369,16 +382,42 @@ describe('AuthService Security Tests', () => {
       );
     });
 
-    it('should not expose user email in failed login audit for non-existent users', async () => {
+    it('records the identifier a failed sign-in was attempted with, so a spray is visible', async () => {
       prisma.user.findUnique.mockResolvedValue(null);
 
       await expect(
-        authService.login('nonexistent@donor.local', mockWrongPassword),
+        authService.login({ email: 'nonexistent@donor.local' }, mockWrongPassword),
       ).rejects.toThrow(UnauthorizedException);
 
+      // The audit trail is internal, and an attempt against an address nobody
+      // holds is exactly what an operator needs to see. What must not leak is
+      // the *response*: the caller is told the same thing either way.
       expect(auditLogsService.log).toHaveBeenCalledWith(
         expect.objectContaining({
-          metadata: { email: 'nonexistent@donor.local', reason: 'user_not_found' },
+          action: 'LOGIN_FAILED',
+          metadata: {
+            identifier: 'nonexistent@donor.local',
+            via: 'email',
+            reason: 'user_not_found',
+          },
+        }),
+      );
+    });
+
+    it('masks the number when a sign-in is attempted by phone', async () => {
+      prisma.user.findUnique.mockResolvedValue(null);
+
+      await expect(
+        authService.login({ phone: '+998901234567' }, mockWrongPassword),
+      ).rejects.toThrow(UnauthorizedException);
+
+      // A full phone number in a log is a phone number in every copy of that
+      // log. The last two digits are enough to match up an attempt with a
+      // report; the rest is not ours to spread around.
+      expect(auditLogsService.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'LOGIN_FAILED',
+          metadata: expect.objectContaining({ identifier: '+998*******67', via: 'phone' }),
         }),
       );
     });

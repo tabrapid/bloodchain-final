@@ -9,6 +9,7 @@ import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import { EmailService } from '../email/email.service';
 import { PlatformSettingsService } from '../platform-settings/platform-settings.service';
+import { PhoneVerificationService } from './phone-verification.service';
 import { AuthService } from './auth.service';
 
 /**
@@ -81,6 +82,12 @@ describe('AuthService password reset', () => {
         { provide: PermissionsService, useValue: { getUserPermissions: jest.fn() } },
         { provide: EmailService, useValue: email },
         { provide: PlatformSettingsService, useValue: { isEnabled: jest.fn() } },
+        {
+          // These tests are about the email path; the phone path has its own
+          // spec and its own SMS provider.
+          provide: PhoneVerificationService,
+          useValue: { requestCode: jest.fn(), verifyCode: jest.fn() },
+        },
       ],
     }).compile();
 

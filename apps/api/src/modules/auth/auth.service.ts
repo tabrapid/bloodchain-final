@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { OrganizationStatus, OrganizationType, RoleCode } from '@prisma/client';
+import { OrganizationStatus, OrganizationType, PhoneVerificationPurpose, RoleCode } from '@prisma/client';
 import * as argon2 from 'argon2';
 import { createHash, createHmac, randomBytes } from 'node:crypto';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
@@ -18,6 +18,11 @@ import { PermissionsService } from '../permissions/permissions.service';
 import { RegisterDto } from './dto/register.dto';
 import { RegisterOrganizationDto } from './dto/register-organization.dto';
 import { PlatformSettingsService } from '../platform-settings/platform-settings.service';
+import { PhoneVerificationService } from './phone-verification.service';
+import { AuthErrorCode, authError } from './auth-error-codes';
+import { maskPhone, normalizePhone } from '../../common/utils/phone.util';
+import { hasVerifiedContact } from '../../common/utils/contact-verification.util';
+import { RegisterWithPhoneDto } from './dto/phone-auth.dto';
 
 export interface TokenPair {
   accessToken: string;
@@ -36,6 +41,18 @@ function hashResetToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');
 }
 
+/**
+ * How long proof-of-phone-ownership stays good for.
+ *
+ * Long enough to type a name and choose a password without being rushed; short
+ * enough that a ticket left in a log or a crash report is worthless by the time
+ * anyone reads it.
+ */
+const PHONE_TICKET_TTL_SECONDS = 15 * 60;
+
+/** Marks a token as proof of a verified phone, and as nothing else. */
+const PHONE_TICKET_TYPE = 'phone_verification';
+
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
@@ -48,13 +65,34 @@ export class AuthService {
     private readonly permissions: PermissionsService,
     private readonly email: EmailService,
     private readonly platformSettings: PlatformSettingsService,
+    private readonly phoneVerification: PhoneVerificationService,
   ) {}
 
   async register(input: RegisterDto, ipAddress?: string) {
     const email = input.email.toLowerCase().trim();
     const existing = await this.db.user.findUnique({ where: { email } });
     if (existing) {
-      throw new BadRequestException('Email is already registered.');
+      throw new BadRequestException(
+        authError(AuthErrorCode.EMAIL_TAKEN, 'Email is already registered.'),
+      );
+    }
+
+    // The DTO already normalised it; normalise again rather than trust the
+    // caller, because this method is also reachable from tests and scripts and
+    // a raw spelling here would break the uniqueness the column promises.
+    const phone = normalizePhone(input.phone);
+    if (input.phone && !phone) {
+      throw new BadRequestException(
+        authError(AuthErrorCode.PHONE_INVALID, 'That phone number is not valid.'),
+      );
+    }
+    if (phone) {
+      const phoneTaken = await this.db.user.findUnique({ where: { phone } });
+      if (phoneTaken) {
+        throw new BadRequestException(
+          authError(AuthErrorCode.PHONE_TAKEN, 'That phone number is already registered.'),
+        );
+      }
     }
 
     const donorRole = await this.db.role.findUnique({ where: { code: RoleCode.DONOR } });
@@ -69,7 +107,7 @@ export class AuthService {
           passwordHash: await argon2.hash(input.password),
           firstName: input.firstName.trim(),
           lastName: input.lastName.trim(),
-          phone: input.phone?.trim(),
+          phone,
           status: 'PENDING_VERIFICATION',
           emailVerified: false,
         },
@@ -143,7 +181,21 @@ export class AuthService {
     const email = input.adminEmail.toLowerCase().trim();
     const existing = await this.db.user.findUnique({ where: { email } });
     if (existing) {
-      throw new BadRequestException('Email is already registered.');
+      throw new BadRequestException(
+        authError(AuthErrorCode.EMAIL_TAKEN, 'Email is already registered.'),
+      );
+    }
+
+    const adminPhone = normalizePhone(input.adminPhone);
+    if (input.adminPhone && !adminPhone) {
+      throw new BadRequestException(
+        authError(AuthErrorCode.PHONE_INVALID, 'That phone number is not valid.'),
+      );
+    }
+    if (adminPhone && (await this.db.user.findUnique({ where: { phone: adminPhone } }))) {
+      throw new BadRequestException(
+        authError(AuthErrorCode.PHONE_TAKEN, 'That phone number is already registered.'),
+      );
     }
 
     const adminRoleCode =
@@ -179,7 +231,7 @@ export class AuthService {
           passwordHash: await argon2.hash(input.adminPassword),
           firstName: input.adminFirstName.trim(),
           lastName: input.adminLastName.trim(),
-          phone: input.adminPhone?.trim(),
+          phone: adminPhone,
           status: 'PENDING_VERIFICATION',
           emailVerified: false,
         },
@@ -230,6 +282,246 @@ export class AuthService {
         organization: { id: organization.id, name: organization.name, status: organization.status },
       },
     };
+  }
+
+  /**
+   * Step one of phone-first sign-up and of phone recovery: send a code.
+   *
+   * The response is identical whether or not the number has an account. That is
+   * the entire security property of this endpoint: a caller who can tell the
+   * two apart can walk the number space and learn who donates blood here, which
+   * is medical information about a person, not a UX detail.
+   *
+   * The message differs, though, because the person holding that phone is not
+   * the attacker and deserves the truth: a number that already has an account
+   * is told to sign in rather than left waiting for a code. A number with no
+   * account, asking to reset a password, is sent nothing at all -- an SMS about
+   * a service they do not use is noise. Either way the rate-limit budget and
+   * the cooldown are spent exactly as they would have been.
+   */
+  async requestPhoneCode(
+    phone: string,
+    purpose: PhoneVerificationPurpose,
+    options: { ipAddress?: string; locale?: string } = {},
+  ) {
+    const normalized = normalizePhone(phone);
+    if (!normalized) {
+      throw new BadRequestException(
+        authError(AuthErrorCode.PHONE_INVALID, 'That phone number is not valid.'),
+      );
+    }
+
+    const existing = await this.db.user.findUnique({
+      where: { phone: normalized },
+      select: { id: true, status: true },
+    });
+
+    let messageFor: 'code' | 'existing-account' | 'none' = 'code';
+    if (purpose === PhoneVerificationPurpose.REGISTRATION && existing) {
+      messageFor = 'existing-account';
+    }
+    if (purpose === PhoneVerificationPurpose.PASSWORD_RESET && (!existing || existing.status !== 'ACTIVE')) {
+      messageFor = 'none';
+    }
+
+    const result = await this.phoneVerification.requestCode(normalized, purpose, {
+      ipAddress: options.ipAddress,
+      locale: options.locale,
+      messageFor,
+    });
+
+    return { data: result };
+  }
+
+  /**
+   * Step two: spend the code and hand back proof of it.
+   *
+   * For sign-up the proof is a short-lived signed ticket. It is signed because
+   * the alternative -- answering `{ verified: true }` and trusting the client to
+   * be honest at the next step -- is not proof of anything: anyone can POST
+   * that. The number is *inside* the ticket, so the account that gets created
+   * is necessarily for the number that was verified.
+   *
+   * For recovery the proof is a real `PasswordResetToken`, the same row the
+   * email flow mints. Reusing it rather than inventing a phone-shaped variant
+   * is what keeps the two paths equally strong: single use, the same expiry,
+   * and every session revoked on success.
+   */
+  async verifyPhoneCode(
+    phone: string,
+    purpose: PhoneVerificationPurpose,
+    code: string,
+    ipAddress?: string,
+  ) {
+    const normalized = normalizePhone(phone);
+    if (!normalized) {
+      throw new BadRequestException(
+        authError(AuthErrorCode.PHONE_INVALID, 'That phone number is not valid.'),
+      );
+    }
+
+    await this.phoneVerification.verifyCode(normalized, purpose, code, ipAddress);
+
+    if (purpose === PhoneVerificationPurpose.REGISTRATION) {
+      return {
+        data: {
+          verificationToken: await this.signPhoneTicket(normalized),
+          expiresInSeconds: PHONE_TICKET_TTL_SECONDS,
+        },
+      };
+    }
+
+    // Recovery. The code has been spent either way -- a number with no account
+    // could never have received one, so reaching here means the account exists.
+    const user = await this.db.user.findUnique({
+      where: { phone: normalized },
+      select: { id: true, status: true },
+    });
+
+    if (!user || user.status !== 'ACTIVE') {
+      await this.audit.log({
+        action: 'PASSWORD_RESET_FAILED',
+        entityType: 'User',
+        metadata: { reason: 'phone_not_active', phone: maskPhone(normalized) },
+        ipAddress,
+      });
+      throw new BadRequestException(
+        authError(AuthErrorCode.RESET_TOKEN_INVALID, 'This reset request is no longer valid.'),
+      );
+    }
+
+    const rawToken = randomBytes(32).toString('hex');
+    const ttlMinutes = this.config.get<number>('PASSWORD_RESET_TTL_MINUTES', 60);
+    const expiresAt = new Date(Date.now() + ttlMinutes * 60 * 1000);
+
+    await this.db.passwordResetToken.upsert({
+      where: { userId: user.id },
+      create: { userId: user.id, tokenHash: hashResetToken(rawToken), expiresAt, requestedIp: ipAddress },
+      update: { tokenHash: hashResetToken(rawToken), expiresAt, usedAt: null, requestedIp: ipAddress },
+    });
+
+    await this.audit.log({
+      actorId: user.id,
+      action: 'PASSWORD_RESET_REQUESTED',
+      entityType: 'User',
+      entityId: user.id,
+      metadata: { via: 'phone', matched: true, phone: maskPhone(normalized) },
+      ipAddress,
+    });
+
+    return { data: { resetToken: rawToken, expiresInMinutes: ttlMinutes } };
+  }
+
+  /**
+   * Step three: the account itself.
+   *
+   * Nothing here trusts the client about the phone number. The ticket carries
+   * it, signed, and a ticket that does not verify is refused -- which is what
+   * stops someone from verifying a number they control and then registering
+   * their neighbour's.
+   *
+   * The account is created ACTIVE with `phoneVerified: true`, because the
+   * verification that a PENDING_VERIFICATION account is waiting for has already
+   * happened. An email, if given, is stored unverified and gets its own link.
+   */
+  async registerWithPhone(input: RegisterWithPhoneDto, ipAddress?: string) {
+    const phone = await this.readPhoneTicket(input.verificationToken);
+
+    const existingPhone = await this.db.user.findUnique({ where: { phone } });
+    if (existingPhone) {
+      throw new BadRequestException(
+        authError(AuthErrorCode.PHONE_TAKEN, 'That phone number is already registered.'),
+      );
+    }
+
+    const email = input.email?.toLowerCase().trim();
+    if (email) {
+      const existingEmail = await this.db.user.findUnique({ where: { email } });
+      if (existingEmail) {
+        throw new BadRequestException(
+          authError(AuthErrorCode.EMAIL_TAKEN, 'Email is already registered.'),
+        );
+      }
+    }
+
+    const donorRole = await this.db.role.findUnique({ where: { code: RoleCode.DONOR } });
+    if (!donorRole) {
+      throw new NotFoundException('DONOR role not found. Run seed script.');
+    }
+
+    const passwordHash = await argon2.hash(input.password);
+
+    const user = await this.db.$transaction(async (tx) => {
+      const newUser = await tx.user.create({
+        data: {
+          // A donor without an email still needs the column filled: it is
+          // unique and NOT NULL. A reserved, obviously-synthetic local address
+          // keeps the row valid while making it unmistakable in any listing
+          // that this account has no real address -- and `emailVerified` stays
+          // false, so nothing treats it as a way to reach anyone.
+          email: email ?? `${phone.replace('+', '')}@phone.bloodchain.local`,
+          phone,
+          passwordHash,
+          firstName: input.firstName.trim(),
+          lastName: input.lastName.trim(),
+          status: 'ACTIVE',
+          emailVerified: false,
+          phoneVerified: true,
+        },
+        select: { id: true, email: true, phone: true, firstName: true, lastName: true, status: true },
+      });
+
+      await tx.donorProfile.create({ data: { userId: newUser.id } });
+
+      let donorOrg = await tx.organization.findFirst({
+        where: { type: OrganizationType.SYSTEM },
+      });
+      if (!donorOrg) {
+        donorOrg = await tx.organization.create({
+          data: { type: OrganizationType.SYSTEM, name: 'Donor Accounts (System)', status: 'ACTIVE' },
+        });
+      }
+
+      await tx.organizationMembership.create({
+        data: {
+          userId: newUser.id,
+          organizationId: donorOrg.id,
+          roleId: donorRole.id,
+          status: 'ACTIVE',
+        },
+      });
+
+      return newUser;
+    });
+
+    await this.audit.log({
+      actorId: user.id,
+      action: 'USER_REGISTERED',
+      entityType: 'User',
+      entityId: user.id,
+      metadata: { via: 'phone', phone: maskPhone(phone), hasEmail: Boolean(email) },
+      ipAddress,
+    });
+
+    // A real address, if they gave one, still gets a verification link -- it is
+    // how they will recover the account from a laptop, and how receipts reach
+    // them. It is not required to sign in.
+    if (email) {
+      try {
+        const rawToken = await this.createEmailVerificationToken(user.id);
+        const { verifyUrl, deepLink } = this.buildVerificationLinks(rawToken);
+        await this.email.sendVerificationEmail(email, user.firstName, verifyUrl, deepLink);
+      } catch (error) {
+        this.logger.error(
+          `Failed to send verification email to ${email}: ${(error as Error).message}`,
+        );
+      }
+    }
+
+    // Signed in immediately: they have just proved they hold the number, and
+    // sending them to a sign-in form to retype the password they set ten
+    // seconds ago is a step that exists only to be abandoned.
+    return this.buildAuthResponse(user.id);
   }
 
   async verifyEmail(token: string, ipAddress?: string) {
@@ -310,9 +602,30 @@ export class AuthService {
     return { data: { success: true } };
   }
 
-  async login(email: string, password: string, ipAddress?: string) {
+  /**
+   * Signs in with an email address or a phone number.
+   *
+   * One method, because it is one account: the same password, the same lockout
+   * counter, the same sessions and the same audit trail whichever way the
+   * person named themselves. A second sign-in path for phones would be a second
+   * place for every one of those rules to drift out of step.
+   */
+  async login(
+    identifier: { email?: string; phone?: string },
+    password: string,
+    ipAddress?: string,
+  ) {
+    const email = identifier.email?.toLowerCase().trim();
+    const phone = normalizePhone(identifier.phone);
+
+    if (!email && !phone) {
+      throw new BadRequestException(
+        authError(AuthErrorCode.INVALID_CREDENTIALS, 'Provide an email address or a phone number.'),
+      );
+    }
+
     const user = await this.db.user.findUnique({
-      where: { email: email.toLowerCase().trim() },
+      where: email ? { email } : { phone: phone! },
       include: {
         memberships: {
           where: { status: 'ACTIVE' },
@@ -321,14 +634,28 @@ export class AuthService {
       },
     });
 
+    // One message whichever half was wrong, and whichever identifier was used:
+    // "no account with that number" is how you find out who is a donor here,
+    // and for a blood service that is medical information about a person.
+    const invalidCredentials = new UnauthorizedException(
+      authError(
+        AuthErrorCode.INVALID_CREDENTIALS,
+        email ? 'Email or password is incorrect.' : 'Phone number or password is incorrect.',
+      ),
+    );
+
     if (!user) {
       await this.audit.log({
         action: 'LOGIN_FAILED',
         entityType: 'User',
-        metadata: { email, reason: 'user_not_found' },
+        metadata: {
+          identifier: email ?? maskPhone(phone),
+          via: email ? 'email' : 'phone',
+          reason: 'user_not_found',
+        },
         ipAddress,
       });
-      throw new UnauthorizedException('Email or password is incorrect.');
+      throw invalidCredentials;
     }
 
     const isSuperAdmin = user.memberships.some((m) => m.role.code === RoleCode.SUPER_ADMIN);
@@ -341,7 +668,12 @@ export class AuthService {
         metadata: { reason: 'maintenance_mode' },
         ipAddress,
       });
-      throw new ForbiddenException('The platform is temporarily down for maintenance. Please try again later.');
+      throw new ForbiddenException(
+        authError(
+          AuthErrorCode.MAINTENANCE_MODE,
+          'The platform is temporarily down for maintenance. Please try again later.',
+        ),
+      );
     }
 
     if (user.lockoutUntil && user.lockoutUntil > new Date()) {
@@ -354,7 +686,13 @@ export class AuthService {
         metadata: { reason: 'account_locked', remainingMinutes },
         ipAddress,
       });
-      throw new ForbiddenException(`Account is locked. Try again in ${remainingMinutes} minute(s).`);
+      throw new ForbiddenException(
+        authError(
+          AuthErrorCode.ACCOUNT_LOCKED,
+          `Account is locked. Try again in ${remainingMinutes} minute(s).`,
+          { remainingMinutes },
+        ),
+      );
     }
 
     if (user.status === 'SUSPENDED') {
@@ -366,7 +704,12 @@ export class AuthService {
         metadata: { reason: 'account_suspended' },
         ipAddress,
       });
-      throw new ForbiddenException('Your account has been suspended. Contact support.');
+      throw new ForbiddenException(
+        authError(
+          AuthErrorCode.ACCOUNT_SUSPENDED,
+          'Your account has been suspended. Contact support.',
+        ),
+      );
     }
 
     if (user.status === 'DEACTIVATED') {
@@ -378,19 +721,31 @@ export class AuthService {
         metadata: { reason: 'account_deactivated' },
         ipAddress,
       });
-      throw new ForbiddenException('Your account has been deactivated.');
+      throw new ForbiddenException(
+        authError(AuthErrorCode.ACCOUNT_DEACTIVATED, 'Your account has been deactivated.'),
+      );
     }
 
-    if (user.status === 'PENDING_VERIFICATION' && !user.emailVerified) {
+    // What this gate is actually for is "we have confirmed a way to reach this
+    // person" -- it was written as `emailVerified` only because email was the
+    // only way to confirm anything. A donor who proved they hold their phone
+    // has met the same bar, and holding them at an email they may not have is
+    // the barrier this sprint exists to remove.
+    if (user.status === 'PENDING_VERIFICATION' && !hasVerifiedContact(user)) {
       await this.audit.log({
         actorId: user.id,
         action: 'LOGIN_FAILED',
         entityType: 'User',
         entityId: user.id,
-        metadata: { reason: 'email_not_verified' },
+        metadata: { reason: 'contact_not_verified' },
         ipAddress,
       });
-      throw new ForbiddenException('Please verify your email before signing in.');
+      throw new ForbiddenException(
+        authError(
+          AuthErrorCode.CONTACT_NOT_VERIFIED,
+          'Please confirm your email address or phone number before signing in.',
+        ),
+      );
     }
 
     if (!(await argon2.verify(user.passwordHash, password))) {
@@ -419,10 +774,16 @@ export class AuthService {
       });
 
       if (lockoutUntil) {
-        throw new ForbiddenException('Too many failed attempts. Account locked for 15 minutes.');
+        throw new ForbiddenException(
+          authError(
+            AuthErrorCode.ACCOUNT_LOCKED,
+            'Too many failed attempts. Account locked for 15 minutes.',
+            { remainingMinutes: 15 },
+          ),
+        );
       }
 
-      throw new UnauthorizedException('Email or password is incorrect.');
+      throw invalidCredentials;
     }
 
     if (user.failedLoginAttempts > 0 || user.lockoutUntil) {
@@ -459,6 +820,7 @@ export class AuthService {
         user: {
           id: user.id,
           email: user.email,
+          phone: user.phone,
           firstName: user.firstName,
           lastName: user.lastName,
           displayName: user.displayName,
@@ -569,6 +931,11 @@ export class AuthService {
       data: {
         id: user.id,
         email: user.email,
+        // The number is part of who this account is now, not a detail buried in
+        // settings: a phone-first donor signs in with it, and a profile that
+        // reports `phoneVerified: true` without saying *which* number is
+        // verified tells them nothing they can check.
+        phone: user.phone,
         firstName: user.firstName,
         lastName: user.lastName,
         displayName: user.displayName,
@@ -1008,5 +1375,56 @@ export class AuthService {
   private hashRefreshToken(token: string): string {
     const secret = this.config.getOrThrow<string>('JWT_REFRESH_SECRET');
     return createHmac('sha256', secret).update(token).digest('hex');
+  }
+
+  /**
+   * The secret that signs proof-of-phone tickets.
+   *
+   * Deliberately not `JWT_ACCESS_SECRET`. A ticket signed with the access
+   * secret is a string that the bearer-token path would at least attempt to
+   * parse, and "it fails later for an unrelated reason" is not a security
+   * boundary. Falling back to the refresh secret keeps deployments working
+   * without new configuration while staying off the access path entirely.
+   */
+  private phoneTicketSecret(): string {
+    // `?.trim() ||` rather than `??`: an unset variable in a .env file arrives
+    // as an empty string, not undefined, and `??` would sign tickets with "".
+    return (
+      this.config.get<string>('PHONE_TICKET_SECRET')?.trim() ||
+      this.config.getOrThrow<string>('JWT_REFRESH_SECRET')
+    );
+  }
+
+  private async signPhoneTicket(phone: string): Promise<string> {
+    return this.jwt.signAsync(
+      { typ: PHONE_TICKET_TYPE, phone },
+      { secret: this.phoneTicketSecret(), expiresIn: PHONE_TICKET_TTL_SECONDS },
+    );
+  }
+
+  /** The verified number inside a ticket, or a refusal. */
+  private async readPhoneTicket(token: string): Promise<string> {
+    const rejected = new BadRequestException(
+      authError(
+        AuthErrorCode.VERIFICATION_TICKET_INVALID,
+        'Phone verification has expired. Request a new code.',
+      ),
+    );
+
+    let payload: { typ?: string; phone?: string };
+    try {
+      payload = await this.jwt.verifyAsync(token, { secret: this.phoneTicketSecret() });
+    } catch {
+      throw rejected;
+    }
+
+    // The type claim is checked, not assumed. Without it, any token this secret
+    // ever signs would be accepted here as proof of a phone number.
+    if (payload.typ !== PHONE_TICKET_TYPE) throw rejected;
+
+    const phone = normalizePhone(payload.phone);
+    if (!phone) throw rejected;
+
+    return phone;
   }
 }

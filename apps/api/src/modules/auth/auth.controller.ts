@@ -16,6 +16,11 @@ import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { ResendVerificationDto } from './dto/resend-verification.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
+import {
+  RegisterWithPhoneDto,
+  RequestPhoneCodeDto,
+  VerifyPhoneCodeDto,
+} from './dto/phone-auth.dto';
 
 /**
  * Sign-in attempts allowed per minute, per IP.
@@ -27,6 +32,26 @@ import { VerifyEmailDto } from './dto/verify-email.dto';
  * without loosening the default for anyone who does not set it.
  */
 const LOGIN_LIMIT = Number(process.env.AUTH_THROTTLE_LIMIT ?? 5);
+
+/**
+ * Code requests allowed per fifteen minutes, per IP.
+ *
+ * Three, because every one of these can cost money and can make a stranger's
+ * phone buzz -- far more expensive to abuse than a failed sign-in. It has the
+ * same escape hatch as `LOGIN_LIMIT` and for the same reason: behind one shared
+ * address (a demo laptop, an office NAT, an end-to-end test run) three is a
+ * limit on the building rather than on a person.
+ */
+const OTP_REQUEST_LIMIT = Number(process.env.OTP_THROTTLE_LIMIT ?? 3);
+
+/**
+ * Code verifications allowed per fifteen minutes, per IP.
+ *
+ * Higher, because verifying sends nothing and costs nothing. The real defence
+ * against guessing is the per-code attempt cap; this only stops someone
+ * cycling *numbers* rather than guesses.
+ */
+const OTP_VERIFY_LIMIT = Number(process.env.OTP_VERIFY_THROTTLE_LIMIT ?? 10);
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -100,7 +125,7 @@ export class AuthController {
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
   @ApiResponse({ status: 403, description: 'Account suspended or deactivated' })
   login(@Body() dto: LoginDto, @Req() req: Request) {
-    return this.auth.login(dto.email, dto.password, this.getIp(req));
+    return this.auth.login({ email: dto.email, phone: dto.phone }, dto.password, this.getIp(req));
   }
 
   /**
@@ -132,6 +157,59 @@ export class AuthController {
   @ApiResponse({ status: 400, description: 'Invalid, used or expired token' })
   resetPassword(@Body() dto: ResetPasswordDto, @Req() req: Request) {
     return this.auth.resetPassword(dto.token, dto.newPassword, this.getIp(req));
+  }
+
+  /**
+   * Phone-first sign-up and phone recovery, step one.
+   *
+   * Throttled hard, and for a different reason than the rest of auth: every
+   * call here can cost money and can make a stranger's phone buzz. Three per
+   * fifteen minutes per address, on top of the per-number hourly ceiling the
+   * service enforces -- one limit stops a machine, the other stops a botnet
+   * pointed at one person.
+   */
+  @Post('phone/request-code')
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: OTP_REQUEST_LIMIT, ttl: 900000 } })
+  @ApiOperation({ summary: 'Send a one-time code by SMS' })
+  @ApiResponse({ status: 200, description: 'A code was requested; the response never says whether the number has an account' })
+  @ApiResponse({ status: 429, description: 'Cooldown or hourly ceiling' })
+  requestPhoneCode(@Body() dto: RequestPhoneCodeDto, @Req() req: Request) {
+    return this.auth.requestPhoneCode(dto.phone, dto.purpose, {
+      ipAddress: this.getIp(req),
+      locale: dto.locale,
+    });
+  }
+
+  /**
+   * Step two: spend the code.
+   *
+   * Looser than request-code because it sends nothing and costs nothing, but
+   * still bounded -- the per-code attempt cap is the real defence, and this
+   * stops someone cycling *numbers* rather than guesses.
+   */
+  @Post('phone/verify-code')
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: OTP_VERIFY_LIMIT, ttl: 900000 } })
+  @ApiOperation({ summary: 'Verify a one-time code and receive proof of ownership' })
+  @ApiResponse({ status: 200, description: 'Verified; returns a registration ticket or a reset token' })
+  @ApiResponse({ status: 400, description: 'Wrong, expired or exhausted code' })
+  verifyPhoneCode(@Body() dto: VerifyPhoneCodeDto, @Req() req: Request) {
+    return this.auth.verifyPhoneCode(dto.phone, dto.purpose, dto.code, this.getIp(req));
+  }
+
+  /** Step three: create the account the verified number belongs to. */
+  @Post('register-phone')
+  @Public()
+  @HttpCode(HttpStatus.CREATED)
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  @ApiOperation({ summary: 'Finish phone-first registration and sign in' })
+  @ApiResponse({ status: 201, type: AuthResponseDto, description: 'Account created and signed in' })
+  @ApiResponse({ status: 400, description: 'Ticket invalid or expired, or the number is taken' })
+  registerWithPhone(@Body() dto: RegisterWithPhoneDto, @Req() req: Request) {
+    return this.auth.registerWithPhone(dto, this.getIp(req));
   }
 
   @Post('refresh')

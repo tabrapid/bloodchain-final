@@ -63,9 +63,13 @@ export function useLogin() {
     onSuccess: (data) => {
       setUser(toStoreUser(data));
     },
-    onError: (error: unknown) => {
+    onError: () => {
+      // Only reset the spinner. Rethrowing here used to be the last statement
+      // in this callback, and React Query does not catch a throw from
+      // `onError` -- so every failed sign-in also produced an unhandled promise
+      // rejection, on top of the error `mutateAsync` already rejects with. The
+      // screen has always had the error; this just stopped shouting about it.
       setLoading(false);
-      throw error;
     },
   });
 }

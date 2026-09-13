@@ -64,7 +64,9 @@ describe('Welcome', () => {
     act(() => {
       buttonWithLabel(tree, 'Create Bloodchain account').props.onPress();
     });
-    expect(mockPush).toHaveBeenCalledWith('/(auth)/register');
+    // Phone-first since Sprint 1B: a donor here knows their number without
+    // looking it up, and email sign-up is one tap further on.
+    expect(mockPush).toHaveBeenCalledWith('/(auth)/phone');
 
     act(() => {
       buttonWithLabel(tree, 'Sign in to Bloodchain').props.onPress();

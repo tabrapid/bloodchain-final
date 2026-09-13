@@ -9,15 +9,58 @@ import {
 } from '../auth/storage';
 import type { AuthenticatedUser, TokenPair } from '@bloodchain/types';
 
-export interface LoginInput {
+/**
+ * One account, two ways to name it.
+ *
+ * Exactly one of `email` and `phone`, matching the API: a donor signs in with
+ * the number they know, staff with the address their console sends them to, and
+ * both land on the same account with the same password and the same sessions.
+ */
+export type LoginInput =
+  | { email: string; phone?: undefined; password: string }
+  | { phone: string; email?: undefined; password: string };
+
+export interface RegisterInput {
   email: string;
   password: string;
-}
-
-export interface RegisterInput extends LoginInput {
   firstName: string;
   lastName: string;
   phone?: string;
+}
+
+/** Why a code is being sent. The server keys its rate limits on this too. */
+export type PhoneCodePurpose = 'REGISTRATION' | 'PASSWORD_RESET';
+
+export interface PhoneCodeRequested {
+  /** `+998*******67` -- enough to recognise, not enough to read aloud. */
+  sentTo: string;
+  expiresInSeconds: number;
+  resendAvailableInSeconds: number;
+}
+
+export interface PhoneVerified {
+  /**
+   * Proof that this number was verified, signed by the server. Held only for
+   * the moments between the code screen and the details screen, and sent back
+   * with the registration -- the number lives inside it, so the account that
+   * gets created is necessarily for the number that was confirmed.
+   */
+  verificationToken: string;
+  expiresInSeconds: number;
+}
+
+export interface PhoneResetIssued {
+  /** A standard password-reset token: single use, same expiry as the emailed one. */
+  resetToken: string;
+  expiresInMinutes: number;
+}
+
+export interface RegisterWithPhoneInput {
+  verificationToken: string;
+  firstName: string;
+  lastName: string;
+  password: string;
+  email?: string;
 }
 
 export interface AuthResponse extends TokenPair {
@@ -27,6 +70,7 @@ export interface AuthResponse extends TokenPair {
 export interface MeResponse {
   id: string;
   email: string;
+  phone?: string | null;
   firstName: string;
   lastName: string;
   displayName?: string;
@@ -130,6 +174,73 @@ export async function resetPassword(
     body: JSON.stringify({ token, newPassword }),
     skipAuth: true,
   });
+}
+
+/**
+ * Asks for an SMS code.
+ *
+ * The server answers identically whether or not the number has an account, and
+ * this client must not try to be more helpful than that: any branch on "does
+ * this number exist" would rebuild the enumeration oracle the API deliberately
+ * does without.
+ */
+export async function requestPhoneCode(
+  phone: string,
+  purpose: PhoneCodePurpose,
+  locale?: string,
+): Promise<PhoneCodeRequested> {
+  return apiRequest<PhoneCodeRequested>(`${apiBasePath}/auth/phone/request-code`, {
+    method: 'POST',
+    body: JSON.stringify({ phone, purpose, locale }),
+    skipAuth: true,
+  });
+}
+
+/**
+ * Spends the code. Returns a registration ticket, or a password-reset token.
+ *
+ * Overloaded so the caller gets the shape that purpose actually returns: a
+ * screen asking to register should not have to narrow a union that cannot occur.
+ */
+/* eslint-disable no-redeclare -- TypeScript overload signatures, not duplicates */
+export async function verifyPhoneCode(
+  phone: string,
+  purpose: 'REGISTRATION',
+  code: string,
+): Promise<PhoneVerified>;
+export async function verifyPhoneCode(
+  phone: string,
+  purpose: 'PASSWORD_RESET',
+  code: string,
+): Promise<PhoneResetIssued>;
+export async function verifyPhoneCode(
+  phone: string,
+  purpose: PhoneCodePurpose,
+  code: string,
+): Promise<PhoneVerified | PhoneResetIssued> {
+  return apiRequest(`${apiBasePath}/auth/phone/verify-code`, {
+    method: 'POST',
+    body: JSON.stringify({ phone, purpose, code }),
+    skipAuth: true,
+  });
+}
+/* eslint-enable no-redeclare */
+
+/**
+ * Finishes phone-first sign-up, and signs in.
+ *
+ * Tokens come back because the donor has just proved they hold the number and
+ * chosen a password ten seconds ago; sending them to a sign-in form to retype
+ * it is a step that exists only to be abandoned.
+ */
+export async function registerWithPhone(input: RegisterWithPhoneInput): Promise<AuthResponse> {
+  const data = await apiRequest<AuthResponse>(`${apiBasePath}/auth/register-phone`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+    skipAuth: true,
+  });
+  await setTokens(data);
+  return data;
 }
 
 export async function me(): Promise<MeResponse> {

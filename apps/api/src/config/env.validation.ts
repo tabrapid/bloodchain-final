@@ -34,6 +34,11 @@ export const envValidationSchema = Joi.object({
   THROTTLER_TTL: Joi.number().default(60),
   THROTTLER_LIMIT: Joi.number().default(100),
   AUTH_THROTTLE_LIMIT: Joi.number().default(5),
+  // Per-IP ceilings on the SMS endpoints. Requesting a code costs money and
+  // makes a phone ring, so it is the tighter of the two; verifying sends
+  // nothing, and the per-code attempt cap is what actually stops guessing.
+  OTP_THROTTLE_LIMIT: Joi.number().default(3),
+  OTP_VERIFY_THROTTLE_LIMIT: Joi.number().default(10),
   SMTP_HOST: Joi.string().allow('').optional(),
   SMTP_PORT: Joi.number().port().default(587),
   SMTP_SECURE: Joi.boolean().default(false),
@@ -41,6 +46,31 @@ export const envValidationSchema = Joi.object({
   SMTP_PASSWORD: Joi.string().allow('').optional(),
   SMTP_FROM: Joi.string().default('BloodChain <no-reply@donor.local>'),
   EMAIL_VERIFICATION_TTL_HOURS: Joi.number().default(24),
+  // --- SMS and one-time codes ------------------------------------------
+  // Which adapter delivers an SMS. `console` prints the message instead of
+  // sending it and is refused at boot when NODE_ENV=production, because a
+  // one-time code in a log file is an authentication bypass rather than a
+  // degraded mode. A real Uzbekistan provider is a new adapter and a new value
+  // here; nothing in the auth domain changes.
+  SMS_PROVIDER: Joi.string().default('console'),
+  // Where the console adapter also appends messages, so a script can read codes
+  // back without scraping stdout. Local convenience only.
+  SMS_DEV_LOG_FILE: Joi.string().allow('').optional(),
+  // A six-digit code is a million guesses; these four numbers are what keep
+  // that from being enough. Short life, few attempts per code, a floor between
+  // sends, and a ceiling per number per hour.
+  OTP_TTL_SECONDS: Joi.number().min(60).max(1800).default(300),
+  OTP_MAX_ATTEMPTS: Joi.number().min(3).max(10).default(5),
+  OTP_RESEND_COOLDOWN_SECONDS: Joi.number().min(15).default(60),
+  OTP_MAX_PER_HOUR: Joi.number().min(1).max(20).default(5),
+  // Keys the HMAC that stored codes are hashed with. Optional: falls back to
+  // JWT_REFRESH_SECRET, which is already required and already secret. Set it
+  // separately when code hashes and refresh tokens should not share a key.
+  OTP_HASH_SECRET: Joi.string().min(32).allow('').optional(),
+  // Signs the short-lived ticket that proves a phone number was verified.
+  // Deliberately never JWT_ACCESS_SECRET: a ticket must not be something the
+  // bearer-token path would even try to parse. Falls back to JWT_REFRESH_SECRET.
+  PHONE_TICKET_SECRET: Joi.string().min(32).allow('').optional(),
   // A reset token is account takeover in one string, so its life is measured
   // in minutes rather than the day an email-verification link gets.
   PASSWORD_RESET_TTL_MINUTES: Joi.number().min(5).max(1440).default(60),

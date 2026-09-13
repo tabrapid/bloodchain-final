@@ -20,6 +20,10 @@ import {
   RoleCode,
 } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
+import {
+  hasVerifiedContact,
+  verifiedContactFilter,
+} from '../../common/utils/contact-verification.util';
 import { withUniqueRetry } from '../../common/utils/unique-retry.util';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { EmergencyGateway } from '../../gateways/emergency.gateway';
@@ -183,8 +187,14 @@ export class EmergencyService {
       throw new ForbiddenException('Donor blood type not verified.');
     }
 
-    if (!user.emailVerified) {
-      throw new ForbiddenException('Email not verified.');
+    // Contact verification, not email verification. What this gate protects is
+    // the ability to reach a donor about an emergency; a confirmed phone does
+    // that at least as well as a confirmed inbox, and in this market rather
+    // better. It is not, and must not become, a check on whether their blood
+    // type or identity has been verified -- those are the donor profile's
+    // `verificationStatus` and blood-type fields, checked above and unchanged.
+    if (!hasVerifiedContact(user)) {
+      throw new ForbiddenException('Contact details not verified.');
     }
 
     // Kept alongside the check that now runs during matching, and not a
@@ -325,9 +335,17 @@ export class EmergencyService {
           // most needs.
           donorProfile: {
             donorStatus: DonorStatus.ACTIVE,
+            // Medical verification. Untouched by anything in this sprint: a
+            // verified phone says a message will arrive, never that a blood
+            // type has been confirmed.
             verificationStatus: 'VERIFIED',
           },
-          emailVerified: true,
+          // Contact verification: someone we can actually reach. Written as
+          // `emailVerified: true` while email was the only channel, which
+          // silently excluded every phone-verified donor from the candidate
+          // pool the moment phone sign-up existed -- the worst possible place
+          // for that bug, since the pool is who gets asked to save a life.
+          ...verifiedContactFilter(),
         },
         include: {
           donorProfile: true,

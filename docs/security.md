@@ -260,6 +260,49 @@ Also needed, and not an environment variable: **SPF, DKIM and DMARC records on
 the sending domain**. A reset link that lands in spam is indistinguishable from
 one that was never sent, and a locked-out user cannot tell you which happened.
 
+### SMS delivery (required before phone sign-up works outside local dev)
+
+Phone-first donor sign-up, phone sign-in and phone recovery all send a one-time
+code by SMS. `SMS_PROVIDER=console` — the state of every environment today —
+**prints the message to the API log instead of sending it**. Phone sign-up
+works locally and nothing reaches a handset.
+
+**The API refuses to start with the console provider when `NODE_ENV=production`.**
+That refusal is deliberate and should not be worked around: a one-time code in
+a log file is an authentication bypass for anyone with log access, not a
+degraded mode.
+
+No Uzbekistan SMS provider has been chosen. Before deployment:
+
+1. Choose an aggregator (Eskiz, Play Mobile, SMS.uz or similar) and obtain an
+   account, a sender ID, and — for most Uzbek aggregators — **pre-registered
+   message templates**, which are approved by the operator and can take days.
+2. Implement `SmsProvider` in `apps/api/src/modules/sms/providers/`. The
+   interface is three fields and one method; everything vendor-shaped
+   (authentication, template ids, delivery receipts, pricing) stays inside the
+   adapter.
+3. Register it in `sms.module.ts` and set `SMS_PROVIDER` to its name. Nothing
+   in the auth domain changes.
+
+| Variable | What it needs | Notes |
+| --- | --- | --- |
+| `SMS_PROVIDER` | The adapter's name | `console` is dev-only and refused in production |
+| *(vendor credentials)* | Whatever the chosen aggregator needs | Secrets — never committed, never in `.env.example`. Name them when the adapter exists |
+| `SMS_DEV_LOG_FILE` | Leave **unset** outside a developer machine | It writes message bodies, including codes, to a file |
+| `OTP_HASH_SECRET` | 32+ random bytes | Optional: falls back to `JWT_REFRESH_SECRET`. Set it separately so code hashes and refresh tokens do not share a key |
+| `PHONE_TICKET_SECRET` | 32+ random bytes | Optional: falls back to `JWT_REFRESH_SECRET`. Never set it to `JWT_ACCESS_SECRET` |
+
+Also needed, and not an environment variable: **a sender ID registered with the
+Uzbek operators**, and a decision about who pays for the messages. Both are
+commercial, both take longer than the code did, and neither can be started from
+here.
+
+The security parameters (`OTP_TTL_SECONDS`, `OTP_MAX_ATTEMPTS`,
+`OTP_RESEND_COOLDOWN_SECONDS`, `OTP_MAX_PER_HOUR`) have safe defaults and are
+documented in `.env.example`. They are what keeps a six-digit code — one million
+possibilities — from being guessable; do not loosen them to make a demo
+smoother.
+
 ### Public URLs (required for the links in that mail to resolve)
 
 The reset email contains a link, and that link is built from configuration. In
@@ -293,6 +336,16 @@ production:
 - **They are per-instance.** Behind two replicas, the effective limit doubles;
   behind ten, the 3-per-15-minutes anti-enumeration limit on
   `/auth/forgot-password` is 30.
+
+Since Sprint 1B this also covers `/auth/phone/request-code`, where the same
+arithmetic costs money: every request that gets through is an SMS someone pays
+for. Two things limit the damage in the meantime, and neither lives in the
+throttler's memory — **the per-number hourly ceiling** (`OTP_MAX_PER_HOUR`) and
+**the per-number resend cooldown** (`OTP_RESEND_COOLDOWN_SECONDS`) are both
+enforced against the database, so they hold across instances and across
+restarts. The per-IP throttle is the layer that degrades when the API is scaled
+out; the per-number limits are the layer that protects a person's phone, and
+those do not.
 
 The fix is a shared store (Redis, via `@nest-lab/throttler-storage-redis` or
 equivalent) and it is **deliberately not implemented yet**: with one instance the

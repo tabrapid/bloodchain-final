@@ -2183,3 +2183,35 @@ model AIFeedback {
   @@index([type])
   @@index([createdAt])
 }
+
+enum PhoneVerificationPurpose {
+  REGISTRATION
+  PASSWORD_RESET
+}
+
+/// A one-time code sent to a phone number, and what has happened to it.
+///
+/// Keyed by the number rather than by a user, because registration is the main
+/// case and the account does not exist yet. The code itself is never stored:
+/// `codeHash` is an HMAC, so a database copy is not a list of valid codes.
+///
+/// Rows are kept after they are spent. "Was a code requested for this number in
+/// the last hour" is a rate-limiting question and a security question, and both
+/// need the history, not just the live row.
+model PhoneVerification {
+  id           String                   @id @default(cuid())
+  phone        String                   @db.VarChar(20)
+  purpose      PhoneVerificationPurpose
+  codeHash     String                   @db.VarChar(64)
+  expiresAt    DateTime
+  consumedAt   DateTime?
+  /// Set when a newer code replaced this one, so a resend cannot leave two
+  /// codes alive for the same number.
+  supersededAt DateTime?
+  attempts     Int                      @default(0)
+  requestedIp  String?                  @db.VarChar(64)
+  createdAt    DateTime                 @default(now())
+
+  @@index([phone, purpose, createdAt])
+  @@index([expiresAt])
+}

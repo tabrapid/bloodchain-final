@@ -7,6 +7,8 @@ export * from './BrandMark';
 export * from './HeroWave';
 export * from './StepRail';
 export * from './AppTextInput';
+export * from './PhoneInput';
+export * from './OtpInput';
 export * from './IconButton';
 export * from './Card';
 export * from './GlassCard';
