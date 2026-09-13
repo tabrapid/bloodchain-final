@@ -497,6 +497,11 @@ get wrong: that the link opens the mobile route, that the token cannot be used
 twice, that a used and an unknown token are answered identically, and that a
 session held before the reset is dead afterwards.
 
+It also issues a second link and ages it past its expiry in the database rather
+than waiting an hour, to confirm an expired link is refused the same way — and
+finishes by exercising Register, resend-verification and Login, since recovery
+shares a module with them.
+
 It changes a seeded account's password (`recent.donor@donor.local`), so run
 `pnpm demo:reset` after it. Stop `pnpm mail:dev` first — the script runs its own
 sink on the same port so it can read the message rather than print it.

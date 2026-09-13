@@ -12,6 +12,7 @@
  * Not read-only: it changes a seeded account's password. Run `pnpm demo:reset`
  * afterwards.
  */
+import { execFileSync } from 'node:child_process';
 import { createMailSink, MAIL_HOST, defaultMailPort } from './dev-mail.mjs';
 import { assertLocalDatabase, fail } from './demo-guard.mjs';
 
@@ -58,6 +59,27 @@ async function call(method, path, body, token) {
 }
 
 const signIn = (email, password) => call('POST', '/auth/login', { email, password });
+
+/**
+ * Runs a snippet of Prisma against the local database.
+ *
+ * Used only to age a token. The TTL is an hour by definition, so the honest
+ * alternatives are waiting an hour or trusting a unit test with a mocked clock;
+ * moving the expiry backwards exercises the real query, the real comparison and
+ * the real error path, which is the part worth proving.
+ */
+function prisma(snippet) {
+  const output = execFileSync('node', ['-e', `
+    const { PrismaClient } = require('@prisma/client');
+    const db = new PrismaClient();
+    (async () => {
+      const result = await (${snippet});
+      console.log(JSON.stringify(result ?? null));
+      await db.$disconnect();
+    })();
+  `], { cwd: 'apps/api', encoding: 'utf8' }).trim();
+  return JSON.parse(output || 'null');
+}
 
 console.log('\n  Account recovery — end-to-end check');
 
@@ -198,6 +220,75 @@ try {
     'and issues a fresh session',
     Boolean(newPassword.body?.refreshToken) && newPassword.body.refreshToken !== oldRefreshToken,
   );
+
+  // --------------------------------------------------------------- step 5
+  section('  An expired link');
+
+  // A second link for the same account, then aged past its expiry in the
+  // database. Nothing else about it changes -- it is a live, unused token whose
+  // only fault is the clock.
+  const second = await call('POST', '/auth/forgot-password', { email: ACCOUNT });
+  if (second.status === 429) {
+    skip('an expired link is refused', 'out of reset requests for this 15-minute window');
+  } else {
+    let expiredToken;
+    try {
+      expiredToken = (await sink.next(8000)).links.find((l) => l.startsWith('donor://'))?.split('token=')[1];
+    } catch {
+      expiredToken = undefined;
+    }
+    check('a second link is issued', Boolean(expiredToken));
+
+    if (expiredToken) {
+      const aged = prisma(
+        "db.passwordResetToken.updateMany({ where: { usedAt: null }, data: { expiresAt: new Date(Date.now() - 60000) } })",
+      );
+      check('the token is aged past its expiry in the database', aged?.count >= 1, `${aged?.count} row(s)`);
+
+      const expired = await call('POST', '/auth/reset-password', {
+        token: expiredToken,
+        newPassword: 'ExpiredAttempt!2026',
+      });
+      check('an expired link is refused', expired.status === 400, `${expired.status}`);
+      check(
+        'and is indistinguishable from an unknown one',
+        expired.raw?.message === 'This password reset link is invalid or has expired.',
+        expired.raw?.message,
+      );
+
+      const stillNew = await signIn(ACCOUNT, NEW_PASSWORD);
+      check('the password is unchanged by the failed attempt', stillNew.status === 200, `${stillNew.status}`);
+    }
+  }
+
+  // --------------------------------------------------------------- step 6
+  section('  The rest of auth still works');
+
+  // Recovery touches the auth module; these are the three flows next to it.
+  const fresh = `recovery.regression.${Date.now()}@donor.local`;
+  const registered = await call('POST', '/auth/register', {
+    email: fresh,
+    password: SEED_PASSWORD,
+    firstName: 'Recovery',
+    lastName: 'Regression',
+  });
+  check('Register still creates an account', registered.status === 201, `${registered.status}`);
+
+  const resent = await call('POST', '/auth/resend-verification', { email: fresh });
+  check('Check Email can still resend a verification', resent.status === 200, `${resent.status}`);
+
+  const unverified = await signIn(fresh, SEED_PASSWORD);
+  check(
+    'an unverified account is still refused at sign-in',
+    unverified.status === 403 && /verify your email/i.test(unverified.raw?.message ?? ''),
+    `${unverified.status} ${unverified.raw?.message ?? ''}`,
+  );
+
+  const seeded = await signIn('donor@donor.local', SEED_PASSWORD);
+  check('Login still works for a seeded account', seeded.status === 200, `${seeded.status}`);
+
+  const wrong = await signIn('donor@donor.local', 'DefinitelyNotIt!99');
+  check('and still refuses a wrong password', wrong.status === 401, `${wrong.status}`);
 } finally {
   await sink.close();
 }
