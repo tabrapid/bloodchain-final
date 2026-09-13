@@ -94,6 +94,44 @@ export async function resendVerification(email: string): Promise<void> {
   });
 }
 
+export interface RecoveryMessage {
+  success: boolean;
+  message: string;
+}
+
+/**
+ * Asks for a reset link.
+ *
+ * The server answers identically whether or not the address is registered, and
+ * the client must not try to be more helpful than that -- any branch on "did
+ * this address exist" would put the enumeration oracle back that the API
+ * deliberately does without.
+ */
+export async function requestPasswordReset(email: string): Promise<RecoveryMessage> {
+  return apiRequest<RecoveryMessage>(`${apiBasePath}/auth/forgot-password`, {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+    skipAuth: true,
+  });
+}
+
+/**
+ * Spends the token from the email and sets the new password.
+ *
+ * No tokens come back: the server has just revoked every session for this user,
+ * so the only correct next step is a fresh sign-in.
+ */
+export async function resetPassword(
+  token: string,
+  newPassword: string,
+): Promise<RecoveryMessage> {
+  return apiRequest<RecoveryMessage>(`${apiBasePath}/auth/reset-password`, {
+    method: 'POST',
+    body: JSON.stringify({ token, newPassword }),
+    skipAuth: true,
+  });
+}
+
 export async function me(): Promise<MeResponse> {
   return apiRequest<MeResponse>(`${apiBasePath}/auth/me`);
 }

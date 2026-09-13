@@ -10,17 +10,22 @@ internet is required once dependencies are installed.
 Four terminals, or one `pnpm demo:start` plus one for Expo.
 
 ```bash
-# Terminal 1 — infrastructure + API + three web consoles
+# Terminal 1 — local mail, so password reset links are readable (optional)
+pnpm mail:dev
+
+# Terminal 2 — infrastructure + API + three web consoles
 pnpm demo:start
 
-# Terminal 2 — the donor app
+# Terminal 3 — the donor app
 pnpm dev:mobile
 ```
 
 `demo:start` brings up PostgreSQL through Docker Compose (if Docker is
 available; otherwise it assumes Postgres is already running) and then starts the
 API and all three consoles, prefixing each service's output. Ctrl-C stops them
-all.
+all. It also looks for a mail catcher on port 1025 and, if one is listening,
+points the API at it — start `pnpm mail:dev` first and password reset emails
+land there instead of in the API log. See §10.
 
 If you would rather run them yourself:
 
@@ -40,6 +45,7 @@ pnpm dev:mobile                                # Expo
 | Hospital console | http://localhost:3000 |
 | Blood centre console | http://localhost:3002 |
 | Admin console | http://localhost:3003 |
+| Mail (Mailpit, if used) | http://localhost:8025 |
 
 ## 2. Reset to the scripted starting state
 
@@ -398,7 +404,9 @@ after the API started — restart it.
 | **The donor cannot accept an emergency** | They are inside the 56-day recovery window — probably because you already ran Part 4. Reset, or use a different donor. |
 | **"This donor is in the post-donation recovery window until …" when booking or checking in** | Working as intended: the server refuses a donation for a donor who is not yet due, at booking and again at check-in. It happens to `donor@donor.local` once you have completed a donation in this session — `pnpm demo:reset` puts them back. `recent.donor@donor.local` is seeded inside the window deliberately. |
 | **`demo:check` says the demo donor is not eligible, right after `verify:safety` passed** | `verify:safety` completes a real donation, so it leaves the demo donor inside a fresh recovery window. Run `pnpm demo:reset`. |
-| **The reset email never arrives** | With no `SMTP_HOST` set, mail is logged instead of sent. The full message, including the link, is in the API log. |
+| **The reset email never arrives** | With no `SMTP_HOST` set, mail is logged instead of sent — the full message, including the link, is in the API log. Start `pnpm mail:dev` before `pnpm demo:start` to have it delivered somewhere readable (§10). |
+| **"This link no longer works" on the reset screen** | Reset links are single-use and expire within the hour. The API answers the same way for an unknown, used and expired token on purpose, so the app cannot tell you which. Request a new one and open the most recent email. |
+| **`verify:recovery` says port 1025 is busy** | It runs its own mail sink so it can read the message. Stop `pnpm mail:dev` (or `docker compose stop mailpit`) and run it again. |
 | **"You already have an appointment at this time" when booking** | Fixed: the seed used to book the demo donor at the exact moment of seeding, which collided with the hours a presenter picks from. Pull and `pnpm demo:reset`. |
 | **The API logs dozens of "property does not exist" errors, and seeded accounts cannot sign in** | The generated Prisma client is older than the schema, so the API will not compile and the seed cannot run — every other symptom is downstream of this. Run `pnpm db:generate`, or just `pnpm demo:reset`, which now does it first. `pnpm demo:check` reports it as the first line. |
 | **`demo:check` says accounts cannot sign in, right after a run that passed** | Sign-in allows 5 attempts per minute per IP and the check makes nine. It now says so explicitly instead of reporting "login refused". `pnpm demo:start` sets `AUTH_THROTTLE_LIMIT=100` for you; otherwise wait a minute. |
@@ -424,8 +432,71 @@ after the API started — restart it.
 - **Password reset works locally without SMTP.** `POST /auth/forgot-password`
   always answers the same way, and with no `SMTP_HOST` configured the message —
   including the reset link — is written to the API log instead of being sent.
-  Copy the link from there.
+  §10 sets up something more readable.
 - **Emergency location history is pruned** once a journey is closed, after
   `EMERGENCY_LOCATION_RETENTION_HOURS` (72 by default in development). That
   default is a development convenience, not a retention decision for
   production.
+
+---
+
+## 10. Account recovery and local email
+
+Nothing here needs a real mail provider, and nothing here should ever be given
+one: these are local tools with no credentials.
+
+### Catching the mail
+
+Two ways, both listening on SMTP port **1025**, so the API is configured the
+same either way:
+
+```bash
+pnpm mail:dev                                # prints every message, links first
+docker compose --profile dev up -d mailpit   # browsable inbox at :8025
+```
+
+`pnpm mail:dev` is a small SMTP server that accepts everything and delivers
+nothing, printing each message with any link pulled out onto its own line. For a
+demo that is usually what you want — the link is on screen, in the same terminal
+you are already looking at. Mailpit gives you a real inbox instead; it is in the
+`dev` Compose profile, so a plain `docker compose up` never starts it.
+
+Start either one **before** `pnpm demo:start`, which looks for a listener on
+1025 and points the API at it. Without one, mail still "works": the API logs the
+message body rather than sending it.
+
+### The flow, on the phone
+
+1. **Sign in → "Forgot password?"** under the password field.
+2. **Reset password** — type the email address, tap *Send reset link*. The
+   confirmation says "if an account exists", for every address, because the
+   server does not say which addresses are registered and the app must not
+   either.
+3. **The email** arrives in your mail terminal with two links: a web one
+   (`http://localhost:3000/reset-password?token=…`) and a deep link
+   (`donor://reset-password?token=…`). The deep link opens the app straight on
+   the reset screen.
+4. **New password** — 12 characters with an uppercase, a lowercase, a number and
+   a symbol; the form checks the rule rather than spending a round trip on it.
+5. **Password updated** — every other session is revoked, and *Sign in* takes
+   you back to Login.
+
+No deep link? On an emulator, `adb shell am start -a android.intent.action.VIEW
+-d "donor://reset-password?token=…"` opens it. Or open **Reset password →
+"Already have a reset code?"** and paste the token from the link.
+
+### Checking it end to end
+
+```bash
+pnpm verify:recovery
+```
+
+Starts its own mail sink, asks the API for a real reset, reads the link out of
+the delivered message, spends it, and then checks the things that are easy to
+get wrong: that the link opens the mobile route, that the token cannot be used
+twice, that a used and an unknown token are answered identically, and that a
+session held before the reset is dead afterwards.
+
+It changes a seeded account's password (`recent.donor@donor.local`), so run
+`pnpm demo:reset` after it. Stop `pnpm mail:dev` first — the script runs its own
+sink on the same port so it can read the message rather than print it.

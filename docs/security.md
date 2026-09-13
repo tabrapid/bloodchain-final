@@ -41,6 +41,13 @@ This document describes the security measures implemented in the DONOR healthcar
   the real reason a reset failed (unknown, used, expired, inactive) even though
   the caller is told only that the link is invalid
 - Reset delivery is email-only. No SMS path exists
+- The mobile app surfaces this flow at `(auth)/forgot-password` and
+  `(auth)/reset-password`; the client calls the two endpoints and holds no reset
+  logic of its own. It renders one confirmation for every address and one
+  "this link no longer works" state for every token failure, so neither screen
+  can be used to learn something the API declines to disclose
+- Completing a reset clears the device's stored tokens as well, since the server
+  has just revoked them
 
 ### Brute-Force Protection
 - Account lockout after 5 failed login attempts

@@ -8,6 +8,7 @@
  * listening, a portal not started, a seeded account that no longer exists, an
  * organisation with no bookable slot left.
  */
+import net from 'node:net';
 import { networkInterfaces } from 'node:os';
 import { assertLocalDatabase, fail } from './demo-guard.mjs';
 import { macFirewall } from './demo-firewall.mjs';
@@ -210,6 +211,31 @@ for (const [name, url] of PORTALS) {
   // A portal that is not started yet is a warning: the demo may only need one.
   record(name, ok, url, true);
 }
+
+/**
+ * A mail catcher is optional -- without one the API logs the message instead
+ * of sending it, which still works, just less legibly. So this is a warning
+ * with the remedy in it, not a failure.
+ */
+const mailPort = Number(process.env.DEV_MAIL_PORT ?? 1025);
+const mailUp = await new Promise((resolve) => {
+  const socket = net.connect({ host: '127.0.0.1', port: mailPort, timeout: 800 });
+  const done = (answer) => {
+    socket.destroy();
+    resolve(answer);
+  };
+  socket.on('connect', () => done(true));
+  socket.on('error', () => done(false));
+  socket.on('timeout', () => done(false));
+});
+record(
+  'Local mail catcher',
+  mailUp,
+  mailUp
+    ? `listening on 127.0.0.1:${mailPort} — password reset links will be readable`
+    : 'not running — reset emails go to the API log instead. Start one with `pnpm mail:dev`',
+  true,
+);
 
 const firewall = macFirewall();
 if (firewall) {

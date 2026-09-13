@@ -8,6 +8,8 @@ import {
   me,
   verifyEmail as verifyEmailApi,
   resendVerification as resendVerificationApi,
+  requestPasswordReset as requestPasswordResetApi,
+  resetPassword as resetPasswordApi,
   type AuthResponse,
 } from '../api/auth';
 import { getRefreshToken, clearAuthTokens } from '../auth/storage';
@@ -89,6 +91,65 @@ export function useResendVerification() {
   return useMutation({
     mutationFn: resendVerificationApi,
   });
+}
+
+export function useRequestPasswordReset() {
+  return useMutation({
+    mutationFn: requestPasswordResetApi,
+  });
+}
+
+/**
+ * Completing a reset revokes every refresh token for the account, including
+ * one this device may still be holding from before. Clearing local auth on
+ * success keeps the app honest about that rather than leaving a token that is
+ * already dead and only fails on the next request.
+ */
+export function useResetPassword() {
+  const clearAuth = useAuthStore((s) => s.clearAuth);
+
+  return useMutation({
+    mutationFn: ({ token, newPassword }: { token: string; newPassword: string }) =>
+      resetPasswordApi(token, newPassword),
+    onSuccess: async () => {
+      await clearAuthTokens();
+      clearAuth();
+    },
+  });
+}
+
+/**
+ * True when the server has refused the reset token itself.
+ *
+ * The API answers 400 for a token that is unknown, expired or already spent,
+ * with one message for all three, so that a caller cannot probe which tokens
+ * ever existed. The screen cannot tell them apart either, and must not pretend
+ * to: it shows one "this link no longer works" state and offers a new link.
+ */
+export function isRejectedResetToken(error: unknown): boolean {
+  return error instanceof ApiRequestError && error.error.statusCode === 400;
+}
+
+/**
+ * Error copy for the recovery screens.
+ *
+ * Separate from `getAuthErrorMessage` because two statuses mean something
+ * different here: a 429 is a deliberate anti-abuse limit on a long window
+ * rather than a mistyped password, and a 400 is the token, not the form.
+ */
+export function getRecoveryErrorMessage(error: unknown): string {
+  if (error instanceof ApiRequestError) {
+    if (error.error.statusCode === 0) {
+      // Already written for a human, and in development it names the address
+      // that failed.
+      return error.error.message;
+    }
+    if (error.error.statusCode === 429) {
+      return 'Too many requests. Password reset is limited to a few attempts every 15 minutes — please wait and try again.';
+    }
+    return error.error.message || 'Something went wrong. Please try again.';
+  }
+  return getErrorMessage(error);
 }
 
 export function useLogout() {

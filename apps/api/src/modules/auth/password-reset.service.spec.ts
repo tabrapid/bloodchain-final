@@ -127,6 +127,26 @@ describe('AuthService password reset', () => {
       expect(JSON.stringify(stored)).not.toContain(sentToken);
     });
 
+    /**
+     * The deep link is a contract with a file path in the mobile app:
+     * `donor://reset-password` resolves to app/(auth)/reset-password.tsx, and
+     * Expo Router strips the group folder from the URL. Renaming that screen
+     * would break every reset email already in someone's inbox, silently, so
+     * the path is pinned here as well as there.
+     */
+    it('points the deep link at the mobile reset screen', async () => {
+      prisma.user.findUnique.mockResolvedValue(activeUser);
+      prisma.passwordResetToken.findUnique.mockResolvedValue(null);
+
+      await service.requestPasswordReset('donor@donor.local');
+
+      const deepLink = email.sendPasswordResetEmail.mock.calls[0][3] as string;
+      expect(deepLink).toMatch(/^donor:\/\/reset-password\?token=[a-f0-9]{64}$/);
+
+      const webUrl = email.sendPasswordResetEmail.mock.calls[0][2] as string;
+      expect(new URL(webUrl).pathname).toBe('/reset-password');
+    });
+
     it('sets an expiry from the configured TTL', async () => {
       prisma.user.findUnique.mockResolvedValue(activeUser);
       prisma.passwordResetToken.findUnique.mockResolvedValue(null);

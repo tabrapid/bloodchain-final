@@ -118,8 +118,30 @@ export default function Login() {
           )}
         />
 
+        {/* Sits with the password field it belongs to, right-aligned, above
+            the CTA -- the one place a person looks after mistyping a password
+            for the second time. */}
+        <Pressable
+          onPress={() => router.push('/(auth)/forgot-password')}
+          accessibilityRole="button"
+          accessibilityLabel="Reset your password"
+          hitSlop={8}
+          style={({ pressed }) => ({
+            alignSelf: 'flex-end',
+            minHeight: 44,
+            justifyContent: 'center',
+            marginTop: -spacing.sm,
+            marginBottom: spacing.sm,
+            opacity: pressed ? 0.6 : 1,
+          })}
+        >
+          <AppText style={{ fontSize: 13, fontWeight: '500', color: colors.primary }}>
+            Forgot password?
+          </AppText>
+        </Pressable>
+
         {serverError && (
-          <AppText style={{ color: colors.danger, marginBottom: spacing.md }}>
+          <AppText accessibilityRole="alert" style={{ color: colors.danger, marginBottom: spacing.md }}>
             {serverError}
           </AppText>
         )}
