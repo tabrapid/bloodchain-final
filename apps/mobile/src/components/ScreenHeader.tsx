@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { ArrowLeft } from 'lucide-react-native';
 import { spacing, useTheme, ThemeColors } from '../theme';
 import { AppText } from './AppText';
+import { useTranslation } from '../i18n';
 
 export interface ScreenHeaderProps {
   title: string;
@@ -30,6 +31,7 @@ export interface ScreenHeaderProps {
  * full width of the screen.
  */
 export function ScreenHeader({ title, subtitle, onBack, trailing }: ScreenHeaderProps) {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
@@ -38,11 +40,11 @@ export function ScreenHeader({ title, subtitle, onBack, trailing }: ScreenHeader
       <Pressable
         onPress={onBack ?? (() => router.back())}
         accessibilityRole="button"
-        accessibilityLabel="Go back"
+        accessibilityLabel={t('common.a11yGoBack')}
         style={({ pressed }) => [styles.backLink, { opacity: pressed ? 0.6 : 1 }]}
       >
         <ArrowLeft size={16} color={colors.primary} strokeWidth={2.5} />
-        <AppText style={styles.backLabel}>Back</AppText>
+        <AppText style={styles.backLabel}>{t('common.back')}</AppText>
       </Pressable>
 
       <View style={styles.titleRow}>

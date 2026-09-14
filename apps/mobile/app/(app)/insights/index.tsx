@@ -42,16 +42,21 @@ import {
 } from '../../../src/api/ai-health';
 import { getAvailableParameters, type AvailableParameter } from '../../../src/api/health-trends';
 import type { BadgeProps } from '../../../src/components/Badge';
+import { useTranslation } from '../../../src/i18n';
 
-/** Each insight kind gets the reference's icon square, keyed to what it is. */
-const TYPE_META: Record<InsightType, { icon: LucideIcon; label: string }> = {
-  [InsightType.TREND_SUMMARY]: { icon: TrendingUp, label: 'Trend' },
-  [InsightType.RESULT_EXPLANATION]: { icon: Lightbulb, label: 'Results' },
-  [InsightType.DATA_CHANGE]: { icon: Activity, label: 'Change' },
-  [InsightType.REFERENCE_RANGE_CONTEXT]: { icon: Shield, label: 'Reference range' },
-  [InsightType.GENERAL_HEALTH_INFORMATION]: { icon: Brain, label: 'General health' },
-  [InsightType.QUESTION_SUGGESTION]: { icon: HelpCircle, label: 'Questions' },
-  [InsightType.DATA_QUALITY_WARNING]: { icon: AlertTriangle, label: 'Data quality' },
+/**
+ * Each insight kind gets the reference's icon square, keyed to what it is.
+ * Only the icon lives here: the wording is a catalogue key resolved at render,
+ * because a label built at module load has no locale to be built in.
+ */
+const TYPE_ICON: Record<InsightType, LucideIcon> = {
+  [InsightType.TREND_SUMMARY]: TrendingUp,
+  [InsightType.RESULT_EXPLANATION]: Lightbulb,
+  [InsightType.DATA_CHANGE]: Activity,
+  [InsightType.REFERENCE_RANGE_CONTEXT]: Shield,
+  [InsightType.GENERAL_HEALTH_INFORMATION]: Brain,
+  [InsightType.QUESTION_SUGGESTION]: HelpCircle,
+  [InsightType.DATA_QUALITY_WARNING]: AlertTriangle,
 };
 
 /**
@@ -61,22 +66,22 @@ const TYPE_META: Record<InsightType, { icon: LucideIcon; label: string }> = {
  * ends with the insight's real `safetyLevel` instead, which is the field that
  * actually tells a donor how far to trust what they just read.
  */
-function safetyBadge(level: SafetyLevel): { label: string; variant: BadgeProps['variant'] } {
+function safetyVariant(level: SafetyLevel): BadgeProps['variant'] {
   switch (level) {
     case SafetyLevel.SAFE_INFORMATIONAL:
-      return { label: 'Informational', variant: 'success' };
+      return 'success';
     case SafetyLevel.NEEDS_CONTEXT:
-      return { label: 'Context needed', variant: 'warning' };
     case SafetyLevel.PROFESSIONAL_REVIEW_SUGGESTED:
-      return { label: 'Review suggested', variant: 'warning' };
+      return 'warning';
     case SafetyLevel.EMERGENCY_REDIRECT:
-      return { label: 'Seek help', variant: 'danger' };
+      return 'danger';
     default:
-      return { label: 'Outside scope', variant: 'default' };
+      return 'default';
   }
 }
 
 export default function InsightsScreen() {
+  const { t } = useTranslation();
   const { colors, isDark } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
@@ -100,7 +105,7 @@ export default function InsightsScreen() {
       setAvailableParams(params);
       setHistory(historyResult.insights);
     } catch {
-      setError('Insights are temporarily unavailable.');
+      setError(t('insights.unavailable'));
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -129,7 +134,7 @@ export default function InsightsScreen() {
       // second round trip to fetch what we already hold.
       setHistory((previous) => [insight, ...previous.filter((i) => i.id !== insight.id)]);
     } catch {
-      setError('Insights are temporarily unavailable.');
+      setError(t('insights.unavailable'));
     } finally {
       setIsGenerating(false);
     }
@@ -140,7 +145,7 @@ export default function InsightsScreen() {
       await submitFeedback({ insightId, type });
       setFeedbackGiven(insightId);
     } catch {
-      setError('Could not send your feedback. Please try again.');
+      setError(t('insights.feedbackFailed'));
     }
   }, []);
 
@@ -155,7 +160,7 @@ export default function InsightsScreen() {
       if (response.message.insight) setLatestInsight(response.message.insight);
       setChatMessage('');
     } catch {
-      setError('Chat is temporarily unavailable.');
+      setError(t('insights.chatUnavailable'));
     } finally {
       setIsGenerating(false);
     }
@@ -166,8 +171,8 @@ export default function InsightsScreen() {
       {
         key: 'results',
         icon: Brain,
-        title: 'Analyze my results',
-        subtitle: 'Insights based on your latest laboratory data',
+        title: t('insights.analyzeResults'),
+        subtitle: t('insights.analyzeResultsHint'),
         disabled: availableParams.length === 0,
         onPress: () =>
           runGeneration(() =>
@@ -180,8 +185,8 @@ export default function InsightsScreen() {
       {
         key: 'trends',
         icon: TrendingUp,
-        title: 'Summarize trends',
-        subtitle: 'Patterns in your health data over time',
+        title: t('insights.summarizeTrends'),
+        subtitle: t('insights.summarizeTrendsHint'),
         disabled: availableParams.length === 0,
         onPress: () => {
           const code = availableParams[0]?.code;
@@ -192,14 +197,14 @@ export default function InsightsScreen() {
       {
         key: 'questions',
         icon: MessageSquare,
-        title: 'Questions to discuss',
-        subtitle: 'Suggested questions for your healthcare provider',
+        title: t('insights.questionsToDiscuss'),
+        subtitle: t('insights.questionsToDiscussHint'),
         disabled: false,
         onPress: () =>
           runGeneration(() => generateInsight({ type: InsightType.QUESTION_SUGGESTION })),
       },
     ],
-    [availableParams, runGeneration],
+    [availableParams, runGeneration, t],
   );
 
   return (
@@ -214,11 +219,11 @@ export default function InsightsScreen() {
         <Pressable
           onPress={() => router.back()}
           accessibilityRole="button"
-          accessibilityLabel="Go back"
+          accessibilityLabel={t('common.back')}
           style={({ pressed }) => [styles.backLink, { opacity: pressed ? 0.6 : 1 }]}
         >
           <ArrowLeft size={16} color={colors.ai} strokeWidth={2.5} />
-          <AppText style={styles.backLabel}>Back</AppText>
+          <AppText style={styles.backLabel}>{t('common.back')}</AppText>
         </Pressable>
 
         <View style={styles.headerRow}>
@@ -227,12 +232,10 @@ export default function InsightsScreen() {
           </View>
           <View style={styles.headerText}>
             <View style={styles.headerTitleLine}>
-              <AppText style={styles.headerTitle}>AI Insights</AppText>
-              <Badge variant="ai">Powered by AI</Badge>
+              <AppText style={styles.headerTitle}>{t('insights.title')}</AppText>
+              <Badge variant="ai">{t('insights.poweredByAi')}</Badge>
             </View>
-            <AppText style={styles.headerSubtitle}>
-              Personalized health recommendations
-            </AppText>
+            <AppText style={styles.headerSubtitle}>{t('insights.subtitle')}</AppText>
           </View>
         </View>
       </LinearGradient>
@@ -247,10 +250,7 @@ export default function InsightsScreen() {
         <GlassCard style={styles.disclaimer}>
           <View style={styles.disclaimerRow}>
             <Shield size={16} color={colors.onMuted.secondary} />
-            <AppText style={styles.disclaimerText}>
-              AI-generated informational content, drawn from your own recorded health data. It is
-              not a medical diagnosis — always consult your doctor.
-            </AppText>
+            <AppText style={styles.disclaimerText}>{t('medical.aiSafety.disclaimer')}</AppText>
           </View>
         </GlassCard>
 
@@ -263,7 +263,7 @@ export default function InsightsScreen() {
           </GlassCard>
         )}
 
-        <SectionHeader>Generate an insight</SectionHeader>
+        <SectionHeader>{t('insights.generate')}</SectionHeader>
         {actions.map((action) => (
           <ActionRow
             key={action.key}
@@ -279,15 +279,15 @@ export default function InsightsScreen() {
 
         {latestInsight && (
           <>
-            <SectionHeader>Latest insight</SectionHeader>
+            <SectionHeader>{t('insights.latest')}</SectionHeader>
             <InsightCard insight={latestInsight} expanded>
               {feedbackGiven === latestInsight.id ? (
                 <View style={styles.feedbackBlock}>
-                  <AppText style={styles.feedbackThanks}>Thank you for your feedback</AppText>
+                  <AppText style={styles.feedbackThanks}>{t('insights.feedbackThanks')}</AppText>
                 </View>
               ) : (
                 <View style={styles.feedbackBlock}>
-                  <AppText style={styles.feedbackPrompt}>Was this insight helpful?</AppText>
+                  <AppText style={styles.feedbackPrompt}>{t('insights.helpfulPrompt')}</AppText>
                   <View style={styles.feedbackRow}>
                     <Pressable
                       onPress={() => handleFeedback(latestInsight.id, FeedbackType.HELPFUL)}
@@ -296,7 +296,7 @@ export default function InsightsScreen() {
                     >
                       <ThumbsUp size={16} color={colors.onMuted.success} />
                       <AppText style={[styles.feedbackLabel, { color: colors.onMuted.success }]}>
-                        Helpful
+                        {t('insights.helpful')}
                       </AppText>
                     </Pressable>
                     <Pressable
@@ -306,7 +306,7 @@ export default function InsightsScreen() {
                     >
                       <ThumbsDown size={16} color={colors.textMuted} />
                       <AppText style={[styles.feedbackLabel, { color: colors.textMuted }]}>
-                        Not helpful
+                        {t('insights.notHelpful')}
                       </AppText>
                     </Pressable>
                   </View>
@@ -316,7 +316,7 @@ export default function InsightsScreen() {
           </>
         )}
 
-        <SectionHeader>Your insights</SectionHeader>
+        <SectionHeader>{t('insights.yours')}</SectionHeader>
         {isLoading ? (
           <>
             <SkeletonCard />
@@ -324,11 +324,11 @@ export default function InsightsScreen() {
           </>
         ) : history.length === 0 ? (
           <GlassCard>
-            <AppText style={styles.emptyTitle}>No insights yet</AppText>
+            <AppText style={styles.emptyTitle}>{t('insights.empty')}</AppText>
             <AppText style={styles.emptyBody}>
               {availableParams.length === 0
-                ? 'Complete a blood test and your insights will be generated from it.'
-                : 'Generate your first insight above and it will be kept here.'}
+                ? t('insights.emptyNoData')
+                : t('insights.emptyHasData')}
             </AppText>
           </GlassCard>
         ) : (
@@ -346,10 +346,10 @@ export default function InsightsScreen() {
             ))
         )}
 
-        <SectionHeader>Ask about my results</SectionHeader>
+        <SectionHeader>{t('insights.askAbout')}</SectionHeader>
         <GlassCard>
           <AppTextInput
-            placeholder="Ask a question about your health data…"
+            placeholder={t('insights.askPlaceholder')}
             value={chatMessage}
             onChangeText={setChatMessage}
             multiline
@@ -359,12 +359,12 @@ export default function InsightsScreen() {
             disabled={isGenerating || !chatMessage.trim()}
             style={styles.sendButton}
           >
-            {isGenerating ? 'Sending…' : 'Send'}
+            {isGenerating ? t('common.sending') : t('insights.send')}
           </AppButton>
 
           {chatResponse && (
             <View style={styles.chatResponse}>
-              <AppText style={styles.chatLabel}>RESPONSE</AppText>
+              <AppText style={styles.chatLabel}>{t('insights.response')}</AppText>
               <AppText style={styles.chatText}>{chatResponse.message.content}</AppText>
             </View>
           )}
@@ -423,11 +423,11 @@ function InsightCard({
   expanded?: boolean;
   children?: React.ReactNode;
 }) {
+  const { t, formatDate } = useTranslation();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const meta = TYPE_META[insight.type] ?? TYPE_META[InsightType.GENERAL_HEALTH_INFORMATION];
-  const Icon = meta.icon;
-  const safety = safetyBadge(insight.safetyLevel);
+  const type = TYPE_ICON[insight.type] ? insight.type : InsightType.GENERAL_HEALTH_INFORMATION;
+  const Icon = TYPE_ICON[type];
 
   return (
     <GlassCard style={styles.insightCard}>
@@ -438,8 +438,10 @@ function InsightCard({
         <View style={styles.insightHeadBody}>
           <AppText style={styles.insightTitle}>{insight.title}</AppText>
           <View style={styles.insightBadges}>
-            <Badge variant="ai">{meta.label}</Badge>
-            <Badge variant={safety.variant}>{safety.label}</Badge>
+            <Badge variant="ai">{t(`medical.aiInsightTypes.${type}`)}</Badge>
+            <Badge variant={safetyVariant(insight.safetyLevel)}>
+              {t(`medical.aiSafety.${insight.safetyLevel}`)}
+            </Badge>
           </View>
         </View>
       </View>
@@ -459,7 +461,7 @@ function InsightCard({
 
       {expanded && insight.dataPoints && insight.dataPoints.length > 0 && (
         <View style={styles.dataBlock}>
-          <AppText style={styles.dataLabel}>REFERENCED DATA</AppText>
+          <AppText style={styles.dataLabel}>{t('insights.referencedData')}</AppText>
           {insight.dataPoints.map((point) => (
             <View key={`${point.label}-${point.value}`} style={styles.dataRow}>
               <AppText style={styles.dataRowLabel}>{point.label}</AppText>
@@ -476,7 +478,7 @@ function InsightCard({
         insight.questionsForProfessional &&
         insight.questionsForProfessional.length > 0 && (
           <View style={styles.section}>
-            <AppText style={styles.sectionTitle}>Questions for your healthcare provider</AppText>
+            <AppText style={styles.sectionTitle}>{t('medical.advice.askYourProvider')}</AppText>
             {insight.questionsForProfessional.map((question) => (
               <View key={question} style={styles.bulletRow}>
                 <View style={styles.bulletDot} />
@@ -497,11 +499,7 @@ function InsightCard({
       )}
 
       <AppText style={styles.insightDate}>
-        {new Date(insight.generatedAt).toLocaleDateString('en-US', {
-          month: 'short',
-          day: 'numeric',
-          year: 'numeric',
-        })}
+        {formatDate(insight.generatedAt, 'medium')}
       </AppText>
 
       {children}

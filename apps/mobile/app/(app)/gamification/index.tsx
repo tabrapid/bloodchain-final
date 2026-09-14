@@ -23,8 +23,10 @@ import { XpProgressBar } from '../../../src/components/gamification/XpProgressBa
 import { BadgeDisplay } from '../../../src/components/gamification/BadgeDisplay';
 import { layout, spacing, radius, useTheme, ThemeColors } from '../../../src/theme';
 import type { Achievement, Badge } from '../../../src/api/gamification';
+import { useTranslation } from '../../../src/i18n';
 
 export default function GamificationScreen() {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = React.useMemo(() => createStyles(colors), [colors]);
   const router = useRouter();
@@ -62,7 +64,7 @@ export default function GamificationScreen() {
 
   return (
     <Screen scroll={false}>
-      <ScreenHeader title="Achievements" subtitle="Your progress & rewards" />
+      <ScreenHeader title={t('gamification.achievements')} subtitle={t('gamification.subtitle')} />
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
@@ -81,22 +83,24 @@ export default function GamificationScreen() {
             <GradientCard colors={['#E5B86D', '#D4A043']} style={styles.hero}>
               <View style={styles.heroTop}>
                 <View style={styles.heroLevel}>
-                  <AppText style={styles.levelEyebrow}>LEVEL</AppText>
+                  <AppText style={styles.levelEyebrow}>{t('gamification.level')}</AppText>
                   <AppText style={styles.levelNumber}>{profile?.level ?? 1}</AppText>
                   <AppText style={styles.levelName}>
-                    {levelProgress?.currentLevelName ?? 'New Donor'}
+                    {levelProgress?.currentLevelName ?? t('gamification.newDonor')}
                   </AppText>
                 </View>
                 <View style={styles.heroXp}>
                   <Zap size={32} color="rgba(255,255,255,0.8)" />
                   <AppText style={styles.xpValue}>{profile?.totalXp ?? 0}</AppText>
-                  <AppText style={styles.xpLabel}>XP points</AppText>
+                  <AppText style={styles.xpLabel}>{t('gamification.xpPoints')}</AppText>
                 </View>
               </View>
 
               <View style={styles.progressLabelRow}>
                 <AppText style={styles.progressLabel}>
-                  Progress to {levelProgress?.nextLevelName ?? 'next level'}
+                  {t('gamification.progressToLevel', {
+                    level: levelProgress?.nextLevelName ?? t('gamification.nextLevel'),
+                  })}
                 </AppText>
                 <AppText style={styles.progressValue}>
                   {profile?.totalXp ?? 0} / {(profile?.totalXp ?? 0) + (profile?.xpToNextLevel ?? 0)}
@@ -115,22 +119,22 @@ export default function GamificationScreen() {
               <StatTile
                 icon={<Trophy size={20} color={colors.onMuted.warning} />}
                 value={String(earnedBadges)}
-                label="Badges earned"
+                label={t('gamification.badgesEarned')}
               />
               <StatTile
                 icon={<Star size={20} color={colors.onMuted.ai} />}
                 value={profile?.rank ? `#${profile.rank}` : '—'}
-                label="Rank overall"
+                label={t('gamification.rankOverall')}
               />
               <StatTile
                 icon={<Award size={20} color={colors.onMuted.success} />}
                 value={String(inProgress.length)}
-                label="In progress"
+                label={t('gamification.inProgress')}
               />
             </View>
 
-            <SectionHeader action={{ label: 'View all', onPress: () => router.push('/gamification/badges') }}>
-              Badges
+            <SectionHeader action={{ label: t('actions.viewAll'), onPress: () => router.push('/gamification/badges') }}>
+              {t('gamification.badges')}
             </SectionHeader>
             {badgeGrid.length > 0 ? (
               <View style={styles.badgeGrid}>
@@ -145,12 +149,12 @@ export default function GamificationScreen() {
             ) : (
               <GlassCard style={styles.emptyCard}>
                 <AppText style={styles.emptyText}>
-                  No badges yet — your first donation earns one.
+                  {t('gamification.noBadges')}
                 </AppText>
               </GlassCard>
             )}
 
-            <SectionHeader>Active challenges</SectionHeader>
+            <SectionHeader>{t('gamification.activeChallenges')}</SectionHeader>
             {inProgress.length > 0 ? (
               inProgress
                 .slice(0, 4)
@@ -160,15 +164,15 @@ export default function GamificationScreen() {
             ) : (
               <GlassCard style={styles.emptyCard}>
                 <AppText style={styles.emptyText}>
-                  Nothing in progress right now. Book a donation to start one.
+                  {t('gamification.nothingInProgress')}
                 </AppText>
               </GlassCard>
             )}
 
             <SectionHeader
-              action={{ label: 'View all', onPress: () => router.push('/gamification/achievements') }}
+              action={{ label: t('actions.viewAll'), onPress: () => router.push('/gamification/achievements') }}
             >
-              Unlocked
+              {t('gamification.unlocked')}
             </SectionHeader>
             {unlocked.length > 0 ? (
               unlocked.slice(0, 3).map((achievement) => (
@@ -177,7 +181,7 @@ export default function GamificationScreen() {
             ) : (
               <GlassCard style={styles.emptyCard}>
                 <AppText style={styles.emptyText}>
-                  Complete a donation to unlock your first achievement.
+                  {t('gamification.noAchievements')}
                 </AppText>
               </GlassCard>
             )}
@@ -193,11 +197,11 @@ export default function GamificationScreen() {
                     <Trophy size={20} color={colors.onMuted.ai} />
                   </View>
                   <View style={styles.leaderboardBody}>
-                    <AppText style={styles.leaderboardTitle}>Leaderboard</AppText>
+                    <AppText style={styles.leaderboardTitle}>{t('gamification.leaderboard')}</AppText>
                     <AppText style={styles.leaderboardMeta}>
                       {profile?.rank
-                        ? `You are ranked #${profile.rank} among all donors`
-                        : 'See where you stand among all donors'}
+                        ? t('gamification.yourRankAmong', { rank: profile.rank })
+                        : t('gamification.seeWhereYouStand')}
                     </AppText>
                   </View>
                 </View>

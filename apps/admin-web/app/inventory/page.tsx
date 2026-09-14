@@ -7,8 +7,10 @@ import { me, isAuthenticated } from '@lib/auth';
 import {  } from '@lib/status';
 import { Droplet, AlertTriangle } from 'lucide-react';
 import { AppShell } from '../../components/AppShell';
+import { useTranslation } from '@bloodchain/ui/i18n';
 
 export default function InventoryPage() {
+  const { t } = useTranslation();
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [inventory, setInventory] = useState<any>(null);
@@ -46,7 +48,7 @@ export default function InventoryPage() {
 
   if (isLoading) {
     return (
-      <AppShell title="Blood Inventory" userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
+      <AppShell title={t('ops.inventory.title')} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
         <LoadingState />
       </AppShell>
     );
@@ -56,15 +58,15 @@ export default function InventoryPage() {
   const rhFactors = ['POSITIVE', 'NEGATIVE'];
 
   return (
-    <AppShell title="Blood Inventory" userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
+    <AppShell title={t('ops.inventory.title')} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
       <div className="p-6">
         <div className="mb-6">
-          <h1 className="text-2xl font-semibold text-donor-text">Blood Inventory Overview</h1>
-          <p className="text-sm text-donor-muted mt-1">Platform-wide blood inventory summary</p>
+          <h1 className="text-2xl font-semibold text-donor-text">{t('ops.inventory.overview')}</h1>
+          <p className="text-sm text-donor-muted mt-1">{t('ops.inventory.platformSummary')}</p>
         </div>
 
         <div className="bc-glass rounded-card p-6 mb-6">
-          <h3 className="font-medium text-donor-text mb-4">Inventory by Blood Type</h3>
+          <h3 className="font-medium text-donor-text mb-4">{t('ops.inventory.byBloodType')}</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {bloodTypes.map((bt) =>
               rhFactors.map((rh) => {
@@ -78,15 +80,15 @@ export default function InventoryPage() {
                     </div>
                     <div className="space-y-1 text-sm">
                       <div className="flex justify-between">
-                        <span className="text-donor-muted">Total</span>
+                        <span className="text-donor-muted">{t('table.total')}</span>
                         <span className="font-medium">{data.total}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-donor-muted">Available</span>
+                        <span className="text-donor-muted">{t('status.unit.AVAILABLE')}</span>
                         <span className="font-medium text-donor-success">{data.available}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-donor-muted">Reserved</span>
+                        <span className="text-donor-muted">{t('status.unit.RESERVED')}</span>
                         <span className="font-medium text-donor-warning">{data.reserved}</span>
                       </div>
                     </div>
@@ -99,12 +101,12 @@ export default function InventoryPage() {
 
         <div className="bc-glass rounded-card">
           <div className="px-4 py-3 border-b border-donor-border/40 flex items-center justify-between">
-            <h3 className="font-medium text-donor-text">Low Stock Alerts</h3>
+            <h3 className="font-medium text-donor-text">{t('ops.inventory.lowStockAlerts')}</h3>
             <span className="text-sm text-donor-danger font-medium">{alerts.length} active</span>
           </div>
           <div className="divide-y divide-donor-border/40">
             {alerts.length === 0 ? (
-              <div className="p-4 text-sm text-donor-muted text-center">No low stock alerts</div>
+              <div className="p-4 text-sm text-donor-muted text-center">{t('ops.inventory.noLowStock')}</div>
             ) : (
               alerts.map((alert) => (
                 <div key={alert.id} className="p-4 flex items-center justify-between">

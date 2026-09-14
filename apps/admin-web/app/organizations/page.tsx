@@ -7,8 +7,10 @@ import { me, isAuthenticated } from '@lib/auth';
 import { StatusBadgeWrapper } from '@lib/status';
 import { Building2, Search, X } from 'lucide-react';
 import { AppShell } from '../../components/AppShell';
+import { useTranslation } from '@bloodchain/ui/i18n';
 
 export default function OrganizationsPage() {
+  const { t } = useTranslation();
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
@@ -116,17 +118,17 @@ export default function OrganizationsPage() {
 
   if (isLoading) {
     return (
-      <AppShell title="Organization Management" userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
+      <AppShell title={t('ops.organizations.title')} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
         <LoadingState />
       </AppShell>
     );
   }
 
   return (
-    <AppShell title="Organization Management" userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
+    <AppShell title={t('ops.organizations.title')} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
       <div className="p-6">
         <div className="mb-6">
-          <p className="text-sm text-donor-muted">Manage hospitals, blood centers, and other organizations</p>
+          <p className="text-sm text-donor-muted">{t('ops.organizations.subtitle')}</p>
         </div>
 
         {error && (
@@ -145,7 +147,7 @@ export default function OrganizationsPage() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-donor-muted" />
                 <input
                   type="text"
-                  placeholder="Search by name, email, or address..."
+                  placeholder={t('ops.organizations.searchByNameEmailAddress')}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="w-full pl-10 pr-4 py-2 bc-solid rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-donor-primary"
@@ -156,26 +158,26 @@ export default function OrganizationsPage() {
                 onChange={(e) => setTypeFilter(e.target.value)}
                 className="bc-solid rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-donor-primary"
               >
-                <option value="">All Types</option>
-                <option value="HOSPITAL">Hospital</option>
-                <option value="BLOOD_CENTER">Blood Center</option>
+                <option value="">{t('filters.allTypes')}</option>
+                <option value="HOSPITAL">{t('table.hospital')}</option>
+                <option value="BLOOD_CENTER">{t('table.bloodCenter')}</option>
               </select>
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
                 className="bc-solid rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-donor-primary"
               >
-                <option value="">All Status</option>
-                <option value="ACTIVE">Active</option>
-                <option value="PENDING_APPROVAL">Pending</option>
-                <option value="SUSPENDED">Suspended</option>
-                <option value="DEACTIVATED">Deactivated</option>
+                <option value="">{t('ops.common.allStatus')}</option>
+                <option value="ACTIVE">{t('status.organization.ACTIVE')}</option>
+                <option value="PENDING_APPROVAL">{t('status.organization.PENDING_APPROVAL')}</option>
+                <option value="SUSPENDED">{t('status.organization.SUSPENDED')}</option>
+                <option value="DEACTIVATED">{t('status.organization.DEACTIVATED')}</option>
               </select>
               <button
                 type="submit"
                 className="bg-donor-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-donor-primary/85"
               >
-                Search
+                {t('actions.search')}
               </button>
             </form>
           </div>
@@ -184,19 +186,19 @@ export default function OrganizationsPage() {
             <table className="w-full">
               <thead>
                 <tr className="bg-donor-elevated border-b border-donor-border/40">
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Organization</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Type</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Status</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Staff</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Created</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Actions</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.organization')}</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.type')}</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.status')}</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('ops.organizations.staff')}</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.created')}</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.actions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-donor-border/40">
                 {organizations.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-4 py-8 text-center text-sm text-donor-muted">
-                      No organizations found
+                      {t('ops.organizations.empty')}
                     </td>
                   </tr>
                 ) : (
@@ -235,7 +237,7 @@ export default function OrganizationsPage() {
                           }}
                           className="text-donor-primary hover:text-donor-primary/70 text-sm font-medium"
                         >
-                          View
+                          {t('actions.view')}
                         </button>
                       </td>
                     </tr>
@@ -256,14 +258,14 @@ export default function OrganizationsPage() {
                   disabled={meta.page === 1}
                   className="px-3 py-1 bc-solid rounded text-sm disabled:opacity-50"
                 >
-                  Previous
+                  {t('actions.previous')}
                 </button>
                 <button
                   onClick={() => loadOrgs(meta.page + 1)}
                   disabled={meta.page === meta.totalPages}
                   className="px-3 py-1 bc-solid rounded text-sm disabled:opacity-50"
                 >
-                  Next
+                  {t('actions.next')}
                 </button>
               </div>
             </div>
@@ -275,7 +277,7 @@ export default function OrganizationsPage() {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bc-glass-elevated bc-rise rounded-panel w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
             <div className="px-6 py-4 border-b border-donor-border/40 flex items-center justify-between sticky top-0 bc-solid">
-              <h3 className="text-lg font-semibold text-donor-text">Organization Details</h3>
+              <h3 className="text-lg font-semibold text-donor-text">{t('ops.organizations.details')}</h3>
               <button onClick={() => setSelectedOrg(null)}>
                 <X className="w-5 h-5 text-donor-muted" />
               </button>
@@ -293,46 +295,46 @@ export default function OrganizationsPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-donor-muted">Status</p>
+                  <p className="text-sm text-donor-muted">{t('table.status')}</p>
                   <StatusBadgeWrapper status={selectedOrg.status} />
                 </div>
                 <div>
-                  <p className="text-sm text-donor-muted">Staff Count</p>
+                  <p className="text-sm text-donor-muted">{t('ops.organizations.staffCount')}</p>
                   <p className="text-sm font-medium text-donor-text">{selectedOrg.staffCount || selectedOrg.staff?.length || 0}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-donor-muted">Email</p>
+                  <p className="text-sm text-donor-muted">{t('table.email')}</p>
                   <p className="text-sm font-medium text-donor-text">{selectedOrg.email || '-'}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-donor-muted">Phone</p>
+                  <p className="text-sm text-donor-muted">{t('table.phone')}</p>
                   <p className="text-sm font-medium text-donor-text">{selectedOrg.phone || '-'}</p>
                 </div>
               </div>
 
               <div>
-                <p className="text-sm text-donor-muted mb-1">Address</p>
+                <p className="text-sm text-donor-muted mb-1">{t('table.address')}</p>
                 <p className="text-sm font-medium text-donor-text">{selectedOrg.address || '-'}</p>
               </div>
 
               {selectedOrg.stats && (
                 <div className="border-t border-donor-border/40 pt-4">
-                  <p className="text-sm font-medium text-donor-text mb-2">Statistics</p>
+                  <p className="text-sm font-medium text-donor-text mb-2">{t('ops.organizations.statistics')}</p>
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     <div className="bg-donor-elevated p-2 rounded-card">
-                      <p className="text-donor-muted">Blood Requests</p>
+                      <p className="text-donor-muted">{t('ops.requests.title')}</p>
                       <p className="font-medium">{selectedOrg.stats.bloodRequestsReceived || 0}</p>
                     </div>
                     <div className="bg-donor-elevated p-2 rounded-card">
-                      <p className="text-donor-muted">Shipments</p>
+                      <p className="text-donor-muted">{t('ops.shipments.title')}</p>
                       <p className="font-medium">{selectedOrg.stats.shipmentsCreated || 0}</p>
                     </div>
                     <div className="bg-donor-elevated p-2 rounded-card">
-                      <p className="text-donor-muted">Couriers</p>
+                      <p className="text-donor-muted">{t('portal.nav.couriers')}</p>
                       <p className="font-medium">{selectedOrg.stats.couriers || 0}</p>
                     </div>
                     <div className="bg-donor-elevated p-2 rounded-card">
-                      <p className="text-donor-muted">Fulfilled</p>
+                      <p className="text-donor-muted">{t('ops.requests.fulfilled')}</p>
                       <p className="font-medium">{selectedOrg.stats.bloodRequestsFulfilled || 0}</p>
                     </div>
                   </div>
@@ -354,7 +356,7 @@ export default function OrganizationsPage() {
                     disabled={actionLoading}
                     className="flex-1 bg-donor-muted text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-donor-muted/85 disabled:opacity-50"
                   >
-                    Reject
+                    {t('actions.reject')}
                   </button>
                 </>
               )}

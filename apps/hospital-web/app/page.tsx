@@ -278,13 +278,13 @@ export default function HospitalDashboard() {
       <div className="mb-8 flex items-center justify-between bc-glass rounded-card p-6">
         <div>
           <p className="text-xs font-bold uppercase tracking-widest text-donor-muted">
-            LIVE OVERVIEW
+            {t('ops.dashboard.liveOverview')}
           </p>
           <h2 className="mt-2 font-display text-4xl font-semibold tracking-tight text-donor-text">
-            Care operations, <span className="text-donor-primary">in focus.</span>
+            {t('ops.dashboard.hospitalHeadline')} <span className="text-donor-primary">{t('ops.dashboard.inFocus')}</span>
           </h2>
           <p className="mt-2 text-sm text-donor-muted">
-            A clear view of your donor network and today&apos;s priorities.
+            {t('ops.dashboard.hospitalTagline')}
           </p>
         </div>
         <div
@@ -300,13 +300,13 @@ export default function HospitalDashboard() {
               <p className="text-sm font-semibold text-donor-text">
                 {alerts.critical} critical alert{alerts.critical === 1 ? '' : 's'}
               </p>
-              <p className="text-xs text-donor-muted">Needs attention</p>
+              <p className="text-xs text-donor-muted">{t('ops.dashboard.needsAttention')}</p>
             </>
           ) : (
             <>
               <Activity className="mb-2 text-donor-success" size={24} />
-              <p className="text-sm font-semibold text-donor-text">No critical alerts</p>
-              <p className="text-xs text-donor-muted">Everything is under control</p>
+              <p className="text-sm font-semibold text-donor-text">{t('ops.dashboard.noCriticalAlerts')}</p>
+              <p className="text-xs text-donor-muted">{t('ops.dashboard.underControl')}</p>
             </>
           )}
         </div>
@@ -314,21 +314,21 @@ export default function HospitalDashboard() {
 
       <div className="mb-6 grid gap-4 md:grid-cols-3">
         <StatCard
-          label="Pending requests"
+          label={t('ops.dashboard.pendingRequests')}
           value={isLoadingStats || !overview ? '—' : overview.requests.pending.value.toString()}
           note={isLoadingStats || !overview ? 'Loading...' : 'Awaiting review'}
           icon={Package}
           variant={overview && overview.requests.pending.value > 0 ? 'warning' : 'success'}
         />
         <StatCard
-          label="Today's appointments"
+          label={t('ops.dashboard.todaysAppointments')}
           value={isLoadingStats || !overview ? '—' : overview.appointments.total.value.toString()}
           note={isLoadingStats || !overview ? 'Loading...' : 'Scheduled today'}
           icon={Calendar}
           variant="info"
         />
         <StatCard
-          label="Available inventory"
+          label={t('ops.dashboard.availableInventory')}
           value={isLoadingStats || !overview ? '—' : overview.inventory.availableUnits.toString()}
           note={
             isLoadingStats || !overview
@@ -351,19 +351,19 @@ export default function HospitalDashboard() {
             <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
               <div>
                 <p className="text-2xl font-semibold text-donor-text">{overview.inventory.totalUnits}</p>
-                <p className="text-xs text-donor-muted">Total units</p>
+                <p className="text-xs text-donor-muted">{t('ops.dashboard.totalUnits')}</p>
               </div>
               <div>
                 <p className="text-2xl font-semibold text-donor-text">{overview.inventory.availableUnits}</p>
-                <p className="text-xs text-donor-muted">Available</p>
+                <p className="text-xs text-donor-muted">{t('status.unit.AVAILABLE')}</p>
               </div>
               <div>
                 <p className="text-2xl font-semibold text-donor-text">{overview.inventory.reservedUnits}</p>
-                <p className="text-xs text-donor-muted">Reserved</p>
+                <p className="text-xs text-donor-muted">{t('status.unit.RESERVED')}</p>
               </div>
               <div>
                 <p className="text-2xl font-semibold text-donor-text">{overview.inventory.quarantinedUnits}</p>
-                <p className="text-xs text-donor-muted">Quarantined</p>
+                <p className="text-xs text-donor-muted">{t('status.unit.QUARANTINED')}</p>
               </div>
             </div>
           )}
@@ -378,13 +378,13 @@ export default function HospitalDashboard() {
           <p className="text-xs font-bold uppercase tracking-widest text-donor-muted">ALERTS</p>
           <div className="mt-4 space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-donor-text">Critical</span>
+              <span className="text-sm text-donor-text">{t('medical.resultFlagsByCode.CRITICAL')}</span>
               <span className="text-sm font-semibold text-donor-onDangerMuted">
                 {alerts?.critical ?? '—'}
               </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-donor-text">High</span>
+              <span className="text-sm text-donor-text">{t('ops.common.high')}</span>
               <span className="text-sm font-semibold text-donor-onWarningMuted">
                 {alerts?.high ?? '—'}
               </span>
@@ -396,8 +396,8 @@ export default function HospitalDashboard() {
       <div className="mt-6">
         <Link href="/emergency" className="block">
           <EmptyState
-            title="View emergency requests"
-            description="Track active SOS blood requests and donor matches on the Emergency page."
+            title={t('ops.dashboard.viewEmergencyRequests')}
+            description={t('ops.dashboard.viewEmergencyHint')}
           />
         </Link>
       </div>

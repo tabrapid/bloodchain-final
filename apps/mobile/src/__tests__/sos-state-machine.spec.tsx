@@ -60,6 +60,14 @@ import {
 } from '../api/emergency';
 
 import SosScreen from '../../app/sos';
+import { LocaleProvider } from '../i18n';
+import { createLocalization } from '@bloodchain/i18n';
+
+/**
+ * The screens' own words, looked up the way the screens look them up, so a
+ * catalogue rewording moves the assertion with it instead of breaking it.
+ */
+const { t } = createLocalization('en');
 
 const emergency = {
   id: 'emergency-1',
@@ -113,6 +121,7 @@ afterEach(() => {
 async function render() {
   const element = (
     <ThemeProvider>
+      <LocaleProvider>
       <SafeAreaProvider
         initialMetrics={{
           frame: { x: 0, y: 0, width: 390, height: 844 },
@@ -121,6 +130,7 @@ async function render() {
       >
         <SosScreen />
       </SafeAreaProvider>
+      </LocaleProvider>
     </ThemeProvider>
   );
 
@@ -225,42 +235,42 @@ describe('Emergency SOS: the donor-side state machine', () => {
     expect(viewEmergencyMatch).toHaveBeenCalledWith(emergency.matchId);
     expectNoCompletionControl(tree);
 
-    await press(tree, 'Yes, I Can Help');
+    await press(tree, t('sos.yesICanHelp'));
     expect(acceptEmergency).toHaveBeenCalledWith(emergency.matchId);
     expectNoCompletionControl(tree);
 
-    await press(tree, 'Start Journey');
+    await press(tree, t('sos.startJourney'));
     expect(startJourney).toHaveBeenCalledWith('response-1');
     expectNoCompletionControl(tree);
 
-    await press(tree, 'I Have Arrived');
+    await press(tree, t('sos.iHaveArrived'));
     expect(arriveAtHospital).toHaveBeenCalledWith('response-1');
 
     // Arrival is the end of the donor's authority. What follows -- the
     // donation being started and completed -- is staff-verified, so the screen
     // must offer no way to claim it.
-    expect(renderedText(tree)).toContain('Please check in at the reception');
+    expect(renderedText(tree)).toContain(t('sos.checkInAtReception'));
     expectNoCompletionControl(tree);
   });
 
   it('offers cancellation at every stage before the hospital takes over', async () => {
     const tree = await render();
     await press(tree, emergency.emergencyReference);
-    await press(tree, 'Yes, I Can Help');
+    await press(tree, t('sos.yesICanHelp'));
 
-    expect(renderedText(tree)).toContain('Cancel My Response');
+    expect(renderedText(tree)).toContain(t('sos.cancelMyResponse'));
 
-    await press(tree, 'Start Journey');
-    expect(renderedText(tree)).toContain('Cancel My Response');
+    await press(tree, t('sos.startJourney'));
+    expect(renderedText(tree)).toContain(t('sos.cancelMyResponse'));
 
-    await press(tree, 'I Have Arrived');
-    expect(renderedText(tree)).toContain('Cancel My Response');
+    await press(tree, t('sos.iHaveArrived'));
+    expect(renderedText(tree)).toContain(t('sos.cancelMyResponse'));
   });
 
   it('declining returns to the list without accepting', async () => {
     const tree = await render();
     await press(tree, emergency.emergencyReference);
-    await press(tree, 'Decline Request');
+    await press(tree, t('sos.declineRequest'));
 
     expect(declineEmergency).toHaveBeenCalledWith(emergency.matchId);
     expect(acceptEmergency).not.toHaveBeenCalled();
@@ -271,7 +281,7 @@ describe('Emergency SOS: the donor-side state machine', () => {
     const tree = await render();
 
     const text = renderedText(tree);
-    expect(text).toContain('Error Loading Emergencies');
+    expect(text).toContain(t('sos.loadFailedTitle'));
     expect(text).toContain('Network unreachable');
   });
 });

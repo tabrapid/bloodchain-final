@@ -13,6 +13,7 @@ import {
 import { useDonorProfile, useUpdateDonorProfile } from '../../../src/hooks/useDonors';
 import { spacing, radius, useTheme, ThemeColors } from '../../../src/theme';
 import { ApiRequestError } from '../../../src/api/client';
+import { useTranslation } from '../../../src/i18n';
 
 /**
  * The reference offers the eight blood types as one grid of chips, which is
@@ -32,6 +33,7 @@ const BLOOD_TYPE_CHIPS = [
 ] as const;
 
 export default function EditDonorProfile() {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { data: donor } = useDonorProfile();
@@ -71,7 +73,7 @@ export default function EditDonorProfile() {
       setSaveError(
         error instanceof ApiRequestError
           ? error.error.message
-          : 'Something went wrong saving your changes. Please try again.',
+          : t('profileEdit.saveFailed'),
       );
     }
   };
@@ -88,10 +90,10 @@ export default function EditDonorProfile() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.flex}
       >
-        <ScreenHeader title="Donor Profile" subtitle="Update your donor information" />
+        <ScreenHeader title={t('profileEdit.donorTitle')} subtitle={t('profileEdit.donorSubtitle')} />
 
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          <SectionHeader>Blood type</SectionHeader>
+          <SectionHeader>{t('medical.bloodGroup')}</SectionHeader>
           <View style={styles.chipGrid}>
             {BLOOD_TYPE_CHIPS.map((chip) => {
               const selected =
@@ -124,22 +126,21 @@ export default function EditDonorProfile() {
             })}
           </View>
           <AppText style={styles.note}>
-            Your blood type stays marked unverified until an authorized healthcare provider
-            confirms it.
+            {t('medical.verification.unverifiedNote')}
           </AppText>
 
-          <SectionHeader>Location</SectionHeader>
+          <SectionHeader>{t('table.location')}</SectionHeader>
           <GlassCard>
             <View style={styles.fields}>
               <AppTextInput
-                label="City"
-                placeholder="Your city"
+                label={t('table.city')}
+                placeholder={t('profileEdit.cityPlaceholder')}
                 value={formData.city}
                 onChangeText={(city) => setFormData((prev) => ({ ...prev, city }))}
               />
               <AppTextInput
                 label="District (optional)"
-                placeholder="Your district"
+                placeholder={t('profileEdit.districtPlaceholder')}
                 value={formData.district}
                 onChangeText={(district) => setFormData((prev) => ({ ...prev, district }))}
               />
@@ -154,7 +155,7 @@ export default function EditDonorProfile() {
             loading={updateProfile.isPending}
             style={styles.save}
           >
-            Save changes
+            {t('actions.saveChanges')}
           </AppButton>
         </ScrollView>
       </KeyboardAvoidingView>

@@ -16,14 +16,16 @@ import {
 import { useMyDonations, useDonationStatistics } from '../../../src/hooks/useDonations';
 import { type Donation } from '../../../src/api/donations';
 import { spacing, radius, useTheme, ThemeColors } from '../../../src/theme';
+import { useTranslation } from '../../../src/i18n';
 
 type Filter = 'all' | 'completed' | 'cancelled';
 
+// Keys, not words -- built at module load, resolved per render.
 const FILTERS = [
-  { label: 'All', value: 'all' },
-  { label: 'Completed', value: 'completed' },
-  { label: 'Cancelled', value: 'cancelled' },
-] as const satisfies readonly { label: string; value: Filter }[];
+  { labelKey: 'filters.all', value: 'all' },
+  { labelKey: 'status.donation.COMPLETED', value: 'completed' },
+  { labelKey: 'status.donation.CANCELLED', value: 'cancelled' },
+] as const satisfies readonly { labelKey: string; value: Filter }[];
 
 const FILTER_PARAMS: Record<Filter, Parameters<typeof useMyDonations>[0]> = {
   all: { past: true },
@@ -32,9 +34,16 @@ const FILTER_PARAMS: Record<Filter, Parameters<typeof useMyDonations>[0]> = {
 };
 
 export default function DonationsScreen() {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [filter, setFilter] = useState<Filter>('all');
+  // Resolved here rather than in the module list above, because a label built
+  // at module load is stuck in whatever language the app started in.
+  const filterOptions = useMemo(
+    () => FILTERS.map(({ labelKey, value }) => ({ value, label: t(labelKey) })),
+    [t],
+  );
 
   const { data, isLoading, refetch, isRefetching } = useMyDonations(FILTER_PARAMS[filter]);
   const { data: stats } = useDonationStatistics();
@@ -48,7 +57,7 @@ export default function DonationsScreen() {
 
   return (
     <Screen scroll={false}>
-      <ScreenHeader title="Donation History" subtitle="All your previous donations" />
+      <ScreenHeader title={t('donationHistory.title')} subtitle={t('donationHistory.subtitle')} />
       <FlatList
         style={styles.list}
         data={donations}
@@ -67,18 +76,18 @@ export default function DonationsScreen() {
           <View style={styles.header}>
             {stats && (
               <View style={styles.summaryRow}>
-                <SummaryTile value={String(stats.totalDonations)} label="Total donations" />
+                <SummaryTile value={String(stats.totalDonations)} label={t('donationHistory.totalDonations')} />
                 <SummaryTile
                   value={`${(stats.totalVolumeMl / 1000).toFixed(1)}L`}
-                  label="Volume donated"
+                  label={t('donationHistory.volumeDonated')}
                 />
-                <SummaryTile value={String(stats.completedCount)} label="Completed" />
+                <SummaryTile value={String(stats.completedCount)} label={t('status.donation.COMPLETED')} />
               </View>
             )}
 
-            <SegmentedControl options={FILTERS} value={filter} onChange={setFilter} />
+            <SegmentedControl options={filterOptions} value={filter} onChange={setFilter} />
 
-            <SectionHeader>History</SectionHeader>
+            <SectionHeader>{t('donationHistory.title')}</SectionHeader>
           </View>
         }
         ListEmptyComponent={
@@ -90,11 +99,11 @@ export default function DonationsScreen() {
             </View>
           ) : (
             <EmptyState
-              title="No donations yet"
+              title={t('donationHistory.empty')}
               description={
                 filter === 'all'
-                  ? 'Your donation history will appear here once you complete a donation.'
-                  : `No ${filter} donations found.`
+                  ? t('donationHistory.emptyHint')
+                  : t('donationHistory.emptyFiltered')
               }
             />
           )
@@ -124,34 +133,39 @@ function SummaryTile({ value, label }: { value: string; label: string }) {
  * one that did not, so a cancelled or aborted record is never presented in
  * the same shape as a completed one.
  */
-function statusBadge(donation: Donation): { label: string; variant: 'success' | 'warning' | 'danger' | 'default' } {
+function statusBadge(
+  donation: Donation,
+  t: (key: string) => string,
+): { label: string; variant: 'success' | 'warning' | 'danger' | 'default' } {
+  const status = t(`status.donation.${donation.status}`);
   if (donation.status === 'COMPLETED') {
     return donation.volumeMl
       ? { label: `${donation.volumeMl} ml`, variant: 'success' }
-      : { label: 'Completed', variant: 'success' };
+      : { label: status, variant: 'success' };
   }
-  if (donation.status === 'IN_PROGRESS') return { label: 'In progress', variant: 'warning' };
+  if (donation.status === 'IN_PROGRESS') return { label: status, variant: 'warning' };
   if (['CANCELLED', 'ABORTED', 'REJECTED'].includes(donation.status)) {
-    return { label: donation.status.toLowerCase(), variant: 'danger' };
+    return { label: status, variant: 'danger' };
   }
-  return { label: donation.status.replace(/_/g, ' ').toLowerCase(), variant: 'default' };
+  return { label: status, variant: 'default' };
 }
 
 function DonationRow({ donation }: { donation: Donation }) {
+  const { t, formatDate } = useTranslation();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const badge = statusBadge(donation);
-  const date = new Date(donation.collectionCompletedAt ?? donation.createdAt).toLocaleDateString(
-    'en-US',
-    { month: 'short', day: 'numeric', year: 'numeric' },
-  );
+  const badge = statusBadge(donation, t);
+  const date = formatDate(donation.collectionCompletedAt ?? donation.createdAt, 'medium');
 
   return (
     <Pressable
       onPress={() => router.push(`/donations/${donation.id}`)}
       style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
       accessibilityRole="button"
-      accessibilityLabel={`${donation.donationType.replace(/_/g, ' ')} donation on ${date}`}
+      accessibilityLabel={t('donationHistory.a11yRow', {
+        type: t(`medical.components.${donation.donationType}`),
+        date,
+      })}
     >
       <GlassCard style={styles.rowCard}>
         <View style={styles.row}>
@@ -162,7 +176,7 @@ function DonationRow({ donation }: { donation: Donation }) {
           <View style={styles.rowBody}>
             <View style={styles.rowTitleLine}>
               <AppText style={styles.rowTitle} numberOfLines={1}>
-                {donation.donationType.replace(/_/g, ' ')}
+                {t(`medical.components.${donation.donationType}`)}
               </AppText>
               <Badge variant={badge.variant}>{badge.label}</Badge>
             </View>

@@ -34,19 +34,25 @@ const LocationMap = dynamic(() => import('@bloodchain/ui/map').then((mod) => mod
 type TrackingInfo = Awaited<ReturnType<typeof getShipmentTracking>>;
 import { useShipmentTracking } from '../../../lib/useShipmentTracking';
 import { AppShell } from '../../../components/AppShell';
+import { useTranslation } from '@bloodchain/ui/i18n';
 
-const STATUS_CONFIG: Record<string, { label: string; variant: 'success' | 'warning' | 'info' | 'default' | 'danger' }> = {
-  CREATED: { label: 'Created', variant: 'default' },
-  COURIER_ASSIGNED: { label: 'Assigned', variant: 'info' },
-  COURIER_ACCEPTED: { label: 'Accepted', variant: 'info' },
-  COURIER_DECLINED: { label: 'Declined', variant: 'warning' },
-  PICKUP_STARTED: { label: 'Pickup Started', variant: 'warning' },
-  PICKED_UP: { label: 'Picked Up', variant: 'warning' },
-  IN_TRANSIT: { label: 'In Transit', variant: 'info' },
-  ARRIVED_AT_HOSPITAL: { label: 'Arrived', variant: 'info' },
-  DELIVERED: { label: 'Delivered', variant: 'success' },
-  FAILED: { label: 'Failed', variant: 'danger' },
-  CANCELLED: { label: 'Cancelled', variant: 'danger' },
+/**
+ * Badge colour per status. The wording is not here on purpose: a label
+ * written into a module-level map is fixed in one language, so the words
+ * come from `t('status.shipment.<STATUS>')` at render instead.
+ */
+const STATUS_VARIANT: Record<string, 'success' | 'warning' | 'info' | 'default' | 'danger'> = {
+  CREATED: 'default',
+  COURIER_ASSIGNED: 'info',
+  COURIER_ACCEPTED: 'info',
+  COURIER_DECLINED: 'warning',
+  PICKUP_STARTED: 'warning',
+  PICKED_UP: 'warning',
+  IN_TRANSIT: 'info',
+  ARRIVED_AT_HOSPITAL: 'info',
+  DELIVERED: 'success',
+  FAILED: 'danger',
+  CANCELLED: 'danger',
 };
 
 interface TimelineEvent {
@@ -59,6 +65,7 @@ interface TimelineEvent {
 }
 
 export default function ShipmentDetailPage() {
+  const { t } = useTranslation();
   const params = useParams();
   const router = useRouter();
   const shipmentId = params.id as string;
@@ -197,11 +204,11 @@ export default function ShipmentDetailPage() {
   if (isLoading) {
     return (
       <AppShell
-        title="Loading..."
-        subtitle="BLOOD CENTER CONSOLE"
+        title={t('ops.common.loadingEllipsis')}
+        subtitle={t('portal.bloodCenter.console')}
         organizationName="RedCross Blood Center (Development)"
         organizationType="Blood Center workspace"
-        userName="Loading..."
+        userName={t('ops.common.loadingEllipsis')}
       >
         <div className="flex items-center justify-center p-12">
           <Truck className="animate-spin text-donor-primary" size={32} />
@@ -213,8 +220,8 @@ export default function ShipmentDetailPage() {
   if (!user || !shipment) {
     return (
       <AppShell
-        title="Shipment Not Found"
-        subtitle="BLOOD CENTER CONSOLE"
+        title={t('ops.shipments.notFound')}
+        subtitle={t('portal.bloodCenter.console')}
         organizationName="RedCross Blood Center (Development)"
         organizationType="Blood Center workspace"
         userName={user ? `${user.firstName} ${user.lastName}` : 'Guest'}
@@ -222,25 +229,25 @@ export default function ShipmentDetailPage() {
         <div className="flex flex-col items-center justify-center bc-glass rounded-card p-12">
           <XCircle className="mb-4 text-donor-primary" size={48} />
           <h2 className="mb-2 font-display text-2xl font-semibold text-donor-text">
-            Shipment Not Found
+            {t('ops.shipments.notFound')}
           </h2>
           <button
             onClick={() => router.push('/shipments')}
             className="mt-4 rounded-lg bg-donor-primary px-4 py-2 font-semibold text-white"
           >
-            Back to Shipments
+            {t('ops.common.backToShipments')}
           </button>
         </div>
       </AppShell>
     );
   }
 
-  const status = STATUS_CONFIG[shipment.status] || { label: shipment.status, variant: 'default' as const };
+  const statusVariant = STATUS_VARIANT[shipment.status] ?? 'default';
 
   return (
     <AppShell
       title={shipment.shipmentReference}
-      subtitle="SHIPMENT DETAILS"
+      subtitle={t('ops.shipments.details')}
       organizationName="RedCross Blood Center (Development)"
       organizationType="Blood Center Console"
       userName={`${user.firstName} ${user.lastName}`}
@@ -251,7 +258,7 @@ export default function ShipmentDetailPage() {
           className="mb-4 flex items-center gap-2 text-sm text-donor-muted hover:text-donor-text"
         >
           <ArrowLeft size={16} />
-          Back to Shipments
+          {t('ops.common.backToShipments')}
         </button>
 
         <div className="flex items-start justify-between">
@@ -260,7 +267,7 @@ export default function ShipmentDetailPage() {
               <h1 className="font-display text-2xl font-semibold text-donor-text">
                 {shipment.shipmentReference}
               </h1>
-              <StatusBadge variant={status.variant}>{status.label}</StatusBadge>
+              <StatusBadge variant={statusVariant}>{t(`status.shipment.${shipment.status}`)}</StatusBadge>
             </div>
             <p className="mt-1 text-sm text-donor-muted">
               Created {new Date(shipment.createdAt).toLocaleString()}
@@ -272,7 +279,7 @@ export default function ShipmentDetailPage() {
               className="flex items-center gap-2 rounded-lg bc-solid px-3 py-2 text-sm text-donor-text transition-colors hover:bg-donor-elevated"
             >
               <RefreshCw size={14} />
-              Refresh
+              {t('actions.refresh')}
             </button>
             {canAssignCourier && (
               <button
@@ -289,7 +296,7 @@ export default function ShipmentDetailPage() {
                 className="flex items-center gap-2 rounded-lg border border-donor-danger/50 bg-donor-dangerMuted px-4 py-2 font-semibold text-donor-onDangerMuted transition-colors hover:bg-donor-dangerMuted/70"
               >
                 <XCircle size={16} />
-                Cancel
+                {t('actions.cancel')}
               </button>
             )}
           </div>
@@ -299,33 +306,33 @@ export default function ShipmentDetailPage() {
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
           <div className="bc-glass rounded-card p-5">
-            <h3 className="mb-4 text-sm font-semibold text-donor-text">Shipment Information</h3>
+            <h3 className="mb-4 text-sm font-semibold text-donor-text">{t('ops.shipments.information')}</h3>
             <div className="grid gap-4 md:grid-cols-2">
               <div>
-                <p className="text-xs text-donor-muted">Units</p>
+                <p className="text-xs text-donor-muted">{t('table.units')}</p>
                 <p className="text-lg font-semibold text-donor-text">{shipment.units?.length || 0}</p>
               </div>
               {shipment.courier && (
                 <>
                   <div>
-                    <p className="text-xs text-donor-muted">Courier</p>
+                    <p className="text-xs text-donor-muted">{t('table.courier')}</p>
                     <p className="text-lg font-semibold text-donor-text">{shipment.courier.displayName}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-donor-muted">Courier Phone</p>
+                    <p className="text-xs text-donor-muted">{t('ops.shipments.courierPhone')}</p>
                     <p className="text-lg font-semibold text-donor-text">{shipment.courier.phone || 'N/A'}</p>
                   </div>
                 </>
               )}
               {shipment.pickupAddress && (
                 <div>
-                  <p className="text-xs text-donor-muted">Pickup Address</p>
+                  <p className="text-xs text-donor-muted">{t('ops.shipments.pickupAddress')}</p>
                   <p className="text-sm text-donor-text">{shipment.pickupAddress}</p>
                 </div>
               )}
               {shipment.destinationAddress && (
                 <div>
-                  <p className="text-xs text-donor-muted">Destination</p>
+                  <p className="text-xs text-donor-muted">{t('ops.shipments.destination')}</p>
                   <p className="text-sm text-donor-text">{shipment.destinationAddress}</p>
                 </div>
               )}
@@ -335,7 +342,7 @@ export default function ShipmentDetailPage() {
           {tracking && (tracking.currentLocation || courierLocation || tracking.source.coordinates || tracking.destination.coordinates) && (
             <div className="bc-glass rounded-card p-5">
               <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-donor-text">Live Map</h3>
+                <h3 className="text-sm font-semibold text-donor-text">{t('ops.shipments.liveMap')}</h3>
                 <span className={`flex items-center gap-1.5 text-xs ${connected ? 'text-donor-success' : 'text-donor-muted'}`}>
                   <span className={`h-1.5 w-1.5 rounded-full ${connected ? 'bg-donor-success' : 'bg-donor-muted'}`} />
                   {connected ? 'Live' : 'Offline'}
@@ -362,7 +369,7 @@ export default function ShipmentDetailPage() {
                           id: 'source',
                           variant: 'origin',
                           label: tracking.source.name,
-                          sublabel: 'Pickup location',
+                          sublabel: t('ops.shipments.pickupLocation'),
                           ...tracking.source.coordinates,
                         }
                       : null,
@@ -370,7 +377,7 @@ export default function ShipmentDetailPage() {
                       ? {
                           id: 'courier',
                           variant: 'courier',
-                          label: tracking.courier?.name ?? 'Courier',
+                          label: tracking.courier?.name ?? t('table.courier'),
                           sublabel: `Updated ${new Date(courierLocation.recordedAt).toLocaleTimeString()}`,
                           latitude: courierLocation.latitude,
                           longitude: courierLocation.longitude,
@@ -379,7 +386,7 @@ export default function ShipmentDetailPage() {
                         ? {
                             id: 'courier',
                             variant: 'courier',
-                            label: tracking.courier?.name ?? 'Courier',
+                            label: tracking.courier?.name ?? t('table.courier'),
                             sublabel: `Updated ${new Date(tracking.currentLocation.recordedAt).toLocaleTimeString()}`,
                             ...tracking.currentLocation,
                           }
@@ -389,7 +396,7 @@ export default function ShipmentDetailPage() {
                           id: 'destination',
                           variant: 'destination',
                           label: tracking.destination.name,
-                          sublabel: 'Delivery destination',
+                          sublabel: t('ops.shipments.deliveryDestination'),
                           ...tracking.destination.coordinates,
                         }
                       : null,
@@ -400,9 +407,9 @@ export default function ShipmentDetailPage() {
           )}
 
           <div className="bc-glass rounded-card p-5">
-            <h3 className="mb-4 text-sm font-semibold text-donor-text">Timeline</h3>
+            <h3 className="mb-4 text-sm font-semibold text-donor-text">{t('ops.shipments.timeline')}</h3>
             {timeline.length === 0 ? (
-              <p className="text-sm text-donor-muted">No events recorded</p>
+              <p className="text-sm text-donor-muted">{t('ops.shipments.noEvents')}</p>
             ) : (
               <div className="space-y-4">
                 {timeline.map((event) => (
@@ -428,46 +435,46 @@ export default function ShipmentDetailPage() {
 
         <div className="space-y-6">
           <div className="bc-glass rounded-card p-5">
-            <h3 className="mb-4 text-sm font-semibold text-donor-text">Status Timeline</h3>
+            <h3 className="mb-4 text-sm font-semibold text-donor-text">{t('ops.shipments.statusTimeline')}</h3>
             <div className="space-y-3">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-donor-muted">Created</span>
+                <span className="text-donor-muted">{t('table.created')}</span>
                 <span className="text-donor-text">
                   {shipment.createdAt ? new Date(shipment.createdAt).toLocaleString() : '-'}
                 </span>
               </div>
               <div className="flex items-center justify-between text-sm">
-                <span className="text-donor-muted">Assigned</span>
+                <span className="text-donor-muted">{t('ops.common.assigned')}</span>
                 <span className="text-donor-text">
                   {shipment.assignedAt ? new Date(shipment.assignedAt).toLocaleString() : '-'}
                 </span>
               </div>
               <div className="flex items-center justify-between text-sm">
-                <span className="text-donor-muted">Accepted</span>
+                <span className="text-donor-muted">{t('status.shipment.COURIER_ACCEPTED')}</span>
                 <span className="text-donor-text">
                   {shipment.acceptedAt ? new Date(shipment.acceptedAt).toLocaleString() : '-'}
                 </span>
               </div>
               <div className="flex items-center justify-between text-sm">
-                <span className="text-donor-muted">Picked Up</span>
+                <span className="text-donor-muted">{t('status.shipment.PICKED_UP')}</span>
                 <span className="text-donor-text">
                   {shipment.pickedUpAt ? new Date(shipment.pickedUpAt).toLocaleString() : '-'}
                 </span>
               </div>
               <div className="flex items-center justify-between text-sm">
-                <span className="text-donor-muted">In Transit</span>
+                <span className="text-donor-muted">{t('status.shipment.IN_TRANSIT')}</span>
                 <span className="text-donor-text">
                   {shipment.inTransitAt ? new Date(shipment.inTransitAt).toLocaleString() : '-'}
                 </span>
               </div>
               <div className="flex items-center justify-between text-sm">
-                <span className="text-donor-muted">Arrived</span>
+                <span className="text-donor-muted">{t('status.shipment.ARRIVED_AT_HOSPITAL')}</span>
                 <span className="text-donor-text">
                   {shipment.arrivedAt ? new Date(shipment.arrivedAt).toLocaleString() : '-'}
                 </span>
               </div>
               <div className="flex items-center justify-between text-sm">
-                <span className="text-donor-muted">Delivered</span>
+                <span className="text-donor-muted">{t('status.shipment.DELIVERED')}</span>
                 <span className="text-donor-text">
                   {shipment.deliveredAt ? new Date(shipment.deliveredAt).toLocaleString() : '-'}
                 </span>
@@ -483,13 +490,13 @@ export default function ShipmentDetailPage() {
         title={shipment?.status === 'FAILED' ? 'Reassign Courier' : 'Assign Courier'}
       >
         <div className="mb-4">
-          <label className="mb-2 block text-sm text-donor-muted">Select Courier</label>
+          <label className="mb-2 block text-sm text-donor-muted">{t('ops.shipments.selectCourier')}</label>
           <select
             value={selectedCourierId}
             onChange={(e) => setSelectedCourierId(e.target.value)}
             className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-donor-text"
           >
-            <option value="">Choose a courier...</option>
+            <option value="">{t('ops.shipments.chooseCourier')}</option>
             {availableCouriers.map((courier) => (
               <option key={courier.id} value={courier.id}>
                 {courier.displayName} - {courier.activeShipments} active shipments
@@ -502,7 +509,7 @@ export default function ShipmentDetailPage() {
             onClick={() => setShowAssignModal(false)}
             className="rounded-lg border border-donor-border px-4 py-2 text-donor-text"
           >
-            Cancel
+            {t('actions.cancel')}
           </button>
           <button
             onClick={handleAssignCourier}
@@ -519,7 +526,7 @@ export default function ShipmentDetailPage() {
       <Modal
         open={showCancelModal}
         onClose={() => setShowCancelModal(false)}
-        title="Cancel Shipment"
+        title={t('ops.shipments.cancelShipment')}
       >
         <div className="mb-4">
           <label className="mb-2 block text-sm text-donor-muted">Reason (optional)</label>
@@ -535,13 +542,13 @@ export default function ShipmentDetailPage() {
             onClick={() => setShowCancelModal(false)}
             className="rounded-lg border border-donor-border px-4 py-2 text-donor-text"
           >
-            Back
+            {t('actions.back')}
           </button>
           <button
             onClick={handleCancelShipment}
             className="rounded-lg bg-donor-danger px-4 py-2 font-semibold text-white"
           >
-            Cancel Shipment
+            {t('ops.shipments.cancelShipment')}
           </button>
         </div>
       </Modal>

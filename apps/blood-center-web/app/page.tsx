@@ -288,13 +288,13 @@ export default function BloodCenterDashboard() {
       <div className="mb-8 flex items-center justify-between bc-glass rounded-card p-6">
         <div>
           <p className="text-xs font-bold uppercase tracking-widest text-donor-muted">
-            CENTER OVERVIEW
+            {t('ops.dashboard.centerOverview')}
           </p>
           <h2 className="mt-2 font-display text-4xl font-semibold tracking-tight text-donor-text">
-            Every unit, <span className="text-donor-secondary">accounted for.</span>
+            {t('ops.dashboard.everyUnit')} <span className="text-donor-secondary">{t('ops.dashboard.accountedFor')}</span>
           </h2>
           <p className="mt-2 text-sm text-donor-muted">
-            A precise operational foundation for a safer blood supply.
+            {t('portal.tagline')}
           </p>
         </div>
         <div
@@ -310,13 +310,13 @@ export default function BloodCenterDashboard() {
               <p className="text-sm font-semibold text-donor-text">
                 {alerts.critical} critical alert{alerts.critical === 1 ? '' : 's'}
               </p>
-              <p className="text-xs text-donor-muted">Needs attention</p>
+              <p className="text-xs text-donor-muted">{t('ops.dashboard.needsAttention')}</p>
             </>
           ) : (
             <>
               <Activity className="mb-2 text-donor-secondary" size={24} />
-              <p className="text-sm font-semibold text-donor-text">No critical alerts</p>
-              <p className="text-xs text-donor-muted">Everything is under control</p>
+              <p className="text-sm font-semibold text-donor-text">{t('ops.dashboard.noCriticalAlerts')}</p>
+              <p className="text-xs text-donor-muted">{t('ops.dashboard.underControl')}</p>
             </>
           )}
         </div>
@@ -324,7 +324,7 @@ export default function BloodCenterDashboard() {
 
       <div className="mb-6 grid gap-4 md:grid-cols-3">
         <StatCard
-          label="Units available"
+          label={t('ops.dashboard.unitsAvailable')}
           value={isLoadingStats || !overview ? '—' : overview.inventory.availableUnits.toString()}
           note={
             isLoadingStats || !overview
@@ -337,14 +337,14 @@ export default function BloodCenterDashboard() {
           variant={overview && overview.inventory.criticalGroups.length > 0 ? 'danger' : 'success'}
         />
         <StatCard
-          label="Pending tests"
+          label={t('ops.dashboard.pendingTests')}
           value={isLoadingStats || !laboratory ? '—' : laboratory.summary.pendingTests.toString()}
           note={isLoadingStats || !laboratory ? 'Loading...' : 'Awaiting results'}
           icon={Beaker}
           variant={laboratory && laboratory.summary.pendingTests > 0 ? 'warning' : 'success'}
         />
         <StatCard
-          label="Open shipments"
+          label={t('ops.dashboard.openShipments')}
           value={isLoadingStats || !shipments ? '—' : shipments.summary.active.toString()}
           note={isLoadingStats || !shipments ? 'Loading...' : 'In transit'}
           icon={Truck}
@@ -361,19 +361,19 @@ export default function BloodCenterDashboard() {
             <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
               <div>
                 <p className="text-2xl font-semibold text-donor-text">{overview.inventory.totalUnits}</p>
-                <p className="text-xs text-donor-muted">Total units</p>
+                <p className="text-xs text-donor-muted">{t('ops.dashboard.totalUnits')}</p>
               </div>
               <div>
                 <p className="text-2xl font-semibold text-donor-text">{overview.inventory.availableUnits}</p>
-                <p className="text-xs text-donor-muted">Available</p>
+                <p className="text-xs text-donor-muted">{t('status.unit.AVAILABLE')}</p>
               </div>
               <div>
                 <p className="text-2xl font-semibold text-donor-text">{overview.inventory.reservedUnits}</p>
-                <p className="text-xs text-donor-muted">Reserved</p>
+                <p className="text-xs text-donor-muted">{t('status.unit.RESERVED')}</p>
               </div>
               <div>
                 <p className="text-2xl font-semibold text-donor-text">{overview.inventory.quarantinedUnits}</p>
-                <p className="text-xs text-donor-muted">Quarantined</p>
+                <p className="text-xs text-donor-muted">{t('status.unit.QUARANTINED')}</p>
               </div>
             </div>
           )}
@@ -388,13 +388,13 @@ export default function BloodCenterDashboard() {
           <p className="text-xs font-bold uppercase tracking-widest text-donor-muted">ALERTS</p>
           <div className="mt-4 space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-donor-text">Critical</span>
+              <span className="text-sm text-donor-text">{t('medical.resultFlagsByCode.CRITICAL')}</span>
               <span className="text-sm font-semibold text-donor-onDangerMuted">
                 {alerts?.critical ?? '—'}
               </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-donor-text">High</span>
+              <span className="text-sm text-donor-text">{t('ops.common.high')}</span>
               <span className="text-sm font-semibold text-donor-onWarningMuted">
                 {alerts?.high ?? '—'}
               </span>
@@ -406,8 +406,8 @@ export default function BloodCenterDashboard() {
       <div className="mt-6">
         <Link href="/requests" className="block">
           <EmptyState
-            title="View blood requests"
-            description="Review and fulfill inbound blood requests from hospitals on the Blood Requests page."
+            title={t('ops.dashboard.viewBloodRequests')}
+            description={t('ops.dashboard.viewBloodRequestsHint')}
           />
         </Link>
       </div>

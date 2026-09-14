@@ -5,8 +5,10 @@ import { Droplet, Calendar, Clock, Building2, MapPin, AlertCircle } from 'lucide
 import { AppButton, AppText, Card, GlassCard, Screen, ScreenHeader } from '../../../src/components';
 import { useDonation } from '../../../src/hooks/useDonations';
 import { layout, spacing, useTheme, ThemeColors } from '../../../src/theme';
+import { useTranslation } from '../../../src/i18n';
 
 export default function DonationDetailScreen() {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const params = useLocalSearchParams<{ id: string }>();
@@ -47,8 +49,8 @@ export default function DonationDetailScreen() {
   if (isLoading) {
     return (
       <Screen>
-        <ScreenHeader title="Donation Details" />
-        <AppText>Loading...</AppText>
+        <ScreenHeader title={t('donationHistory.detailTitle')} />
+        <AppText>{t('common.loading')}</AppText>
       </Screen>
     );
   }
@@ -56,11 +58,11 @@ export default function DonationDetailScreen() {
   if (!donation) {
     return (
       <Screen>
-        <ScreenHeader title="Donation Details" />
-        <AppText>Donation not found</AppText>
+        <ScreenHeader title={t('donationHistory.detailTitle')} />
+        <AppText>{t('donationHistory.notFound')}</AppText>
         <View style={styles.footer}>
           <AppButton variant="secondary" onPress={() => router.back()}>
-            Go Back
+            {t('common.back')}
           </AppButton>
         </View>
       </Screen>
@@ -69,7 +71,7 @@ export default function DonationDetailScreen() {
 
   return (
     <Screen>
-      <ScreenHeader title="Donation Details" />
+      <ScreenHeader title={t('donationHistory.detailTitle')} />
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.header}>
           <View
@@ -105,7 +107,7 @@ export default function DonationDetailScreen() {
 
         <GlassCard style={styles.detailsCard}>
           <AppText variant="heading" style={styles.sectionTitle}>
-            Details
+            {t('table.details')}
           </AppText>
 
           <View style={styles.detailRow}>
@@ -114,7 +116,7 @@ export default function DonationDetailScreen() {
             </View>
             <View style={styles.detailInfo}>
               <AppText muted style={styles.detailLabel}>
-                Date
+                {t('table.date')}
               </AppText>
               <AppText>
                 {donation.collectionCompletedAt
@@ -131,7 +133,7 @@ export default function DonationDetailScreen() {
               </View>
               <View style={styles.detailInfo}>
                 <AppText muted style={styles.detailLabel}>
-                  Time
+                  {t('table.time')}
                 </AppText>
                 <AppText>
                   {formatTime(donation.collectionStartedAt)}
@@ -147,7 +149,7 @@ export default function DonationDetailScreen() {
             </View>
             <View style={styles.detailInfo}>
               <AppText muted style={styles.detailLabel}>
-                Organization
+                {t('table.organization')}
               </AppText>
               <AppText>{donation.organization.name}</AppText>
               {donation.organization.address && (
@@ -168,7 +170,7 @@ export default function DonationDetailScreen() {
               </View>
               <View style={styles.detailInfo}>
                 <AppText muted style={styles.detailLabel}>
-                  Blood Type
+                  {t('medical.bloodGroup')}
                 </AppText>
                 <AppText>
                   {donation.bloodType}
@@ -182,7 +184,7 @@ export default function DonationDetailScreen() {
         {donation.nextDonationDate && (
           <Card style={styles.nextDateCard}>
             <AppText muted style={styles.nextDateLabel}>
-              Next Donation Date
+              {t('donationHistory.nextDonationDate')}
             </AppText>
             <AppText variant="heading" style={styles.nextDateValue}>
               {formatDate(donation.nextDonationDate)}
@@ -195,7 +197,7 @@ export default function DonationDetailScreen() {
             <View style={styles.reasonHeader}>
               <AlertCircle size={18} color={colors.danger} />
               <AppText style={styles.reasonTitle}>
-                {donation.status === 'CANCELLED' ? 'Cancelled' : 'Reason'}
+                {donation.status === 'CANCELLED' ? t('status.donation.CANCELLED') : t('table.reason')}
               </AppText>
             </View>
             <AppText muted style={styles.reasonText}>
@@ -208,7 +210,7 @@ export default function DonationDetailScreen() {
           <Card style={styles.reasonCard}>
             <View style={styles.reasonHeader}>
               <AlertCircle size={18} color={colors.danger} />
-              <AppText style={styles.reasonTitle}>Aborted</AppText>
+              <AppText style={styles.reasonTitle}>{t('status.donation.ABORTED')}</AppText>
             </View>
             <AppText muted style={styles.reasonText}>
               {donation.abortedReason}
@@ -219,7 +221,7 @@ export default function DonationDetailScreen() {
 
       <View style={styles.footer}>
         <AppButton variant="secondary" onPress={() => router.back()}>
-          Go Back
+          {t('common.back')}
         </AppButton>
       </View>
     </Screen>

@@ -7,8 +7,10 @@ import { listAlerts, acknowledgeAlert } from '@lib/api';
 import { me, isAuthenticated } from '@lib/auth';
 import {  } from '@lib/status';
 import { AppShell } from '../../components/AppShell';
+import { useTranslation } from '@bloodchain/ui/i18n';
 
 export default function AlertsPage() {
+  const { t } = useTranslation();
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [alerts, setAlerts] = useState<any[]>([]);
@@ -61,17 +63,17 @@ export default function AlertsPage() {
 
   if (isLoading) {
     return (
-      <AppShell title="Alert Center" userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
+      <AppShell title={t('ops.alerts.title')} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
         <LoadingState />
       </AppShell>
     );
   }
 
   return (
-    <AppShell title="Alert Center" userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
+    <AppShell title={t('ops.alerts.title')} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
       <div className="p-6">
         <div className="mb-6">
-          <p className="text-sm text-donor-muted">Manage platform alerts and notifications</p>
+          <p className="text-sm text-donor-muted">{t('ops.alerts.subtitle')}</p>
         </div>
 
         <div className="bc-glass rounded-card mb-6">
@@ -84,9 +86,9 @@ export default function AlertsPage() {
               }}
               className="bc-solid rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-donor-primary"
             >
-              <option value="">All Alerts</option>
-              <option value="false">Active</option>
-              <option value="true">Acknowledged</option>
+              <option value="">{t('ops.alerts.allAlerts')}</option>
+              <option value="false">{t('status.reservation.ACTIVE')}</option>
+              <option value="true">{t('ops.alerts.acknowledged')}</option>
             </select>
           </div>
 
@@ -94,7 +96,7 @@ export default function AlertsPage() {
             {alerts.length === 0 ? (
               <div className="p-8 text-center">
                 <CheckCircle className="w-12 h-12 text-donor-success mx-auto mb-4" />
-                <p className="text-sm text-donor-muted">No alerts to display</p>
+                <p className="text-sm text-donor-muted">{t('ops.alerts.empty')}</p>
               </div>
             ) : (
               alerts.map((alert) => (
@@ -137,7 +139,7 @@ export default function AlertsPage() {
                     {alert.acknowledged ? (
                       <span className="inline-flex items-center gap-1 text-xs text-donor-success">
                         <CheckCircle className="w-4 h-4" />
-                        Acknowledged
+                        {t('ops.alerts.acknowledged')}
                       </span>
                     ) : (
                       <button

@@ -32,6 +32,7 @@ import {
 } from '../../src/hooks/useNotifications';
 import { spacing, useTheme, ThemeColors } from '../../src/theme';
 import type { Notification, NotificationType } from '../../src/api/notifications';
+import { useTranslation } from '../../src/i18n';
 
 const TYPE_ICON: Record<NotificationType, LucideIcon> = {
   EMERGENCY: AlertCircle,
@@ -70,14 +71,17 @@ function typeTint(colors: ThemeColors): Record<NotificationType, { bg: string; i
   };
 }
 
+// Keys, not words: this list is built at module load, where there is no
+// locale. The count is appended at render, where both are known.
 const FILTERS = [
-  { label: 'All', value: 'all' },
-  { label: 'Unread', value: 'unread' },
+  { labelKey: 'filters.all', value: 'all' },
+  { labelKey: 'notifications.unread', value: 'unread' },
 ] as const;
 
 type Filter = (typeof FILTERS)[number]['value'];
 
 export default function NotificationsCenter() {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const router = useRouter();
@@ -112,18 +116,20 @@ export default function NotificationsCenter() {
 
   const filterOptions = useMemo(
     () =>
-      FILTERS.map((option) =>
-        option.value === 'unread' && stats?.unread
-          ? { ...option, label: `Unread (${stats.unread})` }
-          : option,
-      ),
-    [stats?.unread],
+      FILTERS.map(({ labelKey, value }) => ({
+        value,
+        label:
+          value === 'unread' && stats?.unread
+            ? `${t(labelKey)} (${stats.unread})`
+            : t(labelKey),
+      })),
+    [stats?.unread, t],
   );
 
   return (
     <Screen scroll={false}>
       <ScreenHeader
-        title="Notifications"
+        title={t('notifications.title')}
         subtitle={stats?.unread ? `${stats.unread} unread` : undefined}
         trailing={
           hasUnread ? (
@@ -133,7 +139,7 @@ export default function NotificationsCenter() {
               accessibilityRole="button"
               style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
             >
-              <AppText style={styles.markAll}>Mark all read</AppText>
+              <AppText style={styles.markAll}>{t('notifications.markAllRead')}</AppText>
             </Pressable>
           ) : undefined
         }
@@ -168,11 +174,11 @@ export default function NotificationsCenter() {
             </View>
           ) : (
             <EmptyState
-              title="No notifications"
+              title={t('notifications.empty')}
               description={
                 filter === 'unread'
-                  ? "You're all caught up!"
-                  : 'Push notifications and reminders will appear here.'
+                  ? t('notifications.allCaughtUp')
+                  : t('notifications.emptyHint')
               }
             />
           )
@@ -189,6 +195,7 @@ function NotificationRow({
   notification: Notification;
   onPress: () => void;
 }) {
+  const { t, formatDate } = useTranslation();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const unread = !notification.readAt;
@@ -217,7 +224,7 @@ function NotificationRow({
                 {notification.title}
               </AppText>
               <AppText style={styles.rowTime}>
-                {formatTimeAgo(new Date(notification.createdAt))}
+                {formatTimeAgo(new Date(notification.createdAt), t, formatDate)}
               </AppText>
             </View>
             <AppText style={styles.rowBodyText} numberOfLines={3}>
@@ -225,7 +232,7 @@ function NotificationRow({
             </AppText>
             {notification.priority === 'CRITICAL' && (
               <View style={styles.urgent}>
-                <AppText style={styles.urgentText}>URGENT</AppText>
+                <AppText style={styles.urgentText}>{t('status.priority.CRITICAL')}</AppText>
               </View>
             )}
           </View>
@@ -235,17 +242,26 @@ function NotificationRow({
   );
 }
 
-function formatTimeAgo(date: Date): string {
+/**
+ * The translator and the date formatter are passed in rather than read from a
+ * hook, because this is a plain function called from a row's render -- and a
+ * string built without them is stuck in whatever language the bundle shipped.
+ */
+function formatTimeAgo(
+  date: Date,
+  t: (key: string, options?: Record<string, string | number>) => string,
+  formatDate: (value: Date | string | number, style?: 'full' | 'long' | 'medium' | 'short') => string,
+): string {
   const diffMins = Math.floor((Date.now() - date.getTime()) / 60000);
   const diffHours = Math.floor(diffMins / 60);
   const diffDays = Math.floor(diffHours / 24);
 
-  if (diffMins < 1) return 'Just now';
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays === 1) return 'Yesterday';
-  if (diffDays < 7) return `${diffDays} days ago`;
-  return date.toLocaleDateString();
+  if (diffMins < 1) return t('common.justNow');
+  if (diffMins < 60) return t('common.minutesAgo', { count: diffMins });
+  if (diffHours < 24) return t('common.hoursAgo', { count: diffHours });
+  if (diffDays === 1) return t('common.yesterday');
+  if (diffDays < 7) return t('units.daysAgo', { count: diffDays });
+  return formatDate(date, 'short');
 }
 
 function createStyles(colors: ThemeColors) {

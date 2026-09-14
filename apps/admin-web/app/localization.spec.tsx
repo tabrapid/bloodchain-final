@@ -74,7 +74,7 @@ async function renderSignIn() {
  * Any catalogue path that reached the screen as text. A key renders as itself
  * when it is missing, so this is what "untranslated" looks like to a user.
  */
-const RAW_KEY = /\b(?:common|auth|portal|nav|language|units|validation|home|health|donate|calendar|community|profile|address|medical)\.[A-Za-z][A-Za-z.]*/g;
+const RAW_KEY = /\b(?:common|auth|nav|language|units|validation|home|health|donate|calendar|community|profile|portal|address|medical|ops|status|table|actions|filters|booking|appointment|appointmentTypes|donationHistory|laboratory|healthTrends|insights|notifications|sos|campaigns|challenges|education|gamification|privacy|security|profileEdit|apiErrors)\.[A-Za-z][A-Za-z.]*/g;
 
 beforeEach(() => {
   window.localStorage.clear();

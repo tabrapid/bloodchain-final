@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { AppButton, AppText, BookingStep, GlassCard } from '../../src/components';
 import { useAvailability } from '../../src/hooks/useAppointments';
 import { layout, spacing, useTheme, ThemeColors } from '../../src/theme';
+import { useTranslation } from '../../src/i18n';
 
 /** Monday-first, matching the reference and the app's own Calendar screen. */
 const WEEKDAY_INITIALS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
@@ -29,6 +30,7 @@ function toDateParam(date: Date): string {
 }
 
 export default function SelectDate() {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const params = useLocalSearchParams<{
@@ -90,8 +92,8 @@ export default function SelectDate() {
   return (
     <BookingStep
       step={3}
-      title={params.rescheduleAppointmentId ? 'Pick a new date' : 'Select date'}
-      subtitle="Only dates with open slots can be picked"
+      title={params.rescheduleAppointmentId ? t('booking.pickNewDate') : t('booking.selectDate')}
+      subtitle={t('booking.openSlotsOnly')}
       nextDisabled={selectedDay === null}
       onNext={() =>
         router.push({
@@ -110,7 +112,7 @@ export default function SelectDate() {
       {isError && (
         <GlassCard danger style={styles.errorCard}>
           <AppText style={styles.errorText}>
-            Couldn&apos;t load availability. Check your connection and try again.
+            {t('booking.availabilityFailed')}
           </AppText>
           <AppButton
             variant="secondary"
@@ -119,7 +121,7 @@ export default function SelectDate() {
             loading={isRefetching}
             style={styles.retry}
           >
-            Retry
+            {t('common.retry')}
           </AppButton>
         </GlassCard>
       )}
@@ -131,7 +133,7 @@ export default function SelectDate() {
             disabled={!canGoBack}
             hitSlop={8}
             accessibilityRole="button"
-            accessibilityLabel="Previous month"
+            accessibilityLabel={t('booking.previousMonth')}
             style={styles.navButton}
           >
             <ChevronLeft size={20} color={canGoBack ? colors.text : colors.textSubtle} />
@@ -143,7 +145,7 @@ export default function SelectDate() {
             onPress={() => changeMonth(1)}
             hitSlop={8}
             accessibilityRole="button"
-            accessibilityLabel="Next month"
+            accessibilityLabel={t('booking.nextMonth')}
             style={styles.navButton}
           >
             <ChevronRight size={20} color={colors.text} />
@@ -196,7 +198,7 @@ export default function SelectDate() {
       <View style={styles.legend}>
         <View style={styles.legendSwatch} />
         <AppText style={styles.legendText}>
-          {isLoading ? 'Loading availability…' : 'Dates with open slots'}
+          {isLoading ? t('booking.loadingAvailability') : t('booking.datesWithSlots')}
         </AppText>
       </View>
     </BookingStep>

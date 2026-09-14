@@ -36,23 +36,29 @@ import {
 } from '../../lib/emergency';
 import { useEmergencyTracking } from '../../lib/useEmergencyTracking';
 import { AppShell } from '../../components/AppShell';
+import { useTranslation } from '@bloodchain/ui/i18n';
 
 const BLOOD_TYPES = ['A', 'B', 'AB', 'O'];
 const RH_FACTORS = ['POSITIVE', 'NEGATIVE'];
 const URGENCY_LEVELS = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'];
 const COMPONENT_TYPES = ['WHOLE_BLOOD', 'RED_CELLS', 'PLASMA', 'PLATELETS', 'OTHER'];
 
-const statusConfig: Record<string, { label: string; variant: 'success' | 'warning' | 'info' | 'default' | 'danger' }> = {
-  DRAFT: { label: 'Draft', variant: 'default' },
-  ACTIVE: { label: 'Active', variant: 'info' },
-  MATCHING: { label: 'Matching', variant: 'info' },
-  RESPONSES_RECEIVED: { label: 'Responses Received', variant: 'warning' },
-  DONOR_EN_ROUTE: { label: 'Donor En Route', variant: 'warning' },
-  DONOR_ARRIVED: { label: 'Donor Arrived', variant: 'success' },
-  DONATION_STARTED: { label: 'Donation Started', variant: 'success' },
-  COMPLETED: { label: 'Completed', variant: 'success' },
-  CANCELLED: { label: 'Cancelled', variant: 'danger' },
-  EXPIRED: { label: 'Expired', variant: 'danger' },
+/**
+ * Badge colour per status; the wording comes from
+ * `t('status.emergency.<STATUS>')` at render, because a label written into
+ * a module-level map can only ever be in one language.
+ */
+const statusVariant: Record<string, 'success' | 'warning' | 'info' | 'default' | 'danger'> = {
+  DRAFT: 'default',
+  ACTIVE: 'info',
+  MATCHING: 'info',
+  RESPONSES_RECEIVED: 'warning',
+  DONOR_EN_ROUTE: 'warning',
+  DONOR_ARRIVED: 'success',
+  DONATION_STARTED: 'success',
+  COMPLETED: 'success',
+  CANCELLED: 'danger',
+  EXPIRED: 'danger',
 };
 
 interface NewEmergencyForm {
@@ -68,6 +74,7 @@ interface NewEmergencyForm {
 }
 
 export default function EmergencyPage() {
+  const { t } = useTranslation();
   const [user, setUser] = useState<MeResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [emergencies, setEmergencies] = useState<EmergencyRequest[]>([]);
@@ -234,11 +241,11 @@ export default function EmergencyPage() {
   if (isLoading) {
     return (
       <AppShell
-        title="Loading..."
-        subtitle="HOSPITAL CONSOLE"
+        title={t('ops.common.loadingEllipsis')}
+        subtitle={t('portal.hospital.console')}
         organizationName="Hospital Console"
         organizationType="Operations workspace"
-        userName="Loading..."
+        userName={t('ops.common.loadingEllipsis')}
       >
         <div className="flex items-center justify-center p-12">
           <Activity className="animate-spin text-donor-primary" size={32} />
@@ -250,8 +257,8 @@ export default function EmergencyPage() {
   if (!user) {
     return (
       <AppShell
-        title="Authentication Required"
-        subtitle="HOSPITAL CONSOLE"
+        title={t('portal.authRequired')}
+        subtitle={t('portal.hospital.console')}
         organizationName="Hospital Console"
         organizationType="Operations workspace"
         userName="Guest"
@@ -259,10 +266,10 @@ export default function EmergencyPage() {
         <div className="flex flex-col items-center justify-center bc-glass rounded-card p-12">
           <AlertTriangle className="mb-4 text-donor-primary" size={48} />
           <h2 className="mb-2 font-display text-2xl font-semibold text-donor-text">
-            Sign In Required
+            {t('ops.common.signInRequired')}
           </h2>
           <p className="mb-6 text-center text-donor-muted">
-            Please sign in to access the emergency dashboard
+            {t('ops.common.signInToEmergency')}
           </p>
         </div>
       </AppShell>
@@ -271,8 +278,8 @@ export default function EmergencyPage() {
 
   return (
     <AppShell
-      title="Emergency SOS"
-      subtitle="BLOOD EMERGENCY MANAGEMENT"
+      title={t('ops.emergency.title')}
+      subtitle={t('ops.emergency.management')}
       organizationName={user.organizations.find((org) => org.type === 'HOSPITAL')?.name ?? 'Hospital Console'}
       organizationType="Hospital Console"
       userName={`${user.firstName} ${user.lastName}`}
@@ -280,10 +287,10 @@ export default function EmergencyPage() {
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="font-display text-2xl font-semibold text-donor-text">
-            Emergency Requests
+            {t('home.emergencyRequests')}
           </h1>
           <p className="text-sm text-donor-muted">
-            Manage urgent blood supply requests
+            {t('ops.emergency.pageSubtitle')}
           </p>
         </div>
         <button
@@ -291,23 +298,23 @@ export default function EmergencyPage() {
           className="flex items-center gap-2 rounded-lg bg-donor-primary px-4 py-2 font-semibold text-white transition-colors hover:bg-donor-primary/80"
         >
           <Plus size={16} />
-          New Emergency
+          {t('ops.emergency.newEmergency')}
         </button>
       </div>
 
       <div className="mb-6 grid gap-4 md:grid-cols-3">
         <StatCard
-          label="Active Emergencies"
+          label={t('ops.dashboard.activeEmergencies')}
           value={activeCount.toString()}
           variant={activeCount > 0 ? 'warning' : 'success'}
         />
         <StatCard
-          label="Critical Priority"
+          label={t('ops.emergency.criticalPriority')}
           value={criticalCount.toString()}
           variant={criticalCount > 0 ? 'danger' : 'success'}
         />
         <StatCard
-          label="Completed Today"
+          label={t('ops.emergency.completedToday')}
           value={completedCount.toString()}
           variant="success"
         />
@@ -319,38 +326,35 @@ export default function EmergencyPage() {
           onChange={(e) => setStatusFilter(e.target.value)}
           className="rounded-lg bc-solid px-3 py-2 text-sm text-donor-text"
         >
-          <option value="">All Statuses</option>
-          <option value="DRAFT">Draft</option>
-          <option value="ACTIVE">Active</option>
-          <option value="MATCHING">Matching</option>
-          <option value="RESPONSES_RECEIVED">Responses Received</option>
-          <option value="DONOR_EN_ROUTE">Donor En Route</option>
-          <option value="DONOR_ARRIVED">Donor Arrived</option>
-          <option value="DONATION_STARTED">Donation Started</option>
-          <option value="COMPLETED">Completed</option>
-          <option value="CANCELLED">Cancelled</option>
+          <option value="">{t('filters.allStatuses')}</option>
+          <option value="DRAFT">{t('status.emergency.DRAFT')}</option>
+          <option value="ACTIVE">{t('status.emergency.ACTIVE')}</option>
+          <option value="MATCHING">{t('status.emergency.MATCHING')}</option>
+          <option value="RESPONSES_RECEIVED">{t('status.emergency.RESPONSES_RECEIVED')}</option>
+          <option value="DONOR_EN_ROUTE">{t('status.emergency.DONOR_EN_ROUTE')}</option>
+          <option value="DONOR_ARRIVED">{t('status.emergency.DONOR_ARRIVED')}</option>
+          <option value="DONATION_STARTED">{t('status.emergency.DONATION_STARTED')}</option>
+          <option value="COMPLETED">{t('table.completedAt')}</option>
+          <option value="CANCELLED">{t('appointment.cancelledNotice')}</option>
         </select>
         <button
           onClick={loadEmergencies}
           className="flex items-center gap-2 rounded-lg bc-solid px-3 py-2 text-sm text-donor-text transition-colors hover:bg-donor-elevated"
         >
           <RefreshCw size={14} />
-          Refresh
+          {t('actions.refresh')}
         </button>
       </div>
 
       {emergencies.length === 0 ? (
         <EmptyState
-          title="No emergency requests"
-          description="Create an emergency request when you need urgent blood supply."
+          title={t('ops.emergency.empty')}
+          description={t('ops.emergency.emptyHint')}
         />
       ) : (
         <div className="space-y-4">
           {emergencies.map((emergency) => {
-            const config = statusConfig[emergency.status] || {
-              label: emergency.status,
-              variant: 'default' as const,
-            };
+            const emergencyVariant = statusVariant[emergency.status] ?? 'default';
             return (
               <div
                 key={emergency.id}
@@ -374,8 +378,8 @@ export default function EmergencyPage() {
                         <h3 className="font-display text-lg font-semibold text-donor-text">
                           {emergency.emergencyReference}
                         </h3>
-                        <StatusBadge variant={config.variant}>
-                          {config.label}
+                        <StatusBadge variant={emergencyVariant}>
+                          {t(`status.emergency.${emergency.status}`)}
                         </StatusBadge>
                         <span
                           className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
@@ -425,7 +429,7 @@ export default function EmergencyPage() {
                             <div className="mt-3 flex items-center gap-2 rounded-lg border border-donor-border bc-solid px-3 py-2">
                               <Navigation size={14} className="text-donor-primary" />
                               <span className="text-xs text-donor-muted">
-                                Waiting for donor location update...
+                                {t('ops.couriers.awaitingLocation')}
                               </span>
                             </div>
                           );
@@ -437,7 +441,7 @@ export default function EmergencyPage() {
                           {
                             id: 'donor',
                             variant: 'donor',
-                            label: 'Donor',
+                            label: t('table.donor'),
                             sublabel: `Updated ${new Date(liveLocation.recordedAt).toLocaleTimeString()}`,
                             latitude: liveLocation.latitude,
                             longitude: liveLocation.longitude,
@@ -447,7 +451,7 @@ export default function EmergencyPage() {
                                 id: 'hospital',
                                 variant: 'hospital' as const,
                                 label: emergency.donationLocation || 'Hospital',
-                                sublabel: 'Donation location',
+                                sublabel: t('ops.emergency.donationLocation'),
                                 latitude: hospitalLat,
                                 longitude: hospitalLng,
                               }]
@@ -470,14 +474,14 @@ export default function EmergencyPage() {
                           className="flex items-center gap-1 rounded-lg bg-donor-primary px-3 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-donor-primary/80"
                         >
                           <CheckCircle2 size={14} />
-                          Activate
+                          {t('ops.common.activate')}
                         </button>
                         <button
                           onClick={() => handleCancelEmergency(emergency.id)}
                           className="flex items-center gap-1 rounded-lg bc-solid px-3 py-1.5 text-sm font-semibold text-donor-text transition-colors hover:bg-donor-elevated"
                         >
                           <X size={14} />
-                          Cancel
+                          {t('actions.cancel')}
                         </button>
                       </>
                     )}
@@ -496,7 +500,7 @@ export default function EmergencyPage() {
                         className="flex items-center gap-1 rounded-lg bg-donor-primary px-3 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-donor-primary/80"
                       >
                         <CheckCircle2 size={14} />
-                        Confirm Arrival
+                        {t('ops.couriers.confirmArrival')}
                       </button>
                     )}
                     {emergency.status === 'DONATION_STARTED' && (
@@ -510,7 +514,7 @@ export default function EmergencyPage() {
                         className="flex items-center gap-1 rounded-lg bg-donor-primary px-3 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-donor-primary/80"
                       >
                         <CheckCircle2 size={14} />
-                        Complete Donation
+                        {t('ops.donations.complete')}
                       </button>
                     )}
                     {![
@@ -525,7 +529,7 @@ export default function EmergencyPage() {
                         className="flex items-center gap-1 rounded-lg bc-solid px-3 py-1.5 text-sm font-semibold text-donor-text transition-colors hover:bg-donor-elevated"
                       >
                         <X size={14} />
-                        Cancel
+                        {t('actions.cancel')}
                       </button>
                     )}
                   </div>
@@ -539,14 +543,14 @@ export default function EmergencyPage() {
       {showCreateModal && (
         <Modal
           open={true}
-          title="Create Emergency Request"
+          title={t('ops.emergency.create')}
           onClose={() => setShowCreateModal(false)}
         >
           <div className="space-y-4">
             <div className="grid grid-cols-3 gap-4">
               <div>
                 <label className="mb-1 block text-xs font-semibold text-donor-muted">
-                  Blood Type
+                  {t('home.bloodTypeLabel')}
                 </label>
                 <select
                   value={newEmergency.bloodType}
@@ -564,7 +568,7 @@ export default function EmergencyPage() {
               </div>
               <div>
                 <label className="mb-1 block text-xs font-semibold text-donor-muted">
-                  Rh Factor
+                  {t('medical.rhFactor')}
                 </label>
                 <select
                   value={newEmergency.rhFactor}
@@ -585,7 +589,7 @@ export default function EmergencyPage() {
               </div>
               <div>
                 <label className="mb-1 block text-xs font-semibold text-donor-muted">
-                  Units Required
+                  {t('ops.requests.unitsRequired')}
                 </label>
                 <input
                   type="number"
@@ -604,7 +608,7 @@ export default function EmergencyPage() {
             </div>
             <div>
               <label className="mb-1 block text-xs font-semibold text-donor-muted">
-                Urgency Level
+                {t('ops.requests.urgencyLevel')}
               </label>
               <select
                 value={newEmergency.urgencyLevel}
@@ -625,7 +629,7 @@ export default function EmergencyPage() {
             </div>
             <div>
               <label className="mb-1 block text-xs font-semibold text-donor-muted">
-                Component Needed
+                {t('ops.requests.componentNeeded')}
               </label>
               <select
                 value={newEmergency.componentType}
@@ -646,11 +650,11 @@ export default function EmergencyPage() {
             </div>
             <div>
               <label className="mb-1 block text-xs font-semibold text-donor-muted">
-                Patient Reference
+                {t('ops.requests.patientReference')}
               </label>
               <input
                 type="text"
-                placeholder="Optional patient identifier"
+                placeholder={t('ops.emergency.patientPlaceholder')}
                 value={newEmergency.patientReference}
                 onChange={(e) =>
                   setNewEmergency({
@@ -663,10 +667,10 @@ export default function EmergencyPage() {
             </div>
             <div>
               <label className="mb-1 block text-xs font-semibold text-donor-muted">
-                Description
+                {t('sos.description')}
               </label>
               <textarea
-                placeholder="Additional details about the emergency..."
+                placeholder={t('ops.emergency.detailsPlaceholder')}
                 value={newEmergency.description}
                 onChange={(e) =>
                   setNewEmergency({
@@ -680,7 +684,7 @@ export default function EmergencyPage() {
             </div>
             <div>
               <label className="mb-1 block text-xs font-semibold text-donor-muted">
-                Required Before
+                {t('ops.requests.requiredBefore')}
               </label>
               <input
                 type="datetime-local"
@@ -696,11 +700,11 @@ export default function EmergencyPage() {
             </div>
             <div>
               <label className="mb-1 block text-xs font-semibold text-donor-muted">
-                Donation Location
+                {t('ops.emergency.donationLocation')}
               </label>
               <input
                 type="text"
-                placeholder="Address or location for donor to go"
+                placeholder={t('ops.emergency.locationPlaceholder')}
                 value={newEmergency.donationLocation}
                 onChange={(e) =>
                   setNewEmergency({
@@ -716,7 +720,7 @@ export default function EmergencyPage() {
                 onClick={() => setShowCreateModal(false)}
                 className="rounded-lg bc-solid px-4 py-2 font-semibold text-donor-text transition-colors hover:bg-donor-elevated"
               >
-                Cancel
+                {t('actions.cancel')}
               </button>
               <button
                 onClick={handleCreateEmergency}

@@ -10,19 +10,25 @@ import {
 import { me, isAuthenticated, MeResponse } from '../../lib/auth';
 import { getBloodRequests, BloodRequest } from '../../lib/shipments';
 import { AppShell } from '../../components/AppShell';
+import { useTranslation } from '@bloodchain/ui/i18n';
 
-const STATUS_CONFIG: Record<string, { label: string; variant: 'success' | 'warning' | 'info' | 'default' | 'danger' }> = {
-  DRAFT: { label: 'Draft', variant: 'default' },
-  SUBMITTED: { label: 'Submitted', variant: 'info' },
-  UNDER_REVIEW: { label: 'Under Review', variant: 'info' },
-  APPROVED: { label: 'Approved', variant: 'success' },
-  PARTIALLY_APPROVED: { label: 'Partially Approved', variant: 'warning' },
-  REJECTED: { label: 'Rejected', variant: 'danger' },
-  CANCELLED: { label: 'Cancelled', variant: 'danger' },
-  READY_FOR_PICKUP: { label: 'Ready for Pickup', variant: 'warning' },
-  IN_TRANSIT: { label: 'In Transit', variant: 'info' },
-  DELIVERED: { label: 'Delivered', variant: 'success' },
-  PARTIALLY_DELIVERED: { label: 'Partially Delivered', variant: 'warning' },
+/**
+ * Badge colour per status. The wording is not here on purpose: a label
+ * written into a module-level map is fixed in one language, so the words
+ * come from `t('status.request.<STATUS>')` at render instead.
+ */
+const STATUS_VARIANT: Record<string, 'success' | 'warning' | 'info' | 'default' | 'danger'> = {
+  DRAFT: 'default',
+  SUBMITTED: 'info',
+  UNDER_REVIEW: 'info',
+  APPROVED: 'success',
+  PARTIALLY_APPROVED: 'warning',
+  REJECTED: 'danger',
+  CANCELLED: 'danger',
+  READY_FOR_PICKUP: 'warning',
+  IN_TRANSIT: 'info',
+  DELIVERED: 'success',
+  PARTIALLY_DELIVERED: 'warning',
 };
 
 const PRIORITY_COLOR: Record<string, string> = {
@@ -32,6 +38,7 @@ const PRIORITY_COLOR: Record<string, string> = {
 };
 
 export default function BloodRequestsPage() {
+  const { t } = useTranslation();
   const [user, setUser] = useState<MeResponse | null>(null);
   const [organizationId, setOrganizationId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
@@ -87,11 +94,11 @@ export default function BloodRequestsPage() {
   if (isLoading) {
     return (
       <AppShell
-        title="Loading..."
-        subtitle="BLOOD CENTER CONSOLE"
+        title={t('ops.common.loadingEllipsis')}
+        subtitle={t('portal.bloodCenter.console')}
         organizationName="RedCross Blood Center (Development)"
         organizationType="Blood Center workspace"
-        userName="Loading..."
+        userName={t('ops.common.loadingEllipsis')}
       >
         <div className="flex items-center justify-center p-12">
           <Droplet className="animate-spin text-donor-primary" size={32} />
@@ -103,8 +110,8 @@ export default function BloodRequestsPage() {
   if (!user) {
     return (
       <AppShell
-        title="Authentication Required"
-        subtitle="BLOOD CENTER CONSOLE"
+        title={t('portal.authRequired')}
+        subtitle={t('portal.bloodCenter.console')}
         organizationName="RedCross Blood Center (Development)"
         organizationType="Blood Center workspace"
         userName="Guest"
@@ -112,10 +119,10 @@ export default function BloodRequestsPage() {
         <div className="flex flex-col items-center justify-center bc-glass rounded-card p-12">
           <Droplet className="mb-4 text-donor-primary" size={48} />
           <h2 className="mb-2 font-display text-2xl font-semibold text-donor-text">
-            Sign In Required
+            {t('ops.common.signInRequired')}
           </h2>
           <p className="mb-6 text-center text-donor-muted">
-            Please sign in to access blood requests
+            {t('ops.common.signInToRequests')}
           </p>
         </div>
       </AppShell>
@@ -129,8 +136,8 @@ export default function BloodRequestsPage() {
 
   return (
     <AppShell
-      title="Blood Requests"
-      subtitle="BLOOD CENTER OPERATIONS"
+      title={t('ops.requests.title')}
+      subtitle={t('ops.dashboard.bloodCenterOperations')}
       organizationName="RedCross Blood Center (Development)"
       organizationType="Blood Center Console"
       userName={`${user.firstName} ${user.lastName}`}
@@ -139,10 +146,10 @@ export default function BloodRequestsPage() {
         <div className="mb-4 flex items-center justify-between">
           <div>
             <h1 className="font-display text-2xl font-semibold text-donor-text">
-              Incoming Blood Requests
+              {t('ops.requests.incoming')}
             </h1>
             <p className="text-sm text-donor-muted">
-              Review and fulfill blood requests submitted by hospitals
+              {t('ops.requests.pageSubtitleCenter')}
             </p>
           </div>
           <button
@@ -151,7 +158,7 @@ export default function BloodRequestsPage() {
             className="flex items-center gap-2 rounded-lg bc-solid px-3 py-2 text-sm text-donor-text transition-colors hover:bg-donor-elevated disabled:opacity-50"
           >
             <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
-            Refresh
+            {t('actions.refresh')}
           </button>
         </div>
 
@@ -161,40 +168,40 @@ export default function BloodRequestsPage() {
             onChange={(e) => setStatusFilter(e.target.value)}
             className="rounded-lg bc-solid px-3 py-2 text-sm text-donor-text"
           >
-            <option value="">All Statuses</option>
-            <option value="SUBMITTED">Submitted</option>
-            <option value="UNDER_REVIEW">Under Review</option>
-            <option value="APPROVED">Approved</option>
-            <option value="PARTIALLY_APPROVED">Partially Approved</option>
-            <option value="REJECTED">Rejected</option>
-            <option value="READY_FOR_PICKUP">Ready for Pickup</option>
-            <option value="IN_TRANSIT">In Transit</option>
-            <option value="DELIVERED">Delivered</option>
+            <option value="">{t('filters.allStatuses')}</option>
+            <option value="SUBMITTED">{t('status.request.SUBMITTED')}</option>
+            <option value="UNDER_REVIEW">{t('home.verificationUnderReview')}</option>
+            <option value="APPROVED">{t('ops.requests.approvedCount')}</option>
+            <option value="PARTIALLY_APPROVED">{t('status.request.PARTIALLY_APPROVED')}</option>
+            <option value="REJECTED">{t('status.request.REJECTED')}</option>
+            <option value="READY_FOR_PICKUP">{t('status.request.READY_FOR_PICKUP')}</option>
+            <option value="IN_TRANSIT">{t('status.request.IN_TRANSIT')}</option>
+            <option value="DELIVERED">{t('status.request.DELIVERED')}</option>
           </select>
         </div>
       </div>
 
       <div className="mb-6 grid gap-4 md:grid-cols-4">
         <StatCard
-          label="Needs Review"
+          label={t('ops.requests.needsReview')}
           value={pendingCount.toString()}
           icon={Clock}
           variant={pendingCount > 0 ? 'warning' : 'success'}
         />
         <StatCard
-          label="Ready for Pickup"
+          label={t('status.request.READY_FOR_PICKUP')}
           value={readyCount.toString()}
           icon={CheckCircle}
           variant={readyCount > 0 ? 'warning' : 'success'}
         />
         <StatCard
-          label="In Transit"
+          label={t('status.request.IN_TRANSIT')}
           value={inTransitCount.toString()}
           icon={Truck}
           variant="info"
         />
         <StatCard
-          label="Delivered"
+          label={t('status.request.DELIVERED')}
           value={deliveredCount.toString()}
           icon={CheckCircle}
           variant="success"
@@ -203,16 +210,13 @@ export default function BloodRequestsPage() {
 
       {requests.length === 0 ? (
         <EmptyState
-          title="No incoming blood requests"
-          description="Requests submitted by hospitals will appear here for review."
+          title={t('ops.requests.emptyIncoming')}
+          description={t('ops.requests.emptyIncomingHint')}
         />
       ) : (
         <div className="space-y-4">
           {requests.map((request) => {
-            const status = STATUS_CONFIG[request.status] || {
-              label: request.status,
-              variant: 'default' as const,
-            };
+            const statusVariant = STATUS_VARIANT[request.status] ?? 'default';
             const totalRequested = request.items.reduce((sum, i) => sum + i.unitsRequested, 0);
             const needsReview = ['SUBMITTED', 'UNDER_REVIEW'].includes(request.status);
             return (
@@ -231,7 +235,7 @@ export default function BloodRequestsPage() {
                         <h3 className="font-display text-lg font-semibold text-donor-text">
                           {request.requestReference}
                         </h3>
-                        <StatusBadge variant={status.variant}>{status.label}</StatusBadge>
+                        <StatusBadge variant={statusVariant}>{t(`status.request.${request.status}`)}</StatusBadge>
                         <span className={`text-xs font-semibold uppercase ${PRIORITY_COLOR[request.priority] || 'text-donor-muted'}`}>
                           {request.priority}
                         </span>
@@ -251,7 +255,7 @@ export default function BloodRequestsPage() {
                   </div>
                   {needsReview && (
                     <span className="rounded-full bg-donor-warningMuted px-3 py-1 text-xs font-semibold text-donor-onWarningMuted">
-                      Needs Review
+                      {t('ops.requests.needsReview')}
                     </span>
                   )}
                 </div>

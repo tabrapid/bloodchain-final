@@ -1,3 +1,5 @@
+import { translate } from '@bloodchain/ui/i18n';
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 const API_BASE_PATH = '/api/v1';
 
@@ -84,7 +86,7 @@ async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T
       response = await fetch(`${API_BASE_URL}${API_BASE_PATH}${path}`, { ...options, headers });
     } else {
       clearTokens();
-      throw new ApiRequestError({ statusCode: 401, code: 'UNAUTHORIZED', message: 'Session expired' });
+      throw new ApiRequestError({ statusCode: 401, code: 'UNAUTHORIZED', message: translate('ops.common.sessionExpired') });
     }
   }
 

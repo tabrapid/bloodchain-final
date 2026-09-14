@@ -6,6 +6,7 @@ import { AlertCircle, ArrowLeft, Droplet, Plus, Trash2 } from 'lucide-react';
 import { me, isAuthenticated, MeResponse } from '../../../lib/auth';
 import { createBloodRequest } from '../../../lib/shipments';
 import { AppShell } from '../../../components/AppShell';
+import { useTranslation } from '@bloodchain/ui/i18n';
 
 const BLOOD_TYPES = ['A', 'B', 'AB', 'O'];
 const RH_FACTORS = ['POSITIVE', 'NEGATIVE'];
@@ -24,6 +25,7 @@ function emptyItem(): RequestItemForm {
 }
 
 export default function NewBloodRequestPage() {
+  const { t } = useTranslation();
   const router = useRouter();
 
   const [user, setUser] = useState<MeResponse | null>(null);
@@ -88,7 +90,7 @@ export default function NewBloodRequestPage() {
       router.push(`/requests/${request.id}`);
     } catch (err) {
       console.error('Failed to create blood request:', err);
-      setError(err instanceof Error ? err.message : 'Failed to create blood request');
+      setError(err instanceof Error ? err.message : t('ops.requests.createFailed'));
     } finally {
       setSubmitting(false);
     }
@@ -97,11 +99,11 @@ export default function NewBloodRequestPage() {
   if (isLoading) {
     return (
       <AppShell
-        title="Loading..."
-        subtitle="HOSPITAL CONSOLE"
+        title={t('ops.common.loadingEllipsis')}
+        subtitle={t('portal.hospital.console')}
         organizationName="Hospital Console"
         organizationType="Hospital workspace"
-        userName="Loading..."
+        userName={t('ops.common.loadingEllipsis')}
       >
         <div className="flex items-center justify-center p-12">
           <Droplet className="animate-spin text-donor-primary" size={32} />
@@ -112,8 +114,8 @@ export default function NewBloodRequestPage() {
 
   return (
     <AppShell
-      title="New Blood Request"
-      subtitle="HOSPITAL OPERATIONS"
+      title={t('ops.requests.newRequest')}
+      subtitle={t('ops.dashboard.hospitalOperations')}
       organizationName={user?.organizations.find((org) => org.type === 'HOSPITAL')?.name ?? 'Hospital Console'}
       organizationType="Hospital Console"
       userName={user ? `${user.firstName} ${user.lastName}` : 'Guest'}
@@ -123,26 +125,26 @@ export default function NewBloodRequestPage() {
         className="mb-4 flex items-center gap-2 text-sm text-donor-muted hover:text-donor-text"
       >
         <ArrowLeft size={16} />
-        Back to Blood Requests
+        {t('ops.common.backToRequests')}
       </button>
 
       <div className="mb-6">
-        <h1 className="font-display text-2xl font-semibold text-donor-text">New Blood Request</h1>
+        <h1 className="font-display text-2xl font-semibold text-donor-text">{t('ops.requests.newRequest')}</h1>
         <p className="text-sm text-donor-muted">
-          Request blood units from a blood center. Any active blood center can review and fulfill it.
+          {t('ops.requests.newRequestHint')}
         </p>
       </div>
 
       <div className="max-w-3xl space-y-6">
         <div className="bc-glass rounded-card p-5">
           <div className="mb-4 flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-donor-text">Units Needed</h3>
+            <h3 className="text-sm font-semibold text-donor-text">{t('ops.requests.unitsNeeded')}</h3>
             <button
               onClick={addItem}
               className="flex items-center gap-1 rounded-lg border border-donor-border px-3 py-1.5 text-xs font-semibold text-donor-text hover:bg-donor-elevated"
             >
               <Plus size={14} />
-              Add Line
+              {t('ops.common.addLine')}
             </button>
           </div>
 
@@ -150,7 +152,7 @@ export default function NewBloodRequestPage() {
             {items.map((item, index) => (
               <div key={index} className="grid grid-cols-[1fr_1fr_1.4fr_0.9fr_auto] items-end gap-3 rounded-lg border border-donor-border/60 p-3">
                 <div>
-                  <label className="mb-1 block text-xs text-donor-muted">Blood Type</label>
+                  <label className="mb-1 block text-xs text-donor-muted">{t('home.bloodTypeLabel')}</label>
                   <select
                     value={item.bloodType}
                     onChange={(e) => updateItem(index, { bloodType: e.target.value })}
@@ -162,7 +164,7 @@ export default function NewBloodRequestPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs text-donor-muted">Rh Factor</label>
+                  <label className="mb-1 block text-xs text-donor-muted">{t('medical.rhFactor')}</label>
                   <select
                     value={item.rhFactor}
                     onChange={(e) => updateItem(index, { rhFactor: e.target.value })}
@@ -174,7 +176,7 @@ export default function NewBloodRequestPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs text-donor-muted">Component</label>
+                  <label className="mb-1 block text-xs text-donor-muted">{t('ops.common.component')}</label>
                   <select
                     value={item.componentType}
                     onChange={(e) => updateItem(index, { componentType: e.target.value })}
@@ -186,7 +188,7 @@ export default function NewBloodRequestPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs text-donor-muted">Units</label>
+                  <label className="mb-1 block text-xs text-donor-muted">{t('table.units')}</label>
                   <input
                     type="number"
                     min={1}
@@ -199,7 +201,7 @@ export default function NewBloodRequestPage() {
                   onClick={() => removeItem(index)}
                   disabled={items.length === 1}
                   className="rounded-lg p-2 text-donor-muted hover:bg-donor-dangerMuted hover:text-donor-onDangerMuted disabled:opacity-30"
-                  title="Remove line"
+                  title={t('ops.requests.removeLine')}
                 >
                   <Trash2 size={16} />
                 </button>
@@ -209,10 +211,10 @@ export default function NewBloodRequestPage() {
         </div>
 
         <div className="bc-glass rounded-card p-5">
-          <h3 className="mb-4 text-sm font-semibold text-donor-text">Request Details</h3>
+          <h3 className="mb-4 text-sm font-semibold text-donor-text">{t('ops.requests.details')}</h3>
           <div className="grid gap-4 md:grid-cols-2">
             <div>
-              <label className="mb-1 block text-xs text-donor-muted">Priority</label>
+              <label className="mb-1 block text-xs text-donor-muted">{t('table.priority')}</label>
               <select
                 value={priority}
                 onChange={(e) => setPriority(e.target.value)}
@@ -238,7 +240,7 @@ export default function NewBloodRequestPage() {
                 type="text"
                 value={deliveryAddress}
                 onChange={(e) => setDeliveryAddress(e.target.value)}
-                placeholder="Defaults to hospital address"
+                placeholder={t('ops.requests.addressDefault')}
                 className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-sm text-donor-text"
               />
             </div>
@@ -259,7 +261,7 @@ export default function NewBloodRequestPage() {
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
               className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-sm text-donor-text"
-              placeholder="Any context that would help the blood center prioritize this request"
+              placeholder={t('ops.requests.notesHint')}
             />
           </div>
         </div>
@@ -276,7 +278,7 @@ export default function NewBloodRequestPage() {
             onClick={() => router.push('/requests')}
             className="rounded-lg border border-donor-border px-4 py-2 text-sm text-donor-text"
           >
-            Cancel
+            {t('actions.cancel')}
           </button>
           <button
             onClick={handleSubmit}

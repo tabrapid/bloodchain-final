@@ -7,8 +7,10 @@ import { listAuditLogs, type AuditLog } from '@lib/api';
 import { me, isAuthenticated } from '@lib/auth';
 import {  } from '@lib/status';
 import { AppShell } from '../../components/AppShell';
+import { useTranslation } from '@bloodchain/ui/i18n';
 
 export default function AuditLogsPage() {
+  const { t } = useTranslation();
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [logs, setLogs] = useState<AuditLog[]>([]);
@@ -55,17 +57,17 @@ export default function AuditLogsPage() {
 
   if (isLoading) {
     return (
-      <AppShell title="Audit Logs" userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
+      <AppShell title={t('portal.nav.audit')} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
         <LoadingState />
       </AppShell>
     );
   }
 
   return (
-    <AppShell title="Audit Logs" userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
+    <AppShell title={t('portal.nav.audit')} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
       <div className="p-6">
         <div className="mb-6">
-          <p className="text-sm text-donor-muted">Platform activity and security events</p>
+          <p className="text-sm text-donor-muted">{t('ops.audit.subtitle')}</p>
         </div>
 
         <div className="bc-glass rounded-card mb-6">
@@ -76,31 +78,31 @@ export default function AuditLogsPage() {
                 onChange={(e) => setActionFilter(e.target.value)}
                 className="bc-solid rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-donor-primary"
               >
-                <option value="">All Actions</option>
-                <option value="USER_SUSPENDED">User Suspended</option>
-                <option value="USER_RESTORED">User Restored</option>
-                <option value="ORGANIZATION_VERIFIED">Organization Verified</option>
-                <option value="ORGANIZATION_REJECTED">Organization Rejected</option>
-                <option value="ORGANIZATION_SUSPENDED">Organization Suspended</option>
-                <option value="COURIER_SUSPENDED">Courier Suspended</option>
-                <option value="ALERT_ACKNOWLEDGED">Alert Acknowledged</option>
+                <option value="">{t('ops.audit.allActions')}</option>
+                <option value="USER_SUSPENDED">{t('ops.audit.userSuspended')}</option>
+                <option value="USER_RESTORED">{t('ops.audit.userRestored')}</option>
+                <option value="ORGANIZATION_VERIFIED">{t('ops.audit.organizationVerified')}</option>
+                <option value="ORGANIZATION_REJECTED">{t('ops.audit.organizationRejected')}</option>
+                <option value="ORGANIZATION_SUSPENDED">{t('ops.audit.organizationSuspended')}</option>
+                <option value="COURIER_SUSPENDED">{t('ops.audit.courierSuspended')}</option>
+                <option value="ALERT_ACKNOWLEDGED">{t('ops.audit.alertAcknowledged')}</option>
               </select>
               <select
                 value={entityFilter}
                 onChange={(e) => setEntityFilter(e.target.value)}
                 className="bc-solid rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-donor-primary"
               >
-                <option value="">All Entities</option>
-                <option value="User">User</option>
-                <option value="Organization">Organization</option>
-                <option value="Courier">Courier</option>
-                <option value="InventoryAlert">Alert</option>
+                <option value="">{t('ops.audit.allEntities')}</option>
+                <option value={t('table.user')}>{t('table.user')}</option>
+                <option value={t('table.organization')}>{t('table.organization')}</option>
+                <option value={t('table.courier')}>{t('table.courier')}</option>
+                <option value="InventoryAlert">{t('ops.audit.entityAlert')}</option>
               </select>
               <button
                 type="submit"
                 className="bg-donor-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-donor-primary/85"
               >
-                Filter
+                {t('actions.filter')}
               </button>
             </form>
           </div>
@@ -109,19 +111,19 @@ export default function AuditLogsPage() {
             <table className="w-full">
               <thead>
                 <tr className="bg-donor-elevated border-b border-donor-border/40">
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Timestamp</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Actor</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Action</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Entity</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Details</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">IP Address</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('ops.audit.timestamp')}</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('ops.audit.actor')}</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('ops.audit.action')}</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('ops.audit.entity')}</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.details')}</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('ops.audit.ipAddress')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-donor-border/40">
                 {logs.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-4 py-8 text-center text-sm text-donor-muted">
-                      No audit logs found
+                      {t('ops.audit.empty')}
                     </td>
                   </tr>
                 ) : (
@@ -142,7 +144,7 @@ export default function AuditLogsPage() {
                             <p className="text-xs text-donor-muted">{log.actor.email}</p>
                           </div>
                         ) : (
-                          <span className="text-sm text-donor-muted">System</span>
+                          <span className="text-sm text-donor-muted">{t('ops.audit.system')}</span>
                         )}
                       </td>
                       <td className="px-4 py-3">
@@ -180,14 +182,14 @@ export default function AuditLogsPage() {
                   disabled={meta.page === 1}
                   className="px-3 py-1 bc-solid rounded text-sm disabled:opacity-50"
                 >
-                  Previous
+                  {t('actions.previous')}
                 </button>
                 <button
                   onClick={() => loadLogs(meta.page + 1)}
                   disabled={meta.page === meta.totalPages}
                   className="px-3 py-1 bc-solid rounded text-sm disabled:opacity-50"
                 >
-                  Next
+                  {t('actions.next')}
                 </button>
               </div>
             </div>

@@ -7,8 +7,10 @@ import { me, isAuthenticated } from '@lib/auth';
 import { StatusBadgeWrapper } from '@lib/status';
 import {  } from 'lucide-react';
 import { AppShell } from '../../components/AppShell';
+import { useTranslation } from '@bloodchain/ui/i18n';
 
 export default function ShipmentsPage() {
+  const { t } = useTranslation();
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [shipments, setShipments] = useState<Shipment[]>([]);
@@ -53,17 +55,17 @@ export default function ShipmentsPage() {
 
   if (isLoading) {
     return (
-      <AppShell title="Shipment Monitoring" userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
+      <AppShell title={t('ops.shipments.monitoring')} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
         <LoadingState />
       </AppShell>
     );
   }
 
   return (
-    <AppShell title="Shipment Monitoring" userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
+    <AppShell title={t('ops.shipments.monitoring')} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
       <div className="p-6">
         <div className="mb-6">
-          <p className="text-sm text-donor-muted">Track and monitor all blood shipments across the platform</p>
+          <p className="text-sm text-donor-muted">{t('ops.shipments.monitoringHint')}</p>
         </div>
 
         <div className="bc-glass rounded-card mb-6">
@@ -74,23 +76,23 @@ export default function ShipmentsPage() {
                 onChange={(e) => setStatusFilter(e.target.value)}
                 className="bc-solid rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-donor-primary"
               >
-                <option value="">All Status</option>
-                <option value="CREATED">Created</option>
-                <option value="COURIER_ASSIGNED">Courier Assigned</option>
-                <option value="COURIER_ACCEPTED">Accepted</option>
-                <option value="PICKUP_STARTED">Pickup Started</option>
-                <option value="PICKED_UP">Picked Up</option>
-                <option value="IN_TRANSIT">In Transit</option>
-                <option value="ARRIVED_AT_HOSPITAL">Arrived</option>
-                <option value="DELIVERED">Delivered</option>
-                <option value="FAILED">Failed</option>
-                <option value="CANCELLED">Cancelled</option>
+                <option value="">{t('ops.common.allStatus')}</option>
+                <option value="CREATED">{t('table.created')}</option>
+                <option value="COURIER_ASSIGNED">{t('status.shipment.COURIER_ASSIGNED')}</option>
+                <option value="COURIER_ACCEPTED">{t('status.shipment.COURIER_ACCEPTED')}</option>
+                <option value="PICKUP_STARTED">{t('status.shipment.PICKUP_STARTED')}</option>
+                <option value="PICKED_UP">{t('status.shipment.PICKED_UP')}</option>
+                <option value="IN_TRANSIT">{t('status.shipment.IN_TRANSIT')}</option>
+                <option value="ARRIVED_AT_HOSPITAL">{t('status.shipment.ARRIVED_AT_HOSPITAL')}</option>
+                <option value="DELIVERED">{t('status.shipment.DELIVERED')}</option>
+                <option value="FAILED">{t('status.shipment.FAILED')}</option>
+                <option value="CANCELLED">{t('appointment.cancelledNotice')}</option>
               </select>
               <button
                 type="submit"
                 className="bg-donor-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-donor-primary/85"
               >
-                Filter
+                {t('actions.filter')}
               </button>
             </form>
           </div>
@@ -99,20 +101,20 @@ export default function ShipmentsPage() {
             <table className="w-full">
               <thead>
                 <tr className="bg-donor-elevated border-b border-donor-border/40">
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Reference</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Status</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Source</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Destination</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Courier</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Units</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Created</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('ops.requests.reference')}</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.status')}</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('ops.shipments.source')}</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('ops.shipments.destination')}</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.courier')}</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.units')}</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.created')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-donor-border/40">
                 {shipments.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="px-4 py-8 text-center text-sm text-donor-muted">
-                      No shipments found
+                      {t('ops.shipments.noneFound')}
                     </td>
                   </tr>
                 ) : (
@@ -160,14 +162,14 @@ export default function ShipmentsPage() {
                   disabled={meta.page === 1}
                   className="px-3 py-1 bc-solid rounded text-sm disabled:opacity-50"
                 >
-                  Previous
+                  {t('actions.previous')}
                 </button>
                 <button
                   onClick={() => loadShipments(meta.page + 1)}
                   disabled={meta.page === meta.totalPages}
                   className="px-3 py-1 bc-solid rounded text-sm disabled:opacity-50"
                 >
-                  Next
+                  {t('actions.next')}
                 </button>
               </div>
             </div>

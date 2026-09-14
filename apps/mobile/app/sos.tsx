@@ -23,6 +23,7 @@ import {
 } from '../src/components';
 import { LocationMap, type MapMarkerPoint } from '../src/components/map/LocationMap';
 import { layout, spacing, useTheme } from '../src/theme';
+import { useTranslation } from '../src/i18n';
 import {
   acceptEmergency,
   arriveAtHospital,
@@ -60,6 +61,7 @@ function timeLeftLabel(requiredBefore?: string): string | null {
 }
 
 export default function SosScreen() {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const [status, setStatus] = useState<EmergencyStatus>('idle');
   const [emergencies, setEmergencies] = useState<EmergencyRequest[]>([]);
@@ -76,7 +78,7 @@ export default function SosScreen() {
       setMyResponses(response.myResponses);
       setStatus('idle');
     } catch (err: any) {
-      setError(err.message || 'Failed to load emergencies');
+      setError(err.message || t('sos.loadFailed'));
       setStatus('error');
     }
   }, []);
@@ -93,10 +95,7 @@ export default function SosScreen() {
     async function startTracking() {
       const { status: permissionStatus } = await Location.requestForegroundPermissionsAsync();
       if (permissionStatus !== 'granted') {
-        Alert.alert(
-          'Location Permission Needed',
-          'Bloodchain needs your location while en route so the hospital can track your journey.',
-        );
+        Alert.alert(t('sos.locationPermissionTitle'), t('sos.locationPermissionBody'));
         return;
       }
 
@@ -173,7 +172,7 @@ export default function SosScreen() {
                 id: 'donor',
                 latitude: Number(donorPing.latitude),
                 longitude: Number(donorPing.longitude),
-                label: 'You',
+                label: t('sos.you'),
                 variant: 'donor' as const,
               },
             ]
@@ -200,7 +199,7 @@ export default function SosScreen() {
       setSelectedEmergency(emergency);
       setStatus('viewing');
     } catch (err: any) {
-      Alert.alert('Error', err.message || 'Failed to view emergency');
+      Alert.alert(t('common.error'), err.message || t('sos.viewFailed'));
     }
   };
 
@@ -220,7 +219,7 @@ export default function SosScreen() {
       });
       setStatus('responding');
     } catch (err: any) {
-      Alert.alert('Error', err.message || 'Failed to accept emergency');
+      Alert.alert(t('common.error'), err.message || t('sos.acceptFailed'));
     }
   };
 
@@ -232,7 +231,7 @@ export default function SosScreen() {
       setStatus('idle');
       setSelectedEmergency(null);
     } catch (err: any) {
-      Alert.alert('Error', err.message || 'Failed to decline emergency');
+      Alert.alert(t('common.error'), err.message || t('sos.declineFailed'));
     }
   };
 
@@ -244,7 +243,7 @@ export default function SosScreen() {
       setSelectedEmergency({ ...emergency, responseStatus: 'EN_ROUTE' });
       setStatus('en_route');
     } catch (err: any) {
-      Alert.alert('Error', err.message || 'Failed to start journey');
+      Alert.alert(t('common.error'), err.message || t('sos.startJourneyFailed'));
     }
   };
 
@@ -256,19 +255,19 @@ export default function SosScreen() {
       setSelectedEmergency({ ...emergency, responseStatus: 'ARRIVED' });
       setStatus('arrived');
     } catch (err: any) {
-      Alert.alert('Error', err.message || 'Failed to confirm arrival');
+      Alert.alert(t('common.error'), err.message || t('sos.arriveFailed'));
     }
   };
 
   const handleCancelResponse = async (emergency: EmergencyRequest) => {
     if (!emergency.responseId) return;
     Alert.alert(
-      'Cancel Response',
-      'Are you sure you want to cancel your response to this emergency?',
+      t('sos.cancelResponseTitle'),
+      t('sos.cancelResponseBody'),
       [
-        { text: 'No', style: 'cancel' },
+        { text: t('appointment.cancelKeep'), style: 'cancel' },
         {
-          text: 'Yes, Cancel',
+          text: t('appointment.cancelConfirm'),
           style: 'destructive',
           onPress: async () => {
             try {
@@ -277,7 +276,7 @@ export default function SosScreen() {
               setStatus('idle');
               setSelectedEmergency(null);
             } catch (err: any) {
-              Alert.alert('Error', err.message || 'Failed to cancel response');
+              Alert.alert(t('common.error'), err.message || t('sos.cancelResponseFailed'));
             }
           },
         },
@@ -300,36 +299,22 @@ export default function SosScreen() {
 
   const getStatusLabel = (emergency: EmergencyRequest) => {
     if (emergency.responseStatus) {
-      switch (emergency.responseStatus) {
-        case 'ACCEPTED':
-          return 'Accepted - Ready to go';
-        case 'EN_ROUTE':
-          return 'En Route to Hospital';
-        case 'ARRIVED':
-          return 'Arrived at Hospital';
-        case 'DONATION_STARTED':
-          return 'Donation in Progress';
-        case 'COMPLETED':
-          return 'Donation Completed';
-        case 'CANCELLED':
-          return 'Response Cancelled';
-        default:
-          return emergency.responseStatus;
-      }
+      if (emergency.responseStatus === 'ACCEPTED') return t('sos.responseReadyToGo');
+      return t(`status.response.${emergency.responseStatus}`);
     }
     if (emergency.matchStatus) {
       switch (emergency.matchStatus) {
         case 'MATCHED':
-          return 'New Match - Tap to view';
+          return t('sos.matchNew');
         case 'NOTIFIED':
-          return 'Notification Sent';
+          return t('sos.matchNotified');
         case 'VIEWED':
-          return 'Viewed - Accept or Decline';
+          return t('sos.matchViewed');
         default:
           return emergency.matchStatus;
       }
     }
-    return emergency.status;
+    return t(`status.emergency.${emergency.status}`);
   };
 
   const renderEmergencyCard = (emergency: EmergencyRequest) => {
@@ -402,7 +387,7 @@ export default function SosScreen() {
   if (status === 'loading') {
     return (
       <Screen>
-        <ScreenHeader title="Emergency SOS" />
+        <ScreenHeader title={t('sos.title')} />
         <LoadingState />
       </Screen>
     );
@@ -411,18 +396,18 @@ export default function SosScreen() {
   if (status === 'error') {
     return (
       <Screen>
-        <ScreenHeader title="Emergency SOS" />
+        <ScreenHeader title={t('sos.title')} />
         <View style={{ flex: 1, justifyContent: 'center', padding: spacing.lg }}>
           <Card style={{ alignItems: 'center' }}>
             <XCircle size={48} color={colors.danger} />
             <AppText variant="heading" style={{ marginTop: spacing.md, textAlign: 'center' }}>
-              Error Loading Emergencies
+              {t('sos.loadFailedTitle')}
             </AppText>
             <AppText variant="body" style={{ color: colors.textMuted, marginTop: spacing.sm, textAlign: 'center' }}>
               {error}
             </AppText>
             <AppButton variant="primary" onPress={loadEmergencies} style={{ marginTop: spacing.lg }}>
-              Try Again
+              {t('common.retry')}
             </AppButton>
           </Card>
         </View>
@@ -433,7 +418,7 @@ export default function SosScreen() {
   if (status === 'viewing' && selectedEmergency) {
     return (
       <Screen>
-        <ScreenHeader title="Emergency Details" onBack={() => setStatus('idle')} />
+        <ScreenHeader title={t('sos.details')} onBack={() => setStatus('idle')} />
         <ScrollView style={{ flex: 1, padding: spacing.lg }}>
           <Card style={{ marginBottom: layout.cardGap }}>
             <View style={{ alignItems: 'center', marginBottom: spacing.lg }}>
@@ -475,26 +460,26 @@ export default function SosScreen() {
             <View style={{ borderTopWidth: 1, borderTopColor: colors.border, paddingTop: spacing.lg }}>
               <View style={{ gap: spacing.md }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                  <AppText variant="body" style={{ color: colors.textMuted }}>Blood Type Needed</AppText>
+                  <AppText variant="body" style={{ color: colors.textMuted }}>{t('sos.bloodTypeNeeded')}</AppText>
                   <AppText variant="heading" style={{ color: colors.text }}>
                     {selectedEmergency.bloodType}-{selectedEmergency.rhFactor}
                   </AppText>
                 </View>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                  <AppText variant="body" style={{ color: colors.textMuted }}>Units Required</AppText>
+                  <AppText variant="body" style={{ color: colors.textMuted }}>{t('sos.unitsRequired')}</AppText>
                   <AppText variant="heading" style={{ color: colors.text }}>
                     {selectedEmergency.unitsRequired}
                   </AppText>
                 </View>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                  <AppText variant="body" style={{ color: colors.textMuted }}>Hospital</AppText>
+                  <AppText variant="body" style={{ color: colors.textMuted }}>{t('table.hospital')}</AppText>
                   <AppText variant="heading" style={{ color: colors.text, textAlign: 'right', maxWidth: '60%' }}>
                     {selectedEmergency.hospital.name}
                   </AppText>
                 </View>
                 {selectedEmergency.donationLocation && (
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                    <AppText variant="body" style={{ color: colors.textMuted }}>Location</AppText>
+                    <AppText variant="body" style={{ color: colors.textMuted }}>{t('table.location')}</AppText>
                     <AppText variant="heading" style={{ color: colors.text, textAlign: 'right', maxWidth: '60%' }}>
                       {selectedEmergency.donationLocation}
                     </AppText>
@@ -502,7 +487,7 @@ export default function SosScreen() {
                 )}
                 {selectedEmergency.description && (
                   <View>
-                    <AppText variant="body" style={{ color: colors.textMuted, marginBottom: spacing.xs }}>Description</AppText>
+                    <AppText variant="body" style={{ color: colors.textMuted, marginBottom: spacing.xs }}>{t('sos.description')}</AppText>
                     <AppText variant="body" style={{ color: colors.text }}>
                       {selectedEmergency.description}
                     </AppText>
@@ -514,11 +499,14 @@ export default function SosScreen() {
 
           <Card style={{ marginBottom: layout.cardGap }}>
             <AppText variant="heading" style={{ marginBottom: spacing.md }}>
-              Are you able to help?
+              {t('sos.canYouHelp')}
             </AppText>
             <AppText variant="body" style={{ color: colors.textMuted, marginBottom: spacing.lg }}>
-              Your blood type ({selectedEmergency.bloodType}
-              {selectedEmergency.rhFactor === 'POSITIVE' ? '+' : '-'}) is compatible with this request.
+              {t('sos.compatible', {
+                bloodType: `${selectedEmergency.bloodType}${
+                  selectedEmergency.rhFactor === 'POSITIVE' ? '+' : '-'
+                }`,
+              })}
             </AppText>
             <View style={{ gap: spacing.sm }}>
               <AppButton
@@ -527,7 +515,7 @@ export default function SosScreen() {
                 style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm }}
               >
                 <CheckCircle size={20} />
-                Yes, I Can Help
+                {t('sos.yesICanHelp')}
               </AppButton>
               <AppButton
                 variant="danger"
@@ -535,7 +523,7 @@ export default function SosScreen() {
                 style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm }}
               >
                 <XCircle size={20} />
-                Decline Request
+                {t('sos.declineRequest')}
               </AppButton>
             </View>
           </Card>
@@ -548,15 +536,15 @@ export default function SosScreen() {
     return (
       <Screen>
         <ScreenHeader
-          title="Your Response"
+          title={t('sos.yourResponse')}
           onBack={() => {
             if (status === 'en_route' || status === 'arrived') {
               Alert.alert(
-                'Go Back',
-                'Are you sure? You will lose your progress.',
+                t('sos.leaveTitle'),
+                t('sos.leaveBody'),
                 [
-                  { text: 'Stay', style: 'cancel' },
-                  { text: 'Leave', style: 'destructive', onPress: () => setStatus('idle') },
+                  { text: t('sos.stay'), style: 'cancel' },
+                  { text: t('sos.leave'), style: 'destructive', onPress: () => setStatus('idle') },
                 ]
               );
             } else {
@@ -580,10 +568,10 @@ export default function SosScreen() {
                 <CheckCircle size={40} color={colors.onMuted.success} />
               </View>
               <AppText variant="heading" style={{ marginTop: spacing.md, textAlign: 'center' }}>
-                Response Accepted
+                {t('sos.responseAccepted')}
               </AppText>
               <AppText variant="body" style={{ color: colors.textMuted, marginTop: spacing.sm, textAlign: 'center' }}>
-                You have committed to help. Please proceed to the hospital.
+                {t('sos.responseAcceptedBody')}
               </AppText>
             </View>
 
@@ -610,7 +598,7 @@ export default function SosScreen() {
 
           <Card style={{ marginBottom: layout.cardGap }}>
             <AppText variant="heading" style={{ marginBottom: spacing.md }}>
-              What to do next
+              {t('sos.whatToDoNext')}
             </AppText>
             <View style={{ gap: spacing.md }}>
               {status === 'responding' && (
@@ -620,7 +608,7 @@ export default function SosScreen() {
                   style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm }}
                 >
                   <Navigation size={20} />
-                  Start Journey
+                  {t('sos.startJourney')}
                 </AppButton>
               )}
               {status === 'en_route' && (
@@ -637,7 +625,7 @@ export default function SosScreen() {
                   >
                     <Navigation size={20} color={colors.onMuted.primary} />
                     <AppText variant="body" style={{ color: colors.onMuted.primary, flex: 1 }}>
-                      You are on your way to the hospital
+                      {t('sos.onYourWay')}
                     </AppText>
                   </View>
                   <AppButton
@@ -646,7 +634,7 @@ export default function SosScreen() {
                     style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm }}
                   >
                     <CheckCircle size={20} />
-                    I Have Arrived
+                    {t('sos.iHaveArrived')}
                   </AppButton>
                 </>
               )}
@@ -661,10 +649,10 @@ export default function SosScreen() {
                 >
                   <CheckCircle size={40} color={colors.onMuted.success} />
                   <AppText variant="heading" style={{ marginTop: spacing.md }}>
-                    Please check in at the reception
+                    {t('sos.checkInAtReception')}
                   </AppText>
                   <AppText variant="body" style={{ color: colors.textMuted, marginTop: spacing.xs, textAlign: 'center' }}>
-                    The hospital staff has been notified of your arrival.
+                    {t('sos.staffNotified')}
                   </AppText>
                 </View>
               )}
@@ -675,7 +663,7 @@ export default function SosScreen() {
                   style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm }}
                 >
                   <XCircle size={20} />
-                  Cancel My Response
+                  {t('sos.cancelMyResponse')}
                 </AppButton>
               )}
             </View>
@@ -694,7 +682,7 @@ export default function SosScreen() {
         <Pressable
           onPress={() => router.back()}
           accessibilityRole="button"
-          accessibilityLabel="Go back"
+          accessibilityLabel={t('auth.a11y.goBack')}
           style={({ pressed }) => ({
             flexDirection: 'row',
             alignItems: 'center',
@@ -706,7 +694,7 @@ export default function SosScreen() {
           })}
         >
           <ArrowLeft size={16} color={colors.primary} strokeWidth={2.5} />
-          <AppText style={{ fontSize: 14, fontWeight: '600', color: colors.primary }}>Back</AppText>
+          <AppText style={{ fontSize: 14, fontWeight: '600', color: colors.primary }}>{t('actions.back')}</AppText>
         </Pressable>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: spacing.md }}>
           <View>
@@ -745,12 +733,12 @@ export default function SosScreen() {
           </View>
           <View style={{ flex: 1 }}>
             <AppText style={{ fontSize: 24, fontWeight: '800', letterSpacing: -0.48, color: colors.text }}>
-              Emergency SOS
+              {t('sos.title')}
             </AppText>
             <AppText muted style={{ fontSize: 13, marginTop: 2 }}>
               {emergencies.length > 0
-                ? `${emergencies.length} active request${emergencies.length !== 1 ? 's' : ''} near you`
-                : 'No active requests right now'}
+                ? t('units.activeRequestsNearYou', { count: emergencies.length })
+                : t('sos.noActiveRequests')}
             </AppText>
           </View>
         </View>
@@ -763,7 +751,7 @@ export default function SosScreen() {
         {emergencies.length > 0 ? (
           <>
             <AppText variant="caption" style={{ color: colors.textMuted, marginBottom: spacing.sm }}>
-              ACTIVE EMERGENCY REQUESTS NEAR YOU
+              {t('sos.activeNearYou')}
             </AppText>
             {emergencies.map((emergency) => (
               <TouchableOpacity
@@ -779,10 +767,10 @@ export default function SosScreen() {
           <Card style={{ alignItems: 'center', paddingVertical: spacing.xl }}>
             <AlertTriangle size={48} color={colors.textMuted} />
             <AppText variant="heading" style={{ marginTop: spacing.md }}>
-              No Active Emergencies
+              {t('sos.noActiveEmergencies')}
             </AppText>
             <AppText variant="body" style={{ color: colors.textMuted, marginTop: spacing.xs, textAlign: 'center' }}>
-              There are no emergency blood requests matching your blood type right now.
+              {t('sos.noActiveEmergenciesHint')}
             </AppText>
           </Card>
         )}
@@ -790,7 +778,7 @@ export default function SosScreen() {
         {myResponses.length > 0 && (
           <>
             <AppText variant="caption" style={{ color: colors.textMuted, marginBottom: spacing.sm, marginTop: spacing.lg }}>
-              YOUR ACTIVE RESPONSES
+              {t('sos.yourActiveResponses')}
             </AppText>
             {myResponses.map((emergency) => (
               <TouchableOpacity
@@ -814,15 +802,14 @@ export default function SosScreen() {
         )}
 
         <AppButton variant="secondary" onPress={loadEmergencies} style={{ marginTop: spacing.sm }}>
-          Refresh
+          {t('actions.refresh')}
         </AppButton>
 
         <Card style={{ paddingVertical: 12, paddingHorizontal: 14 }}>
           <AppText
             style={{ fontSize: 12, lineHeight: 19, color: colors.textMuted, textAlign: 'center' }}
           >
-            Responding commits you to donate within the stated timeframe. The hospital confirms
-            your appointment as soon as you accept.
+            {t('sos.commitmentNotice')}
           </AppText>
         </Card>
       </ScrollView>

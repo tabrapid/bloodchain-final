@@ -4,6 +4,7 @@ import { ArrowRight } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { AppButton } from './AppButton';
 import { ThemeProvider, colors as darkColors } from '../theme';
+import { LocaleProvider } from '../i18n';
 
 jest.mock('react-native/Libraries/Utilities/useColorScheme', () => ({
   __esModule: true,
@@ -13,7 +14,11 @@ jest.mock('react-native/Libraries/Utilities/useColorScheme', () => ({
 function render(element: React.ReactElement) {
   let tree: renderer.ReactTestRenderer;
   act(() => {
-    tree = renderer.create(<ThemeProvider>{element}</ThemeProvider>);
+    tree = renderer.create(
+      <ThemeProvider>
+        <LocaleProvider>{element}</LocaleProvider>
+      </ThemeProvider>,
+    );
   });
   return tree!;
 }

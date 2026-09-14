@@ -18,14 +18,10 @@ import {
 } from '../../src/hooks/useAppointments';
 import { ApiRequestError } from '../../src/api/client';
 import { layout, radius, spacing, useTheme, ThemeColors } from '../../src/theme';
-
-const TYPE_LABELS: Record<string, string> = {
-  BLOOD_DONATION: 'Blood Donation',
-  BLOOD_TEST: 'Blood Test',
-  CONSULTATION: 'Consultation',
-};
+import { useTranslation } from '../../src/i18n';
 
 export default function ReviewBooking() {
+  const { t, formatDate, formatTime } = useTranslation();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const params = useLocalSearchParams<{
@@ -89,15 +85,15 @@ export default function ReviewBooking() {
         err instanceof ApiRequestError
           ? err.error.message
           : isRescheduling
-            ? 'Failed to reschedule appointment. Please try again.'
-            : 'Failed to book appointment. Please try again.',
+            ? t('booking.rescheduleFailed')
+            : t('booking.bookFailed'),
       );
     }
   };
 
   if (isLoading) {
     return (
-      <BookingStep step={5} title="Review booking" subtitle="Loading your details…">
+      <BookingStep step={5} title={t('booking.review')} subtitle={t('booking.loadingDetails')}>
         <View />
       </BookingStep>
     );
@@ -110,8 +106,8 @@ export default function ReviewBooking() {
           <AlertCircle size={20} color={colors.onMuted.danger} />
           <AppText style={styles.blockingErrorText}>
             {hasLoadError
-              ? "Couldn't load your booking details. Check your connection and try again."
-              : 'This time slot is no longer available. Please choose another time.'}
+              ? t('booking.detailsFailed')
+              : t('booking.slotTaken')}
           </AppText>
         </GlassCard>
         <View style={styles.blockingActions}>
@@ -122,11 +118,11 @@ export default function ReviewBooking() {
                 refetchOrgs();
               }}
             >
-              Retry
+              {t('common.retry')}
             </AppButton>
           )}
           <AppButton variant="secondary" onPress={() => router.back()}>
-            Back
+            {t('common.back')}
           </AppButton>
         </View>
       </Screen>
@@ -138,9 +134,9 @@ export default function ReviewBooking() {
   return (
     <BookingStep
       step={5}
-      title={isRescheduling ? 'Review reschedule' : 'Review booking'}
-      subtitle="Confirm your appointment details"
-      nextLabel={isRescheduling ? 'Confirm reschedule' : 'Confirm appointment'}
+      title={isRescheduling ? t('booking.reviewReschedule') : t('booking.review')}
+      subtitle={t('booking.confirmDetails')}
+      nextLabel={isRescheduling ? t('booking.confirmReschedule') : t('booking.confirmAppointment')}
       onNext={handleConfirm}
       nextDisabled={isSaving}
       nextLoading={isSaving}
@@ -150,14 +146,14 @@ export default function ReviewBooking() {
           <DetailRow
             icon={<Droplet size={18} color={colors.onMuted.primary} />}
             tint={colors.primaryMuted}
-            label="DONATION TYPE"
-            value={TYPE_LABELS[params.type] ?? params.type}
+            label={t('booking.donationType')}
+            value={t(`appointmentTypes.${params.type}`)}
           />
           <View style={styles.divider} />
           <DetailRow
             icon={<Building2 size={18} color={colors.onMuted.secondary} />}
             tint={colors.secondaryMuted}
-            label="LOCATION"
+            label={t('table.location')}
             value={organization.name}
             meta={organization.address}
           />
@@ -165,14 +161,9 @@ export default function ReviewBooking() {
           <DetailRow
             icon={<Calendar size={18} color={colors.onMuted.success} />}
             tint={colors.successMuted}
-            label="DATE & TIME"
-            value={`${start.toLocaleDateString('en-US', {
-              weekday: 'short',
-              month: 'short',
-              day: 'numeric',
-              year: 'numeric',
-            })} · ${formatTime(slot.startAt)}`}
-            meta={`Ends around ${formatTime(slot.endAt)}`}
+            label={t('booking.dateAndTime')}
+            value={`${formatDate(start, 'medium')} · ${formatTime(slot.startAt)}`}
+            meta={t('booking.endsAround', { time: formatTime(slot.endAt) })}
           />
         </View>
       </GlassCard>
@@ -180,8 +171,8 @@ export default function ReviewBooking() {
       {!isRescheduling && (
         <GlassCard style={styles.notesCard}>
           <AppTextInput
-            label="Notes (optional)"
-            placeholder="Anything the centre should know before you arrive"
+            label={t('booking.notesOptional')}
+            placeholder={t('booking.notesHint')}
             value={notes}
             onChangeText={setNotes}
             multiline
@@ -199,19 +190,9 @@ export default function ReviewBooking() {
         </GlassCard>
       )}
 
-      <AppText style={styles.terms}>
-        By confirming, you agree to attend or to cancel at least 24 hours before the appointment.
-      </AppText>
+      <AppText style={styles.terms}>{t('booking.terms')}</AppText>
     </BookingStep>
   );
-}
-
-function formatTime(dateStr: string): string {
-  return new Date(dateStr).toLocaleTimeString('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true,
-  });
 }
 
 function DetailRow({

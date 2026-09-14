@@ -35,21 +35,28 @@ import {
   TestType,
 } from '../../lib/laboratory';
 import { AppShell } from '../../components/AppShell';
+import { useTranslation } from '@bloodchain/ui/i18n';
 
-const statusConfig: Record<string, { label: string; variant: 'success' | 'warning' | 'danger' | 'info' | 'default' }> = {
-  PENDING: { label: 'Pending', variant: 'warning' },
-  CONFIRMED: { label: 'Confirmed', variant: 'info' },
-  CHECKED_IN: { label: 'Checked In', variant: 'info' },
-  IN_PROGRESS: { label: 'In Progress', variant: 'warning' },
-  RESULT_PENDING: { label: 'Result Pending', variant: 'warning' },
-  RESULT_READY: { label: 'Result Ready', variant: 'success' },
-  RESULT_PUBLISHED: { label: 'Published', variant: 'success' },
-  COMPLETED: { label: 'Completed', variant: 'success' },
-  CANCELLED: { label: 'Cancelled', variant: 'danger' },
-  NO_SHOW: { label: 'No Show', variant: 'danger' },
+/**
+ * Badge colour per status; the wording comes from
+ * `t('status.appointment.<STATUS>')` at render, because a label written into
+ * a module-level map can only ever be in one language.
+ */
+const statusVariant: Record<string, 'success' | 'warning' | 'danger' | 'info' | 'default'> = {
+  PENDING: 'warning',
+  CONFIRMED: 'info',
+  CHECKED_IN: 'info',
+  IN_PROGRESS: 'warning',
+  RESULT_PENDING: 'warning',
+  RESULT_READY: 'success',
+  RESULT_PUBLISHED: 'success',
+  COMPLETED: 'success',
+  CANCELLED: 'danger',
+  NO_SHOW: 'danger',
 };
 
 export default function LaboratoryPage() {
+  const { t } = useTranslation();
   const [user, setUser] = useState<MeResponse | null>(null);
   const [organizationId, setOrganizationId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
@@ -164,7 +171,7 @@ export default function LaboratoryPage() {
       setEntering(null);
       await loadAppointments();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to save the results');
+      setError(err instanceof Error ? err.message : t('ops.laboratory.saveFailed'));
     } finally {
       setActionLoading(null);
     }
@@ -178,7 +185,7 @@ export default function LaboratoryPage() {
       await reviewLaboratoryResult(organizationId, resultId);
       await loadAppointments();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to review the result');
+      setError(err instanceof Error ? err.message : t('ops.laboratory.reviewFailed'));
     } finally {
       setActionLoading(null);
     }
@@ -192,7 +199,7 @@ export default function LaboratoryPage() {
       await publishLaboratoryResult(organizationId, resultId);
       await loadAppointments();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to publish the result');
+      setError(err instanceof Error ? err.message : t('ops.laboratory.publishFailed'));
     } finally {
       setActionLoading(null);
     }
@@ -269,18 +276,18 @@ export default function LaboratoryPage() {
 
     switch (appointment.status) {
       case 'PENDING':
-        actions.push({ label: 'Confirm', onClick: () => handleConfirm(appointment.id), variant: 'primary' });
-        actions.push({ label: 'No Show', onClick: () => handleNoShow(appointment.id), variant: 'danger' });
+        actions.push({ label: t('actions.confirm'), onClick: () => handleConfirm(appointment.id), variant: 'primary' });
+        actions.push({ label: t('status.appointment.NO_SHOW'), onClick: () => handleNoShow(appointment.id), variant: 'danger' });
         break;
       case 'CONFIRMED':
-        actions.push({ label: 'Check In', onClick: () => handleCheckIn(appointment.id), variant: 'primary' });
-        actions.push({ label: 'No Show', onClick: () => handleNoShow(appointment.id), variant: 'danger' });
+        actions.push({ label: t('actions.checkIn'), onClick: () => handleCheckIn(appointment.id), variant: 'primary' });
+        actions.push({ label: t('status.appointment.NO_SHOW'), onClick: () => handleNoShow(appointment.id), variant: 'danger' });
         break;
       case 'CHECKED_IN':
-        actions.push({ label: 'Start Test', onClick: () => handleStart(appointment.id), variant: 'primary' });
+        actions.push({ label: t('ops.laboratory.startTest'), onClick: () => handleStart(appointment.id), variant: 'primary' });
         break;
       case 'IN_PROGRESS':
-        actions.push({ label: 'Sample collected', onClick: () => handleComplete(appointment.id), variant: 'primary' });
+        actions.push({ label: t('ops.laboratory.sampleCollected'), onClick: () => handleComplete(appointment.id), variant: 'primary' });
         break;
     }
 
@@ -290,11 +297,11 @@ export default function LaboratoryPage() {
     // found.
     const result = appointment.laboratoryResult;
     if (!result && appointment.status === 'RESULT_PENDING') {
-      actions.push({ label: 'Enter results', onClick: () => openEntry(appointment), variant: 'primary' });
+      actions.push({ label: t('ops.laboratory.enterResultsShort'), onClick: () => openEntry(appointment), variant: 'primary' });
     } else if (result?.status === 'ENTERED') {
-      actions.push({ label: 'Review', onClick: () => handleReview(appointment), variant: 'primary' });
+      actions.push({ label: t('actions.review'), onClick: () => handleReview(appointment), variant: 'primary' });
     } else if (result?.status === 'REVIEWED') {
-      actions.push({ label: 'Publish to donor', onClick: () => handlePublish(appointment), variant: 'primary' });
+      actions.push({ label: t('ops.laboratory.publishToDonor'), onClick: () => handlePublish(appointment), variant: 'primary' });
     }
 
     return actions;
@@ -303,14 +310,14 @@ export default function LaboratoryPage() {
   const columns: DataTableColumn<LaboratoryAppointment>[] = [
     {
       key: 'referenceNumber',
-      header: 'Reference',
+      header: t('ops.requests.reference'),
       render: (appointment) => (
         <span className="font-mono">{appointment.referenceNumber}</span>
       ),
     },
     {
       key: 'donor',
-      header: 'Donor',
+      header: t('table.donor'),
       render: (appointment) => (
         <div>
           <div className="text-donor-text">
@@ -322,24 +329,23 @@ export default function LaboratoryPage() {
     },
     {
       key: 'scheduledStart',
-      header: 'Date & Time',
+      header: t('booking.dateAndTime'),
       render: (appointment) =>
         `${new Date(appointment.scheduledStart).toLocaleDateString()} ${new Date(appointment.scheduledStart).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
     },
     {
       key: 'status',
-      header: 'Status',
+      header: t('table.status'),
       render: (appointment) => {
-        const config = statusConfig[appointment.status] || {
-          label: appointment.status,
-          variant: 'default' as const,
-        };
-        return <StatusBadge variant={config.variant}>{config.label}</StatusBadge>;
+        const variant = statusVariant[appointment.status] ?? 'default';
+        return (
+          <StatusBadge variant={variant}>{t(`status.appointment.${appointment.status}`)}</StatusBadge>
+        );
       },
     },
     {
       key: 'result',
-      header: 'Result',
+      header: t('ops.common.result'),
       render: (appointment) =>
         appointment.laboratoryResult ? (
           <StatusBadge
@@ -359,7 +365,7 @@ export default function LaboratoryPage() {
     },
     {
       key: 'actions',
-      header: 'Actions',
+      header: t('table.actions'),
       className: 'text-right',
       render: (appointment) => {
         const actions = getActionButtons(appointment);
@@ -396,10 +402,10 @@ export default function LaboratoryPage() {
   if (isLoading) {
     return (
       <AppShell
-        title="Loading..."
-        subtitle="BLOOD CENTER CONSOLE"
-        organizationName="Loading..."
-        userName="Loading..."
+        title={t('ops.common.loadingEllipsis')}
+        subtitle={t('portal.bloodCenter.console')}
+        organizationName={t('ops.common.loadingEllipsis')}
+        userName={t('ops.common.loadingEllipsis')}
       >
         <div className="flex items-center justify-center p-12">
           <Activity className="animate-spin text-donor-primary" size={32} />
@@ -411,18 +417,18 @@ export default function LaboratoryPage() {
   if (!user) {
     return (
       <AppShell
-        title="Authentication Required"
-        subtitle="BLOOD CENTER CONSOLE"
+        title={t('portal.authRequired')}
+        subtitle={t('portal.bloodCenter.console')}
         organizationName="Northstar Blood Center"
         userName="Guest"
       >
         <div className="flex flex-col items-center justify-center bc-glass rounded-card p-12">
           <Beaker className="mb-4 text-donor-primary" size={48} />
           <h2 className="mb-2 font-display text-2xl font-semibold text-donor-text">
-            Sign In Required
+            {t('ops.common.signInRequired')}
           </h2>
           <p className="mb-6 text-center text-donor-muted">
-            Please sign in to access the laboratory dashboard
+            {t('ops.common.signInToLaboratory')}
           </p>
         </div>
       </AppShell>
@@ -431,18 +437,18 @@ export default function LaboratoryPage() {
 
   return (
     <AppShell
-      title="Laboratory"
-      subtitle="BLOOD TEST MANAGEMENT"
+      title={t('portal.nav.laboratory')}
+      subtitle={t('ops.laboratory.management')}
       organizationName="Northstar Blood Center"
       userName={`${user.firstName} ${user.lastName}`}
     >
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="font-display text-2xl font-semibold text-donor-text">
-            Laboratory Appointments
+            {t('ops.laboratory.pageTitle')}
           </h1>
           <p className="text-sm text-donor-muted">
-            Manage blood test appointments and results
+            {t('ops.laboratory.pageSubtitle')}
           </p>
         </div>
       </div>
@@ -451,34 +457,34 @@ export default function LaboratoryPage() {
         <div className="mb-4 rounded-lg border border-donor-danger/30 bg-donor-dangerMuted p-4 text-donor-onDangerMuted">
           {error}
           <button onClick={() => setError(null)} className="ml-2 underline">
-            Dismiss
+            {t('actions.dismiss')}
           </button>
         </div>
       )}
 
       <div className="mb-6 grid gap-4 md:grid-cols-5">
         <StatCard
-          label="Pending"
+          label={t('status.appointment.PENDING')}
           value={pendingCount.toString()}
           variant={pendingCount > 0 ? 'warning' : 'default'}
         />
         <StatCard
-          label="Confirmed"
+          label={t('status.appointment.CONFIRMED')}
           value={confirmedCount.toString()}
           variant="info"
         />
         <StatCard
-          label="Checked In"
+          label={t('status.appointment.CHECKED_IN')}
           value={checkedInCount.toString()}
           variant="info"
         />
         <StatCard
-          label="In Progress"
+          label={t('gamification.inProgress')}
           value={inProgressCount.toString()}
           variant={inProgressCount > 0 ? 'warning' : 'default'}
         />
         <StatCard
-          label="Result Pending"
+          label={t('status.appointment.RESULT_PENDING')}
           value={resultPendingCount.toString()}
           variant={resultPendingCount > 0 ? 'warning' : 'default'}
         />
@@ -489,7 +495,7 @@ export default function LaboratoryPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-donor-muted" size={16} />
           <input
             type="text"
-            placeholder="Search by reference or donor..."
+            placeholder={t('ops.requests.searchPlaceholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full rounded-lg bc-solid pl-10 pr-4 py-2 text-sm text-donor-text placeholder:text-donor-muted"
@@ -500,17 +506,17 @@ export default function LaboratoryPage() {
           onChange={(e) => setStatusFilter(e.target.value)}
           className="rounded-lg bc-solid px-3 py-2 text-sm text-donor-text"
         >
-          <option value="">All Statuses</option>
-          <option value="PENDING">Pending</option>
-          <option value="CONFIRMED">Confirmed</option>
-          <option value="CHECKED_IN">Checked In</option>
-          <option value="IN_PROGRESS">In Progress</option>
-          <option value="RESULT_PENDING">Result Pending</option>
-          <option value="RESULT_READY">Result Ready</option>
-          <option value="RESULT_PUBLISHED">Published</option>
-          <option value="COMPLETED">Completed</option>
-          <option value="CANCELLED">Cancelled</option>
-          <option value="NO_SHOW">No Show</option>
+          <option value="">{t('filters.allStatuses')}</option>
+          <option value="PENDING">{t('status.appointment.PENDING')}</option>
+          <option value="CONFIRMED">{t('status.appointment.CONFIRMED')}</option>
+          <option value="CHECKED_IN">{t('status.appointment.CHECKED_IN')}</option>
+          <option value="IN_PROGRESS">{t('gamification.inProgress')}</option>
+          <option value="RESULT_PENDING">{t('status.appointment.RESULT_PENDING')}</option>
+          <option value="RESULT_READY">{t('status.appointment.RESULT_READY')}</option>
+          <option value="RESULT_PUBLISHED">{t('status.appointment.RESULT_PUBLISHED')}</option>
+          <option value="COMPLETED">{t('table.completedAt')}</option>
+          <option value="CANCELLED">{t('appointment.cancelledNotice')}</option>
+          <option value="NO_SHOW">{t('status.appointment.NO_SHOW')}</option>
         </select>
         <button
           onClick={loadAppointments}
@@ -518,7 +524,7 @@ export default function LaboratoryPage() {
           className="flex items-center gap-2 rounded-lg bc-solid px-4 py-2 text-sm font-semibold text-donor-text transition-colors hover:bg-donor-elevated disabled:opacity-50"
         >
           <RefreshCw size={14} />
-          Refresh
+          {t('actions.refresh')}
         </button>
       </div>
 
@@ -526,14 +532,14 @@ export default function LaboratoryPage() {
         <DataTable columns={columns} rows={[]} keyExtractor={(a) => a.id} loading />
       ) : appointments.length === 0 ? (
         <EmptyState
-          title="No appointments"
-          description="No laboratory appointments match your filters."
+          title={t('ops.laboratory.empty')}
+          description={t('ops.laboratory.emptyHint')}
         />
       ) : (
         <DataTable columns={columns} rows={appointments} keyExtractor={(a) => a.id} />
       )}
 
-      <Modal open={entering !== null} onClose={() => setEntering(null)} title="Enter test results">
+      <Modal open={entering !== null} onClose={() => setEntering(null)} title={t('ops.laboratory.enterResults')}>
         {entering && (
           <div className="space-y-4">
             <p className="text-sm text-donor-muted">
@@ -541,7 +547,7 @@ export default function LaboratoryPage() {
             </p>
             <div>
               <label htmlFor="test-type" className="mb-1 block text-xs font-semibold text-donor-muted">
-                Test type
+                {t('ops.laboratory.testType')}
               </label>
               <select
                 id="test-type"
@@ -586,7 +592,7 @@ export default function LaboratoryPage() {
                 </p>
               </div>
             ) : (
-              <p className="text-sm text-donor-muted">This test type has no parameters configured.</p>
+              <p className="text-sm text-donor-muted">{t('ops.laboratory.noParameters')}</p>
             )}
 
             <div className="flex gap-2 pt-2">
@@ -601,7 +607,7 @@ export default function LaboratoryPage() {
                 onClick={() => setEntering(null)}
                 className="rounded-lg bc-solid px-4 py-2 text-sm text-donor-text transition-colors hover:bg-donor-elevated"
               >
-                Cancel
+                {t('actions.cancel')}
               </button>
             </div>
           </div>

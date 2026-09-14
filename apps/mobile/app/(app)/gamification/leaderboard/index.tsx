@@ -15,6 +15,7 @@ import {
 import { AppText } from '../../../../src/components/AppText';
 import { layout, spacing, radius, useTheme, ThemeColors } from '../../../../src/theme';
 import type { LeaderboardEntry } from '../../../../src/api/gamification';
+import { useTranslation } from '../../../../src/i18n';
 
 /** Gold / silver / bronze, and the podium bar gradient for each. */
 const PODIUM_RING = ['#E5B86D', '#9BA8B2', '#CD7F32'] as const;
@@ -30,19 +31,27 @@ const PODIUM_ORDER = [1, 0, 2] as const;
 type TimeRange = 'ALL_TIME' | 'THIS_YEAR' | 'THIS_MONTH';
 
 const TIME_RANGES = [
-  { label: 'All Time', value: 'ALL_TIME' },
-  { label: 'This Year', value: 'THIS_YEAR' },
-  { label: 'This Month', value: 'THIS_MONTH' },
-] as const satisfies readonly { label: string; value: TimeRange }[];
+  // Keys, not words: built at module load, where there is no locale.
+  { labelKey: 'gamification.allTime', value: 'ALL_TIME' },
+  { labelKey: 'filters.thisYear', value: 'THIS_YEAR' },
+  { labelKey: 'filters.thisMonth', value: 'THIS_MONTH' },
+] as const satisfies readonly { labelKey: string; value: TimeRange }[];
 
 const PAGE_SIZE = 10;
 
 export default function LeaderboardScreen() {
+  const { t, formatMonth } = useTranslation();
   const { colors } = useTheme();
   const styles = React.useMemo(() => createStyles(colors), [colors]);
   const [timeRange, setTimeRange] = React.useState<TimeRange>('ALL_TIME');
   const [currentPage, setCurrentPage] = React.useState(1);
   const [refreshing, setRefreshing] = React.useState(false);
+  // Resolved per render rather than in TIME_RANGES above, where there is no
+  // locale yet -- a label built at module load is stuck in one language.
+  const rangeOptions = React.useMemo(
+    () => TIME_RANGES.map(({ labelKey, value }) => ({ value, label: t(labelKey) })),
+    [t],
+  );
 
   const { data: leaderboard, isLoading, refetch } = useLeaderboard(timeRange, currentPage, PAGE_SIZE);
   const { data: userRank, refetch: refetchRank } = useUserRank(timeRange);
@@ -64,7 +73,7 @@ export default function LeaderboardScreen() {
 
   return (
     <Screen scroll={false}>
-      <ScreenHeader title="Leaderboard" subtitle={rangeSubtitle(timeRange)} />
+      <ScreenHeader title={t('gamification.leaderboard')} subtitle={rangeSubtitle(timeRange, t, formatMonth)} />
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
@@ -74,7 +83,7 @@ export default function LeaderboardScreen() {
         }
       >
         <SegmentedControl
-          options={TIME_RANGES}
+          options={rangeOptions}
           value={timeRange}
           onChange={handleTimeRangeChange}
         />
@@ -99,7 +108,7 @@ export default function LeaderboardScreen() {
               <GlassCard tier="elevated">
                 <View style={styles.rankRow}>
                   <View>
-                    <AppText style={styles.rankLabel}>YOUR RANK</AppText>
+                    <AppText style={styles.rankLabel}>{t('gamification.yourRank')}</AppText>
                     <View style={styles.rankValueRow}>
                       <AppText style={styles.rankValue}>#{userRank.rank}</AppText>
                       <AppText style={styles.rankTotal}>of {userRank.total}</AppText>
@@ -108,11 +117,11 @@ export default function LeaderboardScreen() {
                   <View style={styles.rankStats}>
                     <View style={styles.rankStat}>
                       <AppText style={styles.rankStatValue}>{userRank.xp.toLocaleString()}</AppText>
-                      <AppText style={styles.rankStatLabel}>Total XP</AppText>
+                      <AppText style={styles.rankStatLabel}>{t('gamification.totalXp')}</AppText>
                     </View>
                     <View style={styles.rankStat}>
                       <AppText style={styles.rankStatValue}>Lv.{userRank.level}</AppText>
-                      <AppText style={styles.rankStatLabel}>Level</AppText>
+                      <AppText style={styles.rankStatLabel}>{t('gamification.level')}</AppText>
                     </View>
                   </View>
                 </View>
@@ -130,7 +139,7 @@ export default function LeaderboardScreen() {
 
               {entries.length === 0 && (
                 <GlassCard style={styles.emptyCard}>
-                  <AppText style={styles.emptyText}>No leaderboard data available yet</AppText>
+                  <AppText style={styles.emptyText}>{t('gamification.leaderboardEmpty')}</AppText>
                 </GlassCard>
               )}
             </View>
@@ -140,7 +149,7 @@ export default function LeaderboardScreen() {
                 style={({ pressed }) => [styles.loadMore, { opacity: pressed ? 0.6 : 1 }]}
                 onPress={() => setCurrentPage((p) => p + 1)}
               >
-                <AppText style={styles.loadMoreLabel}>Load More</AppText>
+                <AppText style={styles.loadMoreLabel}>{t('gamification.loadMore')}</AppText>
               </Pressable>
             )}
           </>
@@ -150,13 +159,23 @@ export default function LeaderboardScreen() {
   );
 }
 
-function rangeSubtitle(range: TimeRange): string {
+/**
+ * The period the board is showing, said in the reader's own language.
+ *
+ * The month used to come from a hardcoded `en-US`, so a donor reading the rest
+ * of this screen in Uzbek saw "September 2026" above it.
+ */
+function rangeSubtitle(
+  range: TimeRange,
+  t: (key: string) => string,
+  formatMonth: (value: Date | string | number, width?: 'long' | 'short') => string,
+): string {
   const now = new Date();
-  if (range === 'THIS_MONTH') {
-    return now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-  }
+  // formatMonth already carries the year, so "September 2026" comes back
+  // spelled and ordered for the active locale rather than assembled here.
+  if (range === 'THIS_MONTH') return formatMonth(now);
   if (range === 'THIS_YEAR') return String(now.getFullYear());
-  return 'Top donors of all time';
+  return t('gamification.topDonorsAllTime');
 }
 
 function PodiumColumn({ place, entry }: { place: number; entry: LeaderboardEntry }) {
@@ -192,6 +211,7 @@ function PodiumColumn({ place, entry }: { place: number; entry: LeaderboardEntry
 }
 
 function LeaderboardRow({ entry, isMe }: { entry: LeaderboardEntry; isMe: boolean }) {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = React.useMemo(() => createStyles(colors), [colors]);
 
@@ -208,7 +228,7 @@ function LeaderboardRow({ entry, isMe }: { entry: LeaderboardEntry; isMe: boolea
             <AppText numberOfLines={1} style={[styles.rowName, isMe && { fontWeight: '700' }]}>
               {entry.displayName}
             </AppText>
-            {isMe && <Badge variant="primary">You</Badge>}
+            {isMe && <Badge variant="primary">{t('sos.you')}</Badge>}
           </View>
           <AppText style={styles.rowMeta}>
             Lv.{entry.level} · {entry.donationCount} donations

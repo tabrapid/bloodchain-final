@@ -13,11 +13,13 @@ import {
 import { useAvailability } from '../../src/hooks/useAppointments';
 import type { AppointmentSlot } from '../../src/api/appointments';
 import { radius, spacing, useTheme, ThemeColors } from '../../src/theme';
+import { useTranslation } from '../../src/i18n';
 
 /** Below this, the number of remaining spots is worth showing on the chip. */
 const SCARCE_SPOTS = 3;
 
 export default function SelectTime() {
+  const { t, formatDayHeading } = useTranslation();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const params = useLocalSearchParams<{
@@ -51,27 +53,28 @@ export default function SelectTime() {
       else evening.push(slot);
     });
     return [
-      { label: 'Morning', icon: Sunrise, slots: morning },
-      { label: 'Afternoon', icon: Sun, slots: afternoon },
-      { label: 'Evening', icon: Sunset, slots: evening },
-    ] satisfies { label: string; icon: LucideIcon; slots: AppointmentSlot[] }[];
+      // Keys, not words: this memo is rebuilt when the slots change, not when
+      // the language does, so a translated string here would go stale.
+      { labelKey: 'booking.morning', icon: Sunrise, slots: morning },
+      { labelKey: 'booking.afternoon', icon: Sun, slots: afternoon },
+      { labelKey: 'booking.evening', icon: Sunset, slots: evening },
+    ] satisfies { labelKey: string; icon: LucideIcon; slots: AppointmentSlot[] }[];
   }, [slots]);
 
   const subtitle = useMemo(() => {
-    if (!params.date) return 'Choose an available time';
+    if (!params.date) return t('booking.chooseTime');
     const [y, m, d] = params.date.split('-').map(Number);
-    if (!y || !m || !d) return 'Choose an available time';
-    return new Date(y, m - 1, d).toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-    });
-  }, [params.date]);
+    if (!y || !m || !d) return t('booking.chooseTime');
+    // The shared formatter, not a hardcoded en-US: this line was the one place
+    // in the booking flow that would still have read "Mon, Mar 3" to a donor
+    // reading the rest of the screen in Uzbek.
+    return formatDayHeading(new Date(y, m - 1, d));
+  }, [params.date, t, formatDayHeading]);
 
   return (
     <BookingStep
       step={4}
-      title={params.rescheduleAppointmentId ? 'Pick a new time' : 'Select time'}
+      title={params.rescheduleAppointmentId ? t('booking.pickNewTime') : t('booking.selectTime')}
       subtitle={subtitle}
       nextDisabled={!selectedSlotId}
       onNext={() =>
@@ -90,12 +93,12 @@ export default function SelectTime() {
       }
     >
       {isLoading ? (
-        <AppText style={styles.status}>Loading available times…</AppText>
+        <AppText style={styles.status}>{t('booking.loadingTimes')}</AppText>
       ) : isError ? (
         <GlassCard style={styles.stateCard}>
           <EmptyState
-            title="Couldn't load times"
-            description="Something went wrong reaching the server. Check your connection and try again."
+            title={t('booking.timesFailed')}
+            description={t('common.offline')}
           />
           <AppButton
             variant="secondary"
@@ -104,14 +107,14 @@ export default function SelectTime() {
             loading={isRefetching}
             style={styles.retry}
           >
-            Retry
+            {t('common.retry')}
           </AppButton>
         </GlassCard>
       ) : slots.length === 0 ? (
         <GlassCard style={styles.stateCard}>
           <EmptyState
-            title="No available times"
-            description="There are no open slots on this date. Go back and pick another one."
+            title={t('booking.noTimes')}
+            description={t('booking.noTimesHint')}
           />
         </GlassCard>
       ) : (
@@ -120,10 +123,10 @@ export default function SelectTime() {
           .map((group) => {
             const Icon = group.icon;
             return (
-              <View key={group.label}>
+              <View key={group.labelKey}>
                 <View style={styles.groupHeader}>
                   <Icon size={16} color={colors.textMuted} />
-                  <SectionHeader>{group.label}</SectionHeader>
+                  <SectionHeader>{t(group.labelKey)}</SectionHeader>
                 </View>
                 <View style={styles.grid}>
                   {group.slots.map((slot) => {

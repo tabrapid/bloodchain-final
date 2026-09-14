@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import MapView, { Marker, Polyline, PROVIDER_DEFAULT, type Region } from 'react-native-maps';
 import { AppText } from '../AppText';
 import { radius, useTheme, ThemeColors } from '../../theme';
+import { useTranslation } from '../../i18n';
 
 // Deliberately NOT re-exported through '../index' - react-native-maps links a
 // native module that Expo Go doesn't ship, so importing it anywhere in the
@@ -56,6 +57,7 @@ function regionFor(markers: MapMarkerPoint[]): Region {
  * build to run - it is not available inside Expo Go.
  */
 export function LocationMap({ markers, showRoute = false, height = 220 }: LocationMapProps) {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const variantColor: Record<MapMarkerVariant, string> = useMemo(
@@ -81,7 +83,7 @@ export function LocationMap({ markers, showRoute = false, height = 220 }: Locati
   if (markers.length === 0) {
     return (
       <View style={[styles.empty, { height }]}>
-        <AppText style={{ color: colors.textMuted }}>No location data yet</AppText>
+        <AppText style={{ color: colors.textMuted }}>{t('common.noLocationData')}</AppText>
       </View>
     );
   }

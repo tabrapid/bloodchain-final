@@ -105,10 +105,55 @@ On the web the first paint is always the default language, because
 `localStorage` does not exist on the server and guessing differently on the two
 sides is a hydration mismatch; the stored choice arrives immediately after.
 
+## Statuses
+
+A status is keyed by the enum value the database stores, under `status.<domain>`
+— `status.shipment.IN_TRANSIT`, `status.appointment.CHECKED_IN`. A screen writes
+
+```ts
+<Badge variant={STATUS_VARIANT[row.status] ?? 'default'}>
+  {t(`status.shipment.${row.status}`)}
+</Badge>
+```
+
+rather than carrying a `{ label, variant }` map. The colour is static and stays
+in the map; the wording is not, and a label written into a module-level map is
+fixed in whatever language the bundle started in. `coverage.spec.ts` reads
+`schema.prisma` and fails if a domain is missing a value the database can
+produce.
+
+## What the tests check
+
+`packages/i18n/src/i18n.spec.ts` compares the three catalogues with each other:
+missing keys, extra keys, dropped `{{placeholders}}`, plural categories.
+
+`packages/i18n/src/coverage.spec.ts` reads the app sources instead, and catches
+what catalogue-only tests cannot:
+
+- every literal `t('key')` in every app resolves (a key nobody wrote renders as
+  its own dotted path on the screen, in every language);
+- every templated `` t(`ns.${value}`) `` has a namespace that exists;
+- every `status.<domain>` covers its Prisma enum;
+- the covered screens contain no hardcoded user-facing English.
+
+The first of those found a real bug: `t('appointment.notFound')` had been filed
+under `status.appointment`, because the writer matched the first
+`appointment: {` in the file. Both the catalogue and its parity tests were
+perfectly happy.
+
+Screen-level specs (`apps/mobile/src/__tests__/secondary-screens-i18n.spec.tsx`,
+`apps/*/app/{localization,ops-localization}.spec.tsx`) mount the real screens in
+each language and read the words back, which is the only way to catch a label
+that was resolved once at module load.
+
 ## Not yet localized
 
 - The API's own responses (error messages, emails) are English. A donor sees
   them when a request fails.
-- Console dashboards beyond sign-in and navigation.
-- The donor app's secondary screens (booking wizard, gamification, education,
-  laboratory, notifications, SOS, courier).
+- The three consoles' `<title>`/`<meta description>`: Next builds document
+  metadata on the server, where no locale is known yet.
+- The donor app's onboarding profile flow (`(onboarding)/complete-profile`) and
+  the courier role's screens.
+- Backend-authored content — campaign titles, educational articles, challenge
+  names, badge names, organization names — is stored in one language per row
+  and rendered as stored.

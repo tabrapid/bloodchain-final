@@ -7,8 +7,10 @@ import { listCouriers, suspendCourier, restoreCourier, type Courier } from '@lib
 import { me, isAuthenticated } from '@lib/auth';
 import { StatusBadgeWrapper } from '@lib/status';
 import { AppShell } from '../../components/AppShell';
+import { useTranslation } from '@bloodchain/ui/i18n';
 
 export default function CouriersPage() {
+  const { t } = useTranslation();
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [couriers, setCouriers] = useState<Courier[]>([]);
@@ -85,17 +87,17 @@ export default function CouriersPage() {
 
   if (isLoading) {
     return (
-      <AppShell title="Courier Management" userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
+      <AppShell title={t('ops.couriers.title')} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
         <LoadingState />
       </AppShell>
     );
   }
 
   return (
-    <AppShell title="Courier Management" userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
+    <AppShell title={t('ops.couriers.title')} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
       <div className="p-6">
         <div className="mb-6">
-          <p className="text-sm text-donor-muted">Manage delivery couriers and their status</p>
+          <p className="text-sm text-donor-muted">{t('ops.couriers.subtitle')}</p>
         </div>
 
         {error && (
@@ -114,7 +116,7 @@ export default function CouriersPage() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-donor-muted" />
                 <input
                   type="text"
-                  placeholder="Search by name or phone..."
+                  placeholder={t('ops.donors.searchByNamePhone')}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="w-full pl-10 pr-4 py-2 bc-solid rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-donor-primary"
@@ -125,17 +127,17 @@ export default function CouriersPage() {
                 onChange={(e) => setStatusFilter(e.target.value)}
                 className="bc-solid rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-donor-primary"
               >
-                <option value="">All Status</option>
-                <option value="AVAILABLE">Available</option>
-                <option value="BUSY">Busy</option>
-                <option value="OFFLINE">Offline</option>
-                <option value="SUSPENDED">Suspended</option>
+                <option value="">{t('ops.common.allStatus')}</option>
+                <option value="AVAILABLE">{t('status.courier.AVAILABLE')}</option>
+                <option value="BUSY">{t('ops.common.busy')}</option>
+                <option value="OFFLINE">{t('status.courier.OFFLINE')}</option>
+                <option value="SUSPENDED">{t('status.courier.SUSPENDED')}</option>
               </select>
               <button
                 type="submit"
                 className="bg-donor-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-donor-primary/85"
               >
-                Search
+                {t('actions.search')}
               </button>
             </form>
           </div>
@@ -144,19 +146,19 @@ export default function CouriersPage() {
             <table className="w-full">
               <thead>
                 <tr className="bg-donor-elevated border-b border-donor-border/40">
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Courier</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Status</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Organization</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Shipments</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Created</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Actions</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.courier')}</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.status')}</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.organization')}</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('ops.shipments.title')}</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.created')}</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.actions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-donor-border/40">
                 {couriers.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-4 py-8 text-center text-sm text-donor-muted">
-                      No couriers found
+                      {t('ops.couriers.noneFound')}
                     </td>
                   </tr>
                 ) : (
@@ -194,7 +196,7 @@ export default function CouriersPage() {
                           }}
                           className="text-donor-primary hover:text-donor-primary/70 text-sm font-medium"
                         >
-                          View
+                          {t('actions.view')}
                         </button>
                       </td>
                     </tr>
@@ -215,14 +217,14 @@ export default function CouriersPage() {
                   disabled={meta.page === 1}
                   className="px-3 py-1 bc-solid rounded text-sm disabled:opacity-50"
                 >
-                  Previous
+                  {t('actions.previous')}
                 </button>
                 <button
                   onClick={() => loadCouriers(meta.page + 1)}
                   disabled={meta.page === meta.totalPages}
                   className="px-3 py-1 bc-solid rounded text-sm disabled:opacity-50"
                 >
-                  Next
+                  {t('actions.next')}
                 </button>
               </div>
             </div>
@@ -234,7 +236,7 @@ export default function CouriersPage() {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bc-glass-elevated bc-rise rounded-panel w-full max-w-lg mx-4">
             <div className="px-6 py-4 border-b border-donor-border/40 flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-donor-text">Courier Details</h3>
+              <h3 className="text-lg font-semibold text-donor-text">{t('ops.couriers.details')}</h3>
               <button onClick={() => setSelectedCourier(null)}>
                 <X className="w-5 h-5 text-donor-muted" />
               </button>
@@ -252,29 +254,29 @@ export default function CouriersPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-donor-muted">Status</p>
+                  <p className="text-sm text-donor-muted">{t('table.status')}</p>
                   <StatusBadgeWrapper status={selectedCourier.status} />
                 </div>
                 <div>
-                  <p className="text-sm text-donor-muted">Phone</p>
+                  <p className="text-sm text-donor-muted">{t('table.phone')}</p>
                   <p className="text-sm font-medium text-donor-text">{selectedCourier.phone || '-'}</p>
                 </div>
               </div>
 
               {selectedCourier.stats && (
                 <div className="border-t border-donor-border/40 pt-4">
-                  <p className="text-sm font-medium text-donor-text mb-2">Performance</p>
+                  <p className="text-sm font-medium text-donor-text mb-2">{t('ops.couriers.performance')}</p>
                   <div className="grid grid-cols-3 gap-2 text-sm">
                     <div className="bg-donor-elevated p-2 rounded-card text-center">
-                      <p className="text-donor-muted">Total</p>
+                      <p className="text-donor-muted">{t('table.total')}</p>
                       <p className="font-semibold">{selectedCourier.stats.totalShipments}</p>
                     </div>
                     <div className="bg-donor-successMuted p-2 rounded-card text-center">
-                      <p className="text-donor-muted">Completed</p>
+                      <p className="text-donor-muted">{t('table.completedAt')}</p>
                       <p className="font-semibold text-donor-onSuccessMuted">{selectedCourier.stats.completedShipments}</p>
                     </div>
                     <div className="bg-donor-dangerMuted p-2 rounded-card text-center">
-                      <p className="text-donor-muted">Failed</p>
+                      <p className="text-donor-muted">{t('status.shipment.FAILED')}</p>
                       <p className="font-semibold text-donor-onDangerMuted">{selectedCourier.stats.failedShipments}</p>
                     </div>
                   </div>

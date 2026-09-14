@@ -15,8 +15,10 @@ import {
   ScreenHeader,
 } from '../../../src/components';
 import { layout, spacing, useTheme, ThemeColors } from '../../../src/theme';
+import { useTranslation } from '../../../src/i18n';
 
 export default function CampaignsScreen() {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [refreshing, setRefreshing] = useState(false);
@@ -36,7 +38,7 @@ export default function CampaignsScreen() {
       queryClient.invalidateQueries({ queryKey: ['my-campaigns'] });
     },
     onError: (err: any) => {
-      setJoinError(err.message || 'Failed to join campaign. Please try again.');
+      setJoinError(err.message || t('campaigns.joinFailed'));
     },
   });
 
@@ -49,8 +51,8 @@ export default function CampaignsScreen() {
   if (isLoading) {
     return (
       <Screen>
-        <ScreenHeader title="Blood Donation Campaigns" />
-        <LoadingState message="Loading campaigns..." />
+        <ScreenHeader title={t('campaigns.title')} />
+        <LoadingState message={t('campaigns.loading')} />
       </Screen>
     );
   }
@@ -60,8 +62,8 @@ export default function CampaignsScreen() {
   return (
     <Screen scroll={false}>
       <ScreenHeader
-        title="Blood Donation Campaigns"
-        subtitle="Join campaigns to help save lives in your community"
+        title={t('campaigns.title')}
+        subtitle={t('campaigns.subtitle')}
       />
       <FlatList
         style={{ flex: 1 }}
@@ -93,8 +95,8 @@ export default function CampaignsScreen() {
           <Card>
             <EmptyState
               icon={Calendar}
-              title="No Active Campaigns"
-              description="Check back later for new blood donation campaigns"
+              title={t('campaigns.empty')}
+              description={t('campaigns.emptyHint')}
             />
           </Card>
         }
@@ -112,6 +114,7 @@ function CampaignCard({
   onJoin: () => void;
   isJoining: boolean;
 }) {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const startDate = new Date(campaign.startDate);
@@ -131,7 +134,7 @@ function CampaignCard({
           )}
         </View>
         {daysLeft > 0 && daysLeft <= 7 && (
-          <Badge variant="danger">{`${daysLeft} days left`}</Badge>
+          <Badge variant="danger">{t('units.daysLeft', { count: daysLeft })}</Badge>
         )}
       </View>
 
@@ -160,7 +163,7 @@ function CampaignCard({
           <View style={styles.detailRow}>
             <Droplet size={16} color={colors.textMuted} />
             <AppText muted variant="bodySmall">
-              Blood types needed: {campaign.bloodGroupsNeeded.join(', ')}
+              {t('campaigns.bloodTypesNeeded', { types: campaign.bloodGroupsNeeded.join(', ') })}
             </AppText>
           </View>
         )}
@@ -169,15 +172,16 @@ function CampaignCard({
           <View style={styles.detailRow}>
             <Users size={16} color={colors.textMuted} />
             <AppText muted variant="bodySmall">
-              {campaign.participantCount} participants
-              {campaign.targetParticipants && ` / ${campaign.targetParticipants} target`}
+              {t('units.participants', { count: campaign.participantCount })}
+              {campaign.targetParticipants &&
+                t('campaigns.targetSuffix', { count: campaign.targetParticipants })}
             </AppText>
           </View>
         )}
       </View>
 
       <AppButton onPress={onJoin} loading={isJoining}>
-        Join Campaign
+        {t('campaigns.joinCampaign')}
       </AppButton>
     </GlassCard>
   );

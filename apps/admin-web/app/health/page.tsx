@@ -7,8 +7,10 @@ import { me, isAuthenticated } from '@lib/auth';
 import {  } from '@lib/status';
 import { AlertTriangle, CheckCircle, XCircle, Server, RefreshCw, Database } from 'lucide-react';
 import { AppShell } from '../../components/AppShell';
+import { useTranslation } from '@bloodchain/ui/i18n';
 
 export default function SystemHealthPage() {
+  const { t } = useTranslation();
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [health, setHealth] = useState<any>(null);
@@ -53,18 +55,18 @@ export default function SystemHealthPage() {
 
   if (isLoading) {
     return (
-      <AppShell title="System Health" userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
+      <AppShell title={t('portal.nav.health')} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
         <LoadingState />
       </AppShell>
     );
   }
 
   return (
-    <AppShell title="System Health" userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
+    <AppShell title={t('portal.nav.health')} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
       <div className="p-6">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <p className="text-sm text-donor-muted">Platform infrastructure status</p>
+            <p className="text-sm text-donor-muted">{t('ops.health.subtitle')}</p>
           </div>
           <button
             onClick={handleRefresh}
@@ -89,7 +91,7 @@ export default function SystemHealthPage() {
                 )}
               </div>
               <div>
-                <p className="text-sm text-donor-muted">Overall Status</p>
+                <p className="text-sm text-donor-muted">{t('ops.health.overallStatus')}</p>
                 <p className="text-xl font-semibold text-donor-text capitalize">{health?.status || 'Unknown'}</p>
               </div>
             </div>
@@ -103,7 +105,7 @@ export default function SystemHealthPage() {
                 <Database className={`w-6 h-6 ${health?.database === 'up' ? 'text-donor-onSuccessMuted' : 'text-donor-onDangerMuted'}`} />
               </div>
               <div>
-                <p className="text-sm text-donor-muted">Database</p>
+                <p className="text-sm text-donor-muted">{t('ops.dashboard.database')}</p>
                 <p className="text-xl font-semibold text-donor-text capitalize">{health?.database || 'Unknown'}</p>
               </div>
             </div>
@@ -115,7 +117,7 @@ export default function SystemHealthPage() {
                 <Server className="w-6 h-6 text-donor-onSecondaryMuted" />
               </div>
               <div>
-                <p className="text-sm text-donor-muted">Last Updated</p>
+                <p className="text-sm text-donor-muted">{t('ops.health.lastUpdated')}</p>
                 <p className="text-sm font-semibold text-donor-text">
                   {health?.timestamp ? new Date(health.timestamp).toLocaleTimeString() : '-'}
                 </p>
@@ -126,26 +128,26 @@ export default function SystemHealthPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <div className="bc-glass rounded-card p-6">
-            <h3 className="font-medium text-donor-text mb-4">Pending Items</h3>
+            <h3 className="font-medium text-donor-text mb-4">{t('ops.health.pendingItems')}</h3>
             <div className="space-y-3">
               <div className="flex items-center justify-between p-3 bg-donor-warningMuted rounded-lg">
                 <div className="flex items-center gap-3">
                   <AlertTriangle className="w-5 h-5 text-donor-onWarningMuted" />
-                  <span className="text-sm text-donor-text">Pending Organizations</span>
+                  <span className="text-sm text-donor-text">{t('ops.dashboard.pendingOrganizations')}</span>
                 </div>
                 <span className="font-semibold text-donor-text">{health?.pending?.organizations || 0}</span>
               </div>
               <div className="flex items-center justify-between p-3 bg-donor-secondaryMuted rounded-lg">
                 <div className="flex items-center gap-3">
                   <Server className="w-5 h-5 text-donor-onSecondaryMuted" />
-                  <span className="text-sm text-donor-text">Pending Couriers</span>
+                  <span className="text-sm text-donor-text">{t('ops.health.pendingCouriers')}</span>
                 </div>
                 <span className="font-semibold text-donor-text">{health?.pending?.couriers || 0}</span>
               </div>
               <div className="flex items-center justify-between p-3 bg-donor-dangerMuted rounded-lg">
                 <div className="flex items-center gap-3">
                   <AlertTriangle className="w-5 h-5 text-donor-onDangerMuted" />
-                  <span className="text-sm text-donor-text">Active Alerts</span>
+                  <span className="text-sm text-donor-text">{t('ops.dashboard.activeAlerts')}</span>
                 </div>
                 <span className="font-semibold text-donor-text">{health?.alerts || 0}</span>
               </div>
@@ -153,7 +155,7 @@ export default function SystemHealthPage() {
           </div>
 
           <div className="bc-glass rounded-card p-6">
-            <h3 className="font-medium text-donor-text mb-4">Recent Errors</h3>
+            <h3 className="font-medium text-donor-text mb-4">{t('ops.health.recentErrors')}</h3>
             <div className="flex items-center justify-between p-3 bg-donor-dangerMuted rounded-lg">
               <div className="flex items-center gap-3">
                 <XCircle className="w-5 h-5 text-donor-onDangerMuted" />
@@ -165,22 +167,22 @@ export default function SystemHealthPage() {
         </div>
 
         <div className="bc-glass rounded-card p-6">
-          <h3 className="font-medium text-donor-text mb-4">Platform Summary</h3>
+          <h3 className="font-medium text-donor-text mb-4">{t('ops.health.platformSummary')}</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="p-4 bg-donor-elevated rounded-lg">
-              <p className="text-sm text-donor-muted">Total Users</p>
+              <p className="text-sm text-donor-muted">{t('ops.dashboard.totalUsers')}</p>
               <p className="text-xl font-semibold text-donor-text">{stats?.users?.total || 0}</p>
             </div>
             <div className="p-4 bg-donor-elevated rounded-lg">
-              <p className="text-sm text-donor-muted">Active Shipments</p>
+              <p className="text-sm text-donor-muted">{t('ops.dashboard.activeShipments')}</p>
               <p className="text-xl font-semibold text-donor-text">{stats?.shipments?.active || 0}</p>
             </div>
             <div className="p-4 bg-donor-elevated rounded-lg">
-              <p className="text-sm text-donor-muted">Active Emergencies</p>
+              <p className="text-sm text-donor-muted">{t('ops.dashboard.activeEmergencies')}</p>
               <p className="text-xl font-semibold text-donor-text">{stats?.emergencies?.active || 0}</p>
             </div>
             <div className="p-4 bg-donor-elevated rounded-lg">
-              <p className="text-sm text-donor-muted">Critical Requests</p>
+              <p className="text-sm text-donor-muted">{t('ops.health.criticalRequests')}</p>
               <p className="text-xl font-semibold text-donor-text">{stats?.bloodRequests?.critical || 0}</p>
             </div>
           </div>

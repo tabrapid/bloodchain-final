@@ -17,19 +17,26 @@ import {
   AppointmentType,
 } from '../../lib/appointment-slots';
 import { AppShell } from '../../components/AppShell';
+import { useTranslation } from '@bloodchain/ui/i18n';
 
-const TYPE_LABEL: Record<AppointmentType, string> = {
-  BLOOD_DONATION: 'Blood Donation',
-  BLOOD_TEST: 'Blood Test',
-  CONSULTATION: 'Consultation',
+/** Keys, not words: there is no locale at module load. */
+const TYPE_LABEL_KEY: Record<AppointmentType, string> = {
+  BLOOD_DONATION: 'appointmentTypes.BLOOD_DONATION',
+  BLOOD_TEST: 'appointmentTypes.BLOOD_TEST',
+  CONSULTATION: 'appointmentTypes.CONSULTATION',
 };
 
-const STATUS_CONFIG: Record<string, { label: string; variant: 'success' | 'warning' | 'info' | 'default' | 'danger' }> = {
-  AVAILABLE: { label: 'Available', variant: 'success' },
-  FULL: { label: 'Full', variant: 'warning' },
-  BLOCKED: { label: 'Blocked', variant: 'danger' },
-  CANCELLED: { label: 'Cancelled', variant: 'danger' },
-  EXPIRED: { label: 'Expired', variant: 'default' },
+/**
+ * Badge colour per status. The wording is not here on purpose: a label
+ * written into a module-level map is fixed in one language, so the words
+ * come from `t('status.slot.<STATUS>')` at render instead.
+ */
+const STATUS_VARIANT: Record<string, 'success' | 'warning' | 'info' | 'default' | 'danger'> = {
+  AVAILABLE: 'success',
+  FULL: 'warning',
+  BLOCKED: 'danger',
+  CANCELLED: 'danger',
+  EXPIRED: 'default',
 };
 
 function toDatetimeLocalInput(date: Date): string {
@@ -38,6 +45,7 @@ function toDatetimeLocalInput(date: Date): string {
 }
 
 export default function AppointmentSlotsPage() {
+  const { t } = useTranslation();
   const [user, setUser] = useState<MeResponse | null>(null);
   const [organizationId, setOrganizationId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
@@ -135,7 +143,7 @@ export default function AppointmentSlotsPage() {
       await loadSlots();
     } catch (err) {
       console.error('Failed to create slot:', err);
-      setActionError(err instanceof Error ? err.message : 'Failed to create slot');
+      setActionError(err instanceof Error ? err.message : t('ops.appointments.createSlotFailed'));
     } finally {
       setActionLoading(false);
     }
@@ -155,11 +163,11 @@ export default function AppointmentSlotsPage() {
   if (isLoading) {
     return (
       <AppShell
-        title="Loading..."
-        subtitle="BLOOD CENTER CONSOLE"
+        title={t('ops.common.loadingEllipsis')}
+        subtitle={t('portal.bloodCenter.console')}
         organizationName="RedCross Blood Center (Development)"
         organizationType="Blood Center workspace"
-        userName="Loading..."
+        userName={t('ops.common.loadingEllipsis')}
       >
         <div className="flex items-center justify-center p-12">
           <CalendarDays className="animate-spin text-donor-primary" size={32} />
@@ -171,8 +179,8 @@ export default function AppointmentSlotsPage() {
   if (!user) {
     return (
       <AppShell
-        title="Authentication Required"
-        subtitle="BLOOD CENTER CONSOLE"
+        title={t('portal.authRequired')}
+        subtitle={t('portal.bloodCenter.console')}
         organizationName="RedCross Blood Center (Development)"
         organizationType="Blood Center workspace"
         userName="Guest"
@@ -180,10 +188,10 @@ export default function AppointmentSlotsPage() {
         <div className="flex flex-col items-center justify-center bc-glass rounded-card p-12">
           <CalendarDays className="mb-4 text-donor-primary" size={48} />
           <h2 className="mb-2 font-display text-2xl font-semibold text-donor-text">
-            Sign In Required
+            {t('ops.common.signInRequired')}
           </h2>
           <p className="mb-6 text-center text-donor-muted">
-            Please sign in to configure appointment slots
+            {t('ops.common.signInToSlots')}
           </p>
         </div>
       </AppShell>
@@ -198,8 +206,8 @@ export default function AppointmentSlotsPage() {
 
   return (
     <AppShell
-      title="Appointment Slots"
-      subtitle="BLOOD CENTER OPERATIONS"
+      title={t('ops.appointments.title')}
+      subtitle={t('ops.dashboard.bloodCenterOperations')}
       organizationName="RedCross Blood Center (Development)"
       organizationType="Blood Center Console"
       userName={`${user.firstName} ${user.lastName}`}
@@ -207,10 +215,10 @@ export default function AppointmentSlotsPage() {
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="font-display text-2xl font-semibold text-donor-text">
-            Appointment Slots
+            {t('ops.appointments.title')}
           </h1>
           <p className="text-sm text-donor-muted">
-            Configure when donors can book donation, blood test, and consultation appointments
+            {t('ops.appointments.pageSubtitle')}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -220,14 +228,14 @@ export default function AppointmentSlotsPage() {
             className="flex items-center gap-2 rounded-lg bc-solid px-3 py-2 text-sm text-donor-text transition-colors hover:bg-donor-elevated disabled:opacity-50"
           >
             <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
-            Refresh
+            {t('actions.refresh')}
           </button>
           <button
             onClick={openCreateModal}
             className="flex items-center gap-2 rounded-lg bg-donor-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-donor-primary/80"
           >
             <Plus size={16} />
-            New Slot
+            {t('ops.appointments.newSlot')}
           </button>
         </div>
       </div>
@@ -238,29 +246,29 @@ export default function AppointmentSlotsPage() {
           onChange={(e) => setTypeFilter(e.target.value as AppointmentType | '')}
           className="rounded-lg bc-solid px-3 py-2 text-sm text-donor-text"
         >
-          <option value="">All Types</option>
-          <option value="BLOOD_DONATION">Blood Donation</option>
-          <option value="BLOOD_TEST">Blood Test</option>
-          <option value="CONSULTATION">Consultation</option>
+          <option value="">{t('filters.allTypes')}</option>
+          <option value="BLOOD_DONATION">{t('appointmentTypes.BLOOD_DONATION')}</option>
+          <option value="BLOOD_TEST">{t('medical.appointmentTypes.bloodTest')}</option>
+          <option value="CONSULTATION">{t('medical.appointmentTypes.consultation')}</option>
         </select>
       </div>
 
       <div className="mb-6 grid gap-4 md:grid-cols-4">
-        <StatCard label="Upcoming Slots" value={slots.length.toString()} icon={CalendarDays} variant="info" />
-        <StatCard label="Available" value={availableCount.toString()} icon={Clock} variant="success" />
-        <StatCard label="Full" value={fullCount.toString()} icon={Users} variant="warning" />
-        <StatCard label="Capacity Booked" value={`${totalBooked} / ${totalCapacity}`} icon={Users} variant="default" />
+        <StatCard label={t('ops.appointments.upcomingSlots')} value={slots.length.toString()} icon={CalendarDays} variant="info" />
+        <StatCard label={t('status.slot.AVAILABLE')} value={availableCount.toString()} icon={Clock} variant="success" />
+        <StatCard label={t('status.slot.FULL')} value={fullCount.toString()} icon={Users} variant="warning" />
+        <StatCard label={t('ops.appointments.capacityBooked')} value={`${totalBooked} / ${totalCapacity}`} icon={Users} variant="default" />
       </div>
 
       {upcomingSlots.length === 0 ? (
         <EmptyState
-          title="No upcoming appointment slots"
-          description="Create a slot so donors can book donation, blood test, or consultation appointments."
+          title={t('ops.appointments.empty')}
+          description={t('ops.appointments.emptyHint')}
         />
       ) : (
         <div className="space-y-3">
           {upcomingSlots.map((slot) => {
-            const status = STATUS_CONFIG[slot.status] || { label: slot.status, variant: 'default' as const };
+            const statusVariant = STATUS_VARIANT[slot.status] ?? 'default';
             const start = new Date(slot.startAt);
             const end = new Date(slot.endAt);
             const canBlock = slot.status === 'AVAILABLE' || slot.status === 'FULL';
@@ -276,9 +284,9 @@ export default function AppointmentSlotsPage() {
                   <div>
                     <div className="flex items-center gap-3">
                       <h3 className="font-display text-base font-semibold text-donor-text">
-                        {TYPE_LABEL[slot.appointmentType]}
+                        {t(TYPE_LABEL_KEY[slot.appointmentType])}
                       </h3>
-                      <StatusBadge variant={status.variant}>{status.label}</StatusBadge>
+                      <StatusBadge variant={statusVariant}>{t(`status.slot.${slot.status}`)}</StatusBadge>
                     </div>
                     <p className="mt-1 text-sm text-donor-muted">
                       {start.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
@@ -291,7 +299,7 @@ export default function AppointmentSlotsPage() {
                 </div>
                 <div className="flex items-center gap-6">
                   <div className="text-right text-sm">
-                    <p className="text-donor-muted">Booked</p>
+                    <p className="text-donor-muted">{t('ops.appointments.booked')}</p>
                     <p className="font-semibold text-donor-text">
                       {slot.bookedCount} / {slot.capacity}
                     </p>
@@ -302,7 +310,7 @@ export default function AppointmentSlotsPage() {
                       className="flex items-center gap-2 rounded-lg border border-donor-border px-3 py-2 text-xs font-semibold text-donor-muted transition-colors hover:border-donor-danger/50 hover:text-donor-danger"
                     >
                       <Ban size={14} />
-                      Block
+                      {t('ops.common.block')}
                     </button>
                   )}
                 </div>
@@ -312,23 +320,23 @@ export default function AppointmentSlotsPage() {
         </div>
       )}
 
-      <Modal open={showCreateModal} onClose={() => setShowCreateModal(false)} title="New Appointment Slot">
+      <Modal open={showCreateModal} onClose={() => setShowCreateModal(false)} title={t('ops.appointments.newSlot')}>
         <div className="space-y-4">
           <div>
-            <label className="mb-1 block text-xs font-semibold text-donor-muted">Type</label>
+            <label className="mb-1 block text-xs font-semibold text-donor-muted">{t('table.type')}</label>
             <select
               value={form.appointmentType}
               onChange={(e) => setForm({ ...form, appointmentType: e.target.value as AppointmentType })}
               className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-sm text-donor-text"
             >
-              <option value="BLOOD_DONATION">Blood Donation</option>
-              <option value="BLOOD_TEST">Blood Test</option>
-              <option value="CONSULTATION">Consultation</option>
+              <option value="BLOOD_DONATION">{t('appointmentTypes.BLOOD_DONATION')}</option>
+              <option value="BLOOD_TEST">{t('medical.appointmentTypes.bloodTest')}</option>
+              <option value="CONSULTATION">{t('medical.appointmentTypes.consultation')}</option>
             </select>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="mb-1 block text-xs font-semibold text-donor-muted">Start</label>
+              <label className="mb-1 block text-xs font-semibold text-donor-muted">{t('ops.appointments.start')}</label>
               <input
                 type="datetime-local"
                 value={form.startAt}
@@ -337,7 +345,7 @@ export default function AppointmentSlotsPage() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-semibold text-donor-muted">End</label>
+              <label className="mb-1 block text-xs font-semibold text-donor-muted">{t('ops.appointments.end')}</label>
               <input
                 type="datetime-local"
                 value={form.endAt}
@@ -347,7 +355,7 @@ export default function AppointmentSlotsPage() {
             </div>
           </div>
           <div>
-            <label className="mb-1 block text-xs font-semibold text-donor-muted">Capacity</label>
+            <label className="mb-1 block text-xs font-semibold text-donor-muted">{t('ops.appointments.capacity')}</label>
             <input
               type="number"
               min={1}
@@ -376,7 +384,7 @@ export default function AppointmentSlotsPage() {
               onClick={() => setShowCreateModal(false)}
               className="rounded-lg bc-solid px-4 py-2 text-sm text-donor-text transition-colors hover:bg-donor-elevated"
             >
-              Cancel
+              {t('actions.cancel')}
             </button>
           </div>
         </div>

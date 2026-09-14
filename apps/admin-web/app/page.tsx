@@ -222,8 +222,8 @@ export default function AdminDashboard() {
     <AppShell title={t('portal.admin.dashboard')} userName={user ? `${user.firstName} ${user.lastName}` : undefined}>
       <div className="p-6">
         <div className="mb-8">
-          <h1 className="text-2xl font-semibold text-donor-text">Platform Dashboard</h1>
-          <p className="text-sm text-donor-muted mt-1">Real-time overview of the BloodChain</p>
+          <h1 className="text-2xl font-semibold text-donor-text">{t('ops.dashboard.platformDashboard')}</h1>
+          <p className="text-sm text-donor-muted mt-1">{t('ops.dashboard.platformOverview')}</p>
         </div>
 
         {error && (
@@ -238,25 +238,25 @@ export default function AdminDashboard() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <StatCard
-            label="Total Users"
+            label={t('ops.dashboard.totalUsers')}
             value={String(stats?.users.total ?? '-')}
             icon={Users}
             note={`${stats?.users.active ?? 0} active`}
           />
           <StatCard
-            label="Verified Donors"
+            label={t('ops.dashboard.verifiedDonors')}
             value={String(stats?.users.verifiedDonors ?? '-')}
             icon={UserCheck}
-            note="Active donors"
+            note={t('ops.dashboard.activeDonors')}
           />
           <StatCard
-            label="Hospitals"
+            label={t('ops.dashboard.hospitals')}
             value={String(stats?.organizations.hospitals ?? '-')}
             icon={Building2}
             note={`${stats?.organizations.pending ?? 0} pending`}
           />
           <StatCard
-            label="Blood Centers"
+            label={t('ops.dashboard.bloodCenters')}
             value={String(stats?.organizations.bloodCenters ?? '-')}
             icon={Droplet}
             note={`${stats?.organizations.suspended ?? 0} suspended`}
@@ -265,61 +265,61 @@ export default function AdminDashboard() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <StatCard
-            label="Active Shipments"
+            label={t('ops.dashboard.activeShipments')}
             value={String(stats?.shipments.active ?? '-')}
             icon={Package}
-            note="In transit"
+            note={t('status.shipment.IN_TRANSIT')}
           />
           <StatCard
-            label="Active Emergencies"
+            label={t('ops.dashboard.activeEmergencies')}
             value={String(stats?.emergencies.active ?? '-')}
             icon={AlertTriangle}
-            note="SOS requests"
+            note={t('ops.dashboard.sosRequests')}
           />
           <StatCard
-            label="Blood Requests"
+            label={t('ops.requests.title')}
             value={String(stats?.bloodRequests.active ?? '-')}
             icon={Droplet}
             note={`${stats?.bloodRequests.critical ?? 0} critical`}
           />
           <StatCard
-            label="Couriers"
+            label={t('portal.nav.couriers')}
             value={String(stats?.couriers ?? '-')}
             icon={Ship}
-            note="Registered"
+            note={t('ops.dashboard.registered')}
           />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           <StatCard
-            label="Donations Today"
+            label={t('ops.dashboard.donationsToday')}
             value={String(stats?.todayActivity.donations ?? '-')}
             icon={TestTube}
-            note="Completed"
+            note={t('table.completedAt')}
           />
           <StatCard
-            label="Appointments Today"
+            label={t('ops.dashboard.appointmentsToday')}
             value={String(stats?.todayActivity.appointments ?? '-')}
             icon={Clock}
-            note="Scheduled"
+            note={t('table.scheduled')}
           />
           <StatCard
-            label="Blood Tests Today"
+            label={t('ops.dashboard.bloodTestsToday')}
             value={String(stats?.todayActivity.bloodTests ?? '-')}
             icon={Activity}
-            note="Processed"
+            note={t('ops.dashboard.processed')}
           />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <div className="bc-glass rounded-card overflow-hidden">
             <div className="px-4 py-3 border-b border-donor-border/40 flex items-center justify-between">
-              <h3 className="font-medium text-donor-text">Pending Organizations</h3>
+              <h3 className="font-medium text-donor-text">{t('ops.dashboard.pendingOrganizations')}</h3>
               <span className="text-sm text-donor-warning font-medium">{pendingOrgs.length}</span>
             </div>
             <div className="divide-y divide-donor-border/40">
               {pendingOrgs.length === 0 ? (
-                <div className="p-4 text-sm text-donor-muted text-center">No pending organizations</div>
+                <div className="p-4 text-sm text-donor-muted text-center">{t('ops.dashboard.noPendingOrganizations')}</div>
               ) : (
                 pendingOrgs.map((org) => (
                   <div key={org.id} className="p-4 flex items-center justify-between">
@@ -336,12 +336,12 @@ export default function AdminDashboard() {
 
           <div className="bc-glass rounded-card overflow-hidden">
             <div className="px-4 py-3 border-b border-donor-border/40 flex items-center justify-between">
-              <h3 className="font-medium text-donor-text">Active Emergencies</h3>
+              <h3 className="font-medium text-donor-text">{t('ops.dashboard.activeEmergencies')}</h3>
               <span className="text-sm text-donor-danger font-medium">{activeEmergencies.length}</span>
             </div>
             <div className="divide-y divide-donor-border/40">
               {activeEmergencies.length === 0 ? (
-                <div className="p-4 text-sm text-donor-muted text-center">No active emergencies</div>
+                <div className="p-4 text-sm text-donor-muted text-center">{t('ops.dashboard.noActiveEmergencies')}</div>
               ) : (
                 activeEmergencies.map((emergency) => (
                   <div key={emergency.id} className="p-4 flex items-center justify-between">
@@ -360,12 +360,12 @@ export default function AdminDashboard() {
 
           <div className="bc-glass rounded-card overflow-hidden">
             <div className="px-4 py-3 border-b border-donor-border/40 flex items-center justify-between">
-              <h3 className="font-medium text-donor-text">Active Alerts</h3>
+              <h3 className="font-medium text-donor-text">{t('ops.dashboard.activeAlerts')}</h3>
               <span className="text-sm text-donor-danger font-medium">{activeAlerts.length}</span>
             </div>
             <div className="divide-y divide-donor-border/40">
               {activeAlerts.length === 0 ? (
-                <div className="p-4 text-sm text-donor-muted text-center">No active alerts</div>
+                <div className="p-4 text-sm text-donor-muted text-center">{t('ops.dashboard.noActiveAlerts')}</div>
               ) : (
                 activeAlerts.slice(0, 5).map((alert) => (
                   <div key={alert.id} className="p-4 flex items-center justify-between">
@@ -382,24 +382,24 @@ export default function AdminDashboard() {
         </div>
 
         <div className="mt-6 bc-glass rounded-card p-4">
-          <h3 className="font-medium text-donor-text mb-4">System Health</h3>
+          <h3 className="font-medium text-donor-text mb-4">{t('portal.nav.health')}</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="flex items-center gap-2">
               <div className={`w-2 h-2 rounded-full ${health?.status === 'healthy' ? 'bg-donor-success' : 'bg-donor-danger'}`} />
-              <span className="text-sm text-donor-muted">API Status</span>
+              <span className="text-sm text-donor-muted">{t('ops.dashboard.apiStatus')}</span>
               <span className="text-sm font-medium text-donor-text ml-auto">{health?.status ?? '-'}</span>
             </div>
             <div className="flex items-center gap-2">
               <div className={`w-2 h-2 rounded-full ${health?.database === 'up' ? 'bg-donor-success' : 'bg-donor-danger'}`} />
-              <span className="text-sm text-donor-muted">Database</span>
+              <span className="text-sm text-donor-muted">{t('ops.dashboard.database')}</span>
               <span className="text-sm font-medium text-donor-text ml-auto">{health?.database ?? '-'}</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-sm text-donor-muted">Pending Orgs</span>
+              <span className="text-sm text-donor-muted">{t('ops.dashboard.pendingOrgs')}</span>
               <span className="text-sm font-medium text-donor-text ml-auto">{health?.pending?.organizations ?? '-'}</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-sm text-donor-muted">Active Alerts</span>
+              <span className="text-sm text-donor-muted">{t('ops.dashboard.activeAlerts')}</span>
               <span className="text-sm font-medium text-donor-text ml-auto">{health?.alerts ?? '-'}</span>
             </div>
           </div>

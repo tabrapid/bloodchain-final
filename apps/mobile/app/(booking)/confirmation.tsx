@@ -6,8 +6,10 @@ import { Check } from 'lucide-react-native';
 import { AppButton, AppText, Badge, GlassCard, Screen } from '../../src/components';
 import { useAppointment } from '../../src/hooks/useAppointments';
 import { layout, spacing, translucentElevation, useTheme, ThemeColors } from '../../src/theme';
+import { useTranslation } from '../../src/i18n';
 
 export default function BookingConfirmation() {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const params = useLocalSearchParams<{ appointmentId: string; rescheduled?: string }>();
@@ -44,20 +46,20 @@ export default function BookingConfirmation() {
         </View>
 
         <AppText style={styles.title}>
-          {isRescheduled ? 'Appointment rescheduled!' : 'Appointment confirmed!'}
+          {isRescheduled ? t('booking.rescheduledTitle') : t('booking.confirmedTitle')}
         </AppText>
         <AppText muted style={styles.subtitle}>
           {isRescheduled
-            ? 'Your appointment has been moved to the new date and time.'
-            : 'Your appointment has been successfully scheduled.'}
+            ? t('booking.rescheduledBody')
+            : t('booking.confirmedBody')}
         </AppText>
 
         {isLoading ? (
-          <AppText muted>Loading...</AppText>
+          <AppText muted>{t('common.loading')}</AppText>
         ) : appointment ? (
           <GlassCard tier="elevated" style={styles.detailsCard}>
             <View style={styles.refRow}>
-              <AppText muted>Reference Number</AppText>
+              <AppText muted>{t('booking.referenceNumber')}</AppText>
               <AppText variant="heading" style={styles.refNumber}>
                 {appointment.referenceNumber}
               </AppText>
@@ -67,28 +69,28 @@ export default function BookingConfirmation() {
 
             <View style={styles.detailRow}>
               <AppText muted style={styles.detailLabel}>
-                Type
+                {t('table.type')}
               </AppText>
-              <AppText>{appointment.appointmentType.replace('_', ' ')}</AppText>
+              <AppText>{t(`appointmentTypes.${appointment.appointmentType}`)}</AppText>
             </View>
 
             <View style={styles.detailRow}>
               <AppText muted style={styles.detailLabel}>
-                Organization
+                {t('table.organization')}
               </AppText>
               <AppText>{appointment.organization.name}</AppText>
             </View>
 
             <View style={styles.detailRow}>
               <AppText muted style={styles.detailLabel}>
-                Date
+                {t('table.date')}
               </AppText>
               <AppText>{formatDate(appointment.scheduledStart)}</AppText>
             </View>
 
             <View style={styles.detailRow}>
               <AppText muted style={styles.detailLabel}>
-                Time
+                {t('table.time')}
               </AppText>
               <AppText>
                 {formatTime(appointment.scheduledStart)} -{' '}
@@ -98,10 +100,10 @@ export default function BookingConfirmation() {
 
             <View style={styles.detailRow}>
               <AppText muted style={styles.detailLabel}>
-                Status
+                {t('table.status')}
               </AppText>
               <Badge variant={appointment.status === 'CONFIRMED' ? 'success' : 'warning'}>
-                {appointment.status.replace(/_/g, ' ')}
+                {t(`status.appointment.${appointment.status}`)}
               </Badge>
             </View>
           </GlassCard>
@@ -109,22 +111,21 @@ export default function BookingConfirmation() {
 
         <GlassCard style={styles.reminderCard}>
           <AppText muted style={styles.reminderText}>
-            Please arrive 15 minutes before your scheduled appointment time.
-            Remember to bring a valid ID.
+            {t('booking.arriveEarly')}
           </AppText>
         </GlassCard>
       </View>
 
       <View style={styles.footer}>
         <AppButton onPress={() => router.replace('/(app)/calendar')}>
-          View calendar
+          {t('booking.viewCalendar')}
         </AppButton>
         <AppButton
           variant="secondary"
           onPress={() => router.replace('/home' as const)}
           style={styles.homeButton}
         >
-          Back to app
+          {t('booking.backToApp')}
         </AppButton>
       </View>
     </Screen>

@@ -12,8 +12,10 @@ import {
 } from '../../src/components';
 import { useOrganizations } from '../../src/hooks/useAppointments';
 import { radius, spacing, useTheme, ThemeColors } from '../../src/theme';
+import { useTranslation } from '../../src/i18n';
 
 export default function SelectOrganization() {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const params = useLocalSearchParams<{ type: string }>();
@@ -30,11 +32,11 @@ export default function SelectOrganization() {
   return (
     <BookingStep
       step={2}
-      title="Select location"
+      title={t('booking.selectLocation')}
       subtitle={
         params.type === 'BLOOD_DONATION'
-          ? 'Choose a hospital or blood center'
-          : 'Choose a healthcare facility'
+          ? t('booking.selectLocationHintDonation')
+          : t('booking.selectLocationHintTest')
       }
       nextDisabled={!selected}
       onNext={() =>
@@ -53,8 +55,8 @@ export default function SelectOrganization() {
       ) : isError ? (
         <GlassCard style={styles.stateCard}>
           <EmptyState
-            title="Couldn't load locations"
-            description="Something went wrong reaching the server. Check your connection and try again."
+            title={t('booking.locationsFailed')}
+            description={t('common.offline')}
           />
           <AppButton
             variant="secondary"
@@ -63,14 +65,14 @@ export default function SelectOrganization() {
             loading={isRefetching}
             style={styles.retry}
           >
-            Retry
+            {t('common.retry')}
           </AppButton>
         </GlassCard>
       ) : organizations.length === 0 ? (
         <GlassCard style={styles.stateCard}>
           <EmptyState
-            title="No locations found"
-            description="There are no active organizations available for this appointment type."
+            title={t('booking.noLocations')}
+            description={t('booking.noLocationsHint')}
           />
         </GlassCard>
       ) : (

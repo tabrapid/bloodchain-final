@@ -7,8 +7,10 @@ import { listUsers, suspendUser, restoreUser, listRoles, updateMembershipRole, t
 import { me, isAuthenticated } from '@lib/auth';
 import { StatusBadgeWrapper } from '@lib/status';
 import { AppShell } from '../../components/AppShell';
+import { useTranslation } from '@bloodchain/ui/i18n';
 
 export default function UsersPage() {
+  const { t } = useTranslation();
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [users, setUsers] = useState<UserType[]>([]);
@@ -104,17 +106,17 @@ export default function UsersPage() {
 
   if (isLoading) {
     return (
-      <AppShell title="User Management" userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
+      <AppShell title={t('ops.users.title')} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
         <LoadingState />
       </AppShell>
     );
   }
 
   return (
-    <AppShell title="User Management" userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
+    <AppShell title={t('ops.users.title')} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
       <div className="p-6">
         <div className="mb-6">
-          <p className="text-sm text-donor-muted">Manage platform users and their accounts</p>
+          <p className="text-sm text-donor-muted">{t('ops.users.subtitle')}</p>
         </div>
 
         {error && (
@@ -133,7 +135,7 @@ export default function UsersPage() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-donor-muted" />
                 <input
                   type="text"
-                  placeholder="Search by name, email, or phone..."
+                  placeholder={t('ops.users.searchByNameEmailPhone')}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="w-full pl-10 pr-4 py-2 bc-solid rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-donor-primary"
@@ -144,28 +146,28 @@ export default function UsersPage() {
                 onChange={(e) => setStatusFilter(e.target.value)}
                 className="bc-solid rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-donor-primary"
               >
-                <option value="">All Status</option>
-                <option value="ACTIVE">Active</option>
-                <option value="SUSPENDED">Suspended</option>
-                <option value="PENDING_VERIFICATION">Pending</option>
+                <option value="">{t('ops.common.allStatus')}</option>
+                <option value="ACTIVE">{t('status.user.ACTIVE')}</option>
+                <option value="SUSPENDED">{t('status.user.SUSPENDED')}</option>
+                <option value="PENDING_VERIFICATION">{t('status.user.PENDING_VERIFICATION')}</option>
               </select>
               <select
                 value={roleFilter}
                 onChange={(e) => setRoleFilter(e.target.value)}
                 className="bc-solid rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-donor-primary"
               >
-                <option value="">All Roles</option>
-                <option value="DONOR">Donor</option>
-                <option value="HOSPITAL_ADMIN">Hospital Admin</option>
-                <option value="BLOOD_CENTER_ADMIN">Blood Center Admin</option>
-                <option value="COURIER">Courier</option>
-                <option value="SUPER_ADMIN">Super Admin</option>
+                <option value="">{t('filters.allRoles')}</option>
+                <option value="DONOR">{t('table.donor')}</option>
+                <option value="HOSPITAL_ADMIN">{t('ops.roles.hospitalAdmin')}</option>
+                <option value="BLOOD_CENTER_ADMIN">{t('ops.roles.bloodCenterAdmin')}</option>
+                <option value="COURIER">{t('table.courier')}</option>
+                <option value="SUPER_ADMIN">{t('ops.roles.superAdmin')}</option>
               </select>
               <button
                 type="submit"
                 className="bg-donor-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-donor-primary/85"
               >
-                Search
+                {t('actions.search')}
               </button>
             </form>
           </div>
@@ -174,20 +176,20 @@ export default function UsersPage() {
             <table className="w-full">
               <thead>
                 <tr className="bg-donor-elevated border-b border-donor-border/40">
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">User</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Status</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Roles</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Organization</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Blood Type</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Created</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Actions</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.user')}</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.status')}</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('ops.common.roles')}</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.organization')}</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('home.bloodTypeLabel')}</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.created')}</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.actions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-donor-border/40">
                 {users.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="px-4 py-8 text-center text-sm text-donor-muted">
-                      No users found
+                      {t('ops.users.empty')}
                     </td>
                   </tr>
                 ) : (
@@ -225,7 +227,7 @@ export default function UsersPage() {
                           onClick={() => setSelectedUser(user)}
                           className="text-donor-primary hover:text-donor-primary/70 text-sm font-medium"
                         >
-                          View
+                          {t('actions.view')}
                         </button>
                       </td>
                     </tr>
@@ -246,14 +248,14 @@ export default function UsersPage() {
                   disabled={meta.page === 1}
                   className="px-3 py-1 bc-solid rounded text-sm disabled:opacity-50"
                 >
-                  Previous
+                  {t('actions.previous')}
                 </button>
                 <button
                   onClick={() => loadUsers(meta.page + 1)}
                   disabled={meta.page === meta.totalPages}
                   className="px-3 py-1 bc-solid rounded text-sm disabled:opacity-50"
                 >
-                  Next
+                  {t('actions.next')}
                 </button>
               </div>
             </div>
@@ -265,7 +267,7 @@ export default function UsersPage() {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bc-glass-elevated bc-rise rounded-panel w-full max-w-lg mx-4">
             <div className="px-6 py-4 border-b border-donor-border/40 flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-donor-text">User Details</h3>
+              <h3 className="text-lg font-semibold text-donor-text">{t('ops.users.details')}</h3>
               <button onClick={() => setSelectedUser(null)}>
                 <X className="w-5 h-5 text-donor-muted" />
               </button>
@@ -283,21 +285,21 @@ export default function UsersPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-donor-muted">Status</p>
+                  <p className="text-sm text-donor-muted">{t('table.status')}</p>
                   <StatusBadgeWrapper status={selectedUser.status} />
                 </div>
                 <div>
-                  <p className="text-sm text-donor-muted">Phone</p>
+                  <p className="text-sm text-donor-muted">{t('table.phone')}</p>
                   <p className="text-sm font-medium text-donor-text">{selectedUser.phone || '-'}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-donor-muted">Blood Type</p>
+                  <p className="text-sm text-donor-muted">{t('home.bloodTypeLabel')}</p>
                   <p className="text-sm font-medium text-donor-text">
                     {selectedUser.bloodType ? `${selectedUser.bloodType}${selectedUser.rhFactor}` : '-'}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-donor-muted">Last Login</p>
+                  <p className="text-sm text-donor-muted">{t('ops.users.lastLogin')}</p>
                   <p className="text-sm font-medium text-donor-text">
                     {selectedUser.lastLoginAt ? new Date(selectedUser.lastLoginAt).toLocaleString() : '-'}
                   </p>
@@ -305,7 +307,7 @@ export default function UsersPage() {
               </div>
 
               <div>
-                <p className="text-sm text-donor-muted mb-2">Roles</p>
+                <p className="text-sm text-donor-muted mb-2">{t('ops.common.roles')}</p>
                 <div className="space-y-2">
                   {selectedUser.roles.map((r) => (
                     <div key={r.membershipId} className="flex items-center gap-2 flex-wrap">
@@ -319,7 +321,7 @@ export default function UsersPage() {
                         }
                         className="bc-solid rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-donor-primary"
                       >
-                        <option value="">Change role to...</option>
+                        <option value="">{t('ops.users.changeRoleTo')}</option>
                         {roles
                           .filter((role) => role.code !== r.role)
                           .map((role) => (
@@ -333,7 +335,7 @@ export default function UsersPage() {
                         disabled={actionLoading || !roleChangeTarget[r.membershipId]}
                         className="text-xs font-medium text-donor-primary hover:text-donor-primary/70 disabled:opacity-40 disabled:cursor-not-allowed"
                       >
-                        Update
+                        {t('community.postTypes.update')}
                       </button>
                     </div>
                   ))}

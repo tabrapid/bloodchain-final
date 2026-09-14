@@ -273,7 +273,7 @@ export default function Home() {
         </Pressable>
       )}
 
-      <SectionHeader action={{ label: 'View all', onPress: () => router.push('/sos') }}>
+      <SectionHeader action={{ label: t('actions.viewAll'), onPress: () => router.push('/sos') }}>
         {t('home.emergency')}
       </SectionHeader>
       <Pressable

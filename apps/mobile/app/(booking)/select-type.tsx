@@ -4,40 +4,31 @@ import { router } from 'expo-router';
 import { Check, Droplet, HeartPulse, Stethoscope, type LucideIcon } from 'lucide-react-native';
 import { AppText, BookingStep, GlassCard } from '../../src/components';
 import { radius, useTheme, ThemeColors } from '../../src/theme';
+import { useTranslation } from '../../src/i18n';
 
 interface AppointmentTypeOption {
   id: string;
-  title: string;
-  description: string;
   icon: LucideIcon;
   tintKey: 'primary' | 'success' | 'secondary';
 }
 
+/**
+ * The copy comes from the id, not from the map.
+ *
+ * This list is built at module load, where there is no locale, so it carries
+ * only what does not change: which types exist, their icon and their tint. The
+ * words are looked up per render under `appointmentTypes.<ID>`, which also
+ * means a new appointment type needs one catalogue entry rather than three
+ * strings in a file nobody opens.
+ */
 const APPOINTMENT_TYPES: AppointmentTypeOption[] = [
-  {
-    id: 'BLOOD_DONATION',
-    title: 'Blood Donation',
-    description: 'Donate blood to help those in need',
-    icon: Droplet,
-    tintKey: 'primary',
-  },
-  {
-    id: 'BLOOD_TEST',
-    title: 'Blood Test',
-    description: 'Get your blood tested for various parameters',
-    icon: HeartPulse,
-    tintKey: 'success',
-  },
-  {
-    id: 'CONSULTATION',
-    title: 'Consultation',
-    description: 'Speak with a healthcare professional',
-    icon: Stethoscope,
-    tintKey: 'secondary',
-  },
+  { id: 'BLOOD_DONATION', icon: Droplet, tintKey: 'primary' },
+  { id: 'BLOOD_TEST', icon: HeartPulse, tintKey: 'success' },
+  { id: 'CONSULTATION', icon: Stethoscope, tintKey: 'secondary' },
 ];
 
 export default function SelectType() {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [selected, setSelected] = useState<string | null>(null);
@@ -45,8 +36,8 @@ export default function SelectType() {
   return (
     <BookingStep
       step={1}
-      title="Select appointment type"
-      subtitle="What would you like to book today?"
+      title={t('booking.selectType')}
+      subtitle={t('booking.whatToBook')}
       nextDisabled={!selected}
       onNext={() =>
         router.push({ pathname: '/(booking)/organizations', params: { type: selected! } })
@@ -75,8 +66,8 @@ export default function SelectType() {
                     <Icon size={22} color={colors.onMuted[type.tintKey]} />
                   </View>
                   <View style={styles.body}>
-                    <AppText style={styles.title}>{type.title}</AppText>
-                    <AppText style={styles.description}>{type.description}</AppText>
+                    <AppText style={styles.title}>{t(`appointmentTypes.${type.id}`)}</AppText>
+                    <AppText style={styles.description}>{t(`appointmentTypes.${type.id}_HINT`)}</AppText>
                   </View>
                   {isSelected ? (
                     <View style={styles.check}>

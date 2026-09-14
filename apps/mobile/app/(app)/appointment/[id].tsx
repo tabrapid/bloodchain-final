@@ -22,6 +22,7 @@ import {
 import { useAppointment, useCancelAppointment } from '../../../src/hooks/useAppointments';
 import { layout, spacing, radius, useTheme, ThemeColors } from '../../../src/theme';
 import type { BadgeProps } from '../../../src/components/Badge';
+import { useTranslation } from '../../../src/i18n';
 
 /**
  * What the donor should do before arriving. This is the same advice every
@@ -29,12 +30,13 @@ import type { BadgeProps } from '../../../src/components/Badge';
  * rather than data -- the backend has no per-appointment preparation field to
  * read it from.
  */
+// Catalogue keys, resolved at render: there is no locale at module load.
 const PREPARATION = [
-  'Drink plenty of water the night before',
-  'Eat a healthy meal 2-3 hours before',
-  'Avoid alcohol for 24 hours prior',
-  'Bring a valid ID document',
-  'Wear comfortable, loose clothing',
+  'medical.preparation.hydrate',
+  'medical.preparation.eatWell',
+  'medical.preparation.noAlcohol',
+  'medical.preparation.bringId',
+  'medical.preparation.wearComfortable',
 ];
 
 const STATUS_VARIANT: Record<string, BadgeProps['variant']> = {
@@ -46,6 +48,7 @@ const STATUS_VARIANT: Record<string, BadgeProps['variant']> = {
 };
 
 export default function AppointmentDetail() {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const params = useLocalSearchParams<{ id: string }>();
@@ -65,10 +68,10 @@ export default function AppointmentDetail() {
       return;
     }
 
-    Alert.alert('Cancel Appointment', 'Are you sure you want to cancel this appointment?', [
-      { text: 'No', style: 'cancel' },
+    Alert.alert(t('appointment.cancelTitle'), t('appointment.cancelConfirmBody'), [
+      { text: t('appointment.cancelKeep'), style: 'cancel' },
       {
-        text: 'Yes, Cancel',
+        text: t('appointment.cancelConfirm'),
         style: 'destructive',
         onPress: async () => {
           setError(null);
@@ -79,7 +82,7 @@ export default function AppointmentDetail() {
             });
             router.back();
           } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to cancel appointment');
+            setError(err instanceof Error ? err.message : t('appointment.cancelFailed'));
           }
         },
       },
@@ -106,12 +109,12 @@ export default function AppointmentDetail() {
       <Screen>
         <BackLink />
         <AppText style={styles.title}>
-          {isLoading ? 'Loading…' : 'Appointment not found'}
+          {isLoading ? t('common.loading') : t('appointment.notFound')}
         </AppText>
         {!isLoading && (
           <View style={styles.footer}>
             <AppButton variant="secondary" onPress={() => router.back()}>
-              Go Back
+              {t('common.back')}
             </AppButton>
           </View>
         )}
@@ -143,7 +146,7 @@ export default function AppointmentDetail() {
             <DetailRow
               icon={<Calendar size={18} color={colors.success} />}
               tint={`${colors.success}26`}
-              label="Date"
+              label={t('table.date')}
               value={start.toLocaleDateString('en-US', {
                 weekday: 'long',
                 month: 'long',
@@ -155,14 +158,14 @@ export default function AppointmentDetail() {
             <DetailRow
               icon={<Clock size={18} color={colors.secondary} />}
               tint={`${colors.secondary}26`}
-              label="Time"
+              label={t('table.time')}
               value={`${formatTime(start)} — approx. ${durationMin} min`}
             />
             <View style={styles.divider} />
             <DetailRow
               icon={<MapPin size={18} color={colors.primary} />}
               tint="rgba(216, 83, 96, 0.12)"
-              label="Location"
+              label={t('table.location')}
               value={appointment.organization.name}
               meta={appointment.organization.address}
             />
@@ -170,7 +173,7 @@ export default function AppointmentDetail() {
             <DetailRow
               icon={<Droplet size={18} color={colors.primary} />}
               tint="rgba(216, 83, 96, 0.12)"
-              label="Type"
+              label={t('table.type')}
               value={toTitleCase(appointment.appointmentType)}
             />
           </View>
@@ -178,11 +181,11 @@ export default function AppointmentDetail() {
 
         {isOpen && (
           <GlassCard>
-            <AppText style={styles.cardTitle}>Preparation checklist</AppText>
+            <AppText style={styles.cardTitle}>{t('appointment.preparation')}</AppText>
             {PREPARATION.map((tip) => (
               <View key={tip} style={styles.tipRow}>
                 <View style={styles.tipDot} />
-                <AppText style={styles.tipText}>{tip}</AppText>
+                <AppText style={styles.tipText}>{t(tip)}</AppText>
               </View>
             ))}
           </GlassCard>
@@ -194,7 +197,7 @@ export default function AppointmentDetail() {
               <Hash size={16} color={colors.secondary} />
             </View>
             <View style={styles.compactBody}>
-              <AppText style={styles.compactTitle}>Reference number</AppText>
+              <AppText style={styles.compactTitle}>{t('booking.referenceNumber')}</AppText>
               <AppText style={styles.compactMeta}>{appointment.referenceNumber}</AppText>
             </View>
           </View>
@@ -202,7 +205,7 @@ export default function AppointmentDetail() {
 
         {appointment.notes && (
           <GlassCard>
-            <AppText style={styles.cardTitle}>Notes</AppText>
+            <AppText style={styles.cardTitle}>{t('table.notes')}</AppText>
             <AppText style={styles.bodyText}>{appointment.notes}</AppText>
           </GlassCard>
         )}
@@ -211,7 +214,7 @@ export default function AppointmentDetail() {
           <GlassCard danger>
             <View style={styles.noticeHeader}>
               <XCircle size={18} color={colors.onMuted.danger} />
-              <AppText style={styles.noticeTitle}>Cancelled</AppText>
+              <AppText style={styles.noticeTitle}>{t('appointment.cancelledNotice')}</AppText>
             </View>
             <AppText style={styles.bodyText}>{appointment.cancellationReason}</AppText>
           </GlassCard>
@@ -229,8 +232,8 @@ export default function AppointmentDetail() {
         {showCancelReason && (
           <GlassCard>
             <AppTextInput
-              label="Cancellation reason"
-              placeholder="Optional — helps the centre free up your slot"
+              label={t('appointment.cancelReason')}
+              placeholder={t('appointment.cancelReasonHint')}
               value={cancelReason}
               onChangeText={setCancelReason}
               multiline
@@ -242,7 +245,7 @@ export default function AppointmentDetail() {
           {isOpen ? (
             <>
               <AppButton variant="secondary" onPress={handleReschedule} style={styles.action}>
-                Reschedule
+                {t('appointment.reschedule')}
               </AppButton>
               <AppButton
                 variant="ghost"
@@ -250,12 +253,12 @@ export default function AppointmentDetail() {
                 loading={cancelMutation.isPending}
                 style={styles.action}
               >
-                {showCancelReason ? 'Confirm' : 'Cancel'}
+                {showCancelReason ? t('actions.confirm') : t('actions.cancel')}
               </AppButton>
             </>
           ) : (
             <AppButton variant="secondary" onPress={() => router.back()} style={styles.action}>
-              Go Back
+              {t('common.back')}
             </AppButton>
           )}
         </View>
@@ -265,17 +268,18 @@ export default function AppointmentDetail() {
 }
 
 function BackLink() {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <Pressable
       onPress={() => router.back()}
       accessibilityRole="button"
-      accessibilityLabel="Go back"
+      accessibilityLabel={t('auth.a11y.goBack')}
       style={({ pressed }) => [styles.backLink, { opacity: pressed ? 0.6 : 1 }]}
     >
       <ArrowLeft size={16} color={colors.primary} strokeWidth={2.5} />
-      <AppText style={styles.backLabel}>Back</AppText>
+      <AppText style={styles.backLabel}>{t('actions.back')}</AppText>
     </Pressable>
   );
 }

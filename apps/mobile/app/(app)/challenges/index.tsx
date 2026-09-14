@@ -16,8 +16,10 @@ import {
   ScreenHeader,
 } from '../../../src/components';
 import { layout, spacing, radius, useTheme, ThemeColors } from '../../../src/theme';
+import { useTranslation } from '../../../src/i18n';
 
 export default function ChallengesScreen() {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [refreshing, setRefreshing] = useState(false);
@@ -37,7 +39,7 @@ export default function ChallengesScreen() {
       queryClient.invalidateQueries({ queryKey: ['my-challenges'] });
     },
     onError: (err: any) => {
-      setJoinError(err.message || 'Failed to join challenge. Please try again.');
+      setJoinError(err.message || t('challenges.joinFailed'));
     },
   });
 
@@ -50,8 +52,8 @@ export default function ChallengesScreen() {
   if (isLoading) {
     return (
       <Screen>
-        <ScreenHeader title="Challenges" />
-        <LoadingState message="Loading challenges..." />
+        <ScreenHeader title={t('challenges.title')} />
+        <LoadingState message={t('challenges.loading')} />
       </Screen>
     );
   }
@@ -59,8 +61,8 @@ export default function ChallengesScreen() {
   return (
     <Screen scroll={false}>
       <ScreenHeader
-        title="Challenges"
-        subtitle="Complete challenges to earn XP and badges"
+        title={t('challenges.title')}
+        subtitle={t('challenges.subtitle')}
       />
       <FlatList
         style={{ flex: 1 }}
@@ -92,8 +94,8 @@ export default function ChallengesScreen() {
           <Card>
             <EmptyState
               icon={Trophy}
-              title="No Active Challenges"
-              description="Check back later for new challenges"
+              title={t('challenges.empty')}
+              description={t('challenges.emptyHint')}
             />
           </Card>
         }
@@ -111,6 +113,7 @@ function ChallengeCard({
   onJoin: () => void;
   isJoining: boolean;
 }) {
+  const { t, formatDate } = useTranslation();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const current = challenge.userProgress || 0;
@@ -132,7 +135,7 @@ function ChallengeCard({
         <View style={styles.detailRow}>
           <Clock size={16} color={colors.textMuted} />
           <AppText muted variant="bodySmall">
-            Ends {new Date(challenge.endDate).toLocaleDateString()}
+            {t('challenges.endsOn', { date: formatDate(challenge.endDate, 'medium') })}
           </AppText>
         </View>
       )}
@@ -140,7 +143,7 @@ function ChallengeCard({
       <View style={styles.progressSection}>
         <View style={styles.progressLabels}>
           <AppText muted variant="bodySmall">
-            Progress
+            {t('table.progress')}
           </AppText>
           <AppText variant="bodySmall" style={styles.progressValue}>
             {current} / {challenge.goal}
@@ -169,13 +172,13 @@ function ChallengeCard({
 
       {!hasJoined && (
         <AppButton onPress={onJoin} loading={isJoining} style={styles.action}>
-          Join Challenge
+          {t('challenges.joinChallenge')}
         </AppButton>
       )}
 
       {hasJoined && progress >= 1 && (
         <View style={styles.completed}>
-          <AppText style={styles.completedText}>Challenge Completed!</AppText>
+          <AppText style={styles.completedText}>{t('challenges.completed')}</AppText>
         </View>
       )}
     </GlassCard>

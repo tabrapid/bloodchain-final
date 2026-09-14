@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { Activity, Beaker, Calendar, ChevronRight, Clock, FlaskConical, TestTube2 } from 'lucide-react-native';
 import { AppText, Card, GlassCard, LoadingState, Screen, ScreenHeader, SectionHeader, StatCard } from '../../../src/components';
 import { layout, spacing, useTheme } from '../../../src/theme';
+import { useTranslation } from '../../../src/i18n';
 import {
   getDonorAppointments,
   getDonorResults,
@@ -12,6 +13,7 @@ import {
 } from '../../../src/api/laboratory';
 
 export default function LaboratoryScreen() {
+  const { t, formatDate } = useTranslation();
   const { colors } = useTheme();
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -72,7 +74,7 @@ export default function LaboratoryScreen() {
   if (isLoading) {
     return (
       <Screen>
-        <ScreenHeader title="Blood Tests" />
+        <ScreenHeader title={t('laboratory.title')} />
         <LoadingState />
       </Screen>
     );
@@ -80,7 +82,7 @@ export default function LaboratoryScreen() {
 
   return (
     <Screen>
-      <ScreenHeader title="Blood Tests" />
+      <ScreenHeader title={t('laboratory.title')} />
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{ paddingBottom: spacing.xl }}
@@ -94,14 +96,14 @@ export default function LaboratoryScreen() {
       >
         <View style={{ flexDirection: 'row', gap: spacing.md, marginBottom: spacing.lg }}>
           <StatCard
-            label="Upcoming"
+            label={t('laboratory.upcoming')}
             value={upcomingAppointments.length.toString()}
             icon={Calendar}
             variant={upcomingAppointments.length > 0 ? 'secondary' : 'default'}
             style={{ flex: 1 }}
           />
           <StatCard
-            label="Results"
+            label={t('laboratory.results')}
             value={publishedResults.length.toString()}
             icon={TestTube2}
             variant={publishedResults.length > 0 ? 'success' : 'default'}
@@ -109,7 +111,7 @@ export default function LaboratoryScreen() {
           />
         </View>
 
-        <SectionHeader>BOOK A TEST</SectionHeader>
+        <SectionHeader>{t('laboratory.bookATest')}</SectionHeader>
         <TouchableOpacity
           onPress={() =>
             router.push({ pathname: '/(booking)/organizations', params: { type: 'BLOOD_TEST' } })
@@ -131,9 +133,9 @@ export default function LaboratoryScreen() {
                 <FlaskConical size={24} color={colors.onMuted.secondary} />
               </View>
               <View style={{ flex: 1 }}>
-                <AppText variant="heading">Book Blood Test</AppText>
+                <AppText variant="heading">{t('laboratory.bookBloodTest')}</AppText>
                 <AppText muted style={{ fontSize: 13 }}>
-                  Schedule a laboratory appointment
+                  {t('laboratory.bookHint')}
                 </AppText>
               </View>
               <ChevronRight size={20} color={colors.textMuted} />
@@ -143,7 +145,7 @@ export default function LaboratoryScreen() {
 
         {upcomingAppointments.length > 0 && (
           <>
-            <SectionHeader>UPCOMING APPOINTMENTS</SectionHeader>
+            <SectionHeader>{t('laboratory.upcomingAppointments')}</SectionHeader>
             {upcomingAppointments.slice(0, 3).map((appointment) => (
               <TouchableOpacity
                 key={appointment.id}
@@ -208,7 +210,7 @@ export default function LaboratoryScreen() {
 
         {publishedResults.length > 0 && (
           <>
-            <SectionHeader>RECENT RESULTS</SectionHeader>
+            <SectionHeader>{t('laboratory.recentResults')}</SectionHeader>
             {publishedResults.slice(0, 3).map((result) => (
               <Card key={result.id} style={{ marginBottom: layout.cardGap }}>
                 <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md }}>
@@ -233,13 +235,13 @@ export default function LaboratoryScreen() {
                       <Calendar size={12} color={colors.textMuted} />
                       <AppText muted style={{ fontSize: 12 }}>
                         {result.publishedAt
-                          ? new Date(result.publishedAt).toLocaleDateString()
-                          : 'Date unknown'}
+                          ? formatDate(result.publishedAt)
+                          : t('laboratory.dateUnknown')}
                       </AppText>
                     </View>
                     <View style={{ marginTop: spacing.sm }}>
                       <AppText muted style={{ fontSize: 12 }}>
-                        {result.items.length} parameter{result.items.length !== 1 ? 's' : ''} tested
+                        {t('units.parametersTested', { count: result.items.length })}
                       </AppText>
                     </View>
                   </View>
@@ -254,10 +256,10 @@ export default function LaboratoryScreen() {
           <GlassCard>
             <View style={{ alignItems: 'center', padding: spacing.lg }}>
               <AppText variant="heading" style={{ textAlign: 'center' }}>
-                Couldn't load your lab data
+                {t('laboratory.loadFailed')}
               </AppText>
               <AppText muted style={{ marginTop: spacing.sm, textAlign: 'center' }}>
-                Pull down to refresh and try again.
+                {t('laboratory.loadFailedHint')}
               </AppText>
             </View>
           </GlassCard>
@@ -265,15 +267,15 @@ export default function LaboratoryScreen() {
           upcomingAppointments.length === 0 &&
           publishedResults.length === 0 && (
             <>
-              <SectionHeader>GET STARTED</SectionHeader>
+              <SectionHeader>{t('laboratory.getStarted')}</SectionHeader>
               <GlassCard>
                 <View style={{ alignItems: 'center', padding: spacing.lg }}>
                   <FlaskConical size={48} color={colors.secondary} />
                   <AppText variant="heading" style={{ marginTop: spacing.md, textAlign: 'center' }}>
-                    No tests yet
+                    {t('laboratory.empty')}
                   </AppText>
                   <AppText muted style={{ marginTop: spacing.sm, textAlign: 'center' }}>
-                    Book your first blood test to start tracking your health markers.
+                    {t('laboratory.emptyHint')}
                   </AppText>
                 </View>
               </GlassCard>

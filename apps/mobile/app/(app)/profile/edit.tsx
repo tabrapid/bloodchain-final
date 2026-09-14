@@ -12,8 +12,10 @@ import {
 import { useUserProfile, useUpdateUserProfile } from '../../../src/hooks/useUsers';
 import { layout, spacing, useTheme, ThemeColors } from '../../../src/theme';
 import { ApiRequestError } from '../../../src/api/client';
+import { useTranslation } from '../../../src/i18n';
 
 export default function EditProfile() {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { data: user } = useUserProfile();
@@ -55,7 +57,7 @@ export default function EditProfile() {
       setSaveError(
         error instanceof ApiRequestError
           ? error.error.message
-          : 'Something went wrong saving your changes. Please try again.',
+          : t('profileEdit.saveFailed'),
       );
     }
   };
@@ -78,7 +80,7 @@ export default function EditProfile() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.flex}
       >
-        <ScreenHeader title="Personal Info" />
+        <ScreenHeader title={t('profileEdit.personalSection')} />
 
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           <View style={styles.avatarBlock}>
@@ -88,20 +90,20 @@ export default function EditProfile() {
 
           <View style={styles.fields}>
             <AppTextInput
-              label="First name"
-              placeholder="First name"
+              label={t('auth.register.firstName')}
+              placeholder={t('auth.register.firstName')}
               value={formData.firstName}
               onChangeText={(firstName) => setFormData((prev) => ({ ...prev, firstName }))}
             />
             <AppTextInput
-              label="Last name"
-              placeholder="Last name"
+              label={t('auth.register.lastName')}
+              placeholder={t('auth.register.lastName')}
               value={formData.lastName}
               onChangeText={(lastName) => setFormData((prev) => ({ ...prev, lastName }))}
             />
             <AppTextInput
               label="Display name (optional)"
-              placeholder="How other donors see you"
+              placeholder={t('profileEdit.displayNameHint')}
               value={formData.displayName}
               onChangeText={(displayName) => setFormData((prev) => ({ ...prev, displayName }))}
             />
@@ -122,7 +124,7 @@ export default function EditProfile() {
             loading={updateProfile.isPending}
             style={styles.save}
           >
-            Save changes
+            {t('actions.saveChanges')}
           </AppButton>
         </ScrollView>
       </KeyboardAvoidingView>

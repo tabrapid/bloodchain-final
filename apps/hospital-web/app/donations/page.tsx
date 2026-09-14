@@ -22,6 +22,7 @@ import {
   startCollection,
 } from '../../lib/donations';
 import { AppShell } from '../../components/AppShell';
+import { useTranslation } from '@bloodchain/ui/i18n';
 
 /**
  * The console screen a donor's booking actually arrives on.
@@ -34,26 +35,47 @@ import { AppShell } from '../../components/AppShell';
  * history will show.
  */
 
-const appointmentStatus: Record<string, { label: string; variant: 'success' | 'warning' | 'danger' | 'info' | 'default' }> = {
-  PENDING: { label: 'Pending', variant: 'warning' },
-  CONFIRMED: { label: 'Confirmed', variant: 'info' },
-  CHECKED_IN: { label: 'Checked in', variant: 'info' },
-  IN_PROGRESS: { label: 'In progress', variant: 'warning' },
-  COMPLETED: { label: 'Completed', variant: 'success' },
-  CANCELLED: { label: 'Cancelled', variant: 'danger' },
-  NO_SHOW: { label: 'No show', variant: 'danger' },
+/**
+ * Badge colour per status; the wording comes from
+ * `t('status.appointment.<STATUS>')` at render, because a label written into
+ * a module-level map can only ever be in one language.
+ */
+const appointmentStatusVariant: Record<string, 'success' | 'warning' | 'danger' | 'info' | 'default'> = {
+  PENDING: 'warning',
+  CONFIRMED: 'info',
+  CHECKED_IN: 'info',
+  IN_PROGRESS: 'warning',
+  COMPLETED: 'success',
+  CANCELLED: 'danger',
+  NO_SHOW: 'danger',
 };
 
-const donationStatus: Record<string, { label: string; variant: 'success' | 'warning' | 'danger' | 'info' | 'default' }> = {
-  SCHEDULED: { label: 'Scheduled', variant: 'info' },
-  CHECKED_IN: { label: 'Checked in', variant: 'info' },
-  ASSESSED: { label: 'Cleared to donate', variant: 'info' },
-  IN_PROGRESS: { label: 'Collecting', variant: 'warning' },
-  COMPLETED: { label: 'Completed', variant: 'success' },
-  DEFERRED: { label: 'Deferred', variant: 'warning' },
-  CANCELLED: { label: 'Cancelled', variant: 'danger' },
-  ABORTED: { label: 'Aborted', variant: 'danger' },
+/**
+ * Badge colour per status; the wording comes from
+ * `t('status.donation.<STATUS>')` at render, because a label written into
+ * a module-level map can only ever be in one language.
+ */
+const donationStatusVariant: Record<string, 'success' | 'warning' | 'danger' | 'info' | 'default'> = {
+  SCHEDULED: 'info',
+  CHECKED_IN: 'info',
+  ASSESSED: 'info',
+  IN_PROGRESS: 'warning',
+  COMPLETED: 'success',
+  DEFERRED: 'warning',
+  CANCELLED: 'danger',
+  ABORTED: 'danger',
 };
+
+/**
+ * The badge key is the donation status, except when a checked-in donor already
+ * has an assessment on file: then what matters is the clinical decision, and
+ * that wording lives under `medical` so a clinician reviews it in one place.
+ */
+function donationStatusKey(key: string): string {
+  if (key === 'ASSESSED') return 'medical.assessment.APPROVED_FOR_DONATION';
+  if (key === 'DEFERRED') return 'medical.assessment.DEFERRED';
+  return `status.donation.${key}`;
+}
 
 const DEFAULT_VOLUME_ML = 450;
 
@@ -62,6 +84,7 @@ function fullName(donor?: { firstName: string; lastName: string }) {
 }
 
 export default function DonationsPage() {
+  const { t } = useTranslation();
   const [user, setUser] = useState<MeResponse | null>(null);
   const [organizationId, setOrganizationId] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -91,7 +114,7 @@ export default function DonationsPage() {
     } catch (err: unknown) {
       // An empty table reads as "nobody booked today", which is a very
       // different thing from "the server did not answer".
-      setError(err instanceof Error ? err.message : 'Could not load donations. Check the API and retry.');
+      setError(err instanceof Error ? err.message : t('ops.donations.loadFailed'));
     } finally {
       setIsLoadingData(false);
     }
@@ -196,7 +219,7 @@ export default function DonationsPage() {
 
     if (!donation && ['PENDING', 'CONFIRMED'].includes(appointment.status)) {
       buttons.push({
-        label: 'Check in',
+        label: t('actions.checkIn'),
         variant: 'primary',
         onClick: () =>
           act(appointment.id, () => checkInDonor(organizationId, appointment.id), 'Failed to check the donor in'),
@@ -209,7 +232,7 @@ export default function DonationsPage() {
     if (donation?.status === 'CHECKED_IN') {
       if (!donation.assessment) {
         buttons.push({
-          label: 'Approve',
+          label: t('actions.approve'),
           variant: 'primary',
           onClick: () =>
             act(
@@ -219,7 +242,7 @@ export default function DonationsPage() {
             ),
         });
         buttons.push({
-          label: 'Defer',
+          label: t('ops.donations.defer'),
           variant: 'danger',
           onClick: () => {
             const notes = prompt('Why is this donor being deferred?');
@@ -233,7 +256,7 @@ export default function DonationsPage() {
         });
       } else if (donation.assessment.decision === 'APPROVED_FOR_DONATION') {
         buttons.push({
-          label: 'Start collection',
+          label: t('ops.donations.startCollection'),
           variant: 'primary',
           onClick: () =>
             act(donation.id, () => startCollection(organizationId, donation.id), 'Failed to start collection'),
@@ -241,9 +264,9 @@ export default function DonationsPage() {
       }
     }
     if (donation?.status === 'IN_PROGRESS') {
-      buttons.push({ label: 'Complete', variant: 'primary', onClick: () => openCompletion(donation) });
+      buttons.push({ label: t('education.complete'), variant: 'primary', onClick: () => openCompletion(donation) });
       buttons.push({
-        label: 'Abort',
+        label: t('ops.donations.abort'),
         variant: 'danger',
         onClick: () => {
           const reason = prompt('Why is this collection being aborted?');
@@ -259,12 +282,12 @@ export default function DonationsPage() {
   const appointmentColumns: DataTableColumn<DonationAppointment>[] = [
     {
       key: 'referenceNumber',
-      header: 'Reference',
+      header: t('ops.requests.reference'),
       render: (a) => <span className="font-mono">{a.referenceNumber}</span>,
     },
     {
       key: 'donor',
-      header: 'Donor',
+      header: t('table.donor'),
       render: (a) => (
         <div>
           <div className="text-donor-text">{fullName(a.donor)}</div>
@@ -274,18 +297,21 @@ export default function DonationsPage() {
     },
     {
       key: 'scheduledStart',
-      header: 'Time',
+      header: t('table.time'),
       render: (a) =>
         new Date(a.scheduledStart).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     },
     {
       key: 'status',
-      header: 'Stage',
+      header: t('ops.common.stage'),
       render: (a) => {
         const donation = donationFor(a);
         if (!donation) {
-          const fallback = appointmentStatus[a.status] ?? { label: a.status, variant: 'default' as const };
-          return <StatusBadge variant={fallback.variant}>{fallback.label}</StatusBadge>;
+          return (
+            <StatusBadge variant={appointmentStatusVariant[a.status] ?? 'default'}>
+              {t(`status.appointment.${a.status}`)}
+            </StatusBadge>
+          );
         }
         const key =
           donation.status === 'CHECKED_IN' && donation.assessment?.decision === 'APPROVED_FOR_DONATION'
@@ -293,13 +319,16 @@ export default function DonationsPage() {
             : donation.status === 'CHECKED_IN' && donation.assessment
               ? 'DEFERRED'
               : donation.status;
-        const config = donationStatus[key] ?? { label: donation.status, variant: 'default' as const };
-        return <StatusBadge variant={config.variant}>{config.label}</StatusBadge>;
+        return (
+          <StatusBadge variant={donationStatusVariant[key] ?? 'default'}>
+            {t(donationStatusKey(key))}
+          </StatusBadge>
+        );
       },
     },
     {
       key: 'volume',
-      header: 'Volume',
+      header: t('table.volume'),
       render: (a) => {
         const donation = donationFor(a);
         return donation?.volumeMl ? `${donation.volumeMl} mL` : <span className="text-donor-muted">—</span>;
@@ -307,11 +336,11 @@ export default function DonationsPage() {
     },
     {
       key: 'actions',
-      header: 'Next step',
+      header: t('ops.common.nextStep'),
       className: 'text-right',
       render: (a) => {
         const { buttons, busy } = appointmentActions(a);
-        if (!buttons.length) return <span className="text-xs text-donor-muted">No action needed</span>;
+        if (!buttons.length) return <span className="text-xs text-donor-muted">{t('ops.donations.noActionNeeded')}</span>;
         return (
           <div className="flex items-center justify-end gap-2">
             {buttons.map((button) => (
@@ -339,28 +368,31 @@ export default function DonationsPage() {
   const donationColumns: DataTableColumn<Donation>[] = [
     {
       key: 'donationReference',
-      header: 'Reference',
+      header: t('ops.requests.reference'),
       render: (d) => <span className="font-mono">{d.donationReference}</span>,
     },
-    { key: 'donor', header: 'Donor', render: (d) => fullName(d.donor) },
+    { key: 'donor', header: t('table.donor'), render: (d) => fullName(d.donor) },
     {
       key: 'bloodType',
-      header: 'Group',
+      header: t('ops.common.group'),
       render: (d) =>
         d.bloodType ? `${d.bloodType}${d.rhFactor === 'POSITIVE' ? '+' : d.rhFactor === 'NEGATIVE' ? '−' : ''}` : '—',
     },
-    { key: 'volumeMl', header: 'Volume', render: (d) => (d.volumeMl ? `${d.volumeMl} mL` : '—') },
+    { key: 'volumeMl', header: t('table.volume'), render: (d) => (d.volumeMl ? `${d.volumeMl} mL` : '—') },
     {
       key: 'status',
-      header: 'Status',
+      header: t('table.status'),
       render: (d) => {
-        const config = donationStatus[d.status] ?? { label: d.status, variant: 'default' as const };
-        return <StatusBadge variant={config.variant}>{config.label}</StatusBadge>;
+        return (
+          <StatusBadge variant={donationStatusVariant[d.status] ?? 'default'}>
+            {t(donationStatusKey(d.status))}
+          </StatusBadge>
+        );
       },
     },
     {
       key: 'completedAt',
-      header: 'Completed',
+      header: t('table.completedAt'),
       render: (d) => {
         const at = d.completedAt ?? d.collectionCompletedAt;
         return at ? new Date(at).toLocaleString() : '—';
@@ -379,7 +411,7 @@ export default function DonationsPage() {
 
   if (isLoading) {
     return (
-      <AppShell title="Loading..." subtitle="HOSPITAL CONSOLE">
+      <AppShell title={t('ops.common.loadingEllipsis')} subtitle={t('portal.hospital.console')}>
         <div className="flex items-center justify-center p-12">
           <Activity className="animate-spin text-donor-primary" size={32} />
         </div>
@@ -389,11 +421,11 @@ export default function DonationsPage() {
 
   if (!user) {
     return (
-      <AppShell title="Sign in required" subtitle="HOSPITAL CONSOLE">
+      <AppShell title={t('ops.common.signInRequired')} subtitle={t('portal.hospital.console')}>
         <div className="flex flex-col items-center justify-center bc-glass rounded-card p-12">
           <Droplet className="mb-4 text-donor-primary" size={48} />
-          <h2 className="mb-2 font-display text-2xl font-semibold text-donor-text">Sign in required</h2>
-          <p className="text-center text-donor-muted">Sign in to manage donations.</p>
+          <h2 className="mb-2 font-display text-2xl font-semibold text-donor-text">{t('ops.common.signInRequired')}</h2>
+          <p className="text-center text-donor-muted">{t('ops.donations.signInHint')}</p>
         </div>
       </AppShell>
     );
@@ -401,13 +433,13 @@ export default function DonationsPage() {
 
   return (
     <AppShell
-      title="Donations"
-      subtitle="HOSPITAL CONSOLE"
+      title={t('ops.donations.title')}
+      subtitle={t('portal.hospital.console')}
       userName={`${user.firstName} ${user.lastName}`}
       organizationName={user.organizations[0]?.name}
     >
       <div className="mb-6">
-        <h1 className="font-display text-2xl font-semibold text-donor-text">Donations</h1>
+        <h1 className="font-display text-2xl font-semibold text-donor-text">{t('ops.donations.title')}</h1>
         <p className="text-sm text-donor-muted">
           Receive today&apos;s donors, record the assessment, and save the volume collected.
         </p>
@@ -417,16 +449,16 @@ export default function DonationsPage() {
         <div className="mb-4 rounded-lg border border-donor-danger/30 bg-donor-dangerMuted p-4 text-donor-onDangerMuted">
           {error}
           <button onClick={() => setError(null)} className="ml-2 underline">
-            Dismiss
+            {t('actions.dismiss')}
           </button>
         </div>
       )}
 
       <div className="mb-6 grid gap-4 md:grid-cols-4">
-        <StatCard label="Waiting to check in" value={String(waiting)} variant={waiting > 0 ? 'warning' : 'default'} />
-        <StatCard label="In progress" value={String(inProgress)} variant={inProgress > 0 ? 'info' : 'default'} />
-        <StatCard label="Completed today" value={String(completedToday)} variant="success" />
-        <StatCard label="Collected today" value={`${volumeToday} mL`} variant="success" />
+        <StatCard label={t('ops.donations.waitingCheckIn')} value={String(waiting)} variant={waiting > 0 ? 'warning' : 'default'} />
+        <StatCard label={t('gamification.inProgress')} value={String(inProgress)} variant={inProgress > 0 ? 'info' : 'default'} />
+        <StatCard label={t('ops.donations.completedToday')} value={String(completedToday)} variant="success" />
+        <StatCard label={t('ops.donations.collectedToday')} value={`${volumeToday} mL`} variant="success" />
       </div>
 
       <div className="mb-4 flex items-center gap-4">
@@ -434,7 +466,7 @@ export default function DonationsPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-donor-muted" size={16} />
           <input
             type="text"
-            placeholder="Search donations by reference or donor..."
+            placeholder={t('ops.donations.searchPlaceholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full rounded-lg bc-solid py-2 pl-10 pr-4 text-sm text-donor-text placeholder:text-donor-muted"
@@ -446,7 +478,7 @@ export default function DonationsPage() {
           className="flex items-center gap-2 rounded-lg bc-solid px-4 py-2 text-sm font-semibold text-donor-text transition-colors hover:bg-donor-elevated disabled:opacity-50"
         >
           <RefreshCw size={14} />
-          Refresh
+          {t('actions.refresh')}
         </button>
       </div>
 
@@ -457,23 +489,23 @@ export default function DonationsPage() {
           rows={appointments}
           keyExtractor={(a) => a.id}
           loading={isLoadingData}
-          emptyMessage="No donation appointments booked for today."
+          emptyMessage={t('ops.donations.noneToday')}
         />
       </div>
 
-      <h2 className="mb-2 font-display text-lg font-semibold text-donor-text">Recent donations</h2>
+      <h2 className="mb-2 font-display text-lg font-semibold text-donor-text">{t('ops.donations.recent')}</h2>
       <DataTable
         columns={donationColumns}
         rows={donations}
         keyExtractor={(d) => d.id}
         loading={isLoadingData}
-        emptyMessage="No donations recorded yet."
+        emptyMessage={t('ops.donations.noneRecorded')}
       />
 
       <Modal
         open={completing !== null}
         onClose={() => setCompleting(null)}
-        title="Complete donation"
+        title={t('ops.donations.complete')}
       >
         {completing && (
           <div className="space-y-4">
@@ -493,7 +525,7 @@ export default function DonationsPage() {
                 className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-sm text-donor-text"
               />
               <p className="mt-1 text-xs text-donor-muted">
-                This is the figure the donor sees in their own donation history.
+                {t('ops.inventory.donorFacingVolume')}
               </p>
             </div>
             <div>
@@ -505,7 +537,7 @@ export default function DonationsPage() {
                 type="text"
                 value={staffNotes}
                 onChange={(e) => setStaffNotes(e.target.value)}
-                placeholder="e.g. Hb 14.2 g/dL, BP 120/78"
+                placeholder={t('ops.donations.vitalsPlaceholder')}
                 className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-sm text-donor-text placeholder:text-donor-muted"
               />
             </div>
@@ -521,7 +553,7 @@ export default function DonationsPage() {
                 onClick={() => setCompleting(null)}
                 className="rounded-lg bc-solid px-4 py-2 text-sm text-donor-text transition-colors hover:bg-donor-elevated"
               >
-                Cancel
+                {t('actions.cancel')}
               </button>
             </div>
           </div>

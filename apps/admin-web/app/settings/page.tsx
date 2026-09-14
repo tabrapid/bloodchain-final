@@ -12,6 +12,7 @@ import {
 } from '@lib/api';
 import { AlertTriangle, Bell, Database, Settings as SettingsIcon, Shield, X } from 'lucide-react';
 import { AppShell } from '../../components/AppShell';
+import { useTranslation } from '@bloodchain/ui/i18n';
 
 function Toggle({
   checked,
@@ -47,6 +48,7 @@ function Toggle({
 }
 
 export default function SettingsPage() {
+  const { t } = useTranslation();
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [settings, setSettings] = useState<PlatformSettings | null>(null);
@@ -92,7 +94,7 @@ export default function SettingsPage() {
 
   if (isLoading) {
     return (
-      <AppShell title="Platform Settings" userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
+      <AppShell title={t('ops.settings.title')} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
         <LoadingState />
       </AppShell>
     );
@@ -100,8 +102,8 @@ export default function SettingsPage() {
 
   if (!settings) {
     return (
-      <AppShell title="Platform Settings" userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
-        <div className="p-6 text-sm text-donor-muted">Failed to load platform settings.</div>
+      <AppShell title={t('ops.settings.title')} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
+        <div className="p-6 text-sm text-donor-muted">{t('ops.settings.loadFailed')}</div>
       </AppShell>
     );
   }
@@ -109,10 +111,10 @@ export default function SettingsPage() {
   const sessionTimeoutHours = Math.round((settings.sessionTimeoutMinutes / 60) * 10) / 10;
 
   return (
-    <AppShell title="Platform Settings" userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
+    <AppShell title={t('ops.settings.title')} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
       <div className="p-6">
         <div className="mb-6">
-          <p className="text-sm text-donor-muted">Configure platform-wide settings and feature flags</p>
+          <p className="text-sm text-donor-muted">{t('ops.settings.subtitle')}</p>
         </div>
 
         {error && (
@@ -137,14 +139,14 @@ export default function SettingsPage() {
                 <Shield className="w-5 h-5 text-donor-onSecondaryMuted" />
               </div>
               <div>
-                <h3 className="font-medium text-donor-text">Security Settings</h3>
-                <p className="text-sm text-donor-muted">Authentication and session policy</p>
+                <h3 className="font-medium text-donor-text">{t('ops.settings.security')}</h3>
+                <p className="text-sm text-donor-muted">{t('ops.settings.securityHint')}</p>
               </div>
             </div>
             <div className="space-y-3">
               <div className="p-3 bg-donor-elevated rounded-lg">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-donor-text">Session Timeout</span>
+                  <span className="text-sm text-donor-text">{t('ops.settings.sessionTimeout')}</span>
                   <span className="text-xs text-donor-muted">{sessionTimeoutHours}h</span>
                 </div>
                 <input
@@ -163,7 +165,7 @@ export default function SettingsPage() {
                 </p>
               </div>
               <div className="flex items-center justify-between p-3 bg-donor-elevated rounded-lg">
-                <span className="text-sm text-donor-text">Password Policy</span>
+                <span className="text-sm text-donor-text">{t('ops.settings.passwordPolicy')}</span>
                 <span className="text-xs text-donor-muted text-right max-w-[60%]">
                   Min. 12 chars, upper/lower/number/symbol (fixed)
                 </span>
@@ -184,13 +186,13 @@ export default function SettingsPage() {
                 <Bell className="w-5 h-5 text-donor-onSuccessMuted" />
               </div>
               <div>
-                <h3 className="font-medium text-donor-text">Notification Settings</h3>
-                <p className="text-sm text-donor-muted">Platform notification channels</p>
+                <h3 className="font-medium text-donor-text">{t('ops.settings.notifications')}</h3>
+                <p className="text-sm text-donor-muted">{t('ops.settings.notificationsHint')}</p>
               </div>
             </div>
             <div className="space-y-3">
               <Toggle
-                label="Push Notifications"
+                label={t('ops.settings.pushNotifications')}
                 checked={settings.pushNotificationsEnabled}
                 onChange={(v) => setSettings({ ...settings, pushNotificationsEnabled: v })}
               />
@@ -216,23 +218,23 @@ export default function SettingsPage() {
                 <SettingsIcon className="w-5 h-5 text-donor-onAiMuted" />
               </div>
               <div>
-                <h3 className="font-medium text-donor-text">Feature Flags</h3>
-                <p className="text-sm text-donor-muted">Enable or disable platform features</p>
+                <h3 className="font-medium text-donor-text">{t('ops.settings.featureFlags')}</h3>
+                <p className="text-sm text-donor-muted">{t('ops.settings.featureFlagsHint')}</p>
               </div>
             </div>
             <div className="space-y-3">
               <Toggle
-                label="AI Health Insights"
+                label={t('ops.settings.aiHealthInsights')}
                 checked={settings.aiHealthInsightsEnabled}
                 onChange={(v) => setSettings({ ...settings, aiHealthInsightsEnabled: v })}
               />
               <Toggle
-                label="SOS Emergency"
+                label={t('ops.settings.sosEmergency')}
                 checked={settings.sosEmergencyEnabled}
                 onChange={(v) => setSettings({ ...settings, sosEmergencyEnabled: v })}
               />
               <Toggle
-                label="Gamification"
+                label={t('ops.settings.gamification')}
                 checked={settings.gamificationEnabled}
                 onChange={(v) => setSettings({ ...settings, gamificationEnabled: v })}
               />
@@ -258,17 +260,17 @@ export default function SettingsPage() {
                 <Database className="w-5 h-5 text-donor-onWarningMuted" />
               </div>
               <div>
-                <h3 className="font-medium text-donor-text">Platform Info</h3>
-                <p className="text-sm text-donor-muted">Live system version and status</p>
+                <h3 className="font-medium text-donor-text">{t('ops.settings.platformInfo')}</h3>
+                <p className="text-sm text-donor-muted">{t('ops.settings.platformInfoHint')}</p>
               </div>
             </div>
             <div className="space-y-3">
               <div className="flex items-center justify-between p-3 bg-donor-elevated rounded-lg">
-                <span className="text-sm text-donor-text">Platform Version</span>
+                <span className="text-sm text-donor-text">{t('ops.settings.platformVersion')}</span>
                 <span className="text-sm font-medium text-donor-text">{health?.version ?? '-'}</span>
               </div>
               <div className="flex items-center justify-between p-3 bg-donor-elevated rounded-lg">
-                <span className="text-sm text-donor-text">API Status</span>
+                <span className="text-sm text-donor-text">{t('ops.dashboard.apiStatus')}</span>
                 <span
                   className={`text-xs px-2 py-1 rounded ${
                     health?.status === 'healthy' ? 'bg-donor-successMuted text-donor-onSuccessMuted' : 'bg-donor-dangerMuted text-donor-onDangerMuted'
@@ -278,7 +280,7 @@ export default function SettingsPage() {
                 </span>
               </div>
               <div className="flex items-center justify-between p-3 bg-donor-elevated rounded-lg">
-                <span className="text-sm text-donor-text">Database Status</span>
+                <span className="text-sm text-donor-text">{t('ops.settings.databaseStatus')}</span>
                 <span
                   className={`text-xs px-2 py-1 rounded ${
                     health?.database === 'up' ? 'bg-donor-successMuted text-donor-onSuccessMuted' : 'bg-donor-dangerMuted text-donor-onDangerMuted'
@@ -296,14 +298,14 @@ export default function SettingsPage() {
                 <AlertTriangle className="w-5 h-5 text-donor-onDangerMuted" />
               </div>
               <div>
-                <h3 className="font-medium text-donor-text">Maintenance Mode</h3>
+                <h3 className="font-medium text-donor-text">{t('ops.settings.maintenanceMode')}</h3>
                 <p className="text-sm text-donor-muted">
-                  Blocks sign-in for everyone except SUPER_ADMIN accounts platform-wide
+                  {t('ops.settings.maintenanceHint')}
                 </p>
               </div>
             </div>
             <Toggle
-              label="Maintenance Mode"
+              label={t('ops.settings.maintenanceMode')}
               checked={settings.maintenanceMode}
               onChange={(v) => setSettings({ ...settings, maintenanceMode: v })}
             />

@@ -2,6 +2,7 @@ import { View } from 'react-native';
 import { Inbox, LucideIcon } from 'lucide-react-native';
 import { spacing, useTheme } from '../theme';
 import { AppText } from './AppText';
+import { useTranslation } from '../i18n';
 
 export interface EmptyStateProps {
   title?: string;
@@ -9,11 +10,12 @@ export interface EmptyStateProps {
   icon?: LucideIcon;
 }
 
-export function EmptyState({
-  title = 'Nothing here yet',
-  description = 'When data is available, it will appear here.',
-  icon: Icon = Inbox,
-}: EmptyStateProps) {
+export function EmptyState({ title, description, icon: Icon = Inbox }: EmptyStateProps) {
+  // Defaulted in the body rather than the parameter list: a default evaluated
+  // at module load would be fixed in one language for the life of the process.
+  const { t } = useTranslation();
+  const heading = title ?? t('common.nothingHere');
+  const body = description ?? t('common.nothingHereHint');
   const { colors } = useTheme();
   return (
     <View
@@ -43,12 +45,12 @@ export function EmptyState({
       >
         <Icon size={28} color={colors.textMuted} />
       </View>
-      <AppText style={{ fontSize: 16, fontWeight: '600', textAlign: 'center' }}>{title}</AppText>
+      <AppText style={{ fontSize: 16, fontWeight: '600', textAlign: 'center' }}>{heading}</AppText>
       <AppText
         muted
         style={{ fontSize: 14, lineHeight: 22, textAlign: 'center', maxWidth: 260 }}
       >
-        {description}
+        {body}
       </AppText>
     </View>
   );

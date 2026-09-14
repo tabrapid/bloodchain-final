@@ -72,6 +72,13 @@ import DonateScreen from '../../app/(app)/donate';
 import CampaignsScreen from '../../app/(app)/campaigns/index';
 import ChallengesScreen from '../../app/(app)/challenges/index';
 import EducationScreen from '../../app/(app)/education/index';
+import { createLocalization } from '@bloodchain/i18n';
+
+/**
+ * The screens' own words, looked up the way the screens look them up, so a
+ * catalogue rewording moves the assertion with it instead of breaking it.
+ */
+const { t } = createLocalization('en');
 
 const challengeFixture = {
   id: 'challenge-1',
@@ -173,6 +180,7 @@ async function renderScreen(Screen: React.ComponentType) {
   const element = (
     <ThemeProvider>
       <LocaleProvider>
+      <LocaleProvider>
         <SafeAreaProvider
           initialMetrics={{
             frame: { x: 0, y: 0, width: 390, height: 844 },
@@ -183,6 +191,7 @@ async function renderScreen(Screen: React.ComponentType) {
             <Screen />
           </QueryClientProvider>
         </SafeAreaProvider>
+      </LocaleProvider>
       </LocaleProvider>
     </ThemeProvider>
   );
@@ -370,7 +379,7 @@ describe('P3-9: the four screens that used className render with real styles', (
   it('education renders its stats card and content list', async () => {
     const text = renderedText(allNodes(await renderTree(EducationScreen)));
 
-    expect(text).toContain('Your Progress');
+    expect(text).toContain(t('education.yourProgress'));
     expect(text).toContain(contentFixture.title);
   });
 });
@@ -392,9 +401,9 @@ describe('P3-10: the education card offers the control the backend will accept',
    */
   async function cardText() {
     const text = renderedText(allNodes(await renderTree(EducationScreen)));
-    const listStart = text.indexOf('Available Content');
+    const listStart = text.indexOf(t('education.availableContent'));
     expect(listStart).toBeGreaterThan(-1);
-    return text.slice(listStart + 'Available Content'.length);
+    return text.slice(listStart + t('education.availableContent').length);
   }
 
   it('offers Start, not Complete, for content the donor has not begun', async () => {

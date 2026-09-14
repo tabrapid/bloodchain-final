@@ -37,6 +37,7 @@ import {
   GetInventoryParams,
 } from '../../lib/inventory';
 import { AppShell } from '../../components/AppShell';
+import { useTranslation } from '@bloodchain/ui/i18n';
 
 const BLOOD_TYPES = ['A', 'B', 'AB', 'O'] as const;
 const RH_FACTORS = ['POSITIVE', 'NEGATIVE'] as const;
@@ -46,6 +47,7 @@ const STATUSES = ['COLLECTED', 'AVAILABLE', 'RESERVED', 'QUARANTINED', 'USED', '
 type StatusVariant = 'default' | 'success' | 'warning' | 'danger' | 'info';
 
 export default function InventoryPage() {
+  const { t } = useTranslation();
   const [user, setUser] = useState<MeResponse | null>(null);
   const [organizationId, setOrganizationId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
@@ -279,37 +281,37 @@ export default function InventoryPage() {
 
   const getLocationTypeLabel = (type: string) => {
     switch (type) {
-      case 'STORAGE': return 'Storage';
+      case 'STORAGE': return t('ops.inventory.storage');
       case 'TESTING': return 'Testing Lab';
-      case 'QUARANTINE': return 'Quarantine';
+      case 'QUARANTINE': return t('ops.inventory.quarantine');
       case 'ISSUING': return 'Issuing';
-      case 'PROCESSING': return 'Processing';
-      case 'DISTRIBUTION': return 'Distribution';
+      case 'PROCESSING': return t('ops.inventory.processing');
+      case 'DISTRIBUTION': return t('ops.inventory.distribution');
       default: return type;
     }
   };
 
   const columns: DataTableColumn<InventoryUnit>[] = [
-    { key: 'unitReference', header: 'Unit Reference', render: (u) => <span className="font-mono text-xs">{u.unitReference}</span> },
-    { key: 'bloodType', header: 'Blood Type', render: (u) => (
+    { key: 'unitReference', header: t('ops.inventory.unitReference'), render: (u) => <span className="font-mono text-xs">{u.unitReference}</span> },
+    { key: 'bloodType', header: t('home.bloodTypeLabel'), render: (u) => (
       <span><span className="font-semibold">{u.bloodType}</span><span className="text-donor-muted text-xs ml-1">{u.rhFactor === 'POSITIVE' ? '+' : '-'}</span></span>
     )},
-    { key: 'componentType', header: 'Component', render: (u) => u.componentType?.replace('_', ' ') ?? 'Whole Blood' },
-    { key: 'volumeMl', header: 'Volume', render: (u) => `${u.volumeMl} ml` },
-    { key: 'status', header: 'Status', render: (u) => <StatusBadge variant={getStatusVariant(u.status)}>{u.status}</StatusBadge> },
-    { key: 'location', header: 'Location', render: (u) => u.location?.name ?? '—' },
-    { key: 'collectedAt', header: 'Collected', render: (u) => new Date(u.collectedAt).toLocaleDateString() },
-    { key: 'expiresAt', header: 'Expires', render: (u) => u.expiresAt ? new Date(u.expiresAt).toLocaleDateString() : '—' },
+    { key: 'componentType', header: t('ops.common.component'), render: (u) => u.componentType?.replace('_', ' ') ?? 'Whole Blood' },
+    { key: 'volumeMl', header: t('table.volume'), render: (u) => `${u.volumeMl} ml` },
+    { key: 'status', header: t('table.status'), render: (u) => <StatusBadge variant={getStatusVariant(u.status)}>{u.status}</StatusBadge> },
+    { key: 'location', header: t('table.location'), render: (u) => u.location?.name ?? '—' },
+    { key: 'collectedAt', header: t('ops.common.collected'), render: (u) => new Date(u.collectedAt).toLocaleDateString() },
+    { key: 'expiresAt', header: t('table.expires'), render: (u) => u.expiresAt ? new Date(u.expiresAt).toLocaleDateString() : '—' },
   ];
 
   if (isLoading) {
     return (
       <AppShell
-        title="Loading..."
-        subtitle="BLOOD CENTER CONSOLE"
+        title={t('ops.common.loadingEllipsis')}
+        subtitle={t('portal.bloodCenter.console')}
         organizationName="Blood Center Console"
         organizationType="Operations workspace"
-        userName="Loading..."
+        userName={t('ops.common.loadingEllipsis')}
       >
         <div className="flex items-center justify-center p-12">
           <Activity className="animate-spin text-donor-primary" size={32} />
@@ -321,8 +323,8 @@ export default function InventoryPage() {
   if (!user) {
     return (
       <AppShell
-        title="Authentication Required"
-        subtitle="BLOOD CENTER CONSOLE"
+        title={t('portal.authRequired')}
+        subtitle={t('portal.bloodCenter.console')}
         organizationName="Blood Center Console"
         organizationType="Operations workspace"
         userName="Guest"
@@ -330,10 +332,10 @@ export default function InventoryPage() {
         <div className="flex flex-col items-center justify-center bc-glass rounded-card p-12">
           <Activity className="mb-4 text-donor-secondary" size={48} />
           <h2 className="mb-2 font-display text-2xl font-semibold text-donor-text">
-            Sign In Required
+            {t('ops.common.signInRequired')}
           </h2>
           <p className="mb-6 text-center text-donor-muted">
-            Please sign in to access the inventory dashboard
+            {t('ops.common.signInToInventory')}
           </p>
         </div>
       </AppShell>
@@ -342,8 +344,8 @@ export default function InventoryPage() {
 
   return (
     <AppShell
-      title="Blood Inventory"
-      subtitle="BLOOD CENTER CONSOLE"
+      title={t('ops.inventory.title')}
+      subtitle={t('portal.bloodCenter.console')}
       organizationName={user.organizations.find((org) => org.type === 'BLOOD_CENTER' || org.type === 'BLOOD_CENTER_ADMIN')?.name ?? 'Blood Center Console'}
       organizationType="Operations workspace"
       userName={`${user.firstName} ${user.lastName}`}
@@ -351,15 +353,15 @@ export default function InventoryPage() {
       {error && (
         <div className="mb-4 rounded-lg border border-donor-danger/30 bg-donor-dangerMuted p-4 text-donor-onDangerMuted">
           {error}
-          <button onClick={() => setError(null)} className="ml-2 underline">Dismiss</button>
+          <button onClick={() => setError(null)} className="ml-2 underline">{t('actions.dismiss')}</button>
         </div>
       )}
 
       <div className="mb-6 grid gap-4 md:grid-cols-4">
-        <StatCard label="Total Units" value={summary?.totalUnits?.toString() ?? '—'} icon={Package} />
-        <StatCard label="Available" value={summary?.availableUnits?.toString() ?? '—'} variant="success" icon={CheckCircle} />
-        <StatCard label="Quarantined" value={summary?.quarantinedUnits?.toString() ?? '—'} variant="warning" icon={AlertTriangle} />
-        <StatCard label="Reserved" value={summary?.reservedUnits?.toString() ?? '—'} variant="info" icon={Clock} />
+        <StatCard label={t('ops.dashboard.totalUnits')} value={summary?.totalUnits?.toString() ?? '—'} icon={Package} />
+        <StatCard label={t('status.unit.AVAILABLE')} value={summary?.availableUnits?.toString() ?? '—'} variant="success" icon={CheckCircle} />
+        <StatCard label={t('status.unit.QUARANTINED')} value={summary?.quarantinedUnits?.toString() ?? '—'} variant="warning" icon={AlertTriangle} />
+        <StatCard label={t('status.unit.RESERVED')} value={summary?.reservedUnits?.toString() ?? '—'} variant="info" icon={Clock} />
       </div>
 
       <div className="mb-6 flex flex-wrap items-center gap-4">
@@ -367,7 +369,7 @@ export default function InventoryPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-donor-muted" size={18} />
           <input
             type="text"
-            placeholder="Search by unit reference or donation..."
+            placeholder={t('ops.inventory.searchPlaceholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
@@ -379,14 +381,14 @@ export default function InventoryPage() {
           className="flex items-center gap-2 rounded-lg bc-solid px-4 py-2 text-sm text-donor-text transition-colors hover:bg-donor-elevated"
         >
           <Filter size={16} />
-          Filters
+          {t('ops.common.filters')}
         </button>
         <button
           onClick={() => setShowLocationModal(true)}
           className="flex items-center gap-2 rounded-lg bc-solid px-4 py-2 text-sm text-donor-text transition-colors hover:bg-donor-elevated"
         >
           <Plus size={16} />
-          Add Location
+          {t('ops.inventory.addLocation')}
         </button>
       </div>
 
@@ -394,52 +396,52 @@ export default function InventoryPage() {
         <div className="bc-glass mb-6 rounded-card p-4">
           <div className="grid gap-4 md:grid-cols-4">
             <div>
-              <label className="mb-1 block text-xs font-semibold text-donor-muted">Blood Type</label>
+              <label className="mb-1 block text-xs font-semibold text-donor-muted">{t('home.bloodTypeLabel')}</label>
               <select
                 value={filters.bloodType ?? ''}
                 onChange={(e) => handleFilterChange('bloodType', e.target.value)}
                 className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-sm text-donor-text"
               >
-                <option value="">All</option>
+                <option value="">{t('filters.all')}</option>
                 {BLOOD_TYPES.map((bt) => (
                   <option key={bt} value={bt}>{bt}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-xs font-semibold text-donor-muted">Rh Factor</label>
+              <label className="mb-1 block text-xs font-semibold text-donor-muted">{t('medical.rhFactor')}</label>
               <select
                 value={filters.rhFactor ?? ''}
                 onChange={(e) => handleFilterChange('rhFactor', e.target.value)}
                 className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-sm text-donor-text"
               >
-                <option value="">All</option>
+                <option value="">{t('filters.all')}</option>
                 {RH_FACTORS.map((rh) => (
                   <option key={rh} value={rh}>{rh}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-xs font-semibold text-donor-muted">Component</label>
+              <label className="mb-1 block text-xs font-semibold text-donor-muted">{t('ops.common.component')}</label>
               <select
                 value={filters.componentType ?? ''}
                 onChange={(e) => handleFilterChange('componentType', e.target.value)}
                 className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-sm text-donor-text"
               >
-                <option value="">All</option>
+                <option value="">{t('filters.all')}</option>
                 {COMPONENT_TYPES.map((ct) => (
                   <option key={ct} value={ct}>{ct.replace('_', ' ')}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-xs font-semibold text-donor-muted">Status</label>
+              <label className="mb-1 block text-xs font-semibold text-donor-muted">{t('table.status')}</label>
               <select
                 value={filters.status ?? ''}
                 onChange={(e) => handleFilterChange('status', e.target.value)}
                 className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-sm text-donor-text"
               >
-                <option value="">All</option>
+                <option value="">{t('filters.all')}</option>
                 {STATUSES.map((s) => (
                   <option key={s} value={s}>{s}</option>
                 ))}
@@ -453,7 +455,7 @@ export default function InventoryPage() {
         <DataTable columns={columns} rows={[]} keyExtractor={(u) => u.id} loading />
       ) : units.length === 0 ? (
         <EmptyState
-          title="No blood units found"
+          title={t('ops.inventory.empty')}
           description={searchQuery ? 'Try adjusting your search or filters' : 'Units will appear here when donations are processed'}
         />
       ) : (
@@ -464,7 +466,7 @@ export default function InventoryPage() {
             keyExtractor={(u) => u.id}
             onRowClick={handleUnitClick}
             rowLabel={(u) => `Open unit ${u.unitReference}`}
-            emptyMessage="No blood units found"
+            emptyMessage={t('ops.inventory.empty')}
           />
 
           {totalPages > 1 && (
@@ -479,14 +481,14 @@ export default function InventoryPage() {
                   disabled={(filters.page ?? 1) <= 1}
                   className="rounded-lg bc-solid px-3 py-1.5 text-sm text-donor-text transition-colors hover:bg-donor-elevated disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Previous
+                  {t('actions.previous')}
                 </button>
                 <button
                   onClick={() => handlePageChange((filters.page ?? 1) + 1)}
                   disabled={(filters.page ?? 1) >= totalPages}
                   className="rounded-lg bc-solid px-3 py-1.5 text-sm text-donor-text transition-colors hover:bg-donor-elevated disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Next
+                  {t('actions.next')}
                 </button>
               </div>
             </div>
@@ -497,46 +499,46 @@ export default function InventoryPage() {
       <Modal
         open={showUnitModal}
         onClose={() => { setShowUnitModal(false); setSelectedUnit(null); }}
-        title="Unit Details"
+        title={t('ops.inventory.unitDetails')}
       >
         {selectedUnit && (
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-xs text-donor-muted">Unit Reference</p>
+                <p className="text-xs text-donor-muted">{t('ops.inventory.unitReference')}</p>
                 <p className="font-mono text-sm">{selectedUnit.unitReference}</p>
               </div>
               <div>
-                <p className="text-xs text-donor-muted">Status</p>
+                <p className="text-xs text-donor-muted">{t('table.status')}</p>
                 <StatusBadge variant={getStatusVariant(selectedUnit.status)}>{selectedUnit.status}</StatusBadge>
               </div>
               <div>
-                <p className="text-xs text-donor-muted">Blood Type</p>
+                <p className="text-xs text-donor-muted">{t('home.bloodTypeLabel')}</p>
                 <p className="text-sm">{selectedUnit.bloodType} {selectedUnit.rhFactor === 'POSITIVE' ? '+' : '-'}</p>
               </div>
               <div>
-                <p className="text-xs text-donor-muted">Component</p>
+                <p className="text-xs text-donor-muted">{t('ops.common.component')}</p>
                 <p className="text-sm">{selectedUnit.componentType?.replace('_', ' ') ?? 'Whole Blood'}</p>
               </div>
               <div>
-                <p className="text-xs text-donor-muted">Volume</p>
+                <p className="text-xs text-donor-muted">{t('table.volume')}</p>
                 <p className="text-sm">{selectedUnit.volumeMl} ml</p>
               </div>
               <div>
-                <p className="text-xs text-donor-muted">Location</p>
+                <p className="text-xs text-donor-muted">{t('table.location')}</p>
                 <p className="text-sm">{selectedUnit.location?.name ?? 'Not assigned'}</p>
               </div>
               <div>
-                <p className="text-xs text-donor-muted">Collected</p>
+                <p className="text-xs text-donor-muted">{t('status.unit.COLLECTED')}</p>
                 <p className="text-sm">{new Date(selectedUnit.collectedAt).toLocaleDateString()}</p>
               </div>
               <div>
-                <p className="text-xs text-donor-muted">Expires</p>
+                <p className="text-xs text-donor-muted">{t('table.expires')}</p>
                 <p className="text-sm">{selectedUnit.expiresAt ? new Date(selectedUnit.expiresAt).toLocaleDateString() : '—'}</p>
               </div>
               {selectedUnit.donationReference && (
                 <div className="col-span-2">
-                  <p className="text-xs text-donor-muted">Donation Reference</p>
+                  <p className="text-xs text-donor-muted">{t('ops.inventory.donationReference')}</p>
                   <p className="font-mono text-sm">{selectedUnit.donationReference}</p>
                 </div>
               )}
@@ -552,7 +554,7 @@ export default function InventoryPage() {
                   className="flex items-center gap-2 rounded-lg bc-solid px-4 py-2 text-sm text-donor-text transition-colors hover:bg-donor-elevated"
                 >
                   <ArrowRightLeft size={16} />
-                  Move
+                  {t('ops.common.move')}
                 </button>
                 <button
                   onClick={() => {
@@ -562,7 +564,7 @@ export default function InventoryPage() {
                   className="flex items-center gap-2 rounded-lg bc-solid px-4 py-2 text-sm text-donor-text transition-colors hover:bg-donor-elevated"
                 >
                   <Pencil size={16} />
-                  Adjust
+                  {t('ops.common.adjust')}
                 </button>
                 <button
                   onClick={() => {
@@ -572,7 +574,7 @@ export default function InventoryPage() {
                   className="flex items-center gap-2 rounded-lg border border-donor-danger/30 bg-donor-dangerMuted px-4 py-2 text-sm text-donor-onDangerMuted transition-colors hover:bg-donor-danger/20"
                 >
                   <XCircle size={16} />
-                  Discard
+                  {t('ops.common.discard')}
                 </button>
               </div>
             )}
@@ -587,7 +589,7 @@ export default function InventoryPage() {
                   className="flex items-center gap-2 rounded-lg border border-donor-success/30 bg-donor-successMuted px-4 py-2 text-sm text-donor-onSuccessMuted transition-colors hover:bg-donor-success/20"
                 >
                   <CheckCircle size={16} />
-                  Issue
+                  {t('ops.common.issue')}
                 </button>
                 <button
                   onClick={() => {
@@ -597,7 +599,7 @@ export default function InventoryPage() {
                   className="flex items-center gap-2 rounded-lg bc-solid px-4 py-2 text-sm text-donor-text transition-colors hover:bg-donor-elevated"
                 >
                   <ArrowRightLeft size={16} />
-                  Move
+                  {t('ops.common.move')}
                 </button>
                 <button
                   onClick={() => {
@@ -607,7 +609,7 @@ export default function InventoryPage() {
                   className="flex items-center gap-2 rounded-lg bc-solid px-4 py-2 text-sm text-donor-text transition-colors hover:bg-donor-elevated"
                 >
                   <Pencil size={16} />
-                  Adjust
+                  {t('ops.common.adjust')}
                 </button>
                 <button
                   onClick={() => {
@@ -617,7 +619,7 @@ export default function InventoryPage() {
                   className="flex items-center gap-2 rounded-lg border border-donor-warning/30 bg-donor-warningMuted px-4 py-2 text-sm text-donor-onWarningMuted transition-colors hover:bg-donor-warning/20"
                 >
                   <AlertTriangle size={16} />
-                  Quarantine
+                  {t('ops.inventory.quarantine')}
                 </button>
               </div>
             )}
@@ -632,7 +634,7 @@ export default function InventoryPage() {
                   className="flex items-center gap-2 rounded-lg border border-donor-success/30 bg-donor-successMuted px-4 py-2 text-sm text-donor-onSuccessMuted transition-colors hover:bg-donor-success/20"
                 >
                   <CheckCircle size={16} />
-                  Issue
+                  {t('ops.common.issue')}
                 </button>
                 <button
                   onClick={() => {
@@ -642,7 +644,7 @@ export default function InventoryPage() {
                   className="flex items-center gap-2 rounded-lg bc-solid px-4 py-2 text-sm text-donor-text transition-colors hover:bg-donor-elevated"
                 >
                   <Pencil size={16} />
-                  Adjust
+                  {t('ops.common.adjust')}
                 </button>
               </div>
             )}
@@ -653,20 +655,20 @@ export default function InventoryPage() {
       <Modal
         open={showMovementModal}
         onClose={() => { setShowMovementModal(false); setSelectedUnit(null); }}
-        title="Move Unit"
+        title={t('ops.inventory.moveUnit')}
       >
         {selectedUnit && (
           <div className="space-y-4">
             <div>
-              <p className="mb-2 text-sm">Moving unit: <span className="font-mono">{selectedUnit.unitReference}</span></p>
+              <p className="mb-2 text-sm">{t('ops.inventory.movingUnit')} <span className="font-mono">{selectedUnit.unitReference}</span></p>
             </div>
             <div>
-              <label className="mb-1 block text-xs font-semibold text-donor-muted">To Location</label>
+              <label className="mb-1 block text-xs font-semibold text-donor-muted">{t('ops.inventory.toLocation')}</label>
               <select
                 id="move-location"
                 className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-sm text-donor-text"
               >
-                <option value="">Select location</option>
+                <option value="">{t('booking.selectLocation')}</option>
                 {locations.filter((l) => l.active).map((loc) => (
                   <option key={loc.id} value={loc.id}>{loc.name} ({getLocationTypeLabel(loc.type)})</option>
                 ))}
@@ -677,7 +679,7 @@ export default function InventoryPage() {
               <input
                 type="text"
                 id="move-reason"
-                placeholder="e.g., Quality control transfer"
+                placeholder={t('ops.inventory.transferReasonPlaceholder')}
                 className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-sm text-donor-text placeholder:text-donor-muted"
               />
             </div>
@@ -697,7 +699,7 @@ export default function InventoryPage() {
                 onClick={() => { setShowMovementModal(false); setSelectedUnit(null); }}
                 className="rounded-lg bc-solid px-4 py-2 text-sm text-donor-text transition-colors hover:bg-donor-elevated"
               >
-                Cancel
+                {t('actions.cancel')}
               </button>
             </div>
           </div>
@@ -707,16 +709,16 @@ export default function InventoryPage() {
       <Modal
         open={showAdjustModal}
         onClose={() => { setShowAdjustModal(false); setSelectedUnit(null); }}
-        title="Adjust Unit"
+        title={t('ops.inventory.adjustUnit')}
       >
         {selectedUnit && (
           <div className="space-y-4">
             <div>
               <p className="mb-2 text-sm">
-                Correcting unit: <span className="font-mono">{selectedUnit.unitReference}</span>
+                {t('ops.inventory.correctingUnit')} <span className="font-mono">{selectedUnit.unitReference}</span>
               </p>
               <p className="text-xs text-donor-muted">
-                Leave a field blank to keep its current value. A reason is required.
+                {t('ops.inventory.adjustHint')}
               </p>
             </div>
             <div>
@@ -740,7 +742,7 @@ export default function InventoryPage() {
                 defaultValue=""
                 className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-sm text-donor-text"
               >
-                <option value="">Keep current</option>
+                <option value="">{t('ops.inventory.keepCurrent')}</option>
                 {COMPONENT_TYPES.map((ct) => (
                   <option key={ct} value={ct}>{ct.replace('_', ' ')}</option>
                 ))}
@@ -761,7 +763,7 @@ export default function InventoryPage() {
               <input
                 type="text"
                 id="adjust-reason"
-                placeholder="e.g., Correcting clerical volume entry error"
+                placeholder={t('ops.inventory.adjustReasonPlaceholder')}
                 className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-sm text-donor-text placeholder:text-donor-muted"
               />
             </div>
@@ -790,7 +792,7 @@ export default function InventoryPage() {
                 onClick={() => { setShowAdjustModal(false); setSelectedUnit(null); }}
                 className="rounded-lg bc-solid px-4 py-2 text-sm text-donor-text transition-colors hover:bg-donor-elevated"
               >
-                Cancel
+                {t('actions.cancel')}
               </button>
             </div>
           </div>
@@ -800,40 +802,40 @@ export default function InventoryPage() {
       <Modal
         open={showLocationModal}
         onClose={() => { setShowLocationModal(false); setNewLocation({ name: '', code: '', type: 'STORAGE' }); }}
-        title="Add Location"
+        title={t('ops.inventory.addLocation')}
       >
         <div className="space-y-4">
           <div>
-            <label className="mb-1 block text-xs font-semibold text-donor-muted">Name</label>
+            <label className="mb-1 block text-xs font-semibold text-donor-muted">{t('table.name')}</label>
             <input
               type="text"
               value={newLocation.name}
               onChange={(e) => setNewLocation({ ...newLocation, name: e.target.value })}
-              placeholder="e.g., Main Storage Freezer A"
+              placeholder={t('ops.inventory.storagePlaceholder')}
               className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-sm text-donor-text placeholder:text-donor-muted"
             />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-semibold text-donor-muted">Code</label>
+            <label className="mb-1 block text-xs font-semibold text-donor-muted">{t('ops.inventory.code')}</label>
             <input
               type="text"
               value={newLocation.code}
               onChange={(e) => setNewLocation({ ...newLocation, code: e.target.value.toUpperCase() })}
-              placeholder="e.g., MSA-01"
+              placeholder={t('ops.couriers.codePlaceholder')}
               className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-sm text-donor-text placeholder:text-donor-muted"
             />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-semibold text-donor-muted">Type</label>
+            <label className="mb-1 block text-xs font-semibold text-donor-muted">{t('table.type')}</label>
             <select
               value={newLocation.type}
               onChange={(e) => setNewLocation({ ...newLocation, type: e.target.value })}
               className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-sm text-donor-text"
             >
-              <option value="STORAGE">Storage</option>
-              <option value="QUARANTINE">Quarantine</option>
-              <option value="PROCESSING">Processing</option>
-              <option value="DISTRIBUTION">Distribution</option>
+              <option value="STORAGE">{t('ops.inventory.storage')}</option>
+              <option value="QUARANTINE">{t('ops.inventory.quarantine')}</option>
+              <option value="PROCESSING">{t('ops.inventory.processing')}</option>
+              <option value="DISTRIBUTION">{t('ops.inventory.distribution')}</option>
             </select>
           </div>
           <div className="flex gap-2 pt-4">
@@ -848,7 +850,7 @@ export default function InventoryPage() {
               onClick={() => { setShowLocationModal(false); setNewLocation({ name: '', code: '', type: 'STORAGE' }); }}
               className="rounded-lg bc-solid px-4 py-2 text-sm text-donor-text transition-colors hover:bg-donor-elevated"
             >
-              Cancel
+              {t('actions.cancel')}
             </button>
           </div>
         </div>

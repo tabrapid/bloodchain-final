@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { radius, spacing, typography, useTheme, ThemeColors } from '../theme';
 import { LucideIcon } from '../types/icons';
 import { AppText } from './AppText';
+import { useTranslation } from '../i18n';
 
 export interface AppButtonProps extends PressableProps {
   variant?: 'primary' | 'secondary' | 'danger' | 'ghost';
@@ -77,6 +78,7 @@ export function AppButton({
   style,
   ...props
 }: PropsWithChildren<AppButtonProps>) {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const variants = getVariants(colors);
   const flattenedStyle = StyleSheet.flatten(style);
@@ -119,7 +121,7 @@ export function AppButton({
       )}
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xs }}>
         {loading ? (
-          <AppText style={textStyle}>Loading...</AppText>
+          <AppText style={textStyle}>{t('common.loading')}</AppText>
         ) : (
           // Icons (or any non-text element) are rendered as siblings instead of
           // nesting inside AppText — React Native's Text can't host a View/SVG.

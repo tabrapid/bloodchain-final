@@ -3,6 +3,7 @@ import { AlertTriangle, LucideIcon } from 'lucide-react-native';
 import { spacing, useTheme } from '../theme';
 import { AppText } from './AppText';
 import { AppButton } from './AppButton';
+import { useTranslation } from '../i18n';
 
 export interface ErrorStateProps {
   title?: string;
@@ -12,11 +13,15 @@ export interface ErrorStateProps {
 }
 
 export function ErrorState({
-  title = 'Something went wrong',
-  description = 'We could not load the requested information. Please try again.',
+  title,
+  description,
   icon: Icon = AlertTriangle,
   onRetry,
 }: ErrorStateProps) {
+  // See EmptyState: the fallback wording is resolved per render, not per module.
+  const { t } = useTranslation();
+  const heading = title ?? t('common.errorTitle');
+  const body = description ?? t('common.errorBody');
   const { colors } = useTheme();
   return (
     <View
@@ -44,9 +49,9 @@ export function ErrorState({
       >
         <Icon size={24} color={colors.danger} />
       </View>
-      <AppText style={{ fontSize: 15, fontWeight: '600', textAlign: 'center' }}>{title}</AppText>
+      <AppText style={{ fontSize: 15, fontWeight: '600', textAlign: 'center' }}>{heading}</AppText>
       <AppText muted style={{ fontSize: 14, lineHeight: 22, textAlign: 'center', maxWidth: 260 }}>
-        {description}
+        {body}
       </AppText>
       {onRetry && (
         <AppButton onPress={onRetry} variant="secondary">

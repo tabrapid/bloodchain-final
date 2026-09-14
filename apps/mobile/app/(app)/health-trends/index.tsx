@@ -12,6 +12,7 @@ import {
 import { LineChart } from 'react-native-chart-kit';
 import { AppButton, AppText, Card, GlassCard, LoadingState, Screen, ScreenHeader, SectionHeader } from '../../../src/components';
 import { layout, spacing, useTheme } from '../../../src/theme';
+import { useTranslation } from '../../../src/i18n';
 import {
   getTrendSummary,
   getAvailableParameters,
@@ -25,6 +26,7 @@ import {
 const TIME_RANGES = ['1M', '3M', '6M', '1Y', '2Y', 'ALL'] as const;
 
 export default function HealthTrendsScreen() {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -104,18 +106,10 @@ export default function HealthTrendsScreen() {
     }
   };
 
-  const getTrendLabel = (trend: string) => {
-    switch (trend) {
-      case 'INCREASING':
-        return 'Value has increased';
-      case 'DECREASING':
-        return 'Value has decreased';
-      case 'STABLE':
-        return 'Value has remained relatively stable';
-      default:
-        return 'Insufficient data for trend analysis';
-    }
-  };
+  const getTrendLabel = (trend: string) =>
+    trend === 'INCREASING' || trend === 'DECREASING' || trend === 'STABLE'
+      ? t(`medical.trendDirection.${trend}`)
+      : t('medical.trendDirection.INSUFFICIENT_DATA');
 
   const formatChange = (change?: number, percent?: number) => {
     if (change === undefined) return null;
@@ -169,7 +163,7 @@ export default function HealthTrendsScreen() {
   if (isLoading) {
     return (
       <Screen>
-        <ScreenHeader title="Health Trends" />
+        <ScreenHeader title={t('healthTrends.title')} />
         <LoadingState />
       </Screen>
     );
@@ -178,16 +172,16 @@ export default function HealthTrendsScreen() {
   if (!summary || availableParams.length === 0) {
     return (
       <Screen>
-        <ScreenHeader title="Health Trends" />
+        <ScreenHeader title={t('healthTrends.title')} />
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: spacing.xl }}>
           <FlaskConical size={64} color={colors.textMuted} />
           <AppText variant="heading" style={{ marginTop: spacing.lg, textAlign: 'center' }}>
-            {loadError ? "Couldn't load health trends" : 'No health trends yet'}
+            {loadError ? t('healthTrends.loadFailed') : t('healthTrends.empty')}
           </AppText>
           <AppText muted style={{ marginTop: spacing.sm, textAlign: 'center' }}>
             {loadError
-              ? 'Something went wrong reaching the server. Check your connection and try again.'
-              : 'Complete a blood test to start tracking your results over time.'}
+              ? t('common.offline')
+              : t('healthTrends.emptyHint')}
           </AppText>
           {loadError && (
             <AppButton
@@ -198,7 +192,7 @@ export default function HealthTrendsScreen() {
               }}
               style={{ marginTop: spacing.lg }}
             >
-              Retry
+              {t('common.retry')}
             </AppButton>
           )}
         </View>
@@ -212,12 +206,12 @@ export default function HealthTrendsScreen() {
         <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor={colors.primary} />
       }
     >
-      <ScreenHeader title="Health Trends" />
+      <ScreenHeader title={t('healthTrends.title')} />
       <AppText muted style={{ marginBottom: spacing.lg }}>
-        Your laboratory history over time
+        {t('healthTrends.subtitle')}
       </AppText>
 
-      <SectionHeader>PARAMETER</SectionHeader>
+      <SectionHeader>{t('healthTrends.parameter')}</SectionHeader>
       <TouchableOpacity
         onPress={() => setShowParamSelector(!showParamSelector)}
         style={{
@@ -234,12 +228,14 @@ export default function HealthTrendsScreen() {
       >
         <View>
           <AppText variant="heading">
-            {trendData?.parameterName || availableParams.find((p) => p.code === selectedParam)?.name || 'Select parameter'}
+            {trendData?.parameterName || availableParams.find((p) => p.code === selectedParam)?.name || t('healthTrends.selectParameter')}
           </AppText>
           {selectedParam && availableParams.find((p) => p.code === selectedParam) && (
             <AppText muted style={{ fontSize: 13 }}>
               {availableParams.find((p) => p.code === selectedParam)?.category} •{' '}
-              {availableParams.find((p) => p.code === selectedParam)?.measurementCount} measurements
+              {t('units.measurements', {
+                count: availableParams.find((p) => p.code === selectedParam)?.measurementCount ?? 0,
+              })}
             </AppText>
           )}
         </View>
@@ -274,7 +270,7 @@ export default function HealthTrendsScreen() {
                 {param.name}
               </AppText>
               <AppText muted style={{ fontSize: 12 }}>
-                {param.category} • {param.measurementCount} measurements
+                {param.category} • {t('units.measurements', { count: param.measurementCount })}
                 {param.latestValue !== undefined ? ` • Latest: ${param.latestValue} ${param.unit || ''}` : ''}
               </AppText>
             </TouchableOpacity>
@@ -282,7 +278,7 @@ export default function HealthTrendsScreen() {
         </Card>
       )}
 
-      <SectionHeader>TIME RANGE</SectionHeader>
+      <SectionHeader>{t('healthTrends.timeRange')}</SectionHeader>
       <View style={{ flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.lg }}>
         {TIME_RANGES.map((range) => (
           <TouchableOpacity
@@ -312,7 +308,7 @@ export default function HealthTrendsScreen() {
 
       {trendData && trendData.points.length > 0 ? (
         <>
-          <SectionHeader>CURRENT VALUE</SectionHeader>
+          <SectionHeader>{t('medical.reference.currentValue')}</SectionHeader>
           <Card style={{ marginBottom: layout.cardGap }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <View>
@@ -355,7 +351,7 @@ export default function HealthTrendsScreen() {
             </View>
           </Card>
 
-          <SectionHeader>REFERENCE RANGE</SectionHeader>
+          <SectionHeader>{t('medical.reference.referenceRange')}</SectionHeader>
           <GlassCard style={{ marginBottom: layout.cardGap }}>
             {trendData.hasReferenceRange && trendData.referenceMin !== undefined && trendData.referenceMax !== undefined ? (
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
@@ -376,16 +372,16 @@ export default function HealthTrendsScreen() {
                     {trendData.referenceMin} – {trendData.referenceMax} {trendData.unit}
                   </AppText>
                   <AppText muted style={{ fontSize: 12 }}>
-                    Reference range provided by the laboratory
+                    {t('healthTrends.referenceFromLab')}
                   </AppText>
                 </View>
               </View>
             ) : (
-              <AppText muted>Reference range unavailable</AppText>
+              <AppText muted>{t('medical.reference.referenceUnavailable')}</AppText>
             )}
           </GlassCard>
 
-          <SectionHeader>TREND CHART</SectionHeader>
+          <SectionHeader>{t('healthTrends.trendChart')}</SectionHeader>
           <Card
             style={{ marginBottom: layout.cardGap, padding: 0, overflow: 'hidden' }}
             onLayout={(event) => setChartWidth(event.nativeEvent.layout.width)}
@@ -424,7 +420,7 @@ export default function HealthTrendsScreen() {
             </View>
           </Card>
 
-          <SectionHeader>HISTORY</SectionHeader>
+          <SectionHeader>{t('healthTrends.history')}</SectionHeader>
           {history && history.history.length > 0 ? (
             history.history.map((item, index) => (
               <Card key={item.resultId || index} style={{ marginBottom: spacing.sm }}>
@@ -452,7 +448,7 @@ export default function HealthTrendsScreen() {
                       }}
                     >
                       <AppText style={{ fontSize: 11, color: colors.onMuted.warning }}>
-                        {item.flag}
+                        {t(`medical.resultFlagsByCode.${item.flag}`)}
                       </AppText>
                     </View>
                   )}
@@ -462,7 +458,7 @@ export default function HealthTrendsScreen() {
           ) : (
             <GlassCard>
               <AppText muted style={{ textAlign: 'center' }}>
-                One result available. More measurements will allow you to compare your results over time.
+                {t('healthTrends.singleResultHint')}
               </AppText>
             </GlassCard>
           )}
@@ -472,10 +468,10 @@ export default function HealthTrendsScreen() {
           <View style={{ alignItems: 'center', padding: spacing.xl }}>
             <Activity size={48} color={colors.textMuted} />
             <AppText variant="heading" style={{ marginTop: spacing.md, textAlign: 'center' }}>
-              One result available
+              {t('healthTrends.singleResult')}
             </AppText>
             <AppText muted style={{ marginTop: spacing.sm, textAlign: 'center' }}>
-              More measurements will allow you to compare your results over time.
+              {t('healthTrends.singleResultHint')}
             </AppText>
           </View>
         </GlassCard>

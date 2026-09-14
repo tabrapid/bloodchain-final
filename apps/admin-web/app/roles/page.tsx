@@ -6,6 +6,7 @@ import { listRoles, listPermissions, updateRolePermissions, type Role, type Perm
 import { me, isAuthenticated } from '@lib/auth';
 import { ChevronDown, KeyRound, Lock, X } from 'lucide-react';
 import { AppShell } from '../../components/AppShell';
+import { useTranslation } from '@bloodchain/ui/i18n';
 
 function permissionGroup(code: string): string {
   return code.split('.')[0] ?? code;
@@ -19,6 +20,7 @@ function permissionGroup(code: string): string {
  * still reveals everything -- no permission is hidden, just deferred.
  */
 function PermissionPills({ codes }: { codes: string[] }) {
+  const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const sorted = [...codes].sort((a, b) => a.localeCompare(b));
   const visibleCount = 6;
@@ -49,7 +51,7 @@ function PermissionPills({ codes }: { codes: string[] }) {
           onClick={() => setExpanded(false)}
           className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold text-donor-muted hover:text-donor-text"
         >
-          <ChevronDown size={12} className="rotate-180" /> Show less
+          <ChevronDown size={12} className="rotate-180" /> {t('ops.roles.showLess')}
         </button>
       )}
     </div>
@@ -57,6 +59,7 @@ function PermissionPills({ codes }: { codes: string[] }) {
 }
 
 export default function RolesPage() {
+  const { t } = useTranslation();
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [roles, setRoles] = useState<Role[]>([]);
@@ -127,14 +130,14 @@ export default function RolesPage() {
 
   if (isLoading) {
     return (
-      <AppShell title="Roles & Permissions" userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
+      <AppShell title={t('ops.roles.pageTitle')} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
         <LoadingState />
       </AppShell>
     );
   }
 
   return (
-    <AppShell title="Roles & Permissions" userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
+    <AppShell title={t('ops.roles.pageTitle')} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
       <div className="p-6">
         <div className="mb-6">
           <p className="text-sm text-donor-muted">
@@ -148,9 +151,9 @@ export default function RolesPage() {
             <table className="w-full">
               <thead>
                 <tr className="bg-donor-elevated border-b border-donor-border/40">
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Role</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Permissions</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Actions</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.role')}</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('ops.roles.permissions')}</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.actions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-donor-border/40">
@@ -170,7 +173,7 @@ export default function RolesPage() {
                         {isSuperAdmin ? (
                           <span className="text-sm text-donor-muted">All permissions (fixed)</span>
                         ) : role.permissions.length === 0 ? (
-                          <span className="text-sm text-donor-muted">No permissions granted</span>
+                          <span className="text-sm text-donor-muted">{t('ops.roles.noPermissions')}</span>
                         ) : (
                           <PermissionPills codes={role.permissions} />
                         )}
@@ -179,14 +182,14 @@ export default function RolesPage() {
                         {isSuperAdmin ? (
                           <span className="inline-flex items-center gap-1 text-sm text-donor-muted">
                             <Lock className="w-3.5 h-3.5" />
-                            Fixed
+                            {t('ops.common.fixed')}
                           </span>
                         ) : (
                           <button
                             onClick={() => openEditor(role)}
                             className="text-donor-primary hover:text-donor-primary/70 text-sm font-medium"
                           >
-                            Edit permissions
+                            {t('ops.roles.editPermissions')}
                           </button>
                         )}
                       </td>
@@ -243,7 +246,7 @@ export default function RolesPage() {
                 onClick={() => setEditingRole(null)}
                 className="flex-1 bc-solid text-donor-text py-2 px-4 rounded-lg text-sm font-medium hover:bg-donor-elevated"
               >
-                Cancel
+                {t('actions.cancel')}
               </button>
               <button
                 onClick={handleSave}

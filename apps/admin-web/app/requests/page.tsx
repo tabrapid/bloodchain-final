@@ -7,8 +7,10 @@ import { me, isAuthenticated } from '@lib/auth';
 import { StatusBadgeWrapper } from '@lib/status';
 import {  } from 'lucide-react';
 import { AppShell } from '../../components/AppShell';
+import { useTranslation } from '@bloodchain/ui/i18n';
 
 export default function BloodRequestsPage() {
+  const { t } = useTranslation();
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [requests, setRequests] = useState<BloodRequest[]>([]);
@@ -55,18 +57,18 @@ export default function BloodRequestsPage() {
 
   if (isLoading) {
     return (
-      <AppShell title="Blood Requests" userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
+      <AppShell title={t('ops.requests.title')} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
         <LoadingState />
       </AppShell>
     );
   }
 
   return (
-    <AppShell title="Blood Requests" userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
+    <AppShell title={t('ops.requests.title')} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
       <div className="p-6">
         <div className="mb-6">
-          <h1 className="text-2xl font-semibold text-donor-text">Blood Request Monitoring</h1>
-          <p className="text-sm text-donor-muted mt-1">Monitor all blood requests across the platform</p>
+          <h1 className="text-2xl font-semibold text-donor-text">{t('ops.requests.monitoring')}</h1>
+          <p className="text-sm text-donor-muted mt-1">{t('ops.requests.monitoringHint')}</p>
         </div>
 
         <div className="bc-glass rounded-card mb-6">
@@ -77,31 +79,31 @@ export default function BloodRequestsPage() {
                 onChange={(e) => setStatusFilter(e.target.value)}
                 className="bc-solid rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-donor-primary"
               >
-                <option value="">All Status</option>
-                <option value="SUBMITTED">Submitted</option>
-                <option value="UNDER_REVIEW">Under Review</option>
-                <option value="APPROVED">Approved</option>
-                <option value="PARTIALLY_APPROVED">Partially Approved</option>
-                <option value="REJECTED">Rejected</option>
-                <option value="CANCELLED">Cancelled</option>
-                <option value="READY_FOR_PICKUP">Ready for Pickup</option>
-                <option value="DELIVERED">Delivered</option>
+                <option value="">{t('ops.common.allStatus')}</option>
+                <option value="SUBMITTED">{t('status.request.SUBMITTED')}</option>
+                <option value="UNDER_REVIEW">{t('home.verificationUnderReview')}</option>
+                <option value="APPROVED">{t('ops.requests.approvedCount')}</option>
+                <option value="PARTIALLY_APPROVED">{t('status.request.PARTIALLY_APPROVED')}</option>
+                <option value="REJECTED">{t('status.request.REJECTED')}</option>
+                <option value="CANCELLED">{t('appointment.cancelledNotice')}</option>
+                <option value="READY_FOR_PICKUP">{t('status.request.READY_FOR_PICKUP')}</option>
+                <option value="DELIVERED">{t('status.request.DELIVERED')}</option>
               </select>
               <select
                 value={priorityFilter}
                 onChange={(e) => setPriorityFilter(e.target.value)}
                 className="bc-solid rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-donor-primary"
               >
-                <option value="">All Priority</option>
-                <option value="ROUTINE">Routine</option>
-                <option value="URGENT">Urgent</option>
-                <option value="CRITICAL">Critical</option>
+                <option value="">{t('ops.common.allPriority')}</option>
+                <option value="ROUTINE">{t('status.priority.ROUTINE')}</option>
+                <option value="URGENT">{t('status.priority.URGENT')}</option>
+                <option value="CRITICAL">{t('medical.resultFlagsByCode.CRITICAL')}</option>
               </select>
               <button
                 type="submit"
                 className="bg-donor-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-donor-primary/85"
               >
-                Filter
+                {t('actions.filter')}
               </button>
             </form>
           </div>
@@ -110,20 +112,20 @@ export default function BloodRequestsPage() {
             <table className="w-full">
               <thead>
                 <tr className="bg-donor-elevated border-b border-donor-border/40">
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Reference</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Status</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Priority</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Requesting</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Fulfilling</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Items</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Created</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('ops.requests.reference')}</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.status')}</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.priority')}</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('ops.requests.requesting')}</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('ops.requests.fulfilling')}</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('ops.requests.items')}</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.created')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-donor-border/40">
                 {requests.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="px-4 py-8 text-center text-sm text-donor-muted">
-                      No blood requests found
+                      {t('ops.requests.noneFound')}
                     </td>
                   </tr>
                 ) : (
@@ -174,14 +176,14 @@ export default function BloodRequestsPage() {
                   disabled={meta.page === 1}
                   className="px-3 py-1 bc-solid rounded text-sm disabled:opacity-50"
                 >
-                  Previous
+                  {t('actions.previous')}
                 </button>
                 <button
                   onClick={() => loadRequests(meta.page + 1)}
                   disabled={meta.page === meta.totalPages}
                   className="px-3 py-1 bc-solid rounded text-sm disabled:opacity-50"
                 >
-                  Next
+                  {t('actions.next')}
                 </button>
               </div>
             </div>

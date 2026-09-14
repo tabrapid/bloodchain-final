@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { ChevronLeft } from 'lucide-react-native';
 import { useTheme } from '../theme';
 import { AppText } from './AppText';
+import { useTranslation } from '../i18n';
 
 export interface BackHeaderProps {
   title?: string;
@@ -20,6 +21,7 @@ export interface BackHeaderProps {
  * width instead of relying on invisible hit-slop.
  */
 export function BackHeader({ title, trailing, onBack }: BackHeaderProps) {
+  const { t } = useTranslation();
   const { colors } = useTheme();
 
   return (
@@ -36,7 +38,7 @@ export function BackHeader({ title, trailing, onBack }: BackHeaderProps) {
       <Pressable
         onPress={onBack ?? (() => router.back())}
         accessibilityRole="button"
-        accessibilityLabel="Go back"
+        accessibilityLabel={t('common.a11yGoBack')}
         style={({ pressed }) => ({
           flexDirection: 'row',
           alignItems: 'center',
@@ -48,7 +50,7 @@ export function BackHeader({ title, trailing, onBack }: BackHeaderProps) {
         })}
       >
         <ChevronLeft size={22} strokeWidth={2.5} color={colors.primary} />
-        <AppText style={{ fontSize: 15, fontWeight: '600', color: colors.primary }}>Back</AppText>
+        <AppText style={{ fontSize: 15, fontWeight: '600', color: colors.primary }}>{t('common.back')}</AppText>
       </Pressable>
 
       {title ? (

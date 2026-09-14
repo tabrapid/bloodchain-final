@@ -7,8 +7,10 @@ import { me, isAuthenticated } from '@lib/auth';
 import { StatusBadgeWrapper } from '@lib/status';
 import { AlertTriangle } from 'lucide-react';
 import { AppShell } from '../../components/AppShell';
+import { useTranslation } from '@bloodchain/ui/i18n';
 
 export default function EmergenciesPage() {
+  const { t } = useTranslation();
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [emergencies, setEmergencies] = useState<Emergency[]>([]);
@@ -53,18 +55,18 @@ export default function EmergenciesPage() {
 
   if (isLoading) {
     return (
-      <AppShell title="Emergency Monitoring" userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
+      <AppShell title={t('ops.emergency.monitoring')} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
         <LoadingState />
       </AppShell>
     );
   }
 
   return (
-    <AppShell title="Emergency Monitoring" userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
+    <AppShell title={t('ops.emergency.monitoring')} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
       <div className="p-6">
         <div className="mb-6">
-          <h1 className="text-2xl font-semibold text-donor-text">Emergency SOS Monitoring</h1>
-          <p className="text-sm text-donor-muted mt-1">Monitor emergency blood requests across the platform</p>
+          <h1 className="text-2xl font-semibold text-donor-text">{t('ops.emergency.monitoring')}</h1>
+          <p className="text-sm text-donor-muted mt-1">{t('ops.emergency.monitoringHint')}</p>
         </div>
 
         <div className="bc-glass rounded-card mb-6">
@@ -75,20 +77,20 @@ export default function EmergenciesPage() {
                 onChange={(e) => setStatusFilter(e.target.value)}
                 className="bc-solid rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-donor-primary"
               >
-                <option value="">All Status</option>
-                <option value="ACTIVE">Active</option>
-                <option value="MATCHING">Matching</option>
-                <option value="RESPONSES_RECEIVED">Responses Received</option>
-                <option value="DONOR_CONFIRMED">Donor Confirmed</option>
-                <option value="COMPLETED">Completed</option>
-                <option value="EXPIRED">Expired</option>
-                <option value="CANCELLED">Cancelled</option>
+                <option value="">{t('ops.common.allStatus')}</option>
+                <option value="ACTIVE">{t('status.emergency.ACTIVE')}</option>
+                <option value="MATCHING">{t('status.emergency.MATCHING')}</option>
+                <option value="RESPONSES_RECEIVED">{t('status.emergency.RESPONSES_RECEIVED')}</option>
+                <option value="DONOR_CONFIRMED">{t('status.emergency.DONOR_CONFIRMED')}</option>
+                <option value="COMPLETED">{t('table.completedAt')}</option>
+                <option value="EXPIRED">{t('status.emergency.EXPIRED')}</option>
+                <option value="CANCELLED">{t('appointment.cancelledNotice')}</option>
               </select>
               <button
                 type="submit"
                 className="bg-donor-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-donor-primary/85"
               >
-                Filter
+                {t('actions.filter')}
               </button>
             </form>
           </div>
@@ -97,20 +99,20 @@ export default function EmergenciesPage() {
             <table className="w-full">
               <thead>
                 <tr className="bg-donor-elevated border-b border-donor-border/40">
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Blood Type</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Status</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Units</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Hospital</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Responses</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Created</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Expires</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('home.bloodTypeLabel')}</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.status')}</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.units')}</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.hospital')}</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('ops.emergency.responses')}</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.created')}</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.expires')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-donor-border/40">
                 {emergencies.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="px-4 py-8 text-center text-sm text-donor-muted">
-                      No emergencies found
+                      {t('ops.emergency.noneFound')}
                     </td>
                   </tr>
                 ) : (
@@ -163,14 +165,14 @@ export default function EmergenciesPage() {
                   disabled={meta.page === 1}
                   className="px-3 py-1 bc-solid rounded text-sm disabled:opacity-50"
                 >
-                  Previous
+                  {t('actions.previous')}
                 </button>
                 <button
                   onClick={() => loadEmergencies(meta.page + 1)}
                   disabled={meta.page === meta.totalPages}
                   className="px-3 py-1 bc-solid rounded text-sm disabled:opacity-50"
                 >
-                  Next
+                  {t('actions.next')}
                 </button>
               </div>
             </div>

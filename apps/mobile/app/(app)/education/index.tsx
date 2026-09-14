@@ -22,8 +22,10 @@ import {
   ScreenHeader,
 } from '../../../src/components';
 import { layout, spacing, useTheme, ThemeColors } from '../../../src/theme';
+import { useTranslation } from '../../../src/i18n';
 
 export default function EducationScreen() {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [refreshing, setRefreshing] = useState(false);
@@ -60,7 +62,7 @@ export default function EducationScreen() {
       queryClient.invalidateQueries({ queryKey: ['education-stats'] });
     },
     onError: (err: any) => {
-      setActionError(err.message || 'Failed to start content. Please try again.');
+      setActionError(err.message || t('education.startFailed'));
     },
   });
 
@@ -75,7 +77,7 @@ export default function EducationScreen() {
       queryClient.invalidateQueries({ queryKey: ['education-stats'] });
     },
     onError: (err: any) => {
-      setActionError(err.message || 'Failed to complete content. Please try again.');
+      setActionError(err.message || t('education.completeFailed'));
     },
   });
 
@@ -88,8 +90,8 @@ export default function EducationScreen() {
   if (isLoading) {
     return (
       <Screen>
-        <ScreenHeader title="Education Hub" />
-        <LoadingState message="Loading content..." />
+        <ScreenHeader title={t('education.title')} />
+        <LoadingState message={t('education.loading')} />
       </Screen>
     );
   }
@@ -97,8 +99,8 @@ export default function EducationScreen() {
   return (
     <Screen scroll={false}>
       <ScreenHeader
-        title="Education Hub"
-        subtitle="Learn about blood donation and earn XP"
+        title={t('education.title')}
+        subtitle={t('education.subtitle')}
       />
       <FlatList
         style={{ flex: 1 }}
@@ -132,17 +134,17 @@ export default function EducationScreen() {
           <>
             {stats && (
               <GlassCard tier="elevated" style={styles.statsCard}>
-                <AppText variant="heading">Your Progress</AppText>
+                <AppText variant="heading">{t('education.yourProgress')}</AppText>
                 <View style={styles.statsRow}>
-                  <EducationStat label="Completed" value={stats.totalCompleted} />
-                  <EducationStat label="Started" value={stats.totalStarted} />
-                  <EducationStat label="XP Earned" value={stats.totalXpEarned} />
+                  <EducationStat label={t('education.completed')} value={stats.totalCompleted} />
+                  <EducationStat label={t('education.started')} value={stats.totalStarted} />
+                  <EducationStat label={t('education.xpEarned')} value={stats.totalXpEarned} />
                 </View>
               </GlassCard>
             )}
 
             <AppText variant="heading" style={styles.sectionTitle}>
-              Available Content
+              {t('education.availableContent')}
             </AppText>
 
             {actionError && (
@@ -156,8 +158,8 @@ export default function EducationScreen() {
           <Card>
             <EmptyState
               icon={BookOpen}
-              title="No Content Available"
-              description="Check back later for educational content"
+              title={t('education.empty')}
+              description={t('education.emptyHint')}
             />
           </Card>
         }
@@ -197,6 +199,7 @@ function EducationCard({
   isStarting: boolean;
   isCompleting: boolean;
 }) {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   return (
@@ -216,7 +219,7 @@ function EducationCard({
           <View style={styles.detailRow}>
             <Clock size={16} color={colors.textMuted} />
             <AppText muted variant="bodySmall">
-              {content.estimatedMinutes} min
+              {t('education.minutes', { count: content.estimatedMinutes })}
             </AppText>
           </View>
         )}
@@ -235,16 +238,16 @@ function EducationCard({
         <Badge>{content.category}</Badge>
 
         {status === 'COMPLETED' ? (
-          <Badge variant="success">Completed</Badge>
+          <Badge variant="success">{t('education.completed')}</Badge>
         ) : status === 'STARTED' ? (
           <AppButton onPress={onComplete} loading={isCompleting} size="small">
             <CheckCircle size={16} color={colors.white} />
-            Complete
+            {t('education.complete')}
           </AppButton>
         ) : (
           <AppButton onPress={onStart} loading={isStarting} size="small">
             <PlayCircle size={16} color={colors.white} />
-            Start
+            {t('education.start')}
           </AppButton>
         )}
       </View>

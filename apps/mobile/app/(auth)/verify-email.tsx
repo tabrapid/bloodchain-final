@@ -6,8 +6,10 @@ import { AppButton, AppText, Screen } from '../../src/components';
 import { useVerifyEmail, getAuthErrorMessage } from '../../src/hooks/useAuth';
 import { getPostAuthRoute } from '../../src/utils/postAuthRoute';
 import { spacing, useTheme } from '../../src/theme';
+import { useTranslation } from '../../src/i18n';
 
 export default function VerifyEmail() {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const params = useLocalSearchParams<{ token?: string }>();
   const verifyEmail = useVerifyEmail();
@@ -34,12 +36,12 @@ export default function VerifyEmail() {
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.lg }}>
           <XCircle size={64} color={colors.danger} style={{ marginBottom: spacing.lg }} />
           <AppText variant="title" style={{ textAlign: 'center', marginBottom: spacing.sm }}>
-            Invalid link
+            {t('auth.verifyEmail.invalidTitle')}
           </AppText>
           <AppText muted style={{ textAlign: 'center', marginBottom: spacing.xl }}>
-            This verification link is missing its token.
+            {t('auth.verifyEmail.invalidBody')}
           </AppText>
-          <AppButton onPress={() => router.replace('/(auth)/login')}>Back to sign in</AppButton>
+          <AppButton onPress={() => router.replace('/(auth)/login')}>{t('auth.checkEmail.backToSignIn')}</AppButton>
         </View>
       </Screen>
     );
@@ -52,7 +54,7 @@ export default function VerifyEmail() {
           <>
             <ActivityIndicator size="large" color={colors.primary} style={{ marginBottom: spacing.lg }} />
             <AppText variant="title" style={{ textAlign: 'center' }}>
-              Verifying your email...
+              {t('auth.verifyEmail.verifying')}
             </AppText>
           </>
         )}
@@ -61,7 +63,7 @@ export default function VerifyEmail() {
           <>
             <CheckCircle size={64} color={colors.success} style={{ marginBottom: spacing.lg }} />
             <AppText variant="title" style={{ textAlign: 'center' }}>
-              Email verified
+              {t('auth.verifyEmail.verified')}
             </AppText>
           </>
         )}
@@ -70,12 +72,12 @@ export default function VerifyEmail() {
           <>
             <XCircle size={64} color={colors.danger} style={{ marginBottom: spacing.lg }} />
             <AppText variant="title" style={{ textAlign: 'center', marginBottom: spacing.sm }}>
-              Verification failed
+              {t('auth.verifyEmail.failedTitle')}
             </AppText>
             <AppText muted style={{ textAlign: 'center', marginBottom: spacing.xl }}>
               {error}
             </AppText>
-            <AppButton onPress={() => router.replace('/(auth)/login')}>Back to sign in</AppButton>
+            <AppButton onPress={() => router.replace('/(auth)/login')}>{t('auth.checkEmail.backToSignIn')}</AppButton>
           </>
         )}
       </View>

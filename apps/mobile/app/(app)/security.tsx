@@ -19,20 +19,29 @@ import { clearAuthTokens } from '../../src/auth/storage';
 import { useAuthStore } from '../../src/stores/auth.store';
 import { apiRequest, ApiRequestError } from '../../src/api/client';
 import { apiBasePath } from '../../src/api/config';
+import { useTranslation } from '../../src/i18n';
 
 const MIN_PASSWORD_LENGTH = 12;
 
-function formatRelativeTime(dateStr?: string): string {
-  if (!dateStr) return 'Unknown';
+/**
+ * Takes the translator rather than calling a hook: this runs inside a row's
+ * render, and a string built without it is stuck in the bundle's language.
+ */
+function formatRelativeTime(
+  dateStr: string | undefined,
+  t: (key: string, options?: Record<string, string | number>) => string,
+): string {
+  if (!dateStr) return t('common.unknown');
   const diffMins = Math.floor((Date.now() - new Date(dateStr).getTime()) / 60000);
-  if (diffMins < 1) return 'Active now';
-  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffMins < 1) return t('security.activeNow');
+  if (diffMins < 60) return t('common.minutesAgo', { count: diffMins });
   const diffHours = Math.floor(diffMins / 60);
-  if (diffHours < 24) return `${diffHours}h ago`;
-  return `${Math.floor(diffHours / 24)}d ago`;
+  if (diffHours < 24) return t('common.hoursAgo', { count: diffHours });
+  return t('common.daysAgoShort', { count: Math.floor(diffHours / 24) });
 }
 
 export default function Security() {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { data: sessions } = useSessions();
@@ -51,11 +60,11 @@ export default function Security() {
   // can read while typing is the difference between one attempt and three.
   const lengthError =
     newPassword.length > 0 && newPassword.length < MIN_PASSWORD_LENGTH
-      ? `Must be at least ${MIN_PASSWORD_LENGTH} characters`
+      ? t('validation.passwordTooShort')
       : undefined;
   const matchError =
     confirmPassword.length > 0 && confirmPassword !== newPassword
-      ? 'Passwords do not match'
+      ? t('security.passwordsDoNotMatch')
       : undefined;
   const canSubmit =
     !!currentPassword &&
@@ -71,7 +80,7 @@ export default function Security() {
         body: JSON.stringify({ currentPassword, newPassword }),
       });
 
-      Alert.alert('Password changed', 'Please log in again with your new password.');
+      Alert.alert(t('security.passwordChanged'), t('security.passwordChangedBody'));
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
@@ -80,8 +89,8 @@ export default function Security() {
       router.replace('/(auth)/login');
     } catch (error) {
       Alert.alert(
-        'Could not change password',
-        error instanceof ApiRequestError ? error.error.message : 'Something went wrong.',
+        t('security.passwordChangeFailed'),
+        error instanceof ApiRequestError ? error.error.message : t('common.error'),
       );
     } finally {
       setIsChangingPassword(false);
@@ -89,27 +98,31 @@ export default function Security() {
   };
 
   const handleRevokeSession = (sessionId: string) => {
-    Alert.alert('Revoke session', 'This device will be signed out immediately. Continue?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Revoke', style: 'destructive', onPress: () => revokeSession.mutate(sessionId) },
+    Alert.alert(t('security.revokeSessionTitle'), t('security.revokeSessionBody'), [
+      { text: t('actions.cancel'), style: 'cancel' },
+      {
+        text: t('security.revoke'),
+        style: 'destructive',
+        onPress: () => revokeSession.mutate(sessionId),
+      },
     ]);
   };
 
   const handleLogoutAll = () => {
     Alert.alert(
-      'Log out everywhere',
-      'This signs you out of every device except this one. Continue?',
+      t('security.logOutAllTitle'),
+      t('security.logOutAllBody'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('actions.cancel'), style: 'cancel' },
         {
-          text: 'Log out all',
+          text: t('security.logOutAllConfirm'),
           style: 'destructive',
           onPress: async () => {
             try {
               await revokeAllSessions.mutateAsync();
-              Alert.alert('Done', 'All other sessions have been revoked.');
+              Alert.alert(t('common.done'), t('security.sessionsRevoked'));
             } catch {
-              Alert.alert('Error', 'Failed to revoke sessions.');
+              Alert.alert(t('common.error'), t('security.revokeFailed'));
             }
           },
         },
@@ -121,16 +134,16 @@ export default function Security() {
 
   return (
     <Screen scroll={false}>
-      <ScreenHeader title="Security" subtitle="Account security settings" />
+      <ScreenHeader title={t('security.title')} subtitle={t('security.subtitle')} />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <SectionHeader>Authentication</SectionHeader>
+        <SectionHeader>{t('security.authentication')}</SectionHeader>
         <GlassCard>
           <View style={styles.cardHead}>
             <View style={styles.cardHeadIcon}>
               <Key size={16} color={colors.onMuted.success} />
             </View>
             <View style={styles.cardHeadBody}>
-              <AppText style={styles.cardHeadTitle}>Change password</AppText>
+              <AppText style={styles.cardHeadTitle}>{t('security.changePassword')}</AppText>
               <AppText style={styles.cardHeadMeta}>
                 At least {MIN_PASSWORD_LENGTH} characters
               </AppText>
@@ -139,8 +152,8 @@ export default function Security() {
 
           <View style={styles.fields}>
             <AppTextInput
-              label="Current password"
-              placeholder="Enter current password"
+              label={t('security.currentPassword')}
+              placeholder={t('security.currentPasswordPlaceholder')}
               secureTextEntry={!reveal.current}
               value={currentPassword}
               onChangeText={setCurrentPassword}
@@ -153,8 +166,8 @@ export default function Security() {
               }
             />
             <AppTextInput
-              label="New password"
-              placeholder="Enter new password"
+              label={t('auth.resetPassword.newPassword')}
+              placeholder={t('security.newPasswordPlaceholder')}
               secureTextEntry={!reveal.next}
               value={newPassword}
               onChangeText={setNewPassword}
@@ -168,8 +181,8 @@ export default function Security() {
               }
             />
             <AppTextInput
-              label="Confirm new password"
-              placeholder="Confirm new password"
+              label={t('auth.resetPassword.confirmPassword')}
+              placeholder={t('auth.resetPassword.confirmPassword')}
               secureTextEntry={!reveal.confirm}
               value={confirmPassword}
               onChangeText={setConfirmPassword}
@@ -190,11 +203,11 @@ export default function Security() {
             loading={isChangingPassword}
             style={styles.submit}
           >
-            Change password
+            {t('security.changePassword')}
           </AppButton>
         </GlassCard>
 
-        <SectionHeader>Active sessions</SectionHeader>
+        <SectionHeader>{t('security.activeSessions')}</SectionHeader>
         <GlassCard>
           {sessions && sessions.length > 0 ? (
             <View style={styles.sessionList}>
@@ -207,27 +220,29 @@ export default function Security() {
                     </View>
                     <View style={styles.sessionBody}>
                       <AppText style={styles.sessionDevice}>
-                        {session.deviceName || session.deviceType || 'Unknown device'}
+                        {session.deviceName || session.deviceType || t('security.unknownDevice')}
                       </AppText>
                       <AppText style={styles.sessionMeta}>
                         {session.ipAddress ? `${session.ipAddress} · ` : ''}
-                        {formatRelativeTime(session.lastUsedAt ?? session.createdAt)}
+                        {formatRelativeTime(session.lastUsedAt ?? session.createdAt, t)}
                       </AppText>
                     </View>
                     <Pressable
                       onPress={() => handleRevokeSession(session.id)}
                       hitSlop={8}
                       accessibilityRole="button"
-                      accessibilityLabel={`Revoke ${session.deviceName ?? 'this session'}`}
+                      accessibilityLabel={t('security.a11yRevoke', {
+                        device: session.deviceName ?? t('security.thisSession'),
+                      })}
                     >
-                      <AppText style={styles.revoke}>Revoke</AppText>
+                      <AppText style={styles.revoke}>{t('security.revoke')}</AppText>
                     </Pressable>
                   </View>
                 </View>
               ))}
             </View>
           ) : (
-            <AppText style={styles.emptyText}>No other active sessions.</AppText>
+            <AppText style={styles.emptyText}>{t('security.noOtherSessions')}</AppText>
           )}
         </GlassCard>
 
@@ -242,17 +257,17 @@ export default function Security() {
                 <LogOut size={16} color={colors.onMuted.danger} />
               </View>
               <View style={styles.compactBody}>
-                <AppText style={styles.dangerTitle}>Log out from all devices</AppText>
-                <AppText style={styles.sessionMeta}>Revokes every other active session</AppText>
+                <AppText style={styles.dangerTitle}>{t('security.logOutAll')}</AppText>
+                <AppText style={styles.sessionMeta}>{t('security.logOutAllHint')}</AppText>
               </View>
             </View>
           </GlassCard>
         </Pressable>
 
-        <SectionHeader>Account status</SectionHeader>
+        <SectionHeader>{t('security.accountStatus')}</SectionHeader>
         <GlassCard style={styles.compactCard}>
           <View style={styles.statusRow}>
-            <AppText style={styles.statusLabel}>Donor status</AppText>
+            <AppText style={styles.statusLabel}>{t('security.donorStatus')}</AppText>
             <Badge
               variant={status === 'ACTIVE' ? 'success' : status ? 'warning' : 'default'}
             >
@@ -266,13 +281,14 @@ export default function Security() {
 }
 
 function RevealToggle({ shown, onToggle }: { shown: boolean; onToggle: () => void }) {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   return (
     <Pressable
       onPress={onToggle}
       hitSlop={8}
       accessibilityRole="button"
-      accessibilityLabel={shown ? 'Hide password' : 'Show password'}
+      accessibilityLabel={shown ? t('security.a11yHidePassword') : t('security.a11yShowPassword')}
     >
       {shown ? (
         <EyeOff size={20} color={colors.textMuted} />

@@ -21,22 +21,29 @@ import {
   BloodRequest,
 } from '../../../lib/shipments';
 import { AppShell } from '../../../components/AppShell';
+import { useTranslation } from '@bloodchain/ui/i18n';
 
-const STATUS_CONFIG: Record<string, { label: string; variant: 'success' | 'warning' | 'info' | 'default' | 'danger' }> = {
-  DRAFT: { label: 'Draft', variant: 'default' },
-  SUBMITTED: { label: 'Submitted', variant: 'info' },
-  UNDER_REVIEW: { label: 'Under Review', variant: 'info' },
-  APPROVED: { label: 'Approved', variant: 'success' },
-  PARTIALLY_APPROVED: { label: 'Partially Approved', variant: 'warning' },
-  REJECTED: { label: 'Rejected', variant: 'danger' },
-  CANCELLED: { label: 'Cancelled', variant: 'danger' },
-  READY_FOR_PICKUP: { label: 'Ready for Pickup', variant: 'warning' },
-  IN_TRANSIT: { label: 'In Transit', variant: 'info' },
-  DELIVERED: { label: 'Delivered', variant: 'success' },
-  PARTIALLY_DELIVERED: { label: 'Partially Delivered', variant: 'warning' },
+/**
+ * Badge colour per status. The wording is not here on purpose: a label
+ * written into a module-level map is fixed in one language, so the words
+ * come from `t('status.request.<STATUS>')` at render instead.
+ */
+const STATUS_VARIANT: Record<string, 'success' | 'warning' | 'info' | 'default' | 'danger'> = {
+  DRAFT: 'default',
+  SUBMITTED: 'info',
+  UNDER_REVIEW: 'info',
+  APPROVED: 'success',
+  PARTIALLY_APPROVED: 'warning',
+  REJECTED: 'danger',
+  CANCELLED: 'danger',
+  READY_FOR_PICKUP: 'warning',
+  IN_TRANSIT: 'info',
+  DELIVERED: 'success',
+  PARTIALLY_DELIVERED: 'warning',
 };
 
 export default function BloodRequestDetailPage() {
+  const { t } = useTranslation();
   const params = useParams();
   const router = useRouter();
   const requestId = params.id as string;
@@ -116,7 +123,7 @@ export default function BloodRequestDetailPage() {
       await loadRequest();
     } catch (err) {
       console.error('Failed to review blood request:', err);
-      setActionError(err instanceof Error ? err.message : 'Failed to submit review');
+      setActionError(err instanceof Error ? err.message : t('ops.laboratory.submitReviewFailed'));
     } finally {
       setActionLoading(false);
     }
@@ -131,7 +138,7 @@ export default function BloodRequestDetailPage() {
       await loadRequest();
     } catch (err) {
       console.error('Failed to mark ready for pickup:', err);
-      setActionError(err instanceof Error ? err.message : 'Failed to mark ready for pickup');
+      setActionError(err instanceof Error ? err.message : t('ops.shipments.markReadyFailed'));
     } finally {
       setActionLoading(false);
     }
@@ -146,7 +153,7 @@ export default function BloodRequestDetailPage() {
       router.push(`/shipments/${shipment.id}`);
     } catch (err) {
       console.error('Failed to create shipment:', err);
-      setActionError(err instanceof Error ? err.message : 'Failed to create shipment');
+      setActionError(err instanceof Error ? err.message : t('ops.shipments.createFailed'));
       setActionLoading(false);
     }
   };
@@ -154,11 +161,11 @@ export default function BloodRequestDetailPage() {
   if (isLoading) {
     return (
       <AppShell
-        title="Loading..."
-        subtitle="BLOOD CENTER CONSOLE"
+        title={t('ops.common.loadingEllipsis')}
+        subtitle={t('portal.bloodCenter.console')}
         organizationName="RedCross Blood Center (Development)"
         organizationType="Blood Center workspace"
-        userName="Loading..."
+        userName={t('ops.common.loadingEllipsis')}
       >
         <div className="flex items-center justify-center p-12">
           <Droplet className="animate-spin text-donor-primary" size={32} />
@@ -170,8 +177,8 @@ export default function BloodRequestDetailPage() {
   if (!user || !request) {
     return (
       <AppShell
-        title="Request Not Found"
-        subtitle="BLOOD CENTER CONSOLE"
+        title={t('ops.requests.notFound')}
+        subtitle={t('portal.bloodCenter.console')}
         organizationName="RedCross Blood Center (Development)"
         organizationType="Blood Center workspace"
         userName={user ? `${user.firstName} ${user.lastName}` : 'Guest'}
@@ -179,20 +186,20 @@ export default function BloodRequestDetailPage() {
         <div className="flex flex-col items-center justify-center bc-glass rounded-card p-12">
           <XCircle className="mb-4 text-donor-primary" size={48} />
           <h2 className="mb-2 font-display text-2xl font-semibold text-donor-text">
-            Request Not Found
+            {t('ops.requests.notFound')}
           </h2>
           <button
             onClick={() => router.push('/requests')}
             className="mt-4 rounded-lg bg-donor-primary px-4 py-2 font-semibold text-white"
           >
-            Back to Requests
+            {t('ops.common.backToRequests')}
           </button>
         </div>
       </AppShell>
     );
   }
 
-  const status = STATUS_CONFIG[request.status] || { label: request.status, variant: 'default' as const };
+  const statusVariant = STATUS_VARIANT[request.status] ?? 'default';
   const totalRequested = request.items.reduce((sum, i) => sum + i.unitsRequested, 0);
   const totalApproved = request.items.reduce((sum, i) => sum + i.unitsApproved, 0);
 
@@ -204,7 +211,7 @@ export default function BloodRequestDetailPage() {
   return (
     <AppShell
       title={request.requestReference}
-      subtitle="BLOOD REQUEST DETAILS"
+      subtitle={t('ops.requests.detailsTitle')}
       organizationName="RedCross Blood Center (Development)"
       organizationType="Blood Center Console"
       userName={`${user.firstName} ${user.lastName}`}
@@ -214,7 +221,7 @@ export default function BloodRequestDetailPage() {
         className="mb-4 flex items-center gap-2 text-sm text-donor-muted hover:text-donor-text"
       >
         <ArrowLeft size={16} />
-        Back to Blood Requests
+        {t('ops.common.backToRequests')}
       </button>
 
       <div className="mb-6 flex items-start justify-between">
@@ -223,7 +230,7 @@ export default function BloodRequestDetailPage() {
             <h1 className="font-display text-2xl font-semibold text-donor-text">
               {request.requestReference}
             </h1>
-            <StatusBadge variant={status.variant}>{status.label}</StatusBadge>
+            <StatusBadge variant={statusVariant}>{t(`status.request.${request.status}`)}</StatusBadge>
           </div>
           <p className="mt-1 text-sm text-donor-muted">
             From {request.requestingOrganization.name} — {new Date(request.createdAt).toLocaleString()}
@@ -236,7 +243,7 @@ export default function BloodRequestDetailPage() {
               className="flex items-center gap-2 rounded-lg border border-donor-border px-4 py-2 text-sm font-semibold text-donor-text transition-colors hover:bg-donor-elevated"
             >
               <Truck size={16} />
-              View Shipment
+              {t('ops.common.viewShipment')}
             </a>
           )}
           {canReview && (
@@ -245,7 +252,7 @@ export default function BloodRequestDetailPage() {
               className="flex items-center gap-2 rounded-lg bg-donor-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-donor-primary/80"
             >
               <CheckCircle size={16} />
-              Review Request
+              {t('ops.requests.reviewRequest')}
             </button>
           )}
           {canMarkReady && (
@@ -281,7 +288,7 @@ export default function BloodRequestDetailPage() {
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
           <div className="bc-glass rounded-card p-5">
-            <h3 className="mb-4 text-sm font-semibold text-donor-text">Requested Units</h3>
+            <h3 className="mb-4 text-sm font-semibold text-donor-text">{t('ops.requests.requestedUnits')}</h3>
             <div className="space-y-3">
               {request.items.map((item) => (
                 <div
@@ -298,22 +305,22 @@ export default function BloodRequestDetailPage() {
                     </span>
                   </div>
                   <div className="flex items-center gap-6 text-sm">
-                    <span className="text-donor-muted">Requested: <span className="text-donor-text">{item.unitsRequested}</span></span>
-                    <span className="text-donor-muted">Approved: <span className="text-donor-text">{item.unitsApproved}</span></span>
-                    <span className="text-donor-muted">Fulfilled: <span className="text-donor-text">{item.unitsFulfilled}</span></span>
+                    <span className="text-donor-muted">{t('ops.requests.requestedLabel')} <span className="text-donor-text">{item.unitsRequested}</span></span>
+                    <span className="text-donor-muted">{t('ops.requests.approvedLabel')} <span className="text-donor-text">{item.unitsApproved}</span></span>
+                    <span className="text-donor-muted">{t('ops.requests.fulfilledLabel')} <span className="text-donor-text">{item.unitsFulfilled}</span></span>
                   </div>
                 </div>
               ))}
             </div>
             <div className="mt-4 flex justify-end gap-6 text-sm text-donor-muted">
-              <span>Total requested: <span className="font-semibold text-donor-text">{totalRequested}</span></span>
-              <span>Total approved: <span className="font-semibold text-donor-text">{totalApproved}</span></span>
+              <span>{t('ops.requests.totalRequested')} <span className="font-semibold text-donor-text">{totalRequested}</span></span>
+              <span>{t('ops.requests.totalApproved')} <span className="font-semibold text-donor-text">{totalApproved}</span></span>
             </div>
           </div>
 
           {request.events && request.events.length > 0 && (
             <div className="bc-glass rounded-card p-5">
-              <h3 className="mb-4 text-sm font-semibold text-donor-text">History</h3>
+              <h3 className="mb-4 text-sm font-semibold text-donor-text">{t('healthTrends.history')}</h3>
               <div className="space-y-4">
                 {request.events.map((event) => (
                   <div key={event.id} className="flex items-start gap-3">
@@ -335,37 +342,37 @@ export default function BloodRequestDetailPage() {
 
         <div className="space-y-6">
           <div className="bc-glass rounded-card p-5">
-            <h3 className="mb-4 text-sm font-semibold text-donor-text">Details</h3>
+            <h3 className="mb-4 text-sm font-semibold text-donor-text">{t('table.details')}</h3>
             <div className="space-y-3 text-sm">
               <div>
-                <p className="text-xs text-donor-muted">Requesting Hospital</p>
+                <p className="text-xs text-donor-muted">{t('ops.requests.requestingHospital')}</p>
                 <p className="text-donor-text">{request.requestingOrganization.name}</p>
               </div>
               <div>
-                <p className="text-xs text-donor-muted">Priority</p>
+                <p className="text-xs text-donor-muted">{t('table.priority')}</p>
                 <p className="text-donor-text">{request.priority}</p>
               </div>
               {request.expectedDeliveryDate && (
                 <div>
-                  <p className="text-xs text-donor-muted">Needed By</p>
+                  <p className="text-xs text-donor-muted">{t('ops.requests.neededBy')}</p>
                   <p className="text-donor-text">{new Date(request.expectedDeliveryDate).toLocaleDateString()}</p>
                 </div>
               )}
               {request.deliveryAddress && (
                 <div>
-                  <p className="text-xs text-donor-muted">Delivery Address</p>
+                  <p className="text-xs text-donor-muted">{t('ops.requests.deliveryAddress')}</p>
                   <p className="text-donor-text">{request.deliveryAddress}</p>
                 </div>
               )}
               {request.deliveryPhone && (
                 <div>
-                  <p className="text-xs text-donor-muted">Delivery Phone</p>
+                  <p className="text-xs text-donor-muted">{t('ops.requests.deliveryPhone')}</p>
                   <p className="text-donor-text">{request.deliveryPhone}</p>
                 </div>
               )}
               {request.notes && (
                 <div>
-                  <p className="text-xs text-donor-muted">Notes</p>
+                  <p className="text-xs text-donor-muted">{t('table.notes')}</p>
                   <p className="whitespace-pre-wrap text-donor-text">{request.notes}</p>
                 </div>
               )}
@@ -381,8 +388,8 @@ export default function BloodRequestDetailPage() {
       <Modal
         open={showReviewModal}
         onClose={() => setShowReviewModal(false)}
-        title="Review Request"
-        description="Set how many units of each type you can approve. Approving 0 for every line rejects the request."
+        title={t('ops.requests.reviewRequest')}
+        description={t('ops.requests.reviewHint')}
       >
         <div className="max-h-64 space-y-3 overflow-y-auto pr-1">
           {request.items.map((item) => (
@@ -434,14 +441,14 @@ export default function BloodRequestDetailPage() {
             disabled={actionLoading}
             className="rounded-lg border border-donor-border px-4 py-2 text-sm text-donor-text disabled:opacity-50"
           >
-            Cancel
+            {t('actions.cancel')}
           </button>
           <button
             onClick={() => submitReview('reject')}
             disabled={actionLoading}
             className="rounded-lg border border-donor-danger/50 bg-donor-dangerMuted px-4 py-2 text-sm font-semibold text-donor-onDangerMuted transition-colors hover:bg-donor-dangerMuted/70 disabled:opacity-50"
           >
-            Reject
+            {t('actions.reject')}
           </button>
           <button
             onClick={() => submitReview('approve')}

@@ -13,8 +13,10 @@ import { me, isAuthenticated } from '@lib/auth';
 import { StatusBadgeWrapper } from '@lib/status';
 import { Flag, X } from 'lucide-react';
 import { AppShell } from '../../components/AppShell';
+import { useTranslation } from '@bloodchain/ui/i18n';
 
 export default function ModerationPage() {
+  const { t } = useTranslation();
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [reports, setReports] = useState<ContentReport[]>([]);
@@ -86,17 +88,17 @@ export default function ModerationPage() {
 
   if (isLoading) {
     return (
-      <AppShell title="Content Moderation" userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
+      <AppShell title={t('portal.nav.moderation')} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
         <LoadingState />
       </AppShell>
     );
   }
 
   return (
-    <AppShell title="Content Moderation" userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
+    <AppShell title={t('portal.nav.moderation')} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
       <div className="p-6">
         <div className="mb-6">
-          <p className="text-sm text-donor-muted">Review reports filed against community posts</p>
+          <p className="text-sm text-donor-muted">{t('ops.moderation.subtitle')}</p>
         </div>
 
         {error && (
@@ -117,11 +119,11 @@ export default function ModerationPage() {
               }}
               className="bc-solid rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-donor-primary"
             >
-              <option value="">All Status</option>
-              <option value="PENDING">Pending</option>
-              <option value="REVIEWED">Reviewed</option>
-              <option value="DISMISSED">Dismissed</option>
-              <option value="ACTIONED">Actioned</option>
+              <option value="">{t('ops.common.allStatus')}</option>
+              <option value="PENDING">{t('status.moderation.PENDING')}</option>
+              <option value="REVIEWED">{t('status.moderation.REVIEWED')}</option>
+              <option value="DISMISSED">{t('status.moderation.DISMISSED')}</option>
+              <option value="ACTIONED">{t('status.moderation.ACTIONED')}</option>
             </select>
             <select
               value={reasonFilter}
@@ -130,18 +132,18 @@ export default function ModerationPage() {
               }}
               className="bc-solid rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-donor-primary"
             >
-              <option value="">All Reasons</option>
-              <option value="SPAM">Spam</option>
-              <option value="HARASSMENT">Harassment</option>
-              <option value="MISINFORMATION">Misinformation</option>
-              <option value="INAPPROPRIATE">Inappropriate</option>
-              <option value="OTHER">Other</option>
+              <option value="">{t('ops.moderation.allReasons')}</option>
+              <option value="SPAM">{t('ops.moderation.reasonSpam')}</option>
+              <option value="HARASSMENT">{t('ops.moderation.reasonHarassment')}</option>
+              <option value="MISINFORMATION">{t('ops.moderation.reasonMisinformation')}</option>
+              <option value="INAPPROPRIATE">{t('ops.moderation.reasonInappropriate')}</option>
+              <option value="OTHER">{t('medical.components.OTHER')}</option>
             </select>
             <button
               onClick={() => loadReports(1)}
               className="bg-donor-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-donor-primary/85"
             >
-              Filter
+              {t('actions.filter')}
             </button>
           </div>
 
@@ -149,19 +151,19 @@ export default function ModerationPage() {
             <table className="w-full">
               <thead>
                 <tr className="bg-donor-elevated border-b border-donor-border/40">
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Post</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Reason</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Reporter</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Status</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Reported</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">Actions</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('ops.moderation.post')}</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.reason')}</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('ops.moderation.reporter')}</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.status')}</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('ops.moderation.reported')}</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.actions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-donor-border/40">
                 {reports.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-4 py-8 text-center text-sm text-donor-muted">
-                      No content reports found
+                      {t('ops.moderation.empty')}
                     </td>
                   </tr>
                 ) : (
@@ -197,7 +199,7 @@ export default function ModerationPage() {
                           onClick={() => openReport(report.id)}
                           className="text-donor-primary hover:text-donor-primary/70 text-sm font-medium"
                         >
-                          Review
+                          {t('actions.review')}
                         </button>
                       </td>
                     </tr>
@@ -218,14 +220,14 @@ export default function ModerationPage() {
                   disabled={meta.page === 1}
                   className="px-3 py-1 bc-solid rounded text-sm disabled:opacity-50"
                 >
-                  Previous
+                  {t('actions.previous')}
                 </button>
                 <button
                   onClick={() => loadReports(meta.page + 1)}
                   disabled={meta.page === meta.totalPages}
                   className="px-3 py-1 bc-solid rounded text-sm disabled:opacity-50"
                 >
-                  Next
+                  {t('actions.next')}
                 </button>
               </div>
             </div>
@@ -237,14 +239,14 @@ export default function ModerationPage() {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bc-glass-elevated bc-rise rounded-panel w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
             <div className="px-6 py-4 border-b border-donor-border/40 flex items-center justify-between sticky top-0 bc-solid">
-              <h3 className="text-lg font-semibold text-donor-text">Report Details</h3>
+              <h3 className="text-lg font-semibold text-donor-text">{t('ops.moderation.details')}</h3>
               <button onClick={() => setSelectedReport(null)}>
                 <X className="w-5 h-5 text-donor-muted" />
               </button>
             </div>
             <div className="p-6 space-y-4">
               <div>
-                <p className="text-sm text-donor-muted">Post</p>
+                <p className="text-sm text-donor-muted">{t('ops.moderation.post')}</p>
                 <p className="font-semibold text-donor-text">{selectedReport.post.title}</p>
                 <p className="mt-1 text-sm text-donor-text whitespace-pre-wrap">{selectedReport.post.body}</p>
                 <p className="mt-1 text-xs text-donor-muted">
@@ -255,21 +257,21 @@ export default function ModerationPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-donor-muted">Reason</p>
+                  <p className="text-sm text-donor-muted">{t('table.reason')}</p>
                   <p className="text-sm font-medium text-donor-text">{selectedReport.reason}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-donor-muted">Status</p>
+                  <p className="text-sm text-donor-muted">{t('table.status')}</p>
                   <StatusBadgeWrapper status={selectedReport.status} />
                 </div>
                 <div>
-                  <p className="text-sm text-donor-muted">Reporter</p>
+                  <p className="text-sm text-donor-muted">{t('ops.moderation.reporter')}</p>
                   <p className="text-sm font-medium text-donor-text">
                     {selectedReport.reporter.firstName} {selectedReport.reporter.lastName}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-donor-muted">Reported</p>
+                  <p className="text-sm text-donor-muted">{t('ops.moderation.reported')}</p>
                   <p className="text-sm font-medium text-donor-text">
                     {new Date(selectedReport.createdAt).toLocaleString()}
                   </p>
@@ -311,7 +313,7 @@ export default function ModerationPage() {
                 </div>
               ) : (
                 <div className="border-t border-donor-border/40 pt-4">
-                  <p className="text-sm text-donor-muted">Resolution</p>
+                  <p className="text-sm text-donor-muted">{t('ops.moderation.resolution')}</p>
                   <p className="text-sm text-donor-text">{selectedReport.resolution || '-'}</p>
                 </div>
               )}
@@ -323,21 +325,21 @@ export default function ModerationPage() {
                   disabled={actionLoading}
                   className="flex-1 bg-donor-muted text-white py-2 px-3 rounded-lg text-sm font-medium hover:bg-donor-muted/85 disabled:opacity-50"
                 >
-                  Dismiss
+                  {t('actions.dismiss')}
                 </button>
                 <button
                   onClick={() => handleResolve('HIDE')}
                   disabled={actionLoading}
                   className="flex-1 bg-donor-warning text-white py-2 px-3 rounded-lg text-sm font-medium hover:bg-donor-warning/85 disabled:opacity-50"
                 >
-                  Hide Post
+                  {t('ops.moderation.hidePost')}
                 </button>
                 <button
                   onClick={() => handleResolve('REMOVE')}
                   disabled={actionLoading}
                   className="flex-1 bg-donor-primary text-white py-2 px-3 rounded-lg text-sm font-medium hover:bg-donor-primary/85 disabled:opacity-50"
                 >
-                  Remove Post
+                  {t('ops.moderation.removePost')}
                 </button>
               </div>
             )}

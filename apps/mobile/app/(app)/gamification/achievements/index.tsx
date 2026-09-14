@@ -6,8 +6,10 @@ import { ScreenHeader } from '../../../../src/components';
 import { AppText } from '../../../../src/components/AppText';
 import { AchievementCard } from '../../../../src/components/gamification/AchievementCard';
 import { layout, spacing, radius, useTheme, ThemeColors } from '../../../../src/theme';
+import { useTranslation } from '../../../../src/i18n';
 
 export default function AchievementsScreen() {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = React.useMemo(() => createStyles(colors), [colors]);
   const { data: achievements, isLoading, refetch } = useAchievements();
@@ -22,9 +24,9 @@ export default function AchievementsScreen() {
   if (isLoading && !achievements) {
     return (
       <Screen>
-        <ScreenHeader title="Achievements" />
+        <ScreenHeader title={t('gamification.achievements')} />
         <View style={styles.loadingContainer}>
-          <AppText variant="body" muted>Loading...</AppText>
+          <AppText variant="body" muted>{t('common.loading')}</AppText>
         </View>
       </Screen>
     );
@@ -37,7 +39,7 @@ export default function AchievementsScreen() {
   return (
     <Screen scroll={false}>
       <ScreenHeader
-        title="Achievements"
+        title={t('gamification.achievements')}
         subtitle={`${unlockedCount} of ${unlockedCount + inProgressCount + lockedCount} unlocked`}
       />
       <ScrollView
@@ -52,7 +54,7 @@ export default function AchievementsScreen() {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <AppText variant="heading" style={{ color: colors.success }}>
-                Unlocked
+                {t('gamification.unlocked')}
               </AppText>
               <View style={styles.countBadge}>
                 <AppText variant="caption" style={{ color: colors.onMuted.success }}>
@@ -71,7 +73,7 @@ export default function AchievementsScreen() {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <AppText variant="heading" style={{ color: colors.warning }}>
-                In Progress
+                {t('gamification.inProgress')}
               </AppText>
               <View style={[styles.countBadge, styles.inProgressBadge]}>
                 <AppText variant="caption" style={{ color: colors.onMuted.warning }}>
@@ -90,7 +92,7 @@ export default function AchievementsScreen() {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <AppText variant="heading" muted>
-                Locked
+                {t('gamification.locked')}
               </AppText>
               <View style={[styles.countBadge, styles.lockedBadge]}>
                 <AppText variant="caption" muted>

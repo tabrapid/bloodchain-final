@@ -11,8 +11,16 @@ import {
 } from '../../src/components';
 import { spacing, useTheme, ThemeColors } from '../../src/theme';
 import { useDonorProfile, useUpdateDonorProfile } from '../../src/hooks/useDonors';
+import { useTranslation } from '../../src/i18n';
+
+/**
+ * When the policy text this screen points at was last revised. A date, not a
+ * spelled-out month, so the label reads in the reader's language.
+ */
+const LAST_UPDATED = new Date(2026, 8, 1);
 
 export default function Privacy() {
+  const { t, formatMonth } = useTranslation();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { data: donorProfile } = useDonorProfile();
@@ -28,10 +36,7 @@ export default function Privacy() {
       {
         onError: () => {
           setPendingConsent(null);
-          Alert.alert(
-            'Error',
-            'Could not update your location sharing preference. Please try again.',
-          );
+          Alert.alert(t('common.error'), t('privacy.consentUpdateFailed'));
         },
         onSuccess: () => setPendingConsent(null),
       },
@@ -40,7 +45,7 @@ export default function Privacy() {
 
   return (
     <Screen scroll={false}>
-      <ScreenHeader title="Privacy" subtitle="Control what you share" />
+      <ScreenHeader title={t('privacy.title')} subtitle={t('privacy.subtitle')} />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* The reference shows five toggles. Four of them (public profile,
             donation history visibility, leaderboard opt-out, anonymized
@@ -48,13 +53,13 @@ export default function Privacy() {
             a privacy switch that silently does nothing is worse than one
             that is absent. Only the consent this app actually stores and
             honours is offered. */}
-        <SectionHeader>Location &amp; data</SectionHeader>
+        <SectionHeader>{t('privacy.locationAndData')}</SectionHeader>
         <GlassCard>
           <View style={styles.toggleRow}>
             <View style={styles.toggleText}>
-              <AppText style={styles.toggleLabel}>Share location</AppText>
+              <AppText style={styles.toggleLabel}>{t('privacy.shareLocation')}</AppText>
               <AppText style={styles.toggleDesc}>
-                Lets nearby emergency requests reach you during an SOS
+                {t('privacy.shareLocationHint')}
               </AppText>
             </View>
             <Switch
@@ -67,49 +72,46 @@ export default function Privacy() {
           </View>
         </GlassCard>
 
-        <SectionHeader>Your data</SectionHeader>
+        <SectionHeader>{t('privacy.yourData')}</SectionHeader>
         <GlassCard>
           <ListItem
-            title="Download your data"
-            subtitle="Contact support to request a copy of your data"
+            title={t('privacy.downloadData')}
+            subtitle={t('privacy.downloadDataHint')}
           />
           <Divider />
           <ListItem
-            title="Delete account"
-            subtitle="Contact support to permanently delete your account"
+            title={t('privacy.deleteAccount')}
+            subtitle={t('privacy.deleteAccountHint')}
             destructive
           />
         </GlassCard>
 
-        <SectionHeader>Policies</SectionHeader>
+        <SectionHeader>{t('privacy.policies')}</SectionHeader>
         <GlassCard>
-          <ListItem title="Privacy Policy" subtitle="Not yet published" />
+          <ListItem title={t('privacy.privacyPolicy')} subtitle={t('privacy.notPublished')} />
           <Divider />
-          <ListItem title="Terms of Service" subtitle="Not yet published" />
+          <ListItem title={t('privacy.termsOfService')} subtitle={t('privacy.notPublished')} />
           <Divider />
           <ListItem
-            title="Medical Disclaimer"
-            subtitle="Important information about medical content"
+            title={t('privacy.medicalDisclaimer')}
+            subtitle={t('privacy.medicalDisclaimerHint')}
           />
         </GlassCard>
 
-        <SectionHeader>About</SectionHeader>
+        <SectionHeader>{t('privacy.about')}</SectionHeader>
         <GlassCard style={styles.compactCard}>
           <View style={styles.aboutRow}>
-            <AppText style={styles.aboutLabel}>Version</AppText>
+            <AppText style={styles.aboutLabel}>{t('privacy.version')}</AppText>
             <AppText style={styles.aboutValue}>1.0.0</AppText>
           </View>
           <Divider />
           <View style={styles.aboutRow}>
-            <AppText style={styles.aboutLabel}>Last updated</AppText>
-            <AppText style={styles.aboutValue}>September 2026</AppText>
+            <AppText style={styles.aboutLabel}>{t('privacy.lastUpdated')}</AppText>
+            <AppText style={styles.aboutValue}>{formatMonth(LAST_UPDATED)}</AppText>
           </View>
         </GlassCard>
 
-        <AppText style={styles.disclaimer}>
-          This application handles health-related information. What it shows is not a substitute
-          for professional medical advice, diagnosis, or treatment.
-        </AppText>
+        <AppText style={styles.disclaimer}>{t('privacy.disclaimer')}</AppText>
       </ScrollView>
     </Screen>
   );

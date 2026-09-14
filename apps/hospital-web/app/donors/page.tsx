@@ -12,6 +12,7 @@ import {
 import { me, isAuthenticated, MeResponse } from '../../lib/auth';
 import { listDonors, Donor, ListDonorsParams } from '../../lib/donors';
 import { AppShell } from '../../components/AppShell';
+import { useTranslation } from '@bloodchain/ui/i18n';
 
 const BLOOD_TYPES = ['A', 'B', 'AB', 'O'] as const;
 const DONOR_STATUSES = ['ACTIVE', 'INACTIVE', 'DEFERRED'] as const;
@@ -37,6 +38,7 @@ function verificationVariant(status: string): StatusVariant {
 }
 
 export default function DonorsPage() {
+  const { t } = useTranslation();
   const [user, setUser] = useState<MeResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -96,29 +98,29 @@ export default function DonorsPage() {
   };
 
   const columns: DataTableColumn<Donor>[] = [
-    { key: 'name', header: 'Name', render: (d) => `${d.user.firstName} ${d.user.lastName}` },
-    { key: 'email', header: 'Email', render: (d) => d.user.email },
+    { key: 'name', header: t('table.name'), render: (d) => `${d.user.firstName} ${d.user.lastName}` },
+    { key: 'email', header: t('table.email'), render: (d) => d.user.email },
     {
       key: 'bloodType',
-      header: 'Blood Type',
+      header: t('home.bloodTypeLabel'),
       render: (d) => d.bloodType
         ? <span><span className="font-semibold">{d.bloodType}</span><span className="ml-1 text-xs text-donor-muted">{d.rhFactor === 'POSITIVE' ? '+' : d.rhFactor === 'NEGATIVE' ? '-' : ''}</span></span>
         : '—',
     },
-    { key: 'location', header: 'Location', render: (d) => [d.city, d.district].filter(Boolean).join(', ') || '—' },
-    { key: 'donorStatus', header: 'Status', render: (d) => <StatusBadge variant={statusVariant(d.donorStatus)}>{d.donorStatus}</StatusBadge> },
-    { key: 'verificationStatus', header: 'Verification', render: (d) => <StatusBadge variant={verificationVariant(d.verificationStatus)}>{d.verificationStatus.replace('_', ' ')}</StatusBadge> },
-    { key: 'createdAt', header: 'Joined', render: (d) => new Date(d.createdAt).toLocaleDateString() },
+    { key: 'location', header: t('table.location'), render: (d) => [d.city, d.district].filter(Boolean).join(', ') || '—' },
+    { key: 'donorStatus', header: t('table.status'), render: (d) => <StatusBadge variant={statusVariant(d.donorStatus)}>{d.donorStatus}</StatusBadge> },
+    { key: 'verificationStatus', header: t('ops.common.verification'), render: (d) => <StatusBadge variant={verificationVariant(d.verificationStatus)}>{d.verificationStatus.replace('_', ' ')}</StatusBadge> },
+    { key: 'createdAt', header: t('ops.common.joined'), render: (d) => new Date(d.createdAt).toLocaleDateString() },
   ];
 
   if (isLoading) {
     return (
       <AppShell
-        title="Loading..."
-        subtitle="HOSPITAL CONSOLE"
+        title={t('ops.common.loadingEllipsis')}
+        subtitle={t('portal.hospital.console')}
         organizationName="Hospital Console"
         organizationType="Operations workspace"
-        userName="Loading..."
+        userName={t('ops.common.loadingEllipsis')}
       >
         <div className="flex items-center justify-center p-12">
           <Activity className="animate-spin text-donor-primary" size={32} />
@@ -130,8 +132,8 @@ export default function DonorsPage() {
   if (!user) {
     return (
       <AppShell
-        title="Authentication Required"
-        subtitle="HOSPITAL CONSOLE"
+        title={t('portal.authRequired')}
+        subtitle={t('portal.hospital.console')}
         organizationName="Hospital Console"
         organizationType="Operations workspace"
         userName="Guest"
@@ -139,10 +141,10 @@ export default function DonorsPage() {
         <div className="flex flex-col items-center justify-center bc-glass rounded-card p-12">
           <Users className="mb-4 text-donor-primary" size={48} />
           <h2 className="mb-2 font-display text-2xl font-semibold text-donor-text">
-            Sign In Required
+            {t('ops.common.signInRequired')}
           </h2>
           <p className="mb-6 text-center text-donor-muted">
-            Please sign in to browse the donor directory
+            {t('ops.common.signInToDonors')}
           </p>
         </div>
       </AppShell>
@@ -151,14 +153,14 @@ export default function DonorsPage() {
 
   return (
     <AppShell
-      title="Donors"
-      subtitle="HOSPITAL OPERATIONS"
+      title={t('portal.nav.donors')}
+      subtitle={t('ops.dashboard.hospitalOperations')}
       organizationName={user.organizations.find((org) => org.type === 'HOSPITAL')?.name ?? 'Hospital Console'}
       organizationType="Operations workspace"
       userName={`${user.firstName} ${user.lastName}`}
     >
       <div className="mb-6">
-        <h1 className="font-display text-2xl font-semibold text-donor-text">Donor Directory</h1>
+        <h1 className="font-display text-2xl font-semibold text-donor-text">{t('ops.donors.title')}</h1>
         <p className="text-sm text-donor-muted">
           Browse the platform&apos;s registered donors by blood type, status, and location
         </p>
@@ -169,7 +171,7 @@ export default function DonorsPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-donor-muted" size={18} />
           <input
             type="text"
-            placeholder="Search by city..."
+            placeholder={t('ops.donors.searchByCity')}
             value={cityInput}
             onChange={(e) => setCityInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleCitySearch()}
@@ -181,7 +183,7 @@ export default function DonorsPage() {
           onChange={(e) => handleFilterChange('bloodType', e.target.value)}
           className="rounded-lg bc-solid px-3 py-2 text-sm text-donor-text"
         >
-          <option value="">All Blood Types</option>
+          <option value="">{t('ops.donors.allBloodTypes')}</option>
           {BLOOD_TYPES.map((bt) => (
             <option key={bt} value={bt}>{bt}</option>
           ))}
@@ -191,7 +193,7 @@ export default function DonorsPage() {
           onChange={(e) => handleFilterChange('donorStatus', e.target.value)}
           className="rounded-lg bc-solid px-3 py-2 text-sm text-donor-text"
         >
-          <option value="">All Statuses</option>
+          <option value="">{t('filters.allStatuses')}</option>
           {DONOR_STATUSES.map((s) => (
             <option key={s} value={s}>{s}</option>
           ))}
@@ -202,14 +204,14 @@ export default function DonorsPage() {
         <DataTable columns={columns} rows={[]} keyExtractor={(d) => d.id} loading />
       ) : loadError ? (
         <ErrorState
-          title="Failed to load donors"
-          description="Something went wrong fetching the donor directory. Please try again."
+          title={t('ops.donors.loadFailed')}
+          description={t('ops.donors.loadFailedHint')}
           onRetry={loadDonors}
         />
       ) : donors.length === 0 ? (
         <EmptyState
-          title="No donors found"
-          description="Try adjusting the blood type, status, or city filters"
+          title={t('ops.donors.empty')}
+          description={t('ops.donors.emptyHint')}
         />
       ) : (
         <>
@@ -227,14 +229,14 @@ export default function DonorsPage() {
                   disabled={(filters.page ?? 1) <= 1}
                   className="rounded-lg bc-solid px-3 py-1.5 text-sm text-donor-text transition-colors hover:bg-donor-elevated disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  Previous
+                  {t('actions.previous')}
                 </button>
                 <button
                   onClick={() => handlePageChange((filters.page ?? 1) + 1)}
                   disabled={(filters.page ?? 1) >= totalPages}
                   className="rounded-lg bc-solid px-3 py-1.5 text-sm text-donor-text transition-colors hover:bg-donor-elevated disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  Next
+                  {t('actions.next')}
                 </button>
               </div>
             </div>

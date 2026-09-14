@@ -43,6 +43,14 @@ import { getAvailability, getOrganizations } from '../api/appointments';
 import SelectType from '../../app/(booking)/select-type';
 import SelectOrganization from '../../app/(booking)/organizations';
 import SelectTime from '../../app/(booking)/time';
+import { LocaleProvider } from '../i18n';
+import { createLocalization } from '@bloodchain/i18n';
+
+/**
+ * The screens' own words, looked up the way the screens look them up, so a
+ * catalogue rewording moves the assertion with it instead of breaking it.
+ */
+const { t } = createLocalization('en');
 
 const organization = {
   id: 'org-1',
@@ -89,6 +97,7 @@ async function render(element: React.ReactElement) {
     tree = renderer.create(
       <QueryClientProvider client={client}>
         <ThemeProvider>
+          <LocaleProvider>
           <SafeAreaProvider
             initialMetrics={{
               frame: { x: 0, y: 0, width: 390, height: 844 },
@@ -97,6 +106,7 @@ async function render(element: React.ReactElement) {
           >
             {element}
           </SafeAreaProvider>
+          </LocaleProvider>
         </ThemeProvider>
       </QueryClientProvider>,
     );
@@ -151,10 +161,10 @@ describe('Booking wizard: what each step hands the next', () => {
 
     expect(continueButton(tree).props.disabled).toBe(true);
 
-    await press(tree, 'Blood Donation');
+    await press(tree, t('appointmentTypes.BLOOD_DONATION'));
 
     expect(continueButton(tree).props.disabled).toBeFalsy();
-    await press(tree, 'Continue');
+    await press(tree, t('common.continue'));
 
     expect(router.push).toHaveBeenCalledWith({
       pathname: '/(booking)/organizations',
@@ -170,7 +180,7 @@ describe('Booking wizard: what each step hands the next', () => {
     expect(continueButton(tree).props.disabled).toBe(true);
 
     await press(tree, organization.name);
-    await press(tree, 'Continue');
+    await press(tree, t('common.continue'));
 
     expect(router.push).toHaveBeenCalledWith({
       pathname: '/(booking)/date',
@@ -194,7 +204,7 @@ describe('Booking wizard: what each step hands the next', () => {
       hour12: true,
     });
     await press(tree, slotLabel);
-    await press(tree, 'Continue');
+    await press(tree, t('common.continue'));
 
     expect(router.push).toHaveBeenCalledWith({
       pathname: '/(booking)/review',

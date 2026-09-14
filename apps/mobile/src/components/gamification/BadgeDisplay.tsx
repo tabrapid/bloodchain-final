@@ -5,6 +5,7 @@ import { spacing, useTheme, ThemeColors } from '../../theme';
 import { AppText } from '../../components/AppText';
 import { Badge } from '../../api/gamification';
 import { achievementIconMap } from './AchievementCard';
+import { useTranslation } from '../../i18n';
 
 interface BadgeDisplayProps {
   badge: Badge;
@@ -24,6 +25,7 @@ const badgeIconMap: Record<string, (typeof achievementIconMap)[string]> = {
 };
 
 export function BadgeDisplay({ badge, size = 'medium' }: BadgeDisplayProps) {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const isEarned = !!badge.earnedAt;
@@ -59,7 +61,7 @@ export function BadgeDisplay({ badge, size = 'medium' }: BadgeDisplayProps) {
       </AppText>
       {isEarned && (
         <AppText variant="caption" muted>
-          Earned
+          {t('gamification.earned')}
         </AppText>
       )}
     </View>

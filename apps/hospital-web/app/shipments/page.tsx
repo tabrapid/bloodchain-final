@@ -21,22 +21,29 @@ import {
   Shipment,
 } from '../../lib/shipments';
 import { AppShell } from '../../components/AppShell';
+import { useTranslation } from '@bloodchain/ui/i18n';
 
-const STATUS_CONFIG: Record<string, { label: string; variant: 'success' | 'warning' | 'info' | 'default' | 'danger' }> = {
-  CREATED: { label: 'Created', variant: 'default' },
-  COURIER_ASSIGNED: { label: 'Assigned', variant: 'info' },
-  COURIER_ACCEPTED: { label: 'Accepted', variant: 'info' },
-  COURIER_DECLINED: { label: 'Declined', variant: 'warning' },
-  PICKUP_STARTED: { label: 'Pickup Started', variant: 'warning' },
-  PICKED_UP: { label: 'Picked Up', variant: 'warning' },
-  IN_TRANSIT: { label: 'In Transit', variant: 'info' },
-  ARRIVED_AT_HOSPITAL: { label: 'Arrived', variant: 'success' },
-  DELIVERED: { label: 'Delivered', variant: 'success' },
-  FAILED: { label: 'Failed', variant: 'danger' },
-  CANCELLED: { label: 'Cancelled', variant: 'danger' },
+/**
+ * Badge colour per status. The wording is not here on purpose: a label
+ * written into a module-level map is fixed in one language, so the words
+ * come from `t('status.shipment.<STATUS>')` at render instead.
+ */
+const STATUS_VARIANT: Record<string, 'success' | 'warning' | 'info' | 'default' | 'danger'> = {
+  CREATED: 'default',
+  COURIER_ASSIGNED: 'info',
+  COURIER_ACCEPTED: 'info',
+  COURIER_DECLINED: 'warning',
+  PICKUP_STARTED: 'warning',
+  PICKED_UP: 'warning',
+  IN_TRANSIT: 'info',
+  ARRIVED_AT_HOSPITAL: 'success',
+  DELIVERED: 'success',
+  FAILED: 'danger',
+  CANCELLED: 'danger',
 };
 
 export default function ShipmentsPage() {
+  const { t } = useTranslation();
   const [user, setUser] = useState<MeResponse | null>(null);
   const [organizationId, setOrganizationId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
@@ -90,11 +97,11 @@ export default function ShipmentsPage() {
   if (isLoading) {
     return (
       <AppShell
-        title="Loading..."
-        subtitle="HOSPITAL CONSOLE"
+        title={t('ops.common.loadingEllipsis')}
+        subtitle={t('portal.hospital.console')}
         organizationName="Hospital Console"
         organizationType="Hospital workspace"
-        userName="Loading..."
+        userName={t('ops.common.loadingEllipsis')}
       >
         <div className="flex items-center justify-center p-12">
           <Truck className="animate-spin text-donor-primary" size={32} />
@@ -106,8 +113,8 @@ export default function ShipmentsPage() {
   if (!user) {
     return (
       <AppShell
-        title="Authentication Required"
-        subtitle="HOSPITAL CONSOLE"
+        title={t('portal.authRequired')}
+        subtitle={t('portal.hospital.console')}
         organizationName="Hospital Console"
         organizationType="Hospital workspace"
         userName="Guest"
@@ -115,10 +122,10 @@ export default function ShipmentsPage() {
         <div className="flex flex-col items-center justify-center bc-glass rounded-card p-12">
           <Truck className="mb-4 text-donor-primary" size={48} />
           <h2 className="mb-2 font-display text-2xl font-semibold text-donor-text">
-            Sign In Required
+            {t('ops.common.signInRequired')}
           </h2>
           <p className="mb-6 text-center text-donor-muted">
-            Please sign in to access the shipments dashboard
+            {t('ops.common.signInToShipments')}
           </p>
         </div>
       </AppShell>
@@ -134,8 +141,8 @@ export default function ShipmentsPage() {
 
   return (
     <AppShell
-      title="Incoming Shipments"
-      subtitle="HOSPITAL OPERATIONS"
+      title={t('ops.shipments.incoming')}
+      subtitle={t('ops.dashboard.hospitalOperations')}
       organizationName={user.organizations.find((org) => org.type === 'HOSPITAL')?.name ?? 'Hospital Console'}
       organizationType="Hospital Console"
       userName={`${user.firstName} ${user.lastName}`}
@@ -144,10 +151,10 @@ export default function ShipmentsPage() {
         <div className="mb-4 flex items-center justify-between">
           <div>
             <h1 className="font-display text-2xl font-semibold text-donor-text">
-              Blood Shipments
+              {t('ops.shipments.pageTitle')}
             </h1>
             <p className="text-sm text-donor-muted">
-              Track incoming blood shipments from blood centers
+              {t('ops.shipments.pageSubtitleHospital')}
             </p>
           </div>
           <button
@@ -156,7 +163,7 @@ export default function ShipmentsPage() {
             className="flex items-center gap-2 rounded-lg bc-solid px-3 py-2 text-sm text-donor-text transition-colors hover:bg-donor-elevated disabled:opacity-50"
           >
             <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
-            Refresh
+            {t('actions.refresh')}
           </button>
         </div>
 
@@ -166,38 +173,38 @@ export default function ShipmentsPage() {
             onChange={(e) => setStatusFilter(e.target.value)}
             className="rounded-lg bc-solid px-3 py-2 text-sm text-donor-text"
           >
-            <option value="">All Statuses</option>
-            <option value="COURIER_ASSIGNED">Assigned</option>
-            <option value="IN_TRANSIT">In Transit</option>
-            <option value="ARRIVED_AT_HOSPITAL">Arrived</option>
-            <option value="DELIVERED">Delivered</option>
-            <option value="FAILED">Failed</option>
-            <option value="CANCELLED">Cancelled</option>
+            <option value="">{t('filters.allStatuses')}</option>
+            <option value="COURIER_ASSIGNED">{t('ops.common.assigned')}</option>
+            <option value="IN_TRANSIT">{t('status.shipment.IN_TRANSIT')}</option>
+            <option value="ARRIVED_AT_HOSPITAL">{t('status.shipment.ARRIVED_AT_HOSPITAL')}</option>
+            <option value="DELIVERED">{t('status.shipment.DELIVERED')}</option>
+            <option value="FAILED">{t('status.shipment.FAILED')}</option>
+            <option value="CANCELLED">{t('appointment.cancelledNotice')}</option>
           </select>
         </div>
       </div>
 
       <div className="mb-6 grid gap-4 md:grid-cols-4">
         <StatCard
-          label="Active Shipments"
+          label={t('ops.dashboard.activeShipments')}
           value={activeShipments.length.toString()}
           icon={Truck}
           variant={activeShipments.length > 0 ? 'warning' : 'success'}
         />
         <StatCard
-          label="In Transit / Arriving"
+          label={t('ops.shipments.inTransitArriving')}
           value={arrivingCount.toString()}
           icon={MapPin}
           variant="info"
         />
         <StatCard
-          label="Needs Confirmation"
+          label={t('ops.shipments.needsConfirmation')}
           value={needsAttentionCount.toString()}
           icon={CheckCircle}
           variant={needsAttentionCount > 0 ? 'warning' : 'success'}
         />
         <StatCard
-          label="Delivered"
+          label={t('status.shipment.DELIVERED')}
           value={deliveredCount.toString()}
           icon={Package}
           variant="success"
@@ -206,16 +213,13 @@ export default function ShipmentsPage() {
 
       {shipments.length === 0 ? (
         <EmptyState
-          title="No incoming shipments"
-          description="No shipments found. Shipments will appear here when blood centers create them for your hospital."
+          title={t('ops.shipments.emptyIncoming')}
+          description={t('ops.shipments.emptyIncomingHint')}
         />
       ) : (
         <div className="space-y-4">
           {shipments.map((shipment) => {
-            const status = STATUS_CONFIG[shipment.status] || {
-              label: shipment.status,
-              variant: 'default' as const,
-            };
+            const statusVariant = STATUS_VARIANT[shipment.status] ?? 'default';
             return (
               <Link
                 key={shipment.id}
@@ -242,8 +246,8 @@ export default function ShipmentsPage() {
                         <h3 className="font-display text-lg font-semibold text-donor-text">
                           {shipment.shipmentReference}
                         </h3>
-                        <StatusBadge variant={status.variant}>
-                          {status.label}
+                        <StatusBadge variant={statusVariant}>
+                          {t(`status.shipment.${shipment.status}`)}
                         </StatusBadge>
                       </div>
                       <p className="mt-1 text-sm text-donor-muted">
@@ -268,7 +272,7 @@ export default function ShipmentsPage() {
                   </div>
                   {shipment.status === 'ARRIVED_AT_HOSPITAL' && (
                     <span className="rounded-full bg-donor-successMuted px-3 py-1 text-xs font-semibold text-donor-onSuccessMuted">
-                      Action Required
+                      {t('ops.common.actionRequired')}
                     </span>
                   )}
                 </div>

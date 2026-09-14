@@ -6,8 +6,10 @@ import { ScreenHeader } from '../../../../src/components';
 import { AppText } from '../../../../src/components/AppText';
 import { BadgeDisplay } from '../../../../src/components/gamification/BadgeDisplay';
 import { layout, spacing, radius, useTheme, ThemeColors } from '../../../../src/theme';
+import { useTranslation } from '../../../../src/i18n';
 
 export default function BadgesScreen() {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = React.useMemo(() => createStyles(colors), [colors]);
   const { data: badges, isLoading, refetch } = useBadges();
@@ -25,9 +27,9 @@ export default function BadgesScreen() {
   if (isLoading && !badges) {
     return (
       <Screen>
-        <ScreenHeader title="Badges" />
+        <ScreenHeader title={t('gamification.badges')} />
         <View style={styles.loadingContainer}>
-          <AppText variant="body" muted>Loading...</AppText>
+          <AppText variant="body" muted>{t('common.loading')}</AppText>
         </View>
       </Screen>
     );
@@ -36,7 +38,7 @@ export default function BadgesScreen() {
   return (
     <Screen scroll={false}>
       <ScreenHeader
-        title="Badges"
+        title={t('gamification.badges')}
         subtitle={`${earnedBadges.length} of ${badges?.length || 0} earned`}
       />
       <ScrollView
@@ -51,7 +53,7 @@ export default function BadgesScreen() {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <AppText variant="heading" style={{ color: colors.success }}>
-                Earned
+                {t('gamification.earned')}
               </AppText>
               <View style={styles.countBadge}>
                 <AppText variant="caption" style={{ color: colors.onMuted.success }}>
@@ -74,7 +76,7 @@ export default function BadgesScreen() {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <AppText variant="heading" muted>
-                Not Yet Earned
+                {t('gamification.notYetEarned')}
               </AppText>
               <View style={[styles.countBadge, styles.lockedBadge]}>
                 <AppText variant="caption" muted>

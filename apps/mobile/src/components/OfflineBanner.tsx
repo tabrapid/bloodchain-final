@@ -2,6 +2,7 @@ import { View } from 'react-native';
 import { WifiOff } from 'lucide-react-native';
 import { useTheme } from '../theme';
 import { AppText } from './AppText';
+import { useTranslation } from '../i18n';
 
 export interface OfflineBannerProps {
   visible: boolean;
@@ -9,6 +10,7 @@ export interface OfflineBannerProps {
 
 /** Amber strip pinned under the header while the device has no connection. */
 export function OfflineBanner({ visible }: OfflineBannerProps) {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   if (!visible) return null;
 
@@ -29,7 +31,7 @@ export function OfflineBanner({ visible }: OfflineBannerProps) {
     >
       <WifiOff size={13} color={colors.warning} />
       <AppText style={{ fontSize: 12, fontWeight: '600', color: colors.warning }}>
-        You are offline. Showing cached content.
+        {t('common.offlineBanner')}
       </AppText>
     </View>
   );

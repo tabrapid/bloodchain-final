@@ -6,6 +6,7 @@ import { AppButton } from './AppButton';
 import { AppText } from './AppText';
 import { Screen } from './Screen';
 import { radius, spacing, useTheme, type ThemeColors } from '../theme';
+import { useTranslation } from '../i18n';
 
 /** The wizard's five decision steps; the confirmation screen is outside it. */
 export const BOOKING_STEP_COUNT = 5;
@@ -45,6 +46,7 @@ export function BookingStep({
   footer,
   children,
 }: PropsWithChildren<BookingStepProps>) {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const progress = (step / BOOKING_STEP_COUNT) * 100;
@@ -56,11 +58,11 @@ export function BookingStep({
           <Pressable
             onPress={() => router.back()}
             accessibilityRole="button"
-            accessibilityLabel="Go back"
+            accessibilityLabel={t('common.a11yGoBack')}
             style={({ pressed }) => [styles.backLink, { opacity: pressed ? 0.6 : 1 }]}
           >
             <ChevronLeft size={18} color={colors.textMuted} />
-            <AppText style={styles.backLabel}>Back</AppText>
+            <AppText style={styles.backLabel}>{t('common.back')}</AppText>
           </Pressable>
         ) : (
           <View style={styles.chromeSpacer} />
@@ -73,7 +75,7 @@ export function BookingStep({
         <Pressable
           onPress={() => router.replace('/(app)/donate')}
           accessibilityRole="button"
-          accessibilityLabel="Close booking"
+          accessibilityLabel={t('common.a11yCloseBooking')}
           hitSlop={8}
           style={({ pressed }) => [styles.close, { opacity: pressed ? 0.6 : 1 }]}
         >
