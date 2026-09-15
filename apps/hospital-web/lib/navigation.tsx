@@ -1,6 +1,7 @@
 import {
   Activity,
   BarChart3,
+  Building2,
   CalendarDays,
   Droplet,
   HeartPulse,
@@ -22,5 +23,6 @@ export const sidebarItems: SidebarItem[] = [
   { id: 'donors', label: 'Donors', labelKey: 'portal.nav.donors', icon: Users, href: '/donors' },
   { id: 'appointments', label: 'Appointments', labelKey: 'portal.nav.appointments', icon: CalendarDays, href: '/appointments' },
   { id: 'inventory', label: 'Inventory', labelKey: 'portal.nav.inventory', icon: Package, href: '/inventory' },
+  { id: 'organization', label: 'Organization', labelKey: 'portal.nav.organization', icon: Building2, href: '/organization' },
   { id: 'settings', label: 'Settings', labelKey: 'portal.nav.settings', icon: Settings, disabled: true },
 ];

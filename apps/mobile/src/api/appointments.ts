@@ -68,15 +68,6 @@ export async function getAvailability(params?: {
   return apiRequest(`${apiBasePath}/appointments/availability${query ? `?${query}` : ''}`);
 }
 
-export async function getOrganizations(params?: {
-  type?: string;
-}): Promise<Organization[]> {
-  const queryParams = new URLSearchParams();
-  if (params?.type) queryParams.set('type', params.type);
-  const query = queryParams.toString();
-  return apiRequest(`${apiBasePath}/organizations/discover${query ? `?${query}` : ''}`);
-}
-
 export async function getMyAppointments(params?: {
   status?: string;
   appointmentType?: string;

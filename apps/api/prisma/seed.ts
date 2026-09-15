@@ -32,6 +32,7 @@ import * as argon2 from 'argon2';
 // to disagree with them about what counts as a safe target.
 // @ts-expect-error -- plain ESM module shared with scripts/, no declarations
 import { checkLocalDatabase } from '../../../scripts/demo-guard.mjs';
+import { seedUzGeographyAndOrganizations } from './seeds/uz-demo-organizations';
 
 const db = new PrismaClient();
 
@@ -715,6 +716,19 @@ async function main() {
       extraStaffAccounts.push({ email, org: org.name, role: spec.role.code });
     }
   }
+
+  /**
+   * Uzbekistan geography plus a demo organization in every region.
+   *
+   * Runs after the development organizations above so that the demo directory
+   * sits alongside them rather than replacing them: the ids those appointments
+   * and memberships point at are never touched.
+   */
+  const geo = await seedUzGeographyAndOrganizations(db);
+  console.log(
+    `  Geography: ${geo.regions} regions (ISO 3166-2:UZ), ${geo.districts} demo districts, ` +
+      `${geo.organizations} demo organizations`,
+  );
 
   /**
    * Bookable slots from today onward, at every place that takes appointments.

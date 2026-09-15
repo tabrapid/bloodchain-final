@@ -264,6 +264,118 @@ export async function restoreOrganization(id: string): Promise<{ id: string; sta
   });
 }
 
+/**
+ * Geography and the organization directory.
+ *
+ * Deliberately not under `/admin`: the directory is the same data donors see,
+ * and a second admin-only copy of it would drift from the one that is actually
+ * on the booking screen.
+ *
+ * `verifyOrganization` above is a different thing with a similar name -- it
+ * approves a PENDING_APPROVAL *registration*. This is the directory's trust
+ * badge on an organization that is already active.
+ */
+export type GeoDataSource = 'OFFICIAL_REFERENCE' | 'DEMO';
+
+export interface Region {
+  id: string;
+  code: string;
+  nameUz: string;
+  nameRu: string;
+  nameEn: string;
+  centerEn?: string | null;
+  source: GeoDataSource;
+  districtCount: number;
+}
+
+export interface District {
+  id: string;
+  code: string;
+  regionId: string;
+  nameUz: string;
+  nameRu: string;
+  nameEn: string;
+  source: GeoDataSource;
+}
+
+export interface GeographyCoverage {
+  regions: { total: number; official: number; demo: number };
+  districts: { total: number; official: number; demo: number };
+  districtsAuthoritative: boolean;
+  regionStandard: string;
+}
+
+export interface DirectoryPlace {
+  id: string;
+  code: string;
+  nameUz: string;
+  nameRu: string;
+  nameEn: string;
+  source: GeoDataSource;
+}
+
+export interface DirectoryOrganization {
+  id: string;
+  type: string;
+  name: string;
+  address: string | null;
+  directionsNote: string | null;
+  publicPhone: string | null;
+  latitude: string | number | null;
+  longitude: string | number | null;
+  status: string;
+  acceptsDonations: boolean;
+  providesLaboratory: boolean;
+  verifiedAt: string | null;
+  isVerified: boolean;
+  isDemo: boolean;
+  region: DirectoryPlace | null;
+  district: DirectoryPlace | null;
+  services: Array<{ service: string; note: string | null }>;
+  hours: Array<{ dayOfWeek: number; opensAt: string | null; closesAt: string | null; isClosed: boolean }>;
+}
+
+export async function listRegions(): Promise<Region[]> {
+  return apiRequest<Region[]>('/geography/regions');
+}
+
+export async function listDistricts(regionId?: string): Promise<District[]> {
+  const query = regionId ? `?regionId=${encodeURIComponent(regionId)}` : '';
+  return apiRequest<District[]>(`/geography/districts${query}`);
+}
+
+export async function getGeographyCoverage(): Promise<GeographyCoverage> {
+  return apiRequest<GeographyCoverage>('/geography/coverage');
+}
+
+export async function getDirectoryEntry(id: string): Promise<DirectoryOrganization> {
+  return apiRequest<DirectoryOrganization>(`/organizations/${encodeURIComponent(id)}`);
+}
+
+export async function setDirectoryVerification(
+  id: string,
+  verified: boolean,
+): Promise<DirectoryOrganization> {
+  return apiRequest<DirectoryOrganization>(
+    `/organizations/${encodeURIComponent(id)}/verification`,
+    { method: 'PATCH', body: JSON.stringify({ verified }) },
+  );
+}
+
+/**
+ * The name to show, in the locale the portal is running in. Place names are
+ * data in three columns, not catalogue keys: neither the Uzbek nor the Russian
+ * name is a translation of the other.
+ */
+export function geoName(
+  place: { nameUz: string; nameRu: string; nameEn: string },
+  locale: string,
+): string {
+  if (locale.startsWith('uz')) return place.nameUz || place.nameEn;
+  if (locale.startsWith('ru')) return place.nameRu || place.nameEn;
+  return place.nameEn;
+}
+
 export async function listCouriers(params: {
   page?: number;
   limit?: number;

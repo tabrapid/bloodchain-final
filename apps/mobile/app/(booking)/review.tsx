@@ -13,11 +13,11 @@ import {
 import {
   useAvailability,
   useBookAppointment,
-  useOrganizations,
   useRescheduleAppointment,
 } from '../../src/hooks/useAppointments';
 import { ApiRequestError } from '../../src/api/client';
 import { layout, radius, spacing, useTheme, ThemeColors } from '../../src/theme';
+import { useOrganization } from '../../src/hooks/useOrganizations';
 import { useTranslation } from '../../src/i18n';
 
 export default function ReviewBooking() {
@@ -45,12 +45,11 @@ export default function ReviewBooking() {
   const slot = slots?.find((s) => s.id === params.slotId);
 
   const {
-    data: organizations,
+    data: organization,
     isLoading: orgsLoading,
     isError: orgsError,
     refetch: refetchOrgs,
-  } = useOrganizations();
-  const organization = organizations?.find((o) => o.id === params.organizationId);
+  } = useOrganization(params.organizationId);
 
   const isLoading = slotsLoading || orgsLoading;
   const hasLoadError = slotsError || orgsError;
@@ -155,7 +154,7 @@ export default function ReviewBooking() {
             tint={colors.secondaryMuted}
             label={t('table.location')}
             value={organization.name}
-            meta={organization.address}
+            meta={organization.address ?? undefined}
           />
           <View style={styles.divider} />
           <DetailRow

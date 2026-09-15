@@ -374,6 +374,7 @@ model User {
   notificationPreference  NotificationPreference?
   refreshTokens           RefreshToken[]
   auditLogs               AuditLog[]
+  verifiedOrganizations   Organization[]           @relation("OrganizationVerifier")
   emailVerification       EmailVerificationToken?
   passwordReset           PasswordResetToken?
   sessions                Session[]
@@ -439,6 +440,132 @@ model RolePermission {
   @@id([roleId, permissionId])
 }
 
+// ---------------------------------------------------------------------------
+// Uzbekistan geography
+// ---------------------------------------------------------------------------
+
+/// Where a geography row came from, so a screen can tell a reader whether it is
+/// looking at published administrative data or at demo scaffolding.
+///
+/// This distinction is load-bearing, not decorative. The 14 top-level
+/// subdivisions are a published standard and can be stated as fact. A complete
+/// list of the ~200 districts is not in this repository, and inventing one
+/// would put fabricated administrative data in front of people who would
+/// reasonably assume it was real -- so every district row says what it is.
+enum GeoDataSource {
+  /// Sourced from a published standard. Today: ISO 3166-2:UZ, for regions.
+  OFFICIAL_REFERENCE
+  /// Created to make the demo environment usable. Illustrative, not authoritative.
+  DEMO
+}
+
+/// A viloyat, the Republic of Karakalpakstan, or Tashkent city.
+///
+/// All 14 are seeded from ISO 3166-2:UZ, which is why `code` is the natural key
+/// rather than a generated id: it is stable, externally meaningful, and makes a
+/// re-seed idempotent.
+model Region {
+  id        String        @id @default(cuid())
+  /// ISO 3166-2 subdivision code, e.g. "UZ-TK" for Tashkent city.
+  code      String        @unique @db.VarChar(8)
+  nameUz    String        @db.VarChar(120)
+  nameRu    String        @db.VarChar(120)
+  nameEn    String        @db.VarChar(120)
+  /// Administrative centre, for orientation on a picker. Free text.
+  centerEn  String?       @db.VarChar(120)
+  source    GeoDataSource @default(OFFICIAL_REFERENCE)
+  /// Display order; ISO codes sort alphabetically, which is not how a list of
+  /// regions reads to someone who lives here.
+  sortOrder Int           @default(0)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  districts     District[]
+  organizations Organization[]
+  donorProfiles DonorProfile[]
+
+  @@index([source])
+  @@index([sortOrder])
+}
+
+/// A tuman, or a city district.
+///
+/// Incomplete by design: only the districts the demo organizations occupy are
+/// seeded, each marked DEMO. Importing an authoritative list (the MHOBT/SOATO
+/// classifier) is a separate, sourced piece of work -- see docs/geography.md.
+model District {
+  id        String        @id @default(cuid())
+  regionId  String
+  /// Slug, unique within the region: "chilonzor", "arnasoy".
+  code      String        @db.VarChar(64)
+  nameUz    String        @db.VarChar(120)
+  nameRu    String        @db.VarChar(120)
+  nameEn    String        @db.VarChar(120)
+  source    GeoDataSource @default(DEMO)
+  sortOrder Int           @default(0)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  region        Region         @relation(fields: [regionId], references: [id], onDelete: Restrict)
+  organizations Organization[]
+  donorProfiles DonorProfile[]
+
+  @@unique([regionId, code])
+  @@index([regionId])
+  @@index([source])
+}
+
+/// What a site offers a donor. A directory fact, not a clinical rule: listing
+/// plasma donation here says the site collects plasma, never that a given donor
+/// may give it -- that decision stays with the eligibility rules and the staff
+/// assessment, untouched by this table.
+enum OrganizationServiceType {
+  WHOLE_BLOOD_DONATION
+  PLASMA_DONATION
+  PLATELET_DONATION
+  LABORATORY_TESTING
+  BLOOD_TYPING
+  HEALTH_SCREENING
+  MOBILE_DONATION_DRIVE
+  EMERGENCY_SUPPLY
+}
+
+model OrganizationService {
+  id             String                  @id @default(cuid())
+  organizationId String
+  service        OrganizationServiceType
+  /// Something a donor should know before travelling: "Mondays only",
+  /// "by appointment". Optional, free text, shown as written.
+  note           String?                 @db.VarChar(200)
+  createdAt      DateTime                @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, service])
+  @@index([service])
+}
+
+/// One row per weekday per organization. A table rather than a JSON blob
+/// because "open on Saturday" is a filter, and a filter over JSON is a scan.
+model OrganizationHours {
+  id             String   @id @default(cuid())
+  organizationId String
+  /// 0 = Sunday .. 6 = Saturday, matching `Date#getDay()`.
+  dayOfWeek      Int      @db.SmallInt
+  /// Local wall-clock "HH:MM". Uzbekistan has one time zone and no DST, so a
+  /// wall clock needs no offset to be unambiguous.
+  opensAt        String?  @db.VarChar(5)
+  closesAt       String?  @db.VarChar(5)
+  isClosed       Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, dayOfWeek])
+  @@index([organizationId])
+}
+
 model Organization {
   id        String             @id @default(cuid())
   type      OrganizationType
@@ -446,12 +573,46 @@ model Organization {
   legalName String?
   phone     String?
   email     String?
+  /// The street line only. Region and district moved to the FKs below; this
+  /// stays free text because a street address is not an administrative unit
+  /// and no classifier covers it.
   address   String?
   latitude  Decimal?           @db.Decimal(9, 6)
   longitude Decimal?           @db.Decimal(9, 6)
   status    OrganizationStatus @default(PENDING_APPROVAL)
-  createdAt DateTime           @default(now())
-  updatedAt DateTime           @updatedAt
+
+  // --- directory: where it is -------------------------------------------
+  /// Nullable, and staying that way: organizations created before Sprint 2
+  /// have no region, and guessing one from a free-text address would put an
+  /// invented administrative fact on a real record.
+  regionId   String?
+  districtId String?
+
+  // --- directory: what it offers ----------------------------------------
+  /// Whether the site collects donations at all. A directory fact: it says the
+  /// door is open, never that a particular donor may walk through it.
+  acceptsDonations   Boolean @default(false)
+  /// Whether the site runs laboratory testing donors can book.
+  providesLaboratory Boolean @default(false)
+  /// Public-facing contact line, when it differs from the operational `phone`.
+  publicPhone        String? @db.VarChar(32)
+  /// Free-text note shown under the address: entrance, floor, landmark.
+  directionsNote     String? @db.VarChar(300)
+
+  // --- directory: how much to trust the row ------------------------------
+  /// Set when a platform administrator confirms the organization is real and
+  /// its details are right. Distinct from `status`, which is operational: a
+  /// verified organization can still be SUSPENDED, and an ACTIVE one can be
+  /// unverified because nobody has checked it yet.
+  verifiedAt   DateTime?
+  verifiedById String?
+  /// Demo scaffolding, not a real organization. Seeded rows set this so that
+  /// nothing in this repository can be mistaken for a claim about a real
+  /// hospital or blood centre.
+  isDemo       Boolean   @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   memberships            OrganizationMembership[]
   auditLogs              AuditLog[]
@@ -481,10 +642,21 @@ model Organization {
   communityPosts         CommunityPost[]
   campaigns              Campaign[]
   challenges             Challenge[]
+  region                 Region?                  @relation(fields: [regionId], references: [id], onDelete: SetNull)
+  district               District?                @relation(fields: [districtId], references: [id], onDelete: SetNull)
+  verifiedBy             User?                    @relation("OrganizationVerifier", fields: [verifiedById], references: [id], onDelete: SetNull)
+  services               OrganizationService[]
+  hours                  OrganizationHours[]
 
   @@index([type])
   @@index([status])
   @@index([createdAt])
+  @@index([regionId])
+  @@index([districtId])
+  @@index([acceptsDonations])
+  @@index([providesLaboratory])
+  @@index([verifiedAt])
+  @@index([isDemo])
 }
 
 model Hospital {
@@ -528,8 +700,14 @@ model DonorProfile {
   bloodTypeVerifiedBy String?
   bloodTypeSource     VerificationSource?
   bloodTypeNote       String?
+  /// Free text, kept. Donors typed these before Sprint 2 and a structured
+  /// reference cannot be derived from them without guessing, so both live side
+  /// by side: the reference is authoritative when set, the text is what the
+  /// donor actually wrote.
   city                String?             @db.VarChar(100)
   district            String?             @db.VarChar(100)
+  regionId            String?
+  districtId          String?
   latitude            Decimal?            @db.Decimal(9, 6)
   longitude           Decimal?            @db.Decimal(9, 6)
   donorStatus         DonorStatus         @default(ACTIVE)
@@ -539,11 +717,15 @@ model DonorProfile {
   createdAt           DateTime            @default(now())
   updatedAt           DateTime            @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  region      Region?   @relation(fields: [regionId], references: [id], onDelete: SetNull)
+  districtRef District? @relation(fields: [districtId], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@index([bloodType])
   @@index([donorStatus])
+  @@index([regionId])
+  @@index([districtId])
 }
 
 model NotificationPreference {

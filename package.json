@@ -29,6 +29,7 @@
     "mail:dev": "node scripts/dev-mail.mjs",
     "verify:recovery": "node scripts/recovery-verify.mjs",
     "verify:phone": "node scripts/phone-auth-verify.mjs",
+    "verify:geography": "node scripts/verify-geography.mjs",
     "clinical:review": "node scripts/clinical-review.mjs"
   },
   "devDependencies": {

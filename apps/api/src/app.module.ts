@@ -33,6 +33,7 @@ import { InventoryModule } from './modules/inventory/inventory.module';
 import { LaboratoryModule } from './modules/laboratory/laboratory.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { OrganizationsModule } from './modules/organizations/organizations.module';
+import { GeographyModule } from './modules/geography/geography.module';
 import { PermissionsModule } from './modules/permissions/permissions.module';
 import { PlatformSettingsModule } from './modules/platform-settings/platform-settings.module';
 import { ShipmentsModule } from './modules/shipments/shipments.module';
@@ -92,6 +93,7 @@ import { IdempotencyModule } from './modules/idempotency/idempotency.module';
     AuthModule,
     UsersModule,
     OrganizationsModule,
+    GeographyModule,
     DonorsModule,
     HealthModule,
     PermissionsModule,

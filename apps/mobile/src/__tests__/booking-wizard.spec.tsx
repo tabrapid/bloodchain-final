@@ -27,9 +27,19 @@ jest.mock('react-native/Libraries/Utilities/useColorScheme', () => ({
   __esModule: true,
   default: () => 'dark',
 }));
+jest.mock('../api/organizations', () => ({
+  discoverOrganizations: jest.fn(),
+  getOrganization: jest.fn(),
+  capabilityFor: jest.requireActual('../api/organizations').capabilityFor,
+}));
+jest.mock('../api/geography', () => ({
+  getRegions: jest.fn(),
+  getDistricts: jest.fn(),
+  getGeographyCoverage: jest.fn(),
+  geoName: jest.requireActual('../api/geography').geoName,
+}));
 jest.mock('../api/appointments', () => ({
   getAvailability: jest.fn(),
-  getOrganizations: jest.fn(),
   getMyAppointments: jest.fn(),
   getAppointment: jest.fn(),
   bookAppointment: jest.fn(),
@@ -38,7 +48,9 @@ jest.mock('../api/appointments', () => ({
 }));
 
 import { router, useLocalSearchParams } from 'expo-router';
-import { getAvailability, getOrganizations } from '../api/appointments';
+import { getAvailability } from '../api/appointments';
+import { discoverOrganizations, getOrganization } from '../api/organizations';
+import { getDistricts, getGeographyCoverage, getRegions } from '../api/geography';
 
 import SelectType from '../../app/(booking)/select-type';
 import SelectOrganization from '../../app/(booking)/organizations';
@@ -57,6 +69,32 @@ const organization = {
   type: 'BLOOD_CENTER',
   name: 'Central Blood Center',
   address: '1 Main St',
+  directionsNote: null,
+  publicPhone: null,
+  phone: null,
+  latitude: null,
+  longitude: null,
+  status: 'ACTIVE',
+  acceptsDonations: true,
+  providesLaboratory: true,
+  isVerified: true,
+  isDemo: false,
+  region: null,
+  district: null,
+  services: [],
+  hours: [],
+  distanceKm: null,
+};
+
+const region = {
+  id: 'region-1',
+  code: 'UZ-TK',
+  nameUz: 'Toshkent shahri',
+  nameRu: 'город Ташкент',
+  nameEn: 'Tashkent City',
+  centerEn: 'Tashkent',
+  source: 'OFFICIAL_REFERENCE',
+  districtCount: 2,
 };
 
 const slot = {
@@ -74,7 +112,20 @@ const slot = {
 beforeEach(() => {
   jest.clearAllMocks();
   jest.mocked(useLocalSearchParams).mockReturnValue({} as never);
-  jest.mocked(getOrganizations).mockResolvedValue([organization] as never);
+  jest.mocked(discoverOrganizations).mockResolvedValue({
+    organizations: [organization],
+    total: 1,
+    totalPages: 1,
+  } as never);
+  jest.mocked(getOrganization).mockResolvedValue(organization as never);
+  jest.mocked(getRegions).mockResolvedValue([region] as never);
+  jest.mocked(getDistricts).mockResolvedValue([] as never);
+  jest.mocked(getGeographyCoverage).mockResolvedValue({
+    regions: { total: 1, official: 1, demo: 0 },
+    districts: { total: 2, official: 0, demo: 2 },
+    districtsAuthoritative: false,
+    regionStandard: 'ISO 3166-2:UZ',
+  } as never);
   jest.mocked(getAvailability).mockResolvedValue([slot] as never);
 });
 
@@ -176,7 +227,15 @@ describe('Booking wizard: what each step hands the next', () => {
     jest.mocked(useLocalSearchParams).mockReturnValue({ type: 'BLOOD_TEST' } as never);
     const tree = await render(<SelectOrganization />);
 
-    expect(getOrganizations).toHaveBeenCalledWith({ type: 'BLOOD_TEST' });
+    // The location step asks for a capability, not an organization type: a
+    // lab test needs somewhere that runs laboratory testing, and sending
+    // "BLOOD_TEST" as `type` asks for an organization type that does not exist.
+    expect(discoverOrganizations).toHaveBeenCalledWith(
+      expect.objectContaining({ providesLaboratory: true }),
+    );
+    expect(discoverOrganizations).not.toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'BLOOD_TEST' }),
+    );
     expect(continueButton(tree).props.disabled).toBe(true);
 
     await press(tree, organization.name);

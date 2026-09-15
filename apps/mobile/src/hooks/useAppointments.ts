@@ -1,7 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   getAvailability,
-  getOrganizations,
   getMyAppointments,
   getNextAppointment,
   getAppointment,
@@ -25,13 +24,6 @@ export function useAvailability(params?: {
   return useQuery<AppointmentSlot[]>({
     queryKey: ['availability', params],
     queryFn: () => getAvailability(params),
-  });
-}
-
-export function useOrganizations(params?: { type?: string }) {
-  return useQuery<Array<{ id: string; type: string; name: string; address?: string }>>({
-    queryKey: ['organizations', params],
-    queryFn: () => getOrganizations(params),
   });
 }
 

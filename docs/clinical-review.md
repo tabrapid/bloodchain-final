@@ -3,7 +3,7 @@
 Every clinically meaningful string in the product, in all three languages, for a
 clinician to confirm before release.
 
-**98 terms — 98 pending, 0 approved.**
+**106 terms — 106 pending, 0 approved.**
 
 ## How to read this
 
@@ -116,6 +116,14 @@ recorded in this file.
 | `medical.rhFactor` | Rh factor | Rezus omil | Резус-фактор | PENDING |  |
 | `medical.rhNegative` | Rh negative | Rezus manfiy | Резус отрицательный | PENDING |  |
 | `medical.rhPositive` | Rh positive | Rezus musbat | Резус положительный | PENDING |  |
+| `medical.services.BLOOD_TYPING` | Blood typing | Qon guruhini aniqlash | Определение группы крови | PENDING |  |
+| `medical.services.EMERGENCY_SUPPLY` | Emergency supply | Shoshilinch ta’minot | Экстренное снабжение | PENDING |  |
+| `medical.services.HEALTH_SCREENING` | Health screening | Sog‘liqni tekshirish | Медицинский осмотр | PENDING |  |
+| `medical.services.LABORATORY_TESTING` | Laboratory testing | Laboratoriya tekshiruvi | Лабораторные исследования | PENDING |  |
+| `medical.services.MOBILE_DONATION_DRIVE` | Mobile donation drive | Ko‘chma qon topshirish aksiyasi | Выездная донорская акция | PENDING |  |
+| `medical.services.PLASMA_DONATION` | Plasma donation | Plazma topshirish | Сдача плазмы | PENDING |  |
+| `medical.services.PLATELET_DONATION` | Platelet donation | Trombotsit topshirish | Сдача тромбоцитов | PENDING |  |
+| `medical.services.WHOLE_BLOOD_DONATION` | Whole blood donation | To‘liq qon topshirish | Сдача цельной крови | PENDING |  |
 | `medical.testCategories.BLOOD_GROUP` | Blood group | Qon guruhi | Группа крови | PENDING |  |
 | `medical.testCategories.DIABETES` | Diabetes | Qandli diabet | Диабет | PENDING |  |
 | `medical.testCategories.GENERAL` | General | Umumiy | Общее | PENDING |  |
