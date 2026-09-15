@@ -1,8 +1,11 @@
 import { Tabs } from 'expo-router';
 import { Clock3, Truck, UserRound } from 'lucide-react-native';
 import { GlassTabBar } from '../../src/components/GlassTabBar';
+import { useTranslation } from '../../src/i18n';
 
 export default function CourierLayout() {
+  const { t } = useTranslation();
+
   return (
     <Tabs
       tabBar={(props) => <GlassTabBar {...props} />}
@@ -19,15 +22,15 @@ export default function CourierLayout() {
     >
       <Tabs.Screen
         name="active"
-        options={{ title: 'Active', tabBarIcon: ({ color }) => <Truck color={color} /> }}
+        options={{ title: t('courier.tabActive'), tabBarIcon: ({ color }) => <Truck color={color} /> }}
       />
       <Tabs.Screen
         name="history"
-        options={{ title: 'History', tabBarIcon: ({ color }) => <Clock3 color={color} /> }}
+        options={{ title: t('courier.tabHistory'), tabBarIcon: ({ color }) => <Clock3 color={color} /> }}
       />
       <Tabs.Screen
         name="profile"
-        options={{ title: 'Profile', tabBarIcon: ({ color }) => <UserRound color={color} /> }}
+        options={{ title: t('courier.tabProfile'), tabBarIcon: ({ color }) => <UserRound color={color} /> }}
       />
     </Tabs>
   );

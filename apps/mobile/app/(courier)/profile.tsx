@@ -10,6 +10,7 @@ import {
   updateCourierStatus,
   type CourierProfile,
 } from '../../src/api/courier';
+import { useTranslation } from '../../src/i18n';
 
 const STATUS_VARIANT: Record<string, 'default' | 'primary' | 'secondary' | 'success' | 'warning' | 'danger'> = {
   AVAILABLE: 'success',
@@ -19,6 +20,7 @@ const STATUS_VARIANT: Record<string, 'default' | 'primary' | 'secondary' | 'succ
 };
 
 export default function CourierProfileScreen() {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const logout = useLogout();
   const [profile, setProfile] = useState<CourierProfile | null>(null);
@@ -53,10 +55,10 @@ export default function CourierProfileScreen() {
     setSavedMessage(null);
     try {
       await updateCourierProfile({ displayName: displayName.trim(), phone: phone.trim() || undefined });
-      setSavedMessage('Profile updated');
+      setSavedMessage(t('courier.profileUpdated'));
       await load();
     } catch (err: any) {
-      setError(err?.message || 'Failed to update profile');
+      setError(err?.message || t('courier.profileUpdateFailed'));
     } finally {
       setSaving(false);
     }
@@ -71,7 +73,7 @@ export default function CourierProfileScreen() {
       await updateCourierStatus(nextStatus);
       await load();
     } catch (err: any) {
-      setError(err?.message || 'Failed to update status');
+      setError(err?.message || t('courier.statusUpdateFailed'));
     } finally {
       setStatusUpdating(false);
     }
@@ -80,7 +82,7 @@ export default function CourierProfileScreen() {
   if (isLoading) {
     return (
       <Screen>
-        <AppHeader title="Profile" subtitle="Availability and delivery record" />
+        <AppHeader title={t('courier.profileTitle')} subtitle={t('courier.profileSubtitle')} />
         <LoadingState />
       </Screen>
     );
@@ -89,14 +91,14 @@ export default function CourierProfileScreen() {
   if (!profile) {
     return (
       <Screen>
-        <AppHeader title="Profile" subtitle="Availability and delivery record" />
+        <AppHeader title={t('courier.profileTitle')} subtitle={t('courier.profileSubtitle')} />
         <EmptyState
           icon={AlertTriangle}
-          title="Couldn't load your profile"
-          description="Something went wrong reaching the server. Check your connection and try again."
+          title={t('courier.profileLoadFailed')}
+          description={t('common.offline')}
         />
         <AppButton variant="secondary" onPress={load} style={{ marginTop: spacing.md }}>
-          Retry
+          {t('common.retry')}
         </AppButton>
       </Screen>
     );
@@ -107,12 +109,14 @@ export default function CourierProfileScreen() {
 
   return (
     <Screen scroll={false}>
-      <AppHeader title="Profile" subtitle="Availability and delivery record" />
+      <AppHeader title={t('courier.profileTitle')} subtitle={t('courier.profileSubtitle')} />
       <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
         <Card style={{ marginBottom: layout.cardGap }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.md }}>
-            <AppText variant="heading">Availability</AppText>
-            <Badge variant={STATUS_VARIANT[profile.status] || 'default'}>{profile.status}</Badge>
+            <AppText variant="heading">{t('courier.availability')}</AppText>
+            <Badge variant={STATUS_VARIANT[profile.status] || 'default'}>
+              {t(`status.courier.${profile.status}`)}
+            </Badge>
           </View>
           {canToggle ? (
             <AppButton
@@ -121,13 +125,11 @@ export default function CourierProfileScreen() {
               disabled={statusUpdating}
             >
               {profile.status === 'AVAILABLE' ? <Moon size={18} /> : <Sun size={18} />}
-              {profile.status === 'AVAILABLE' ? 'Go Offline' : 'Go Available'}
+              {t(profile.status === 'AVAILABLE' ? 'courier.goOffline' : 'courier.goAvailable')}
             </AppButton>
           ) : (
             <AppText muted style={{ fontSize: 13 }}>
-              {hasActiveDelivery
-                ? "You have an active delivery — availability can't change until it's finished."
-                : 'Availability updates once your current status clears.'}
+              {t(hasActiveDelivery ? 'courier.lockedByDelivery' : 'courier.lockedByStatus')}
             </AppText>
           )}
         </Card>
@@ -138,7 +140,9 @@ export default function CourierProfileScreen() {
             <AppText muted>{profile.organizationName}</AppText>
           </View>
 
-          <AppText muted style={{ fontSize: 12, marginBottom: spacing.xs }}>Display Name</AppText>
+          <AppText muted style={{ fontSize: 12, marginBottom: spacing.xs }}>
+            {t('courier.displayName')}
+          </AppText>
           <TextInput
             value={displayName}
             onChangeText={setDisplayName}
@@ -154,7 +158,7 @@ export default function CourierProfileScreen() {
             }}
           />
 
-          <AppText muted style={{ fontSize: 12, marginBottom: spacing.xs }}>Phone</AppText>
+          <AppText muted style={{ fontSize: 12, marginBottom: spacing.xs }}>{t('table.phone')}</AppText>
           <TextInput
             value={phone}
             onChangeText={setPhone}
@@ -175,13 +179,13 @@ export default function CourierProfileScreen() {
           {savedMessage && <AppText style={{ color: colors.success, marginBottom: spacing.md }}>{savedMessage}</AppText>}
 
           <AppButton onPress={handleSave} disabled={saving || !displayName.trim()}>
-            {saving ? 'Saving...' : 'Save Changes'}
+            {t(saving ? 'common.saving' : 'actions.saveChanges')}
           </AppButton>
         </Card>
 
         <AppButton variant="ghost" onPress={() => logout.mutate()} disabled={logout.isPending}>
           <LogOut size={18} color={colors.danger} />
-          <AppText style={{ color: colors.danger }}>Log Out</AppText>
+          <AppText style={{ color: colors.danger }}>{t('courier.logOut')}</AppText>
         </AppButton>
       </ScrollView>
     </Screen>

@@ -55,7 +55,7 @@ export function ErrorState({
       </AppText>
       {onRetry && (
         <AppButton onPress={onRetry} variant="secondary">
-          Retry
+          {t('common.retry')}
         </AppButton>
       )}
     </View>

@@ -26,6 +26,9 @@ import { useTranslation } from '../../src/i18n';
 import { Award, Bell, ChevronRight, Droplet, Lock, Shield, User } from 'lucide-react-native';
 import { useMemo } from 'react';
 
+/** The build stamp under the sign-out card. A number, not a sentence. */
+const APP_VERSION = '0.2.0';
+
 export default function Profile() {
   const { colors } = useTheme();
   const { t } = useTranslation();
@@ -304,7 +307,7 @@ export default function Profile() {
 
       <View style={styles.footer}>
         <AppText muted style={styles.version}>
-          Bloodchain v0.2.0 — Phase 3
+          {t('profile.versionStamp', { version: APP_VERSION, phase: t('profile.phase') })}
         </AppText>
       </View>
     </Screen>

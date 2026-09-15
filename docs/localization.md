@@ -146,14 +146,22 @@ Screen-level specs (`apps/mobile/src/__tests__/secondary-screens-i18n.spec.tsx`,
 each language and read the words back, which is the only way to catch a label
 that was resolved once at module load.
 
+## Clinical review
+
+`docs/clinical-review.md` is every key under `medical`, in all three languages,
+with a status column for a clinician. It is generated — `pnpm clinical:review` —
+so a term added to the namespace appears on the review list whether or not
+anyone remembers to add it, and reviewer decisions are preserved across
+regenerations. `coverage.spec.ts` fails if the manifest and the catalogue
+disagree, including if an English source is reworded after being approved.
+
 ## Not yet localized
 
-- The API's own responses (error messages, emails) are English. A donor sees
-  them when a request fails.
-- The three consoles' `<title>`/`<meta description>`: Next builds document
+- **The API's own responses.** Exception messages, email bodies and SMS bodies
+  are English; a donor meets them when a request fails. Inventory, proposed
+  shape and suggested order in `docs/backlog-api-localization.md`.
+- **The three consoles' `<title>`/`<meta description>`.** Next builds document
   metadata on the server, where no locale is known yet.
-- The donor app's onboarding profile flow (`(onboarding)/complete-profile`) and
-  the courier role's screens.
-- Backend-authored content — campaign titles, educational articles, challenge
-  names, badge names, organization names — is stored in one language per row
-  and rendered as stored.
+- **Backend-authored content** — campaign titles, educational articles,
+  challenge and badge names, organization names — is stored in one language per
+  row and rendered as stored. A schema change, not a catalogue one.

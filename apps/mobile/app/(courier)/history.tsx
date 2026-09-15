@@ -4,6 +4,7 @@ import { AlertTriangle, CheckCircle, Clock3, Droplet, Package, XCircle } from 'l
 import { AppButton, AppHeader, AppText, Badge, Card, EmptyState, LoadingState, Screen, StatCard } from '../../src/components';
 import { layout, spacing, useTheme } from '../../src/theme';
 import { getCourierShipments, getCourierStats, type CourierStats, type Shipment } from '../../src/api/courier';
+import { useTranslation } from '../../src/i18n';
 
 const STATUS_VARIANT: Record<string, 'default' | 'primary' | 'secondary' | 'success' | 'warning' | 'danger'> = {
   COURIER_ASSIGNED: 'secondary',
@@ -19,6 +20,7 @@ const STATUS_VARIANT: Record<string, 'default' | 'primary' | 'secondary' | 'succ
 };
 
 export default function CourierHistory() {
+  const { t, formatDateTime } = useTranslation();
   const { colors } = useTheme();
   const [shipments, setShipments] = useState<Shipment[]>([]);
   const [stats, setStats] = useState<CourierStats | null>(null);
@@ -51,7 +53,7 @@ export default function CourierHistory() {
   if (isLoading) {
     return (
       <Screen>
-        <AppHeader title="History" subtitle="Your completed deliveries" />
+        <AppHeader title={t('courier.historyTitle')} subtitle={t('courier.historySubtitle')} />
         <LoadingState />
       </Screen>
     );
@@ -59,7 +61,7 @@ export default function CourierHistory() {
 
   return (
     <Screen scroll={false}>
-      <AppHeader title="History" subtitle="Your completed deliveries" />
+      <AppHeader title={t('courier.historyTitle')} subtitle={t('courier.historySubtitle')} />
       <ScrollView
         style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
@@ -76,16 +78,20 @@ export default function CourierHistory() {
       >
         {stats && (
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md, marginBottom: spacing.lg }}>
-            <StatCard label="Completed" value={String(stats.completed)} icon={CheckCircle} variant="success" style={{ flex: 1, minWidth: 140 }} />
-            <StatCard label="Failed" value={String(stats.failed)} icon={XCircle} variant={stats.failed > 0 ? 'danger' : 'default'} style={{ flex: 1, minWidth: 140 }} />
+            <StatCard label={t('courier.statCompleted')} value={String(stats.completed)} icon={CheckCircle} variant="success" style={{ flex: 1, minWidth: 140 }} />
+            <StatCard label={t('courier.statFailed')} value={String(stats.failed)} icon={XCircle} variant={stats.failed > 0 ? 'danger' : 'default'} style={{ flex: 1, minWidth: 140 }} />
             <StatCard
-              label="Avg. Delivery Time"
-              value={stats.avgDeliveryTimeMinutes != null ? `${Math.round(stats.avgDeliveryTimeMinutes)} min` : '—'}
+              label={t('courier.statAvgDeliveryTime')}
+              value={
+                stats.avgDeliveryTimeMinutes != null
+                  ? t('units.minutes', { count: Math.round(stats.avgDeliveryTimeMinutes) })
+                  : '—'
+              }
               icon={Clock3}
               variant="secondary"
               style={{ flex: 1, minWidth: 140 }}
             />
-            <StatCard label="Total Deliveries" value={String(stats.total)} icon={Package} style={{ flex: 1, minWidth: 140 }} />
+            <StatCard label={t('courier.statTotal')} value={String(stats.total)} icon={Package} style={{ flex: 1, minWidth: 140 }} />
           </View>
         )}
 
@@ -94,15 +100,19 @@ export default function CourierHistory() {
             <>
               <EmptyState
                 icon={AlertTriangle}
-                title="Couldn't load your history"
-                description="Something went wrong reaching the server. Check your connection and try again."
+                title={t('courier.historyLoadFailed')}
+                description={t('common.offline')}
               />
               <AppButton variant="secondary" onPress={load} style={{ marginTop: spacing.md }}>
-                Retry
+                {t('common.retry')}
               </AppButton>
             </>
           ) : (
-            <EmptyState icon={Package} title="No deliveries yet" description="Completed and past deliveries will appear here." />
+            <EmptyState
+              icon={Package}
+              title={t('courier.historyEmpty')}
+              description={t('courier.historyEmptyHint')}
+            />
           )
         ) : (
           shipments.map((shipment) => (
@@ -110,19 +120,19 @@ export default function CourierHistory() {
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.xs }}>
                 <AppText variant="heading">{shipment.shipmentReference}</AppText>
                 <Badge variant={STATUS_VARIANT[shipment.status] || 'default'}>
-                  {shipment.status.replace(/_/g, ' ')}
+                  {t(`status.shipment.${shipment.status}`)}
                 </Badge>
               </View>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginBottom: spacing.xs }}>
                 <Droplet size={14} color={colors.textMuted} />
                 <AppText muted style={{ fontSize: 13 }}>
-                  {shipment.units?.length ?? 0} unit{(shipment.units?.length ?? 0) !== 1 ? 's' : ''}
-                  {shipment.sourceOrganization && ` · from ${shipment.sourceOrganization.name}`}
-                  {shipment.destinationOrganization && ` · to ${shipment.destinationOrganization.name}`}
+                  {t('units.bloodUnits', { count: shipment.units?.length ?? 0 })}
+                  {shipment.sourceOrganization && ` · ${shipment.sourceOrganization.name}`}
+                  {shipment.destinationOrganization && ` → ${shipment.destinationOrganization.name}`}
                 </AppText>
               </View>
               <AppText muted style={{ fontSize: 12 }}>
-                {new Date(shipment.createdAt).toLocaleString()}
+                {formatDateTime(shipment.createdAt)}
               </AppText>
             </Card>
           ))

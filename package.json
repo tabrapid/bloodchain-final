@@ -28,7 +28,8 @@
     "verify:safety": "node scripts/sprint0-verify.mjs",
     "mail:dev": "node scripts/dev-mail.mjs",
     "verify:recovery": "node scripts/recovery-verify.mjs",
-    "verify:phone": "node scripts/phone-auth-verify.mjs"
+    "verify:phone": "node scripts/phone-auth-verify.mjs",
+    "clinical:review": "node scripts/clinical-review.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",

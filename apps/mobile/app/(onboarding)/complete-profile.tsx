@@ -30,43 +30,47 @@ import { useUpdateUserProfile } from '../../src/hooks/useUsers';
 import { useUpdateNotificationPreferences } from '../../src/hooks/useNotifications';
 import { useAuthStore } from '../../src/stores/auth.store';
 import { ApiRequestError } from '../../src/api/client';
+import { useTranslation } from '../../src/i18n';
 
 /**
- * Each step's icon, headline and one-line explanation live here rather than
- * inside the six branches of `renderStep`, so the header renders them once and
- * every step is guaranteed the same anatomy: badge, headline, explanation,
- * controls. The branches are left with only the controls that differ.
+ * Each step's icon and its two catalogue keys live here rather than inside the
+ * six branches of `renderStep`, so the header renders them once and every step
+ * is guaranteed the same anatomy: badge, headline, explanation, controls. The
+ * branches are left with only the controls that differ.
+ *
+ * Keys, not words: this list is built at module load, where there is no locale
+ * yet, so the headline is resolved in the component below.
  */
-const STEPS: { icon: LucideIcon; title: string; subtitle: string }[] = [
+const STEPS: { icon: LucideIcon; titleKey: string; subtitleKey: string }[] = [
   {
     icon: HeartHandshake,
-    title: 'Welcome to Bloodchain',
-    subtitle: 'Your journey to becoming a life-saver starts here. Let us set up your donor profile.',
+    titleKey: 'onboarding.welcomeTitle',
+    subtitleKey: 'onboarding.welcomeSubtitle',
   },
   {
     icon: UserRound,
-    title: 'What should we call you?',
-    subtitle: 'This is the name blood centres will see on your appointments.',
+    titleKey: 'onboarding.nameTitle',
+    subtitleKey: 'onboarding.nameSubtitle',
   },
   {
     icon: Droplet,
-    title: "What's your blood type?",
-    subtitle: 'This helps us match you with the requests you can actually answer.',
+    titleKey: 'onboarding.bloodTypeTitle',
+    subtitleKey: 'onboarding.bloodTypeSubtitle',
   },
   {
     icon: MapPin,
-    title: 'Where are you based?',
-    subtitle: 'So we can point you at the donation centres nearest to you.',
+    titleKey: 'onboarding.locationTitle',
+    subtitleKey: 'onboarding.locationSubtitle',
   },
   {
     icon: Bell,
-    title: 'What should we tell you about?',
-    subtitle: 'You can change any of these later in your profile.',
+    titleKey: 'onboarding.notificationsTitle',
+    subtitleKey: 'onboarding.notificationsSubtitle',
   },
   {
     icon: CheckCircle2,
-    title: 'Does this look right?',
-    subtitle: 'One last check before we save your profile.',
+    titleKey: 'onboarding.reviewTitle',
+    subtitleKey: 'onboarding.reviewSubtitle',
   },
 ];
 
@@ -88,6 +92,7 @@ const BLOOD_TYPES: { label: string; type: string; rh: string }[] = [
 ];
 
 export default function OnboardingWelcome() {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [currentStep, setCurrentStep] = useState(0);
@@ -133,8 +138,8 @@ export default function OnboardingWelcome() {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
         Alert.alert(
-          'Location Permission Needed',
-          'Bloodchain uses your location to match you with nearby emergency requests faster. You can still donate without it.',
+          t('onboarding.locationPermissionTitle'),
+          t('onboarding.locationPermissionBody'),
         );
         return;
       }
@@ -144,7 +149,7 @@ export default function OnboardingWelcome() {
       updateField('latitude', position.coords.latitude);
       updateField('longitude', position.coords.longitude);
     } catch {
-      Alert.alert('Could Not Get Location', 'Please try again, or skip this - you can still donate without it.');
+      Alert.alert(t('onboarding.locationFailedTitle'), t('onboarding.locationFailedBody'));
     } finally {
       setIsLocating(false);
     }
@@ -199,7 +204,7 @@ export default function OnboardingWelcome() {
       setFinishError(
         error instanceof ApiRequestError
           ? error.error.message
-          : 'Something went wrong saving your profile. Please try again.',
+          : t('onboarding.saveFailed'),
       );
     }
   };
@@ -210,10 +215,10 @@ export default function OnboardingWelcome() {
         return (
           <View style={styles.stepContent}>
             <View style={styles.featureList}>
-              <FeatureItem text="Track your donation history" />
-              <FeatureItem text="Get notified about emergencies" />
-              <FeatureItem text="Book donation appointments" />
-              <FeatureItem text="Access your health records" />
+              <FeatureItem text={t('onboarding.featureHistory')} />
+              <FeatureItem text={t('onboarding.featureEmergencies')} />
+              <FeatureItem text={t('onboarding.featureBooking')} />
+              <FeatureItem text={t('onboarding.featureRecords')} />
             </View>
           </View>
         );
@@ -222,21 +227,21 @@ export default function OnboardingWelcome() {
         return (
           <View style={styles.stepContent}>
             <AppTextInput
-              label="First name"
-              placeholder="Alex"
+              label={t('onboarding.firstName')}
+              placeholder={t('auth.register.firstNamePlaceholder')}
               wrapperStyle={styles.inputWrapper}
               value={formData.firstName}
               onChangeText={(v) => updateField('firstName', v)}
             />
             <AppTextInput
-              label="Last name"
-              placeholder="Johnson"
+              label={t('onboarding.lastName')}
+              placeholder={t('auth.register.lastNamePlaceholder')}
               wrapperStyle={styles.inputWrapper}
               value={formData.lastName}
               onChangeText={(v) => updateField('lastName', v)}
             />
             <AppTextInput
-              label="Phone (optional)"
+              label={t('onboarding.phoneOptional')}
               placeholder="+998 90 000 00 00"
               keyboardType="phone-pad"
               value={formData.phone}
@@ -270,8 +275,7 @@ export default function OnboardingWelcome() {
               <View style={styles.infoRow}>
                 <Info size={18} color={colors.onMuted.secondary} />
                 <AppText muted style={styles.infoText}>
-                  Not sure? Skip this — you can always set it later, and a blood centre confirms it
-                  at your first donation either way.
+                  {t('medical.verification.notSureSkip')}
                 </AppText>
               </View>
             </GlassCard>
@@ -282,23 +286,23 @@ export default function OnboardingWelcome() {
         return (
           <View style={styles.stepContent}>
             <AppTextInput
-              label="City"
-              placeholder="Tashkent"
+              label={t('onboarding.city')}
+              placeholder={t('onboarding.cityPlaceholder')}
               wrapperStyle={styles.inputWrapper}
               value={formData.city}
               onChangeText={(v) => updateField('city', v)}
             />
             <AppTextInput
-              label="District (optional)"
-              placeholder="Yunusabad"
+              label={t('onboarding.district')}
+              placeholder={t('onboarding.districtPlaceholder')}
               value={formData.district}
               onChangeText={(v) => updateField('district', v)}
             />
             <View style={styles.notificationItem}>
               <View style={styles.notificationText}>
-                <AppText variant="heading">Share precise location</AppText>
+                <AppText variant="heading">{t('onboarding.sharePreciseLocation')}</AppText>
                 <AppText muted style={styles.notificationDesc}>
-                  Lets us match you with the nearest emergency requests first. Optional.
+                  {t('onboarding.sharePreciseLocationHint')}
                 </AppText>
               </View>
               <AppButton
@@ -307,7 +311,7 @@ export default function OnboardingWelcome() {
                 onPress={handleShareLocation}
                 disabled={isLocating}
               >
-                {isLocating ? '...' : formData.consentLocation ? 'ON' : 'OFF'}
+                {isLocating ? '…' : t(formData.consentLocation ? 'onboarding.on' : 'onboarding.off')}
               </AppButton>
             </View>
           </View>
@@ -317,26 +321,26 @@ export default function OnboardingWelcome() {
         return (
           <View style={styles.stepContent}>
             <NotificationToggle
-              label="Emergency blood requests"
-              description="Be alerted when there is an urgent need"
+              label={t('onboarding.notifyEmergencies')}
+              description={t('onboarding.notifyEmergenciesHint')}
               value={formData.emergencyRequests}
               onValueChange={(v) => updateField('emergencyRequests', v)}
             />
             <NotificationToggle
-              label="Appointment reminders"
-              description="Get reminded about upcoming donations"
+              label={t('onboarding.notifyAppointments')}
+              description={t('onboarding.notifyAppointmentsHint')}
               value={formData.appointments}
               onValueChange={(v) => updateField('appointments', v)}
             />
             <NotificationToggle
-              label="Donation reminders"
-              description="Stay informed about your donation schedule"
+              label={t('onboarding.notifyDonations')}
+              description={t('onboarding.notifyDonationsHint')}
               value={formData.donationReminders}
               onValueChange={(v) => updateField('donationReminders', v)}
             />
             <NotificationToggle
-              label="System notifications"
-              description="Important updates about your account"
+              label={t('onboarding.notifySystem')}
+              description={t('onboarding.notifySystemHint')}
               value={formData.system}
               onValueChange={(v) => updateField('system', v)}
             />
@@ -347,20 +351,29 @@ export default function OnboardingWelcome() {
         return (
           <View style={styles.stepContent}>
             <View style={styles.reviewCard}>
-              <ReviewItem label="Name" value={`${formData.firstName} ${formData.lastName}`} />
-              <ReviewItem label="Phone" value={formData.phone || 'Not provided'} />
               <ReviewItem
-                label="Blood Type"
+                label={t('onboarding.reviewName')}
+                value={`${formData.firstName} ${formData.lastName}`}
+              />
+              <ReviewItem
+                label={t('onboarding.reviewPhone')}
+                value={formData.phone || t('onboarding.notProvided')}
+              />
+              <ReviewItem
+                label={t('medical.bloodGroup')}
                 value={
                   formData.bloodType && formData.rhFactor
                     ? `${formData.bloodType}${formData.rhFactor === 'POSITIVE' ? '+' : '-'}`
-                    : 'Not provided'
+                    : t('onboarding.notProvided')
                 }
               />
-              <ReviewItem label="Location" value={formData.city || 'Not provided'} />
               <ReviewItem
-                label="Precise Location Sharing"
-                value={formData.consentLocation ? 'On' : 'Off'}
+                label={t('onboarding.reviewLocation')}
+                value={formData.city || t('onboarding.notProvided')}
+              />
+              <ReviewItem
+                label={t('onboarding.reviewPreciseLocation')}
+                value={t(formData.consentLocation ? 'onboarding.on' : 'onboarding.off')}
               />
             </View>
           </View>
@@ -408,13 +421,13 @@ export default function OnboardingWelcome() {
             icon={ChevronLeft}
             onPress={handleBack}
             accessibilityRole="button"
-            accessibilityLabel="Previous step"
+            accessibilityLabel={t('onboarding.previousStep')}
           />
         ) : (
           <View style={styles.backSpacer} />
         )}
         <AppText muted style={styles.stepLabel}>
-          {currentStep + 1} of {STEPS.length}
+          {t('onboarding.stepOf', { current: currentStep + 1, total: STEPS.length })}
         </AppText>
       </View>
       <View style={styles.rail}>
@@ -424,9 +437,9 @@ export default function OnboardingWelcome() {
       <View style={styles.stepBadge}>
         <StepIcon size={26} color={colors.primary} />
       </View>
-      <AppText style={styles.title}>{step.title}</AppText>
+      <AppText style={styles.title}>{t(step.titleKey)}</AppText>
       <AppText muted style={styles.subtitle}>
-        {step.subtitle}
+        {t(step.subtitleKey)}
       </AppText>
 
       <View style={styles.content}>{renderStep()}</View>
@@ -443,7 +456,7 @@ export default function OnboardingWelcome() {
           disabled={!canProceed() || isLoading}
           loading={isLoading}
         >
-          {isLastStep ? 'Complete Setup' : 'Continue'}
+          {t(isLastStep ? 'onboarding.completeSetup' : 'onboarding.continue')}
         </AppButton>
       </View>
     </Screen>
@@ -470,13 +483,14 @@ function BloodTypeChip({
   selected: boolean;
   onPress: () => void;
 }) {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
       accessibilityState={{ selected }}
-      accessibilityLabel={`Blood type ${label}`}
+      accessibilityLabel={t('onboarding.a11yBloodType', { type: label })}
       style={({ pressed }) => ({
         flex: 1,
         height: 62,

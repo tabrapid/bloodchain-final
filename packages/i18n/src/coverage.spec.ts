@@ -3,7 +3,7 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { CATALOGS, en } from './locales';
 import { SUPPORTED_LOCALES } from './locale';
-import { collectKeys, createTranslator, translate } from './translate';
+import { collectKeys, createTranslator, translate, type Catalog } from './translate';
 
 /**
  * Source-level coverage: does the code only ask for keys that exist, and does
@@ -141,29 +141,21 @@ describe('status domains cover the enums they label', () => {
 
 describe('no covered screen still carries its own English', () => {
   /**
-   * The screens Sprint 1C committed to covering. Listed explicitly rather than
-   * scanned for, so adding a screen is a deliberate act and the list is the
-   * record of what was promised.
+   * Every route file in the donor app, plus the components they render
+   * through, plus every page of the three consoles.
+   *
+   * A prefix list rather than a file list: a screen added tomorrow is covered
+   * the moment it exists, which is the opposite of the failure this guards
+   * against — a new screen typed in English because nobody remembered to add
+   * it to a list.
    */
   const COVERED = [
-    'apps/mobile/app/(booking)/',
-    'apps/mobile/app/(app)/appointment/',
-    'apps/mobile/app/(app)/donations/',
-    'apps/mobile/app/(app)/laboratory/',
-    'apps/mobile/app/(app)/health-trends/',
-    'apps/mobile/app/(app)/insights/',
-    'apps/mobile/app/(app)/notifications.tsx',
-    'apps/mobile/app/sos.tsx',
-    'apps/mobile/app/(app)/campaigns/',
-    'apps/mobile/app/(app)/challenges/',
-    'apps/mobile/app/(app)/education/',
-    'apps/mobile/app/(app)/gamification/',
-    'apps/mobile/app/(app)/privacy.tsx',
-    'apps/mobile/app/(app)/security.tsx',
-    'apps/mobile/app/(app)/profile/',
+    'apps/mobile/app/',
+    'apps/mobile/src/components/',
     'apps/hospital-web/app/',
     'apps/blood-center-web/app/',
     'apps/admin-web/app/',
+    'packages/ui/src/components/',
   ];
 
   /**
@@ -181,7 +173,10 @@ describe('no covered screen still carries its own English', () => {
     const stripped = text
       .replace(/\/\*[\s\S]*?\*\//g, '')
       .replace(/^\s*\/\/.*$/gm, '')
-      .replace(/^import[\s\S]*?from\s+'[^']*';$/gm, '');
+      .replace(/^import[\s\S]*?from\s+'[^']*';$/gm, '')
+      // Developer diagnostics are deliberately English: nobody reading the
+      // screen ever sees them, and a translated stack trace helps no one.
+      .replace(/console\.(error|warn|log|info|debug)\([^)]*\)/g, '');
     const found: string[] = [];
 
     // JSX text nodes, including ones that wrap across lines. The `>` must not
@@ -193,21 +188,27 @@ describe('no covered screen still carries its own English', () => {
     }
     // Copy-carrying props and attributes.
     for (const m of stripped.matchAll(
-      /\b(label|title|subtitle|placeholder|message|description|header|note|text|name|aria-label)\s*[=:]\s*'([^']{3,160})'/g,
+      /\b(label|title|subtitle|placeholder|message|description|header|note|text|name|aria-label|accessibilityLabel|accessibilityHint)\s*[=:]\s*'([^']{3,190})'/g,
     )) {
       if (looksLikeCopy(m[2]!)) found.push(m[2]!);
     }
     for (const m of stripped.matchAll(
-      /\b(label|title|subtitle|placeholder|message|description|header|note|text|name|aria-label)="([^"]{3,160})"/g,
+      /\b(label|title|subtitle|placeholder|message|description|header|note|text|name|aria-label|accessibilityLabel|accessibilityHint)="([^"]{3,190})"/g,
     )) {
       if (looksLikeCopy(m[2]!)) found.push(m[2]!);
+    }
+    // `Alert.alert('Title', 'Body')` -- a modal is as user-facing as a screen.
+    for (const m of stripped.matchAll(/Alert\.alert\(\s*'([^']{3,190})'\s*(?:,\s*'([^']{3,190})')?/g)) {
+      for (const part of [m[1], m[2]]) {
+        if (part && looksLikeCopy(part)) found.push(part);
+      }
     }
     return found;
   }
 
   function looksLikeCopy(value: string): boolean {
     const s = value.replace(/\s+/g, ' ').trim();
-    if (s.length < 3 || s.length > 160) return false;
+    if (s.length < 3 || s.length > 190) return false;
     if (/[;={}[\]()|]/.test(s) || s.includes('=>') || s.includes('::')) return false;
     // Fragments of expressions the tag-to-tag scan can straddle.
     if (/&&|\|\||\?\s*$|^\d+\s/.test(s)) return false;
@@ -226,14 +227,26 @@ describe('no covered screen still carries its own English', () => {
 
   const covered = FILES.filter(({ path }) => isCovered(path));
 
-  it('has the covered screens in view, guarding against a stale path list', () => {
-    expect(covered.length).toBeGreaterThan(40);
+  it('has every mobile route and every console page in view', () => {
+    const mobileRoutes = covered.filter(({ path }) => path.startsWith('apps/mobile/app/'));
+    // 50-odd route files today; the floor guards against a broken path walk,
+    // not against the count changing.
+    expect(mobileRoutes.length).toBeGreaterThan(40);
+    expect(covered.length).toBeGreaterThan(100);
   });
 
-  it('leaves no hardcoded user-facing English behind', () => {
-    const offenders = covered.flatMap(({ path, text }) =>
-      copyLiterals(text).map((literal) => `${path}: ${JSON.stringify(literal)}`),
-    );
+  it.each([
+    ['the donor app', 'apps/mobile/app/'],
+    ['shared mobile components', 'apps/mobile/src/components/'],
+    ['the hospital console', 'apps/hospital-web/app/'],
+    ['the blood center console', 'apps/blood-center-web/app/'],
+    ['the admin console', 'apps/admin-web/app/'],
+  ])('leaves no hardcoded user-facing English in %s', (_name, prefix) => {
+    const offenders = covered
+      .filter(({ path }) => path.startsWith(prefix))
+      .flatMap(({ path, text }) =>
+        copyLiterals(text).map((literal) => `${path}: ${JSON.stringify(literal)}`),
+      );
     expect(offenders).toEqual([]);
   });
 });
@@ -266,5 +279,48 @@ describe('every language renders, and falls back where it has not been written',
 
   it('returns the key itself when no catalogue has it, so it is visible and greppable', () => {
     expect(translate(CATALOGS, 'uz', 'booking.notAKey').text).toBe('booking.notAKey');
+  });
+});
+
+describe('the clinical review manifest matches the catalogue', () => {
+  const MANIFEST = join(ROOT, 'docs', 'clinical-review.md');
+  const text = readFileSync(MANIFEST, 'utf8');
+
+  /** The key column of every term row, in file order. */
+  const listed = [...text.matchAll(/^\| `(medical\.[\w.]+)` \|/gm)].map((m) => m[1]!);
+  const clinical = collectKeys(en.medical as Catalog, 'medical').sort();
+
+  it('lists every medical key, and nothing else', () => {
+    // A term added to `medical` and not to the manifest ships to donors
+    // without a clinician ever seeing it, which is the whole failure this
+    // namespace exists to prevent. `pnpm clinical:review` regenerates it.
+    expect(listed).toEqual(clinical);
+  });
+
+  it('carries all three languages for every term', () => {
+    const rows = [...text.matchAll(/^\| `(medical\.[\w.]+)` \| (.*?) \| (.*?) \| (.*?) \| (.*?) \| (.*?) \|$/gm)];
+    expect(rows.length).toBe(clinical.length);
+    const blank = rows
+      .filter(([, , source, uzbek, russian]) => !source?.trim() || !uzbek?.trim() || !russian?.trim())
+      .map(([, key]) => key);
+    expect(blank).toEqual([]);
+  });
+
+  it('gives every term a review status', () => {
+    const rows = [...text.matchAll(/^\| `(medical\.[\w.]+)` \|(?:[^|]*\|){3}\s*([^|]*?)\s*\|/gm)];
+    const missing = rows.filter(([, , status]) => !status?.trim()).map(([, key]) => key);
+    expect(missing).toEqual([]);
+  });
+
+  it('agrees with the English catalogue, so a reworded term cannot pass as reviewed', () => {
+    const drifted: string[] = [];
+    for (const m of text.matchAll(/^\| `(medical\.[\w.]+)` \| (.*?) \|/gm)) {
+      const key = m[1]!;
+      // `cell()` escapes pipes on the way in; undo that before comparing.
+      const source = m[2]!.replace(/\\\|/g, '|');
+      const catalogued = translate(CATALOGS, 'en', key).text.replace(/\n/g, ' ');
+      if (source !== catalogued) drifted.push(`${key}: ${JSON.stringify(source)} vs ${JSON.stringify(catalogued)}`);
+    }
+    expect(drifted).toEqual([]);
   });
 });

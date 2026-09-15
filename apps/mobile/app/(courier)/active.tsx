@@ -13,6 +13,7 @@ import {
 } from 'lucide-react-native';
 import { AppButton, AppHeader, AppText, Badge, Card, EmptyState, LoadingState, Screen } from '../../src/components';
 import { LocationMap, type MapMarkerPoint } from '../../src/components/map/LocationMap';
+import { useTranslation } from '../../src/i18n';
 import { layout, spacing, useTheme } from '../../src/theme';
 import {
   acceptShipment,
@@ -32,26 +33,42 @@ import {
 const LOCATION_UPDATE_INTERVAL_MS = 20000;
 const LOCATION_UPDATE_DISTANCE_M = 75;
 
-const STATUS_LABEL: Record<string, string> = {
-  COURIER_ASSIGNED: 'New Assignment',
-  COURIER_ACCEPTED: 'Accepted',
-  PICKUP_STARTED: 'At Pickup',
-  PICKED_UP: 'Picked Up',
-  IN_TRANSIT: 'In Transit',
-  ARRIVED_AT_HOSPITAL: 'Arrived',
+/**
+ * Two of these read better to a courier than the raw shipment status does
+ * ("New assignment" for COURIER_ASSIGNED, "At pickup" for PICKUP_STARTED); the
+ * rest are the ordinary status words, so they come from the shared
+ * `status.shipment` namespace rather than a second set of translations.
+ */
+const STATUS_KEY: Record<string, string> = {
+  COURIER_ASSIGNED: 'courier.assignmentNew',
+  COURIER_ACCEPTED: 'status.shipment.COURIER_ACCEPTED',
+  PICKUP_STARTED: 'courier.atPickup',
+  PICKED_UP: 'status.shipment.PICKED_UP',
+  IN_TRANSIT: 'status.shipment.IN_TRANSIT',
+  ARRIVED_AT_HOSPITAL: 'status.shipment.ARRIVED_AT_HOSPITAL',
 };
 
-function unitsSummary(shipment: Shipment): string {
+/**
+ * "3 A+, 1 O-" -- blood group notation is the same in every language, so only
+ * the fallback ("4 units", when no unit carries a group) needs translating.
+ * The translator is passed in because this runs inside a render.
+ */
+function unitsSummary(
+  shipment: Shipment,
+  t: (key: string, options?: Record<string, string | number>) => string,
+): string {
   const counts = new Map<string, number>();
   for (const unit of shipment.units ?? []) {
-    const bloodType = unit.bloodUnit ? `${unit.bloodUnit.bloodType}${unit.bloodUnit.rhFactor === 'POSITIVE' ? '+' : '-'}` : 'unit';
+    if (!unit.bloodUnit) continue;
+    const bloodType = `${unit.bloodUnit.bloodType}${unit.bloodUnit.rhFactor === 'POSITIVE' ? '+' : '-'}`;
     counts.set(bloodType, (counts.get(bloodType) ?? 0) + 1);
   }
-  if (counts.size === 0) return `${shipment.units?.length ?? 0} unit(s)`;
+  if (counts.size === 0) return t('units.bloodUnits', { count: shipment.units?.length ?? 0 });
   return Array.from(counts.entries()).map(([type, count]) => `${count} ${type}`).join(', ');
 }
 
 export default function CourierActive() {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const [shipment, setShipment] = useState<Shipment | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -91,7 +108,7 @@ export default function CourierActive() {
     async function startTracking() {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Location Permission Needed', 'Bloodchain needs your location while in transit so the hospital can track the delivery.');
+        Alert.alert(t('sos.locationPermissionTitle'), t('courier.locationPermissionBody'));
         return;
       }
 
@@ -172,7 +189,7 @@ export default function CourierActive() {
                 id: 'courier',
                 latitude: tracking.currentLocation.latitude,
                 longitude: tracking.currentLocation.longitude,
-                label: 'You',
+                label: t('sos.you'),
                 variant: 'courier' as const,
               },
             ]
@@ -197,7 +214,7 @@ export default function CourierActive() {
       const updated = await action();
       setShipment(updated);
     } catch (err: any) {
-      Alert.alert('Error', err?.message || 'Something went wrong. Please try again.');
+      Alert.alert(t('common.error'), err?.message || t('common.error'));
     } finally {
       setActionLoading(false);
     }
@@ -217,7 +234,7 @@ export default function CourierActive() {
       setDeclineReason('');
       await load();
     } catch (err: any) {
-      Alert.alert('Error', err?.message || 'Failed to decline shipment');
+      Alert.alert(t('common.error'), err?.message || t('courier.declineFailed'));
     } finally {
       setActionLoading(false);
     }
@@ -245,7 +262,7 @@ export default function CourierActive() {
 
   const handleFail = async () => {
     if (!shipment || !failReason.trim()) {
-      Alert.alert('Reason required', 'Please describe what went wrong.');
+      Alert.alert(t('courier.reasonRequired'), t('courier.reasonRequiredBody'));
       return;
     }
     setActionLoading(true);
@@ -255,7 +272,7 @@ export default function CourierActive() {
       setFailReason('');
       await load();
     } catch (err: any) {
-      Alert.alert('Error', err?.message || 'Failed to report the problem');
+      Alert.alert(t('common.error'), err?.message || t('courier.reportFailed'));
     } finally {
       setActionLoading(false);
     }
@@ -264,7 +281,7 @@ export default function CourierActive() {
   if (isLoading) {
     return (
       <Screen>
-        <AppHeader title="Active Delivery" />
+        <AppHeader title={t('courier.activeTitle')} />
         <LoadingState />
       </Screen>
     );
@@ -272,7 +289,7 @@ export default function CourierActive() {
 
   return (
     <Screen scroll={false}>
-      <AppHeader title="Active Delivery" />
+      <AppHeader title={t('courier.activeTitle')} />
       <ScrollView
         style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
@@ -292,18 +309,18 @@ export default function CourierActive() {
             <>
               <EmptyState
                 icon={AlertTriangle}
-                title="Couldn't load your delivery"
-                description="Something went wrong reaching the server. Check your connection and try again."
+                title={t('courier.activeLoadFailed')}
+                description={t('common.offline')}
               />
               <AppButton variant="secondary" onPress={load} style={{ marginTop: spacing.md }}>
-                Retry
+                {t('common.retry')}
               </AppButton>
             </>
           ) : (
             <EmptyState
               icon={Package}
-              title="No active delivery"
-              description="When a blood center assigns you a shipment, it will show up here."
+              title={t('courier.noActive')}
+              description={t('courier.noActiveHint')}
             />
           )
         ) : (
@@ -312,20 +329,22 @@ export default function CourierActive() {
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.md }}>
                 <AppText variant="heading">{shipment.shipmentReference}</AppText>
                 <Badge variant={shipment.status === 'IN_TRANSIT' ? 'primary' : 'secondary'}>
-                  {STATUS_LABEL[shipment.status] || shipment.status}
+                  {t(STATUS_KEY[shipment.status] ?? `status.shipment.${shipment.status}`)}
                 </Badge>
               </View>
 
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm }}>
                 <Droplet size={16} color={colors.primary} />
-                <AppText muted>{unitsSummary(shipment)}</AppText>
+                <AppText muted>{unitsSummary(shipment, t)}</AppText>
               </View>
 
               {shipment.sourceOrganization && (
                 <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm, marginBottom: spacing.sm }}>
                   <Building2 size={16} color={colors.textMuted} style={{ marginTop: 2 }} />
                   <View style={{ flex: 1 }}>
-                    <AppText style={{ fontSize: 13 }}>Pickup: {shipment.sourceOrganization.name}</AppText>
+                    <AppText style={{ fontSize: 13 }}>
+                      {t('courier.pickupFrom', { organization: shipment.sourceOrganization.name })}
+                    </AppText>
                     {shipment.sourceOrganization.address && (
                       <AppText muted style={{ fontSize: 12 }}>{shipment.sourceOrganization.address}</AppText>
                     )}
@@ -337,7 +356,11 @@ export default function CourierActive() {
                 <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm }}>
                   <MapPin size={16} color={colors.textMuted} style={{ marginTop: 2 }} />
                   <View style={{ flex: 1 }}>
-                    <AppText style={{ fontSize: 13 }}>Deliver to: {shipment.destinationOrganization.name}</AppText>
+                    <AppText style={{ fontSize: 13 }}>
+                      {t('courier.deliverTo', {
+                        organization: shipment.destinationOrganization.name,
+                      })}
+                    </AppText>
                     {shipment.destinationOrganization.address && (
                       <AppText muted style={{ fontSize: 12 }}>{shipment.destinationOrganization.address}</AppText>
                     )}
@@ -355,19 +378,21 @@ export default function CourierActive() {
             {shipment.status === 'COURIER_ASSIGNED' && !showDecline && (
               <View style={{ gap: spacing.sm }}>
                 <AppButton onPress={handleAccept} disabled={actionLoading}>
-                  <CheckCircle size={18} /> Accept Delivery
+                  <CheckCircle size={18} /> {t('courier.acceptDelivery')}
                 </AppButton>
                 <AppButton variant="danger" onPress={() => setShowDecline(true)} disabled={actionLoading}>
-                  <XCircle size={18} /> Decline
+                  <XCircle size={18} /> {t('courier.decline')}
                 </AppButton>
               </View>
             )}
 
             {shipment.status === 'COURIER_ASSIGNED' && showDecline && (
               <Card>
-                <AppText variant="heading" style={{ marginBottom: spacing.sm }}>Decline this delivery?</AppText>
+                <AppText variant="heading" style={{ marginBottom: spacing.sm }}>
+                  {t('courier.declineTitle')}
+                </AppText>
                 <TextInput
-                  placeholder="Reason (optional)"
+                  placeholder={t('courier.declineReasonPlaceholder')}
                   placeholderTextColor={colors.textMuted}
                   value={declineReason}
                   onChangeText={setDeclineReason}
@@ -383,10 +408,10 @@ export default function CourierActive() {
                 />
                 <View style={{ flexDirection: 'row', gap: spacing.sm }}>
                   <AppButton variant="secondary" onPress={() => setShowDecline(false)} style={{ flex: 1 }}>
-                    Cancel
+                    {t('actions.cancel')}
                   </AppButton>
                   <AppButton variant="danger" onPress={handleDecline} disabled={actionLoading} style={{ flex: 1 }}>
-                    Confirm Decline
+                    {t('courier.confirmDecline')}
                   </AppButton>
                 </View>
               </Card>
@@ -394,19 +419,19 @@ export default function CourierActive() {
 
             {shipment.status === 'COURIER_ACCEPTED' && (
               <AppButton onPress={handleStartPickup} disabled={actionLoading}>
-                <Navigation size={18} /> Start Pickup
+                <Navigation size={18} /> {t('courier.startPickup')}
               </AppButton>
             )}
 
             {shipment.status === 'PICKUP_STARTED' && (
               <AppButton onPress={handleConfirmPickup} disabled={actionLoading}>
-                <CheckCircle size={18} /> Confirm Units Collected
+                <CheckCircle size={18} /> {t('courier.confirmUnitsCollected')}
               </AppButton>
             )}
 
             {shipment.status === 'PICKED_UP' && (
               <AppButton onPress={handleStartDelivery} disabled={actionLoading}>
-                <Navigation size={18} /> Start Delivery
+                <Navigation size={18} /> {t('courier.startDelivery')}
               </AppButton>
             )}
 
@@ -415,11 +440,11 @@ export default function CourierActive() {
                 <Card style={{ marginBottom: layout.cardGap, flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
                   <Navigation size={18} color={colors.primary} />
                   <AppText style={{ color: colors.primary, flex: 1 }}>
-                    Sharing your live location with the hospital
+                    {t('courier.sharingLocation')}
                   </AppText>
                 </Card>
                 <AppButton onPress={handleArrived} disabled={actionLoading}>
-                  <CheckCircle size={18} /> Arrived at Hospital
+                  <CheckCircle size={18} /> {t('courier.arrivedAtHospital')}
                 </AppButton>
               </>
             )}
@@ -428,27 +453,27 @@ export default function CourierActive() {
               <Card style={{ alignItems: 'center', paddingVertical: spacing.lg }}>
                 <CheckCircle size={40} color={colors.success} />
                 <AppText variant="heading" style={{ marginTop: spacing.md, textAlign: 'center' }}>
-                  Awaiting hospital confirmation
+                  {t('courier.awaitingConfirmation')}
                 </AppText>
                 <AppText muted style={{ marginTop: spacing.xs, textAlign: 'center' }}>
-                  Hand off the units to hospital staff. They'll confirm receipt.
+                  {t('courier.awaitingConfirmationHint')}
                 </AppText>
               </Card>
             )}
 
             {['COURIER_ACCEPTED', 'PICKUP_STARTED', 'PICKED_UP', 'IN_TRANSIT'].includes(shipment.status) && !showFail && (
               <AppButton variant="ghost" onPress={() => setShowFail(true)} style={{ marginTop: spacing.md }} disabled={actionLoading}>
-                <AlertTriangle size={16} color={colors.danger} /> Report a Problem
+                <AlertTriangle size={16} color={colors.danger} /> {t('courier.reportProblem')}
               </AppButton>
             )}
 
             {showFail && (
               <Card style={{ marginTop: layout.cardGap, borderColor: colors.danger }}>
                 <AppText variant="heading" style={{ marginBottom: spacing.sm, color: colors.danger }}>
-                  Report a Problem
+                  {t('courier.reportProblem')}
                 </AppText>
                 <TextInput
-                  placeholder="What went wrong?"
+                  placeholder={t('courier.reportProblemPlaceholder')}
                   placeholderTextColor={colors.textMuted}
                   value={failReason}
                   onChangeText={setFailReason}
@@ -467,10 +492,10 @@ export default function CourierActive() {
                 />
                 <View style={{ flexDirection: 'row', gap: spacing.sm }}>
                   <AppButton variant="secondary" onPress={() => setShowFail(false)} style={{ flex: 1 }}>
-                    Cancel
+                    {t('actions.cancel')}
                   </AppButton>
                   <AppButton variant="danger" onPress={handleFail} disabled={actionLoading} style={{ flex: 1 }}>
-                    Submit
+                    {t('actions.submit')}
                   </AppButton>
                 </View>
               </Card>
