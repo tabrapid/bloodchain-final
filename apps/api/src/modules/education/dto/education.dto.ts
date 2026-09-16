@@ -4,12 +4,12 @@ import {
   IsOptional,
   IsString,
   IsInt,
-  IsBoolean,
   Min,
   Max,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { EducationContentType } from '@prisma/client';
+import { OptionalBooleanField } from '../../../common/decorators/strict-boolean.decorator';
 
 export class CreateEducationalContentDto {
   @ApiProperty({ enum: EducationContentType })
@@ -98,9 +98,7 @@ export class UpdateEducationalContentDto {
   @Min(1)
   estimatedMinutes?: number;
 
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsBoolean()
+  @OptionalBooleanField()
   isActive?: boolean;
 }
 

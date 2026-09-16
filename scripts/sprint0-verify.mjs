@@ -75,7 +75,9 @@ const eligibleDonor = await login('donor@donor.local');       // last donation 7
 const recoveringDonor = await login('recent.donor@donor.local'); // donated 12 days ago
 const admin = await login('admin@donor.local');
 
-const orgs = list((await call('GET', '/organizations', admin)).body);
+// `limit=100`, not the default page: the Uzbekistan demo directory added
+// seventeen organisations that sort ahead of the ones this script needs.
+const orgs = list((await call('GET', '/organizations?limit=100', admin)).body);
 const jizzakh = orgs.find((o) => o.name === 'Jizzakh City Hospital');
 const northstarHospital = orgs.find((o) => o.name === 'Northstar Hospital (Development)');
 const northstarCentre = orgs.find((o) => o.name === 'Northstar Blood Center (Development)');

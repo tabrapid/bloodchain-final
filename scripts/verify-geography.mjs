@@ -691,8 +691,12 @@ async function main() {
     where: { id: { in: shouldAccept.map((o) => o.id) } },
     select: { id: true, acceptsDonations: true },
   });
+  // The invariant, not the mechanism: on a database that predates the directory
+  // the migration's backfill sets this, and on a freshly seeded one the seed
+  // does. Either way an active hospital or blood centre a donor could book at
+  // yesterday has to still be bookable today.
   check(
-    'the backfill kept every pre-existing site bookable',
+    'every active hospital and blood centre is still bookable',
     accepting.length > 0 && accepting.every((o) => o.acceptsDonations),
     `${accepting.length} active hospitals and blood centres`,
   );
@@ -706,7 +710,7 @@ async function main() {
     select: { id: true, providesLaboratory: true, isDemo: true },
   });
   check(
-    'the laboratory backfill followed the data rather than asserting it',
+    'the laboratory flag follows the data rather than asserting it',
     labFlags
       .filter((o) => !o.isDemo)
       .every((o) => o.providesLaboratory === labOrgIds.has(o.id)),
@@ -932,20 +936,35 @@ async function verifyOverHttp() {
   );
 
   const affirmative = await api('PATCH', `/organizations/${subject.id}/verification`, adminToken, {
-    verified: 'yes',
+    verified: 'true',
   });
   check(
-    'an affirmative flag verifies the organization',
+    'the word "true" verifies the organization',
     affirmative.status === 200 && (await isVerified()) === true,
     `${affirmative.status}`,
   );
 
-  // The bug this exists for: "no" must withdraw verification, not grant it.
+  // Sprint 2.1: "yes" and "no" are conventions some clients invert, so they are
+  // refused rather than interpreted. The refusal must also change nothing --
+  // a 400 that had already written is worse than either answer.
+  const affirmativeWord = await api(
+    'PATCH',
+    `/organizations/${subject.id}/verification`,
+    adminToken,
+    { verified: 'yes' },
+  );
+  check(
+    '"yes" is refused rather than read as a verification',
+    affirmativeWord.status === 400 && (await isVerified()) === true,
+    `${affirmativeWord.status}, still verified`,
+  );
+
+  // The bug this exists for: "false" must withdraw verification, not grant it.
   const negative = await api('PATCH', `/organizations/${subject.id}/verification`, adminToken, {
-    verified: 'no',
+    verified: 'false',
   });
   check(
-    '"no" withdraws verification rather than granting it',
+    '"false" withdraws verification rather than granting it',
     negative.status === 200 && (await isVerified()) === false,
     `${negative.status} — ${subject.name} is unverified again`,
   );

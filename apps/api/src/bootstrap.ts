@@ -1,4 +1,4 @@
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { INestApplication, ValidationPipe, type ValidationPipeOptions } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import helmet from 'helmet';
 import { ApiExceptionFilter } from './common/filters/api-exception.filter';
@@ -7,6 +7,23 @@ import {
   RequestIdInterceptor,
   REQUEST_ID_HEADER,
 } from './common/interceptors/request-id.interceptor';
+
+/**
+ * How every request body and query string is validated.
+ *
+ * Exported so tests can validate a DTO the way the running server does rather
+ * than the way a test would set it up if left to itself. `enableImplicitConversion`
+ * in particular changes what reaches a DTO -- it coerces every property to its
+ * declared type, and for a boolean that is `Boolean(value)`, under which every
+ * non-empty string is true. A boolean test that omitted this option would pass
+ * on values the server turns into their opposite.
+ */
+export const VALIDATION_PIPE_OPTIONS: ValidationPipeOptions = {
+  whitelist: true,
+  forbidNonWhitelisted: true,
+  transform: true,
+  transformOptions: { enableImplicitConversion: true },
+};
 
 /**
  * Applies the same CORS/security headers, global prefix, pipes, filters, and
@@ -45,14 +62,7 @@ export function configureApp(app: INestApplication, config: ConfigService): void
 
   app.setGlobalPrefix('api/v1');
 
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
-      transformOptions: { enableImplicitConversion: true },
-    }),
-  );
+  app.useGlobalPipes(new ValidationPipe(VALIDATION_PIPE_OPTIONS));
   app.useGlobalFilters(new ApiExceptionFilter());
   app.useGlobalInterceptors(new RequestIdInterceptor(), new LoggingInterceptor());
 }

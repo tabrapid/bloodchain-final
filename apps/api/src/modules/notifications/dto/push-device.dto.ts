@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsBoolean, IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
+import { OptionalBooleanField } from '../../../common/decorators/strict-boolean.decorator';
 
 const PUSH_PLATFORMS = ['ios', 'android', 'web'] as const;
 
@@ -51,9 +52,7 @@ export class UpdatePushDeviceDto {
   @MaxLength(100)
   timezone?: string;
 
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsBoolean()
+  @OptionalBooleanField()
   isActive?: boolean;
 }
 

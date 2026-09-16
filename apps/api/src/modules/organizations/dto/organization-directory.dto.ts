@@ -17,7 +17,10 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { OrganizationServiceType, OrganizationStatus, OrganizationType } from '@prisma/client';
-import { BooleanField, BooleanQuery } from '../../../common/decorators/boolean-query.decorator';
+import {
+  OptionalBooleanField,
+  RequiredBooleanField,
+} from '../../../common/decorators/strict-boolean.decorator';
 
 /** "HH:MM" on a 24-hour clock. Uzbekistan has one time zone and no DST. */
 const TIME_OF_DAY = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -42,7 +45,7 @@ export class OrganizationHoursDto {
   @Matches(TIME_OF_DAY, { message: 'validation.timeOfDay' })
   closesAt?: string;
 
-  @BooleanQuery('Closed all day; clears the opening times')
+  @OptionalBooleanField('Closed all day; clears the opening times')
   isClosed?: boolean;
 }
 
@@ -106,10 +109,10 @@ export class UpdateOrganizationDirectoryDto {
   @MaxLength(32)
   publicPhone?: string | null;
 
-  @BooleanQuery('Whether donors can book a donation here')
+  @OptionalBooleanField('Whether donors can book a donation here')
   acceptsDonations?: boolean;
 
-  @BooleanQuery('Whether this organization runs laboratory testing')
+  @OptionalBooleanField('Whether this organization runs laboratory testing')
   providesLaboratory?: boolean;
 
   @ApiPropertyOptional({ type: [OrganizationServiceDto] })
@@ -171,13 +174,13 @@ export class OrganizationDirectoryQueryDto {
   @IsEnum(OrganizationServiceType)
   service?: OrganizationServiceType;
 
-  @BooleanQuery('Only organizations that collect donations')
+  @OptionalBooleanField('Only organizations that collect donations')
   acceptsDonations?: boolean;
 
-  @BooleanQuery('Only organizations that run laboratory testing')
+  @OptionalBooleanField('Only organizations that run laboratory testing')
   providesLaboratory?: boolean;
 
-  @BooleanQuery('Only verified / only unverified')
+  @OptionalBooleanField('Only verified / only unverified')
   verified?: boolean;
 
   @ApiPropertyOptional({ description: 'Name or address contains' })
@@ -221,6 +224,6 @@ export class DiscoverOrganizationsQueryDto extends OrganizationDirectoryQueryDto
  * truthy string.
  */
 export class SetOrganizationVerificationDto {
-  @BooleanField('True to verify, false to withdraw verification')
+  @RequiredBooleanField('True to verify, false to withdraw verification')
   verified!: boolean;
 }

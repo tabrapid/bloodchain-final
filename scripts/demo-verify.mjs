@@ -241,7 +241,7 @@ async function sosFlow() {
   const staff = await login('hospital.staff@donor.local');
 
   const profile = (await call('GET', '/donors/profile', donor)).body;
-  const hospitals = list((await call('GET', '/organizations/discover?type=HOSPITAL', donor)).body);
+  const hospitals = list((await call('GET', '/organizations/discover?type=HOSPITAL&limit=100', donor)).body);
   const hospital = hospitals.find((o) => o.name.includes('Northstar')) ?? hospitals[0];
   if (!step('a hospital is available', Boolean(hospital))) return;
 
@@ -309,7 +309,7 @@ async function donationFlow() {
   flow('Flow A — donation: book, check in, collect, donor sees the volume');
   const donor = await login('donor@donor.local');
 
-  const orgs = list((await call('GET', '/organizations/discover', donor)).body);
+  const orgs = list((await call('GET', '/organizations/discover?limit=100', donor)).body);
   step('several organisations are bookable', orgs.length >= 5, `${orgs.length} listed`);
   const target = orgs.find((o) => o.name === 'Jizzakh City Hospital') ?? orgs[0];
 

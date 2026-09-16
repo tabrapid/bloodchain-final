@@ -441,6 +441,11 @@ async function main() {
       address: '123 Medical Drive',
       email: 'contact@northstar-hospital.local',
       phone: '+14155550100',
+      // Bookable for a donation, like every active hospital and blood centre.
+      // The directory defaults this to false for a new, unfilled entry, so the
+      // seed has to say it -- otherwise the booking flow, which asks for
+      // organisations that accept donations, cannot see the demo hospital.
+      acceptsDonations: true,
       hospital: { create: {} },
     },
   });
@@ -453,6 +458,7 @@ async function main() {
       address: '456 Blood Way',
       email: 'contact@northstar-bloodcenter.local',
       phone: '+14155550200',
+      acceptsDonations: true,
       bloodCenter: { create: {} },
     },
   });
@@ -669,6 +675,7 @@ async function main() {
         latitude: org.lat,
         longitude: org.lon,
         status: 'ACTIVE',
+        acceptsDonations: true,
         ...(org.type === OrganizationType.HOSPITAL
           ? { hospital: { create: {} } }
           : { bloodCenter: { create: {} } }),
@@ -1512,6 +1519,14 @@ async function main() {
     },
   });
 
+  // The flag the directory filters on is derived from the profile that was just
+  // created, never asserted separately: an organisation runs laboratory testing
+  // precisely when it holds a LaboratoryProfile.
+  await db.organization.update({
+    where: { id: centerOrg.id },
+    data: { providesLaboratory: true },
+  });
+
   await db.laboratoryProfile.update({
     where: { id: labProfile.id },
     data: {
@@ -1538,6 +1553,10 @@ async function main() {
         workingHours: 'Mon-Sat: 8:00 - 18:00',
         isActive: true,
       },
+    });
+    await db.organization.update({
+      where: { id: org.id },
+      data: { providesLaboratory: true },
     });
     await db.laboratoryProfile.update({
       where: { id: profile.id },

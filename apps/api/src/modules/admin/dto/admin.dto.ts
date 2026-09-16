@@ -2,7 +2,6 @@ import {
   IsEnum,
   IsOptional,
   IsString,
-  IsBoolean,
   IsInt,
   IsDateString,
   IsArray,
@@ -18,6 +17,7 @@ import {
   ContentReportStatus,
   ContentReportReason,
 } from '@prisma/client';
+import { OptionalBooleanField } from '../../../common/decorators/strict-boolean.decorator';
 
 export class AdminUpdateRolePermissionsDto {
   @ApiProperty({ type: [String], example: ['organization.read', 'shipment.manage'] })
@@ -41,29 +41,19 @@ export class AdminUpdatePlatformSettingsDto {
   @Max(43200)
   sessionTimeoutMinutes?: number;
 
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsBoolean()
+  @OptionalBooleanField()
   aiHealthInsightsEnabled?: boolean;
 
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsBoolean()
+  @OptionalBooleanField()
   sosEmergencyEnabled?: boolean;
 
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsBoolean()
+  @OptionalBooleanField()
   gamificationEnabled?: boolean;
 
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsBoolean()
+  @OptionalBooleanField()
   pushNotificationsEnabled?: boolean;
 
-  @ApiPropertyOptional({ description: 'When enabled, only SUPER_ADMIN accounts can sign in' })
-  @IsOptional()
-  @IsBoolean()
+  @OptionalBooleanField('When enabled, only SUPER_ADMIN accounts can sign in')
   maintenanceMode?: boolean;
 }
 

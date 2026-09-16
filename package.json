@@ -30,6 +30,7 @@
     "verify:recovery": "node scripts/recovery-verify.mjs",
     "verify:phone": "node scripts/phone-auth-verify.mjs",
     "verify:geography": "node scripts/verify-geography.mjs",
+    "verify:booleans": "node scripts/verify-boolean-safety.mjs",
     "clinical:review": "node scripts/clinical-review.mjs"
   },
   "devDependencies": {

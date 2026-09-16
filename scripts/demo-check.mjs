@@ -138,7 +138,7 @@ if (apiUp) {
 
   const donor = tokens['donor@donor.local'];
   if (donor) {
-    const orgs = await get('/organizations/discover', donor);
+    const orgs = await get('/organizations/discover?limit=100', donor);
     const list = Array.isArray(orgs.body) ? orgs.body : (orgs.body?.items ?? []);
     const hospitals = list.filter((o) => o.type === 'HOSPITAL').length;
     const centers = list.filter((o) => o.type === 'BLOOD_CENTER').length;

@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { AlertType, BloodType, BloodUnitStatus, ComponentType, LocationType, MovementType, ReservationStatus, RhFactor } from '@prisma/client';
 import { IsBoolean, IsDateString, IsEnum, IsInt, IsNotEmpty, IsOptional, IsString, Min } from 'class-validator';
+import { OptionalBooleanField } from '../../../common/decorators/strict-boolean.decorator';
 
 export class GetInventoryDto {
   @ApiPropertyOptional({ enum: BloodType })
@@ -104,9 +105,7 @@ export class UpdateLocationDto {
   @IsString()
   name?: string;
 
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsBoolean()
+  @OptionalBooleanField()
   active?: boolean;
 }
 

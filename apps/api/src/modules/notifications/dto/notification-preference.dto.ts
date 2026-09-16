@@ -1,62 +1,41 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsBoolean, IsOptional, IsString, Matches } from 'class-validator';
+import { IsOptional, IsString, Matches } from 'class-validator';
+import { OptionalBooleanField } from '../../../common/decorators/strict-boolean.decorator';
 
 const TIME_OF_DAY_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)$/;
 
 export class UpdateNotificationPreferencesDto {
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsBoolean()
+  @OptionalBooleanField()
   emergencyRequests?: boolean;
 
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsBoolean()
+  @OptionalBooleanField()
   appointments?: boolean;
 
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsBoolean()
+  @OptionalBooleanField()
   donationReminders?: boolean;
 
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsBoolean()
+  @OptionalBooleanField()
   healthResults?: boolean;
 
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsBoolean()
+  @OptionalBooleanField()
   gamification?: boolean;
 
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsBoolean()
+  @OptionalBooleanField()
   bloodRequests?: boolean;
 
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsBoolean()
+  @OptionalBooleanField()
   shipments?: boolean;
 
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsBoolean()
+  @OptionalBooleanField()
   inventory?: boolean;
 
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsBoolean()
+  @OptionalBooleanField()
   system?: boolean;
 
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsBoolean()
+  @OptionalBooleanField()
   security?: boolean;
 
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsBoolean()
+  @OptionalBooleanField()
   quietHoursEnabled?: boolean;
 
   @ApiPropertyOptional({ description: '24-hour HH:mm, e.g. 22:00' })
@@ -76,9 +55,7 @@ export class UpdateNotificationPreferencesDto {
   @IsString()
   quietHoursTimezone?: string;
 
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsBoolean()
+  @OptionalBooleanField()
   emergencyOverride?: boolean;
 }
 

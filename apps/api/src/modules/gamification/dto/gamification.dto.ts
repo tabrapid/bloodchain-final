@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsBoolean, IsOptional, IsInt, Min } from 'class-validator';
+import { IsInt, Min } from 'class-validator';
+import { RequiredBooleanField } from '../../../common/decorators/strict-boolean.decorator';
 
 export class GamificationProfileDto {
   @ApiProperty()
@@ -202,8 +203,7 @@ export class DonationStatsDto {
 }
 
 export class UpdateLeaderboardVisibilityDto {
-  @ApiProperty()
-  @IsBoolean()
+  @RequiredBooleanField()
   visible!: boolean;
 }
 

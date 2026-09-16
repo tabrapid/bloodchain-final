@@ -1,96 +1,85 @@
-# Backlog — boolean request fields are coerced, not parsed
+# Boolean request fields are coerced, not parsed — **closed**
 
 **Found:** Sprint 2, while verifying the organization directory over HTTP.
-**Fixed in Sprint 2:** the nine boolean fields the directory introduced.
-**Outstanding:** twenty boolean fields on existing request DTOs.
+**Closed:** Sprint 2.1. Every boolean on every request DTO is now parsed
+strictly, and a test stops the next one being written the old way.
 
-## What happens
+Kept as a record rather than deleted: the failure mode is invisible in code
+review, and the next person to reach for `@IsBoolean()` deserves to find this.
 
-`apps/api/src/bootstrap.ts` configures the global `ValidationPipe` with:
+## What was happening
 
-```ts
-transform: true,
-transformOptions: { enableImplicitConversion: true },
-```
+`apps/api/src/bootstrap.ts` configures the global `ValidationPipe` with
+`transformOptions: { enableImplicitConversion: true }` (still does — see
+"Why the pipe option stayed" below). Implicit conversion coerces every property
+to its declared TypeScript type, and for a `boolean` that coercion is
+`Boolean(value)`, under which **every non-empty string is `true`**:
 
-Implicit conversion coerces every property to its declared TypeScript type. For
-a `boolean` property that coercion is `Boolean(value)`, under which **every
-non-empty string is `true`**. So:
-
-| Client sends | Declared type | Value the service receives |
+| Client sends | Declared type | Value the service received |
 | --- | --- | --- |
 | `?verified=false` | `boolean` | `true` |
 | `{"verified":"no"}` | `boolean` | `true` |
 | `{"maintenanceMode":"off"}` | `boolean` | `true` |
 
-`@IsBoolean()` does not catch it, because validation runs *after* the
-transform and by then the value really is a boolean. The request succeeds, the
-response looks plausible, and the filter or setting means the opposite of what
-was asked for. This was observed live: `GET /organizations?verified=false`
-returned the verified organizations, byte-for-byte identical to
-`?verified=true`.
+`@IsBoolean()` did not catch it, because validation runs *after* the transform
+and by then the value really is a boolean. The request succeeded, the response
+looked plausible, and the filter or setting meant the opposite of what was
+asked. Observed live: `GET /organizations?verified=false` returned the verified
+organizations, byte-for-byte identical to `?verified=true`.
 
-## The fix that is already in place
+## The fix
 
-`apps/api/src/common/decorators/boolean-query.decorator.ts` exports
-`BooleanQuery()` (optional) and `BooleanField()` (required). Both read
-`obj[key]` — the value as the client sent it, before implicit conversion —
-parse the recognised spellings (`true/1/yes/on`, `false/0/no/off`,
-case-insensitive), and pass anything else through unchanged so `@IsBoolean()`
-rejects it with a 400 instead of guessing.
+`apps/api/src/common/decorators/strict-boolean.decorator.ts` exports
+`OptionalBooleanField()` and `RequiredBooleanField()`. Both:
 
-Covered by `boolean-query.decorator.spec.ts` (20 tests, run with the same
-`enableImplicitConversion` the server uses) and by the HTTP section of
-`scripts/verify-geography.mjs`.
+1. Read `obj[key]` — the value as the client sent it, *before* implicit
+   conversion — rather than `value`, which has already been coerced.
+2. Accept only `true` and `false`, as booleans or as those two words
+   (trimmed, any letter case). Everything else is passed through untouched so
+   `@IsBoolean()` refuses it with a 400 and the message key
+   `validation.booleanStrict`.
 
-Applied so far to:
+`"1"`, `"0"`, `"yes"`, `"no"`, `"on"` and `"off"` are **rejected, not
+interpreted**. Each is a convention some clients hold and others invert, and a
+guess that lands the wrong way on `maintenanceMode` or `consentLocation` costs
+more than a 400 does.
 
-- `OrganizationDirectoryQueryDto.acceptsDonations / providesLaboratory / verified`
-- `UpdateOrganizationDirectoryDto.acceptsDonations / providesLaboratory`
-- `OrganizationHoursDto.isClosed`
-- `SetOrganizationVerificationDto.verified`
+Applied to all 29 boolean fields on DTOs the pipe validates: the five platform
+feature flags, donor `consentLocation`, the twelve notification and quiet-hours
+toggles, push-device `isActive`, educational-content `isActive`, inventory
+location `active`, leaderboard `visible`, and the eight organization-directory
+booleans.
 
-## Still to convert
+## What stops it coming back
 
-Every one of these is a `@Body()` field, so the exposure is limited to clients
-that send a string where the schema says boolean — which the repo's own
-TypeScript clients do not do today. That is why this is a backlog item rather
-than a Sprint 2 change: the conversion is mechanical but it touches six modules
-and each one needs its request tests re-run.
+`apps/api/src/common/boolean-input-strictness.spec.ts` walks every DTO a
+controller reaches — directly, by inheritance, or nested through
+`@Type(() => X)` — and fails, naming file, line and property, when a boolean
+is validated with a bare `@IsBoolean()`. Neither TypeScript nor ESLint can see
+the difference; this test can.
 
-| File | Field |
-| --- | --- |
-| `src/modules/admin/dto/admin.dto.ts` | `aiHealthInsightsEnabled` |
-| `src/modules/admin/dto/admin.dto.ts` | `sosEmergencyEnabled` |
-| `src/modules/admin/dto/admin.dto.ts` | `gamificationEnabled` |
-| `src/modules/admin/dto/admin.dto.ts` | `pushNotificationsEnabled` |
-| `src/modules/admin/dto/admin.dto.ts` | `maintenanceMode` |
-| `src/modules/donors/dto/update-donor-profile.dto.ts` | `consentLocation` |
-| `src/modules/education/dto/education.dto.ts` | `isActive` |
-| `src/modules/gamification/dto/gamification.dto.ts` | `visible` |
-| `src/modules/inventory/dto/inventory.dto.ts` | `active` |
-| `src/modules/notifications/dto/notification-preference.dto.ts` | `emergencyRequests` |
-| `src/modules/notifications/dto/notification-preference.dto.ts` | `appointments` |
-| `src/modules/notifications/dto/notification-preference.dto.ts` | `donationReminders` |
-| `src/modules/notifications/dto/notification-preference.dto.ts` | `healthResults` |
-| `src/modules/notifications/dto/notification-preference.dto.ts` | `gamification` |
-| `src/modules/notifications/dto/notification-preference.dto.ts` | `bloodRequests` |
-| `src/modules/notifications/dto/notification-preference.dto.ts` | `shipments` |
-| `src/modules/notifications/dto/notification-preference.dto.ts` | `inventory` |
-| `src/modules/notifications/dto/notification-preference.dto.ts` | `system` |
-| `src/modules/notifications/dto/notification-preference.dto.ts` | `security` |
-| `src/modules/notifications/dto/notification-preference.dto.ts` | `quietHoursEnabled` |
-| `src/modules/notifications/dto/notification-preference.dto.ts` | `emergencyOverride` |
-| `src/modules/notifications/dto/push-device.dto.ts` | `isActive` (×2) |
+Behaviour is covered by `strict-boolean.decorator.spec.ts` (the decorator) and
+`request-boolean-safety.spec.ts` (the real DTOs, through the real pipe), both
+of which import the server's own `VALIDATION_PIPE_OPTIONS` so a test can never
+validate under gentler settings than production runs.
+`scripts/verify-boolean-safety.mjs` (`pnpm verify:booleans`) proves the same
+over HTTP against a live API and database.
 
-Two of these would be worth doing first on their consequences alone:
-`maintenanceMode` (a string turns the platform off) and `consentLocation` (a
-string grants location consent the donor may not have given).
+## Why the pipe option stayed
 
-## The alternative, and why it was not taken now
+Turning `enableImplicitConversion` off would fix the class of bug at the root,
+and is probably the right end state. It was not done here because it changes
+every numeric and enum query parameter in the API at once: each would need an
+explicit `@Type()`, and the ones that already have one would need checking
+rather than assuming. That is a sprint of its own, with the full request-level
+suite as its evidence. Until then the decorators carry the guarantee and the
+guard keeps them applied.
 
-Turning `enableImplicitConversion` off would fix all of them at once, and is
-probably the right end state. It is not a Sprint 2 change: every numeric and
-enum query parameter in the API would then need an explicit `@Type()`, and the
-ones that already have one would need checking rather than assuming. That is a
-sprint of its own, with the full request-level suite as its evidence.
+## Related, and deliberately left alone
+
+`AppointmentQueryDto.upcoming` / `.past` and the equivalent fields on the
+donations query are declared as `string`, not `boolean`, and the service
+compares them with `=== 'true'`. That is a different contract — an explicit
+string comparison, not a coercion — so it was not converted. It does mean an
+unrecognised value there is ignored rather than refused, which is worth
+revisiting if those filters ever grow a third state.

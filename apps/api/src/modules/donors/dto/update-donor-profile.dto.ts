@@ -1,6 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { BloodType, DonorStatus, RhFactor } from '@prisma/client';
-import { IsBoolean, IsDateString, IsEnum, IsNumber, IsOptional, IsString, Max, Min } from 'class-validator';
+import { IsDateString, IsEnum, IsNumber, IsOptional, IsString, Max, Min } from 'class-validator';
+import { OptionalBooleanField } from '../../../common/decorators/strict-boolean.decorator';
 
 export class UpdateDonorProfileDto {
   @ApiPropertyOptional({ enum: BloodType })
@@ -33,9 +34,7 @@ export class UpdateDonorProfileDto {
   @IsDateString()
   dateOfBirth?: string;
 
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsBoolean()
+  @OptionalBooleanField('Whether the donor consents to their location being used')
   consentLocation?: boolean;
 
   @ApiPropertyOptional({ description: 'Only used when consentLocation is true.' })
