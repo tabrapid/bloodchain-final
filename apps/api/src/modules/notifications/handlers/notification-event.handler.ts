@@ -3,15 +3,20 @@ import { OnEvent } from '@nestjs/event-emitter';
 import { NotificationRouterService } from '../services/notification-router.service';
 import { NotificationDeliveryService } from '../services/notification-delivery.service';
 import { NotificationsService } from '../services/notifications.service';
+import {
+  APPOINTMENT_CANCELLED_EVENT,
+  APPOINTMENT_CREATED_EVENT,
+  APPOINTMENT_REMINDER_EVENT,
+  type AppointmentCancelledPayload,
+  type AppointmentCreatedPayload,
+  type AppointmentReminderPayload,
+} from '../appointment-notification.events';
 
 const DONATION_COMPLETED_EVENT = 'donation.completed';
 const BLOOD_TEST_COMPLETED_EVENT = 'blood-test.completed';
 const SOS_REQUEST_CREATED_EVENT = 'sos.request.created';
 const SOS_DONOR_ACCEPTED_EVENT = 'sos.donor.accepted';
 const SOS_REQUEST_EXPIRED_EVENT = 'sos.request.expired';
-const APPOINTMENT_CREATED_EVENT = 'appointment.created';
-const APPOINTMENT_REMINDER_EVENT = 'appointment.reminder';
-const APPOINTMENT_CANCELLED_EVENT = 'appointment.cancelled';
 const LAB_RESULT_PUBLISHED_EVENT = 'lab-result.published';
 const ACHIEVEMENT_UNLOCKED_EVENT = 'achievement.unlocked';
 const LEVEL_UP_EVENT = 'level.up';
@@ -50,25 +55,6 @@ interface SosDonorAcceptedPayload {
 interface SosRequestExpiredPayload {
   requestId: string;
   recipientId: string;
-}
-
-interface AppointmentCreatedPayload {
-  appointmentId: string;
-  scheduledAt: Date;
-  recipientIds: string[];
-}
-
-interface AppointmentReminderPayload {
-  appointmentId: string;
-  scheduledAt: Date;
-  reminderMinutes: number;
-  recipientIds: string[];
-}
-
-interface AppointmentCancelledPayload {
-  appointmentId: string;
-  scheduledAt: Date;
-  recipientIds: string[];
 }
 
 interface LabResultPublishedPayload {
@@ -203,7 +189,7 @@ export class NotificationEventHandler {
       this.logger.log(`Handling SOS expired: ${payload.requestId}`);
 
       const notifications = await this.notificationsService.findAll(
-        { sourceId: payload.requestId, sourceType: 'SOS_REQUEST' } as any,
+        { sourceId: payload.requestId, sourceType: 'SOS_REQUEST' },
         payload.recipientId,
       );
 

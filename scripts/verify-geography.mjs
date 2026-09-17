@@ -780,7 +780,11 @@ async function api(method, pathname, token, body) {
   } catch {
     /* an empty body is a legitimate answer */
   }
-  return { status: res.status, body: parsed };
+  // `data` is what every client actually gets: `apiRequest` ends in
+  // `return json.data`, with no fallback. Reading `body` here instead of
+  // `data` is how Sprint 2 "verified" geography endpoints that no client
+  // could read -- the raw body looked right and the screens were empty.
+  return { status: res.status, body: parsed, data: parsed?.data };
 }
 
 async function signIn(email) {
@@ -815,23 +819,27 @@ async function verifyOverHttp() {
 
   const regionsRes = await api('GET', '/geography/regions', adminToken);
   check(
-    'GET /geography/regions returns the reference list',
-    regionsRes.status === 200 && regionsRes.body?.length === 14,
-    `${regionsRes.status}, ${regionsRes.body?.length ?? 0} regions`,
+    'GET /geography/regions reaches a client as the reference list',
+    regionsRes.status === 200 && regionsRes.data?.length === 14,
+    `${regionsRes.status}, ${regionsRes.data?.length ?? 0} regions after unwrapping`,
   );
-  const tk = regionsRes.body?.find((r) => r.code === 'UZ-TK');
+  const tk = regionsRes.data?.find((r) => r.code === 'UZ-TK');
+  if (!tk) {
+    check('the region picker has Tashkent City to select', false, 'no UZ-TK in the unwrapped list');
+    return;
+  }
 
   const districtsRes = await api('GET', `/geography/districts?regionId=${tk.id}`, adminToken);
   check(
     'GET /geography/districts filters by region',
     districtsRes.status === 200 &&
-      districtsRes.body.length > 0 &&
-      districtsRes.body.every((d) => d.regionId === tk.id),
-    `${districtsRes.body?.length ?? 0} districts`,
+      districtsRes.data?.length > 0 &&
+      districtsRes.data.every((d) => d.regionId === tk.id),
+    `${districtsRes.data?.length ?? 0} districts after unwrapping`,
   );
   check(
     'every district row says it is demo data',
-    districtsRes.body.every((d) => d.source === 'DEMO'),
+    Boolean(districtsRes.data?.every((d) => d.source === 'DEMO')),
     'a client cannot present these as official without knowing',
   );
 
@@ -839,9 +847,9 @@ async function verifyOverHttp() {
   check(
     'GET /geography/coverage reports the reference/demo split',
     coverageRes.status === 200 &&
-      coverageRes.body.districtsAuthoritative === false &&
-      coverageRes.body.regionStandard === 'ISO 3166-2:UZ',
-    JSON.stringify(coverageRes.body?.districts ?? {}),
+      coverageRes.data?.districtsAuthoritative === false &&
+      coverageRes.data?.regionStandard === 'ISO 3166-2:UZ',
+    JSON.stringify(coverageRes.data?.districts ?? {}),
   );
 
   // The bug this section exists for: `?verified=false` must not mean `true`.
@@ -923,8 +931,9 @@ async function verifyOverHttp() {
 
   // Verification writes, on an organization that starts and ends unverified.
   const subject = no.body.data.find((o) => o.isDemo) ?? no.body.data[0];
+  // Read back through `data`, exactly as the portals' organization page does.
   const isVerified = async () =>
-    (await api('GET', `/organizations/${subject.id}`, adminToken)).body?.isVerified;
+    (await api('GET', `/organizations/${subject.id}`, adminToken)).data?.isVerified;
 
   const nonsenseFlag = await api('PATCH', `/organizations/${subject.id}/verification`, adminToken, {
     verified: 'maybe',

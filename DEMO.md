@@ -527,3 +527,68 @@ and public `WEB_URL*` values so the link in the mail resolves. Rate limiting
 also needs a shared store before a second API instance exists. The full handover
 list is in `docs/security.md` under **Not Yet Configured: Deployment
 Requirements**.
+
+---
+
+## 11. Manual visual checks
+
+Everything above is automated. These are the checks nothing in this repository
+can make for you, because they are about what a person sees on a screen — there
+is no simulator or device in the environment this was built in, so no part of
+the mobile app has ever been *watched* running.
+
+Run each one against a freshly reset database (`pnpm demo:reset`) with the API
+and the relevant console started. Each says what to do, and what is wrong if you
+see something else.
+
+### 11.1 Geography and the organization directory (Sprint 2's screens)
+
+The server-side contract behind these is asserted by `pnpm verify:geography` and
+by `apps/api/test/client-contract.e2e-spec.ts`; what is left is whether the
+pixels agree.
+
+| Where | Do this | It is right when | It is wrong if |
+| --- | --- | --- | --- |
+| Donor app → Donate → Book now → **Select location** | Tap **Show filters**, then the **Region** chip | The sheet lists all 14 Uzbek regions, Tashkent City among them | The sheet is empty but for "Any region" — the response envelope has regressed |
+| Same screen | Choose a region, then tap the **District** chip | Only that region's districts are listed, and a line reads "District names are sample data, not an official classifier." | Districts from other regions appear, or the sample-data line is missing |
+| Same screen | Change to a different region | The district chip resets to "Any district" | A district from the region you just left is still applied |
+| Same screen | Tap **Near me** and allow location | Centres are listed nearest first with a distance on each | A permission refusal reads as "no organizations here" rather than as a refusal |
+| Hospital or blood-centre console → **Organization** | Open the page | The region and district selects are populated and show the organization's current values | Either select is empty |
+| Admin console → **Organizations** | Filter by region, then by verification | The list narrows; `verified=false` shows unverified organizations, not every one | The two filters return the same list |
+
+### 11.2 Blood-type verification (Sprint 3)
+
+| Where | Do this | It is right when | It is wrong if |
+| --- | --- | --- | --- |
+| Hospital or blood-centre console → **Donors** | Type a donor's surname in the search box | The table narrows to that donor | Nothing changes, or the list empties |
+| Same table | Look at the blood-group column | An unverified donor's group is followed by "Self-reported by the donor. Not verified by staff." | A self-reported group is presented the same way as a verified one |
+| Same row | Press **Verify** | The dialog opens on the group already on file, with the verification state and — for a verified donor — who verified it and when | The form opens blank, so confirming an existing group means re-typing it |
+| The dialog | Change the group, choose a source, press **Record verification** | The dialog closes and the row shows VERIFIED with the corrected group | The row still shows the old group or the old state |
+| Donor app → Profile → Edit | Change the blood group | The console's row for that donor moves to REQUIRES_REVIEW on the next load | It stays VERIFIED — a donor's own edit would then be treated as verified |
+| Console | Verify that donor again | The row returns to VERIFIED | The second verification is refused |
+
+`pnpm verify:safety` and `apps/api/test/blood-type-verification.e2e-spec.ts`
+already prove the authorization rules (a donor cannot verify themselves, a
+courier cannot verify anyone, the provenance is written by the server). These
+checks are only about the screens.
+
+### 11.3 Appointment notifications (Sprint 3)
+
+The reminder job wakes every five minutes and sends a reminder for anything
+inside `APPOINTMENT_REMINDER_LEAD_MINUTES` (default 1440 — one day ahead). For a
+demo, set it to something you can watch:
+
+```bash
+# in apps/api/.env, then restart the API
+APPOINTMENT_REMINDER_LEAD_MINUTES=120
+```
+
+| Where | Do this | It is right when | It is wrong if |
+| --- | --- | --- | --- |
+| Donor app | Book any appointment | A notification appears in the donor's list: "Appointment Booked", with the date | Nothing appears |
+| Donor app | Book a slot inside the lead window, wait for the next five-minute tick | Exactly one "Appointment Reminder" arrives | None arrives, or a second one arrives on a later tick |
+| Donor app → Settings → Notifications | Turn **Appointments** off, then book again | The notification still appears in the list, but no push is sent | The push arrives anyway, or the in-app record disappears too |
+| Donor app | Cancel the appointment | "Appointment Cancelled" appears, and the appointment leaves the upcoming list | Either half happens without the other |
+
+Restore `APPOINTMENT_REMINDER_LEAD_MINUTES` afterwards, or every appointment
+more than two hours out will go unreminded.

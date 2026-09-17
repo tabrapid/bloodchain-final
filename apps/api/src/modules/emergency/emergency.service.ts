@@ -1011,6 +1011,9 @@ export class EmergencyService {
               donationReference: this.generateDonationReference(),
               donorId: response.donorId,
               organizationId,
+              // What makes this an emergency donation, recorded rather than
+              // inferred later from the donor's blood group and history.
+              emergencyResponseId: responseId,
               donationType: COMPONENT_TO_DONATION_TYPE[componentType],
               status: 'COMPLETED',
               bloodType,

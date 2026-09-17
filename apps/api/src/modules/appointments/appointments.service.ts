@@ -11,6 +11,10 @@ import { PrismaService } from '../../database/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { CreateAppointmentDto, CancelAppointmentDto, RescheduleAppointmentDto, GetMyAppointmentsDto } from './dto/appointment.dto';
 import { APPOINTMENT_COMPLETED_EVENT } from '../gamification/events/gamification-event.handler';
+import {
+  APPOINTMENT_CANCELLED_EVENT,
+  APPOINTMENT_CREATED_EVENT,
+} from '../notifications/appointment-notification.events';
 import { assertOrganizationActive } from '../../common/utils/organization-status.util';
 import { withUniqueRetry } from '../../common/utils/unique-retry.util';
 import { DonationEligibilityService } from '../donation-eligibility/donation-eligibility.service';
@@ -220,6 +224,16 @@ export class AppointmentsService {
       ipAddress,
     });
 
+    // The donor is told they are booked, in the app, on a persisted
+    // notification -- not only by the screen they happen to be looking at.
+    // The handler is the one the notifications module already had; nothing
+    // emitted this event, so the handler had never run in production.
+    this.eventEmitter.emit(APPOINTMENT_CREATED_EVENT, {
+      appointmentId: result.id,
+      scheduledAt: result.scheduledStart,
+      recipientIds: [donorId],
+    });
+
     return {
       data: {
         id: result.id,
@@ -420,6 +434,12 @@ export class AppointmentsService {
         previousStatus: appointment.status,
       },
       ipAddress,
+    });
+
+    this.eventEmitter.emit(APPOINTMENT_CANCELLED_EVENT, {
+      appointmentId: result.id,
+      scheduledAt: appointment.scheduledStart,
+      recipientIds: [donorId],
     });
 
     return { data: { id: result.id, status: result.status } };

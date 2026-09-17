@@ -16,6 +16,8 @@
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "typecheck": "turbo typecheck",
     "test": "turbo test",
+    "test:e2e": "pnpm --filter @bloodchain/api test:e2e",
+    "verify": "pnpm typecheck && pnpm lint && pnpm test && pnpm test:e2e",
     "db:generate": "pnpm --filter @bloodchain/api prisma:generate",
     "db:migrate": "pnpm --filter @bloodchain/api prisma:migrate",
     "db:seed": "pnpm --filter @bloodchain/api prisma:seed",

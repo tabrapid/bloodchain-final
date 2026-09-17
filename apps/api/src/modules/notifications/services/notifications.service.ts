@@ -46,6 +46,8 @@ export class NotificationsService {
 
     if (filter.type) where.type = filter.type;
     if (filter.priority) where.priority = filter.priority;
+    if (filter.sourceType) where.sourceType = filter.sourceType;
+    if (filter.sourceId) where.sourceId = filter.sourceId;
     if (filter.status) {
       where.status = filter.status;
     } else {
@@ -64,14 +66,21 @@ export class NotificationsService {
       if (filter.endDate) where.createdAt.lte = filter.endDate;
     }
 
+    // Coerced here as well as in the DTO. `take: limit + 1` on a value that
+    // arrived as a string concatenates instead of adding -- `?limit=5` asked
+    // Prisma for `"51"` rows and got a 500 for it, which is a whole inbox lost
+    // to a `+`. Callers inside the API pass the filter directly, without the
+    // pipe, so the arithmetic defends itself.
+    const limit = Number(filter.limit) || 50;
+
     const notifications = await this.prisma.notification.findMany({
       where,
       orderBy: { createdAt: 'desc' },
-      take: (filter.limit || 50) + 1,
+      take: limit + 1,
       ...(filter.cursor ? { cursor: { id: filter.cursor }, skip: 1 } : {}),
     });
 
-    const hasMore = notifications.length > (filter.limit || 50);
+    const hasMore = notifications.length > limit;
     const items = hasMore ? notifications.slice(0, -1) : notifications;
     const nextCursor = hasMore && items.length > 0 ? items[items.length - 1]?.id : null;
 

@@ -16,6 +16,7 @@ import {
   Prisma,
   RhFactor,
   RoleCode,
+  VerificationStatus,
 } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import { withUniqueRetry } from '../../common/utils/unique-retry.util';
@@ -371,6 +372,59 @@ export class DonationsService {
     };
   }
 
+  /**
+   * The blood group this donation is recorded and stocked under.
+   *
+   * Two sources, in this order, and no third:
+   *
+   * 1. What the collecting staff entered on this completion.
+   * 2. The donor's profile group, **only** when it carries the domain's own
+   *    VERIFIED status -- which means authorized staff confirmed it through
+   *    `POST /donors/:id/verify-blood-type` and the row records who, when and
+   *    from what source.
+   *
+   * An unverified self-reported group is not a third source. It is what a donor
+   * typed into their profile, and labelling a bag of blood with it would turn a
+   * claim into a medical fact. When neither source answers, the completion is
+   * refused: staff record the group, or have it verified first.
+   */
+  private resolveCollectedType(
+    dto: CompleteDonationDto,
+    profile: { bloodType: BloodType | null; rhFactor: RhFactor | null; verificationStatus: VerificationStatus } | null,
+  ): { bloodType: BloodType; rhFactor: RhFactor; source: 'STAFF_ENTERED' | 'VERIFIED_PROFILE' } {
+    if (dto.bloodType && dto.rhFactor) {
+      return {
+        bloodType: dto.bloodType as BloodType,
+        rhFactor: dto.rhFactor as RhFactor,
+        source: 'STAFF_ENTERED',
+      };
+    }
+
+    if (dto.bloodType || dto.rhFactor) {
+      throw new BadRequestException(
+        'Record both the blood group and the Rh factor, or neither. Half of a blood group is not one.',
+      );
+    }
+
+    if (
+      profile?.verificationStatus === VerificationStatus.VERIFIED &&
+      profile.bloodType &&
+      profile.rhFactor
+    ) {
+      return {
+        bloodType: profile.bloodType,
+        rhFactor: profile.rhFactor,
+        source: 'VERIFIED_PROFILE',
+      };
+    }
+
+    throw new BadRequestException(
+      'This donation has no blood group to record. Enter the group and Rh factor collected, ' +
+        "or have this donor's blood group verified first — a completed donation always " +
+        'produces a unit, and a unit always carries a group.',
+    );
+  }
+
   async completeDonation(
     donationId: string,
     organizationId: string,
@@ -380,7 +434,7 @@ export class DonationsService {
   ) {
     const donation = await this.db.donation.findUnique({
       where: { id: donationId },
-      include: { appointment: true },
+      include: { appointment: true, donor: { include: { donorProfile: true } } },
     });
 
     if (!donation) {
@@ -394,6 +448,10 @@ export class DonationsService {
     if (donation.status !== DonationStatus.IN_PROGRESS) {
       throw new BadRequestException('Only in-progress donations can be completed.');
     }
+
+    // Resolved before the transaction opens, so a donation that cannot produce
+    // a unit is refused rather than half-completed. See `resolveCollectedType`.
+    const collected = this.resolveCollectedType(dto, donation.donor.donorProfile);
 
     const completedAt = new Date(dto.collectionCompletedAt);
     if (completedAt > new Date()) {
@@ -412,17 +470,14 @@ export class DonationsService {
     const result = await withUniqueRetry(
       () =>
         this.db.$transaction(async (tx) => {
-          const bloodTypeEnum = dto.bloodType as BloodType | undefined;
-          const rhFactorEnum = dto.rhFactor as RhFactor | undefined;
-
           const updated = await tx.donation.update({
             where: { id: donationId },
             data: {
               status: DonationStatus.COMPLETED,
               volumeMl: dto.volumeMl,
               collectionCompletedAt: completedAt,
-              bloodType: bloodTypeEnum,
-              rhFactor: rhFactorEnum,
+              bloodType: collected.bloodType,
+              rhFactor: collected.rhFactor,
               staffNotes: dto.notes,
               nextDonationDate,
               completedAt: now,
@@ -445,40 +500,48 @@ export class DonationsService {
               organizationId,
               metadata: {
                 volumeMl: dto.volumeMl,
-                bloodType: dto.bloodType,
-                rhFactor: dto.rhFactor,
+                bloodType: collected.bloodType,
+                rhFactor: collected.rhFactor,
+                bloodTypeSource: collected.source,
               },
             },
           });
 
-          if (bloodTypeEnum && rhFactorEnum) {
-            await tx.bloodUnit.create({
-              data: {
-                unitReference: this.generateUnitReference(),
-                donationId,
-                organizationId,
-                bloodType: bloodTypeEnum,
-                rhFactor: rhFactorEnum,
-                volumeMl: dto.volumeMl,
-                status: 'COLLECTED',
-                collectedAt: completedAt,
-              },
-            });
+          // Unconditional, and in the same transaction as the completion.
+          //
+          // This used to be `if (bloodTypeEnum && rhFactorEnum)`: omit either
+          // field and the donation completed, the donor was credited with the
+          // volume and the XP, and nothing entered inventory -- no error, no
+          // alert, a bag of blood that exists in a fridge and not in the
+          // system. `resolveCollectedType` above is what makes reaching this
+          // line without a blood type impossible.
+          await tx.bloodUnit.create({
+            data: {
+              unitReference: this.generateUnitReference(),
+              donationId,
+              organizationId,
+              bloodType: collected.bloodType,
+              rhFactor: collected.rhFactor,
+              volumeMl: dto.volumeMl,
+              status: 'COLLECTED',
+              collectedAt: completedAt,
+            },
+          });
 
-            await tx.donationEvent.create({
-              data: {
-                donationId,
-                eventType: DonationEventType.VERIFIED,
-                actorId: staffId,
-                organizationId,
-                metadata: {
-                  bloodType: bloodTypeEnum,
-                  rhFactor: rhFactorEnum,
-                  volumeMl: dto.volumeMl,
-                },
+          await tx.donationEvent.create({
+            data: {
+              donationId,
+              eventType: DonationEventType.VERIFIED,
+              actorId: staffId,
+              organizationId,
+              metadata: {
+                bloodType: collected.bloodType,
+                rhFactor: collected.rhFactor,
+                volumeMl: dto.volumeMl,
+                bloodTypeSource: collected.source,
               },
-            });
-          }
+            },
+          });
 
           return updated;
         }),
@@ -494,22 +557,28 @@ export class DonationsService {
       metadata: {
         donationReference: result.donationReference,
         volumeMl: dto.volumeMl,
-        bloodType: dto.bloodType,
-        rhFactor: dto.rhFactor,
+        // The group that was actually recorded, with where it came from -- not
+        // the request fields, which are empty when the profile was the source.
+        bloodType: collected.bloodType,
+        rhFactor: collected.rhFactor,
+        bloodTypeSource: collected.source,
       },
       ipAddress,
     });
 
-    const isEmergency = await this.db.emergencyResponse.findFirst({
-      where: {
-        donorId: donation.donorId,
-        status: 'COMPLETED',
-        emergencyRequest: {
-          bloodType: dto.bloodType as BloodType,
-          rhFactor: dto.rhFactor as RhFactor,
-        },
-      },
-    }).then(r => !!r);
+    /*
+     * Whether this donation was collected for an emergency is a property of
+     * this donation, not of the donor's history.
+     *
+     * It used to be answered by looking for any completed emergency response by
+     * the same donor with a matching blood group -- no time bound, no link to
+     * this donation -- so after a donor's first SOS response every routine
+     * donation they ever made was scored as an emergency one and paid emergency
+     * XP for it, permanently. The link is now a column the emergency path
+     * writes when it creates the donation; a donation booked through an
+     * appointment never carries one, which is exactly the right answer.
+     */
+    const isEmergency = result.emergencyResponseId !== null;
 
     this.eventEmitter.emit(DONATION_COMPLETED_EVENT, {
       donationId: result.id,

@@ -227,6 +227,14 @@ export class DonorsService {
       throw new ForbiddenException('Only authorized staff can verify blood types.');
     }
 
+    // A verification is one person vouching for another's blood group. Staff
+    // who also donate here hold `donor.verify`, so without this a staff member
+    // could sign off on their own profile and it would look identical in the
+    // audit log to a real verification.
+    if (requestingUserId === donorId) {
+      throw new ForbiddenException('A blood type cannot be verified by the donor it belongs to.');
+    }
+
     const donorProfile = await this.db.donorProfile.findUnique({
       where: { userId: donorId },
       include: { user: { select: { id: true, firstName: true, lastName: true } } },
@@ -333,13 +341,29 @@ export class DonorsService {
     filters?: {
       bloodType?: BloodType;
       donorStatus?: DonorStatus;
+      verificationStatus?: VerificationStatus;
       city?: string;
+      search?: string;
     },
   ) {
     const where: Prisma.DonorProfileWhereInput = {};
     if (filters?.bloodType) where.bloodType = filters.bloodType;
     if (filters?.donorStatus) where.donorStatus = filters.donorStatus;
+    if (filters?.verificationStatus) where.verificationStatus = filters.verificationStatus;
     if (filters?.city) where.city = { contains: filters.city, mode: 'insensitive' };
+
+    // Staff verifying a blood type have a person in front of them, not a city:
+    // they need to find that one donor by the name or the address they gave.
+    const search = filters?.search?.trim();
+    if (search) {
+      where.user = {
+        OR: [
+          { firstName: { contains: search, mode: 'insensitive' } },
+          { lastName: { contains: search, mode: 'insensitive' } },
+          { email: { contains: search, mode: 'insensitive' } },
+        ],
+      };
+    }
 
     const skip = (page - 1) * limit;
     const [data, total] = await Promise.all([

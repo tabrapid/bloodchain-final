@@ -54,6 +54,28 @@ pnpm dev:blood-center      # http://localhost:3002
 pnpm dev:mobile            # Expo dev server
 ```
 
+## Background jobs
+
+The API runs three scheduled jobs in-process (`@nestjs/schedule`, started by
+`ScheduleModule.forRoot()` in `app.module.ts`):
+
+| Job                                       | Cadence          | What it does                                                                  |
+| ----------------------------------------- | ---------------- | ----------------------------------------------------------------------------- |
+| `EmergencyCronService.runMaintenance`     | every 5 minutes  | Expires stale emergencies; purges location history of closed journeys          |
+| `InventoryCronService`                    | hourly           | Inventory expiry and low-stock alerts                                          |
+| `AppointmentReminderService.sendDueReminders` | every 5 minutes | Sends each donor one reminder before their appointment                     |
+
+The reminder job's lead time is `APPOINTMENT_REMINDER_LEAD_MINUTES` (default
+1440 — one day ahead), read in one place so that moving reminders closer to the
+appointment is a configuration change rather than a code change.
+
+It is idempotent by claim, not by hope: it stamps `Appointment.reminderSentAt`
+in an update conditional on that column still being null, and only emits
+`appointment.reminder` when the update actually changed a row. A cron that
+fires twice in one window, a restart halfway through a batch, and two API
+instances running side by side therefore all produce exactly one reminder per
+appointment.
+
 ## Lint / format
 
 ```bash
@@ -71,7 +93,19 @@ pnpm typecheck
 ## Tests
 
 ```bash
+pnpm verify      # the gate: typecheck → lint → unit tests → end-to-end tests
+```
+
+`pnpm test` runs the unit suites through turbo; it does not touch a database
+and does not run the end-to-end suites. `pnpm test:e2e` runs those, against a
+migrated and seeded local database. They are separate commands because they
+need different things — which is exactly how the end-to-end suites once stayed
+red for a sprint while everything else reported green. `pnpm verify` chains
+both, so that cannot happen again.
+
+```bash
 pnpm test
+pnpm test:e2e    # needs `pnpm demo:reset` (or migrate + seed) first
 ```
 
 The API has unit tests for authentication (including user status checks, suspended/deactivated users), the roles guard, permissions service, and the health controller. Web and mobile tests are placeholder foundations.

@@ -48,6 +48,7 @@ describe('Donation lifecycle (e2e)', () => {
   afterAll(async () => {
     // Remove only what this suite created, newest-dependency first.
     if (donationId) {
+      await db.bloodUnit.deleteMany({ where: { donationId } }).catch(() => undefined);
       await db.donationAssessment.deleteMany({ where: { donationId } }).catch(() => undefined);
       await db.donation.deleteMany({ where: { id: donationId } });
     }
@@ -240,6 +241,39 @@ describe('Donation lifecycle (e2e)', () => {
       const donation = await db.donation.findUniqueOrThrow({ where: { id: donationId } });
       expect(donation.status).toBe('COMPLETED');
       expect(donation.volumeMl).toBe(450);
+    });
+
+    it('put the collected blood into inventory as part of that same completion', async () => {
+      // Sprint 3, item 6. This request carried no blood group, and until now
+      // that meant the donation completed and no BloodUnit was created: the
+      // donor was credited for a bag that inventory had never heard of. The
+      // group comes from the donor's verified profile, and it is recorded.
+      const profile = await db.donorProfile.findUniqueOrThrow({ where: { userId: donorUserId } });
+      const unit = await db.bloodUnit.findFirstOrThrow({ where: { donationId } });
+
+      expect(unit.bloodType).toBe(profile.bloodType);
+      expect(unit.rhFactor).toBe(profile.rhFactor);
+      expect(unit.volumeMl).toBe(450);
+      expect(unit.status).toBe('COLLECTED');
+      expect(unit.organizationId).toBe(bloodCenterId);
+    });
+
+    it('recorded where that blood group came from, rather than leaving it unattributed', async () => {
+      const verified = await db.donationEvent.findFirstOrThrow({
+        where: { donationId, eventType: 'VERIFIED' },
+      });
+
+      expect(verified.metadata).toEqual(
+        expect.objectContaining({ bloodTypeSource: 'VERIFIED_PROFILE' }),
+      );
+    });
+
+    it('did not treat a routine donation as an emergency one', async () => {
+      // Sprint 3, item 5. The donor seeded here has emergency responses on
+      // record; this donation is simply not linked to any of them.
+      const donation = await db.donation.findUniqueOrThrow({ where: { id: donationId } });
+
+      expect(donation.emergencyResponseId).toBeNull();
     });
   });
 

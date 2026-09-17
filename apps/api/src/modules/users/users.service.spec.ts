@@ -66,10 +66,14 @@ describe('UsersService', () => {
       );
     });
 
-    it('returns null when the user does not exist', async () => {
+    it('throws 404 when the user does not exist', async () => {
+      // It used to return null, and the route wrapped that into a 200 with a
+      // body of `{ data: null }` -- for a route whose own OpenAPI already
+      // advertised a 404. Every client unwraps `json.data`, so "no such user"
+      // arrived at the caller as a successful response carrying nothing.
       prisma.user.findUnique.mockResolvedValue(null);
 
-      expect(await service.findById('missing')).toBeNull();
+      await expect(service.findById('missing')).rejects.toBeInstanceOf(NotFoundException);
     });
   });
 

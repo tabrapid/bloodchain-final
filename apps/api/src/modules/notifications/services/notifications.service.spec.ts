@@ -65,6 +65,37 @@ describe('NotificationsService', () => {
         expect.objectContaining({ where: expect.objectContaining({ status: NotificationStatus.READ }) }),
       );
     });
+
+    it('asks for a whole number of rows even when limit arrives as a string', async () => {
+      // `take: limit + 1` on the string "5" asked Prisma for "51" rows, which
+      // it refuses -- so every paginated inbox request answered 500.
+      await service.findAll({ limit: '5' as unknown as number }, 'user-1');
+
+      expect(prisma.notification.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ take: 6 }),
+      );
+    });
+
+    it('defaults to a page of 50 when no limit is given', async () => {
+      await service.findAll({}, 'user-1');
+
+      expect(prisma.notification.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ take: 51 }),
+      );
+    });
+
+    it('narrows to one source when asked, rather than returning the whole inbox', async () => {
+      // The SOS-expiry handler passes these. They were silently ignored, so
+      // expiring one SOS request expired every live notification that donor
+      // had -- appointment reminders included.
+      await service.findAll({ sourceType: 'SOS_REQUEST', sourceId: 'sos-1' }, 'user-1');
+
+      expect(prisma.notification.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ sourceType: 'SOS_REQUEST', sourceId: 'sos-1' }),
+        }),
+      );
+    });
   });
 
   describe('getUnreadCount', () => {

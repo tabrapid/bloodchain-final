@@ -923,6 +923,18 @@ model Appointment {
   cancellationReason String?
   cancelledAt        DateTime?
   completedAt        DateTime?
+  /**
+   * When the "your appointment is coming up" reminder was sent for this
+   * appointment, or null while it has not been.
+   *
+   * This is what makes the reminder job idempotent. The job claims an
+   * appointment by setting this column in a conditional update, so a restart
+   * mid-run, two workers, or a cron that fires twice in the same window all
+   * end with exactly one reminder: the second claim updates zero rows and
+   * emits nothing. Nullable and defaulted-by-absence, so every appointment
+   * that existed before this column simply has no reminder recorded.
+   */
+  reminderSentAt     DateTime?
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt
 
@@ -942,6 +954,8 @@ model Appointment {
   @@index([scheduledEnd])
   @@index([referenceNumber])
   @@index([donorId, status])
+  // The reminder job's own query: upcoming appointments not yet reminded.
+  @@index([status, scheduledStart, reminderSentAt])
 }
 
 model AppointmentHistory {
@@ -969,6 +983,16 @@ model Donation {
   donorId               String
   organizationId        String
   appointmentId         String?             @unique
+  /**
+   * The emergency response this donation was collected for, when it was.
+   * The one fact that makes a donation an emergency donation, and the reason it
+   * is a column rather than a query: it used to be inferred by looking for any
+   * completed emergency response by the same donor with a matching blood group,
+   * unbounded in time and unlinked to this donation -- so every routine
+   * donation a donor made after their first SOS response was scored as an
+   * emergency one, forever, and paid emergency XP for it.
+   */
+  emergencyResponseId   String?             @unique
   donationType          DonationType        @default(WHOLE_BLOOD)
   status                DonationStatus      @default(SCHEDULED)
   bloodType             BloodType?
@@ -991,12 +1015,13 @@ model Donation {
   createdAt             DateTime            @default(now())
   updatedAt             DateTime            @updatedAt
 
-  donor        User                @relation(fields: [donorId], references: [id], onDelete: Cascade)
-  organization Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  appointment  Appointment?        @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
-  events       DonationEvent[]
-  assessment   DonationAssessment?
-  bloodUnit    BloodUnit?
+  donor             User                @relation(fields: [donorId], references: [id], onDelete: Cascade)
+  organization      Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  appointment       Appointment?        @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  emergencyResponse EmergencyResponse?  @relation(fields: [emergencyResponseId], references: [id], onDelete: SetNull)
+  events            DonationEvent[]
+  assessment        DonationAssessment?
+  bloodUnit         BloodUnit?
 
   @@index([donorId])
   @@index([organizationId])
@@ -1006,6 +1031,7 @@ model Donation {
   @@index([donationReference])
   @@index([collectionCompletedAt])
   @@index([bloodType])
+  @@index([emergencyResponseId])
 }
 
 model DonationEvent {
@@ -1452,6 +1478,7 @@ model EmergencyResponse {
   donor            User                @relation("EmergencyResponseDonor", fields: [donorId], references: [id], onDelete: Cascade)
   match            EmergencyMatch?     @relation(fields: [matchId], references: [id], onDelete: SetNull)
   locations        EmergencyLocation[]
+  donation         Donation?
 
   @@index([emergencyRequestId])
   @@index([donorId])

@@ -1,6 +1,6 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { BloodType, DonorStatus, RoleCode } from '@prisma/client';
+import { RoleCode } from '@prisma/client';
 import { Request } from 'express';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -9,6 +9,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { Permissions } from '../../common/decorators/permissions.decorator';
 import { DonorsService } from './donors.service';
 import { UpdateDonorProfileDto } from './dto/update-donor-profile.dto';
+import { ListDonorsQueryDto } from './dto/list-donors.dto';
 import { VerifyBloodTypeDto } from './dto/verify-blood-type.dto';
 
 @ApiTags('Donors')
@@ -86,13 +87,9 @@ export class DonorsController {
   )
   @ApiOperation({ summary: 'List donors (staff only)' })
   @ApiResponse({ status: 200, description: 'Paginated donor list' })
-  listDonors(
-    @Query('page') page = '1',
-    @Query('limit') limit = '20',
-    @Query('bloodType') bloodType?: BloodType,
-    @Query('donorStatus') donorStatus?: DonorStatus,
-    @Query('city') city?: string,
-  ) {
-    return this.donors.listDonors(Number(page), Number(limit), { bloodType, donorStatus, city });
+  @ApiResponse({ status: 400, description: 'Unusable filter value' })
+  listDonors(@Query() query: ListDonorsQueryDto) {
+    const { page = 1, limit = 20, ...filters } = query;
+    return this.donors.listDonors(page, limit, filters);
   }
 }

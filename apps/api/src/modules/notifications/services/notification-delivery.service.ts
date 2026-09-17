@@ -5,7 +5,30 @@ import { PushDeviceService } from './push-device.service';
 import { PushProviderService } from './push-provider.service';
 import { NotificationPreferenceService } from './notification-preference.service';
 import { PlatformSettingsService } from '../../platform-settings/platform-settings.service';
-import { DeliveryStatus, NotificationPriority } from '../dto';
+import { DeliveryStatus, NotificationPriority, NotificationType } from '../dto';
+
+/**
+ * Which preference toggle governs each kind of notification.
+ *
+ * `NotificationPreferenceService.isChannelEnabled` has always known how to
+ * answer this, and nothing had ever asked it: a donor who turned appointment
+ * notifications off in the app kept receiving appointment pushes. The
+ * preference governs the *push*, not the record -- the notification is still
+ * created and still appears in their inbox, which is the difference between
+ * "don't interrupt me" and "don't tell me".
+ */
+const PREFERENCE_CATEGORY: Partial<Record<NotificationType, string>> = {
+  [NotificationType.EMERGENCY]: 'emergency',
+  [NotificationType.DONATION]: 'donation',
+  [NotificationType.APPOINTMENT]: 'appointment',
+  [NotificationType.LABORATORY]: 'health',
+  [NotificationType.GAMIFICATION]: 'gamification',
+  [NotificationType.BLOOD_REQUEST]: 'bloodRequest',
+  [NotificationType.SHIPMENT]: 'shipment',
+  [NotificationType.INVENTORY]: 'inventory',
+  [NotificationType.SECURITY]: 'security',
+  [NotificationType.SYSTEM]: 'system',
+};
 
 interface DeliverableNotification {
   id: string;
@@ -45,6 +68,11 @@ export class NotificationDeliveryService {
 
     if (!(await this.platformSettings.isEnabled('pushNotificationsEnabled'))) {
       return { success: false, reason: 'Push notifications disabled by platform admin' };
+    }
+
+    const category = PREFERENCE_CATEGORY[notification.type as NotificationType];
+    if (category && !(await this.preferenceService.isChannelEnabled(notification.recipientId, category))) {
+      return { success: false, reason: 'Recipient has turned this category off' };
     }
 
     const delivery = await this.prisma.notificationDelivery.create({

@@ -1,11 +1,21 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ConflictException } from '@nestjs/common';
+import { BadRequestException, ConflictException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { DonationStatus, Prisma } from '@prisma/client';
+import { BloodType, DonationStatus, Prisma, RhFactor, VerificationStatus } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { DonationEligibilityService } from '../donation-eligibility/donation-eligibility.service';
 import { DonationsService } from './donations.service';
+
+/** A donor profile that staff have verified - an authoritative blood group. */
+function verifiedProfile(overrides: Record<string, any> = {}) {
+  return {
+    bloodType: BloodType.A,
+    rhFactor: RhFactor.POSITIVE,
+    verificationStatus: VerificationStatus.VERIFIED,
+    ...overrides,
+  };
+}
 
 function makeDonation(overrides: Record<string, any> = {}) {
   return {
@@ -15,6 +25,8 @@ function makeDonation(overrides: Record<string, any> = {}) {
     organizationId: 'org-1',
     status: DonationStatus.IN_PROGRESS,
     appointmentId: null,
+    emergencyResponseId: null,
+    donor: { id: 'donor-1', donorProfile: verifiedProfile() },
     ...overrides,
   };
 }
@@ -31,9 +43,11 @@ describe('DonationsService.completeDonation', () => {
   let service: DonationsService;
   let prisma: any;
   let tx: any;
+  let events: { emit: jest.Mock };
   let donationEligibility: { computeDefaultNextEligibleDate: jest.Mock };
 
   beforeEach(async () => {
+    events = { emit: jest.fn() };
     tx = {
       donation: { update: jest.fn().mockResolvedValue(makeDonation({ status: DonationStatus.COMPLETED })) },
       appointment: { update: jest.fn().mockResolvedValue({}) },
@@ -56,7 +70,7 @@ describe('DonationsService.completeDonation', () => {
         DonationsService,
         { provide: PrismaService, useValue: prisma },
         { provide: AuditLogsService, useValue: { log: jest.fn().mockResolvedValue({}) } },
-        { provide: EventEmitter2, useValue: { emit: jest.fn() } },
+        { provide: EventEmitter2, useValue: events },
         { provide: DonationEligibilityService, useValue: donationEligibility },
       ],
     }).compile();
@@ -111,6 +125,160 @@ describe('DonationsService.completeDonation', () => {
 
     expect(prisma.$transaction).toHaveBeenCalledTimes(2);
     expect(result.data.status).toBe(DonationStatus.COMPLETED);
+  });
+
+  // Sprint 3, item 6. A completed donation is a bag of blood. Before this, a
+  // completion with no blood group on the request still succeeded: the donor
+  // was credited, and no BloodUnit was created. Nothing anywhere said so.
+  describe('inventory integrity', () => {
+    const base = { collectionCompletedAt: new Date().toISOString(), volumeMl: 450 };
+
+    it('records the unit in the same transaction as the completion', async () => {
+      await service.completeDonation('donation-1', 'org-1', 'staff-1', {
+        ...base,
+        bloodType: 'O',
+        rhFactor: 'NEGATIVE',
+      } as any);
+
+      expect(tx.bloodUnit.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            donationId: 'donation-1',
+            bloodType: 'O',
+            rhFactor: 'NEGATIVE',
+            volumeMl: 450,
+            status: 'COLLECTED',
+          }),
+        }),
+      );
+    });
+
+    it('falls back to the donor\'s verified blood group when staff record no group', async () => {
+      await service.completeDonation('donation-1', 'org-1', 'staff-1', { ...base } as any);
+
+      expect(tx.bloodUnit.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ bloodType: BloodType.A, rhFactor: RhFactor.POSITIVE }),
+        }),
+      );
+      expect(tx.donationEvent.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            metadata: expect.objectContaining({ bloodTypeSource: 'VERIFIED_PROFILE' }),
+          }),
+        }),
+      );
+    });
+
+    it('prefers what staff collected over the profile, and says so', async () => {
+      await service.completeDonation('donation-1', 'org-1', 'staff-1', {
+        ...base,
+        bloodType: 'B',
+        rhFactor: 'NEGATIVE',
+      } as any);
+
+      expect(tx.bloodUnit.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ bloodType: 'B', rhFactor: 'NEGATIVE' }),
+        }),
+      );
+      expect(tx.donationEvent.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            metadata: expect.objectContaining({ bloodTypeSource: 'STAFF_ENTERED' }),
+          }),
+        }),
+      );
+    });
+
+    it.each([
+      ['an unverified profile', verifiedProfile({ verificationStatus: VerificationStatus.UNVERIFIED })],
+      ['a profile awaiting review', verifiedProfile({ verificationStatus: VerificationStatus.REQUIRES_REVIEW })],
+      ['a verified profile with no group on it', verifiedProfile({ bloodType: null, rhFactor: null })],
+      ['no profile at all', null],
+    ])('refuses completion outright with %s and no group from staff', async (_label, donorProfile) => {
+      prisma.donation.findUnique.mockResolvedValue(
+        makeDonation({ donor: { id: 'donor-1', donorProfile } }),
+      );
+
+      await expect(
+        service.completeDonation('donation-1', 'org-1', 'staff-1', { ...base } as any),
+      ).rejects.toBeInstanceOf(BadRequestException);
+
+      // Neither half happened: no completion, no unit, no XP event.
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+      expect(tx.donation.update).not.toHaveBeenCalled();
+      expect(tx.bloodUnit.create).not.toHaveBeenCalled();
+      expect(events.emit).not.toHaveBeenCalled();
+    });
+
+    it('refuses half a blood group rather than pairing it with the profile', async () => {
+      await expect(
+        service.completeDonation('donation-1', 'org-1', 'staff-1', {
+          ...base,
+          bloodType: 'O',
+        } as any),
+      ).rejects.toBeInstanceOf(BadRequestException);
+
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('creates no unit when the completion update fails, because both are one transaction', async () => {
+      tx.donation.update.mockRejectedValue(new Error('database went away'));
+      prisma.$transaction.mockImplementation(async (cb: any) => cb(tx));
+
+      await expect(
+        service.completeDonation('donation-1', 'org-1', 'staff-1', {
+          ...base,
+          bloodType: 'O',
+          rhFactor: 'POSITIVE',
+        } as any),
+      ).rejects.toThrow('database went away');
+
+      expect(tx.bloodUnit.create).not.toHaveBeenCalled();
+      expect(events.emit).not.toHaveBeenCalled();
+    });
+  });
+
+  // Sprint 3, item 5. `isEmergency` used to be inferred from the donor's
+  // history: any completed emergency response by this donor with a matching
+  // blood group, with no time bound and no link to this donation. One SOS
+  // response made every later routine donation emergency-scored for good.
+  describe('emergency attribution', () => {
+    const dto = {
+      collectionCompletedAt: new Date().toISOString(),
+      volumeMl: 450,
+      bloodType: 'O',
+      rhFactor: 'POSITIVE',
+    };
+
+    function emittedPayload() {
+      const call = events.emit.mock.calls.find(([name]) => name === 'donation.completed');
+      return call?.[1];
+    }
+
+    it('marks the donation the SOS response produced as an emergency donation', async () => {
+      tx.donation.update.mockResolvedValue(
+        makeDonation({ status: DonationStatus.COMPLETED, emergencyResponseId: 'response-1' }),
+      );
+
+      await service.completeDonation('donation-1', 'org-1', 'staff-1', dto as any);
+
+      expect(emittedPayload()).toEqual(expect.objectContaining({ isEmergency: true }));
+    });
+
+    it('does not carry that over to the same donor\'s next routine donation', async () => {
+      // The donor has an emergency response on record - the old heuristic's
+      // only input. This donation simply is not linked to it.
+      prisma.emergencyResponse.findFirst.mockResolvedValue({ id: 'response-1' });
+      tx.donation.update.mockResolvedValue(
+        makeDonation({ status: DonationStatus.COMPLETED, emergencyResponseId: null }),
+      );
+
+      await service.completeDonation('donation-1', 'org-1', 'staff-1', dto as any);
+
+      expect(emittedPayload()).toEqual(expect.objectContaining({ isEmergency: false }));
+    });
   });
 });
 

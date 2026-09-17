@@ -1,4 +1,14 @@
-import { Body, Controller, Get, Param, Patch, Query, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Query,
+  Req,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
 import { RoleCode } from '@prisma/client';
@@ -6,6 +16,7 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { RolesGuard } from '../../common/guards/roles.guard';
+import { WrapResponseInterceptor } from '../../common/interceptors/wrap-response.interceptor';
 import { UsersService } from './users.service';
 import { UpdateUserProfileDto } from './dto/update-user-profile.dto';
 
@@ -54,7 +65,14 @@ export class UsersController {
     return this.users.findMany(Number(page), Number(limit));
   }
 
+  /*
+   * The only route on this controller that needs the interceptor: `getProfile`
+   * and `findMany` hand-write their own envelope, `findById` returns the entity
+   * bare. Nothing calls this route today, which is the only reason the mismatch
+   * never showed up as an empty admin screen.
+   */
   @Get(':id')
+  @UseInterceptors(WrapResponseInterceptor)
   @UseGuards(RolesGuard)
   @Roles(RoleCode.SUPER_ADMIN, RoleCode.HOSPITAL_ADMIN, RoleCode.BLOOD_CENTER_ADMIN)
   @ApiOperation({ summary: 'Get a user by ID (administrators)' })

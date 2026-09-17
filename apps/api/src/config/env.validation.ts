@@ -82,6 +82,11 @@ export const envValidationSchema = Joi.object({
   // retention decision -- see .env.example.
   EMERGENCY_LOCATION_RETENTION_HOURS: Joi.number().min(1).default(72),
   EXPO_ACCESS_TOKEN: Joi.string().allow('').optional(),
+  // How far ahead of an appointment its reminder goes out. One place, so
+  // moving reminders from a day out to two hours out is a config change.
+  // Bounded at a week because a reminder further out than that is not a
+  // reminder, and at 5 minutes because the job only wakes every 5.
+  APPOINTMENT_REMINDER_LEAD_MINUTES: Joi.number().min(5).max(10080).default(1440),
   DONATION_COOLDOWN_DAYS: Joi.number().min(1).default(56),
 
   // AI health insights. Every default here mirrors the fallback the reading

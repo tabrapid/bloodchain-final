@@ -17,7 +17,11 @@ describe('NotificationDeliveryService', () => {
   let prisma: MockPrisma;
   let pushDeviceService: { getActiveDevicesForUser: jest.Mock; markInvalidToken: jest.Mock };
   let pushProvider: { isValidToken: jest.Mock; send: jest.Mock };
-  let preferenceService: { isInQuietHours: jest.Mock; shouldEmergencyOverride: jest.Mock };
+  let preferenceService: {
+    isInQuietHours: jest.Mock;
+    shouldEmergencyOverride: jest.Mock;
+    isChannelEnabled: jest.Mock;
+  };
   let platformSettings: { isEnabled: jest.Mock };
 
   const baseNotification = {
@@ -50,6 +54,7 @@ describe('NotificationDeliveryService', () => {
     };
 
     preferenceService = {
+      isChannelEnabled: jest.fn().mockResolvedValue(true),
       isInQuietHours: jest.fn().mockResolvedValue(false),
       shouldEmergencyOverride: jest.fn().mockResolvedValue(false),
     };
@@ -106,6 +111,32 @@ describe('NotificationDeliveryService', () => {
       where: { id: 'delivery-1' },
       data: expect.objectContaining({ status: DeliveryStatus.FAILED, errorCode: 'NO_ACTIVE_DEVICES' }),
     });
+  });
+
+  it('sends no push when the recipient has turned that category off', async () => {
+    // The notification itself still exists and still reaches their inbox --
+    // the preference governs the interruption, not the record.
+    prisma.notification.findUnique.mockResolvedValue({ ...baseNotification, type: 'APPOINTMENT' });
+    pushDeviceService.getActiveDevicesForUser.mockResolvedValue([{ token: 't1', platform: 'ios' }]);
+    preferenceService.isChannelEnabled.mockResolvedValue(false);
+
+    const result = await service.deliver('notif-1');
+
+    expect(preferenceService.isChannelEnabled).toHaveBeenCalledWith('user-1', 'appointment');
+    expect(result).toEqual({ success: false, reason: 'Recipient has turned this category off' });
+    expect(pushProvider.send).not.toHaveBeenCalled();
+    // Not even a delivery attempt row: nothing was attempted.
+    expect(prisma.notificationDelivery.create).not.toHaveBeenCalled();
+  });
+
+  it('asks about the category that matches the notification type', async () => {
+    prisma.notification.findUnique.mockResolvedValue({ ...baseNotification, type: 'LABORATORY' });
+    pushDeviceService.getActiveDevicesForUser.mockResolvedValue([{ token: 't1', platform: 'ios' }]);
+    pushProvider.send.mockResolvedValue([{ status: 'ok', id: 'ticket-1' }]);
+
+    await service.deliver('notif-1');
+
+    expect(preferenceService.isChannelEnabled).toHaveBeenCalledWith('user-1', 'health');
   });
 
   it('queues a non-emergency notification during quiet hours instead of sending', async () => {

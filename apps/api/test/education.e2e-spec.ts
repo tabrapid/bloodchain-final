@@ -2,7 +2,7 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 
 import { PrismaService } from '../src/database/prisma.service';
-import { API, SEEDED, createTestApp, tokenFor, waitFor } from './utils/e2e';
+import { API, SEEDED, createTestApp, seededOrganizations, tokenFor, waitFor } from './utils/e2e';
 
 /**
  * P3-10 regression tests.
@@ -151,7 +151,10 @@ describe('P3-10: education progress requires start before complete', () => {
       },
     });
     const donorRole = await db.role.findUniqueOrThrow({ where: { code: 'DONOR' } });
-    const organization = await db.organization.findFirstOrThrow();
+    // Not `findFirstOrThrow()` over every organization: the demo directory
+    // made "the first one" arbitrary. This suite only needs a real,
+    // non-demo organization to hang the content on.
+    const { hospital: organization } = await seededOrganizations(app);
     await db.organizationMembership.create({
       data: { userId: other.id, organizationId: organization.id, roleId: donorRole.id, status: 'ACTIVE' },
     });

@@ -350,6 +350,19 @@ describe('Emergency request and donor matching (e2e)', () => {
       expect([200, 201]).toContain(completeRes.status);
     });
 
+    it('links the donation it produced back to this response', async () => {
+      // Sprint 3, item 5. This link is what makes the donation an emergency
+      // one. It used to be guessed afterwards from the donor's blood group and
+      // the existence of any past emergency response of theirs, which meant
+      // every later routine donation by this donor was scored as an emergency.
+      const donation = await db.donation.findFirstOrThrow({
+        where: { emergencyResponseId: responseId },
+      });
+
+      expect(donation.donorId).toBe(donorUserId);
+      expect(donation.status).toBe('COMPLETED');
+    });
+
     it('the hospital can read the emergency\'s tracking view', async () => {
       await request(app.getHttpServer())
         .get(`${API}/organizations/${hospitalId}/emergencies/${emergencyId}/tracking`)

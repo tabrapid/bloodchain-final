@@ -1,10 +1,20 @@
-import { Body, Controller, Get, Param, Patch, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Query,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { RoleCode } from '@prisma/client';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
+import { WrapResponseInterceptor } from '../../common/interceptors/wrap-response.interceptor';
 import {
   DiscoverOrganizationsQueryDto,
   OrganizationDirectoryQueryDto,
@@ -19,6 +29,17 @@ import { OrganizationsService } from './organizations.service';
 @ApiBearerAuth()
 export class OrganizationsController {
   constructor(private readonly organizations: OrganizationsService) {}
+
+  /*
+   * Three of the five routes below carry `@UseInterceptors(WrapResponseInterceptor)`
+   * and two do not, which looks arbitrary and is not: `findMany` and `discover`
+   * return `{ data, meta }` from the service itself, so wrapping them would
+   * produce `{ data: { data, meta } }` and break the clients that already work.
+   * The other three return a bare entity, which every client then unwraps as
+   * `json.data` and got `undefined` for -- the whole directory UI rendered
+   * empty without a single error anywhere. The interceptor cannot go on the
+   * class for exactly that reason.
+   */
 
   @Get()
   @Roles(RoleCode.SUPER_ADMIN, RoleCode.HOSPITAL_ADMIN, RoleCode.BLOOD_CENTER_ADMIN)
@@ -41,6 +62,7 @@ export class OrganizationsController {
   }
 
   @Get(':id')
+  @UseInterceptors(WrapResponseInterceptor)
   @ApiOperation({ summary: 'One organization, with its full directory entry' })
   @ApiResponse({ status: 200, description: 'Organization found' })
   findOne(@Param('id') id: string) {
@@ -54,6 +76,7 @@ export class OrganizationsController {
    * caller arriving through a different route.
    */
   @Patch(':id/directory')
+  @UseInterceptors(WrapResponseInterceptor)
   @Roles(RoleCode.SUPER_ADMIN, RoleCode.HOSPITAL_ADMIN, RoleCode.BLOOD_CENTER_ADMIN)
   @ApiOperation({ summary: 'Update an organization directory entry' })
   @ApiResponse({ status: 200, description: 'Updated directory entry' })
@@ -73,6 +96,7 @@ export class OrganizationsController {
    * organization must not be able to verify itself by saving its own address.
    */
   @Patch(':id/verification')
+  @UseInterceptors(WrapResponseInterceptor)
   @Roles(RoleCode.SUPER_ADMIN)
   @ApiOperation({ summary: 'Mark an organization verified, or withdraw verification' })
   @ApiResponse({ status: 200, description: 'Updated organization' })

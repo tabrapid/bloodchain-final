@@ -126,4 +126,20 @@ describe('getOrganization', () => {
     await getOrganization('org 1');
     expect(requestedUrl().pathname).toBe('/api/v1/organizations/org%201');
   });
+
+  /**
+   * The booking review step renders `organization.name`. The envelope below is
+   * the shape the running API sends -- `client-contract.e2e-spec.ts` asserts the
+   * same fields against it -- and `apiRequest` unwraps exactly one level of it.
+   * Sprint 2 consumed this route while it answered bare, so the review step
+   * received `undefined` and could not name the place the donor had chosen.
+   */
+  it('unwraps to the organization the review step names', async () => {
+    mockFetchOnce({ data: { id: 'org-1', name: 'Demo City Hospital', address: '1 Demo Street' } });
+
+    const organization = await getOrganization('org-1');
+
+    expect(organization.name).toBe('Demo City Hospital');
+    expect(organization.address).toBe('1 Demo Street');
+  });
 });

@@ -1,6 +1,7 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards, UseInterceptors } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { WrapResponseInterceptor } from '../../common/interceptors/wrap-response.interceptor';
 import { GeographyService } from './geography.service';
 
 /**
@@ -13,6 +14,10 @@ import { GeographyService } from './geography.service';
 @ApiTags('Geography')
 @Controller('geography')
 @UseGuards(JwtAuthGuard)
+// Every route here returns a raw payload, so the whole controller is wrapped:
+// the clients unwrap `json.data`, and without this they received `undefined`
+// and rendered an empty region picker with no error to explain it.
+@UseInterceptors(WrapResponseInterceptor)
 @ApiBearerAuth()
 export class GeographyController {
   constructor(private readonly geography: GeographyService) {}

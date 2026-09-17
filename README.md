@@ -100,9 +100,21 @@ pnpm dev:mobile
 ### Verification
 
 ```bash
+pnpm verify      # typecheck → lint → unit tests → end-to-end tests
+```
+
+`pnpm verify` is the gate. It chains with `&&`, so it fails on the first red
+step — including `pnpm test:e2e`, which for a while could be red while
+`pnpm test` was green, because the unit suites and the end-to-end suites are
+run by different tools. A change is not verified until this command passes.
+
+The individual steps, when you want one of them on its own:
+
+```bash
 pnpm typecheck   # tsc --noEmit across all 10 workspace packages
 pnpm lint
-pnpm test        # 658 API + 57 web + 19 mobile + 128 package tests
+pnpm test        # unit suites, via turbo (cacheable, no database)
+pnpm test:e2e    # end-to-end suites, against a real seeded database
 pnpm build
 ```
 

@@ -10,7 +10,7 @@ export class UsersService {
   ) {}
 
   async findById(id: string) {
-    return this.db.user.findUnique({
+    const user = await this.db.user.findUnique({
       where: { id },
       select: {
         id: true,
@@ -29,6 +29,15 @@ export class UsersService {
         updatedAt: true,
       },
     });
+
+    // The route already advertises 404 in its OpenAPI response list, and used
+    // to answer 200 with an empty body instead -- indistinguishable, to a
+    // client, from a user who exists and has no fields.
+    if (!user) {
+      throw new NotFoundException('User not found.');
+    }
+
+    return user;
   }
 
   async findMany(page = 1, limit = 20) {

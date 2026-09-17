@@ -1,8 +1,10 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import {
   AssessmentDecision,
+  BloodType,
   CancellationReason,
   DonationType,
+  RhFactor,
 } from '@prisma/client';
 import { IsEnum, IsOptional, IsString, IsInt, Min, Max, IsDateString } from 'class-validator';
 
@@ -56,15 +58,21 @@ export class CompleteDonationDto {
   @IsDateString()
   collectionCompletedAt!: string;
 
-  @ApiPropertyOptional()
+  /*
+   * Enums, not free strings. `@IsString()` let "0+" or a typo through
+   * validation, where it was cast with `as BloodType` and handed to Prisma --
+   * which answers with a 500 about an invalid enum value rather than telling
+   * the person at the desk what they mistyped.
+   */
+  @ApiPropertyOptional({ enum: BloodType })
   @IsOptional()
-  @IsString()
-  bloodType?: string;
+  @IsEnum(BloodType)
+  bloodType?: BloodType;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ enum: RhFactor })
   @IsOptional()
-  @IsString()
-  rhFactor?: string;
+  @IsEnum(RhFactor)
+  rhFactor?: RhFactor;
 
   @ApiPropertyOptional()
   @IsOptional()

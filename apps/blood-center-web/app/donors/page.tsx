@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { Activity, Search, Users } from 'lucide-react';
+import { Activity, Search, ShieldCheck, Users } from 'lucide-react';
 import {
   DataTable,
   DataTableColumn,
@@ -10,12 +10,14 @@ import {
   StatusBadge,
 } from '@bloodchain/ui/components';
 import { me, isAuthenticated, MeResponse } from '../../lib/auth';
-import { listDonors, Donor, ListDonorsParams } from '../../lib/donors';
+import { listDonors, Donor, ListDonorsParams, VerificationStatus } from '../../lib/donors';
 import { AppShell } from '../../components/AppShell';
+import { BloodTypeVerification, formatGroup } from '../../components/BloodTypeVerification';
 import { useTranslation } from '@bloodchain/ui/i18n';
 
 const BLOOD_TYPES = ['A', 'B', 'AB', 'O'] as const;
 const DONOR_STATUSES = ['ACTIVE', 'INACTIVE', 'DEFERRED'] as const;
+const VERIFICATION_STATUSES: VerificationStatus[] = ['UNVERIFIED', 'REQUIRES_REVIEW', 'VERIFIED'];
 
 type StatusVariant = 'default' | 'success' | 'warning' | 'danger' | 'info';
 
@@ -47,6 +49,9 @@ export default function DonorsPage() {
   const [loadError, setLoadError] = useState(false);
   const [filters, setFilters] = useState<ListDonorsParams>({ page: 1, limit: 20 });
   const [cityInput, setCityInput] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  // The donor whose blood group is open for verification; null when none is.
+  const [verifying, setVerifying] = useState<Donor | null>(null);
   const [totalPages, setTotalPages] = useState(1);
   const [totalDonors, setTotalDonors] = useState(0);
 
@@ -89,6 +94,16 @@ export default function DonorsPage() {
     setFilters((prev) => ({ ...prev, city: cityInput || undefined, page: 1 }));
   };
 
+  const handleDonorSearch = () => {
+    setFilters((prev) => ({ ...prev, search: searchInput.trim() || undefined, page: 1 }));
+  };
+
+  // The server returns the updated profile, so the row can be corrected without
+  // a round trip -- and without guessing what the server decided.
+  const handleVerified = (updated: Donor) => {
+    setDonors((prev) => prev.map((d) => (d.id === updated.id ? { ...d, ...updated } : d)));
+  };
+
   const handleFilterChange = (key: keyof ListDonorsParams, value: string) => {
     setFilters((prev) => ({ ...prev, [key]: value || undefined, page: 1 }));
   };
@@ -103,14 +118,39 @@ export default function DonorsPage() {
     {
       key: 'bloodType',
       header: t('home.bloodTypeLabel'),
-      render: (d) => d.bloodType
-        ? <span><span className="font-semibold">{d.bloodType}</span><span className="ml-1 text-xs text-donor-muted">{d.rhFactor === 'POSITIVE' ? '+' : d.rhFactor === 'NEGATIVE' ? '-' : ''}</span></span>
-        : '—',
+      render: (d) => {
+        const group = formatGroup(d.bloodType, d.rhFactor);
+        if (!group) return '—';
+        return (
+          <span>
+            <span className="font-semibold">{group}</span>
+            {d.verificationStatus !== 'VERIFIED' && (
+              <span className="ml-2 text-xs text-donor-muted">
+                {t('ops.donors.verification.selfReported')}
+              </span>
+            )}
+          </span>
+        );
+      },
     },
     { key: 'location', header: t('table.location'), render: (d) => [d.city, d.district].filter(Boolean).join(', ') || '—' },
     { key: 'donorStatus', header: t('table.status'), render: (d) => <StatusBadge variant={statusVariant(d.donorStatus)}>{d.donorStatus}</StatusBadge> },
     { key: 'verificationStatus', header: t('ops.common.verification'), render: (d) => <StatusBadge variant={verificationVariant(d.verificationStatus)}>{d.verificationStatus.replace('_', ' ')}</StatusBadge> },
     { key: 'createdAt', header: t('ops.common.joined'), render: (d) => new Date(d.createdAt).toLocaleDateString() },
+    {
+      key: 'verify',
+      header: '',
+      render: (d) => (
+        <button
+          type="button"
+          onClick={() => setVerifying(d)}
+          className="inline-flex items-center gap-1.5 rounded-lg bc-solid px-3 py-1.5 text-sm text-donor-text transition-colors hover:bg-donor-elevated"
+        >
+          <ShieldCheck size={15} />
+          {t('ops.donors.verification.action')}
+        </button>
+      ),
+    },
   ];
 
   if (isLoading) {
@@ -171,11 +211,23 @@ export default function DonorsPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-donor-muted" size={18} />
           <input
             type="text"
+            placeholder={t('ops.donors.searchByNameOrEmail')}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleDonorSearch()}
+            onBlur={handleDonorSearch}
+            className="w-full rounded-lg bc-solid px-10 py-2 text-sm text-donor-text placeholder:text-donor-muted focus:border-donor-secondary focus:outline-none"
+          />
+        </div>
+        <div className="relative min-w-[160px]">
+          <input
+            type="text"
             placeholder={t('ops.donors.searchByCity')}
             value={cityInput}
             onChange={(e) => setCityInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleCitySearch()}
-            className="w-full rounded-lg bc-solid px-10 py-2 text-sm text-donor-text placeholder:text-donor-muted focus:border-donor-secondary focus:outline-none"
+            onBlur={handleCitySearch}
+            className="w-full rounded-lg bc-solid px-3 py-2 text-sm text-donor-text placeholder:text-donor-muted focus:border-donor-secondary focus:outline-none"
           />
         </div>
         <select
@@ -196,6 +248,16 @@ export default function DonorsPage() {
           <option value="">{t('filters.allStatuses')}</option>
           {DONOR_STATUSES.map((s) => (
             <option key={s} value={s}>{s}</option>
+          ))}
+        </select>
+        <select
+          value={filters.verificationStatus ?? ''}
+          onChange={(e) => handleFilterChange('verificationStatus', e.target.value)}
+          className="rounded-lg bc-solid px-3 py-2 text-sm text-donor-text"
+        >
+          <option value="">{t('ops.donors.allVerificationStates')}</option>
+          {VERIFICATION_STATUSES.map((s) => (
+            <option key={s} value={s}>{s.replace('_', ' ')}</option>
           ))}
         </select>
       </div>
@@ -243,6 +305,12 @@ export default function DonorsPage() {
           )}
         </>
       )}
+
+      <BloodTypeVerification
+        donor={verifying}
+        onClose={() => setVerifying(null)}
+        onVerified={handleVerified}
+      />
     </AppShell>
   );
 }

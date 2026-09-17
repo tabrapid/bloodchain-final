@@ -88,18 +88,53 @@ export const SEEDED = {
   labAdmin: 'lab.admin@donor.local',
 } as const;
 
-/** Resolve the seeded hospital and blood centre, which most flows are scoped to. */
+/**
+ * Resolve the seeded hospital and blood centre, which most flows are scoped to.
+ *
+ * Resolved through the seeded staff accounts' own memberships rather than by
+ * asking for "the first organization of this type". That earlier form was
+ * silently wrong the day the Uzbekistan demo directory added seventeen more
+ * organizations: `findFirst` with no ordering returned a demo blood centre that
+ * nobody is a member of, so every blood-centre call in these suites answered
+ * 403 and five suites went red at once -- correctly, because the API was
+ * refusing a non-member.
+ *
+ * Asking "which organization does this actor belong to" makes the fixture say
+ * what the tests actually mean, and no amount of future seed data can move it.
+ */
 export async function seededOrganizations(app: INestApplication) {
   const db = app.get(PrismaService);
 
-  const hospital = await db.organization.findFirstOrThrow({
-    where: { type: OrganizationType.HOSPITAL },
-  });
-  const bloodCenter = await db.organization.findFirstOrThrow({
-    where: { type: OrganizationType.BLOOD_CENTER },
-  });
+  const hospital = await organizationOf(db, SEEDED.hospitalStaff, OrganizationType.HOSPITAL);
+  const bloodCenter = await organizationOf(
+    db,
+    SEEDED.bloodCenterStaff,
+    OrganizationType.BLOOD_CENTER,
+  );
 
   return { hospital, bloodCenter };
+}
+
+/** The organization a seeded account actually holds an ACTIVE membership in. */
+async function organizationOf(db: PrismaService, email: string, type: OrganizationType) {
+  const membership = await db.organizationMembership.findFirst({
+    where: {
+      status: 'ACTIVE',
+      user: { email },
+      organization: { type, isDemo: false },
+    },
+    orderBy: { createdAt: 'asc' },
+    include: { organization: true },
+  });
+
+  if (!membership) {
+    throw new Error(
+      `Seeded account ${email} has no ACTIVE membership in a non-demo ${type}. ` +
+        'These suites run against a seeded database — run `pnpm demo:reset` first.',
+    );
+  }
+
+  return membership.organization;
 }
 
 export const API = '/api/v1';
