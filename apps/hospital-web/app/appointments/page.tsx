@@ -17,6 +17,7 @@ import {
   AppointmentType,
 } from '../../lib/appointment-slots';
 import { AppShell } from '../../components/AppShell';
+import { AppointmentRoster } from '../../components/AppointmentRoster';
 import { useTranslation } from '@bloodchain/ui/i18n';
 
 /** Keys, not words: there is no locale at module load. */
@@ -52,6 +53,10 @@ export default function AppointmentSlotsPage() {
   const [slots, setSlots] = useState<AppointmentSlot[]>([]);
   const [typeFilter, setTypeFilter] = useState<AppointmentType | ''>('');
   const [refreshing, setRefreshing] = useState(false);
+  // Two views of the same desk: who is booked in, and the capacity
+  // that produced those bookings. Bookings lead, because that is the
+  // work; slots are the configuration behind it.
+  const [view, setView] = useState<'bookings' | 'slots'>('bookings');
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
@@ -238,6 +243,29 @@ export default function AppointmentSlotsPage() {
         </div>
       </div>
 
+      <div className="mb-6 flex items-center gap-2 border-b border-donor-border/60">
+        {(['bookings', 'slots'] as const).map((tab) => (
+          <button
+            key={tab}
+            type="button"
+            onClick={() => setView(tab)}
+            aria-selected={view === tab}
+            role="tab"
+            className={
+              view === tab
+                ? 'border-b-2 border-donor-primary px-4 py-2.5 text-sm font-semibold text-donor-text'
+                : 'border-b-2 border-transparent px-4 py-2.5 text-sm font-semibold text-donor-muted transition-colors hover:text-donor-text'
+            }
+          >
+            {t(`ops.appointments.${tab}`)}
+          </button>
+        ))}
+      </div>
+
+      {view === 'bookings' ? (
+        <AppointmentRoster organizationId={organizationId} />
+      ) : (
+      <>
       <div className="mb-6 flex items-center gap-4">
         <select
           value={typeFilter}
@@ -316,6 +344,9 @@ export default function AppointmentSlotsPage() {
             );
           })}
         </div>
+      )}
+
+      </>
       )}
 
       <Modal open={showCreateModal} onClose={() => setShowCreateModal(false)} title={t('ops.appointments.newSlot')}>

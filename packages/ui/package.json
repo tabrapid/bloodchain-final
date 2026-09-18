@@ -9,7 +9,8 @@
     "./i18n": "./src/i18n/index.ts",
     "./map": "./src/components/map/LocationMap.tsx",
     "./tailwind-preset": "./src/tokens/tailwind-preset.ts",
-    "./styles/glass.css": "./src/styles/glass.css"
+    "./styles/glass.css": "./src/styles/glass.css",
+    "./notifications": "./src/notifications/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",

@@ -13,7 +13,7 @@ import {
 } from '../../../src/api/laboratory';
 
 export default function LaboratoryScreen() {
-  const { t, formatDate } = useTranslation();
+  const { t, formatDate, formatTime } = useTranslation();
   const { colors } = useTheme();
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -113,9 +113,7 @@ export default function LaboratoryScreen() {
 
         <SectionHeader>{t('laboratory.bookATest')}</SectionHeader>
         <TouchableOpacity
-          onPress={() =>
-            router.push({ pathname: '/(booking)/organizations', params: { type: 'BLOOD_TEST' } })
-          }
+          onPress={() => router.push('/(lab-booking)/test-type')}
           activeOpacity={0.8}
         >
           <Card style={{ marginBottom: layout.cardGap }}>
@@ -168,16 +166,20 @@ export default function LaboratoryScreen() {
                   </View>
                   <View style={{ flex: 1 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-                      <AppText variant="heading">{appointment.organization.name}</AppText>
+                      <AppText variant="heading">
+                        {appointment.testType?.name ?? appointment.organization.name}
+                      </AppText>
                     </View>
+                    {appointment.testType ? (
+                      <AppText muted style={{ fontSize: 13 }}>
+                        {appointment.organization.name}
+                      </AppText>
+                    ) : null}
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginTop: spacing.xs }}>
                       <Clock size={12} color={colors.textMuted} />
                       <AppText muted style={{ fontSize: 13 }}>
-                        {new Date(appointment.scheduledStart).toLocaleDateString()} at{' '}
-                        {new Date(appointment.scheduledStart).toLocaleTimeString([], {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
+                        {formatDate(appointment.scheduledStart, 'medium')} ·{' '}
+                        {formatTime(appointment.scheduledStart)}
                       </AppText>
                     </View>
                     <View
@@ -197,7 +199,7 @@ export default function LaboratoryScreen() {
                           color: getStatusColor(appointment.status).text,
                         }}
                       >
-                        {appointment.status.replace('_', ' ')}
+                        {t(`status.appointment.${appointment.status}`)}
                       </AppText>
                     </View>
                   </View>

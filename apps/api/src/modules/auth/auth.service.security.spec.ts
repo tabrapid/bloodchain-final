@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
@@ -104,6 +105,7 @@ describe('AuthService Security Tests', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
+        { provide: EventEmitter2, useValue: { emit: jest.fn() } },
         { provide: PrismaService, useValue: prisma },
         { provide: AuditLogsService, useValue: auditLogsService },
         { provide: PermissionsService, useValue: mockPermissionsService },

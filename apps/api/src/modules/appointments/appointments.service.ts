@@ -9,7 +9,13 @@ import { AppointmentStatus, AppointmentType, Prisma, RoleCode, SlotStatus } from
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../database/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
-import { CreateAppointmentDto, CancelAppointmentDto, RescheduleAppointmentDto, GetMyAppointmentsDto } from './dto/appointment.dto';
+import {
+  CreateAppointmentDto,
+  CancelAppointmentDto,
+  ListOrganizationAppointmentsDto,
+  RescheduleAppointmentDto,
+  GetMyAppointmentsDto,
+} from './dto/appointment.dto';
 import { APPOINTMENT_COMPLETED_EVENT } from '../gamification/events/gamification-event.handler';
 import {
   APPOINTMENT_CANCELLED_EVENT,
@@ -320,6 +326,11 @@ export class AppointmentsService {
             lastName: true,
             email: true,
           },
+        },
+        // Only a blood test carries one, and it is the one thing the donor
+        // chose that the detail screen could not name.
+        testType: {
+          select: { id: true, code: true, name: true, category: true },
         },
       },
     });
@@ -771,6 +782,297 @@ export class AppointmentsService {
     });
 
     return { data: { id: result.id, status: result.status } };
+  }
+
+
+  /**
+   * The roles that run an appointment desk.
+   *
+   * Written once instead of being retyped at each staff action -- confirm and
+   * complete each carried their own copy of this array, and a lifecycle
+   * action added later would have carried a third.
+   */
+  private static readonly DESK_ROLES = [
+    RoleCode.HOSPITAL_ADMIN,
+    RoleCode.HOSPITAL_STAFF,
+    RoleCode.BLOOD_CENTER_ADMIN,
+    RoleCode.BLOOD_CENTER_STAFF,
+  ] as const;
+
+  /**
+   * Confirms the caller works, right now, at the organisation the appointment
+   * belongs to -- and that the organisation is still active.
+   */
+  private async assertDeskStaff(userId: string, organizationId: string, action: string) {
+    const membership = await this.db.organizationMembership.findFirst({
+      where: {
+        userId,
+        organizationId,
+        status: 'ACTIVE',
+        role: { code: { in: AppointmentsService.DESK_ROLES as unknown as RoleCode[] } },
+      },
+      include: { organization: true },
+    });
+
+    if (!membership) {
+      throw new ForbiddenException(`Only staff of this organization can ${action}.`);
+    }
+
+    assertOrganizationActive(membership.organization);
+    return membership;
+  }
+
+  /**
+   * The appointments one organisation's desk has booked.
+   *
+   * Staff could create, edit and block *slots*, and could confirm an
+   * appointment whose id they already had -- but there was no route that
+   * listed the appointments themselves, so nothing in any portal could show
+   * who was actually coming in. That is the list.
+   */
+  async listOrganizationAppointments(
+    organizationId: string,
+    requestingUserId: string,
+    filters: ListOrganizationAppointmentsDto = {},
+  ) {
+    await this.assertDeskStaff(requestingUserId, organizationId, 'view appointments');
+
+    const where: Prisma.AppointmentWhereInput = { organizationId };
+
+    if (filters.status) where.status = filters.status as AppointmentStatus;
+    if (filters.appointmentType) {
+      where.appointmentType = filters.appointmentType as AppointmentType;
+    }
+
+    if (filters.date) {
+      const start = new Date(filters.date);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(filters.date);
+      end.setHours(23, 59, 59, 999);
+      where.scheduledStart = { gte: start, lte: end };
+    } else if (filters.startDate || filters.endDate) {
+      where.scheduledStart = {
+        ...(filters.startDate ? { gte: new Date(filters.startDate) } : {}),
+        ...(filters.endDate ? { lte: new Date(filters.endDate) } : {}),
+      };
+    }
+
+    const search = filters.search?.trim();
+    if (search) {
+      where.OR = [
+        { referenceNumber: { contains: search, mode: 'insensitive' } },
+        { donor: { firstName: { contains: search, mode: 'insensitive' } } },
+        { donor: { lastName: { contains: search, mode: 'insensitive' } } },
+        { donor: { email: { contains: search, mode: 'insensitive' } } },
+      ];
+    }
+
+    const limit = Math.min(Number(filters.limit) || 50, 200);
+
+    const appointments = await this.db.appointment.findMany({
+      where,
+      take: limit,
+      orderBy: { scheduledStart: 'asc' },
+      include: {
+        donor: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            phone: true,
+            donorProfile: {
+              select: { bloodType: true, rhFactor: true, verificationStatus: true },
+            },
+          },
+        },
+        // Present on blood tests only, and the thing staff otherwise have to
+        // telephone the donor to ask.
+        testType: { select: { id: true, code: true, name: true } },
+        slot: { select: { id: true, capacity: true, bookedCount: true } },
+      },
+    });
+
+    return { data: appointments };
+  }
+
+  /**
+   * The donor did not come.
+   *
+   * A no-show is a terminal state, and it returns the seat: the slot's
+   * bookedCount is decremented and a FULL slot goes back to AVAILABLE, exactly
+   * as a cancellation does. Without that, an unattended appointment held a seat
+   * nobody could book for the rest of the slot's life.
+   */
+  async markNoShow(
+    appointmentId: string,
+    requestingUserId: string,
+    reason?: string,
+    ipAddress?: string,
+  ) {
+    const appointment = await this.db.appointment.findUnique({
+      where: { id: appointmentId },
+    });
+
+    if (!appointment) {
+      throw new NotFoundException('Appointment not found.');
+    }
+
+    await this.assertDeskStaff(requestingUserId, appointment.organizationId, 'mark a no-show');
+
+    const markable: AppointmentStatus[] = [
+      AppointmentStatus.PENDING,
+      AppointmentStatus.CONFIRMED,
+      AppointmentStatus.CHECKED_IN,
+    ];
+
+    if (!markable.includes(appointment.status)) {
+      throw new BadRequestException('This appointment cannot be marked as a no-show.');
+    }
+
+    if (appointment.scheduledStart > new Date()) {
+      throw new BadRequestException(
+        'This appointment has not started yet, so it cannot be a no-show.',
+      );
+    }
+
+    const result = await this.db.$transaction(async (tx) => {
+      const updated = await tx.appointment.update({
+        where: { id: appointmentId },
+        data: { status: AppointmentStatus.NO_SHOW },
+      });
+
+      await this.releaseSeat(tx, appointment.slotId);
+
+      await tx.appointmentHistory.create({
+        data: {
+          appointmentId,
+          action: 'NO_SHOW',
+          previousStatus: appointment.status,
+          newStatus: AppointmentStatus.NO_SHOW,
+          actorId: requestingUserId,
+          reason,
+        },
+      });
+
+      return updated;
+    });
+
+    await this.audit.log({
+      actorId: requestingUserId,
+      action: 'APPOINTMENT_NO_SHOW',
+      entityType: 'Appointment',
+      entityId: appointmentId,
+      organizationId: appointment.organizationId,
+      metadata: { reason },
+      ipAddress,
+    });
+
+    return { data: { id: result.id, status: result.status } };
+  }
+
+  /**
+   * Staff cancel an appointment on the donor's behalf.
+   *
+   * `cancelAppointment` above is the donor's own route and refuses anyone but
+   * the donor, which is right: this is the separate, audited path for the desk
+   * closing a session or turning a booking away, and it notifies the donor
+   * through the same cancellation event their own cancellation raises.
+   */
+  async cancelAppointmentAsStaff(
+    appointmentId: string,
+    requestingUserId: string,
+    reason: string,
+    ipAddress?: string,
+  ) {
+    const appointment = await this.db.appointment.findUnique({
+      where: { id: appointmentId },
+    });
+
+    if (!appointment) {
+      throw new NotFoundException('Appointment not found.');
+    }
+
+    await this.assertDeskStaff(requestingUserId, appointment.organizationId, 'cancel appointments');
+
+    const cancellable: AppointmentStatus[] = [
+      AppointmentStatus.PENDING,
+      AppointmentStatus.CONFIRMED,
+    ];
+
+    if (!cancellable.includes(appointment.status)) {
+      throw new BadRequestException('This appointment cannot be cancelled.');
+    }
+
+    const result = await this.db.$transaction(async (tx) => {
+      const updated = await tx.appointment.update({
+        where: { id: appointmentId },
+        data: {
+          status: AppointmentStatus.CANCELLED,
+          cancelledAt: new Date(),
+          cancellationReason: reason,
+        },
+      });
+
+      await this.releaseSeat(tx, appointment.slotId);
+
+      await tx.appointmentHistory.create({
+        data: {
+          appointmentId,
+          action: 'CANCELLED',
+          previousStatus: appointment.status,
+          newStatus: AppointmentStatus.CANCELLED,
+          actorId: requestingUserId,
+          reason,
+        },
+      });
+
+      return updated;
+    });
+
+    await this.audit.log({
+      actorId: requestingUserId,
+      action: 'APPOINTMENT_CANCELLED_BY_STAFF',
+      entityType: 'Appointment',
+      entityId: appointmentId,
+      organizationId: appointment.organizationId,
+      metadata: { reason },
+      ipAddress,
+    });
+
+    this.eventEmitter.emit(APPOINTMENT_CANCELLED_EVENT, {
+      appointmentId,
+      donorId: appointment.donorId,
+      organizationId: appointment.organizationId,
+      scheduledStart: appointment.scheduledStart,
+      cancelledByStaff: true,
+      reason,
+    });
+
+    return { data: { id: result.id, status: result.status } };
+  }
+
+  /**
+   * Give a seat back to its slot.
+   *
+   * A slot that filled up was flipped to FULL, and nothing flipped it back --
+   * so the first cancellation on a full slot decremented the count and left the
+   * status saying FULL, and the freed seat was invisible to every donor
+   * browsing availability.
+   */
+  private async releaseSeat(tx: Prisma.TransactionClient, slotId: string) {
+    const slot = await tx.appointmentSlot.update({
+      where: { id: slotId },
+      data: { bookedCount: { decrement: 1 } },
+      select: { id: true, status: true, bookedCount: true, capacity: true },
+    });
+
+    if (slot.status === SlotStatus.FULL && slot.bookedCount < slot.capacity) {
+      await tx.appointmentSlot.update({
+        where: { id: slotId },
+        data: { status: SlotStatus.AVAILABLE },
+      });
+    }
   }
 
   async getNextAppointment(donorId: string) {

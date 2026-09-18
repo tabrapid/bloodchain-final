@@ -11,6 +11,17 @@ import {
   type AppointmentCreatedPayload,
   type AppointmentReminderPayload,
 } from '../appointment-notification.events';
+import {
+  ACHIEVEMENT_UNLOCKED_EVENT,
+  INVENTORY_ALERT_EVENT,
+  LEVEL_UP_EVENT,
+  SECURITY_EVENT,
+  type AchievementUnlockedPayload,
+  type InventoryAlertPayload,
+  type LevelUpPayload,
+  type SecurityEventPayload,
+} from '../operational-notification.events';
+import { PrismaService } from '../../../database/prisma.service';
 
 const DONATION_COMPLETED_EVENT = 'donation.completed';
 const BLOOD_TEST_COMPLETED_EVENT = 'blood-test.completed';
@@ -18,11 +29,7 @@ const SOS_REQUEST_CREATED_EVENT = 'sos.request.created';
 const SOS_DONOR_ACCEPTED_EVENT = 'sos.donor.accepted';
 const SOS_REQUEST_EXPIRED_EVENT = 'sos.request.expired';
 const LAB_RESULT_PUBLISHED_EVENT = 'lab-result.published';
-const ACHIEVEMENT_UNLOCKED_EVENT = 'achievement.unlocked';
-const LEVEL_UP_EVENT = 'level.up';
 const SHIPMENT_EVENT = 'shipment.event';
-const INVENTORY_ALERT_EVENT = 'inventory.alert';
-const SECURITY_EVENT = 'security.event';
 
 interface DonationCompletedPayload {
   donationId: string;
@@ -62,34 +69,10 @@ interface LabResultPublishedPayload {
   donorId: string;
 }
 
-interface AchievementUnlockedPayload {
-  achievementId: string;
-  achievementName: string;
-  userId: string;
-}
-
-interface LevelUpPayload {
-  userId: string;
-  newLevel: number;
-}
-
 interface ShipmentEventPayload {
   shipmentId: string;
   eventType: string;
   recipientIds: string[];
-}
-
-interface InventoryAlertPayload {
-  inventoryId: string;
-  bloodType: string;
-  level: 'LOW' | 'CRITICAL';
-  recipientIds: string[];
-}
-
-interface SecurityEventPayload {
-  userId: string;
-  eventType: string;
-  details: string;
 }
 
 @Injectable()
@@ -100,7 +83,26 @@ export class NotificationEventHandler {
     private readonly router: NotificationRouterService,
     private readonly delivery: NotificationDeliveryService,
     private readonly notificationsService: NotificationsService,
+    private readonly db: PrismaService,
   ) {}
+
+  /**
+   * The people an organisation-scoped alert should reach.
+   *
+   * Resolved from ACTIVE memberships rather than the router's
+   * `findRecipientsByRole`, which queries a `role` column that does not exist
+   * on `User` -- roles live on the membership. Platform administrators are
+   * deliberately not included: a low-stock alert belongs to the blood centre
+   * that has to act on it.
+   */
+  private async organizationStaff(organizationId: string): Promise<string[]> {
+    const memberships = await this.db.organizationMembership.findMany({
+      where: { organizationId, status: 'ACTIVE' },
+      select: { userId: true },
+    });
+
+    return [...new Set(memberships.map((membership) => membership.userId))];
+  }
 
   @OnEvent(DONATION_COMPLETED_EVENT)
   async handleDonationCompleted(payload: DonationCompletedPayload) {
@@ -331,13 +333,17 @@ export class NotificationEventHandler {
   @OnEvent(INVENTORY_ALERT_EVENT)
   async handleInventoryAlert(payload: InventoryAlertPayload) {
     try {
-      this.logger.log(`Handling inventory alert: ${payload.inventoryId}`);
+      this.logger.log(`Handling inventory alert: ${payload.alertId}`);
 
-      const result = await this.router.routeInventoryAlert(
-        { id: payload.inventoryId, bloodType: payload.bloodType },
-        payload.recipientIds,
-        payload.level,
-      );
+      const recipientIds = await this.organizationStaff(payload.organizationId);
+      if (recipientIds.length === 0) {
+        this.logger.warn(
+          `Inventory alert ${payload.alertId}: organization ${payload.organizationId} has no active members to notify.`,
+        );
+        return;
+      }
+
+      const result = await this.router.routeInventoryAlert(payload, recipientIds);
 
       for (const notification of result.notifications) {
         await this.delivery.deliver(notification.id);
@@ -356,6 +362,7 @@ export class NotificationEventHandler {
         payload.userId,
         payload.eventType,
         payload.details,
+        payload.occurrenceId,
       );
 
       for (const notification of result.notifications) {

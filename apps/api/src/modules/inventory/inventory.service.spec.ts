@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { BadRequestException, ConflictException, ForbiddenException } from '@nestjs/common';
 import { BloodUnitStatus, ComponentType, OrganizationStatus, ReservationStatus } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
@@ -47,6 +48,7 @@ describe('InventoryService unit status transitions', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         InventoryService,
+        { provide: EventEmitter2, useValue: { emit: jest.fn() } },
         { provide: PrismaService, useValue: prisma },
         { provide: AuditLogsService, useValue: { log: jest.fn().mockResolvedValue({}) } },
       ],
@@ -288,6 +290,7 @@ describe('InventoryService organization-status access checks', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         InventoryService,
+        { provide: EventEmitter2, useValue: { emit: jest.fn() } },
         { provide: PrismaService, useValue: prisma },
         { provide: AuditLogsService, useValue: { log: jest.fn().mockResolvedValue({}) } },
       ],

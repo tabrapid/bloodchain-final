@@ -1,4 +1,5 @@
 import { BadRequestException, UnauthorizedException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -76,6 +77,7 @@ describe('AuthService: phone-first auth', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
+        { provide: EventEmitter2, useValue: { emit: jest.fn() } },
         { provide: PrismaService, useValue: prisma },
         { provide: JwtService, useValue: new JwtService({}) },
         {

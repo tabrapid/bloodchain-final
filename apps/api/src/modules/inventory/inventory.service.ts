@@ -17,8 +17,13 @@ import {
   RhFactor,
   RoleCode,
 } from '@prisma/client';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../database/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
+import {
+  INVENTORY_ALERT_EVENT,
+  type InventoryAlertPayload,
+} from '../notifications/operational-notification.events';
 import { assertOrganizationActive } from '../../common/utils/organization-status.util';
 import {
   AdjustUnitDto,
@@ -41,6 +46,7 @@ export class InventoryService {
   constructor(
     private readonly db: PrismaService,
     private readonly audit: AuditLogsService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   private generateUnitReference(): string {
@@ -1029,15 +1035,36 @@ export class InventoryService {
     });
 
     if (existing) {
+      // An alert nobody has acknowledged yet is refreshed rather than
+      // duplicated, and deliberately does not notify again: the maintenance
+      // cron runs hourly, and re-announcing an open shortage every hour is how
+      // staff learn to ignore the bell.
       return this.db.inventoryAlert.update({
         where: { id: existing.id },
         data: { message, currentValue, threshold },
       });
     }
 
-    return this.db.inventoryAlert.create({
+    const alert = await this.db.inventoryAlert.create({
       data: { organizationId, type, bloodType, rhFactor, message, currentValue, threshold },
     });
+
+    // A newly raised alert is the moment staff have not heard about yet. The
+    // handler resolves who in the organisation receives it; this only says
+    // what happened.
+    const payload: InventoryAlertPayload = {
+      alertId: alert.id,
+      organizationId: alert.organizationId,
+      alertType: alert.type,
+      message: alert.message,
+      bloodType: alert.bloodType,
+      rhFactor: alert.rhFactor,
+      currentValue: alert.currentValue,
+      threshold: alert.threshold,
+    };
+    this.eventEmitter.emit(INVENTORY_ALERT_EVENT, payload);
+
+    return alert;
   }
 
   private async getAuthorizedUser(userId: string, organizationId: string) {

@@ -5,9 +5,11 @@ import { LanguageSwitcher, useTranslation } from '@bloodchain/ui/i18n';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { DashboardShell } from '@bloodchain/ui/components';
+import { NotificationBell, useNotificationCenter } from '@bloodchain/ui/notifications';
 
 import { sidebarItems } from '../lib/navigation';
 import { logout } from '../lib/auth';
+import { notificationsClient, resolveNotificationHref } from '../lib/notifications';
 
 /**
  * The shell every authenticated page renders inside.
@@ -51,6 +53,9 @@ export function AppShell({
 
   const pathname = usePathname();
   const router = useRouter();
+  // The bell lives in the shell so every authenticated page has it, and
+  // so the unread count is one poll per session rather than one per page.
+  const notifications = useNotificationCenter(notificationsClient, { filters: { limit: 10 } });
 
   const handleLogout = async () => {
     // `logout` clears the stored tokens even if the revoke call fails, so the
@@ -70,7 +75,17 @@ export function AppShell({
       sidebarItems={localizedNav}
       currentPath={pathname}
       linkComponent={Link}
-      topbarActions={<LanguageSwitcher />}
+      topbarActions={
+        <>
+          <NotificationBell
+            center={notifications}
+            resolveHref={resolveNotificationHref}
+            onNavigate={(href) => router.push(href)}
+            allHref="/notifications"
+          />
+          <LanguageSwitcher />
+        </>
+      }
       onLogout={handleLogout}
     >
       {children}

@@ -1,11 +1,19 @@
 import { Injectable } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../../database/prisma.service';
+import {
+  LEVEL_UP_EVENT,
+  type LevelUpPayload,
+} from '../../notifications/operational-notification.events';
 import { LEVEL_CONFIG, LEVEL_NAMES } from '../config/gamification.config';
 import { LevelProgressDto } from '../dto/gamification.dto';
 
 @Injectable()
 export class LevelService {
-  constructor(private readonly db: PrismaService) {}
+  constructor(
+    private readonly db: PrismaService,
+    private readonly eventEmitter: EventEmitter2,
+  ) {}
 
   calculateLevelFromXp(xp: number): number {
     const thresholds = LEVEL_CONFIG.XP_THRESHOLDS;
@@ -66,6 +74,12 @@ export class LevelService {
         where: { userId },
         data: { level: newLevel },
       });
+
+      // The profile now holds `newLevel`, so a repeat call with the same XP
+      // computes `leveledUp === false` and does not announce again. The level
+      // thresholds themselves are untouched.
+      const payload: LevelUpPayload = { userId, newLevel };
+      this.eventEmitter.emit(LEVEL_UP_EVENT, payload);
     }
 
     return { previousLevel, newLevel, leveledUp };

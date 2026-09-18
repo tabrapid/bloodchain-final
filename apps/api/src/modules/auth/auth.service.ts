@@ -19,6 +19,11 @@ import { RegisterDto } from './dto/register.dto';
 import { RegisterOrganizationDto } from './dto/register-organization.dto';
 import { PlatformSettingsService } from '../platform-settings/platform-settings.service';
 import { PhoneVerificationService } from './phone-verification.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import {
+  SECURITY_EVENT,
+  type SecurityEventPayload,
+} from '../notifications/operational-notification.events';
 import { AuthErrorCode, authError } from './auth-error-codes';
 import { maskPhone, normalizePhone } from '../../common/utils/phone.util';
 import { hasVerifiedContact } from '../../common/utils/contact-verification.util';
@@ -66,7 +71,25 @@ export class AuthService {
     private readonly email: EmailService,
     private readonly platformSettings: PlatformSettingsService,
     private readonly phoneVerification: PhoneVerificationService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
+
+  /**
+   * Tell the account holder that something security-relevant happened to it.
+   *
+   * The notification module has listened for this since it was written and
+   * nothing emitted it, so a password change, a revoked session and a
+   * sign-out-everywhere all left an audit-log row and told the person nothing.
+   * A failure here must not fail the action it describes -- the password has
+   * already changed by the time this runs.
+   */
+  private notifySecurityEvent(payload: SecurityEventPayload) {
+    try {
+      this.eventEmitter.emit(SECURITY_EVENT, payload);
+    } catch (error) {
+      this.logger.error(`Could not raise security notification for ${payload.userId}`, error);
+    }
+  }
 
   async register(input: RegisterDto, ipAddress?: string) {
     const email = input.email.toLowerCase().trim();
@@ -1003,12 +1026,22 @@ export class AuthService {
       data: { revokedAt: new Date() },
     });
 
-    await this.audit.log({
+    const audited = await this.audit.log({
       actorId: userId,
       action: 'PASSWORD_CHANGED',
       entityType: 'User',
       entityId: userId,
       ipAddress,
+    });
+
+    this.notifySecurityEvent({
+      userId,
+      eventType: 'PASSWORD_CHANGED',
+      details:
+        'Your password was changed. Every signed-in device was signed out. If this was not you, reset your password now.',
+      // The audit row's id is unique per change, so a second password change
+      // is a second notification rather than a duplicate of the first.
+      occurrenceId: audited?.id ?? `PASSWORD_CHANGED:${userId}:${Date.now()}`,
     });
 
     return { data: { success: true } };
@@ -1055,6 +1088,14 @@ export class AuthService {
       ipAddress,
     });
 
+    this.notifySecurityEvent({
+      userId,
+      eventType: 'SESSION_REVOKED',
+      details: `A signed-in device was signed out${session.deviceName ? `: ${session.deviceName}` : ''}.`,
+      // One session can only be revoked once, so its id is the occurrence.
+      occurrenceId: sessionId,
+    });
+
     return { data: { success: true } };
   }
 
@@ -1069,12 +1110,19 @@ export class AuthService {
       data: { revokedAt: new Date() },
     });
 
-    await this.audit.log({
+    const auditedRevokeAll = await this.audit.log({
       actorId: userId,
       action: 'ALL_SESSIONS_REVOKED',
       entityType: 'User',
       entityId: userId,
       ipAddress,
+    });
+
+    this.notifySecurityEvent({
+      userId,
+      eventType: 'ALL_SESSIONS_REVOKED',
+      details: 'Every signed-in device was signed out of your account.',
+      occurrenceId: auditedRevokeAll?.id ?? `ALL_SESSIONS_REVOKED:${userId}:${Date.now()}`,
     });
 
     return { data: { success: true } };

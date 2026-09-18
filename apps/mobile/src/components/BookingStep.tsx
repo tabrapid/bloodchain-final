@@ -22,6 +22,13 @@ export interface BookingStepProps {
   nextDisabled?: boolean;
   nextLoading?: boolean;
   footer?: ReactNode;
+  /**
+   * Where the close button leaves to. Defaults to the donation hub, which is
+   * where the donation wizard came from; the laboratory wizard passes its own
+   * so that abandoning a blood test does not drop the donor on a screen about
+   * donating blood.
+   */
+  onClose?: () => void;
 }
 
 /**
@@ -44,6 +51,7 @@ export function BookingStep({
   nextDisabled,
   nextLoading,
   footer,
+  onClose,
   children,
 }: PropsWithChildren<BookingStepProps>) {
   const { t } = useTranslation();
@@ -73,7 +81,7 @@ export function BookingStep({
         </AppText>
 
         <Pressable
-          onPress={() => router.replace('/(app)/donate')}
+          onPress={onClose ?? (() => router.replace('/(app)/donate'))}
           accessibilityRole="button"
           accessibilityLabel={t('common.a11yCloseBooking')}
           hitSlop={8}

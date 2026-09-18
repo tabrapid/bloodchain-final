@@ -53,6 +53,13 @@ export interface LaboratoryAppointment {
     name: string;
     address?: string;
   };
+  /** The panel the donor booked, carried from the booking request. */
+  testType?: {
+    id: string;
+    code: string;
+    name: string;
+    category: string;
+  };
   laboratoryResult?: {
     id: string;
     status: string;

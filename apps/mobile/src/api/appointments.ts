@@ -34,6 +34,13 @@ export interface Appointment {
   cancelledAt?: string;
   completedAt?: string;
   organization: Organization;
+  /** Present on BLOOD_TEST appointments: the panel the donor booked. */
+  testType?: {
+    id: string;
+    code: string;
+    name: string;
+    category: string;
+  };
 }
 
 export interface BookAppointmentInput {

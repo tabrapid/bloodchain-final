@@ -6,6 +6,10 @@ import {
   UserRole,
 } from '../dto';
 import { NotificationsService } from './notifications.service';
+import type { InventoryAlertPayload } from '../operational-notification.events';
+
+/** What `routeInventoryAlert` needs; the emitted payload satisfies it. */
+type InventoryAlertNotification = InventoryAlertPayload;
 
 interface NotificationEvent {
   type: NotificationType;
@@ -225,34 +229,83 @@ export class NotificationRouterService {
     });
   }
 
-  async routeInventoryAlert(inventory: any, recipientIds: string[], level: 'LOW' | 'CRITICAL') {
+  /**
+   * One inventory alert, to the staff of the organisation that owns it.
+   *
+   * The title names the alert type the domain actually raised rather than
+   * collapsing everything into "low stock": an expiring-soon alert and an
+   * expired-units alert call for different work, and a blood centre reading
+   * "Low Inventory Alert" over a batch that just expired would act on the
+   * wrong thing. The body is the message the cron already composed from the
+   * configured thresholds, so no threshold is restated here.
+   */
+  async routeInventoryAlert(alert: InventoryAlertNotification, recipientIds: string[]) {
+    const titles: Record<string, string> = {
+      LOW_STOCK: 'Low stock',
+      EXPIRING_SOON: 'Units expiring soon',
+      EXPIRED: 'Units expired',
+      QUARANTINED: 'Units quarantined',
+    };
+
     return this.route({
       type: NotificationType.INVENTORY,
-      priority: level === 'CRITICAL' ? NotificationPriority.HIGH : NotificationPriority.NORMAL,
-      title: level === 'CRITICAL' ? 'Critical Inventory Alert' : 'Low Inventory Alert',
-      body: `${inventory.bloodType} inventory is ${level === 'CRITICAL' ? 'critically low' : 'running low'}`,
-      data: { inventoryId: inventory.id, bloodType: inventory.bloodType, level },
+      // EXPIRED and LOW_STOCK are things staff must act on today; an
+      // expiring-soon warning is planning.
+      priority:
+        alert.alertType === 'EXPIRED' || alert.alertType === 'LOW_STOCK'
+          ? NotificationPriority.HIGH
+          : NotificationPriority.NORMAL,
+      title: titles[alert.alertType] ?? 'Inventory alert',
+      body: alert.message,
+      data: {
+        alertId: alert.alertId,
+        alertType: alert.alertType,
+        organizationId: alert.organizationId,
+        bloodType: alert.bloodType ?? null,
+        rhFactor: alert.rhFactor ?? null,
+        currentValue: alert.currentValue ?? null,
+        threshold: alert.threshold ?? null,
+      },
       // The mobile app has no inventory screen (inventory management is
       // web-only); fall back to home so a stray tap never hits a dead route.
+      // The web portals resolve their own route from `sourceType`.
       deepLink: '/(app)/home',
       sourceType: 'INVENTORY',
-      sourceId: inventory.id,
+      sourceId: alert.alertId,
       recipientIds,
+      // The maintenance cron runs hourly and refreshes an open alert rather
+      // than creating a new one, so the alert's own id is what keeps staff
+      // from being told about the same shortage twenty-four times a day.
+      idempotencyKey: `INVENTORY_ALERT:${alert.alertId}`,
     });
   }
 
-  async routeSecurityNotification(userId: string, event: string, details: string) {
+  /**
+   * One security-relevant action, to the account it happened to.
+   *
+   * `occurrenceId` is part of the idempotency key. Without it the key was
+   * `SECURITY:<event>:<user>`, so the *second* password change on an account
+   * matched the first and was silently dropped -- the person was told once,
+   * ever, about a category of event whose entire purpose is to tell them every
+   * time.
+   */
+  async routeSecurityNotification(
+    userId: string,
+    event: string,
+    details: string,
+    occurrenceId: string,
+  ) {
     return this.route({
       type: NotificationType.SECURITY,
       priority: NotificationPriority.HIGH,
-      title: 'Security Alert',
+      title: 'Security alert',
       body: details,
-      data: { event, timestamp: new Date().toISOString() },
+      data: { event, occurrenceId, timestamp: new Date().toISOString() },
       deepLink: '/(app)/security',
       sourceType: 'SECURITY',
-      sourceId: `SEC_${event}_${Date.now()}`,
+      sourceId: occurrenceId,
       recipientIds: [userId],
-      idempotencyKey: `SECURITY:${event}:${userId}`,
+      idempotencyKey: `SECURITY:${event}:${occurrenceId}`,
     });
   }
 

@@ -241,6 +241,19 @@ export class LaboratoryService {
     const laboratory = await this.getLaboratory(laboratoryId, userId);
     const testType = await this.getTestType(testTypeId);
 
+    // The laboratory has to actually run the panel. Both were looked up
+    // independently and never compared, so a request naming a valid laboratory
+    // and a valid test type it does not offer booked successfully -- producing
+    // exactly the appointment this whole flow exists to prevent: one the
+    // laboratory cannot honour and has to phone the donor about.
+    const offersTestType = (laboratory.laboratoryProfile?.testTypes ?? []).some(
+      (offered) => offered.id === testType.id,
+    );
+
+    if (!offersTestType) {
+      throw new BadRequestException('This laboratory does not offer the selected test.');
+    }
+
     const slot = await this.db.appointmentSlot.findUnique({
       where: { id: slotId },
     });
@@ -397,6 +410,12 @@ export class LaboratoryService {
         organization: {
           select: { id: true, name: true, address: true },
         },
+        // The panel the donor chose. Staff have had this since the booking
+        // carried it; the donor's own list did not, so the app could only say
+        // "blood test" back to the person who had picked one.
+        testType: {
+          select: { id: true, code: true, name: true, category: true },
+        },
         laboratoryResult: {
           select: {
             id: true,
@@ -419,6 +438,9 @@ export class LaboratoryService {
       include: {
         organization: {
           select: { id: true, name: true, address: true },
+        },
+        testType: {
+          select: { id: true, code: true, name: true, category: true },
         },
         laboratoryResult: {
           include: {

@@ -1,12 +1,20 @@
 import { Injectable } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../../database/prisma.service';
+import {
+  ACHIEVEMENT_UNLOCKED_EVENT,
+  type AchievementUnlockedPayload,
+} from '../../notifications/operational-notification.events';
 import { ACHIEVEMENT_DEFINITIONS } from '../config/gamification.config';
 import { AchievementType } from '@prisma/client';
 import { AchievementDto, AchievementListDto } from '../dto/gamification.dto';
 
 @Injectable()
 export class AchievementService {
-  constructor(private readonly db: PrismaService) {}
+  constructor(
+    private readonly db: PrismaService,
+    private readonly eventEmitter: EventEmitter2,
+  ) {}
 
   async seedAchievements(): Promise<void> {
     for (const def of ACHIEVEMENT_DEFINITIONS) {
@@ -169,6 +177,18 @@ export class AchievementService {
             target: criteria.target,
           },
         });
+
+        // Announce it here rather than at each call site: the unique constraint
+        // on (userId, achievementId) plus the `alreadyUnlocked` guard above mean
+        // this line runs exactly once per achievement per person, which is the
+        // idempotency the notification needs. No unlock rule changes -- the
+        // event follows the row that was just written.
+        const unlockedPayload: AchievementUnlockedPayload = {
+          achievementId: achievement.id,
+          achievementName: achievement.name,
+          userId,
+        };
+        this.eventEmitter.emit(ACHIEVEMENT_UNLOCKED_EVENT, unlockedPayload);
 
         unlocked.push(achievement);
         totalXpAwarded += achievement.xpReward;

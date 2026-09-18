@@ -11,8 +11,10 @@ import { AppointmentsService } from './appointments.service';
 import {
   CreateAppointmentDto,
   CancelAppointmentDto,
+  ListOrganizationAppointmentsDto,
   RescheduleAppointmentDto,
   GetMyAppointmentsDto,
+  StaffAppointmentActionDto,
 } from './dto/appointment.dto';
 
 @ApiTags('Appointments')
@@ -51,6 +53,59 @@ export class AppointmentsController {
   @ApiResponse({ status: 200, description: 'Next appointment or null' })
   getNextAppointment(@CurrentUser('sub') userId: string) {
     return this.appointments.getNextAppointment(userId);
+  }
+
+
+  // Registered before the `:id` routes below: `organizations` would otherwise
+  // be read as an appointment id by the catch-all `@Get(':id')`.
+  @Get('organizations/:organizationId')
+  @Roles(RoleCode.SUPER_ADMIN, RoleCode.HOSPITAL_ADMIN, RoleCode.HOSPITAL_STAFF, RoleCode.BLOOD_CENTER_ADMIN, RoleCode.BLOOD_CENTER_STAFF)
+  @ApiOperation({ summary: "List an organization's appointments (staff only)" })
+  @ApiResponse({ status: 200, description: 'Appointments for this organization' })
+  listOrganizationAppointments(
+    @Param('organizationId') organizationId: string,
+    @Query() filters: ListOrganizationAppointmentsDto,
+    @CurrentUser('sub') userId: string,
+  ) {
+    return this.appointments.listOrganizationAppointments(organizationId, userId, filters);
+  }
+
+  @Post(':id/no-show')
+  @HttpCode(HttpStatus.OK)
+  @Roles(RoleCode.SUPER_ADMIN, RoleCode.HOSPITAL_ADMIN, RoleCode.HOSPITAL_STAFF, RoleCode.BLOOD_CENTER_ADMIN, RoleCode.BLOOD_CENTER_STAFF)
+  @ApiOperation({ summary: 'Mark appointment as a no-show (staff only)' })
+  @ApiResponse({ status: 200, description: 'Appointment marked as a no-show' })
+  markNoShow(
+    @Param('id') id: string,
+    @Body() dto: StaffAppointmentActionDto,
+    @CurrentUser('sub') userId: string,
+    @Req() req: Request,
+  ) {
+    return this.appointments.markNoShow(
+      id,
+      userId,
+      dto.reason,
+      req.headers['x-forwarded-for'] as string,
+    );
+  }
+
+  @Post(':id/staff-cancel')
+  @HttpCode(HttpStatus.OK)
+  @Roles(RoleCode.SUPER_ADMIN, RoleCode.HOSPITAL_ADMIN, RoleCode.HOSPITAL_STAFF, RoleCode.BLOOD_CENTER_ADMIN, RoleCode.BLOOD_CENTER_STAFF)
+  @ApiOperation({ summary: "Cancel a donor's appointment (staff only)" })
+  @ApiResponse({ status: 200, description: 'Appointment cancelled' })
+  staffCancelAppointment(
+    @Param('id') id: string,
+    @Body() dto: StaffAppointmentActionDto,
+    @CurrentUser('sub') userId: string,
+    @Req() req: Request,
+  ) {
+    return this.appointments.cancelAppointmentAsStaff(
+      id,
+      userId,
+      dto.reason ?? 'Cancelled by staff',
+      req.headers['x-forwarded-for'] as string,
+    );
   }
 
   @Get(':id')

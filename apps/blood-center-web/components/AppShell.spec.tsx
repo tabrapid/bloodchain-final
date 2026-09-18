@@ -94,9 +94,26 @@ describe('AppShell', () => {
     expect(screen.getByText(target.label).closest('a')?.className).toContain('bg-donor-primary/12');
   });
 
-  it('renders no notifications bell, since this app has no notifications route', () => {
+  /**
+   * The bell used to be absent because no portal passed `onNotifications` to
+   * the shared `Topbar` -- the inbox existed in the API and no console read
+   * it. Sprint 4 gave all three the same notification centre, so the
+   * assertion is now that the bell is here and opens the inbox.
+   */
+  it('renders the notifications bell in the topbar', () => {
     renderLocalized(<AppShell title="Dashboard"><p>body</p></AppShell>);
 
-    expect(screen.queryByRole('button', { name: 'Notifications' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Notifications' })).toBeInTheDocument();
+  });
+
+  it('opens the notifications page from the bell dropdown', async () => {
+    const user = userEvent.setup();
+    renderLocalized(<AppShell title="Dashboard"><p>body</p></AppShell>);
+
+    await user.click(screen.getByRole('button', { name: 'Notifications' }));
+
+    await user.click(await screen.findByRole('button', { name: 'View all notifications' }));
+
+    expect(push).toHaveBeenCalledWith('/notifications');
   });
 });

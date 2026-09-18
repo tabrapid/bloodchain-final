@@ -136,14 +136,31 @@ describe('NotificationRouterService deepLinks (must resolve to a real mobile rou
 
   it('routes inventory alerts to home (the mobile app has no inventory screen)', async () => {
     const deepLink = await deepLinkOf(() =>
-      service.routeInventoryAlert({ id: 'inv-1', bloodType: 'O_NEG' }, ['staff-1'], 'CRITICAL'),
+      service.routeInventoryAlert(
+        {
+          alertId: 'alert-1',
+          organizationId: 'org-1',
+          alertType: 'LOW_STOCK',
+          message: 'Low stock: only 2 unit(s) of O- available.',
+          bloodType: 'O',
+          rhFactor: 'NEGATIVE',
+          currentValue: 2,
+          threshold: 5,
+        },
+        ['staff-1'],
+      ),
     );
     expect(deepLink).toBe('/(app)/home');
   });
 
   it('routes security notifications to /(app)/security, not the nonexistent /profile/security', async () => {
     const deepLink = await deepLinkOf(() =>
-      service.routeSecurityNotification('donor-1', 'PASSWORD_CHANGED', 'Your password was changed'),
+      service.routeSecurityNotification(
+        'donor-1',
+        'PASSWORD_CHANGED',
+        'Your password was changed',
+        'audit-1',
+      ),
     );
     expect(deepLink).toBe('/(app)/security');
   });

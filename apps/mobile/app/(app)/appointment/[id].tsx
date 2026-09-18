@@ -10,6 +10,7 @@ import {
   AlertCircle,
   XCircle,
   ArrowLeft,
+  FlaskConical,
 } from 'lucide-react-native';
 import {
   AppButton,
@@ -132,10 +133,10 @@ export default function AppointmentDetail() {
         <BackLink />
         <View style={styles.titleRow}>
           <AppText style={styles.title}>
-            {toTitleCase(appointment.appointmentType)} Donation
+            {t(`appointmentTypes.${appointment.appointmentType}`)}
           </AppText>
           <Badge variant={STATUS_VARIANT[appointment.status] ?? 'default'}>
-            {appointment.status.replace(/_/g, ' ')}
+            {t(`status.appointment.${appointment.status}`)}
           </Badge>
         </View>
       </View>
@@ -174,8 +175,22 @@ export default function AppointmentDetail() {
               icon={<Droplet size={18} color={colors.primary} />}
               tint="rgba(216, 83, 96, 0.12)"
               label={t('table.type')}
-              value={toTitleCase(appointment.appointmentType)}
+              value={t(`appointmentTypes.${appointment.appointmentType}`)}
             />
+            {appointment.testType ? (
+              <>
+                <View style={styles.divider} />
+                {/* The panel the donor chose in the laboratory wizard. It is
+                    the same row the laboratory's console reads, so what the
+                    donor sees here is what staff are expecting. */}
+                <DetailRow
+                  icon={<FlaskConical size={18} color={colors.secondary} />}
+                  tint={`${colors.secondary}26`}
+                  label={t('labBooking.testType')}
+                  value={appointment.testType.name}
+                />
+              </>
+            ) : null}
           </View>
         </GlassCard>
 
@@ -309,13 +324,6 @@ function DetailRow({ icon, tint, label, value, meta }: DetailRowProps) {
 
 function formatTime(date: Date): string {
   return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-}
-
-function toTitleCase(value: string): string {
-  return value
-    .split('_')
-    .map((word) => word.charAt(0) + word.slice(1).toLowerCase())
-    .join(' ');
 }
 
 function createStyles(colors: ThemeColors) {

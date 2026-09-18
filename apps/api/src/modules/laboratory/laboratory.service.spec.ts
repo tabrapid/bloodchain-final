@@ -59,7 +59,13 @@ describe('LaboratoryService.bookLaboratoryAppointment', () => {
 
     service = module.get<LaboratoryService>(LaboratoryService);
 
-    jest.spyOn(service, 'getLaboratory').mockResolvedValue({ id: 'lab-1', name: 'Test Lab' } as any);
+    // The laboratory profile carries the panels this site runs; booking now
+    // refuses a test the site does not offer, so the fixture has to say it does.
+    jest.spyOn(service, 'getLaboratory').mockResolvedValue({
+      id: 'lab-1',
+      name: 'Test Lab',
+      laboratoryProfile: { isActive: true, testTypes: [{ id: 'test-1', code: 'CBC' }] },
+    } as any);
     jest.spyOn(service, 'getTestType').mockResolvedValue({ id: 'test-1', code: 'CBC' } as any);
 
     prisma.user.findUnique.mockResolvedValue({

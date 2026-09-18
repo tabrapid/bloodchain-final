@@ -2,6 +2,7 @@ import {
   Activity,
   AlertTriangle,
   Bell,
+  BellRing,
   Brain,
   Building2,
   Droplet,
@@ -32,5 +33,6 @@ export const navItems: SidebarItem[] = [
   { id: 'ai-analytics', label: 'AI Analytics', labelKey: 'portal.nav.aiAnalytics', icon: Brain, href: '/ai-analytics' },
   { id: 'audit', label: 'Audit Logs', labelKey: 'portal.nav.audit', icon: FileText, href: '/audit' },
   { id: 'health', label: 'System Health', labelKey: 'portal.nav.health', icon: Activity, href: '/health' },
+  { id: 'notifications', label: 'Notifications', labelKey: 'portal.nav.notifications', icon: BellRing, href: '/notifications' },
   { id: 'settings', label: 'Settings', labelKey: 'portal.nav.settings', icon: Settings, href: '/settings' },
 ];

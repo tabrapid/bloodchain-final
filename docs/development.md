@@ -64,10 +64,20 @@ The API runs three scheduled jobs in-process (`@nestjs/schedule`, started by
 | `EmergencyCronService.runMaintenance`     | every 5 minutes  | Expires stale emergencies; purges location history of closed journeys          |
 | `InventoryCronService`                    | hourly           | Inventory expiry and low-stock alerts                                          |
 | `AppointmentReminderService.sendDueReminders` | every 5 minutes | Sends each donor one reminder before their appointment                     |
+| `AppointmentExpiryService.runExpirySweep`  | hourly           | Closes out appointments nobody handled and returns their slot capacity         |
 
 The reminder job's lead time is `APPOINTMENT_REMINDER_LEAD_MINUTES` (default
 1440 — one day ahead), read in one place so that moving reminders closer to the
 appointment is a configuration change rather than a code change.
+
+The expiry sweep's grace period is `APPOINTMENT_EXPIRY_GRACE_HOURS` (default
+24 — a full day after the scheduled end), so a desk writing up yesterday's
+session is never racing the job. It only touches PENDING and CONFIRMED
+appointments: CHECKED_IN and IN_PROGRESS mean someone is mid-session or the
+write-up is unfinished, and expiring those would destroy a real record. Each
+appointment moves to `EXPIRED` — the state the schema always had and nothing
+ever set — under a conditional update, and its seat is returned to the slot,
+flipping a FULL slot back to AVAILABLE.
 
 It is idempotent by claim, not by hope: it stamps `Appointment.reminderSentAt`
 in an update conditional on that column still being null, and only emits
