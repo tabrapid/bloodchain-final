@@ -220,10 +220,30 @@ async function main() {
     },
   });
   check('demo organizations are seeded', demo.length > 0, `${demo.length} organizations`);
+  /**
+   * The five organisations a demo actually signs into predate the directory and
+   * are named after the development environment rather than "Demo …". They are
+   * demo data all the same -- invented names, .local addresses, unroutable phone
+   * numbers -- and they carry the DEMO badge in every client, which is where it
+   * matters. Listed by name rather than waved through, so a new organisation
+   * that skips the naming rule still fails this.
+   */
+  const OPERATIONAL_DEMO_NAMES = new Set([
+    'Northstar Hospital (Development)',
+    'Northstar Blood Center (Development)',
+    'Jizzakh City Hospital',
+    'Arnasoy District Hospital',
+    'Republican Blood Center — Jizzakh',
+  ]);
+  const misnamed = demo.filter(
+    (o) => !o.name.startsWith('Demo ') && !OPERATIONAL_DEMO_NAMES.has(o.name),
+  );
   check(
-    'every demo organization is named "Demo …"',
-    demo.every((o) => o.name.startsWith('Demo ')),
-    'nothing here can be mistaken for a real institution',
+    'every demo organization is named "Demo …", or is one of the five development ones',
+    misnamed.length === 0,
+    misnamed.length
+      ? `not marked in its name: ${misnamed.map((o) => o.name).join(', ')}`
+      : 'nothing here can be mistaken for a real institution',
   );
   check(
     'every demo organization uses an unreachable .local address',
@@ -682,14 +702,16 @@ async function main() {
     nonDemo.every((o) => o.regionId === null),
     'a region nobody chose would be an invented fact about a real place',
   );
-  const shouldAccept = nonDemo.filter(
-    (o) =>
-      (o.type === OrganizationType.HOSPITAL || o.type === OrganizationType.BLOOD_CENTER) &&
-      o.status === OrganizationStatus.ACTIVE,
-  );
+  // Every active hospital and blood centre, not only the ones outside the demo
+  // directory: the invariant is about what a donor can book, and a donor does
+  // not know or care which seed wrote the row. Scoping this to `nonDemo` made
+  // it vacuous the day every fictional organisation was marked as demo data.
   const accepting = await db.organization.findMany({
-    where: { id: { in: shouldAccept.map((o) => o.id) } },
-    select: { id: true, acceptsDonations: true },
+    where: {
+      type: { in: [OrganizationType.HOSPITAL, OrganizationType.BLOOD_CENTER] },
+      status: OrganizationStatus.ACTIVE,
+    },
+    select: { id: true, name: true, acceptsDonations: true },
   });
   // The invariant, not the mechanism: on a database that predates the directory
   // the migration's backfill sets this, and on a freshly seeded one the seed
@@ -698,7 +720,9 @@ async function main() {
   check(
     'every active hospital and blood centre is still bookable',
     accepting.length > 0 && accepting.every((o) => o.acceptsDonations),
-    `${accepting.length} active hospitals and blood centres`,
+    accepting.every((o) => o.acceptsDonations)
+      ? `${accepting.length} active hospitals and blood centres`
+      : `not bookable: ${accepting.filter((o) => !o.acceptsDonations).map((o) => o.name).join(', ')}`,
   );
 
   const labOrgIds = new Set(

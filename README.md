@@ -227,6 +227,7 @@ The seed script creates the following development-only accounts:
 - [Localization](./docs/localization.md)
 - [Phone-first authentication](./docs/phone-auth.md)
 - [Roadmap](./docs/roadmap.md)
+- [Live presentation guide](./docs/PRESENTATION-DEMO.md) — the 8–10 minute public demo: startup, accounts, script, fallbacks
 
 `TODO.md` is the live production-readiness audit: what has been fixed, how each
 fix was verified, and what is still open. Read it before assuming any part of

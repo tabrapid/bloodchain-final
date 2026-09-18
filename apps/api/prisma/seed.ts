@@ -16,6 +16,7 @@ import {
   EmergencyMatchStatus,
   EmergencyStatus,
   LocationType,
+  OrganizationServiceType,
   OrganizationType,
   Prisma,
   PrismaClient,
@@ -738,6 +739,137 @@ async function main() {
   );
 
   /**
+   * The five organisations a demo actually signs into are put on the map.
+   *
+   * They were created before the geography tables existed and never given a
+   * region, a district, a service list or opening hours -- so the donor's
+   * "filter by region" narrowed the list to organisations with no bookable
+   * slots, and the organisation card for the one place you can actually book
+   * showed no address and no hours. The seventeen directory entries had all of
+   * this and none of the staff; these five had the staff and none of this.
+   *
+   * They are also marked `isDemo` here, because that is what they are. Every
+   * name in this database is invented; a fictional hospital that does not say
+   * so is the one piece of demo data that could mislead someone.
+   */
+  const operationalDirectory: {
+    org: { id: string };
+    regionCode: string;
+    districtCode: string;
+    address: string;
+    latitude: number;
+    longitude: number;
+    providesLaboratory: boolean;
+    services: OrganizationServiceType[];
+  }[] = [
+    {
+      org: hospitalOrg,
+      regionCode: 'UZ-TK',
+      districtCode: 'yunusobod',
+      address: 'Demo ko‘chasi 1, Toshkent',
+      latitude: 41.3380,
+      longitude: 69.2870,
+      providesLaboratory: false,
+      services: [OrganizationServiceType.WHOLE_BLOOD_DONATION, OrganizationServiceType.EMERGENCY_SUPPLY],
+    },
+    {
+      org: centerOrg,
+      regionCode: 'UZ-TK',
+      districtCode: 'yakkasaroy',
+      address: 'Demo ko‘chasi 2, Toshkent',
+      latitude: 41.2820,
+      longitude: 69.2500,
+      providesLaboratory: true,
+      services: [
+        OrganizationServiceType.WHOLE_BLOOD_DONATION,
+        OrganizationServiceType.PLASMA_DONATION,
+        OrganizationServiceType.LABORATORY_TESTING,
+        OrganizationServiceType.BLOOD_TYPING,
+      ],
+    },
+    {
+      org: createdExtraOrgs[0]!,
+      regionCode: 'UZ-JI',
+      districtCode: 'jizzax-shahri',
+      address: 'Demo ko‘chasi 3, Jizzax',
+      latitude: 40.1250,
+      longitude: 67.8500,
+      providesLaboratory: false,
+      services: [OrganizationServiceType.WHOLE_BLOOD_DONATION, OrganizationServiceType.HEALTH_SCREENING],
+    },
+    {
+      org: createdExtraOrgs[1]!,
+      regionCode: 'UZ-JI',
+      districtCode: 'arnasoy',
+      address: 'Demo ko‘chasi 4, Arnasoy',
+      latitude: 40.1400,
+      longitude: 67.9000,
+      providesLaboratory: false,
+      services: [OrganizationServiceType.WHOLE_BLOOD_DONATION],
+    },
+    {
+      org: createdExtraOrgs[2]!,
+      regionCode: 'UZ-JI',
+      districtCode: 'jizzax-shahri',
+      address: 'Demo ko‘chasi 5, Jizzax',
+      latitude: 40.1100,
+      longitude: 67.8300,
+      providesLaboratory: true,
+      services: [
+        OrganizationServiceType.WHOLE_BLOOD_DONATION,
+        OrganizationServiceType.PLASMA_DONATION,
+        OrganizationServiceType.PLATELET_DONATION,
+        OrganizationServiceType.LABORATORY_TESTING,
+        OrganizationServiceType.BLOOD_TYPING,
+      ],
+    },
+  ];
+
+  for (const entry of operationalDirectory) {
+    const region = await db.region.findUnique({ where: { code: entry.regionCode } });
+    if (!region) continue;
+    const district = await db.district.findFirst({
+      where: { regionId: region.id, code: entry.districtCode },
+    });
+
+    await db.organization.update({
+      where: { id: entry.org.id },
+      data: {
+        regionId: region.id,
+        districtId: district?.id ?? null,
+        address: entry.address,
+        latitude: entry.latitude,
+        longitude: entry.longitude,
+        providesLaboratory: entry.providesLaboratory,
+        publicPhone: '+998 71 000 00 00',
+        isDemo: true,
+        verifiedAt: new Date('2026-09-01T00:00:00.000Z'),
+      },
+    });
+
+    await db.organizationService.deleteMany({ where: { organizationId: entry.org.id } });
+    await db.organizationService.createMany({
+      data: entry.services.map((service) => ({ organizationId: entry.org.id, service })),
+      skipDuplicates: true,
+    });
+
+    // Monday to Friday 09:00-17:00, Saturday morning, closed Sunday -- the
+    // same week the directory entries keep, so one organisation does not read
+    // as more real than another.
+    await db.organizationHours.deleteMany({ where: { organizationId: entry.org.id } });
+    await db.organizationHours.createMany({
+      data: [0, 1, 2, 3, 4, 5, 6].map((dayOfWeek) => ({
+        organizationId: entry.org.id,
+        dayOfWeek,
+        isClosed: dayOfWeek === 0,
+        opensAt: dayOfWeek === 0 ? null : '09:00',
+        closesAt: dayOfWeek === 0 ? null : dayOfWeek === 6 ? '13:00' : '17:00',
+      })),
+      skipDuplicates: true,
+    });
+  }
+
+  /**
    * Bookable slots from today onward, at every place that takes appointments.
    *
    * The seed's only donation slot was already FULL and its test slot was two
@@ -858,6 +990,92 @@ async function main() {
       },
     ],
   });
+
+  /**
+   * Two earlier donations, so the presentation account has a history rather
+   * than a first-donation empty state.
+   *
+   * The dates are chosen to keep the medical record consistent: each donation
+   * sits more than the 56-day recovery window after the one before it, and
+   * each carries the next-eligible date that window implies. The most recent
+   * of the three is the one above, 70 days ago, which is what makes the donor
+   * eligible today for the donation booked live during the demo.
+   */
+  const earlierDonationDaysAgo = [350, 182];
+  for (const daysBack of earlierDonationDaysAgo) {
+    const donatedAt = daysAgo(daysBack);
+
+    const historicSlot = await db.appointmentSlot.create({
+      data: {
+        organizationId: hospitalOrg.id,
+        appointmentType: AppointmentType.BLOOD_DONATION,
+        startAt: donatedAt,
+        endAt: new Date(donatedAt.getTime() + 30 * 60000),
+        capacity: 1,
+        bookedCount: 1,
+        status: SlotStatus.FULL,
+      },
+    });
+
+    const historicAppointment = await db.appointment.create({
+      data: {
+        referenceNumber: `DON-${donatedAt.getFullYear()}-${String(Math.floor(Math.random() * 999999)).padStart(6, '0')}`,
+        donorId: donor.id,
+        organizationId: hospitalOrg.id,
+        slotId: historicSlot.id,
+        appointmentType: AppointmentType.BLOOD_DONATION,
+        status: AppointmentStatus.COMPLETED,
+        scheduledStart: donatedAt,
+        scheduledEnd: new Date(donatedAt.getTime() + 30 * 60000),
+        completedAt: donatedAt,
+      },
+    });
+
+    const historicDonation = await db.donation.create({
+      data: {
+        donationReference: `DONATION-${donatedAt.getFullYear()}-${String(Math.floor(Math.random() * 999999)).padStart(6, '0')}`,
+        donorId: donor.id,
+        organizationId: hospitalOrg.id,
+        appointmentId: historicAppointment.id,
+        donationType: DonationType.WHOLE_BLOOD,
+        status: DonationStatus.COMPLETED,
+        bloodType: BloodType.O,
+        rhFactor: RhFactor.POSITIVE,
+        volumeMl: 450,
+        collectionStartedAt: new Date(donatedAt.getTime() + 5 * 60000),
+        collectionCompletedAt: new Date(donatedAt.getTime() + 35 * 60000),
+        completedAt: new Date(donatedAt.getTime() + 35 * 60000),
+        completedBy: hospitalStaffUser.id,
+        nextDonationDate: daysAfter(donatedAt, DONATION_COOLDOWN_DAYS),
+        createdAt: donatedAt,
+      },
+    });
+
+    await db.donationEvent.createMany({
+      data: (['CREATED', 'CHECKED_IN', 'STARTED', 'COMPLETED'] as const).map((eventType, index) => ({
+        donationId: historicDonation.id,
+        eventType,
+        actorId: hospitalStaffUser.id,
+        organizationId: hospitalOrg.id,
+        createdAt: new Date(donatedAt.getTime() + index * 10 * 60000),
+      })),
+    });
+
+    // A completed donation always produces a unit -- see donations.service.ts.
+    // These were used long ago, so they do not inflate today's inventory.
+    await db.bloodUnit.create({
+      data: {
+        unitReference: `BU-${donatedAt.getFullYear()}-${String(Math.floor(Math.random() * 999999)).padStart(6, '0')}`,
+        donationId: historicDonation.id,
+        organizationId: hospitalOrg.id,
+        bloodType: BloodType.O,
+        rhFactor: RhFactor.POSITIVE,
+        volumeMl: 450,
+        status: 'USED',
+        collectedAt: new Date(donatedAt.getTime() + 35 * 60000),
+      },
+    });
+  }
 
   const cancelledAppointment = await db.appointment.create({
     data: {
@@ -1259,7 +1477,10 @@ async function main() {
       rhFactor: RhFactor.POSITIVE,
       volumeMl: 450,
       status: 'COLLECTED',
-      collectedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000 + 35 * 60000),
+      // The moment the donation it came from finished, not an unrelated one:
+      // a unit collected 7 days ago from a donation completed 70 days ago is a
+      // contradiction an auditor would find before the audience did.
+      collectedAt: new Date(lastDonationAt.getTime() + 35 * 60000),
     },
   });
 
@@ -1681,6 +1902,109 @@ async function main() {
       changedBy: bloodCenterAdminUser.id,
     },
   });
+
+  /**
+   * Two earlier blood tests, so Health Trends has a trend to draw.
+   *
+   * A single measurement per parameter is not a trend: the endpoint answers
+   * INSUFFICIENT_DATA and the chart is one dot, which reads as a broken screen
+   * rather than as a donor who has only been tested once. Three points over a
+   * year give every parameter a real line, and the test published live during
+   * the demo adds a fourth in front of the audience.
+   *
+   * The values are inside the reference ranges defined above and move by small
+   * amounts in one direction, so nothing here reads as a clinical finding.
+   * Nobody is being diagnosed by a seed script.
+   */
+  const earlierTests = [
+    {
+      daysBack: 190,
+      values: { hemoglobin: 13.6, rbc: 4.7, wbc: 6800, hematocrit: 40, platelets: 231000 },
+    },
+    {
+      daysBack: 95,
+      values: { hemoglobin: 13.9, rbc: 4.9, wbc: 7100, hematocrit: 41, platelets: 240000 },
+    },
+  ];
+
+  for (const test of earlierTests) {
+    const performedAt = daysAgo(test.daysBack);
+
+    const historicLabSlot = await db.appointmentSlot.create({
+      data: {
+        organizationId: centerOrg.id,
+        appointmentType: AppointmentType.BLOOD_TEST,
+        startAt: performedAt,
+        endAt: new Date(performedAt.getTime() + 30 * 60 * 1000),
+        capacity: 1,
+        bookedCount: 1,
+        status: SlotStatus.FULL,
+      },
+    });
+
+    const historicLabAppointment = await db.appointment.create({
+      data: {
+        referenceNumber: `LAB-${performedAt.getFullYear()}-${String(Math.floor(Math.random() * 999999)).padStart(6, '0')}`,
+        donorId: donor.id,
+        organizationId: centerOrg.id,
+        slotId: historicLabSlot.id,
+        testTypeId: cbcTestType.id,
+        appointmentType: AppointmentType.BLOOD_TEST,
+        status: AppointmentStatus.COMPLETED,
+        scheduledStart: performedAt,
+        scheduledEnd: new Date(performedAt.getTime() + 30 * 60 * 1000),
+        completedAt: performedAt,
+      },
+    });
+
+    const historicResult = await db.laboratoryResult.create({
+      data: {
+        appointmentId: historicLabAppointment.id,
+        donorId: donor.id,
+        laboratoryId: centerOrg.id,
+        testTypeId: cbcTestType.id,
+        status: 'PUBLISHED',
+        performedAt,
+        performedBy: bloodCenterAdminUser.id,
+        reviewedAt: new Date(performedAt.getTime() + 24 * 60 * 60 * 1000),
+        reviewedBy: bloodCenterAdminUser.id,
+        publishedAt: new Date(performedAt.getTime() + 2 * 24 * 60 * 60 * 1000),
+        publishedBy: bloodCenterAdminUser.id,
+        createdAt: performedAt,
+      },
+    });
+
+    await db.laboratoryResultItem.createMany({
+      data: [
+        { parameterId: hemoglobinParam.id, value: String(test.values.hemoglobin), numeric: test.values.hemoglobin,
+          unit: 'g/dL', min: 12.0, max: 17.5 },
+        { parameterId: rbcParam.id, value: String(test.values.rbc), numeric: test.values.rbc,
+          unit: 'million cells/mcL', min: 4.5, max: 5.5 },
+        { parameterId: wbcParam.id, value: String(test.values.wbc), numeric: test.values.wbc,
+          unit: 'cells/mcL', min: 4500, max: 11000 },
+        { parameterId: hematocritParam.id, value: String(test.values.hematocrit), numeric: test.values.hematocrit,
+          unit: '%', min: 36, max: 50 },
+        { parameterId: plateletParam.id, value: String(test.values.platelets), numeric: test.values.platelets,
+          unit: 'cells/mcL', min: 150000, max: 400000 },
+      ].map((item) => ({
+        resultId: historicResult.id,
+        parameterId: item.parameterId,
+        value: item.value,
+        numericValue: new Prisma.Decimal(item.numeric),
+        unit: item.unit,
+        referenceMin: new Prisma.Decimal(item.min),
+        referenceMax: new Prisma.Decimal(item.max),
+        flag: ResultFlag.NORMAL,
+      })),
+    });
+
+    await db.laboratoryResultVersion.createMany({
+      data: [
+        { resultId: historicResult.id, version: 1, status: 'ENTERED', changedBy: bloodCenterAdminUser.id },
+        { resultId: historicResult.id, version: 2, status: 'PUBLISHED', changedBy: bloodCenterAdminUser.id },
+      ],
+    });
+  }
 
 
   /**

@@ -9,11 +9,15 @@
  * organisation with no bookable slot left.
  */
 import net from 'node:net';
+import path from 'node:path';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { networkInterfaces } from 'node:os';
 import { assertLocalDatabase, fail } from './demo-guard.mjs';
 import { macFirewall } from './demo-firewall.mjs';
 import { checkPrismaClient } from './demo-prisma.mjs';
 
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const API = process.env.DEMO_API_URL ?? 'http://localhost:3001';
 const BASE = `${API}/api/v1`;
 const PW = 'DevelopmentOnly!123';
@@ -199,10 +203,144 @@ if (apiUp) {
     }
   }
 
+  if (donor) {
+    /*
+     * Geography. The region picker in the booking flow reads these three
+     * routes, and Sprint 2 shipped them without the response envelope -- so
+     * they answered 200 with a body no client could read. Checking the status
+     * alone would have passed then; these check what a client actually gets.
+     */
+    const regions = await get('/geography/regions', donor);
+    const regionList = Array.isArray(regions.body) ? regions.body : [];
+    record('Geography: regions', regionList.length === 14, `${regionList.length}/14 regions readable by a client`);
+
+    const firstRegion = regionList[0];
+    if (firstRegion) {
+      const districts = await get(`/geography/districts?regionId=${firstRegion.id}`, donor);
+      const districtList = Array.isArray(districts.body) ? districts.body : [];
+      record('Geography: districts', districtList.length > 0, `${districtList.length} in ${firstRegion.nameEn ?? firstRegion.code}`);
+    }
+
+    const coverage = await get('/geography/coverage', donor);
+    record(
+      'Geography: coverage flag',
+      typeof coverage.body?.districtsAuthoritative === 'boolean',
+      coverage.body?.districtsAuthoritative === false
+        ? 'districts are marked as demo data, as they should be'
+        : `districtsAuthoritative=${coverage.body?.districtsAuthoritative}`,
+    );
+
+    /*
+     * The presentation account, checked as the screens will find it.
+     *
+     * Every line here is a screen that reads as broken when it is empty: an
+     * eligible donor with no history is a first-donation empty state, one
+     * blood test is a trend chart with a single dot, and a donor who already
+     * holds an open emergency match is silently excluded from the SOS the
+     * hospital raises live -- the matching engine skips anyone already being
+     * called out, which is correct and invisible.
+     */
+    const history = await get('/donations/me?past=true', donor);
+    const past = history.body?.items ?? (Array.isArray(history.body) ? history.body : []);
+    const completed = past.filter((d) => d.status === 'COMPLETED');
+    record('Presentation donor: donation history', completed.length >= 3,
+      `${completed.length} completed donation(s)`);
+
+    const trends = await get('/me/health-trends/parameters', donor);
+    const params = Array.isArray(trends.body) ? trends.body : [];
+    const plottable = params.filter((p) => (p.measurementCount ?? 0) >= 2);
+    record('Presentation donor: health trends', plottable.length >= 3,
+      `${plottable.length}/${params.length} parameter(s) with enough points to draw a line`);
+
+    const upcoming = await get('/appointments/me?upcoming=true', donor);
+    const upcomingList = upcoming.body?.items ?? (Array.isArray(upcoming.body) ? upcoming.body : []);
+    record('Presentation donor: calendar', upcomingList.length >= 1,
+      `${upcomingList.length} upcoming appointment(s)`);
+
+    const profile = await get('/donors/profile', donor);
+    record('Presentation donor: blood type verified',
+      profile.body?.verificationStatus === 'VERIFIED',
+      `${profile.body?.bloodType ?? '?'}${profile.body?.rhFactor === 'POSITIVE' ? '+' : profile.body?.rhFactor === 'NEGATIVE' ? '-' : ''}, ${profile.body?.verificationStatus ?? 'unknown'}`);
+
+    /*
+     * Every screen on the presentation path, asked the question it asks.
+     *
+     * One line rather than twenty-seven, because what matters before
+     * presenting is "does anything open empty", not the count on each. The
+     * paths are the ones the mobile clients actually call -- see
+     * apps/mobile/src/api/*.ts -- so a route that moves shows up here rather
+     * than in front of an audience.
+     */
+    const screens = [
+      ['Home stats', '/donations/me/statistics'],
+      ['Home next appointment', '/appointments/me/next'],
+      ['Health profile', '/donors/profile'],
+      ['Health trends', '/me/health-trends/parameters'],
+      ['Laboratory results', '/me/laboratory-results'],
+      ['Donation history', '/donations/me?past=true'],
+      ['Campaigns', '/campaigns'],
+      ['Challenges', '/challenges'],
+      ['Community feed', '/community/feed'],
+      ['Community impact', '/community/impact'],
+      ['Leaderboard', '/leaderboard'],
+      ['Calendar', '/appointments/me'],
+      ['Achievements', '/me/gamification/achievements'],
+      ['Badges', '/me/gamification/badges'],
+      ['Notifications', '/notifications?limit=20'],
+      ['Education', '/education'],
+      ['Bookable organizations', '/organizations/discover?acceptsDonations=true&limit=50'],
+      ['Laboratories', '/laboratories'],
+    ];
+    const barren = [];
+    for (const [label, path] of screens) {
+      const r = await get(path, donor);
+      const body = r.body;
+      const count = Array.isArray(body)
+        ? body.length
+        : Array.isArray(body?.items)
+          ? body.items.length
+          : body && typeof body === 'object'
+            ? Object.keys(body).length
+            : 0;
+      if (r.status !== 200 || count === 0) barren.push(`${label}${r.status !== 200 ? ` (${r.status})` : ''}`);
+    }
+    record('Presentation donor: no screen opens empty', barren.length === 0,
+      barren.length ? `empty or failing: ${barren.join(', ')}` : `${screens.length} screens all have data`);
+
+    const sos = await get('/donor/emergencies', donor);
+    const openMatches = sos.body?.active ?? [];
+    const openResponses = (sos.body?.myResponses ?? []).filter(
+      (r) => !['COMPLETED', 'CANCELLED', 'FAILED'].includes(r.status),
+    );
+    record(
+      'Presentation donor: free for the live SOS',
+      openMatches.length === 0 && openResponses.length === 0,
+      openMatches.length || openResponses.length
+        ? `${openMatches.length} open match(es), ${openResponses.length} open response(s) — the matching engine will skip this donor. Run \`pnpm demo:reset\`.`
+        : 'no open match or response',
+    );
+  }
+
   const hospitalStaff = tokens['hospital.staff@donor.local'];
   if (hospitalStaff) {
     const em = await get('/donor/emergencies', tokens['donor@donor.local']);
     record('Emergency endpoints reachable', em.status === 200, `status ${em.status}`);
+  }
+
+  const admin = tokens['admin@donor.local'];
+  if (admin) {
+    const settings = await get('/admin/settings', admin);
+    const flags = settings.body ?? {};
+    record('Maintenance mode is off', flags.maintenanceMode === false,
+      flags.maintenanceMode === false ? 'the platform is open' : 'MAINTENANCE MODE IS ON — donors are locked out');
+    for (const [label, key] of [
+      ['SOS emergency', 'sosEmergencyEnabled'],
+      ['Gamification', 'gamificationEnabled'],
+      ['Push notifications', 'pushNotificationsEnabled'],
+      ['AI health insights', 'aiHealthInsightsEnabled'],
+    ]) {
+      record(`Feature flag: ${label}`, flags[key] === true, flags[key] === true ? 'on' : `off (${String(flags[key])})`);
+    }
   }
 }
 
@@ -234,6 +372,32 @@ record(
   mailUp
     ? `listening on 127.0.0.1:${mailPort} — password reset links will be readable`
     : 'not running — reset emails go to the API log instead. Start one with `pnpm mail:dev`',
+  true,
+);
+
+/**
+ * Which adapter would deliver an SMS.
+ *
+ * `console` prints the one-time code into the API log instead of sending it,
+ * which is what makes phone sign-in demonstrable without a paid gateway. Read
+ * from the API's own env file rather than guessed: a demo that opens the OTP
+ * screen with a real gateway configured sends nothing anyone can read out.
+ */
+const smsProvider = (() => {
+  try {
+    const envFile = readFileSync(path.join(root, 'apps/api/.env'), 'utf8');
+    const match = envFile.match(/^\s*SMS_PROVIDER\s*=\s*"?([^"\r\n]*)"?/m);
+    return (match?.[1] ?? 'console').trim() || 'console';
+  } catch {
+    return 'console';
+  }
+})();
+record(
+  'SMS development provider',
+  smsProvider.toLowerCase() === 'console',
+  smsProvider.toLowerCase() === 'console'
+    ? 'console — one-time codes are printed in the API log, which is what the demo reads'
+    : `SMS_PROVIDER=${smsProvider} — codes will be sent, not printed. Set SMS_PROVIDER=console in apps/api/.env to demo phone sign-in.`,
   true,
 );
 

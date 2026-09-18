@@ -127,6 +127,25 @@ async function eventually(read, satisfied, timeoutMs = 5000) {
   return value;
 }
 
+/**
+ * The donor's in-app notification raised *by this thing*, once it arrives.
+ *
+ * Matched on `sourceId` rather than on the notification type, because the seed
+ * already gives the demo donor an appointment reminder, a laboratory result and
+ * an emergency in their list: a check for "is there an APPOINTMENT
+ * notification" passes before the demo has done anything at all. Every one of
+ * these is raised by an event handler rather than by the request that triggered
+ * it, so it lands a moment later -- see `eventually`.
+ */
+async function notificationFor(donor, sourceId) {
+  const found = await eventually(
+    async () =>
+      list((await call('GET', '/notifications?limit=50', donor)).body).filter((n) => n.sourceId === sourceId),
+    (rows) => rows.length > 0,
+  );
+  return found[0] ?? null;
+}
+
 const today = () => new Date().toISOString().slice(0, 10);
 const dayAfter = (offset) => {
   const d = new Date();
@@ -221,6 +240,10 @@ async function labFlow() {
   const mine = list((await call('GET', '/me/laboratory-results', donor)).body);
   step('donor sees the published result', mine.some((r) => r.id === resultId));
 
+  const labNote = await notificationFor(donor, resultId);
+  step('the donor is notified that this result is ready', labNote !== null,
+    labNote?.title ?? 'no notification for the result just published');
+
   const one = (await call('GET', `/me/laboratory-results/${resultId}`, donor)).body;
   const flagged = (one?.items ?? []).filter((i) => i.flag && i.flag !== 'NOT_AVAILABLE');
   step(
@@ -269,6 +292,10 @@ async function sosFlow() {
   const active = (await call('GET', '/donor/emergencies', donor)).body?.active ?? [];
   const match = active.find((m) => m.emergencyReference === created.body.emergencyReference);
   if (!step('the request reaches the donor', Boolean(match))) return;
+
+  const sosNote = await notificationFor(donor, emergencyId);
+  step('and reaches their notifications, not just the SOS screen', sosNote !== null,
+    sosNote?.title ?? 'no notification for the emergency just raised');
   const matchId = match.matchId ?? match.id;
 
   step('donor opens it', (await call('POST', `/donor/emergency-matches/${matchId}/view`, donor, {})).status === 201);
@@ -321,6 +348,10 @@ async function donationFlow() {
     appointmentType: 'BLOOD_DONATION',
   });
   if (!step('donor books it', booked.status === 201, booked.body?.referenceNumber ?? `${booked.status} ${booked.raw?.message ?? ''}`)) return;
+
+  const bookingNote = await notificationFor(donor, booked.body.id);
+  step('the booking is confirmed in the donor\'s notifications', bookingNote !== null,
+    bookingNote?.title ?? 'no notification for the appointment just booked');
   const appointmentId = booked.body.id;
   step('the reference is labelled as a donation', String(booked.body.referenceNumber).startsWith('DON-'));
 

@@ -101,6 +101,11 @@ export const SEEDED = {
  *
  * Asking "which organization does this actor belong to" makes the fixture say
  * what the tests actually mean, and no amount of future seed data can move it.
+ *
+ * The membership is the whole constraint. An `isDemo: false` filter used to sit
+ * alongside it as a tiebreaker, which stopped being true the day every
+ * fictional organization in this database was marked as demo data -- as all of
+ * them are.
  */
 export async function seededOrganizations(app: INestApplication) {
   const db = app.get(PrismaService);
@@ -121,7 +126,7 @@ async function organizationOf(db: PrismaService, email: string, type: Organizati
     where: {
       status: 'ACTIVE',
       user: { email },
-      organization: { type, isDemo: false },
+      organization: { type },
     },
     orderBy: { createdAt: 'asc' },
     include: { organization: true },
@@ -129,7 +134,7 @@ async function organizationOf(db: PrismaService, email: string, type: Organizati
 
   if (!membership) {
     throw new Error(
-      `Seeded account ${email} has no ACTIVE membership in a non-demo ${type}. ` +
+      `Seeded account ${email} has no ACTIVE membership in a ${type}. ` +
         'These suites run against a seeded database — run `pnpm demo:reset` first.',
     );
   }

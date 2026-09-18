@@ -5,6 +5,10 @@ internet is required once dependencies are installed.
 
 ---
 
+> **Presenting to an audience?** `docs/PRESENTATION-DEMO.md` is the script:
+> what to click, what to say, what not to open, and what to do when something
+> goes wrong. This file is the operator's reference behind it.
+
 ## 1. Start
 
 Four terminals, or one `pnpm demo:start` plus one for Expo.
