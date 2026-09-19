@@ -33,6 +33,7 @@
     "verify:phone": "node scripts/phone-auth-verify.mjs",
     "verify:geography": "node scripts/verify-geography.mjs",
     "verify:booleans": "node scripts/verify-boolean-safety.mjs",
+    "verify:e2e-isolation": "node scripts/verify-e2e-isolation.mjs",
     "clinical:review": "node scripts/clinical-review.mjs"
   },
   "devDependencies": {

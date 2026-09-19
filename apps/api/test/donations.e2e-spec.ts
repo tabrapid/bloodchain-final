@@ -2,7 +2,15 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 
 import { PrismaService } from './../src/database/prisma.service';
-import { API, SEEDED, createTestApp, seededOrganizations, tokenFor } from './utils/e2e';
+import {
+  API,
+  SEEDED,
+  createTestApp,
+  createTestDonor,
+  seededOrganizations,
+  tokenFor,
+  type TestDonor,
+} from './utils/e2e';
 
 /**
  * The donation lifecycle, end to end against a real database.
@@ -17,6 +25,7 @@ describe('Donation lifecycle (e2e)', () => {
   let app: INestApplication;
   let db: PrismaService;
 
+  let donor: TestDonor;
   let donorToken: string;
   let staffToken: string;
   let hospitalStaffToken: string;
@@ -37,24 +46,31 @@ describe('Donation lifecycle (e2e)', () => {
     bloodCenterId = orgs.bloodCenter.id;
     hospitalId = orgs.hospital.id;
 
-    donorToken = await tokenFor(app, SEEDED.donor);
     staffToken = await tokenFor(app, SEEDED.bloodCenterStaff);
     hospitalStaffToken = await tokenFor(app, SEEDED.hospitalStaff);
 
-    const donor = await db.user.findUniqueOrThrow({ where: { email: SEEDED.donor } });
+    // This suite completes a donation, which opens a 56-day recovery window on
+    // whoever made it. Run against the shared `donor@donor.local` that made the
+    // suite un-repeatable: the second run's booking was refused with
+    // `409 DONOR_IN_RECOVERY_WINDOW` by the rule this very suite exists to
+    // respect -- and so did the first run, whenever anything else had completed
+    // a donation for that donor first (`pnpm demo:verify` being the usual
+    // culprit). A donor with no history has nothing for that rule to fire on.
+    donor = await createTestDonor(app, {
+      label: 'donations',
+      organizationId: orgs.bloodCenter.id,
+    });
+    donorToken = donor.token;
     donorUserId = donor.id;
   });
 
   afterAll(async () => {
-    // Remove only what this suite created, newest-dependency first.
-    if (donationId) {
-      await db.bloodUnit.deleteMany({ where: { donationId } }).catch(() => undefined);
-      await db.donationAssessment.deleteMany({ where: { donationId } }).catch(() => undefined);
-      await db.donation.deleteMany({ where: { id: donationId } });
-    }
-    if (appointmentId) {
-      await db.appointment.deleteMany({ where: { id: appointmentId } });
-    }
+    // The donor owns everything this suite created except the slot: donation,
+    // assessment, blood unit and appointment all cascade off the user row, so
+    // one delete cleans up even a run that died halfway through. That matters
+    // more than tidiness -- a half-cleaned run used to leave a completed
+    // donation behind and break the *next* run somewhere else entirely.
+    if (donor) await donor.cleanup();
     if (slotId) {
       await db.appointmentSlot.deleteMany({ where: { id: slotId } });
     }

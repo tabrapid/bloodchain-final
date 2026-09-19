@@ -2,7 +2,15 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 
 import { PrismaService } from './../src/database/prisma.service';
-import { API, SEEDED, createTestApp, seededOrganizations, tokenFor } from './utils/e2e';
+import {
+  API,
+  SEEDED,
+  createTestApp,
+  createTestDonor,
+  seededOrganizations,
+  tokenFor,
+  type TestDonor,
+} from './utils/e2e';
 
 /**
  * The blood request -> shipment -> delivery chain, end to end.
@@ -25,6 +33,7 @@ describe('Blood request and shipment chain (e2e)', () => {
   let hospitalToken: string;
   let centerToken: string;
   let courierToken: string;
+  let donor: TestDonor;
   let donorUserId: string;
 
   let hospitalId: string;
@@ -33,7 +42,6 @@ describe('Blood request and shipment chain (e2e)', () => {
   let previousCourierStatus: string;
 
   // Fixtures this suite owns and cleans up.
-  let fixtureDonationId: string;
   let fixtureUnitId: string;
 
   // Created through the API during the flow.
@@ -55,7 +63,13 @@ describe('Blood request and shipment chain (e2e)', () => {
     centerToken = await tokenFor(app, SEEDED.bloodCenterStaff);
     courierToken = await tokenFor(app, SEEDED.courier);
 
-    const donor = await db.user.findUniqueOrThrow({ where: { email: SEEDED.donor } });
+    // Its own donor, not the shared `donor@donor.local`: this suite writes
+    // COMPLETED donations as fixtures, and a completed donation opens a 56-day
+    // recovery window on whoever made it. Pointing those fixtures at the shared
+    // donor made unrelated suites -- the ones that book appointments -- fail on
+    // a later run with `409 DONOR_IN_RECOVERY_WINDOW`, which is the rule
+    // working correctly against test data that had no business creating it.
+    donor = await createTestDonor(app, { label: 'shipments', organizationId: bloodCenterId });
     donorUserId = donor.id;
 
     // A dedicated AB- unit for this suite to ship, deliberately collected long
@@ -76,7 +90,6 @@ describe('Blood request and shipment chain (e2e)', () => {
         volumeMl: 450,
       },
     });
-    fixtureDonationId = donation.id;
 
     const unit = await db.bloodUnit.create({
       data: {
@@ -121,9 +134,9 @@ describe('Blood request and shipment chain (e2e)', () => {
     if (fixtureUnitId) {
       await db.inventoryMovement.deleteMany({ where: { bloodUnitId: fixtureUnitId } });
     }
-    if (fixtureDonationId) {
-      await db.donation.deleteMany({ where: { id: fixtureDonationId } });
-    }
+    // The fixture donation and its unit cascade off this suite's own donor, so
+    // one delete removes them even if an earlier step above threw.
+    if (donor) await donor.cleanup();
     if (courierId) {
       await db.courier.update({
         where: { id: courierId },

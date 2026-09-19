@@ -11,7 +11,15 @@ import {
 import request from 'supertest';
 
 import { PrismaService } from '../src/database/prisma.service';
-import { API, SEEDED, createTestApp, seededOrganizations, tokenFor } from './utils/e2e';
+import {
+  API,
+  SEEDED,
+  createTestApp,
+  createTestDonor,
+  seededOrganizations,
+  tokenFor,
+  type TestDonor,
+} from './utils/e2e';
 
 /**
  * S4-5 and S4-6: holding a unit, releasing it, and the units an approved
@@ -28,6 +36,7 @@ describe('a blood unit can be held for someone, and given back', () => {
   let db: PrismaService;
   let staffToken: string;
   let otherOrgToken: string;
+  let donor: TestDonor;
   let bloodCenterId: string;
   let hospitalId: string;
   const createdUnitIds: string[] = [];
@@ -43,6 +52,14 @@ describe('a blood unit can be held for someone, and given back', () => {
     const { bloodCenter, hospital } = await seededOrganizations(app);
     bloodCenterId = bloodCenter.id;
     hospitalId = hospital.id;
+
+    // Its own donor, not the shared `donor@donor.local`: the fixtures below
+    // write COMPLETED donations, and a completed donation opens a 56-day
+    // recovery window on whoever made it. Attributing test stock to the shared
+    // donor made unrelated suites -- the ones that book appointments -- fail on
+    // a later run with `409 DONOR_IN_RECOVERY_WINDOW`, which is the rule
+    // working correctly against test data that had no business creating it.
+    donor = await createTestDonor(app, { label: 'reservation', organizationId: bloodCenterId });
   });
 
   afterAll(async () => {
@@ -57,6 +74,7 @@ describe('a blood unit can be held for someone, and given back', () => {
       where: { bloodRequestId: { in: createdRequestIds } },
     });
     await db.bloodRequest.deleteMany({ where: { id: { in: createdRequestIds } } });
+    if (donor) await donor.cleanup();
     await app.close();
   });
 
@@ -68,7 +86,6 @@ describe('a blood unit can be held for someone, and given back', () => {
    * completed donation always has a unit.
    */
   async function seedAvailableUnit(bloodType: BloodType = BloodType.A) {
-    const donor = await db.user.findUniqueOrThrow({ where: { email: SEEDED.donor } });
     const suffix = Math.random().toString(36).slice(2, 10);
 
     const donation = await db.donation.create({

@@ -2293,6 +2293,21 @@ export const en: Catalog = {
     unitsUnknown: 'unit',
     declineReasonPlaceholder: 'Reason (optional)',
   },
+  permissionGroups: {
+    admin: 'Platform administration',
+    analytics: 'Analytics',
+    audit: 'Audit log',
+    blood_center: 'Blood centre',
+    blood_test: 'Laboratory testing',
+    courier: 'Couriers',
+    donor: 'Donors',
+    hospital: 'Hospitals',
+    inventory: 'Inventory',
+    organization: 'Organizations',
+    shipment: 'Shipments',
+    user: 'User accounts',
+  },
+
   directory: {
     coordinatesInvalid: 'Latitude and longitude must be numbers, or left empty.',
     title: 'Organizations',

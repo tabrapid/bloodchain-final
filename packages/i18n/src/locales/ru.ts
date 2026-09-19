@@ -2290,6 +2290,21 @@ export const ru: Catalog = {
     unitsUnknown: 'единица',
     declineReasonPlaceholder: 'Причина (необязательно)',
   },
+  permissionGroups: {
+    admin: 'Администрирование платформы',
+    analytics: 'Аналитика',
+    audit: 'Журнал аудита',
+    blood_center: 'Центр крови',
+    blood_test: 'Лабораторные исследования',
+    courier: 'Курьеры',
+    donor: 'Доноры',
+    hospital: 'Больницы',
+    inventory: 'Запасы',
+    organization: 'Организации',
+    shipment: 'Доставки',
+    user: 'Учётные записи',
+  },
+
   directory: {
     coordinatesInvalid: 'Широта и долгота должны быть числами или оставаться пустыми.',
     title: 'Организации',

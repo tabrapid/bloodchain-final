@@ -2231,6 +2231,21 @@ export const uz: Catalog = {
     unitsUnknown: 'birlik',
     declineReasonPlaceholder: 'Sabab (ixtiyoriy)',
   },
+  permissionGroups: {
+    admin: 'Platforma boshqaruvi',
+    analytics: 'Tahlil',
+    audit: 'Audit jurnali',
+    blood_center: 'Qon markazi',
+    blood_test: 'Laboratoriya tekshiruvi',
+    courier: 'Kuryerlar',
+    donor: 'Donorlar',
+    hospital: 'Shifoxonalar',
+    inventory: 'Zaxira',
+    organization: 'Tashkilotlar',
+    shipment: 'Yetkazmalar',
+    user: 'Foydalanuvchi hisoblari',
+  },
+
   directory: {
     coordinatesInvalid: 'Kenglik va uzunlik son bo‘lishi yoki bo‘sh qoldirilishi kerak.',
     title: 'Tashkilotlar',

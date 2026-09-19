@@ -2,7 +2,13 @@ import { INestApplication } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Test } from '@nestjs/testing';
-import { OrganizationType, RoleCode } from '@prisma/client';
+import {
+  BloodType,
+  OrganizationType,
+  RhFactor,
+  RoleCode,
+  VerificationStatus,
+} from '@prisma/client';
 
 import { AppModule } from '../../src/app.module';
 import { configureApp } from '../../src/bootstrap';
@@ -72,6 +78,91 @@ export async function tokenFor(app: INestApplication, email: string): Promise<st
       expiresIn: '15m',
     },
   );
+}
+
+/**
+ * A donor that belongs to one suite and nobody else.
+ *
+ * The domain suites used to share `donor@donor.local`, and that made them
+ * quietly order-dependent on global state: completing a donation opens a
+ * 56-day recovery window on that donor, so any suite that completed one --
+ * or any *other* tool that had, `pnpm demo:verify` being the usual culprit --
+ * made every later booking answer `409 DONOR_IN_RECOVERY_WINDOW`. The suite
+ * that broke was never the suite that caused it, and the fix was always
+ * "run `pnpm demo:reset` first", which is not a property a test suite should
+ * need from its environment.
+ *
+ * The rule itself is real and stays exactly as it is. What changes is that
+ * each suite gets a donor with no history, so the rule has nothing to fire on.
+ *
+ * The returned `cleanup` deletes the user, and `Donation`, `DonorProfile`,
+ * `OrganizationMembership`, `Appointment` and (through `Donation`) `BloodUnit`
+ * all cascade off it -- so a suite that dies halfway through still leaves
+ * nothing behind for the next run to trip over.
+ */
+export interface TestDonor {
+  id: string;
+  email: string;
+  token: string;
+  cleanup: () => Promise<void>;
+}
+
+export async function createTestDonor(
+  app: INestApplication,
+  options: {
+    /** Distinguishes this suite's donor in the database. */
+    label: string;
+    organizationId: string;
+    bloodType?: BloodType;
+    rhFactor?: RhFactor;
+    verificationStatus?: VerificationStatus;
+  },
+): Promise<TestDonor> {
+  const db = app.get(PrismaService);
+  const donorRole = await db.role.findUniqueOrThrow({ where: { code: RoleCode.DONOR } });
+
+  // Unique per run as well as per suite: two runs overlapping on one database
+  // must not collide on the email's unique index.
+  const email = `e2e.${options.label}.${Date.now()}.${Math.random()
+    .toString(36)
+    .slice(2, 8)}@donor.local`;
+
+  const donor = await db.user.create({
+    data: {
+      email,
+      firstName: 'E2E',
+      lastName: options.label,
+      // Tokens are minted directly (see `tokenFor`), so this hash is never
+      // verified against anything -- but the column is not nullable.
+      passwordHash: 'not-used-tokens-are-minted-directly',
+      status: 'ACTIVE',
+      emailVerified: true,
+      donorProfile: {
+        create: {
+          bloodType: options.bloodType ?? BloodType.O,
+          rhFactor: options.rhFactor ?? RhFactor.POSITIVE,
+          donorStatus: 'ACTIVE',
+          verificationStatus: options.verificationStatus ?? VerificationStatus.VERIFIED,
+        },
+      },
+      memberships: {
+        create: {
+          organizationId: options.organizationId,
+          roleId: donorRole.id,
+          status: 'ACTIVE',
+        },
+      },
+    },
+  });
+
+  return {
+    id: donor.id,
+    email,
+    token: await tokenFor(app, email),
+    cleanup: async () => {
+      await db.user.deleteMany({ where: { id: donor.id } });
+    },
+  };
 }
 
 /** The demo accounts created by prisma/seed.ts. */

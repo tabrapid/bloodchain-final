@@ -7,10 +7,8 @@ import { me, isAuthenticated } from '@lib/auth';
 import { ChevronDown, KeyRound, Lock, X } from 'lucide-react';
 import { AppShell } from '../../components/AppShell';
 import { useTranslation } from '@bloodchain/ui/i18n';
+import { permissionGroup, permissionGroupLabel } from '../../lib/permission-groups';
 
-function permissionGroup(code: string): string {
-  return code.split('.')[0] ?? code;
-}
 
 /**
  * A role's permission list can run to 14+ codes (see BLOOD_CENTER_ADMIN),
@@ -217,7 +215,7 @@ export default function RolesPage() {
               {Object.entries(groupedPermissions).map(([group, perms]) => (
                 <div key={group}>
                   <p className="text-xs font-semibold uppercase tracking-wide text-donor-muted mb-2">
-                    {group.replace('_', ' ')}
+                    {permissionGroupLabel(t, group)}
                   </p>
                   <div className="grid grid-cols-2 gap-2">
                     {perms.map((perm) => (

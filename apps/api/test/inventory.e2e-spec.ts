@@ -2,7 +2,15 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 
 import { PrismaService } from './../src/database/prisma.service';
-import { API, SEEDED, createTestApp, seededOrganizations, tokenFor } from './utils/e2e';
+import {
+  API,
+  SEEDED,
+  createTestApp,
+  createTestDonor,
+  seededOrganizations,
+  tokenFor,
+  type TestDonor,
+} from './utils/e2e';
 
 /**
  * The blood-unit inventory lifecycle, end to end.
@@ -28,6 +36,7 @@ describe('Inventory lifecycle (e2e)', () => {
 
   let bloodCenterId: string;
   let hospitalId: string;
+  let donor: TestDonor;
   let donorUserId: string;
 
   let unitId: string;
@@ -43,9 +52,14 @@ describe('Inventory lifecycle (e2e)', () => {
 
     centerToken = await tokenFor(app, SEEDED.bloodCenterStaff);
     hospitalToken = await tokenFor(app, SEEDED.hospitalStaff);
-    donorToken = await tokenFor(app, SEEDED.donor);
-
-    const donor = await db.user.findUniqueOrThrow({ where: { email: SEEDED.donor } });
+    // Its own donor, not the shared `donor@donor.local`: this suite writes
+    // COMPLETED donations as fixtures, and a completed donation opens a 56-day
+    // recovery window on whoever made it. Pointing those fixtures at the shared
+    // donor made unrelated suites -- the ones that book appointments -- fail on
+    // a later run with `409 DONOR_IN_RECOVERY_WINDOW`, which is the rule
+    // working correctly against test data that had no business creating it.
+    donor = await createTestDonor(app, { label: 'inventory', organizationId: bloodCenterId });
+    donorToken = donor.token;
     donorUserId = donor.id;
   });
 
@@ -88,6 +102,10 @@ describe('Inventory lifecycle (e2e)', () => {
   });
 
   afterAll(async () => {
+    // Every donation and unit this suite wrote hangs off its own donor, so the
+    // per-test cleanup above is belt and braces rather than the only defence:
+    // a run that dies mid-test still leaves nothing behind.
+    if (donor) await donor.cleanup();
     await app.close();
   });
 
