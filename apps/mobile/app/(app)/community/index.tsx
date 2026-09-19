@@ -1,5 +1,14 @@
 import React, { useMemo, useState } from 'react';
-import { FlatList, Image, Pressable, RefreshControl, Share, StyleSheet, View } from 'react-native';
+import {
+  Alert,
+  FlatList,
+  Image,
+  Pressable,
+  RefreshControl,
+  Share,
+  StyleSheet,
+  View,
+} from 'react-native';
 import { router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -9,12 +18,24 @@ import {
   Droplet,
   GraduationCap,
   Megaphone,
+  Flag,
   Share2,
   Sparkles,
   Trophy,
   Users,
 } from 'lucide-react-native';
-import { getFeed, getImpactStats, type CommunityPost } from '../../../src/api/community';
+import {
+  getFeed,
+  getImpactStats,
+  reportContent,
+  type CommunityPost,
+} from '../../../src/api/community';
+
+/**
+ * The reasons `ReportContentDto` accepts, in the order a reader scans them.
+ * Keys, not words -- the labels are looked up per render.
+ */
+const REPORT_REASONS = ['SPAM', 'HARASSMENT', 'MISINFORMATION', 'INAPPROPRIATE', 'OTHER'] as const;
 import { getUserRank } from '../../../src/api/gamification';
 import {
   AppText,
@@ -213,6 +234,36 @@ function FeedPostCard({ post }: { post: CommunityPost }) {
     Share.share({ message: `${post.title}\n\n${post.body}`, title: post.title }).catch(() => {});
   };
 
+  /**
+   * Report this post to moderators.
+   *
+   * `POST /community/posts/:id/report` and the admin console's moderation
+   * queue have both existed since the community module shipped, and nothing in
+   * the app ever called the route -- so a donor who saw something wrong on the
+   * feed had no way to say so, and the moderation queue could only ever be
+   * empty. The reasons are the ones the server's own DTO accepts.
+   */
+  const handleReport = () => {
+    Alert.alert(
+      t('community.reportTitle'),
+      t('community.reportBody'),
+      [
+        ...REPORT_REASONS.map((reason) => ({
+          text: t(`community.reportReasons.${reason}`),
+          onPress: () => {
+            reportContent(post.id, reason)
+              .then(() => Alert.alert(t('community.reportThanks'), t('community.reportThanksBody')))
+              .catch(() =>
+                Alert.alert(t('common.error'), t('community.reportFailed')),
+              );
+          },
+        })),
+        { text: t('actions.cancel'), style: 'cancel' as const },
+      ],
+      { cancelable: true },
+    );
+  };
+
   return (
     <GlassCard style={styles.feedPost}>
       <View style={styles.feedPostHeader}>
@@ -246,17 +297,31 @@ function FeedPostCard({ post }: { post: CommunityPost }) {
 
       {/* A chip, not an icon with a word beside it: bare text on a card gives
           nothing to aim at and no sign that it is pressable at all. */}
-      <Pressable
-        onPress={handleShare}
-        accessibilityRole="button"
-        accessibilityLabel={`Share: ${post.title}`}
-        style={({ pressed }) => [styles.shareButton, { opacity: pressed ? 0.7 : 1 }]}
-      >
-        <Share2 size={14} color={colors.textMuted} />
-        <AppText muted style={styles.shareLabel}>
-          {t('common.share')}
-        </AppText>
-      </Pressable>
+      <View style={styles.feedPostActions}>
+        <Pressable
+          onPress={handleShare}
+          accessibilityRole="button"
+          accessibilityLabel={`Share: ${post.title}`}
+          style={({ pressed }) => [styles.shareButton, { opacity: pressed ? 0.7 : 1 }]}
+        >
+          <Share2 size={14} color={colors.textMuted} />
+          <AppText muted style={styles.shareLabel}>
+            {t('common.share')}
+          </AppText>
+        </Pressable>
+
+        <Pressable
+          onPress={handleReport}
+          accessibilityRole="button"
+          accessibilityLabel={t('community.a11yReport', { title: post.title })}
+          style={({ pressed }) => [styles.shareButton, { opacity: pressed ? 0.7 : 1 }]}
+        >
+          <Flag size={14} color={colors.textMuted} />
+          <AppText muted style={styles.shareLabel}>
+            {t('community.report')}
+          </AppText>
+        </Pressable>
+      </View>
     </GlassCard>
   );
 }
@@ -427,6 +492,11 @@ function createStyles(colors: ThemeColors) {
       height: 180,
       borderRadius: radius.md,
       marginTop: spacing.sm,
+    },
+    feedPostActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
     },
     shareButton: {
       flexDirection: 'row',

@@ -638,6 +638,25 @@ APPOINTMENTS:
 Provide a helpful overview of their health engagement, any patterns observed, and questions they might want to discuss with a healthcare professional. Remember to be informational only, not medical advice.`;
   }
 
+  /**
+   * Whether AI features are usable right now, without throwing.
+   *
+   * The clients could only find out by calling a generation endpoint and
+   * reading a 403, so every AI button looked available until it was pressed --
+   * and the failure surfaced as "temporarily unavailable", which is not what a
+   * deliberately disabled feature is. This is the same two conditions
+   * `checkFeatureEnabled` enforces, asked rather than enforced.
+   */
+  async getAvailability(): Promise<{ enabled: boolean; reason: 'DEPLOYMENT' | 'PLATFORM' | null }> {
+    if (this.configService.get<string>('AI_ENABLED', 'false') !== 'true') {
+      return { enabled: false, reason: 'DEPLOYMENT' };
+    }
+    if (!(await this.platformSettings.isEnabled('aiHealthInsightsEnabled'))) {
+      return { enabled: false, reason: 'PLATFORM' };
+    }
+    return { enabled: true, reason: null };
+  }
+
   private async checkFeatureEnabled(): Promise<void> {
     const enabled = this.configService.get<string>('AI_ENABLED', 'false');
     if (enabled !== 'true') {

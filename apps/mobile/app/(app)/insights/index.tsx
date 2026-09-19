@@ -39,6 +39,8 @@ import {
   type AiInsight,
   type ChatResponse,
   FeedbackType,
+  getAiAvailability,
+  type AiAvailability,
 } from '../../../src/api/ai-health';
 import { getAvailableParameters, type AvailableParameter } from '../../../src/api/health-trends';
 import type { BadgeProps } from '../../../src/components/Badge';
@@ -95,13 +97,27 @@ export default function InsightsScreen() {
   const [chatResponse, setChatResponse] = useState<ChatResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [feedbackGiven, setFeedbackGiven] = useState<string | null>(null);
+  /**
+   * Whether this deployment has AI switched on at all.
+   *
+   * `undefined` until the answer arrives: drawing the buttons as available and
+   * then disabling them a moment later is worse than waiting, and drawing them
+   * as unavailable first would flash a wrong state at everyone.
+   */
+  const [aiAvailability, setAiAvailability] = useState<AiAvailability | undefined>(undefined);
 
   const loadData = useCallback(async () => {
     try {
-      const [params, historyResult] = await Promise.all([
+      const [availability, params, historyResult] = await Promise.all([
+        // A failure here is treated as "off": offering a button that cannot
+        // work is the thing this is here to prevent.
+        getAiAvailability().catch(
+          (): AiAvailability => ({ enabled: false, reason: 'DEPLOYMENT' }),
+        ),
         getAvailableParameters(),
         getInsightHistory({ limit: 10 }).catch(() => ({ insights: [], total: 0 })),
       ]);
+      setAiAvailability(availability);
       setAvailableParams(params);
       setHistory(historyResult.insights);
     } catch {
@@ -166,6 +182,10 @@ export default function InsightsScreen() {
     }
   }, [chatMessage]);
 
+  // Unknown is not "off": while the answer is still in flight the buttons
+  // stay enabled-looking rather than flashing a state that may be wrong.
+  const aiOff = aiAvailability?.enabled === false;
+
   const actions = useMemo(
     () => [
       {
@@ -173,7 +193,7 @@ export default function InsightsScreen() {
         icon: Brain,
         title: t('insights.analyzeResults'),
         subtitle: t('insights.analyzeResultsHint'),
-        disabled: availableParams.length === 0,
+        disabled: aiOff || availableParams.length === 0,
         onPress: () =>
           runGeneration(() =>
             generateInsight({
@@ -187,7 +207,7 @@ export default function InsightsScreen() {
         icon: TrendingUp,
         title: t('insights.summarizeTrends'),
         subtitle: t('insights.summarizeTrendsHint'),
-        disabled: availableParams.length === 0,
+        disabled: aiOff || availableParams.length === 0,
         onPress: () => {
           const code = availableParams[0]?.code;
           if (!code) return;
@@ -199,12 +219,12 @@ export default function InsightsScreen() {
         icon: MessageSquare,
         title: t('insights.questionsToDiscuss'),
         subtitle: t('insights.questionsToDiscussHint'),
-        disabled: false,
+        disabled: aiOff,
         onPress: () =>
           runGeneration(() => generateInsight({ type: InsightType.QUESTION_SUGGESTION })),
       },
     ],
-    [availableParams, runGeneration, t],
+    [aiOff, availableParams, runGeneration, t],
   );
 
   return (
@@ -259,6 +279,23 @@ export default function InsightsScreen() {
             <View style={styles.disclaimerRow}>
               <AlertTriangle size={16} color={colors.onMuted.danger} />
               <AppText style={styles.errorText}>{error}</AppText>
+            </View>
+          </GlassCard>
+        )}
+
+        {aiOff && (
+          // Said once, plainly, above controls that are also disabled. A
+          // deliberately switched-off feature is not "temporarily
+          // unavailable", and presenting it that way invites people to keep
+          // trying something that will never work.
+          <GlassCard style={styles.disclaimer}>
+            <View style={styles.disclaimerRow}>
+              <AlertTriangle size={16} color={colors.onMuted.warning} />
+              <AppText style={styles.disclaimerText}>
+                {aiAvailability?.reason === 'PLATFORM'
+                  ? t('insights.disabledByAdmin')
+                  : t('insights.disabledInDeployment')}
+              </AppText>
             </View>
           </GlassCard>
         )}
@@ -352,11 +389,12 @@ export default function InsightsScreen() {
             placeholder={t('insights.askPlaceholder')}
             value={chatMessage}
             onChangeText={setChatMessage}
+            editable={!aiOff}
             multiline
           />
           <AppButton
             onPress={handleChat}
-            disabled={isGenerating || !chatMessage.trim()}
+            disabled={aiOff || isGenerating || !chatMessage.trim()}
             style={styles.sendButton}
           >
             {isGenerating ? t('common.sending') : t('insights.send')}

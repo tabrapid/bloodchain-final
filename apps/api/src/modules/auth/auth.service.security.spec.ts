@@ -25,7 +25,13 @@ type MockPrisma = {
   };
   role: { findUnique: jest.Mock };
   donorProfile: { create: jest.Mock };
-  session: { findMany: jest.Mock; update: jest.Mock; updateMany: jest.Mock };
+  session: {
+    create: jest.Mock;
+    findMany: jest.Mock;
+    findUnique: jest.Mock;
+    update: jest.Mock;
+    updateMany: jest.Mock;
+  };
   $transaction: jest.Mock;
 };
 
@@ -73,7 +79,13 @@ describe('AuthService Security Tests', () => {
       },
       role: { findUnique: jest.fn() },
       donorProfile: { create: jest.fn() },
-      session: { findMany: jest.fn(), update: jest.fn(), updateMany: jest.fn() },
+      session: {
+        create: jest.fn().mockResolvedValue({ id: 'session-1' }),
+        findMany: jest.fn().mockResolvedValue([]),
+        findUnique: jest.fn().mockResolvedValue(null),
+        update: jest.fn().mockResolvedValue({ id: 'session-1' }),
+        updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+      },
       $transaction: jest.fn(),
     };
 

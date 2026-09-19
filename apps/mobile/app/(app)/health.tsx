@@ -27,7 +27,7 @@ import {
 import { layout, radius, spacing, useTheme } from '../../src/theme';
 import { getTrendSummary, TrendSummary } from '../../src/api/health-trends';
 import { getDonorResults, LaboratoryResult } from '../../src/api/laboratory';
-import { getInsightHistory, AiInsight } from '../../src/api/ai-health';
+import { getAiAvailability, getInsightHistory, AiInsight } from '../../src/api/ai-health';
 import { formatUpdated, isWithinReferenceRange } from '../../src/utils/health';
 import { useTranslation } from '../../src/i18n';
 
@@ -94,17 +94,25 @@ export default function Health() {
   const [summary, setSummary] = useState<TrendSummary | null>(null);
   const [labResults, setLabResults] = useState<LaboratoryResult[]>([]);
   const [latestInsight, setLatestInsight] = useState<AiInsight | null>(null);
+  // Whether AI is switched on at all. Undefined while the answer is in flight.
+  const [aiEnabled, setAiEnabled] = useState<boolean | undefined>(undefined);
 
   const loadData = useCallback(async () => {
     try {
-      const [trendData, resultsData, insightData] = await Promise.all([
+      const [trendData, resultsData, insightData, availability] = await Promise.all([
         getTrendSummary(),
         getDonorResults().catch(() => []),
         getInsightHistory({ limit: 1 }).catch(() => ({ insights: [], total: 0 })),
+        // A failure is treated as "off": a card that promises AI and cannot
+        // deliver it is the thing this check exists to prevent.
+        getAiAvailability()
+          .then((a) => a.enabled)
+          .catch(() => false),
       ]);
       setSummary(trendData);
       setLabResults(resultsData);
       setLatestInsight(insightData.insights[0] ?? null);
+      setAiEnabled(availability);
     } catch (err) {
       console.error('Failed to load health summary:', err);
     } finally {
@@ -334,6 +342,11 @@ export default function Health() {
         </>
       )}
 
+      {/* When AI is switched off in this deployment the card is not shown at
+          all. A disabled-looking tile that still navigates to a screen full
+          of dead buttons is worse than the section simply not being there. */}
+      {aiEnabled !== false && (
+      <>
       <SectionHeader>{t('health.aiInsights')}</SectionHeader>
       <TouchableOpacity
         onPress={() => router.push('/insights' as RelativePathString)}
@@ -379,6 +392,8 @@ export default function Health() {
           </View>
         </GlassCard>
       </TouchableOpacity>
+      </>
+      )}
 
       {publishedResults.length > 0 && (
         <>

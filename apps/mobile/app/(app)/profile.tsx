@@ -23,7 +23,7 @@ import { useProfileCompletion } from '../../src/hooks/useDonors';
 import { useGamificationProfile, useLevelProgress, useAchievements } from '../../src/hooks/useGamification';
 import { layout, spacing, radius, typography, useTheme, ThemeColors } from '../../src/theme';
 import { useTranslation } from '../../src/i18n';
-import { Award, Bell, ChevronRight, Droplet, Lock, Shield, User } from 'lucide-react-native';
+import { Award, Bell, BellRing, ChevronRight, Droplet, Lock, Shield, User } from 'lucide-react-native';
 import { useMemo } from 'react';
 
 /** The build stamp under the sign-out card. A number, not a sentence. */
@@ -284,6 +284,14 @@ export default function Profile() {
           title={t('profile.notifications')}
           icon={Bell}
           onPress={() => router.push('/(app)/notifications')}
+        />
+        <Divider />
+        {/* Onboarding asked which notifications to send and nothing ever
+            offered to change the answer. */}
+        <ListItem
+          title={t('notificationSettings.title')}
+          icon={BellRing}
+          onPress={() => router.push('/(app)/notification-settings')}
         />
         <Divider />
         <ListItem

@@ -219,9 +219,22 @@ export default function Security() {
                       <Smartphone size={16} color={colors.textMuted} />
                     </View>
                     <View style={styles.sessionBody}>
-                      <AppText style={styles.sessionDevice}>
-                        {session.deviceName || session.deviceType || t('security.unknownDevice')}
-                      </AppText>
+                      <View style={styles.sessionTitleRow}>
+                        <AppText style={styles.sessionDevice}>
+                          {session.deviceName || session.deviceType || t('security.unknownDevice')}
+                        </AppText>
+                        {/* The server decides this from the token the request
+                            carried; without it every row offers the same
+                            "revoke" and none of them says which one signs you
+                            out of the device in your hand. */}
+                        {session.isCurrent && (
+                          <View style={styles.currentBadge}>
+                            <AppText style={styles.currentBadgeText}>
+                              {t('security.thisDevice')}
+                            </AppText>
+                          </View>
+                        )}
+                      </View>
                       <AppText style={styles.sessionMeta}>
                         {session.ipAddress ? `${session.ipAddress} · ` : ''}
                         {formatRelativeTime(session.lastUsedAt ?? session.createdAt, t)}
@@ -235,7 +248,9 @@ export default function Security() {
                         device: session.deviceName ?? t('security.thisSession'),
                       })}
                     >
-                      <AppText style={styles.revoke}>{t('security.revoke')}</AppText>
+                      <AppText style={styles.revoke}>
+                        {session.isCurrent ? t('security.signOut') : t('security.revoke')}
+                      </AppText>
                     </Pressable>
                   </View>
                 </View>
@@ -358,6 +373,24 @@ function createStyles(colors: ThemeColors) {
       justifyContent: 'center',
     },
     sessionBody: { flex: 1 },
+    sessionTitleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      flexWrap: 'wrap',
+    },
+    currentBadge: {
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+      borderRadius: 999,
+      backgroundColor: colors.successMuted,
+    },
+    currentBadgeText: {
+      fontSize: 10,
+      fontWeight: '700',
+      letterSpacing: 0.3,
+      color: colors.onMuted.success,
+    },
     sessionDevice: {
       fontSize: 13,
       fontWeight: '500',

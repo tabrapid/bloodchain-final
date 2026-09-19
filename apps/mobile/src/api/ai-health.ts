@@ -124,6 +124,24 @@ export interface AIConversationSummary {
   createdAt: string;
 }
 
+/**
+ * Whether AI features are switched on for this deployment.
+ *
+ * Until this existed a client could only find out by calling a generation
+ * endpoint and reading a 403, so every AI button looked available until it was
+ * pressed -- and the failure surfaced as "temporarily unavailable", which is
+ * not what a deliberately disabled feature is.
+ */
+export interface AiAvailability {
+  enabled: boolean;
+  /** DEPLOYMENT: off in this deployment. PLATFORM: an admin turned it off. */
+  reason: 'DEPLOYMENT' | 'PLATFORM' | null;
+}
+
+export async function getAiAvailability(): Promise<AiAvailability> {
+  return apiRequest<AiAvailability>('/api/v1/me/ai/availability');
+}
+
 export async function generateInsight(request: GenerateInsightRequest): Promise<AiInsight> {
   return apiRequest<AiInsight>('/api/v1/me/ai/insights', {
     method: 'POST',

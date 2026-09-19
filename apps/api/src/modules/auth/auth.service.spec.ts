@@ -21,6 +21,13 @@ type MockPrisma = {
     update: jest.Mock;
     updateMany: jest.Mock;
   };
+  session: {
+    create: jest.Mock;
+    update: jest.Mock;
+    updateMany: jest.Mock;
+    findUnique: jest.Mock;
+    findMany: jest.Mock;
+  };
   role: { findUnique: jest.Mock };
   donorProfile: { create: jest.Mock };
   emailVerificationToken: {
@@ -47,6 +54,13 @@ describe('AuthService', () => {
         findUnique: jest.fn(),
         update: jest.fn(),
         updateMany: jest.fn(),
+      },
+      session: {
+        create: jest.fn().mockResolvedValue({ id: 'session-1' }),
+        update: jest.fn().mockResolvedValue({ id: 'session-1' }),
+        updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+        findUnique: jest.fn().mockResolvedValue(null),
+        findMany: jest.fn().mockResolvedValue([]),
       },
       role: { findUnique: jest.fn() },
       donorProfile: { create: jest.fn() },

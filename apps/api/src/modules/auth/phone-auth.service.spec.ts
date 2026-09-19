@@ -36,6 +36,7 @@ describe('AuthService: phone-first auth', () => {
     organization: { findFirst: jest.Mock; create: jest.Mock };
     organizationMembership: { create: jest.Mock };
     refreshToken: { create: jest.Mock };
+    session: { create: jest.Mock; update: jest.Mock; findUnique: jest.Mock };
     passwordResetToken: { upsert: jest.Mock };
     $transaction: jest.Mock;
   };
@@ -59,6 +60,11 @@ describe('AuthService: phone-first auth', () => {
       },
       organizationMembership: { create: jest.fn() },
       refreshToken: { create: jest.fn().mockResolvedValue({ id: 'rt-1' }) },
+      session: {
+        create: jest.fn().mockResolvedValue({ id: 'session-1' }),
+        update: jest.fn().mockResolvedValue({ id: 'session-1' }),
+        findUnique: jest.fn().mockResolvedValue(null),
+      },
       passwordResetToken: { upsert: jest.fn().mockResolvedValue({ id: 'prt-1' }) },
       $transaction: jest.fn(),
     };

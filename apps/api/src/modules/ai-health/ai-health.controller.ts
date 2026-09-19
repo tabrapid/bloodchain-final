@@ -44,6 +44,20 @@ import {
 export class AIHealthController {
   constructor(private readonly aiHealthService: AIHealthService) {}
 
+  @Get('availability')
+  @ApiOperation({ summary: 'Whether AI features are enabled for this deployment' })
+  @ApiResponse({ status: 200, description: 'AI availability' })
+  async getAvailability() {
+    // Deliberately outside the throttle and open to any signed-in user: a
+    // client has to be able to ask this before drawing a button, and the answer
+    // is a feature flag, not data.
+    //
+    // Hand-wrapped in `{ data }` like the rest of this controller -- every
+    // client's request helper ends in `return json.data`, and the response
+    // envelope sweep enforces it.
+    return { data: await this.aiHealthService.getAvailability() };
+  }
+
   @Post('insights')
   @HttpCode(HttpStatus.OK)
   @Throttle({ default: { limit: 20, ttl: 60000 } })

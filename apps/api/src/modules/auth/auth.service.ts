@@ -58,6 +58,20 @@ const PHONE_TICKET_TTL_SECONDS = 15 * 60;
 /** Marks a token as proof of a verified phone, and as nothing else. */
 const PHONE_TICKET_TYPE = 'phone_verification';
 
+/**
+ * What a client tells us about the device it is signing in from.
+ *
+ * Read from the request rather than the body: a device name a caller could
+ * choose is a label on someone else's session list, and the point of that list
+ * is to be trustworthy.
+ */
+export interface DeviceContext {
+  ipAddress?: string;
+  userAgent?: string;
+  deviceName?: string;
+  deviceType?: string;
+}
+
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
@@ -637,6 +651,7 @@ export class AuthService {
     identifier: { email?: string; phone?: string },
     password: string,
     ipAddress?: string,
+    device?: DeviceContext,
   ) {
     const email = identifier.email?.toLowerCase().trim();
     const phone = normalizePhone(identifier.phone);
@@ -827,7 +842,10 @@ export class AuthService {
       data: { lastLoginAt: new Date() },
     });
 
-    const tokens = await this.createTokenPair(user.id, roles, permissions);
+    const tokens = await this.createTokenPair(user.id, roles, permissions, {
+      ipAddress,
+      ...device,
+    });
 
     await this.audit.log({
       actorId: user.id,
@@ -882,6 +900,18 @@ export class AuthService {
       data: { revokedAt: new Date(), lastUsedAt: new Date() },
     });
 
+    // The session this refresh token belongs to, if any. Tokens minted before
+    // sessions were written have none, and that is not an error -- the next
+    // pair simply opens one.
+    const existingSession = await this.db.session.findUnique({
+      where: { tokenHash },
+      select: { id: true, revokedAt: true },
+    });
+
+    if (existingSession?.revokedAt) {
+      throw new UnauthorizedException('Session expired. Please sign in again.');
+    }
+
     await this.audit.log({
       actorId: stored.user.id,
       action: 'TOKEN_REFRESHED',
@@ -890,7 +920,13 @@ export class AuthService {
       ipAddress,
     });
 
-    const tokens = await this.createTokenPair(stored.user.id, roles, permissions);
+    const tokens = await this.createTokenPair(
+      stored.user.id,
+      roles,
+      permissions,
+      { ipAddress },
+      existingSession?.id,
+    );
 
     return {
       data: {
@@ -915,6 +951,13 @@ export class AuthService {
     if (stored && !stored.revokedAt) {
       await this.db.refreshToken.update({
         where: { id: stored.id },
+        data: { revokedAt: new Date() },
+      });
+
+      // Signing out has to close the session too, or the device stays listed
+      // as active on the Security screen after the person has left it.
+      await this.db.session.updateMany({
+        where: { tokenHash, revokedAt: null },
         data: { revokedAt: new Date() },
       });
 
@@ -1047,9 +1090,16 @@ export class AuthService {
     return { data: { success: true } };
   }
 
-  async getSessions(userId: string) {
+  /**
+   * This account's signed-in devices, with the caller's own marked.
+   *
+   * `currentSessionId` comes from the access token's `sid`, so the list can say
+   * which row is the device being read on -- without which "revoke" is a
+   * button nobody can safely press.
+   */
+  async getSessions(userId: string, currentSessionId?: string) {
     const sessions = await this.db.session.findMany({
-      where: { userId, revokedAt: null },
+      where: { userId, revokedAt: null, expiresAt: { gt: new Date() } },
       orderBy: { lastUsedAt: 'desc' },
     });
 
@@ -1062,6 +1112,7 @@ export class AuthService {
         lastUsedAt: s.lastUsedAt,
         createdAt: s.createdAt,
         expiresAt: s.expiresAt,
+        isCurrent: Boolean(currentSessionId) && s.id === currentSessionId,
       })),
     };
   }
@@ -1391,31 +1442,65 @@ export class AuthService {
     };
   }
 
+  /**
+   * One signed-in device.
+   *
+   * The `Session` table has existed since the first migration and nothing ever
+   * wrote a row to it, so `GET /auth/sessions` always answered with an empty
+   * list and the app's Security screen permanently read "no other sessions" --
+   * including on the device you were reading it from. A session is now created
+   * alongside the refresh token, carried into the access token as `sid`, and
+   * revoked when that refresh token is.
+   *
+   * `previousSessionId` continues an existing session across a refresh rather
+   * than opening a second one for the same device.
+   */
   private async createTokenPair(
     userId: string,
     roles: RoleCode[],
     permissions: string[],
+    device?: DeviceContext,
+    previousSessionId?: string,
   ): Promise<TokenPair> {
+    const rawRefresh = randomBytes(48).toString('hex');
+    const tokenHash = this.hashRefreshToken(rawRefresh);
+    const sessionTimeoutMinutes = await this.platformSettings.getSessionTimeoutMinutes();
+    const expiresAt = new Date(Date.now() + sessionTimeoutMinutes * 60 * 1000);
+
+    await this.db.refreshToken.create({
+      data: { userId, tokenHash, expiresAt },
+    });
+
+    const session = previousSessionId
+      ? await this.db.session.update({
+          where: { id: previousSessionId },
+          // The hash moves with the refresh token it identifies; the row, and
+          // so the "this device" marker, survives.
+          data: { tokenHash, expiresAt, lastUsedAt: new Date() },
+        })
+      : await this.db.session.create({
+          data: {
+            userId,
+            tokenHash,
+            expiresAt,
+            lastUsedAt: new Date(),
+            deviceName: device?.deviceName ?? null,
+            deviceType: device?.deviceType ?? null,
+            ipAddress: device?.ipAddress ?? null,
+            userAgent: device?.userAgent ?? null,
+          },
+        });
+
     const accessToken = await this.jwt.signAsync(
-      { sub: userId, roles, permissions },
+      // `sid` is what lets `GET /auth/sessions` say which row is the caller's
+      // own device. It identifies a session, never authorises anything.
+      { sub: userId, roles, permissions, sid: session.id },
       {
         secret: this.config.getOrThrow<string>('JWT_ACCESS_SECRET'),
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         expiresIn: this.config.get<string>('JWT_ACCESS_EXPIRES_IN', '15m') as any,
       },
     );
-
-    const rawRefresh = randomBytes(48).toString('hex');
-    const sessionTimeoutMinutes = await this.platformSettings.getSessionTimeoutMinutes();
-    const expiresAt = new Date(Date.now() + sessionTimeoutMinutes * 60 * 1000);
-
-    await this.db.refreshToken.create({
-      data: {
-        userId,
-        tokenHash: this.hashRefreshToken(rawRefresh),
-        expiresAt,
-      },
-    });
 
     return { accessToken, refreshToken: rawRefresh };
   }

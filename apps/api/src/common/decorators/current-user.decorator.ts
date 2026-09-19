@@ -4,6 +4,13 @@ export interface RequestUser {
   sub: string;
   roles: string[];
   permissions: string[];
+  /**
+   * The `Session` row this access token was minted for, when it has one.
+   *
+   * Used only to mark the caller's own device in their session list. Tokens
+   * issued before sessions were written carry no `sid`, so it is optional.
+   */
+  sid?: string;
 }
 
 export const CurrentUser = createParamDecorator(

@@ -125,7 +125,19 @@ export class AuthController {
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
   @ApiResponse({ status: 403, description: 'Account suspended or deactivated' })
   login(@Body() dto: LoginDto, @Req() req: Request) {
-    return this.auth.login({ email: dto.email, phone: dto.phone }, dto.password, this.getIp(req));
+    return this.auth.login(
+      { email: dto.email, phone: dto.phone },
+      dto.password,
+      this.getIp(req),
+      // Read from the request, never from the body: a device label a caller
+      // can choose is a label on someone else's session list.
+      {
+        ipAddress: this.getIp(req),
+        userAgent: req.headers['user-agent'],
+        deviceName: (req.headers['x-device-name'] as string | undefined)?.slice(0, 80),
+        deviceType: (req.headers['x-device-type'] as string | undefined)?.slice(0, 40),
+      },
+    );
   }
 
   /**
@@ -264,8 +276,8 @@ export class AuthController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get active sessions' })
   @ApiResponse({ status: 200, description: 'Active sessions' })
-  getSessions(@CurrentUser('sub') userId: string) {
-    return this.auth.getSessions(userId);
+  getSessions(@CurrentUser('sub') userId: string, @CurrentUser('sid') sessionId?: string) {
+    return this.auth.getSessions(userId, sessionId);
   }
 
   @Delete('sessions/:id')
