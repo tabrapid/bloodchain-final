@@ -11,6 +11,7 @@ import {
   Package,
   Pencil,
   Plus,
+  Lock,
   Search,
   XCircle,
 } from 'lucide-react';
@@ -37,6 +38,7 @@ import {
   GetInventoryParams,
 } from '../../lib/inventory';
 import { AppShell } from '../../components/AppShell';
+import { ReservationsPanel } from '../../components/ReservationsPanel';
 import { useTranslation } from '@bloodchain/ui/i18n';
 
 const BLOOD_TYPES = ['A', 'B', 'AB', 'O'] as const;
@@ -72,6 +74,12 @@ export default function InventoryPage() {
   const [actionLoading, setActionLoading] = useState(false);
 
   const [newLocation, setNewLocation] = useState({ name: '', code: '', type: 'STORAGE' });
+
+  // Units are the stock; reservations are the promises made against it. Both
+  // are this page's job, and until now only the first had a surface.
+  const [tab, setTab] = useState<'units' | 'holds'>('units');
+  const [showReserveModal, setShowReserveModal] = useState(false);
+  const [reserveForm, setReserveForm] = useState({ reason: '', expiresAt: '' });
 
   useEffect(() => {
     async function checkAuth() {
@@ -267,6 +275,35 @@ export default function InventoryPage() {
     }
   };
 
+  const handleReserveUnit = async () => {
+    if (!organizationId || !selectedUnit) return;
+    setActionLoading(true);
+    setError(null);
+    try {
+      const { reserveUnit: reserve } = await import('../../lib/inventory');
+      await reserve(organizationId, selectedUnit.id, {
+        reason: reserveForm.reason.trim() || undefined,
+        // A hold with no end is a hold forever; when staff give one, the
+        // hourly maintenance cron releases it on time without anyone asking.
+        expiresAt: reserveForm.expiresAt
+          ? new Date(reserveForm.expiresAt).toISOString()
+          : undefined,
+      });
+      setShowReserveModal(false);
+      setSelectedUnit(null);
+      setReserveForm({ reason: '', expiresAt: '' });
+      loadUnits();
+      loadData();
+    } catch (err: unknown) {
+      // The server refuses a second reservation on the same unit inside its
+      // own transaction, so a double-click loses here rather than producing
+      // two holds -- the message is the server's.
+      setError((err as Error).message || t('ops.inventory.reserveFailed'));
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const getStatusVariant = (status: string): StatusVariant => {
     switch (status) {
       case 'AVAILABLE': return 'success';
@@ -364,6 +401,35 @@ export default function InventoryPage() {
         <StatCard label={t('status.unit.RESERVED')} value={summary?.reservedUnits?.toString() ?? '—'} variant="info" icon={Clock} />
       </div>
 
+      <div className="mb-6 flex items-center gap-2 border-b border-donor-border/60">
+        {(['units', 'holds'] as const).map((key) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setTab(key)}
+            role="tab"
+            aria-selected={tab === key}
+            className={
+              tab === key
+                ? 'border-b-2 border-donor-primary px-4 py-2.5 text-sm font-semibold text-donor-text'
+                : 'border-b-2 border-transparent px-4 py-2.5 text-sm font-semibold text-donor-muted transition-colors hover:text-donor-text'
+            }
+          >
+            {key === 'units' ? t('ops.inventory.title') : t('ops.inventory.reservations')}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'holds' ? (
+        <ReservationsPanel
+          organizationId={organizationId}
+          onChanged={() => {
+            loadUnits();
+            loadData();
+          }}
+        />
+      ) : (
+      <>
       <div className="mb-6 flex flex-wrap items-center gap-4">
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-donor-muted" size={18} />
@@ -496,6 +562,9 @@ export default function InventoryPage() {
         </>
       )}
 
+      </>
+      )}
+
       <Modal
         open={showUnitModal}
         onClose={() => { setShowUnitModal(false); setSelectedUnit(null); }}
@@ -613,6 +682,17 @@ export default function InventoryPage() {
                 </button>
                 <button
                   onClick={() => {
+                    setShowUnitModal(false);
+                    setReserveForm({ reason: '', expiresAt: '' });
+                    setShowReserveModal(true);
+                  }}
+                  className="flex items-center gap-2 rounded-lg border border-donor-secondary/30 bg-donor-secondaryMuted px-4 py-2 text-sm text-donor-onSecondaryMuted transition-colors hover:bg-donor-secondary/20"
+                >
+                  <Lock size={16} />
+                  {t('ops.inventory.reserve')}
+                </button>
+                <button
+                  onClick={() => {
                     const reason = prompt('Enter quarantine reason:');
                     if (reason) handleQuarantineUnit(selectedUnit.id, reason);
                   }}
@@ -648,6 +728,67 @@ export default function InventoryPage() {
                 </button>
               </div>
             )}
+          </div>
+        )}
+      </Modal>
+
+      <Modal
+        open={showReserveModal}
+        onClose={() => {
+          setShowReserveModal(false);
+          setSelectedUnit(null);
+        }}
+        title={t('ops.inventory.reserveUnit')}
+      >
+        {selectedUnit && (
+          <div className="space-y-4">
+            <div>
+              <p className="text-xs text-donor-muted">{t('ops.inventory.unitReference')}</p>
+              <p className="font-mono text-sm">{selectedUnit.unitReference}</p>
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-donor-muted">
+                {t('ops.inventory.reserveReason')}
+              </label>
+              <input
+                type="text"
+                value={reserveForm.reason}
+                onChange={(e) => setReserveForm({ ...reserveForm, reason: e.target.value })}
+                className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-sm text-donor-text"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-donor-muted">
+                {t('ops.inventory.reserveUntil')}
+              </label>
+              <input
+                type="datetime-local"
+                value={reserveForm.expiresAt}
+                onChange={(e) => setReserveForm({ ...reserveForm, expiresAt: e.target.value })}
+                className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-sm text-donor-text"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                onClick={() => {
+                  setShowReserveModal(false);
+                  setSelectedUnit(null);
+                }}
+                className="rounded-lg bc-solid px-4 py-2 text-sm text-donor-text transition-colors hover:bg-donor-elevated"
+              >
+                {t('actions.cancel')}
+              </button>
+              <button
+                onClick={handleReserveUnit}
+                disabled={actionLoading}
+                className="rounded-lg bg-donor-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-donor-primary/80 disabled:opacity-50"
+              >
+                {t('ops.inventory.reserve')}
+              </button>
+            </div>
           </div>
         )}
       </Modal>

@@ -52,10 +52,20 @@ export interface InventoryReservation {
   id: string;
   bloodUnitId: string;
   status: string;
-  reservedForOrganizationId: string;
-  expiresAt: string;
+  reservedForOrganizationId?: string | null;
+  reason?: string | null;
+  expiresAt?: string | null;
+  releasedAt?: string | null;
   createdAt: string;
-  bloodUnit?: InventoryUnit;
+  bloodUnit?: {
+    id: string;
+    unitReference: string;
+    bloodType: string;
+    rhFactor: string;
+    volumeMl: number;
+  } | null;
+  reservedByUser?: { firstName: string; lastName: string } | null;
+  reservedForOrganization?: { id: string; name: string } | null;
 }
 
 export interface InventoryAlert {
@@ -282,4 +292,44 @@ export function acknowledgeAlert(organizationId: string, alertId: string): Promi
   return apiRequest(`/organizations/${organizationId}/inventory/alerts/${alertId}/acknowledge`, {
     method: 'POST',
   });
+}
+export interface ReserveUnitParams {
+  /** The hospital the unit is being held for, when there is one. */
+  reservedForOrganizationId?: string;
+  reason?: string;
+  /** ISO timestamp. The hourly maintenance cron auto-releases past this. */
+  expiresAt?: string;
+}
+
+/**
+ * Hold one unit for someone.
+ *
+ * The route has existed since the inventory module shipped and no client
+ * called it, so a blood centre could see RESERVED units in its own list and
+ * had no way to create or release one -- the status was reachable only through
+ * the seed. The server does the reservation in a transaction with a
+ * conditional update on the unit still being AVAILABLE, so two people clicking
+ * at once cannot both win; nothing here needs to guard against that.
+ */
+export function reserveUnit(
+  organizationId: string,
+  unitId: string,
+  params: ReserveUnitParams = {},
+): Promise<{ id: string; status: string; reservationId: string }> {
+  return apiRequest(`/organizations/${organizationId}/inventory/units/${unitId}/reserve`, {
+    method: 'POST',
+    body: JSON.stringify(params),
+  });
+}
+
+/** Give a held unit back to the available pool. */
+export function releaseReservation(
+  organizationId: string,
+  reservationId: string,
+  reason?: string,
+): Promise<{ id: string; status: string; unitReference: string }> {
+  return apiRequest(
+    `/organizations/${organizationId}/inventory/reservations/${reservationId}/release`,
+    { method: 'POST', body: JSON.stringify({ reason }) },
+  );
 }
