@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Search, Ship, X } from 'lucide-react';
-import { LoadingState } from '@bloodchain/ui/components';
+import { ConfirmDialog, LoadingState } from '@bloodchain/ui/components';
 import { listCouriers, suspendCourier, restoreCourier, type Courier } from '@lib/api';
 import { me, isAuthenticated } from '@lib/auth';
 import { StatusBadgeWrapper } from '@lib/status';
@@ -19,6 +19,7 @@ export default function CouriersPage() {
   const [statusFilter, setStatusFilter] = useState('');
   const [selectedCourier, setSelectedCourier] = useState<any>(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [suspending, setSuspending] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -59,7 +60,6 @@ export default function CouriersPage() {
   }
 
   async function handleSuspend(id: string) {
-    if (!confirm('Are you sure you want to suspend this courier?')) return;
     setActionLoading(true);
     try {
       await suspendCourier(id);
@@ -294,7 +294,7 @@ export default function CouriersPage() {
                 </button>
               ) : (
                 <button
-                  onClick={() => handleSuspend(selectedCourier.id)}
+                  onClick={() => setSuspending(selectedCourier.id)}
                   disabled={actionLoading}
                   className="flex-1 bg-donor-primary text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-donor-primary/85 disabled:opacity-50"
                 >
@@ -305,6 +305,27 @@ export default function CouriersPage() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={suspending !== null}
+        onClose={() => setSuspending(null)}
+        onConfirm={() => {
+          const id = suspending;
+          if (!id) return;
+          setSuspending(null);
+          void handleSuspend(id);
+        }}
+        tone="danger"
+        title={t('ops.couriers.suspendTitle')}
+        body={t('ops.couriers.suspendBody')}
+        context={
+          selectedCourier
+            ? `${selectedCourier.user.firstName} ${selectedCourier.user.lastName}`
+            : null
+        }
+        confirmLabel={t('actions.suspend')}
+        loading={actionLoading}
+      />
     </AppShell>
   );
 }

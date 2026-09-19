@@ -10,6 +10,7 @@ export * from './feedback/ErrorState';
 export * from './form/SearchInput';
 export * from './form/FilterBar';
 export * from './overlay/Modal';
+export * from './overlay/ConfirmDialog';
 export * from './overlay/Drawer';
 export * from './charts';
 export { colors, spacing, radius, typography } from '../tokens';

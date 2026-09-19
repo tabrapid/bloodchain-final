@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { CalendarDays, CheckCircle, Clock, RefreshCw, UserX, XCircle } from 'lucide-react';
-import { EmptyState, StatusBadge } from '@bloodchain/ui/components';
+import { ConfirmDialog, EmptyState, StatusBadge } from '@bloodchain/ui/components';
 import { useTranslation } from '@bloodchain/ui/i18n';
 
 import {
@@ -51,6 +51,10 @@ export function AppointmentRoster({ organizationId }: { organizationId: string }
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  // `window.prompt` could not tell a cancelled dialog from an empty reason, and
+  // showed neither the donor's name nor the time being cancelled.
+  const [cancelling, setCancelling] = useState<OrganizationAppointment | null>(null);
+  const [noShowing, setNoShowing] = useState<OrganizationAppointment | null>(null);
 
   const load = useCallback(async () => {
     if (!organizationId) return;
@@ -88,6 +92,12 @@ export function AppointmentRoster({ organizationId }: { organizationId: string }
       setBusyId(null);
     }
   };
+
+  /** Who and when, so the operator can check the row before confirming. */
+  const appointmentContext = (appointment: OrganizationAppointment) =>
+    `${appointment.donor.firstName} ${appointment.donor.lastName} · ${new Date(
+      appointment.scheduledStart,
+    ).toLocaleString()}`;
 
   const started = (appointment: OrganizationAppointment) =>
     new Date(appointment.scheduledStart) <= new Date();
@@ -216,9 +226,7 @@ export function AppointmentRoster({ organizationId }: { organizationId: string }
                           rule, so this only keeps the button from lying. */}
                       {started(appointment) && (
                         <button
-                          onClick={() =>
-                            void act(appointment.id, () => markNoShow(appointment.id))
-                          }
+                          onClick={() => setNoShowing(appointment)}
                           disabled={busy}
                           className="bc-solid flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-donor-onWarningMuted transition-colors hover:bg-donor-elevated disabled:opacity-50"
                         >
@@ -229,13 +237,7 @@ export function AppointmentRoster({ organizationId }: { organizationId: string }
 
                       {(appointment.status === 'PENDING' || appointment.status === 'CONFIRMED') && (
                         <button
-                          onClick={() => {
-                            const reason = window.prompt(t('ops.appointments.cancelReasonPrompt'));
-                            if (reason === null) return;
-                            void act(appointment.id, () =>
-                              cancelAppointmentAsStaff(appointment.id, reason || undefined),
-                            );
-                          }}
+                          onClick={() => setCancelling(appointment)}
                           disabled={busy}
                           className="bc-solid flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-donor-onDangerMuted transition-colors hover:bg-donor-elevated disabled:opacity-50"
                         >
@@ -257,6 +259,42 @@ export function AppointmentRoster({ organizationId }: { organizationId: string }
           })}
         </div>
       )}
+
+      <ConfirmDialog
+        open={cancelling !== null}
+        onClose={() => setCancelling(null)}
+        onConfirm={(reason) => {
+          const appointment = cancelling;
+          if (!appointment) return;
+          setCancelling(null);
+          void act(appointment.id, () =>
+            cancelAppointmentAsStaff(appointment.id, reason || undefined),
+          );
+        }}
+        tone="danger"
+        title={t('ops.appointments.cancelTitle')}
+        body={t('ops.appointments.cancelBody')}
+        context={cancelling ? appointmentContext(cancelling) : null}
+        reason={{ label: t('ops.appointments.cancelReasonPrompt') }}
+        confirmLabel={t('ops.appointments.cancelConfirm')}
+        loading={busyId === cancelling?.id}
+      />
+
+      <ConfirmDialog
+        open={noShowing !== null}
+        onClose={() => setNoShowing(null)}
+        onConfirm={() => {
+          const appointment = noShowing;
+          if (!appointment) return;
+          setNoShowing(null);
+          void act(appointment.id, () => markNoShow(appointment.id));
+        }}
+        title={t('ops.appointments.noShowTitle')}
+        body={t('ops.appointments.noShowBody')}
+        context={noShowing ? appointmentContext(noShowing) : null}
+        confirmLabel={t('ops.appointments.noShow')}
+        loading={busyId === noShowing?.id}
+      />
     </div>
   );
 }

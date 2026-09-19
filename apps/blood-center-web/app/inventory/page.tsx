@@ -16,6 +16,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import {
+  ConfirmDialog,
   EmptyState,
   StatCard,
   StatusBadge,
@@ -48,6 +49,9 @@ const STATUSES = ['COLLECTED', 'AVAILABLE', 'RESERVED', 'QUARANTINED', 'USED', '
 
 type StatusVariant = 'default' | 'success' | 'warning' | 'danger' | 'info';
 
+/** The three unit actions that need a typed reason and a confirmation. */
+type UnitAction = 'discard' | 'issue' | 'quarantine';
+
 export default function InventoryPage() {
   const { t } = useTranslation();
   const [user, setUser] = useState<MeResponse | null>(null);
@@ -72,6 +76,8 @@ export default function InventoryPage() {
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [showAdjustModal, setShowAdjustModal] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [unitAction, setUnitAction] = useState<UnitAction | null>(null);
+  const [confirmError, setConfirmError] = useState<string | null>(null);
 
   const [newLocation, setNewLocation] = useState({ name: '', code: '', type: 'STORAGE' });
 
@@ -204,52 +210,34 @@ export default function InventoryPage() {
     }
   };
 
-  const handleQuarantineUnit = async (unitId: string, reason: string) => {
-    if (!organizationId) return;
+  /**
+   * Discard, issue and quarantine, behind one confirmation.
+   *
+   * These were three `prompt('Enter discard reason:')` calls: an unstyled,
+   * untranslated OS box that showed neither which unit was about to leave
+   * stock nor that discarding one is permanent -- and that could not tell a
+   * cancelled dialog from an empty answer.
+   */
+  const runUnitAction = async (reason: string) => {
+    if (!organizationId || !selectedUnit || !unitAction) return;
     setActionLoading(true);
+    setConfirmError(null);
     try {
-      const { quarantineUnit: quarantine } = await import('../../lib/inventory');
-      await quarantine(organizationId, unitId, reason);
-      setShowUnitModal(false);
+      const inventory = await import('../../lib/inventory');
+      if (unitAction === 'discard') {
+        await inventory.discardUnit(organizationId, selectedUnit.id, reason);
+      } else if (unitAction === 'issue') {
+        await inventory.issueUnit(organizationId, selectedUnit.id, reason);
+      } else {
+        await inventory.quarantineUnit(organizationId, selectedUnit.id, reason);
+      }
+      setUnitAction(null);
       setSelectedUnit(null);
       loadUnits();
       loadData();
     } catch (err: unknown) {
-      setError((err as Error).message);
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleDiscardUnit = async (unitId: string, reason: string) => {
-    if (!organizationId) return;
-    setActionLoading(true);
-    try {
-      const { discardUnit: discard } = await import('../../lib/inventory');
-      await discard(organizationId, unitId, reason);
-      setShowUnitModal(false);
-      setSelectedUnit(null);
-      loadUnits();
-      loadData();
-    } catch (err: unknown) {
-      setError((err as Error).message);
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleIssueUnit = async (unitId: string, reason: string) => {
-    if (!organizationId) return;
-    setActionLoading(true);
-    try {
-      const { issueUnit: issue } = await import('../../lib/inventory');
-      await issue(organizationId, unitId, reason);
-      setShowUnitModal(false);
-      setSelectedUnit(null);
-      loadUnits();
-      loadData();
-    } catch (err: unknown) {
-      setError((err as Error).message);
+      // In the dialog, not a page banner the operator has to go looking for.
+      setConfirmError((err as Error).message);
     } finally {
       setActionLoading(false);
     }
@@ -639,8 +627,8 @@ export default function InventoryPage() {
                 </button>
                 <button
                   onClick={() => {
-                    const reason = prompt('Enter discard reason:');
-                    if (reason) handleDiscardUnit(selectedUnit.id, reason);
+                    setShowUnitModal(false);
+                    setUnitAction('discard');
                   }}
                   className="flex items-center gap-2 rounded-lg border border-donor-danger/30 bg-donor-dangerMuted px-4 py-2 text-sm text-donor-onDangerMuted transition-colors hover:bg-donor-danger/20"
                 >
@@ -654,8 +642,8 @@ export default function InventoryPage() {
               <div className="flex flex-wrap gap-2 pt-4 border-t border-donor-border">
                 <button
                   onClick={() => {
-                    const reason = prompt('Enter issue reason (include patient/recipient reference if applicable):');
-                    if (reason) handleIssueUnit(selectedUnit.id, reason);
+                    setShowUnitModal(false);
+                    setUnitAction('issue');
                   }}
                   className="flex items-center gap-2 rounded-lg border border-donor-success/30 bg-donor-successMuted px-4 py-2 text-sm text-donor-onSuccessMuted transition-colors hover:bg-donor-success/20"
                 >
@@ -695,8 +683,8 @@ export default function InventoryPage() {
                 </button>
                 <button
                   onClick={() => {
-                    const reason = prompt('Enter quarantine reason:');
-                    if (reason) handleQuarantineUnit(selectedUnit.id, reason);
+                    setShowUnitModal(false);
+                    setUnitAction('quarantine');
                   }}
                   className="flex items-center gap-2 rounded-lg border border-donor-warning/30 bg-donor-warningMuted px-4 py-2 text-sm text-donor-onWarningMuted transition-colors hover:bg-donor-warning/20"
                 >
@@ -710,8 +698,8 @@ export default function InventoryPage() {
               <div className="flex flex-wrap gap-2 pt-4 border-t border-donor-border">
                 <button
                   onClick={() => {
-                    const reason = prompt('Enter issue reason (include patient/recipient reference if applicable):');
-                    if (reason) handleIssueUnit(selectedUnit.id, reason);
+                    setShowUnitModal(false);
+                    setUnitAction('issue');
                   }}
                   className="flex items-center gap-2 rounded-lg border border-donor-success/30 bg-donor-successMuted px-4 py-2 text-sm text-donor-onSuccessMuted transition-colors hover:bg-donor-success/20"
                 >
@@ -1004,6 +992,58 @@ export default function InventoryPage() {
           </div>
         </div>
       </Modal>
+
+      <ConfirmDialog
+        open={unitAction !== null}
+        onClose={() => {
+          setUnitAction(null);
+          setConfirmError(null);
+        }}
+        onConfirm={runUnitAction}
+        tone={unitAction === 'issue' ? 'default' : 'danger'}
+        title={
+          unitAction === 'discard'
+            ? t('ops.inventory.discardTitle')
+            : unitAction === 'issue'
+              ? t('ops.inventory.issueTitle')
+              : t('ops.inventory.quarantineTitle')
+        }
+        body={
+          unitAction === 'discard'
+            ? t('ops.inventory.discardBody')
+            : unitAction === 'issue'
+              ? t('ops.inventory.issueBody')
+              : t('ops.inventory.quarantineBody')
+        }
+        context={
+          selectedUnit
+            ? t('ops.inventory.unitContext', {
+                reference: selectedUnit.unitReference,
+                bloodType: `${selectedUnit.bloodType}${selectedUnit.rhFactor === 'POSITIVE' ? '+' : '-'}`,
+                component: t(`medical.components.${selectedUnit.componentType ?? 'WHOLE_BLOOD'}`),
+                volume: selectedUnit.volumeMl,
+              })
+            : null
+        }
+        reason={{
+          required: true,
+          label:
+            unitAction === 'discard'
+              ? t('ops.inventory.discardReason')
+              : unitAction === 'issue'
+                ? t('ops.inventory.issueReason')
+                : t('ops.inventory.quarantineReason'),
+        }}
+        confirmLabel={
+          unitAction === 'discard'
+            ? t('ops.common.discard')
+            : unitAction === 'issue'
+              ? t('ops.common.issue')
+              : t('ops.inventory.quarantine')
+        }
+        loading={actionLoading}
+        error={confirmError}
+      />
     </AppShell>
   );
 }

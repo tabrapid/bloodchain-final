@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { AlertCircle, Ban, CalendarDays, Clock, Plus, RefreshCw, Users } from 'lucide-react';
 import {
+  ConfirmDialog,
   EmptyState,
   Modal,
   StatCard,
@@ -154,14 +155,25 @@ export default function AppointmentSlotsPage() {
     }
   };
 
-  const handleBlockSlot = async (slotId: string) => {
-    if (!organizationId) return;
-    if (!confirm('Block this slot? Donors will no longer be able to book it.')) return;
+  // Blocking a slot takes bookable time away from donors, so it is confirmed
+  // in the app rather than by an OS dialog -- and a refusal is reported to the
+  // operator instead of only to the browser console, which nobody is watching.
+  const [blockingSlot, setBlockingSlot] = useState<string | null>(null);
+  const [blockError, setBlockError] = useState<string | null>(null);
+  const [blockBusy, setBlockBusy] = useState(false);
+
+  const handleBlockSlot = async () => {
+    if (!organizationId || !blockingSlot) return;
+    setBlockBusy(true);
+    setBlockError(null);
     try {
-      await blockSlot(organizationId, slotId);
+      await blockSlot(organizationId, blockingSlot);
+      setBlockingSlot(null);
       await loadSlots();
     } catch (err) {
-      console.error('Failed to block slot:', err);
+      setBlockError(err instanceof Error ? err.message : t('ops.common.saveFailed'));
+    } finally {
+      setBlockBusy(false);
     }
   };
 
@@ -334,7 +346,7 @@ export default function AppointmentSlotsPage() {
                   </div>
                   {canBlock && (
                     <button
-                      onClick={() => handleBlockSlot(slot.id)}
+                      onClick={() => setBlockingSlot(slot.id)}
                       className="flex items-center gap-2 rounded-lg border border-donor-border px-3 py-2 text-xs font-semibold text-donor-muted transition-colors hover:border-donor-danger/50 hover:text-donor-danger"
                     >
                       <Ban size={14} />
@@ -420,6 +432,21 @@ export default function AppointmentSlotsPage() {
           </div>
         </div>
       </Modal>
+
+      <ConfirmDialog
+        open={blockingSlot !== null}
+        onClose={() => {
+          setBlockingSlot(null);
+          setBlockError(null);
+        }}
+        onConfirm={() => void handleBlockSlot()}
+        tone="danger"
+        title={t('ops.appointments.blockSlotTitle')}
+        body={t('ops.appointments.blockSlotBody')}
+        confirmLabel={t('ops.common.block')}
+        loading={blockBusy}
+        error={blockError}
+      />
     </AppShell>
   );
 }

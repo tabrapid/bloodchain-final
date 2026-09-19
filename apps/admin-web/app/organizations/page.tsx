@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { LoadingState } from '@bloodchain/ui/components';
+import { ConfirmDialog, LoadingState } from '@bloodchain/ui/components';
 import {
   listOrganizations,
   verifyOrganization,
@@ -32,6 +32,10 @@ export default function OrganizationsPage() {
   const [selectedOrg, setSelectedOrg] = useState<any>(null);
   const [directory, setDirectory] = useState<DirectoryOrganization | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+  // Approving, rejecting and suspending an organization all decide whether
+  // real staff can sign in tomorrow; none of them belonged in an OS dialog.
+  const [pendingAction, setPendingAction] =
+    useState<{ kind: 'verify' | 'reject' | 'suspend'; id: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -73,7 +77,6 @@ export default function OrganizationsPage() {
   }
 
   async function handleVerify(id: string) {
-    if (!confirm('Are you sure you want to verify this organization?')) return;
     setActionLoading(true);
     try {
       await verifyOrganization(id);
@@ -107,9 +110,7 @@ export default function OrganizationsPage() {
     }
   }
 
-  async function handleReject(id: string) {
-    const reason = prompt('Please provide a reason for rejection:');
-    if (!reason) return;
+  async function handleReject(id: string, reason: string) {
     setActionLoading(true);
     try {
       await rejectOrganization(id, reason);
@@ -124,7 +125,6 @@ export default function OrganizationsPage() {
   }
 
   async function handleSuspend(id: string) {
-    if (!confirm('Are you sure you want to suspend this organization?')) return;
     setActionLoading(true);
     try {
       await suspendOrganization(id);
@@ -486,14 +486,14 @@ export default function OrganizationsPage() {
               {selectedOrg.status === 'PENDING_APPROVAL' && (
                 <>
                   <button
-                    onClick={() => handleVerify(selectedOrg.id)}
+                    onClick={() => setPendingAction({ kind: 'verify', id: selectedOrg.id })}
                     disabled={actionLoading}
                     className="flex-1 bg-donor-success text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-donor-success/85 disabled:opacity-50"
                   >
                     {actionLoading ? t('ops.common.loadingEllipsis') : t('actions.verify')}
                   </button>
                   <button
-                    onClick={() => handleReject(selectedOrg.id)}
+                    onClick={() => setPendingAction({ kind: 'reject', id: selectedOrg.id })}
                     disabled={actionLoading}
                     className="flex-1 bg-donor-muted text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-donor-muted/85 disabled:opacity-50"
                   >
@@ -503,7 +503,7 @@ export default function OrganizationsPage() {
               )}
               {selectedOrg.status === 'ACTIVE' && (
                 <button
-                  onClick={() => handleSuspend(selectedOrg.id)}
+                  onClick={() => setPendingAction({ kind: 'suspend', id: selectedOrg.id })}
                   disabled={actionLoading}
                   className="flex-1 bg-donor-primary text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-donor-primary/85 disabled:opacity-50"
                 >
@@ -523,6 +523,48 @@ export default function OrganizationsPage() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={pendingAction !== null}
+        onClose={() => setPendingAction(null)}
+        onConfirm={(reason) => {
+          const action = pendingAction;
+          if (!action) return;
+          setPendingAction(null);
+          if (action.kind === 'verify') void handleVerify(action.id);
+          else if (action.kind === 'reject') void handleReject(action.id, reason);
+          else void handleSuspend(action.id);
+        }}
+        tone={pendingAction?.kind === 'verify' ? 'default' : 'danger'}
+        title={
+          pendingAction?.kind === 'verify'
+            ? t('ops.organizations.verifyTitle')
+            : pendingAction?.kind === 'reject'
+              ? t('ops.organizations.rejectTitle')
+              : t('ops.organizations.suspendTitle')
+        }
+        body={
+          pendingAction?.kind === 'verify'
+            ? t('ops.organizations.verifyBody')
+            : pendingAction?.kind === 'reject'
+              ? t('ops.organizations.rejectBody')
+              : t('ops.organizations.suspendBody')
+        }
+        context={selectedOrg?.name ?? null}
+        reason={
+          pendingAction?.kind === 'reject'
+            ? { required: true, label: t('ops.organizations.rejectReason') }
+            : undefined
+        }
+        confirmLabel={
+          pendingAction?.kind === 'verify'
+            ? t('actions.verify')
+            : pendingAction?.kind === 'reject'
+              ? t('actions.reject')
+              : t('actions.suspend')
+        }
+        loading={actionLoading}
+      />
     </AppShell>
   );
 }

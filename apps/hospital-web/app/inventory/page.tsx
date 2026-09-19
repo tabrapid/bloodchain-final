@@ -11,6 +11,7 @@ import {
   Search,
 } from 'lucide-react';
 import {
+  ConfirmDialog,
   EmptyState,
   StatCard,
   StatusBadge,
@@ -60,6 +61,10 @@ export default function InventoryPage() {
   const [showUnitModal, setShowUnitModal] = useState(false);
   const [selectedUnit, setSelectedUnit] = useState<InventoryUnit | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+  // `prompt()` showed neither which unit was leaving stock nor whose reference
+  // was being asked for, and could not tell Escape from an empty answer.
+  const [issuing, setIssuing] = useState(false);
+  const [issueError, setIssueError] = useState<string | null>(null);
 
 
   useEffect(() => {
@@ -161,7 +166,10 @@ export default function InventoryPage() {
       loadUnits();
       loadData();
     } catch (err: unknown) {
-      setError((err as Error).message);
+      // Reported in the dialog the operator is still looking at, and the dialog
+      // stays open so the reference they typed is not lost.
+      setIssueError((err as Error).message);
+      setIssuing(true);
     } finally {
       setActionLoading(false);
     }
@@ -431,8 +439,8 @@ export default function InventoryPage() {
               <div className="flex flex-wrap gap-2 pt-4 border-t border-donor-border">
                 <button
                   onClick={() => {
-                    const reason = prompt('Enter issue reason (include patient/recipient reference if applicable):');
-                    if (reason) handleIssueUnit(selectedUnit.id, reason);
+                    setShowUnitModal(false);
+                    setIssuing(true);
                   }}
                   disabled={actionLoading}
                   className="flex items-center gap-2 rounded-lg border border-donor-success/30 bg-donor-successMuted px-4 py-2 text-sm text-donor-onSuccessMuted transition-colors hover:bg-donor-success/20 disabled:opacity-50"
@@ -447,8 +455,8 @@ export default function InventoryPage() {
               <div className="flex flex-wrap gap-2 pt-4 border-t border-donor-border">
                 <button
                   onClick={() => {
-                    const reason = prompt('Enter issue reason (include patient/recipient reference if applicable):');
-                    if (reason) handleIssueUnit(selectedUnit.id, reason);
+                    setShowUnitModal(false);
+                    setIssuing(true);
                   }}
                   disabled={actionLoading}
                   className="flex items-center gap-2 rounded-lg border border-donor-success/30 bg-donor-successMuted px-4 py-2 text-sm text-donor-onSuccessMuted transition-colors hover:bg-donor-success/20 disabled:opacity-50"
@@ -462,6 +470,35 @@ export default function InventoryPage() {
         )}
       </Modal>
 
+
+      <ConfirmDialog
+        open={issuing}
+        onClose={() => {
+          setIssuing(false);
+          setIssueError(null);
+        }}
+        onConfirm={(reason) => {
+          if (!selectedUnit) return;
+          setIssuing(false);
+          void handleIssueUnit(selectedUnit.id, reason);
+        }}
+        title={t('ops.inventory.issueTitle')}
+        body={t('ops.inventory.issueBody')}
+        context={
+          selectedUnit
+            ? t('ops.inventory.unitContext', {
+                reference: selectedUnit.unitReference,
+                bloodType: `${selectedUnit.bloodType}${selectedUnit.rhFactor === 'POSITIVE' ? '+' : '-'}`,
+                component: t(`medical.components.${selectedUnit.componentType ?? 'WHOLE_BLOOD'}`),
+                volume: selectedUnit.volumeMl,
+              })
+            : null
+        }
+        reason={{ required: true, label: t('ops.inventory.issueReason') }}
+        confirmLabel={t('ops.common.issue')}
+        loading={actionLoading}
+        error={issueError}
+      />
     </AppShell>
   );
 }

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { ArrowRightLeft, Lock, RefreshCw, Unlock } from 'lucide-react';
-import { DataTable, EmptyState, StatusBadge } from '@bloodchain/ui/components';
+import { ConfirmDialog, DataTable, EmptyState, StatusBadge } from '@bloodchain/ui/components';
 import type { DataTableColumn } from '@bloodchain/ui/components';
 import { useTranslation } from '@bloodchain/ui/i18n';
 
@@ -72,9 +72,11 @@ export function ReservationsPanel({
     void load();
   }, [load]);
 
-  const handleRelease = async (reservation: InventoryReservation) => {
-    const reason = window.prompt(t('ops.inventory.releaseReasonPrompt'));
-    if (reason === null) return;
+  // Releasing a hold hands promised units back to general stock, so it asks
+  // in a dialog that names the units rather than an unstyled browser prompt.
+  const [releasing, setReleasing] = useState<InventoryReservation | null>(null);
+
+  const handleRelease = async (reservation: InventoryReservation, reason: string) => {
     setBusyId(reservation.id);
     setError(null);
     try {
@@ -134,7 +136,7 @@ export function ReservationsPanel({
       render: (row) =>
         row.status === 'ACTIVE' ? (
           <button
-            onClick={() => void handleRelease(row)}
+            onClick={() => setReleasing(row)}
             disabled={busyId === row.id}
             className="bc-solid inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-donor-text transition-colors hover:bg-donor-elevated disabled:opacity-50"
           >
@@ -250,6 +252,30 @@ export function ReservationsPanel({
           emptyMessage={t('ops.inventory.noMovements')}
         />
       )}
+
+      <ConfirmDialog
+        open={releasing !== null}
+        onClose={() => setReleasing(null)}
+        onConfirm={(reason) => {
+          const reservation = releasing;
+          if (!reservation) return;
+          setReleasing(null);
+          void handleRelease(reservation, reason);
+        }}
+        tone="danger"
+        title={t('ops.inventory.releaseHoldTitle')}
+        body={t('ops.inventory.releaseHoldBody')}
+        context={
+          releasing?.bloodUnit
+            ? `${releasing.bloodUnit.unitReference} · ${releasing.bloodUnit.bloodType}${
+                releasing.bloodUnit.rhFactor === 'POSITIVE' ? '+' : '-'
+              }`
+            : null
+        }
+        reason={{ label: t('ops.inventory.releaseReasonPrompt') }}
+        confirmLabel={t('ops.inventory.release')}
+        loading={busyId === releasing?.id}
+      />
     </div>
   );
 }

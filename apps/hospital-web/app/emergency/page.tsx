@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import {
+  ConfirmDialog,
   EmptyState,
   Modal,
   StatusBadge,
@@ -81,6 +82,12 @@ export default function EmergencyPage() {
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // These five refusals went to `alert()`, which is untranslated, unstyled and
+  // suppressible by the browser after a few in a row. One banner on the page
+  // says what failed, where the operator is already looking.
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [cancellingEmergency, setCancellingEmergency] = useState<string | null>(null);
+  const [completingResponse, setCompletingResponse] = useState<string | null>(null);
   const [organizationId, setOrganizationId] = useState<string>('');
 
   const [newEmergency, setNewEmergency] = useState<NewEmergencyForm>({
@@ -168,8 +175,7 @@ export default function EmergencyPage() {
       });
       await loadEmergencies();
     } catch (err) {
-      console.error('Failed to create emergency:', err);
-      alert('Failed to create emergency request');
+      setActionError(err instanceof Error ? err.message : t('ops.common.saveFailed'));
     } finally {
       setIsSubmitting(false);
     }
@@ -181,20 +187,17 @@ export default function EmergencyPage() {
       await activateEmergency(organizationId, emergencyId);
       await loadEmergencies();
     } catch (err) {
-      console.error('Failed to activate emergency:', err);
-      alert('Failed to activate emergency');
+      setActionError(err instanceof Error ? err.message : t('ops.common.saveFailed'));
     }
   };
 
   const handleCancelEmergency = async (emergencyId: string) => {
     if (!organizationId) return;
-    if (!confirm('Are you sure you want to cancel this emergency?')) return;
     try {
       await cancelEmergency(organizationId, emergencyId);
       await loadEmergencies();
     } catch (err) {
-      console.error('Failed to cancel emergency:', err);
-      alert('Failed to cancel emergency');
+      setActionError(err instanceof Error ? err.message : t('ops.common.saveFailed'));
     }
   };
 
@@ -204,15 +207,12 @@ export default function EmergencyPage() {
       await confirmArrival(organizationId, responseId);
       await loadEmergencies();
     } catch (err) {
-      console.error('Failed to confirm arrival:', err);
-      alert('Failed to confirm arrival');
+      setActionError(err instanceof Error ? err.message : t('ops.common.saveFailed'));
     }
   };
 
-  const handleCompleteDonation = async (responseId: string) => {
+  const handleCompleteDonation = async (responseId: string, volumeInput: string) => {
     if (!organizationId) return;
-    const volumeInput = prompt('Collected volume (mL)', '450');
-    if (volumeInput === null) return;
     const volumeMl = parseInt(volumeInput, 10);
     try {
       await completeEmergencyDonation(organizationId, responseId, {
@@ -220,8 +220,7 @@ export default function EmergencyPage() {
       });
       await loadEmergencies();
     } catch (err) {
-      console.error('Failed to complete donation:', err);
-      alert('Failed to complete donation');
+      setActionError(err instanceof Error ? err.message : t('ops.common.saveFailed'));
     }
   };
 
@@ -301,6 +300,18 @@ export default function EmergencyPage() {
           {t('ops.emergency.newEmergency')}
         </button>
       </div>
+
+      {actionError && (
+        <div
+          role="alert"
+          className="mb-4 flex items-start justify-between gap-3 rounded-lg border border-donor-danger/30 bg-donor-dangerMuted p-3 text-sm text-donor-onDangerMuted"
+        >
+          <span>{actionError}</span>
+          <button onClick={() => setActionError(null)} className="underline">
+            {t('actions.dismiss')}
+          </button>
+        </div>
+      )}
 
       <div className="mb-6 grid gap-4 md:grid-cols-3">
         <StatCard
@@ -477,7 +488,7 @@ export default function EmergencyPage() {
                           {t('ops.common.activate')}
                         </button>
                         <button
-                          onClick={() => handleCancelEmergency(emergency.id)}
+                          onClick={() => setCancellingEmergency(emergency.id)}
                           className="flex items-center gap-1 rounded-lg bc-solid px-3 py-1.5 text-sm font-semibold text-donor-text transition-colors hover:bg-donor-elevated"
                         >
                           <X size={14} />
@@ -508,7 +519,7 @@ export default function EmergencyPage() {
                         onClick={() => {
                           const response = emergency.responses.find((r) => r.status === 'DONATION_STARTED');
                           if (response) {
-                            handleCompleteDonation(response.id);
+                            setCompletingResponse(response.id);
                           }
                         }}
                         className="flex items-center gap-1 rounded-lg bg-donor-primary px-3 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-donor-primary/80"
@@ -525,7 +536,7 @@ export default function EmergencyPage() {
                       'DONOR_ARRIVED',
                     ].includes(emergency.status) && (
                       <button
-                        onClick={() => handleCancelEmergency(emergency.id)}
+                        onClick={() => setCancellingEmergency(emergency.id)}
                         className="flex items-center gap-1 rounded-lg bc-solid px-3 py-1.5 text-sm font-semibold text-donor-text transition-colors hover:bg-donor-elevated"
                       >
                         <X size={14} />
@@ -733,6 +744,42 @@ export default function EmergencyPage() {
           </div>
         </Modal>
       )}
+
+      <ConfirmDialog
+        open={cancellingEmergency !== null}
+        onClose={() => setCancellingEmergency(null)}
+        onConfirm={() => {
+          const id = cancellingEmergency;
+          if (!id) return;
+          setCancellingEmergency(null);
+          void handleCancelEmergency(id);
+        }}
+        tone="danger"
+        title={t('ops.emergency.cancelTitle')}
+        body={t('ops.emergency.cancelBody')}
+        confirmLabel={t('ops.emergency.cancelTitle')}
+      />
+
+      <ConfirmDialog
+        open={completingResponse !== null}
+        onClose={() => setCompletingResponse(null)}
+        onConfirm={(volume) => {
+          const id = completingResponse;
+          if (!id) return;
+          setCompletingResponse(null);
+          void handleCompleteDonation(id, volume);
+        }}
+        title={t('ops.donations.complete')}
+        body={t('ops.donations.completeBody')}
+        reason={{
+          required: true,
+          type: 'number',
+          min: 1,
+          defaultValue: '450',
+          label: t('ops.donations.volumeCollected'),
+        }}
+        confirmLabel={t('ops.donations.complete')}
+      />
     </AppShell>
   );
 }

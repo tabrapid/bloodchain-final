@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Activity, Droplet, RefreshCw, Search } from 'lucide-react';
 import {
+  ConfirmDialog,
   DataTable,
   DataTableColumn,
   Modal,
@@ -97,6 +98,11 @@ export default function DonationsPage() {
   const [searchQuery, setSearchQuery] = useState('');
 
   const [completing, setCompleting] = useState<Donation | null>(null);
+  // Deferring a donor and aborting a collection both take a reason the file
+  // keeps. `prompt()` could not show which donor, and an empty answer looked
+  // the same as pressing Escape.
+  const [deferring, setDeferring] = useState<Donation | null>(null);
+  const [aborting, setAborting] = useState<Donation | null>(null);
   const [volumeMl, setVolumeMl] = useState(String(DEFAULT_VOLUME_ML));
   const [staffNotes, setStaffNotes] = useState('');
 
@@ -244,15 +250,7 @@ export default function DonationsPage() {
         buttons.push({
           label: t('ops.donations.defer'),
           variant: 'danger',
-          onClick: () => {
-            const notes = prompt('Why is this donor being deferred?');
-            if (!notes) return;
-            act(
-              donation.id,
-              () => recordAssessment(organizationId, donation.id, { decision: 'DEFERRED', notes }),
-              'Failed to record the deferral',
-            );
-          },
+          onClick: () => setDeferring(donation),
         });
       } else if (donation.assessment.decision === 'APPROVED_FOR_DONATION') {
         buttons.push({
@@ -268,11 +266,7 @@ export default function DonationsPage() {
       buttons.push({
         label: t('ops.donations.abort'),
         variant: 'danger',
-        onClick: () => {
-          const reason = prompt('Why is this collection being aborted?');
-          if (!reason) return;
-          act(donation.id, () => abortDonation(organizationId, donation.id, { reason }), 'Failed to abort');
-        },
+        onClick: () => setAborting(donation),
       });
     }
 
@@ -559,6 +553,50 @@ export default function DonationsPage() {
           </div>
         )}
       </Modal>
+
+      <ConfirmDialog
+        open={deferring !== null}
+        onClose={() => setDeferring(null)}
+        onConfirm={(notes) => {
+          const donation = deferring;
+          if (!donation) return;
+          setDeferring(null);
+          act(
+            donation.id,
+            () => recordAssessment(organizationId, donation.id, { decision: 'DEFERRED', notes }),
+            t('ops.common.saveFailed'),
+          );
+        }}
+        tone="danger"
+        title={t('ops.donations.deferTitle')}
+        body={t('ops.donations.deferBody')}
+        context={deferring ? fullName(deferring.donor) : null}
+        reason={{ required: true, label: t('ops.donations.deferReason') }}
+        confirmLabel={t('ops.donations.defer')}
+        loading={actionLoading === deferring?.id}
+      />
+
+      <ConfirmDialog
+        open={aborting !== null}
+        onClose={() => setAborting(null)}
+        onConfirm={(reason) => {
+          const donation = aborting;
+          if (!donation) return;
+          setAborting(null);
+          act(
+            donation.id,
+            () => abortDonation(organizationId, donation.id, { reason }),
+            t('ops.common.saveFailed'),
+          );
+        }}
+        tone="danger"
+        title={t('ops.donations.abortTitle')}
+        body={t('ops.donations.abortBody')}
+        context={aborting ? fullName(aborting.donor) : null}
+        reason={{ required: true, label: t('ops.donations.abortReason') }}
+        confirmLabel={t('ops.donations.abort')}
+        loading={actionLoading === aborting?.id}
+      />
     </AppShell>
   );
 }

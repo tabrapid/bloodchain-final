@@ -70,6 +70,9 @@ export default function ShipmentDetailPage() {
   const [deliveryNotes, setDeliveryNotes] = useState('');
   const [discrepancyReason, setDiscrepancyReason] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
+  // These refusals went to `alert()`, which is untranslated, unstyled, and can
+  // be suppressed by the browser -- a failure the operator then never sees.
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const { courierLocation, statusUpdate, connected } = useShipmentTracking(shipmentId || null);
 
@@ -130,7 +133,7 @@ export default function ShipmentDetailPage() {
     const hasDiscrepancy = unitsReceived < totalUnits;
 
     if (hasDiscrepancy && !discrepancyReason) {
-      alert('Please provide a reason for the discrepancy');
+      setActionError(t('ops.shipments.discrepancyRequired'));
       return;
     }
 
@@ -145,8 +148,7 @@ export default function ShipmentDetailPage() {
       setShowDeliveryModal(false);
       await loadShipment();
     } catch (err) {
-      console.error('Failed to confirm delivery:', err);
-      alert('Failed to confirm delivery');
+      setActionError(err instanceof Error ? err.message : t('ops.common.saveFailed'));
     } finally {
       setActionLoading(false);
     }
@@ -206,6 +208,17 @@ export default function ShipmentDetailPage() {
       organizationType="Hospital Console"
       userName={`${user.firstName} ${user.lastName}`}
     >
+      {actionError && (
+        <div
+          role="alert"
+          className="mb-4 flex items-start justify-between gap-3 rounded-lg border border-donor-danger/30 bg-donor-dangerMuted p-3 text-sm text-donor-onDangerMuted"
+        >
+          <span>{actionError}</span>
+          <button onClick={() => setActionError(null)} className="underline">
+            {t('actions.dismiss')}
+          </button>
+        </div>
+      )}
       <div className="mb-6">
         <button
           onClick={() => router.push('/shipments')}

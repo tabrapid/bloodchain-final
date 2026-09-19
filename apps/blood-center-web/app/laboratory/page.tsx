@@ -8,6 +8,7 @@ import {
   Search,
 } from 'lucide-react';
 import {
+  ConfirmDialog,
   DataTable,
   DataTableColumn,
   EmptyState,
@@ -212,7 +213,7 @@ export default function LaboratoryPage() {
       await confirmLaboratoryAppointment(organizationId, appointmentId);
       await loadAppointments();
     } catch (err: any) {
-      alert(err.message || 'Failed to confirm appointment');
+      setError(err?.message || t('ops.common.saveFailed'));
     } finally {
       setActionLoading(null);
     }
@@ -225,7 +226,7 @@ export default function LaboratoryPage() {
       await checkInLaboratoryAppointment(organizationId, appointmentId);
       await loadAppointments();
     } catch (err: any) {
-      alert(err.message || 'Failed to check in');
+      setError(err?.message || t('ops.common.saveFailed'));
     } finally {
       setActionLoading(null);
     }
@@ -238,7 +239,7 @@ export default function LaboratoryPage() {
       await startLaboratoryTest(organizationId, appointmentId);
       await loadAppointments();
     } catch (err: any) {
-      alert(err.message || 'Failed to start test');
+      setError(err?.message || t('ops.common.saveFailed'));
     } finally {
       setActionLoading(null);
     }
@@ -251,21 +252,22 @@ export default function LaboratoryPage() {
       await completeLaboratoryAppointment(organizationId, appointmentId);
       await loadAppointments();
     } catch (err: any) {
-      alert(err.message || 'Failed to complete');
+      setError(err?.message || t('ops.common.saveFailed'));
     } finally {
       setActionLoading(null);
     }
   };
 
+  const [noShowing, setNoShowing] = useState<LaboratoryAppointment | null>(null);
+
   const handleNoShow = async (appointmentId: string) => {
     if (!organizationId) return;
-    if (!confirm('Mark this appointment as no-show?')) return;
     setActionLoading(appointmentId);
     try {
       await markLaboratoryNoShow(organizationId, appointmentId);
       await loadAppointments();
     } catch (err: any) {
-      alert(err.message || 'Failed to mark no-show');
+      setError(err?.message || t('ops.common.saveFailed'));
     } finally {
       setActionLoading(null);
     }
@@ -277,11 +279,11 @@ export default function LaboratoryPage() {
     switch (appointment.status) {
       case 'PENDING':
         actions.push({ label: t('actions.confirm'), onClick: () => handleConfirm(appointment.id), variant: 'primary' });
-        actions.push({ label: t('status.appointment.NO_SHOW'), onClick: () => handleNoShow(appointment.id), variant: 'danger' });
+        actions.push({ label: t('status.appointment.NO_SHOW'), onClick: () => setNoShowing(appointment), variant: 'danger' });
         break;
       case 'CONFIRMED':
         actions.push({ label: t('actions.checkIn'), onClick: () => handleCheckIn(appointment.id), variant: 'primary' });
-        actions.push({ label: t('status.appointment.NO_SHOW'), onClick: () => handleNoShow(appointment.id), variant: 'danger' });
+        actions.push({ label: t('status.appointment.NO_SHOW'), onClick: () => setNoShowing(appointment), variant: 'danger' });
         break;
       case 'CHECKED_IN':
         actions.push({ label: t('ops.laboratory.startTest'), onClick: () => handleStart(appointment.id), variant: 'primary' });
@@ -613,6 +615,28 @@ export default function LaboratoryPage() {
           </div>
         )}
       </Modal>
+
+      <ConfirmDialog
+        open={noShowing !== null}
+        onClose={() => setNoShowing(null)}
+        onConfirm={() => {
+          const appointment = noShowing;
+          if (!appointment) return;
+          setNoShowing(null);
+          void handleNoShow(appointment.id);
+        }}
+        title={t('ops.appointments.noShowTitle')}
+        body={t('ops.appointments.noShowBody')}
+        context={
+          noShowing
+            ? `${noShowing.donor.firstName} ${noShowing.donor.lastName} · ${new Date(
+                noShowing.scheduledStart,
+              ).toLocaleString()}`
+            : null
+        }
+        confirmLabel={t('ops.appointments.noShow')}
+        loading={actionLoading === noShowing?.id}
+      />
     </AppShell>
   );
 }

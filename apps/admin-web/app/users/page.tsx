@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Search, User, X } from 'lucide-react';
-import { LoadingState } from '@bloodchain/ui/components';
+import { ConfirmDialog, LoadingState } from '@bloodchain/ui/components';
 import { listUsers, suspendUser, restoreUser, listRoles, updateMembershipRole, type User as UserType, type Role } from '@lib/api';
 import { me, isAuthenticated } from '@lib/auth';
 import { StatusBadgeWrapper } from '@lib/status';
@@ -20,6 +20,8 @@ export default function UsersPage() {
   const [roleFilter, setRoleFilter] = useState('');
   const [selectedUser, setSelectedUser] = useState<UserType | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+  // `confirm()` said nothing about who was about to lose access.
+  const [suspending, setSuspending] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [roles, setRoles] = useState<Role[]>([]);
   const [roleChangeTarget, setRoleChangeTarget] = useState<Record<string, string>>({});
@@ -63,7 +65,6 @@ export default function UsersPage() {
   }
 
   async function handleSuspend(userId: string) {
-    if (!confirm('Are you sure you want to suspend this user?')) return;
     setActionLoading(true);
     try {
       await suspendUser(userId, 'Suspended by admin');
@@ -353,7 +354,7 @@ export default function UsersPage() {
                 </button>
               ) : (
                 <button
-                  onClick={() => handleSuspend(selectedUser.id)}
+                  onClick={() => setSuspending(selectedUser.id)}
                   disabled={actionLoading}
                   className="flex-1 bg-donor-primary text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-donor-primary/85 disabled:opacity-50"
                 >
@@ -364,6 +365,25 @@ export default function UsersPage() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={suspending !== null}
+        onClose={() => setSuspending(null)}
+        onConfirm={() => {
+          const id = suspending;
+          if (!id) return;
+          setSuspending(null);
+          void handleSuspend(id);
+        }}
+        tone="danger"
+        title={t('ops.users.suspendTitle')}
+        body={t('ops.users.suspendBody')}
+        context={
+          selectedUser ? `${selectedUser.firstName} ${selectedUser.lastName} · ${selectedUser.email}` : null
+        }
+        confirmLabel={t('actions.suspend')}
+        loading={actionLoading}
+      />
     </AppShell>
   );
 }
