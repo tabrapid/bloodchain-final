@@ -8,7 +8,7 @@ import {
   HeartPulse,
   LayoutDashboard,
   Package,
-  Settings,
+  UserRound,
   Truck,
   Users,
 } from 'lucide-react';
@@ -27,5 +27,7 @@ export const sidebarItems: SidebarItem[] = [
   { id: 'donors', label: 'Donors', labelKey: 'portal.nav.donors', icon: Users, href: '/donors' },
   { id: 'organization', label: 'Organization', labelKey: 'portal.nav.organization', icon: Building2, href: '/organization' },
   { id: 'notifications', label: 'Notifications', labelKey: 'portal.nav.notifications', icon: Bell, href: '/notifications' },
-  { id: 'settings', label: 'Settings', labelKey: 'portal.nav.settings', icon: Settings, disabled: true },
+  // Was a permanently disabled 'Settings' entry with nothing behind it. It is
+  // now the account page, which is the only setting this console actually has.
+  { id: 'account', label: 'My account', labelKey: 'portal.nav.account', icon: UserRound, href: '/account' },
 ];

@@ -95,6 +95,12 @@ export const ru: Catalog = {
   },
 
   units: {
+    unitsCount: {
+      one: '{{count}} единица',
+      few: '{{count}} единицы',
+      many: '{{count}} единиц',
+      other: '{{count}} единиц',
+    },
     ml: '{{count}} мл',
     points: { one: '{{count}} балл', few: '{{count}} балла', many: '{{count}} баллов', other: '{{count}} баллов' },
     days: { one: '{{count}} день', few: '{{count}} дня', many: '{{count}} дней', other: '{{count}} дней' },
@@ -463,6 +469,21 @@ export const ru: Catalog = {
   },
 
   portal: {
+    account: {
+      title: 'Мой аккаунт',
+      subtitle: 'Данные для входа в эту консоль',
+      changePassword: 'Сменить пароль',
+      currentPassword: 'Текущий пароль',
+      newPassword: 'Новый пароль',
+      confirmPassword: 'Подтвердите новый пароль',
+      passwordPolicy:
+        'Не менее 12 символов: заглавная буква, строчная буква, цифра и спецсимвол.',
+      passwordsDoNotMatch: 'Новые пароли не совпадают.',
+      changeFailed: 'Не удалось сменить пароль. Попробуйте ещё раз.',
+      changed: 'Пароль изменён. На всех других устройствах выполнен выход.',
+      saving: 'Сохранение…',
+      signedInAs: 'Вы вошли как',
+    },
     signInTitle: 'Войдите, чтобы продолжить',
     signInSubtitle: 'Войдите, чтобы открыть панель «{{portal}}»',
     signIn: 'Войти',
@@ -497,6 +518,7 @@ export const ru: Catalog = {
       workspace: 'Управление BloodChain',
     },
     nav: {
+      account: 'Мой аккаунт',
       organization: 'Организация',
       dashboard: 'Панель',
       requests: 'Заявки на кровь',
@@ -794,6 +816,7 @@ export const ru: Catalog = {
     markAllRead: 'Отметить все прочитанными',
   },
   filters: {
+    allBloodTypes: 'Все группы крови',
     all: 'Все',
     allStatuses: 'Все статусы',
     allTypes: 'Все типы',
@@ -966,6 +989,10 @@ export const ru: Catalog = {
       vitalsPlaceholder: 'например: Hb 14,2 г/дл, АД 120/78',
     },
     inventory: {
+      availability: 'Наличие по центрам крови',
+      availabilityHint: 'Только сводные запасы — без номеров единиц и мест хранения. Это служебный вид для маршрутизации запросов, а не публичный инвентарь.',
+      noAvailability: 'Подходящих запасов нет',
+      noAvailabilityHint: 'Ни в одном активном центре крови нет доступных единиц по этим фильтрам.',
       reservations: 'Резервы',
       movements: 'История перемещений',
       reserve: 'Зарезервировать',

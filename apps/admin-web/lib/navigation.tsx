@@ -12,6 +12,7 @@ import {
   LayoutDashboard,
   Package,
   Settings,
+  UserRound,
   Ship,
   TestTube,
   Users,
@@ -35,4 +36,5 @@ export const navItems: SidebarItem[] = [
   { id: 'health', label: 'System Health', labelKey: 'portal.nav.health', icon: Activity, href: '/health' },
   { id: 'notifications', label: 'Notifications', labelKey: 'portal.nav.notifications', icon: BellRing, href: '/notifications' },
   { id: 'settings', label: 'Settings', labelKey: 'portal.nav.settings', icon: Settings, href: '/settings' },
+  { id: 'account', label: 'My account', labelKey: 'portal.nav.account', icon: UserRound, href: '/account' },
 ];

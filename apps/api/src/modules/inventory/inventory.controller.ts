@@ -22,6 +22,7 @@ import {
   ReleaseUnitDto,
   ReserveUnitDto,
   UpdateLocationDto,
+  GetBloodAvailabilityDto,
 } from './dto/inventory.dto';
 
 @ApiTags('Inventory')
@@ -263,12 +264,10 @@ export class BloodAvailabilityController {
   @ApiOperation({ summary: 'Get external blood availability' })
   getAvailability(
     @CurrentUser('sub') userId: string,
-    @Query() filters: { bloodType?: string; rhFactor?: string; componentType?: string },
+    @Query() filters: GetBloodAvailabilityDto,
   ) {
-    return this.inventory.getBloodAvailability(userId, {
-      bloodType: filters.bloodType as any,
-      rhFactor: filters.rhFactor as any,
-      componentType: filters.componentType as any,
-    });
+    // No `as any` casts: the DTO's enums are what the ValidationPipe checked,
+    // so a bad filter is a 400 here rather than a Prisma enum error at 500.
+    return this.inventory.getBloodAvailability(userId, filters);
   }
 }

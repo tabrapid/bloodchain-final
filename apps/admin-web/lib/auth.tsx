@@ -135,6 +135,23 @@ export async function login(email: string, password: string): Promise<void> {
   setTokens(json.data!.accessToken, json.data!.refreshToken);
 }
 
+/**
+ * Change this account's password.
+ *
+ * The same `POST /auth/change-password` the mobile app calls -- there is one
+ * password system, and this adds no second one. The server also revokes every
+ * refresh token for the account, so other signed-in devices are signed out.
+ */
+export async function changePassword(input: {
+  currentPassword: string;
+  newPassword: string;
+}): Promise<{ success: boolean }> {
+  return apiRequest<{ success: boolean }>('/auth/change-password', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
 export async function logout(): Promise<void> {
   const { refreshToken } = getTokens();
   try {

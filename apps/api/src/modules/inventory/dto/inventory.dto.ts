@@ -67,6 +67,32 @@ export class GetMovementsDto {
   limit?: string;
 }
 
+/**
+ * Filters for the cross-organisation availability view.
+ *
+ * Declared rather than typed inline: an inline `@Query() filters: { ... }`
+ * resolves to `Object`, which makes NestJS's ValidationPipe skip the whole
+ * body -- the same defect P3-14 fixed on four other routes. Here it meant
+ * `?bloodType=nonsense` reached Prisma as an enum value and produced a 500
+ * instead of a 400.
+ */
+export class GetBloodAvailabilityDto {
+  @ApiPropertyOptional({ enum: BloodType })
+  @IsOptional()
+  @IsEnum(BloodType)
+  bloodType?: BloodType;
+
+  @ApiPropertyOptional({ enum: RhFactor })
+  @IsOptional()
+  @IsEnum(RhFactor)
+  rhFactor?: RhFactor;
+
+  @ApiPropertyOptional({ enum: ComponentType })
+  @IsOptional()
+  @IsEnum(ComponentType)
+  componentType?: ComponentType;
+}
+
 export class GetReservationsDto {
   @ApiPropertyOptional({ enum: ReservationStatus })
   @IsOptional()

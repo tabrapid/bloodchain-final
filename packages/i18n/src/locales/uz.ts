@@ -95,6 +95,7 @@ export const uz: Catalog = {
   },
 
   units: {
+    unitsCount: { other: '{{count}} ta birlik' },
     ml: '{{count}} ml',
     points: { other: '{{count}} ball' },
     days: { other: '{{count}} kun' },
@@ -419,6 +420,21 @@ export const uz: Catalog = {
   },
 
   portal: {
+    account: {
+      title: 'Mening hisobim',
+      subtitle: 'Ushbu konsolga kirish ma’lumotlaringiz',
+      changePassword: 'Parolni o‘zgartirish',
+      currentPassword: 'Joriy parol',
+      newPassword: 'Yangi parol',
+      confirmPassword: 'Yangi parolni tasdiqlang',
+      passwordPolicy:
+        'Kamida 12 belgi: katta harf, kichik harf, raqam va maxsus belgi bo‘lishi kerak.',
+      passwordsDoNotMatch: 'Yangi parollar mos kelmadi.',
+      changeFailed: 'Parolni o‘zgartirib bo‘lmadi. Qayta urinib ko‘ring.',
+      changed: 'Parol o‘zgartirildi. Boshqa barcha qurilmalardan chiqarildi.',
+      saving: 'Saqlanmoqda…',
+      signedInAs: 'Kim sifatida kirgansiz',
+    },
     signInTitle: 'Davom etish uchun kiring',
     signInSubtitle: '{{portal}} boshqaruv paneliga kirish',
     signIn: 'Kirish',
@@ -453,6 +469,7 @@ export const uz: Catalog = {
       workspace: 'BloodChain boshqaruvi',
     },
     nav: {
+      account: 'Mening hisobim',
       organization: 'Tashkilot',
       dashboard: 'Boshqaruv paneli',
       requests: 'Qon so‘rovlari',
@@ -750,6 +767,7 @@ export const uz: Catalog = {
     markAllRead: 'Barchasini o‘qilgan deb belgilash',
   },
   filters: {
+    allBloodTypes: 'Barcha qon guruhlari',
     all: 'Barchasi',
     allStatuses: 'Barcha holatlar',
     allTypes: 'Barcha turlar',
@@ -922,6 +940,10 @@ export const uz: Catalog = {
       vitalsPlaceholder: 'masalan: Hb 14,2 g/dL, AB 120/78',
     },
     inventory: {
+      availability: 'Qon markazlari bo‘ylab mavjudlik',
+      availabilityHint: 'Faqat umumiy zaxira — birlik raqamlari va saqlash joylari ko‘rsatilmaydi. Bu so‘rovlarni yo‘naltirish uchun ichki ko‘rinish, ommaviy inventar emas.',
+      noAvailability: 'Mos zaxira topilmadi',
+      noAvailabilityHint: 'Hozircha hech bir faol qon markazida ushbu filtrlarga mos mavjud birliklar yo‘q.',
       reservations: 'Bandlovlar',
       movements: 'Harakatlar tarixi',
       reserve: 'Band qilish',

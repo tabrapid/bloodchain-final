@@ -509,6 +509,35 @@ export async function getInventoryOverview(): Promise<any> {
   return apiRequest<any>('/admin/inventory/overview');
 }
 
+/**
+ * Aggregate stock at every active blood centre, grouped by centre and group.
+ *
+ * `GET /blood-availability` has existed since the inventory module shipped and
+ * no client called it. It deliberately exposes only type, component and
+ * quantity -- never unit identifiers or storage locations -- because this is
+ * an operational view for the people who route requests between organisations,
+ * not a public stock ticker.
+ */
+export interface BloodAvailabilityRow {
+  organization: { id: string; name: string };
+  bloodType: string;
+  rhFactor: string;
+  componentType: string;
+  totalUnits: number;
+  totalVolumeMl: number;
+}
+
+export async function getBloodAvailability(
+  filters: { bloodType?: string; rhFactor?: string; componentType?: string } = {},
+): Promise<BloodAvailabilityRow[]> {
+  const searchParams = new URLSearchParams();
+  if (filters.bloodType) searchParams.set('bloodType', filters.bloodType);
+  if (filters.rhFactor) searchParams.set('rhFactor', filters.rhFactor);
+  if (filters.componentType) searchParams.set('componentType', filters.componentType);
+  const query = searchParams.toString();
+  return apiRequest<BloodAvailabilityRow[]>(`/blood-availability${query ? `?${query}` : ''}`);
+}
+
 export async function listAlerts(params: {
   page?: number;
   limit?: number;

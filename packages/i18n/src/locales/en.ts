@@ -105,6 +105,7 @@ export const en: Catalog = {
   },
 
   units: {
+    unitsCount: { one: '{{count}} unit', other: '{{count}} units' },
     ml: '{{count}} ml',
     points: { one: '{{count}} point', other: '{{count}} points' },
     days: { one: '{{count}} day', other: '{{count}} days' },
@@ -438,6 +439,21 @@ export const en: Catalog = {
   },
 
   portal: {
+    account: {
+      title: 'My account',
+      subtitle: 'Your sign-in details for this console',
+      changePassword: 'Change password',
+      currentPassword: 'Current password',
+      newPassword: 'New password',
+      confirmPassword: 'Confirm new password',
+      passwordPolicy:
+        'At least 12 characters, with an upper-case letter, a lower-case letter, a number and a symbol.',
+      passwordsDoNotMatch: 'The two new passwords do not match.',
+      changeFailed: 'Could not change your password. Please try again.',
+      changed: 'Password changed. Every other signed-in device was signed out.',
+      saving: 'Saving…',
+      signedInAs: 'Signed in as',
+    },
     signInTitle: 'Sign in to continue',
     signInSubtitle: 'Sign in to access the {{portal}} dashboard',
     signIn: 'Sign in',
@@ -472,6 +488,7 @@ export const en: Catalog = {
       workspace: 'BloodChain Management',
     },
     nav: {
+      account: 'My account',
       organization: 'Organization',
       dashboard: 'Dashboard',
       requests: 'Blood Requests',
@@ -810,6 +827,7 @@ export const en: Catalog = {
     markAllRead: 'Mark all as read',
   },
   filters: {
+    allBloodTypes: 'All blood types',
     all: 'All',
     allStatuses: 'All statuses',
     allTypes: 'All types',
@@ -982,6 +1000,10 @@ export const en: Catalog = {
       vitalsPlaceholder: 'e.g. Hb 14.2 g/dL, BP 120/78',
     },
     inventory: {
+      availability: 'Availability across blood centres',
+      availabilityHint: 'Aggregate stock only — no unit identifiers or storage locations. This is an operational view for routing requests, not a public inventory.',
+      noAvailability: 'No matching stock',
+      noAvailabilityHint: 'No active blood centre currently holds available units matching these filters.',
       reservations: 'Reservations',
       movements: 'Movement history',
       reserve: 'Reserve',
