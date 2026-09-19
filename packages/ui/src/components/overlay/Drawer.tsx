@@ -1,5 +1,6 @@
 import { useEffect, useId } from 'react';
 import { X } from 'lucide-react';
+import { useOptionalTranslation } from '../../i18n';
 import { cn } from '../cn';
 
 export interface DrawerProps {
@@ -13,6 +14,7 @@ export interface DrawerProps {
 
 export function Drawer({ open, onClose, title, children, footer, className }: DrawerProps) {
   const titleId = useId();
+  const { t } = useOptionalTranslation();
 
   // Same as Modal: without this the drawer cannot be dismissed from the
   // keyboard at all.
@@ -37,7 +39,7 @@ export function Drawer({ open, onClose, title, children, footer, className }: Dr
       <div
         role="dialog"
         aria-modal="true"
-        aria-label={title ? undefined : 'Panel'}
+        aria-label={title ? undefined : t('common.panel')}
         aria-labelledby={title ? titleId : undefined}
         className={cn(
           'bc-glass-elevated bc-rise relative z-10 flex w-full max-w-md flex-col border-y-0 border-r-0 p-6',
@@ -53,7 +55,7 @@ export function Drawer({ open, onClose, title, children, footer, className }: Dr
           <button
             onClick={onClose}
             className="rounded-md p-1 text-donor-muted outline-none transition-colors hover:bg-donor-elevated hover:text-donor-text focus-visible:ring-2 focus-visible:ring-donor-primary/60"
-            aria-label="Close"
+            aria-label={t('common.close')}
           >
             <X size={20} />
           </button>

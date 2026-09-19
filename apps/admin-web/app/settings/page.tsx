@@ -160,14 +160,12 @@ export default function SettingsPage() {
                   }
                   className="w-full"
                 />
-                <p className="mt-1 text-xs text-donor-muted">
-                  How long a signed-in session stays valid before requiring re-login (1h–30d).
-                </p>
+                <p className="mt-1 text-xs text-donor-muted">{t('ops.settings.sessionTimeoutHint')}</p>
               </div>
               <div className="flex items-center justify-between p-3 bg-donor-elevated rounded-lg">
                 <span className="text-sm text-donor-text">{t('ops.settings.passwordPolicy')}</span>
                 <span className="text-xs text-donor-muted text-right max-w-[60%]">
-                  Min. 12 chars, upper/lower/number/symbol (fixed)
+                  {t('ops.settings.passwordPolicyFixed')}
                 </span>
               </div>
             </div>
@@ -176,7 +174,7 @@ export default function SettingsPage() {
               disabled={savingSection === 'Security settings'}
               className="mt-4 w-full bg-donor-primary text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-donor-primary/85 disabled:opacity-50"
             >
-              {savingSection === 'Security settings' ? 'Saving...' : 'Save'}
+              {savingSection === 'Security settings' ? t('common.saving') : t('actions.save')}
             </button>
           </div>
 
@@ -196,10 +194,7 @@ export default function SettingsPage() {
                 checked={settings.pushNotificationsEnabled}
                 onChange={(v) => setSettings({ ...settings, pushNotificationsEnabled: v })}
               />
-              <p className="text-xs text-donor-muted px-1">
-                Email is used only for account verification, not general notifications. SMS delivery
-                isn&apos;t implemented — there is nothing to toggle for either channel yet.
-              </p>
+              <p className="text-xs text-donor-muted px-1">{t('ops.settings.channelsHint')}</p>
             </div>
             <button
               onClick={() =>
@@ -208,7 +203,7 @@ export default function SettingsPage() {
               disabled={savingSection === 'Notification settings'}
               className="mt-4 w-full bg-donor-primary text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-donor-primary/85 disabled:opacity-50"
             >
-              {savingSection === 'Notification settings' ? 'Saving...' : 'Save'}
+              {savingSection === 'Notification settings' ? t('common.saving') : t('actions.save')}
             </button>
           </div>
 
@@ -250,7 +245,7 @@ export default function SettingsPage() {
               disabled={savingSection === 'Feature flags'}
               className="mt-4 w-full bg-donor-primary text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-donor-primary/85 disabled:opacity-50"
             >
-              {savingSection === 'Feature flags' ? 'Saving...' : 'Save'}
+              {savingSection === 'Feature flags' ? t('common.saving') : t('actions.save')}
             </button>
           </div>
 
@@ -314,7 +309,7 @@ export default function SettingsPage() {
               disabled={savingSection === 'Maintenance mode'}
               className="mt-4 w-full bg-donor-primary text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-donor-primary/85 disabled:opacity-50"
             >
-              {savingSection === 'Maintenance mode' ? 'Saving...' : 'Save'}
+              {savingSection === 'Maintenance mode' ? t('common.saving') : t('actions.save')}
             </button>
           </div>
         </div>

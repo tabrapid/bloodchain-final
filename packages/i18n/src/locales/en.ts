@@ -19,6 +19,10 @@ import type { Catalog } from '../translate';
  */
 export const en: Catalog = {
   common: {
+    dialog: 'Dialog',
+    panel: 'Panel',
+    noData: 'No data available',
+    comingSoon: 'Soon',
     back: 'Back',
     cancel: 'Cancel',
     close: 'Close',
@@ -453,6 +457,7 @@ export const en: Catalog = {
   },
 
   portal: {
+    openMenu: 'Open menu',
     account: {
       title: 'My account',
       subtitle: 'Your sign-in details for this console',
@@ -502,6 +507,7 @@ export const en: Catalog = {
       workspace: 'BloodChain Management',
     },
     nav: {
+      primary: 'Main',
       account: 'My account',
       organization: 'Organization',
       dashboard: 'Dashboard',
@@ -586,6 +592,28 @@ export const en: Catalog = {
    * reviews it.
    */
   status: {
+    shipmentEvent: {
+      CREATED: 'Shipment created',
+      COURIER_ASSIGNED: 'Courier assigned',
+      COURIER_ACCEPTED: 'Courier accepted',
+      COURIER_DECLINED: 'Courier declined',
+      PICKUP_STARTED: 'Pickup started',
+      PICKED_UP: 'Picked up',
+      IN_TRANSIT: 'In transit',
+      LOCATION_UPDATED: 'Location updated',
+      ARRIVED_AT_HOSPITAL: 'Arrived at hospital',
+      DELIVERED: 'Delivered',
+      FAILED: 'Delivery failed',
+      CANCELLED: 'Cancelled',
+    },
+    requestEvent: {
+      SUBMITTED: 'Request submitted',
+      APPROVED: 'Approved',
+      PARTIALLY_APPROVED: 'Partially approved',
+      REJECTED: 'Rejected',
+      READY_FOR_PICKUP: 'Ready for pickup',
+      SHIPMENT_CREATED: 'Shipment created',
+    },
     verification: {
       UNVERIFIED: 'Unverified',
       VERIFIED: 'Verified',
@@ -804,6 +832,8 @@ export const en: Catalog = {
     region: 'Region',
   },
   actions: {
+    clearSearch: 'Clear search',
+    searchPlaceholder: 'Search…',
     verify: 'Verify',
     restore: 'Restore',
     view: 'View',
@@ -860,6 +890,28 @@ export const en: Catalog = {
   },
   ops: {
     common: {
+      refreshing: 'Refreshing…',
+      creating: 'Creating…',
+      submitting: 'Submitting…',
+      working: 'Working…',
+      assigning: 'Assigning…',
+      reassigning: 'Reassigning…',
+      moving: 'Moving…',
+      suspending: 'Suspending…',
+      restoring: 'Restoring…',
+      issuing: 'Issuing…',
+      acknowledging: 'Acknowledging…',
+      notesOptional: 'Notes (optional)',
+      reasonOptional: 'Reason (optional)',
+      reasonRequired: 'Reason (required)',
+      phoneOptional: 'Phone (optional)',
+      live: 'Live',
+      offline: 'Offline',
+      eta: 'ETA',
+      alerts: 'Alerts',
+      inventoryStatus: 'Inventory status',
+      organizationUnavailable: 'Organization unavailable',
+      noResultsFilterHint: 'Try adjusting your search or filters',
       loading: 'Loading…',
       noResults: 'Nothing to show',
       noResultsHint: 'Try a different filter, or come back later.',
@@ -918,6 +970,16 @@ export const en: Catalog = {
       collected: 'Collected',
     },
     dashboard: {
+      criticalGroups: 'Critical: {{groups}}',
+      unitsOnHand: 'units on hand',
+      awaitingResults: 'Awaiting results',
+      awaitingReview: 'Awaiting review',
+      scheduledToday: 'Scheduled today',
+      inTransit: 'In transit',
+      pendingApprovalHospital: 'Your hospital is pending approval',
+      pendingApprovalBloodCenter: 'Your blood center is pending approval',
+      pendingApprovalBody: '{{name}} is still under review by a BloodChain admin. You will get full access as soon as it is approved.',
+      organizationStatusBody: '{{name}} is currently {{status}}. Contact your BloodChain admin for details.',
       hospitalTitle: 'BloodChain Hospital Console',
       hospitalSubtitle: 'Hospital operations workspace for the BloodChain',
       hospitalHeadline: 'Care operations,',
@@ -972,6 +1034,7 @@ export const en: Catalog = {
       hospitalTagline: 'A clear view of your donor network and today\'s priorities.',
     },
     appointments: {
+      createSlot: 'Create slot',
       bookings: 'Booked appointments',
       slots: 'Slots',
       noBookings: 'No booked appointments',
@@ -996,6 +1059,10 @@ export const en: Catalog = {
       pageSubtitle: 'Configure when donors can book donation, blood test, and consultation appointments',
     },
     donations: {
+      todaysAppointments: 'Today’s appointments',
+      receiveHint: 'Receive today’s donors, record the assessment, and save the volume collected.',
+      volumeCollected: 'Volume collected (mL)',
+      saveDonation: 'Save donation',
       title: 'Donations',
       recent: 'Recent donations',
       signInHint: 'Sign in to manage donations.',
@@ -1014,6 +1081,13 @@ export const en: Catalog = {
       vitalsPlaceholder: 'e.g. Hb 14.2 g/dL, BP 120/78',
     },
     inventory: {
+      noUnitsHint: 'Units will appear here when donations are processed',
+      confirmMove: 'Confirm move',
+      saveAdjustment: 'Save adjustment',
+      createLocation: 'Create location',
+      currentVolume: 'Volume (ml) — currently {{value}}',
+      currentComponent: 'Component — currently {{value}}',
+      currentExpiry: 'Expires — currently {{value}}',
       availability: 'Availability across blood centres',
       availabilityHint: 'Aggregate stock only — no unit identifiers or storage locations. This is an operational view for routing requests, not a public inventory.',
       noAvailability: 'No matching stock',
@@ -1075,6 +1149,12 @@ export const en: Catalog = {
       donorFacingVolume: 'This is the figure the donor sees in their own donation history.',
     },
     requests: {
+      markReadyForPickup: 'Mark ready for pickup',
+      createShipment: 'Create shipment',
+      submitRequest: 'Submit request',
+      deliveryAddressOptional: 'Delivery address (optional)',
+      deliveryPhoneOptional: 'Delivery phone (optional)',
+      neededByOptional: 'Needed by (optional)',
       rejected: 'Request declined',
       rejectReasonRequired: 'Give a reason so the hospital knows why this was declined.',
       reviewNotesLabel: 'Notes — required when declining, shown to the hospital',
@@ -1133,6 +1213,9 @@ export const en: Catalog = {
       noneFound: 'No blood requests found',
     },
     shipments: {
+      assignCourier: 'Assign courier',
+      reassignCourier: 'Reassign courier',
+      discrepancyReason: 'Discrepancy reason (required when fewer units are received than shipped)',
       title: 'Shipments',
       monitoring: 'Shipment monitoring',
       monitoringHint: 'Track and monitor all blood shipments across the platform',
@@ -1181,6 +1264,7 @@ export const en: Catalog = {
       noneFound: 'No shipments found',
     },
     emergency: {
+      createEmergency: 'Create emergency',
       title: 'Emergency SOS',
       management: 'Blood emergency management',
       monitoring: 'Emergency SOS monitoring',
@@ -1201,6 +1285,8 @@ export const en: Catalog = {
       noneFound: 'No emergencies found',
     },
     laboratory: {
+      saveResults: 'Save results',
+      referenceRangeHint: 'Values are compared against this laboratory’s reference range for each parameter; the normal/low/high flag the donor sees is derived from that.',
       management: 'Blood test management',
       searchPlaceholder: 'Search by reference or donor…',
       empty: 'No appointments',
@@ -1222,6 +1308,8 @@ export const en: Catalog = {
       testType: 'Test type',
     },
     couriers: {
+      restoreCourier: 'Restore courier',
+      suspendCourier: 'Suspend courier',
       title: 'Courier management',
       subtitle: 'Manage delivery couriers and their status',
       details: 'Courier details',
@@ -1268,6 +1356,7 @@ export const en: Catalog = {
       pageSubtitle: 'Monitor performance metrics and operational insights',
     },
     donors: {
+      browseHint: 'Browse the platform’s registered donors by blood type, status, and location',
       detailSubtitle: 'Donor record',
       backToDonors: 'Back to donors',
       notFound: 'Donor not found',
@@ -1334,6 +1423,8 @@ export const en: Catalog = {
       empty: 'No organizations found',
     },
     users: {
+      restoreUser: 'Restore user',
+      suspendUser: 'Suspend user',
       title: 'User management',
       subtitle: 'Manage platform users and their accounts',
       details: 'User details',
@@ -1345,6 +1436,9 @@ export const en: Catalog = {
       empty: 'No users found',
     },
     roles: {
+      manageHint: 'Manage which permissions each role grants. Change a specific user’s role from their entry on the Users page.',
+      allPermissionsFixed: 'All permissions (fixed)',
+      savePermissions: 'Save permissions',
       permissions: 'Permissions',
       noPermissions: 'No permissions granted',
       showLess: 'Show less',
@@ -1376,6 +1470,7 @@ export const en: Catalog = {
       empty: 'No audit logs found',
     },
     health: {
+      failedJobs24h: 'Failed jobs (24h)',
       subtitle: 'Platform infrastructure status',
       overallStatus: 'Overall status',
       lastUpdated: 'Last updated',
@@ -1386,6 +1481,8 @@ export const en: Catalog = {
       criticalRequests: 'Critical requests',
     },
     moderation: {
+      reporterNotes: 'Reporter’s notes',
+      resolutionNote: 'Resolution note (optional)',
       subtitle: 'Review reports filed against community posts',
       post: 'Post',
       reporter: 'Reporter',
@@ -1402,6 +1499,9 @@ export const en: Catalog = {
       empty: 'No content reports found',
     },
     settings: {
+      sessionTimeoutHint: 'How long a signed-in session stays valid before requiring re-login (1h–30d).',
+      passwordPolicyFixed: 'Min. 12 characters, upper/lower/number/symbol (fixed)',
+      channelsHint: 'Email is used only for account verification, not general notifications. SMS delivery is not implemented — there is nothing to toggle for either channel yet.',
       title: 'Platform settings',
       subtitle: 'Configure platform-wide settings and feature flags',
       loadFailed: 'Could not load platform settings.',
@@ -1425,6 +1525,7 @@ export const en: Catalog = {
       maintenanceHint: 'Blocks sign-in for everyone except SUPER_ADMIN accounts platform-wide',
     },
     alerts: {
+      acknowledge: 'Acknowledge',
       title: 'Alert center',
       subtitle: 'Manage platform alerts and notifications',
       allAlerts: 'All alerts',
@@ -1456,6 +1557,9 @@ export const en: Catalog = {
       estimatedCost: 'Estimated cost',
     },
     register: {
+      verifyEmailHospital: 'Check {{email}} to verify your email address. Once verified, your hospital account will be reviewed by a BloodChain admin — you will be able to sign in as soon as it is approved.',
+      verifyEmailBloodCenter: 'Check {{email}} to verify your email address. Once verified, your blood center account will be reviewed by a BloodChain admin — you will be able to sign in as soon as it is approved.',
+      submitForApproval: 'Submit for approval',
       hospitalTitle: 'Register your hospital',
       centerTitle: 'Register your blood center',
       submitted: 'Registration submitted',
@@ -1470,6 +1574,9 @@ export const en: Catalog = {
     },
   },
   booking: {
+    noOpenDatesHint: 'Try the next month, or go back and pick another location.',
+    unavailableDay: 'unavailable',
+    noOpenDates: 'No open dates this month',
     chooseTime: 'Choose an available time',
     selectType: 'Select appointment type',
     whatToBook: 'What would you like to book today?',
@@ -1557,6 +1664,9 @@ export const en: Catalog = {
     a11yRow: '{{type}} donation on {{date}}',
   },
   labBooking: {
+    selectDateSubtitleCalendar: 'Days with open times are highlighted.',
+    noOpenDatesHint: 'Try the next month, or go back and pick another laboratory.',
+    datesFailed: 'Couldn’t load availability',
     selectTestTitle: 'Which test?',
     selectTestSubtitle: 'Choose the panel you want taken.',
     selectLabTitle: 'Where?',

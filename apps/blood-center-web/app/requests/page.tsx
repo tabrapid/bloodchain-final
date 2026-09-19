@@ -243,7 +243,7 @@ export default function BloodRequestsPage() {
                       <p className="mt-1 text-sm text-donor-muted">
                         From {request.requestingOrganization.name}
                         {' — '}
-                        {request.items.map((i) => `${i.bloodType}${i.rhFactor === 'POSITIVE' ? '+' : i.rhFactor === 'NEGATIVE' ? '-' : ''} ${i.componentType.replace('_', ' ')}`).join(', ')}
+                        {request.items.map((i) => `${i.bloodType}${i.rhFactor === 'POSITIVE' ? '+' : i.rhFactor === 'NEGATIVE' ? '-' : ''} ${t(`medical.components.${i.componentType}`)}`).join(', ')}
                         {' — '}
                         {totalRequested} unit{totalRequested !== 1 ? 's' : ''}
                       </p>

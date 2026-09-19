@@ -1,5 +1,6 @@
 import { useEffect, useId } from 'react';
 import { X } from 'lucide-react';
+import { useOptionalTranslation } from '../../i18n';
 import { cn } from '../cn';
 
 export interface ModalProps {
@@ -22,6 +23,7 @@ export function Modal({
   className,
 }: ModalProps) {
   const titleId = useId();
+  const { t } = useOptionalTranslation();
 
   // Escape closes the dialog. The overlay click already did; the keyboard had
   // no way out at all, which traps anyone not using a mouse.
@@ -46,7 +48,7 @@ export function Modal({
       <div
         role="dialog"
         aria-modal="true"
-        aria-label={title ? undefined : 'Dialog'}
+        aria-label={title ? undefined : t('common.dialog')}
         aria-labelledby={title ? titleId : undefined}
         className={cn(
           'bc-glass-elevated bc-rise relative z-10 w-full max-w-lg overflow-hidden rounded-panel p-6',
@@ -65,7 +67,7 @@ export function Modal({
           <button
             onClick={onClose}
             className="rounded-md p-1 text-donor-muted outline-none transition-colors hover:bg-donor-elevated hover:text-donor-text focus-visible:ring-2 focus-visible:ring-donor-primary/60"
-            aria-label="Close"
+            aria-label={t('common.close')}
           >
             <X size={18} />
           </button>

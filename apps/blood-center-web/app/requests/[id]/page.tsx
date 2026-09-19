@@ -319,7 +319,7 @@ export default function BloodRequestDetailPage() {
               className="flex items-center gap-2 rounded-lg bg-donor-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-donor-primary/80 disabled:opacity-50"
             >
               <CheckCircle size={16} />
-              {actionLoading ? 'Working...' : 'Mark Ready for Pickup'}
+              {actionLoading ? t('ops.common.working') : t('ops.requests.markReadyForPickup')}
             </button>
           )}
           {canCreateShipment && (
@@ -329,7 +329,7 @@ export default function BloodRequestDetailPage() {
               className="flex items-center gap-2 rounded-lg bg-donor-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-donor-primary/80 disabled:opacity-50"
             >
               <Truck size={16} />
-              {actionLoading ? 'Creating...' : 'Create Shipment'}
+              {actionLoading ? t('ops.common.creating') : t('ops.requests.createShipment')}
             </button>
           )}
         </div>
@@ -382,7 +382,7 @@ export default function BloodRequestDetailPage() {
                       {item.bloodType}
                       {item.rhFactor === 'POSITIVE' ? '+' : item.rhFactor === 'NEGATIVE' ? '-' : ''}
                       {' '}
-                      {item.componentType.replace('_', ' ')}
+                      {t(`medical.components.${item.componentType}`)}
                     </span>
                   </div>
                   <div className="flex items-center gap-6 text-sm">
@@ -438,7 +438,7 @@ export default function BloodRequestDetailPage() {
                     <div className="mt-1 h-2 w-2 rounded-full bg-donor-primary" />
                     <div className="flex-1">
                       <div className="flex items-center justify-between">
-                        <p className="text-sm font-medium text-donor-text">{event.eventType.replace(/_/g, ' ')}</p>
+                        <p className="text-sm font-medium text-donor-text">{t(`status.requestEvent.${event.eventType}`)}</p>
                         <span className="text-xs text-donor-muted">
                           {new Date(event.createdAt).toLocaleString()}
                         </span>
@@ -509,7 +509,7 @@ export default function BloodRequestDetailPage() {
                 {item.bloodType}
                 {item.rhFactor === 'POSITIVE' ? '+' : item.rhFactor === 'NEGATIVE' ? '-' : ''}
                 {' '}
-                {item.componentType.replace('_', ' ')}
+                {t(`medical.components.${item.componentType}`)}
                 <span className="ml-2 text-xs text-donor-muted">requested {item.unitsRequested}</span>
               </span>
               <input
@@ -568,7 +568,7 @@ export default function BloodRequestDetailPage() {
             disabled={actionLoading}
             className="rounded-lg bg-donor-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
           >
-            {actionLoading ? 'Submitting...' : 'Approve'}
+            {actionLoading ? t('ops.common.submitting') : 'Approve'}
           </button>
         </div>
       </Modal>

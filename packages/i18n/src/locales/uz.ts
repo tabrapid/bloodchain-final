@@ -16,6 +16,10 @@ import type { Catalog } from '../translate';
  */
 export const uz: Catalog = {
   common: {
+    dialog: 'Oyna',
+    panel: 'Panel',
+    noData: 'Ma’lumot yo‘q',
+    comingSoon: 'Tez orada',
     back: 'Orqaga',
     cancel: 'Bekor qilish',
     close: 'Yopish',
@@ -434,6 +438,7 @@ export const uz: Catalog = {
   },
 
   portal: {
+    openMenu: 'Menyuni ochish',
     account: {
       title: 'Mening hisobim',
       subtitle: 'Ushbu konsolga kirish ma’lumotlaringiz',
@@ -483,6 +488,7 @@ export const uz: Catalog = {
       workspace: 'BloodChain boshqaruvi',
     },
     nav: {
+      primary: 'Asosiy',
       account: 'Mening hisobim',
       organization: 'Tashkilot',
       dashboard: 'Boshqaruv paneli',
@@ -526,6 +532,28 @@ export const uz: Catalog = {
 
   // KLINIK KO‘RIB CHIQISH TALAB QILINADI — CLINICAL_REVIEW_KEYS ga qarang.
   status: {
+    shipmentEvent: {
+      CREATED: 'Yetkazma yaratildi',
+      COURIER_ASSIGNED: 'Kuryer tayinlandi',
+      COURIER_ACCEPTED: 'Kuryer qabul qildi',
+      COURIER_DECLINED: 'Kuryer rad etdi',
+      PICKUP_STARTED: 'Olib ketish boshlandi',
+      PICKED_UP: 'Olib ketildi',
+      IN_TRANSIT: 'Yo‘lda',
+      LOCATION_UPDATED: 'Joylashuv yangilandi',
+      ARRIVED_AT_HOSPITAL: 'Shifoxonaga yetib keldi',
+      DELIVERED: 'Yetkazildi',
+      FAILED: 'Yetkazib bo‘lmadi',
+      CANCELLED: 'Bekor qilindi',
+    },
+    requestEvent: {
+      SUBMITTED: 'So‘rov yuborildi',
+      APPROVED: 'Tasdiqlandi',
+      PARTIALLY_APPROVED: 'Qisman tasdiqlandi',
+      REJECTED: 'Rad etildi',
+      READY_FOR_PICKUP: 'Olib ketishga tayyor',
+      SHIPMENT_CREATED: 'Yetkazma yaratildi',
+    },
     verification: {
       UNVERIFIED: 'Tasdiqlanmagan',
       VERIFIED: 'Tasdiqlangan',
@@ -744,6 +772,8 @@ export const uz: Catalog = {
     region: 'Viloyat',
   },
   actions: {
+    clearSearch: 'Qidiruvni tozalash',
+    searchPlaceholder: 'Qidirish…',
     verify: 'Tasdiqlash',
     restore: 'Tiklash',
     view: 'Ko‘rish',
@@ -800,6 +830,28 @@ export const uz: Catalog = {
   },
   ops: {
     common: {
+      refreshing: 'Yangilanmoqda…',
+      creating: 'Yaratilmoqda…',
+      submitting: 'Yuborilmoqda…',
+      working: 'Bajarilmoqda…',
+      assigning: 'Tayinlanmoqda…',
+      reassigning: 'Qayta tayinlanmoqda…',
+      moving: 'Ko‘chirilmoqda…',
+      suspending: 'To‘xtatilmoqda…',
+      restoring: 'Tiklanmoqda…',
+      issuing: 'Berilmoqda…',
+      acknowledging: 'Tasdiqlanmoqda…',
+      notesOptional: 'Izoh (ixtiyoriy)',
+      reasonOptional: 'Sabab (ixtiyoriy)',
+      reasonRequired: 'Sabab (majburiy)',
+      phoneOptional: 'Telefon (ixtiyoriy)',
+      live: 'Jonli',
+      offline: 'Oflayn',
+      eta: 'Taxminiy vaqt',
+      alerts: 'Ogohlantirishlar',
+      inventoryStatus: 'Zaxira holati',
+      organizationUnavailable: 'Tashkilot mavjud emas',
+      noResultsFilterHint: 'Qidiruv yoki filtrlarni o‘zgartirib ko‘ring',
       loading: 'Yuklanmoqda…',
       noResults: 'Ko‘rsatadigan narsa yo‘q',
       noResultsHint: 'Boshqa filtrni sinab ko‘ring yoki keyinroq qayting.',
@@ -858,6 +910,16 @@ export const uz: Catalog = {
       collected: 'Yig‘ilgan',
     },
     dashboard: {
+      criticalGroups: 'Tanqisligi: {{groups}}',
+      unitsOnHand: 'birlik mavjud',
+      awaitingResults: 'Natijalar kutilmoqda',
+      awaitingReview: 'Ko‘rib chiqish kutilmoqda',
+      scheduledToday: 'Bugunga rejalashtirilgan',
+      inTransit: 'Yo‘lda',
+      pendingApprovalHospital: 'Shifoxonangiz tasdiqlanishini kutmoqda',
+      pendingApprovalBloodCenter: 'Qon markazingiz tasdiqlanishini kutmoqda',
+      pendingApprovalBody: '{{name}} hali BloodChain administratori tomonidan ko‘rib chiqilmoqda. Tasdiqlangach to‘liq huquq olasiz.',
+      organizationStatusBody: '{{name}} hozirda: {{status}}. Tafsilotlar uchun BloodChain administratoriga murojaat qiling.',
       hospitalTitle: 'BloodChain shifoxona konsoli',
       hospitalSubtitle: 'BloodChain uchun shifoxona operatsion ish maydoni',
       hospitalHeadline: 'Yordam jarayonlari,',
@@ -912,6 +974,7 @@ export const uz: Catalog = {
       hospitalTagline: 'Donorlar tarmog‘ingiz va bugungi ustuvorliklarning aniq ko‘rinishi.',
     },
     appointments: {
+      createSlot: 'Vaqt yaratish',
       bookings: 'Band qilingan uchrashuvlar',
       slots: 'Vaqt oraliqlari',
       noBookings: 'Band qilingan uchrashuvlar yo‘q',
@@ -936,6 +999,10 @@ export const uz: Catalog = {
       pageSubtitle: 'Donorlar qon topshirish, tahlil va maslahat uchun qachon yozilishini sozlang',
     },
     donations: {
+      todaysAppointments: 'Bugungi uchrashuvlar',
+      receiveHint: 'Bugungi donorlarni qabul qiling, baholashni yozing va olingan hajmni saqlang.',
+      volumeCollected: 'Olingan hajm (ml)',
+      saveDonation: 'Donatsiyani saqlash',
       title: 'Topshirishlar',
       recent: 'So‘nggi topshirishlar',
       signInHint: 'Topshirishlarni boshqarish uchun kiring.',
@@ -954,6 +1021,13 @@ export const uz: Catalog = {
       vitalsPlaceholder: 'masalan: Hb 14,2 g/dL, AB 120/78',
     },
     inventory: {
+      noUnitsHint: 'Donatsiyalar qayta ishlanganda birliklar shu yerda ko‘rinadi',
+      confirmMove: 'Ko‘chirishni tasdiqlash',
+      saveAdjustment: 'Tuzatishni saqlash',
+      createLocation: 'Joy yaratish',
+      currentVolume: 'Hajm (ml) — hozir {{value}}',
+      currentComponent: 'Komponent — hozir {{value}}',
+      currentExpiry: 'Muddati — hozir {{value}}',
       availability: 'Qon markazlari bo‘ylab mavjudlik',
       availabilityHint: 'Faqat umumiy zaxira — birlik raqamlari va saqlash joylari ko‘rsatilmaydi. Bu so‘rovlarni yo‘naltirish uchun ichki ko‘rinish, ommaviy inventar emas.',
       noAvailability: 'Mos zaxira topilmadi',
@@ -1015,6 +1089,12 @@ export const uz: Catalog = {
       donorFacingVolume: 'Bu donor o‘z qon topshirish tarixida ko‘radigan raqam.',
     },
     requests: {
+      markReadyForPickup: 'Olib ketishga tayyor deb belgilash',
+      createShipment: 'Yetkazma yaratish',
+      submitRequest: 'So‘rovni yuborish',
+      deliveryAddressOptional: 'Yetkazish manzili (ixtiyoriy)',
+      deliveryPhoneOptional: 'Yetkazish telefoni (ixtiyoriy)',
+      neededByOptional: 'Qachonga kerak (ixtiyoriy)',
       rejected: 'So‘rov rad etildi',
       rejectReasonRequired: 'Shifoxona sababni bilishi uchun izoh yozing.',
       reviewNotesLabel: 'Izoh — rad etishda majburiy, shifoxonaga ko‘rinadi',
@@ -1073,6 +1153,9 @@ export const uz: Catalog = {
       noneFound: 'Qon so‘rovlari topilmadi',
     },
     shipments: {
+      assignCourier: 'Kuryer tayinlash',
+      reassignCourier: 'Kuryerni qayta tayinlash',
+      discrepancyReason: 'Farq sababi (qabul qilingan birliklar yuborilganidan kam bo‘lsa majburiy)',
       title: 'Yetkazmalar',
       monitoring: 'Yetkazmalar monitoringi',
       monitoringHint: 'Platformadagi barcha qon yetkazmalarini kuzating',
@@ -1121,6 +1204,7 @@ export const uz: Catalog = {
       noneFound: 'Jo‘natmalar topilmadi',
     },
     emergency: {
+      createEmergency: 'Favqulodda holat yaratish',
       title: 'Shoshilinch SOS',
       management: 'Shoshilinch qon holatlarini boshqarish',
       monitoring: 'Shoshilinch SOS monitoringi',
@@ -1141,6 +1225,8 @@ export const uz: Catalog = {
       noneFound: 'Shoshilinch holatlar topilmadi',
     },
     laboratory: {
+      saveResults: 'Natijalarni saqlash',
+      referenceRangeHint: 'Qiymatlar har bir parametr uchun ushbu laboratoriyaning me’yoriy oralig‘i bilan solishtiriladi; donor ko‘radigan normal/past/yuqori belgisi shundan kelib chiqadi.',
       management: 'Qon tahlillarini boshqarish',
       searchPlaceholder: 'Havola yoki donor bo‘yicha qidirish…',
       empty: 'Uchrashuvlar yo‘q',
@@ -1162,6 +1248,8 @@ export const uz: Catalog = {
       testType: 'Tahlil turi',
     },
     couriers: {
+      restoreCourier: 'Kuryerni tiklash',
+      suspendCourier: 'Kuryerni to‘xtatish',
       title: 'Kuryerlarni boshqarish',
       subtitle: 'Yetkazib beruvchi kuryerlar va ularning holatini boshqaring',
       details: 'Kuryer tafsilotlari',
@@ -1208,6 +1296,7 @@ export const uz: Catalog = {
       pageSubtitle: 'Ish ko‘rsatkichlari va operatsion tahlilni kuzating',
     },
     donors: {
+      browseHint: 'Platformada ro‘yxatdan o‘tgan donorlarni qon guruhi, holati va joylashuvi bo‘yicha ko‘rib chiqing',
       detailSubtitle: 'Donor yozuvi',
       backToDonors: 'Donorlarga qaytish',
       notFound: 'Donor topilmadi',
@@ -1274,6 +1363,8 @@ export const uz: Catalog = {
       empty: 'Tashkilotlar topilmadi',
     },
     users: {
+      restoreUser: 'Foydalanuvchini tiklash',
+      suspendUser: 'Foydalanuvchini to‘xtatish',
       title: 'Foydalanuvchilarni boshqarish',
       subtitle: 'Platforma foydalanuvchilari va hisoblarini boshqaring',
       details: 'Foydalanuvchi tafsilotlari',
@@ -1285,6 +1376,9 @@ export const uz: Catalog = {
       empty: 'Foydalanuvchilar topilmadi',
     },
     roles: {
+      manageHint: 'Har bir rol qanday ruxsatlar berishini boshqaring. Muayyan foydalanuvchining rolini Foydalanuvchilar sahifasidagi yozuvidan o‘zgartiring.',
+      allPermissionsFixed: 'Barcha ruxsatlar (o‘zgarmas)',
+      savePermissions: 'Ruxsatlarni saqlash',
       permissions: 'Ruxsatlar',
       noPermissions: 'Ruxsatlar berilmagan',
       showLess: 'Kamroq ko‘rsatish',
@@ -1316,6 +1410,7 @@ export const uz: Catalog = {
       empty: 'Audit yozuvlari topilmadi',
     },
     health: {
+      failedJobs24h: 'Muvaffaqiyatsiz vazifalar (24 soat)',
       subtitle: 'Platforma infratuzilmasi holati',
       overallStatus: 'Umumiy holat',
       lastUpdated: 'Oxirgi yangilanish',
@@ -1326,6 +1421,8 @@ export const uz: Catalog = {
       criticalRequests: 'Kritik so‘rovlar',
     },
     moderation: {
+      reporterNotes: 'Shikoyatchi izohi',
+      resolutionNote: 'Yechim izohi (ixtiyoriy)',
       subtitle: 'Hamjamiyat postlariga bildirilgan shikoyatlarni ko‘rib chiqing',
       post: 'Post',
       reporter: 'Shikoyatchi',
@@ -1342,6 +1439,9 @@ export const uz: Catalog = {
       empty: 'Shikoyatlar topilmadi',
     },
     settings: {
+      sessionTimeoutHint: 'Tizimga kirgan seans qayta kirishni talab qilgunga qadar qancha amal qiladi (1 soat – 30 kun).',
+      passwordPolicyFixed: 'Kamida 12 belgi, katta/kichik harf, raqam va belgi (o‘zgarmas)',
+      channelsHint: 'Email faqat hisobni tasdiqlash uchun ishlatiladi, umumiy bildirishnomalar uchun emas. SMS yuborish hali joriy etilmagan — bu kanallarda o‘zgartiradigan narsa yo‘q.',
       title: 'Platforma sozlamalari',
       subtitle: 'Platforma sozlamalari va funksiya bayroqlarini sozlang',
       loadFailed: 'Platforma sozlamalarini yuklab bo‘lmadi.',
@@ -1365,6 +1465,7 @@ export const uz: Catalog = {
       maintenanceHint: 'Platforma bo‘ylab SUPER_ADMIN hisoblaridan tashqari hamma uchun kirishni to‘xtatadi',
     },
     alerts: {
+      acknowledge: 'Tasdiqlash',
       title: 'Ogohlantirishlar markazi',
       subtitle: 'Platforma ogohlantirishlari va bildirishnomalarini boshqaring',
       allAlerts: 'Barcha ogohlantirishlar',
@@ -1396,6 +1497,9 @@ export const uz: Catalog = {
       estimatedCost: 'Taxminiy narx',
     },
     register: {
+      verifyEmailHospital: 'Email manzilingizni tasdiqlash uchun {{email}} pochtangizni tekshiring. Tasdiqlangach, shifoxona hisobingiz BloodChain administratori tomonidan ko‘rib chiqiladi — tasdiqlangan zahoti kirishingiz mumkin bo‘ladi.',
+      verifyEmailBloodCenter: 'Email manzilingizni tasdiqlash uchun {{email}} pochtangizni tekshiring. Tasdiqlangach, qon markazi hisobingiz BloodChain administratori tomonidan ko‘rib chiqiladi — tasdiqlangan zahoti kirishingiz mumkin bo‘ladi.',
+      submitForApproval: 'Tasdiqlash uchun yuborish',
       hospitalTitle: 'Shifoxonangizni ro‘yxatdan o‘tkazing',
       centerTitle: 'Qon markazingizni ro‘yxatdan o‘tkazing',
       submitted: 'Ro‘yxatdan o‘tish so‘rovi yuborildi',
@@ -1410,6 +1514,9 @@ export const uz: Catalog = {
     },
   },
   booking: {
+    noOpenDatesHint: 'Keyingi oyni ko‘ring yoki orqaga qaytib boshqa joyni tanlang.',
+    unavailableDay: 'band emas',
+    noOpenDates: 'Bu oyda bo‘sh kun yo‘q',
     chooseTime: 'Bo‘sh vaqtni tanlang',
     selectType: 'Uchrashuv turini tanlang',
     whatToBook: 'Bugun nimani band qilmoqchisiz?',
@@ -1497,6 +1604,9 @@ export const uz: Catalog = {
     a11yRow: '{{date}} sanasidagi {{type}}',
   },
   labBooking: {
+    selectDateSubtitleCalendar: 'Bo‘sh vaqti bor kunlar ajratib ko‘rsatilgan.',
+    noOpenDatesHint: 'Keyingi oyni ko‘ring yoki orqaga qaytib boshqa laboratoriyani tanlang.',
+    datesFailed: 'Bandlikni yuklab bo‘lmadi',
     selectTestTitle: 'Qaysi tahlil?',
     selectTestSubtitle: 'Topshirmoqchi bo‘lgan tahlilni tanlang.',
     selectLabTitle: 'Qayerda?',

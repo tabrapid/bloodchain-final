@@ -48,6 +48,54 @@ function deriveResultFlag(
   return ResultFlag.NORMAL;
 }
 
+/**
+ * The widest window `getAvailableDates` answers in one request.
+ *
+ * The donor calendar shows one month at a time and needs the leading/trailing
+ * days of the neighbouring months to shade the grid, so two months is the
+ * honest ceiling. It exists so a client cannot ask the database to group a
+ * decade of slots by hand.
+ */
+export const MAX_AVAILABLE_DATES_RANGE_DAYS = 62;
+
+const CALENDAR_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * Parses a `YYYY-MM-DD` query parameter into local midnight.
+ *
+ * `new Date('2026-02-30')` silently rolls over to March 2nd, and
+ * `new Date('2026-09-19')` is parsed as *UTC* midnight -- which lands on the
+ * previous calendar day in any timezone west of Greenwich. Both produce a
+ * calendar that quietly shades the wrong day, so the date is built from its
+ * parts and checked for rollover.
+ */
+function parseCalendarDate(value: string, field: string): Date {
+  if (!CALENDAR_DATE_PATTERN.test(value)) {
+    throw new BadRequestException(`${field} must be a calendar date in YYYY-MM-DD form.`);
+  }
+
+  const parts = value.split('-').map((part) => Number(part));
+  const [year, month, day] = parts as [number, number, number];
+  const parsed = new Date(year, month - 1, day, 0, 0, 0, 0);
+
+  if (
+    parsed.getFullYear() !== year ||
+    parsed.getMonth() !== month - 1 ||
+    parsed.getDate() !== day
+  ) {
+    throw new BadRequestException(`${field} is not a real calendar date.`);
+  }
+
+  return parsed;
+}
+
+/** The `YYYY-MM-DD` key a slot's local start time belongs to. */
+function calendarKey(date: Date): string {
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${date.getFullYear()}-${month}-${day}`;
+}
+
 @Injectable()
 export class LaboratoryService {
   constructor(
@@ -211,6 +259,117 @@ export class LaboratoryService {
       ...slot,
       isAvailable: !bookedSlotIds.has(slot.id) && slot.bookedCount < slot.capacity,
     }));
+  }
+
+  /**
+   * The availability summary the donor's laboratory calendar needs, for a whole
+   * range of dates in one request.
+   *
+   * The calendar used to fire one `GET /laboratories/:id/slots` per visible day
+   * -- 21 requests to render one screen, every one of them returning full slot
+   * rows the grid never showed. This returns only what shades a cell, and the
+   * client still loads the exact slots when a date is picked.
+   */
+  async getAvailableDates(
+    laboratoryId: string,
+    testTypeId: string,
+    from: string,
+    to: string,
+    userId: string,
+  ) {
+    const laboratory = await this.getLaboratory(laboratoryId, userId);
+    const testType = await this.getTestType(testTypeId);
+
+    // Same rule the booking call enforces: a laboratory that does not run the
+    // panel has no availability for it, whatever its slot table says.
+    const offersTestType = (laboratory.laboratoryProfile?.testTypes ?? []).some(
+      (offered) => offered.id === testType.id,
+    );
+
+    if (!offersTestType) {
+      throw new BadRequestException('This laboratory does not offer the selected test.');
+    }
+
+    const rangeStart = parseCalendarDate(from, 'from');
+    const rangeEndDay = parseCalendarDate(to, 'to');
+
+    if (rangeEndDay < rangeStart) {
+      throw new BadRequestException('The end of the range must not be before its start.');
+    }
+
+    const dayCount =
+      Math.round((rangeEndDay.getTime() - rangeStart.getTime()) / 86_400_000) + 1;
+
+    if (dayCount > MAX_AVAILABLE_DATES_RANGE_DAYS) {
+      throw new BadRequestException(
+        `The range must cover at most ${MAX_AVAILABLE_DATES_RANGE_DAYS} days.`,
+      );
+    }
+
+    const rangeEnd = new Date(rangeEndDay);
+    rangeEnd.setHours(23, 59, 59, 999);
+
+    const slots = await this.db.appointmentSlot.findMany({
+      where: {
+        organizationId: laboratoryId,
+        appointmentType: AppointmentType.BLOOD_TEST,
+        status: { in: ['AVAILABLE', 'FULL'] },
+        startAt: { gte: rangeStart, lte: rangeEnd },
+      },
+      select: { id: true, startAt: true, capacity: true, bookedCount: true },
+      orderBy: { startAt: 'asc' },
+    });
+
+    const appointments = await this.db.appointment.findMany({
+      where: {
+        organizationId: laboratoryId,
+        appointmentType: AppointmentType.BLOOD_TEST,
+        status: { notIn: ['CANCELLED', 'NO_SHOW'] },
+        scheduledStart: { gte: rangeStart, lte: rangeEnd },
+      },
+      select: { slotId: true },
+    });
+
+    const bookedSlotIds = new Set(appointments.map((appointment) => appointment.slotId));
+
+    // Seed every day in the window so the calendar gets a gap-free series and
+    // never has to guess whether a missing date means "closed" or "not loaded".
+    const byDate = new Map<string, { date: string; totalSlots: number; availableSlots: number }>();
+    const cursor = new Date(rangeStart);
+    while (cursor <= rangeEndDay) {
+      const key = calendarKey(cursor);
+      byDate.set(key, { date: key, totalSlots: 0, availableSlots: 0 });
+      cursor.setDate(cursor.getDate() + 1);
+    }
+
+    const now = new Date();
+
+    for (const slot of slots) {
+      const bucket = byDate.get(calendarKey(slot.startAt));
+      if (!bucket) continue;
+
+      bucket.totalSlots += 1;
+
+      // A slot that has already started cannot be booked, so counting it would
+      // leave today looking open at 18:00 when the last appointment was at 09:00.
+      const isBookable =
+        slot.startAt > now && !bookedSlotIds.has(slot.id) && slot.bookedCount < slot.capacity;
+
+      if (isBookable) {
+        bucket.availableSlots += 1;
+      }
+    }
+
+    return {
+      laboratoryId,
+      testTypeId,
+      from: calendarKey(rangeStart),
+      to: calendarKey(rangeEndDay),
+      dates: Array.from(byDate.values()).map((bucket) => ({
+        ...bucket,
+        isAvailable: bucket.availableSlots > 0,
+      })),
+    };
   }
 
   async bookLaboratoryAppointment(

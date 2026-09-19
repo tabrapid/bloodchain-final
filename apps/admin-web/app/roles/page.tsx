@@ -140,10 +140,7 @@ export default function RolesPage() {
     <AppShell title={t('ops.roles.pageTitle')} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
       <div className="p-6">
         <div className="mb-6">
-          <p className="text-sm text-donor-muted">
-            Manage which permissions each role grants. Change a specific user&apos;s role from their
-            entry on the Users page.
-          </p>
+          <p className="text-sm text-donor-muted">{t('ops.roles.manageHint')}</p>
         </div>
 
         <div className="bc-glass rounded-card">
@@ -171,7 +168,7 @@ export default function RolesPage() {
                       </td>
                       <td className="px-4 py-3">
                         {isSuperAdmin ? (
-                          <span className="text-sm text-donor-muted">All permissions (fixed)</span>
+                          <span className="text-sm text-donor-muted">{t('ops.roles.allPermissionsFixed')}</span>
                         ) : role.permissions.length === 0 ? (
                           <span className="text-sm text-donor-muted">{t('ops.roles.noPermissions')}</span>
                         ) : (
@@ -253,7 +250,7 @@ export default function RolesPage() {
                 disabled={saving}
                 className="flex-1 bg-donor-primary text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-donor-primary/85 disabled:opacity-50"
               >
-                {saving ? 'Saving...' : 'Save permissions'}
+                {saving ? t('common.saving') : t('ops.roles.savePermissions')}
               </button>
             </div>
           </div>

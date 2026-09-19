@@ -151,7 +151,7 @@ export function BloodTypeVerification({ donor, onClose, onVerified }: BloodTypeV
               {onFile ?? '—'}
             </span>
             <StatusBadge variant={standing.variant}>
-              {donor.verificationStatus.replace('_', ' ')}
+              {t(`status.verification.${donor.verificationStatus}`)}
             </StatusBadge>
           </div>
           <p className="mt-2 flex items-start gap-2 text-sm text-donor-muted">

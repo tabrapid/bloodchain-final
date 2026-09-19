@@ -189,7 +189,7 @@ export default function ModerationPage() {
                         {report.reporter.firstName} {report.reporter.lastName}
                       </td>
                       <td className="px-4 py-3">
-                        <StatusBadgeWrapper status={report.status} />
+                        <StatusBadgeWrapper status={report.status} domain="moderation" />
                       </td>
                       <td className="px-4 py-3 text-sm text-donor-muted">
                         {new Date(report.createdAt).toLocaleDateString()}
@@ -262,7 +262,7 @@ export default function ModerationPage() {
                 </div>
                 <div>
                   <p className="text-sm text-donor-muted">{t('table.status')}</p>
-                  <StatusBadgeWrapper status={selectedReport.status} />
+                  <StatusBadgeWrapper status={selectedReport.status} domain="moderation" />
                 </div>
                 <div>
                   <p className="text-sm text-donor-muted">{t('ops.moderation.reporter')}</p>
@@ -280,7 +280,7 @@ export default function ModerationPage() {
 
               {selectedReport.description && (
                 <div>
-                  <p className="text-sm text-donor-muted mb-1">Reporter&apos;s notes</p>
+                  <p className="text-sm text-donor-muted mb-1">{t('ops.moderation.reporterNotes')}</p>
                   <p className="text-sm text-donor-text">{selectedReport.description}</p>
                 </div>
               )}
@@ -303,7 +303,7 @@ export default function ModerationPage() {
 
               {selectedReport.status === 'PENDING' || selectedReport.status === 'REVIEWED' ? (
                 <div>
-                  <label className="text-sm text-donor-muted mb-1 block">Resolution note (optional)</label>
+                  <label className="text-sm text-donor-muted mb-1 block">{t('ops.moderation.resolutionNote')}</label>
                   <textarea
                     value={resolution}
                     onChange={(e) => setResolution(e.target.value)}

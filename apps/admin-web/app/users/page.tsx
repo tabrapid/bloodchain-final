@@ -202,7 +202,7 @@ export default function UsersPage() {
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        <StatusBadgeWrapper status={user.status} />
+                        <StatusBadgeWrapper status={user.status} domain="user" />
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex flex-wrap gap-1">
@@ -286,7 +286,7 @@ export default function UsersPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-donor-muted">{t('table.status')}</p>
-                  <StatusBadgeWrapper status={selectedUser.status} />
+                  <StatusBadgeWrapper status={selectedUser.status} domain="user" />
                 </div>
                 <div>
                   <p className="text-sm text-donor-muted">{t('table.phone')}</p>
@@ -349,7 +349,7 @@ export default function UsersPage() {
                   disabled={actionLoading}
                   className="flex-1 bg-donor-success text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-donor-success/85 disabled:opacity-50"
                 >
-                  {actionLoading ? 'Restoring...' : 'Restore User'}
+                  {actionLoading ? t('ops.common.restoring') : t('ops.users.restoreUser')}
                 </button>
               ) : (
                 <button
@@ -357,7 +357,7 @@ export default function UsersPage() {
                   disabled={actionLoading}
                   className="flex-1 bg-donor-primary text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-donor-primary/85 disabled:opacity-50"
                 >
-                  {actionLoading ? 'Suspending...' : 'Suspend User'}
+                  {actionLoading ? t('ops.common.suspending') : t('ops.users.suspendUser')}
                 </button>
               )}
             </div>

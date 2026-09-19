@@ -3,6 +3,15 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
 import { Modal } from './Modal';
+import { createLocalization, DEFAULT_LOCALE } from '@bloodchain/i18n';
+
+/**
+ * The component now reads its words from the catalogue, so the assertions do
+ * too: hard-coding English here would pass only while the default language
+ * happened to be English.
+ */
+const { t } = createLocalization(DEFAULT_LOCALE);
+
 
 /**
  * P3-16. The Modal had no tests, and two gaps that only show up when you try
@@ -92,7 +101,7 @@ describe('Modal', () => {
       </Modal>,
     );
 
-    await userEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await userEvent.click(screen.getByRole('button', { name: t('common.close') }));
     expect(onClose).toHaveBeenCalledTimes(1);
 
     await userEvent.click(container.querySelector('[aria-hidden="true"]')!);

@@ -176,7 +176,7 @@ export default function CouriersPage() {
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        <StatusBadgeWrapper status={courier.status} />
+                        <StatusBadgeWrapper status={courier.status} domain="courier" />
                       </td>
                       <td className="px-4 py-3 text-sm text-donor-muted">
                         {courier.organization?.name || '-'}
@@ -255,7 +255,7 @@ export default function CouriersPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-donor-muted">{t('table.status')}</p>
-                  <StatusBadgeWrapper status={selectedCourier.status} />
+                  <StatusBadgeWrapper status={selectedCourier.status} domain="courier" />
                 </div>
                 <div>
                   <p className="text-sm text-donor-muted">{t('table.phone')}</p>
@@ -290,7 +290,7 @@ export default function CouriersPage() {
                   disabled={actionLoading}
                   className="flex-1 bg-donor-success text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-donor-success/85 disabled:opacity-50"
                 >
-                  {actionLoading ? 'Restoring...' : 'Restore Courier'}
+                  {actionLoading ? t('ops.common.restoring') : t('ops.couriers.restoreCourier')}
                 </button>
               ) : (
                 <button
@@ -298,7 +298,7 @@ export default function CouriersPage() {
                   disabled={actionLoading}
                   className="flex-1 bg-donor-primary text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-donor-primary/85 disabled:opacity-50"
                 >
-                  {actionLoading ? 'Suspending...' : 'Suspend Courier'}
+                  {actionLoading ? t('ops.common.suspending') : t('ops.couriers.suspendCourier')}
                 </button>
               )}
             </div>

@@ -441,7 +441,7 @@ export default function DonationsPage() {
       <div className="mb-6">
         <h1 className="font-display text-2xl font-semibold text-donor-text">{t('ops.donations.title')}</h1>
         <p className="text-sm text-donor-muted">
-          Receive today&apos;s donors, record the assessment, and save the volume collected.
+          {t('ops.donations.receiveHint')}
         </p>
       </div>
 
@@ -482,7 +482,7 @@ export default function DonationsPage() {
         </button>
       </div>
 
-      <h2 className="mb-2 font-display text-lg font-semibold text-donor-text">Today&apos;s appointments</h2>
+      <h2 className="mb-2 font-display text-lg font-semibold text-donor-text">{t('ops.donations.todaysAppointments')}</h2>
       <div className="mb-8">
         <DataTable
           columns={appointmentColumns}
@@ -514,7 +514,7 @@ export default function DonationsPage() {
             </p>
             <div>
               <label htmlFor="volume-ml" className="mb-1 block text-xs font-semibold text-donor-muted">
-                Volume collected (mL)
+                {t('ops.donations.volumeCollected')}
               </label>
               <input
                 id="volume-ml"
@@ -530,7 +530,7 @@ export default function DonationsPage() {
             </div>
             <div>
               <label htmlFor="staff-notes" className="mb-1 block text-xs font-semibold text-donor-muted">
-                Notes (optional)
+                {t('ops.common.notesOptional')}
               </label>
               <input
                 id="staff-notes"
@@ -547,7 +547,7 @@ export default function DonationsPage() {
                 disabled={actionLoading === completing.id}
                 className="rounded-lg bg-donor-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-donor-primary/80 disabled:opacity-50"
               >
-                {actionLoading === completing.id ? 'Saving...' : 'Save donation'}
+                {actionLoading === completing.id ? t('common.saving') : t('ops.donations.saveDonation')}
               </button>
               <button
                 onClick={() => setCompleting(null)}

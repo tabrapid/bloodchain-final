@@ -6,6 +6,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { LaboratoryService } from './laboratory.service';
 import {
+  AvailableDatesQueryDto,
   BookLaboratoryAppointmentDto,
   CancelLaboratoryAppointmentDto,
   CreateLaboratoryResultDto,
@@ -47,6 +48,26 @@ export class LaboratoryController {
   @Get('test-types/:testTypeId')
   getTestType(@Param('testTypeId') testTypeId: string) {
     return this.laboratory.getTestType(testTypeId);
+  }
+
+  /**
+   * Availability for a whole window, for the donor calendar. Returns only what
+   * shades a cell; the slots route still answers the picked date.
+   */
+  @Get('laboratories/:laboratoryId/available-dates')
+  @Roles(RoleCode.DONOR, RoleCode.SUPER_ADMIN)
+  getAvailableDates(
+    @Param('laboratoryId') laboratoryId: string,
+    @Query() query: AvailableDatesQueryDto,
+    @CurrentUser('sub') userId: string,
+  ) {
+    return this.laboratory.getAvailableDates(
+      laboratoryId,
+      query.testTypeId,
+      query.from,
+      query.to,
+      userId,
+    );
   }
 
   @Get('laboratories/:laboratoryId/slots')

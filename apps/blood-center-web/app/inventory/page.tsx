@@ -333,7 +333,7 @@ export default function InventoryPage() {
     { key: 'bloodType', header: t('home.bloodTypeLabel'), render: (u) => (
       <span><span className="font-semibold">{u.bloodType}</span><span className="text-donor-muted text-xs ml-1">{u.rhFactor === 'POSITIVE' ? '+' : '-'}</span></span>
     )},
-    { key: 'componentType', header: t('ops.common.component'), render: (u) => u.componentType?.replace('_', ' ') ?? 'Whole Blood' },
+    { key: 'componentType', header: t('ops.common.component'), render: (u) => t(`medical.components.${u.componentType ?? 'WHOLE_BLOOD'}`) },
     { key: 'volumeMl', header: t('table.volume'), render: (u) => `${u.volumeMl} ml` },
     { key: 'status', header: t('table.status'), render: (u) => <StatusBadge variant={getStatusVariant(u.status)}>{u.status}</StatusBadge> },
     { key: 'location', header: t('table.location'), render: (u) => u.location?.name ?? '—' },
@@ -496,7 +496,7 @@ export default function InventoryPage() {
               >
                 <option value="">{t('filters.all')}</option>
                 {COMPONENT_TYPES.map((ct) => (
-                  <option key={ct} value={ct}>{ct.replace('_', ' ')}</option>
+                  <option key={ct} value={ct}>{t(`medical.components.${ct}`)}</option>
                 ))}
               </select>
             </div>
@@ -522,7 +522,9 @@ export default function InventoryPage() {
       ) : units.length === 0 ? (
         <EmptyState
           title={t('ops.inventory.empty')}
-          description={searchQuery ? 'Try adjusting your search or filters' : 'Units will appear here when donations are processed'}
+          description={
+            searchQuery ? t('ops.common.noResultsFilterHint') : t('ops.inventory.noUnitsHint')
+          }
         />
       ) : (
         <>
@@ -587,7 +589,7 @@ export default function InventoryPage() {
               </div>
               <div>
                 <p className="text-xs text-donor-muted">{t('ops.common.component')}</p>
-                <p className="text-sm">{selectedUnit.componentType?.replace('_', ' ') ?? 'Whole Blood'}</p>
+                <p className="text-sm">{t(`medical.components.${selectedUnit.componentType ?? 'WHOLE_BLOOD'}`)}</p>
               </div>
               <div>
                 <p className="text-xs text-donor-muted">{t('table.volume')}</p>
@@ -816,7 +818,7 @@ export default function InventoryPage() {
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-xs font-semibold text-donor-muted">Reason (optional)</label>
+              <label className="mb-1 block text-xs font-semibold text-donor-muted">{t('ops.common.reasonOptional')}</label>
               <input
                 type="text"
                 id="move-reason"
@@ -834,7 +836,7 @@ export default function InventoryPage() {
                 disabled={actionLoading}
                 className="rounded-lg bg-donor-secondary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-donor-secondary/80 disabled:opacity-50"
               >
-                {actionLoading ? 'Moving...' : 'Confirm Move'}
+                {actionLoading ? t('ops.common.moving') : t('ops.inventory.confirmMove')}
               </button>
               <button
                 onClick={() => { setShowMovementModal(false); setSelectedUnit(null); }}
@@ -864,7 +866,7 @@ export default function InventoryPage() {
             </div>
             <div>
               <label className="mb-1 block text-xs font-semibold text-donor-muted">
-                Volume (ml) — current: {selectedUnit.volumeMl}
+                {t('ops.inventory.currentVolume', { value: selectedUnit.volumeMl })}
               </label>
               <input
                 type="number"
@@ -876,7 +878,9 @@ export default function InventoryPage() {
             </div>
             <div>
               <label className="mb-1 block text-xs font-semibold text-donor-muted">
-                Component — current: {selectedUnit.componentType?.replace('_', ' ') ?? 'Whole Blood'}
+                {t('ops.inventory.currentComponent', {
+                  value: t(`medical.components.${selectedUnit.componentType ?? 'WHOLE_BLOOD'}`),
+                })}
               </label>
               <select
                 id="adjust-component"
@@ -885,13 +889,17 @@ export default function InventoryPage() {
               >
                 <option value="">{t('ops.inventory.keepCurrent')}</option>
                 {COMPONENT_TYPES.map((ct) => (
-                  <option key={ct} value={ct}>{ct.replace('_', ' ')}</option>
+                  <option key={ct} value={ct}>{t(`medical.components.${ct}`)}</option>
                 ))}
               </select>
             </div>
             <div>
               <label className="mb-1 block text-xs font-semibold text-donor-muted">
-                Expires — current: {selectedUnit.expiresAt ? new Date(selectedUnit.expiresAt).toLocaleDateString() : '—'}
+                {t('ops.inventory.currentExpiry', {
+                  value: selectedUnit.expiresAt
+                    ? new Date(selectedUnit.expiresAt).toLocaleDateString()
+                    : '—',
+                })}
               </label>
               <input
                 type="date"
@@ -900,7 +908,7 @@ export default function InventoryPage() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-semibold text-donor-muted">Reason (required)</label>
+              <label className="mb-1 block text-xs font-semibold text-donor-muted">{t('ops.common.reasonRequired')}</label>
               <input
                 type="text"
                 id="adjust-reason"
@@ -927,7 +935,7 @@ export default function InventoryPage() {
                 disabled={actionLoading}
                 className="rounded-lg bg-donor-secondary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-donor-secondary/80 disabled:opacity-50"
               >
-                {actionLoading ? 'Saving...' : 'Save Adjustment'}
+                {actionLoading ? t('common.saving') : t('ops.inventory.saveAdjustment')}
               </button>
               <button
                 onClick={() => { setShowAdjustModal(false); setSelectedUnit(null); }}
@@ -985,7 +993,7 @@ export default function InventoryPage() {
               disabled={actionLoading || !newLocation.name || !newLocation.code}
               className="rounded-lg bg-donor-secondary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-donor-secondary/80 disabled:opacity-50"
             >
-              {actionLoading ? 'Creating...' : 'Create Location'}
+              {actionLoading ? t('ops.common.creating') : t('ops.inventory.createLocation')}
             </button>
             <button
               onClick={() => { setShowLocationModal(false); setNewLocation({ name: '', code: '', type: 'STORAGE' }); }}

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { cn } from '../cn';
 import { Activity, type LucideIcon } from 'lucide-react';
+import { useOptionalTranslation } from '../../i18n';
 
 export interface SidebarItem {
   id: string;
@@ -108,6 +109,7 @@ export function Sidebar({
   isOpen = true,
   onClose,
 }: SidebarProps) {
+  const { t } = useOptionalTranslation();
   const active = activeItem ?? resolveActiveItem(items, currentPath);
 
   return (
@@ -140,7 +142,7 @@ export function Sidebar({
           <span className="font-semibold tracking-wider text-donor-text">BloodChain</span>
         </div>
 
-        <nav className="flex flex-1 flex-col gap-1 overflow-y-auto" aria-label="Main">
+        <nav className="flex flex-1 flex-col gap-1 overflow-y-auto" aria-label={t('portal.nav.primary')}>
           {items.map((item) => {
             const Icon = item.icon ?? Activity;
             const isActive = item.id === active;
@@ -170,7 +172,7 @@ export function Sidebar({
                 <span className="flex-1">{item.label}</span>
                 {item.disabled && (
                   <span className="text-[10px] font-semibold uppercase tracking-wider text-donor-muted">
-                    Soon
+                    {t('common.comingSoon')}
                   </span>
                 )}
                 {item.badge && (

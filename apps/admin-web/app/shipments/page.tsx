@@ -127,7 +127,7 @@ export default function ShipmentsPage() {
                         )}
                       </td>
                       <td className="px-4 py-3">
-                        <StatusBadgeWrapper status={shipment.status} />
+                        <StatusBadgeWrapper status={shipment.status} domain="shipment" />
                       </td>
                       <td className="px-4 py-3 text-sm text-donor-muted">
                         {shipment.source?.name || '-'}

@@ -123,7 +123,7 @@ describe('admin console: language', () => {
         </AppShell>
       </LocaleProvider>,
     );
-    const nav = screen.getByRole('navigation', { name: 'Main' });
+    const nav = screen.getByRole('navigation');
 
     expect(nav).toHaveTextContent('Boshqaruv paneli');
     expect(nav).toHaveTextContent('Rollar va ruxsatlar');

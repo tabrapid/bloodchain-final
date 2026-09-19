@@ -62,7 +62,7 @@ describe('AppShell', () => {
   it('actually logs out, instead of the no-op most pages used to pass', async () => {
     renderLocalized(<AppShell title="Dashboard"><p>body</p></AppShell>);
 
-    await userEvent.click(screen.getByRole('button', { name: 'Log out' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Sign out' }));
 
     expect(logout).toHaveBeenCalledTimes(1);
     expect(push).toHaveBeenCalledWith('/');

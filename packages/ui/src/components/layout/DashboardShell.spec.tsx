@@ -3,6 +3,15 @@ import { describe, expect, it } from 'vitest';
 
 import { DashboardShell } from './DashboardShell';
 import type { SidebarItem, SidebarLinkComponent } from './Sidebar';
+import { createLocalization, DEFAULT_LOCALE } from '@bloodchain/i18n';
+
+/**
+ * The component now reads its words from the catalogue, so the assertions do
+ * too: hard-coding English here would pass only while the default language
+ * happened to be English.
+ */
+const { t } = createLocalization(DEFAULT_LOCALE);
+
 
 const items: SidebarItem[] = [
   { id: 'dashboard', label: 'Dashboard', href: '/' },
@@ -22,7 +31,7 @@ describe('DashboardShell', () => {
       </DashboardShell>,
     );
 
-    expect(screen.getByRole('navigation', { name: 'Main' })).toBeInTheDocument();
+    expect(screen.getByRole('navigation', { name: t('portal.nav.primary') })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Shipments' })).toBeInTheDocument();
     expect(screen.getByText('Shipment table')).toBeInTheDocument();
   });

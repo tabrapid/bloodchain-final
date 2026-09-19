@@ -9,10 +9,12 @@ import {
   getDonorResult,
   getDonorResults,
   getLaboratories,
+  getLaboratoryAvailableDates,
   getTestTypes,
   type AppointmentSlot,
   type Laboratory,
   type LaboratoryAppointment,
+  type LaboratoryAvailability,
   type LaboratoryResult,
   type TestType,
 } from '../api/laboratory';
@@ -57,6 +59,26 @@ export function useLaboratorySlots(laboratoryId?: string, testTypeId?: string, d
   });
 }
 
+/**
+ * Which days in a window have open times.
+ *
+ * One request per visible month, not one per visible day. `enabled` keeps it
+ * from firing before the wizard knows the laboratory and the panel, because
+ * availability for "some laboratory" is not a question the API can answer.
+ */
+export function useLaboratoryAvailableDates(
+  laboratoryId?: string,
+  testTypeId?: string,
+  from?: string,
+  to?: string,
+) {
+  return useQuery<LaboratoryAvailability>({
+    queryKey: ['laboratory-available-dates', laboratoryId, testTypeId, from, to],
+    queryFn: () => getLaboratoryAvailableDates(laboratoryId!, testTypeId!, from!, to!),
+    enabled: Boolean(laboratoryId && testTypeId && from && to),
+  });
+}
+
 export function useBookLaboratoryAppointment() {
   const queryClient = useQueryClient();
 
@@ -64,6 +86,7 @@ export function useBookLaboratoryAppointment() {
     mutationFn: bookLaboratoryAppointment,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['laboratory-slots'] });
+      queryClient.invalidateQueries({ queryKey: ['laboratory-available-dates'] });
       queryClient.invalidateQueries({ queryKey: ['laboratory-appointments'] });
       queryClient.invalidateQueries({ queryKey: ['my-appointments'] });
       queryClient.invalidateQueries({ queryKey: ['next-appointment'] });

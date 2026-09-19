@@ -407,7 +407,7 @@ export default function AppointmentSlotsPage() {
               disabled={actionLoading || !form.startAt || !form.endAt}
               className="rounded-lg bg-donor-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-donor-primary/80 disabled:opacity-50"
             >
-              {actionLoading ? 'Creating...' : 'Create Slot'}
+              {actionLoading ? t('ops.common.creating') : t('ops.appointments.createSlot')}
             </button>
             <button
               onClick={() => setShowCreateModal(false)}

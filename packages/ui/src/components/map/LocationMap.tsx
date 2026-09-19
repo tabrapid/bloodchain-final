@@ -5,6 +5,7 @@ import { MapContainer, Marker, Polyline, Popup, TileLayer, useMap } from 'react-
 import L from 'leaflet';
 import { cn } from '../cn';
 import { colors } from '../../tokens';
+import { useOptionalTranslation } from '../../i18n';
 
 export type MapMarkerVariant = 'origin' | 'destination' | 'courier' | 'donor' | 'hospital';
 
@@ -75,6 +76,7 @@ function FitToMarkers({ markers }: { markers: MapMarker[] }) {
  * policy before scaling up request volume.
  */
 export function LocationMap({ markers, showRoute = false, height = 320, className }: LocationMapProps) {
+  const { t } = useOptionalTranslation();
   const center = useMemo<[number, number]>(() => {
     const first = markers[0];
     return first ? [first.latitude, first.longitude] : [0, 0];
@@ -86,7 +88,7 @@ export function LocationMap({ markers, showRoute = false, height = 320, classNam
         className={cn('bc-glass flex items-center justify-center rounded-card text-sm text-donor-muted', className)}
         style={{ height }}
       >
-        No location data yet
+        {t('common.noLocationData')}
       </div>
     );
   }

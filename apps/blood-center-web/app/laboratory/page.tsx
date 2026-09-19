@@ -601,7 +601,7 @@ export default function LaboratoryPage() {
                 disabled={actionLoading === entering.id || !selectedTestType?.parameters.length}
                 className="rounded-lg bg-donor-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-donor-primary/80 disabled:opacity-50"
               >
-                {actionLoading === entering.id ? 'Saving...' : 'Save results'}
+                {actionLoading === entering.id ? t('common.saving') : t('ops.laboratory.saveResults')}
               </button>
               <button
                 onClick={() => setEntering(null)}

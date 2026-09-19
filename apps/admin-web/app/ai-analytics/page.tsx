@@ -100,7 +100,7 @@ export default function AIAnalyticsPage() {
               className="flex items-center gap-2 bg-donor-elevated text-donor-text px-4 py-2 rounded-lg text-sm font-medium hover:bg-donor-border/60 disabled:opacity-50"
             >
               <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-              {refreshing ? 'Refreshing...' : 'Refresh'}
+              {refreshing ? t('ops.common.refreshing') : t('actions.refresh')}
             </button>
           </div>
         </div>
@@ -161,7 +161,7 @@ export default function AIAnalyticsPage() {
             <div className="space-y-3">
               {Object.entries(analytics.requestsByType).map(([type, count]) => (
                 <div key={type} className="flex items-center justify-between p-3 bg-donor-elevated rounded-lg">
-                  <span className="text-sm text-donor-text">{type.replace(/_/g, ' ')}</span>
+                  <span className="text-sm text-donor-text">{t(`medical.aiInsightTypes.${type}`)}</span>
                   <span className="font-semibold text-donor-text">{count}</span>
                 </div>
               ))}
@@ -220,7 +220,7 @@ export default function AIAnalyticsPage() {
               <h4 className="text-sm font-medium text-donor-text">{t('filters.byType')}</h4>
               {Object.entries(insightStats.insightsByType).map(([type, count]) => (
                 <div key={type} className="flex items-center justify-between text-sm">
-                  <span className="text-donor-muted">{type.replace(/_/g, ' ')}</span>
+                  <span className="text-donor-muted">{t(`medical.aiInsightTypes.${type}`)}</span>
                   <span className="font-medium text-donor-text">{count}</span>
                 </div>
               ))}

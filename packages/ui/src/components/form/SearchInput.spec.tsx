@@ -3,6 +3,15 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
 import { SearchInput } from './SearchInput';
+import { createLocalization, DEFAULT_LOCALE } from '@bloodchain/i18n';
+
+/**
+ * The component now reads its words from the catalogue, so the assertions do
+ * too: hard-coding English here would pass only while the default language
+ * happened to be English.
+ */
+const { t } = createLocalization(DEFAULT_LOCALE);
+
 
 /**
  * P3-16. The clear button is conditional on *both* a non-empty value and an
@@ -23,7 +32,7 @@ describe('SearchInput', () => {
   it('hides the clear button when the field is empty', () => {
     render(<SearchInput value="" onChange={vi.fn()} onClear={vi.fn()} />);
 
-    expect(screen.queryByRole('button', { name: 'Clear search' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: t('actions.clearSearch') })).not.toBeInTheDocument();
   });
 
   it('hides the clear button when there is no handler to clear with', () => {
@@ -36,7 +45,7 @@ describe('SearchInput', () => {
     const onClear = vi.fn();
     render(<SearchInput value="O-negative" onChange={vi.fn()} onClear={onClear} />);
 
-    await userEvent.click(screen.getByRole('button', { name: 'Clear search' }));
+    await userEvent.click(screen.getByRole('button', { name: t('actions.clearSearch') }));
 
     expect(onClear).toHaveBeenCalledTimes(1);
   });
@@ -51,7 +60,7 @@ describe('SearchInput', () => {
       </form>,
     );
 
-    await userEvent.click(screen.getByRole('button', { name: 'Clear search' }));
+    await userEvent.click(screen.getByRole('button', { name: t('actions.clearSearch') }));
 
     expect(onSubmit).not.toHaveBeenCalled();
   });

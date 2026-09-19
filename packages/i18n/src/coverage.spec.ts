@@ -122,6 +122,7 @@ describe('status domains cover the enums they label', () => {
     ['donation', 'DonationStatus'],
     ['request', 'BloodRequestStatus'],
     ['shipment', 'ShipmentStatus'],
+    ['shipmentEvent', 'ShipmentEventType'],
     ['unit', 'BloodUnitStatus'],
     ['emergency', 'EmergencyStatus'],
     ['organization', 'OrganizationStatus'],

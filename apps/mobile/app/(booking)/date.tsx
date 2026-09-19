@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
-import { View, StyleSheet, Pressable } from 'react-native';
+import { View, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { AppButton, AppText, BookingStep, GlassCard } from '../../src/components';
 import { useAvailability } from '../../src/hooks/useAppointments';
@@ -8,11 +8,9 @@ import { layout, spacing, useTheme, ThemeColors } from '../../src/theme';
 import { useTranslation } from '../../src/i18n';
 
 /** Monday-first, matching the reference and the app's own Calendar screen. */
-const WEEKDAY_INITIALS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-const MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-];
+const WEEKDAY_OFFSETS = [0, 1, 2, 3, 4, 5, 6];
+/** A Monday, so the weekday header can be formatted in the donor's locale. */
+const WEEKDAY_REFERENCE = new Date(2024, 0, 1);
 
 function getDaysInMonth(year: number, month: number): number {
   return new Date(year, month + 1, 0).getDate();
@@ -30,7 +28,7 @@ function toDateParam(date: Date): string {
 }
 
 export default function SelectDate() {
-  const { t } = useTranslation();
+  const { t, formatMonth, formatWeekday } = useTranslation();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const params = useLocalSearchParams<{
@@ -89,6 +87,13 @@ export default function SelectDate() {
     availableDates.has(new Date(year, month, day).toDateString()) &&
     new Date(year, month, day) >= today;
 
+  // "Nothing open this month" and "still loading" look identical on a grid of
+  // grey cells, so the one that is true is said out loud.
+  const monthIsEmpty =
+    !isLoading &&
+    !isError &&
+    !calendarDays.some((day) => day !== null && isBookable(day));
+
   return (
     <BookingStep
       step={3}
@@ -133,13 +138,14 @@ export default function SelectDate() {
             disabled={!canGoBack}
             hitSlop={8}
             accessibilityRole="button"
+            accessibilityState={{ disabled: !canGoBack }}
             accessibilityLabel={t('booking.previousMonth')}
             style={styles.navButton}
           >
             <ChevronLeft size={20} color={canGoBack ? colors.text : colors.textSubtle} />
           </Pressable>
           <AppText style={styles.monthLabel}>
-            {MONTHS[month]} {year}
+            {formatMonth(new Date(year, month, 1), 'long')} {year}
           </AppText>
           <Pressable
             onPress={() => changeMonth(1)}
@@ -153,11 +159,15 @@ export default function SelectDate() {
         </View>
 
         <View style={styles.weekdayRow}>
-          {WEEKDAY_INITIALS.map((initial, index) => (
-            <View key={`${initial}-${index}`} style={styles.cell}>
-              <AppText style={styles.weekdayText}>{initial}</AppText>
-            </View>
-          ))}
+          {WEEKDAY_OFFSETS.map((offset) => {
+            const day = new Date(WEEKDAY_REFERENCE);
+            day.setDate(WEEKDAY_REFERENCE.getDate() + offset);
+            return (
+              <View key={offset} style={styles.cell}>
+                <AppText style={styles.weekdayText}>{formatWeekday(day, 'narrow')}</AppText>
+              </View>
+            );
+          })}
         </View>
 
         <View style={styles.grid}>
@@ -172,7 +182,9 @@ export default function SelectDate() {
                   disabled={!bookable}
                   accessibilityRole="button"
                   accessibilityState={{ selected, disabled: !bookable }}
-                  accessibilityLabel={`${MONTHS[month]} ${day}${bookable ? '' : ', unavailable'}`}
+                  accessibilityLabel={`${formatMonth(new Date(year, month, day), 'long')} ${day}${
+                    bookable ? '' : `, ${t('booking.unavailableDay')}`
+                  }`}
                   style={[
                     styles.day,
                     bookable && styles.dayAvailable,
@@ -195,12 +207,22 @@ export default function SelectDate() {
         </View>
       </GlassCard>
 
-      <View style={styles.legend}>
-        <View style={styles.legendSwatch} />
-        <AppText style={styles.legendText}>
-          {isLoading ? t('booking.loadingAvailability') : t('booking.datesWithSlots')}
-        </AppText>
-      </View>
+      {isLoading ? (
+        <View style={styles.legend}>
+          <ActivityIndicator size="small" color={colors.textMuted} />
+          <AppText style={styles.legendText}>{t('booking.loadingAvailability')}</AppText>
+        </View>
+      ) : monthIsEmpty ? (
+        <GlassCard style={styles.emptyCard}>
+          <AppText style={styles.emptyTitle}>{t('booking.noOpenDates')}</AppText>
+          <AppText style={styles.emptyHint}>{t('booking.noOpenDatesHint')}</AppText>
+        </GlassCard>
+      ) : (
+        <View style={styles.legend}>
+          <View style={styles.legendSwatch} />
+          <AppText style={styles.legendText}>{t('booking.datesWithSlots')}</AppText>
+        </View>
+      )}
     </BookingStep>
   );
 }
@@ -226,8 +248,8 @@ function createStyles(colors: ThemeColors) {
       marginBottom: 14,
     },
     navButton: {
-      minWidth: 32,
-      minHeight: 32,
+      minWidth: 44,
+      minHeight: 44,
       alignItems: 'center',
       justifyContent: 'center',
     },
@@ -295,6 +317,20 @@ function createStyles(colors: ThemeColors) {
     },
     legendText: {
       fontSize: 12,
+      color: colors.textMuted,
+    },
+    emptyCard: {
+      marginTop: layout.cardGap,
+    },
+    emptyTitle: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: colors.text,
+    },
+    emptyHint: {
+      fontSize: 13,
+      lineHeight: 19,
+      marginTop: spacing.xs,
       color: colors.textMuted,
     },
   });

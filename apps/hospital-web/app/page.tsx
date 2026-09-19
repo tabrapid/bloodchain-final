@@ -221,12 +221,17 @@ export default function HospitalDashboard() {
         <div className="flex flex-col items-center justify-center bc-glass rounded-card p-12 text-center">
           <Clock className="mb-4 text-donor-primary" size={48} />
           <h2 className="mb-2 font-display text-2xl font-semibold text-donor-text">
-            {isPending ? 'Your hospital is pending approval' : 'Organization unavailable'}
+            {isPending
+              ? t('ops.dashboard.pendingApprovalHospital')
+              : t('ops.common.organizationUnavailable')}
           </h2>
           <p className="mb-6 max-w-md text-donor-muted">
             {isPending
-              ? `${hospitalOrg.name} is still under review by a BloodChain admin. You'll get full access as soon as it's approved.`
-              : `${hospitalOrg.name} is currently ${hospitalOrg.organizationStatus.toLowerCase().replace('_', ' ')}. Contact your BloodChain admin for details.`}
+              ? t('ops.dashboard.pendingApprovalBody', { name: hospitalOrg.name })
+              : t('ops.dashboard.organizationStatusBody', {
+                  name: hospitalOrg.name,
+                  status: t(`status.organization.${hospitalOrg.organizationStatus}`),
+                })}
           </p>
           <button
             onClick={handleLogout}
@@ -316,14 +321,14 @@ export default function HospitalDashboard() {
         <StatCard
           label={t('ops.dashboard.pendingRequests')}
           value={isLoadingStats || !overview ? '—' : overview.requests.pending.value.toString()}
-          note={isLoadingStats || !overview ? 'Loading...' : 'Awaiting review'}
+          note={isLoadingStats || !overview ? t('common.loading') : t('ops.dashboard.awaitingReview')}
           icon={Package}
           variant={overview && overview.requests.pending.value > 0 ? 'warning' : 'success'}
         />
         <StatCard
           label={t('ops.dashboard.todaysAppointments')}
           value={isLoadingStats || !overview ? '—' : overview.appointments.total.value.toString()}
-          note={isLoadingStats || !overview ? 'Loading...' : 'Scheduled today'}
+          note={isLoadingStats || !overview ? t('common.loading') : t('ops.dashboard.scheduledToday')}
           icon={Calendar}
           variant="info"
         />
@@ -332,10 +337,10 @@ export default function HospitalDashboard() {
           value={isLoadingStats || !overview ? '—' : overview.inventory.availableUnits.toString()}
           note={
             isLoadingStats || !overview
-              ? 'Loading...'
+              ? t('common.loading')
               : overview.inventory.criticalGroups.length > 0
-              ? `Critical: ${overview.inventory.criticalGroups.join(', ')}`
-              : 'units on hand'
+              ? t('ops.dashboard.criticalGroups', { groups: overview.inventory.criticalGroups.join(', ') })
+              : t('ops.dashboard.unitsOnHand')
           }
           icon={Droplet}
           variant={overview && overview.inventory.criticalGroups.length > 0 ? 'danger' : 'success'}
@@ -345,7 +350,7 @@ export default function HospitalDashboard() {
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="bc-glass rounded-card p-6 lg:col-span-2">
           <p className="text-xs font-bold uppercase tracking-widest text-donor-muted">
-            INVENTORY STATUS
+            {t('ops.common.inventoryStatus')}
           </p>
           {overview && (
             <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -375,7 +380,7 @@ export default function HospitalDashboard() {
         </div>
 
         <div className="bc-glass rounded-card p-6">
-          <p className="text-xs font-bold uppercase tracking-widest text-donor-muted">ALERTS</p>
+          <p className="text-xs font-bold uppercase tracking-widest text-donor-muted">{t('ops.common.alerts')}</p>
           <div className="mt-4 space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-sm text-donor-text">{t('medical.resultFlagsByCode.CRITICAL')}</span>

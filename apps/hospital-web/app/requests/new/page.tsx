@@ -183,7 +183,7 @@ export default function NewBloodRequestPage() {
                     className="w-full rounded-lg border border-donor-border bc-solid px-2 py-2 text-sm text-donor-text"
                   >
                     {COMPONENT_TYPES.map((c) => (
-                      <option key={c} value={c}>{c.replace('_', ' ')}</option>
+                      <option key={c} value={c}>{t(`medical.components.${c}`)}</option>
                     ))}
                   </select>
                 </div>
@@ -226,7 +226,7 @@ export default function NewBloodRequestPage() {
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-xs text-donor-muted">Needed By (optional)</label>
+              <label className="mb-1 block text-xs text-donor-muted">{t('ops.requests.neededByOptional')}</label>
               <input
                 type="date"
                 value={expectedDeliveryDate}
@@ -235,7 +235,7 @@ export default function NewBloodRequestPage() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs text-donor-muted">Delivery Address (optional)</label>
+              <label className="mb-1 block text-xs text-donor-muted">{t('ops.requests.deliveryAddressOptional')}</label>
               <input
                 type="text"
                 value={deliveryAddress}
@@ -245,7 +245,7 @@ export default function NewBloodRequestPage() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs text-donor-muted">Delivery Phone (optional)</label>
+              <label className="mb-1 block text-xs text-donor-muted">{t('ops.requests.deliveryPhoneOptional')}</label>
               <input
                 type="text"
                 value={deliveryPhone}
@@ -255,7 +255,7 @@ export default function NewBloodRequestPage() {
             </div>
           </div>
           <div className="mt-4">
-            <label className="mb-1 block text-xs text-donor-muted">Notes (optional)</label>
+            <label className="mb-1 block text-xs text-donor-muted">{t('ops.common.notesOptional')}</label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
@@ -285,7 +285,7 @@ export default function NewBloodRequestPage() {
             disabled={!canSubmit}
             className="rounded-lg bg-donor-primary px-5 py-2 text-sm font-semibold text-white disabled:opacity-50"
           >
-            {submitting ? 'Submitting...' : 'Submit Request'}
+            {submitting ? t('ops.common.submitting') : t('ops.requests.submitRequest')}
           </button>
         </div>
       </div>

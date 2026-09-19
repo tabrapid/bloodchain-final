@@ -147,7 +147,7 @@ export default function AlertsPage() {
                         disabled={actionLoading === alert.id}
                         className="text-xs bg-donor-primary text-white px-3 py-1 rounded hover:bg-donor-primary/85 disabled:opacity-50"
                       >
-                        {actionLoading === alert.id ? '...' : 'Acknowledge'}
+                        {actionLoading === alert.id ? t('ops.common.acknowledging') : t('ops.alerts.acknowledge')}
                       </button>
                     )}
                   </div>

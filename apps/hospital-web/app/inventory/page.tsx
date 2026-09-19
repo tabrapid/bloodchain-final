@@ -184,7 +184,7 @@ export default function InventoryPage() {
     { key: 'bloodType', header: t('home.bloodTypeLabel'), render: (u) => (
       <span><span className="font-semibold">{u.bloodType}</span><span className="text-donor-muted text-xs ml-1">{u.rhFactor === 'POSITIVE' ? '+' : '-'}</span></span>
     )},
-    { key: 'componentType', header: t('ops.common.component'), render: (u) => u.componentType?.replace('_', ' ') ?? 'Whole Blood' },
+    { key: 'componentType', header: t('ops.common.component'), render: (u) => t(`medical.components.${u.componentType ?? 'WHOLE_BLOOD'}`) },
     { key: 'volumeMl', header: t('table.volume'), render: (u) => `${u.volumeMl} ml` },
     { key: 'status', header: t('table.status'), render: (u) => <StatusBadge variant={getStatusVariant(u.status)}>{u.status}</StatusBadge> },
     { key: 'location', header: t('table.location'), render: (u) => u.location?.name ?? '—' },
@@ -311,7 +311,7 @@ export default function InventoryPage() {
               >
                 <option value="">{t('filters.all')}</option>
                 {COMPONENT_TYPES.map((ct) => (
-                  <option key={ct} value={ct}>{ct.replace('_', ' ')}</option>
+                  <option key={ct} value={ct}>{t(`medical.components.${ct}`)}</option>
                 ))}
               </select>
             </div>
@@ -337,7 +337,9 @@ export default function InventoryPage() {
       ) : units.length === 0 ? (
         <EmptyState
           title={t('ops.inventory.empty')}
-          description={searchQuery ? 'Try adjusting your search or filters' : 'Units will appear here when donations are processed'}
+          description={
+            searchQuery ? t('ops.common.noResultsFilterHint') : t('ops.inventory.noUnitsHint')
+          }
         />
       ) : (
         <>
@@ -436,7 +438,7 @@ export default function InventoryPage() {
                   className="flex items-center gap-2 rounded-lg border border-donor-success/30 bg-donor-successMuted px-4 py-2 text-sm text-donor-onSuccessMuted transition-colors hover:bg-donor-success/20 disabled:opacity-50"
                 >
                   <CheckCircle size={16} />
-                  {actionLoading ? 'Issuing...' : 'Issue'}
+                  {actionLoading ? t('ops.common.issuing') : t('ops.common.issue')}
                 </button>
               </div>
             )}
@@ -452,7 +454,7 @@ export default function InventoryPage() {
                   className="flex items-center gap-2 rounded-lg border border-donor-success/30 bg-donor-successMuted px-4 py-2 text-sm text-donor-onSuccessMuted transition-colors hover:bg-donor-success/20 disabled:opacity-50"
                 >
                   <CheckCircle size={16} />
-                  {actionLoading ? 'Issuing...' : 'Issue'}
+                  {actionLoading ? t('ops.common.issuing') : t('ops.common.issue')}
                 </button>
               </div>
             )}

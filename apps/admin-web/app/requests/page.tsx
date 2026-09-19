@@ -135,7 +135,7 @@ export default function BloodRequestsPage() {
                         <p className="font-medium text-donor-text">{request.requestReference}</p>
                       </td>
                       <td className="px-4 py-3">
-                        <StatusBadgeWrapper status={request.status} />
+                        <StatusBadgeWrapper status={request.status} domain="request" />
                       </td>
                       <td className="px-4 py-3">
                         <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${

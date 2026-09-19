@@ -198,7 +198,7 @@ export default function BloodRequestDetailPage() {
                       {item.bloodType}
                       {item.rhFactor === 'POSITIVE' ? '+' : item.rhFactor === 'NEGATIVE' ? '-' : ''}
                       {' '}
-                      {item.componentType.replace('_', ' ')}
+                      {t(`medical.components.${item.componentType}`)}
                     </span>
                   </div>
                   <div className="flex items-center gap-6 text-sm">
@@ -224,7 +224,7 @@ export default function BloodRequestDetailPage() {
                     <div className="mt-1 h-2 w-2 rounded-full bg-donor-primary" />
                     <div className="flex-1">
                       <div className="flex items-center justify-between">
-                        <p className="text-sm font-medium text-donor-text">{event.eventType.replace(/_/g, ' ')}</p>
+                        <p className="text-sm font-medium text-donor-text">{t(`status.requestEvent.${event.eventType}`)}</p>
                         <span className="text-xs text-donor-muted">
                           {new Date(event.createdAt).toLocaleString()}
                         </span>

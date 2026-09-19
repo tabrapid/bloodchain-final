@@ -325,9 +325,9 @@ export default function AdminDashboard() {
                   <div key={org.id} className="p-4 flex items-center justify-between">
                     <div>
                       <p className="font-medium text-donor-text">{org.name}</p>
-                      <p className="text-sm text-donor-muted">{org.type}</p>
+                      <p className="text-sm text-donor-muted">{t(`directory.organizationTypes.${org.type}`)}</p>
                     </div>
-                    <StatusBadgeWrapper status="PENDING_APPROVAL" />
+                    <StatusBadgeWrapper status="PENDING_APPROVAL" domain="organization" />
                   </div>
                 ))
               )}
@@ -351,7 +351,7 @@ export default function AdminDashboard() {
                       </p>
                       <p className="text-sm text-donor-muted">{emergency.hospital?.name}</p>
                     </div>
-                    <StatusBadgeWrapper status={emergency.status} />
+                    <StatusBadgeWrapper status={emergency.status} domain="emergency" />
                   </div>
                 ))
               )}
@@ -371,9 +371,8 @@ export default function AdminDashboard() {
                   <div key={alert.id} className="p-4 flex items-center justify-between">
                     <div>
                       <p className="font-medium text-donor-text">{alert.message}</p>
-                      <p className="text-sm text-donor-muted">{alert.type}</p>
                     </div>
-                    <StatusBadgeWrapper status={alert.type === 'LOW_STOCK' ? 'WARNING' : 'INFO'} />
+                    <StatusBadgeWrapper status={alert.type} domain="alert" />
                   </div>
                 ))
               )}

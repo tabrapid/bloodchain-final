@@ -16,6 +16,10 @@ import type { Catalog } from '../translate';
  */
 export const ru: Catalog = {
   common: {
+    dialog: 'Диалог',
+    panel: 'Панель',
+    noData: 'Нет данных',
+    comingSoon: 'Скоро',
     back: 'Назад',
     cancel: 'Отмена',
     close: 'Закрыть',
@@ -483,6 +487,7 @@ export const ru: Catalog = {
   },
 
   portal: {
+    openMenu: 'Открыть меню',
     account: {
       title: 'Мой аккаунт',
       subtitle: 'Данные для входа в эту консоль',
@@ -532,6 +537,7 @@ export const ru: Catalog = {
       workspace: 'Управление BloodChain',
     },
     nav: {
+      primary: 'Основное',
       account: 'Мой аккаунт',
       organization: 'Организация',
       dashboard: 'Панель',
@@ -575,6 +581,28 @@ export const ru: Catalog = {
 
   // ТРЕБУЕТСЯ КЛИНИЧЕСКАЯ ПРОВЕРКА — см. CLINICAL_REVIEW_KEYS.
   status: {
+    shipmentEvent: {
+      CREATED: 'Доставка создана',
+      COURIER_ASSIGNED: 'Курьер назначен',
+      COURIER_ACCEPTED: 'Курьер принял',
+      COURIER_DECLINED: 'Курьер отказался',
+      PICKUP_STARTED: 'Забор начат',
+      PICKED_UP: 'Забрано',
+      IN_TRANSIT: 'В пути',
+      LOCATION_UPDATED: 'Местоположение обновлено',
+      ARRIVED_AT_HOSPITAL: 'Прибыл в больницу',
+      DELIVERED: 'Доставлено',
+      FAILED: 'Доставка не удалась',
+      CANCELLED: 'Отменено',
+    },
+    requestEvent: {
+      SUBMITTED: 'Заявка отправлена',
+      APPROVED: 'Одобрено',
+      PARTIALLY_APPROVED: 'Одобрено частично',
+      REJECTED: 'Отклонено',
+      READY_FOR_PICKUP: 'Готово к выдаче',
+      SHIPMENT_CREATED: 'Доставка создана',
+    },
     verification: {
       UNVERIFIED: 'Не подтверждено',
       VERIFIED: 'Подтверждено',
@@ -793,6 +821,8 @@ export const ru: Catalog = {
     region: 'Область',
   },
   actions: {
+    clearSearch: 'Очистить поиск',
+    searchPlaceholder: 'Поиск…',
     verify: 'Подтвердить',
     restore: 'Восстановить',
     view: 'Открыть',
@@ -849,6 +879,28 @@ export const ru: Catalog = {
   },
   ops: {
     common: {
+      refreshing: 'Обновление…',
+      creating: 'Создание…',
+      submitting: 'Отправка…',
+      working: 'Выполняется…',
+      assigning: 'Назначение…',
+      reassigning: 'Переназначение…',
+      moving: 'Перемещение…',
+      suspending: 'Приостановка…',
+      restoring: 'Восстановление…',
+      issuing: 'Выдача…',
+      acknowledging: 'Подтверждение…',
+      notesOptional: 'Примечания (необязательно)',
+      reasonOptional: 'Причина (необязательно)',
+      reasonRequired: 'Причина (обязательно)',
+      phoneOptional: 'Телефон (необязательно)',
+      live: 'В эфире',
+      offline: 'Не в сети',
+      eta: 'Расчётное время',
+      alerts: 'Оповещения',
+      inventoryStatus: 'Состояние запасов',
+      organizationUnavailable: 'Организация недоступна',
+      noResultsFilterHint: 'Измените запрос или фильтры',
       loading: 'Загрузка…',
       noResults: 'Ничего нет',
       noResultsHint: 'Попробуйте другой фильтр или зайдите позже.',
@@ -907,6 +959,16 @@ export const ru: Catalog = {
       collected: 'Собрано',
     },
     dashboard: {
+      criticalGroups: 'Критично: {{groups}}',
+      unitsOnHand: 'единиц в наличии',
+      awaitingResults: 'Ожидают результатов',
+      awaitingReview: 'Ожидают проверки',
+      scheduledToday: 'Запланировано на сегодня',
+      inTransit: 'В пути',
+      pendingApprovalHospital: 'Ваша больница ожидает утверждения',
+      pendingApprovalBloodCenter: 'Ваш центр крови ожидает утверждения',
+      pendingApprovalBody: '{{name}} ещё проверяется администратором BloodChain. Полный доступ появится сразу после утверждения.',
+      organizationStatusBody: 'Текущий статус «{{name}}»: {{status}}. Свяжитесь с администратором BloodChain.',
       hospitalTitle: 'Консоль больницы BloodChain',
       hospitalSubtitle: 'Рабочее пространство больницы BloodChain',
       hospitalHeadline: 'Работа с пациентами,',
@@ -961,6 +1023,7 @@ export const ru: Catalog = {
       hospitalTagline: 'Ясная картина вашей донорской сети и сегодняшних приоритетов.',
     },
     appointments: {
+      createSlot: 'Создать слот',
       bookings: 'Записи на приём',
       slots: 'Слоты',
       noBookings: 'Записей нет',
@@ -985,6 +1048,10 @@ export const ru: Catalog = {
       pageSubtitle: 'Настройте, когда доноры могут записаться на сдачу крови, анализ и консультацию',
     },
     donations: {
+      todaysAppointments: 'Сегодняшние записи',
+      receiveHint: 'Примите сегодняшних доноров, внесите результат осмотра и сохраните объём забора.',
+      volumeCollected: 'Объём забора (мл)',
+      saveDonation: 'Сохранить донацию',
       title: 'Донации',
       recent: 'Недавние донации',
       signInHint: 'Войдите, чтобы управлять донациями.',
@@ -1003,6 +1070,13 @@ export const ru: Catalog = {
       vitalsPlaceholder: 'например: Hb 14,2 г/дл, АД 120/78',
     },
     inventory: {
+      noUnitsHint: 'Единицы появятся здесь после обработки донаций',
+      confirmMove: 'Подтвердить перемещение',
+      saveAdjustment: 'Сохранить корректировку',
+      createLocation: 'Создать место хранения',
+      currentVolume: 'Объём (мл) — сейчас {{value}}',
+      currentComponent: 'Компонент — сейчас {{value}}',
+      currentExpiry: 'Срок годности — сейчас {{value}}',
       availability: 'Наличие по центрам крови',
       availabilityHint: 'Только сводные запасы — без номеров единиц и мест хранения. Это служебный вид для маршрутизации запросов, а не публичный инвентарь.',
       noAvailability: 'Подходящих запасов нет',
@@ -1064,6 +1138,12 @@ export const ru: Catalog = {
       donorFacingVolume: 'Это число донор видит в своей истории сдач.',
     },
     requests: {
+      markReadyForPickup: 'Отметить готовым к выдаче',
+      createShipment: 'Создать доставку',
+      submitRequest: 'Отправить заявку',
+      deliveryAddressOptional: 'Адрес доставки (необязательно)',
+      deliveryPhoneOptional: 'Телефон для доставки (необязательно)',
+      neededByOptional: 'Нужно к (необязательно)',
       rejected: 'Запрос отклонён',
       rejectReasonRequired: 'Укажите причину, чтобы больница знала, почему запрос отклонён.',
       reviewNotesLabel: 'Комментарий — обязателен при отклонении, виден больнице',
@@ -1122,6 +1202,9 @@ export const ru: Catalog = {
       noneFound: 'Запросы на кровь не найдены',
     },
     shipments: {
+      assignCourier: 'Назначить курьера',
+      reassignCourier: 'Переназначить курьера',
+      discrepancyReason: 'Причина расхождения (обязательно, если получено меньше единиц, чем отправлено)',
       title: 'Доставки',
       monitoring: 'Мониторинг доставок',
       monitoringHint: 'Отслеживайте все доставки крови на платформе',
@@ -1170,6 +1253,7 @@ export const ru: Catalog = {
       noneFound: 'Отправления не найдены',
     },
     emergency: {
+      createEmergency: 'Создать экстренный запрос',
       title: 'Экстренный вызов',
       management: 'Управление экстренными вызовами',
       monitoring: 'Мониторинг экстренных вызовов',
@@ -1190,6 +1274,8 @@ export const ru: Catalog = {
       noneFound: 'Срочные запросы не найдены',
     },
     laboratory: {
+      saveResults: 'Сохранить результаты',
+      referenceRangeHint: 'Значения сравниваются с референсным интервалом этой лаборатории для каждого параметра; отметка «норма/ниже/выше», которую видит донор, выводится из этого.',
       management: 'Управление анализами крови',
       searchPlaceholder: 'Поиск по номеру или донору…',
       empty: 'Нет записей',
@@ -1211,6 +1297,8 @@ export const ru: Catalog = {
       testType: 'Тип анализа',
     },
     couriers: {
+      restoreCourier: 'Восстановить курьера',
+      suspendCourier: 'Приостановить курьера',
       title: 'Управление курьерами',
       subtitle: 'Управляйте курьерами и их статусами',
       details: 'Детали курьера',
@@ -1257,6 +1345,7 @@ export const ru: Catalog = {
       pageSubtitle: 'Отслеживайте показатели работы и операционную аналитику',
     },
     donors: {
+      browseHint: 'Просматривайте зарегистрированных доноров по группе крови, статусу и местоположению',
       detailSubtitle: 'Карточка донора',
       backToDonors: 'Назад к донорам',
       notFound: 'Донор не найден',
@@ -1323,6 +1412,8 @@ export const ru: Catalog = {
       empty: 'Организации не найдены',
     },
     users: {
+      restoreUser: 'Восстановить пользователя',
+      suspendUser: 'Приостановить пользователя',
       title: 'Управление пользователями',
       subtitle: 'Управляйте пользователями платформы и их аккаунтами',
       details: 'Детали пользователя',
@@ -1334,6 +1425,9 @@ export const ru: Catalog = {
       empty: 'Пользователи не найдены',
     },
     roles: {
+      manageHint: 'Управляйте тем, какие права даёт каждая роль. Роль конкретного пользователя меняется в его записи на странице «Пользователи».',
+      allPermissionsFixed: 'Все права (неизменяемо)',
+      savePermissions: 'Сохранить права',
       permissions: 'Права',
       noPermissions: 'Права не выданы',
       showLess: 'Свернуть',
@@ -1365,6 +1459,7 @@ export const ru: Catalog = {
       empty: 'Записи аудита не найдены',
     },
     health: {
+      failedJobs24h: 'Неудачные задачи (24 ч)',
       subtitle: 'Состояние инфраструктуры платформы',
       overallStatus: 'Общее состояние',
       lastUpdated: 'Последнее обновление',
@@ -1375,6 +1470,8 @@ export const ru: Catalog = {
       criticalRequests: 'Критические заявки',
     },
     moderation: {
+      reporterNotes: 'Примечания заявителя',
+      resolutionNote: 'Примечание о решении (необязательно)',
       subtitle: 'Рассматривайте жалобы на публикации сообщества',
       post: 'Публикация',
       reporter: 'Заявитель',
@@ -1391,6 +1488,9 @@ export const ru: Catalog = {
       empty: 'Жалобы не найдены',
     },
     settings: {
+      sessionTimeoutHint: 'Сколько действует вход в систему до повторной авторизации (1 ч – 30 дн).',
+      passwordPolicyFixed: 'Минимум 12 символов, верхний/нижний регистр, цифра и символ (неизменяемо)',
+      channelsHint: 'Электронная почта используется только для подтверждения аккаунта, а не для общих уведомлений. Отправка SMS не реализована — переключать пока нечего.',
       title: 'Настройки платформы',
       subtitle: 'Настройте параметры платформы и флаги функций',
       loadFailed: 'Не удалось загрузить настройки платформы.',
@@ -1414,6 +1514,7 @@ export const ru: Catalog = {
       maintenanceHint: 'Блокирует вход для всех, кроме учётных записей SUPER_ADMIN, на всей платформе',
     },
     alerts: {
+      acknowledge: 'Подтвердить',
       title: 'Центр оповещений',
       subtitle: 'Управляйте оповещениями и уведомлениями платформы',
       allAlerts: 'Все оповещения',
@@ -1445,6 +1546,9 @@ export const ru: Catalog = {
       estimatedCost: 'Оценочная стоимость',
     },
     register: {
+      verifyEmailHospital: 'Проверьте почту {{email}}, чтобы подтвердить адрес. После подтверждения аккаунт больницы проверит администратор BloodChain — вы сможете войти сразу после утверждения.',
+      verifyEmailBloodCenter: 'Проверьте почту {{email}}, чтобы подтвердить адрес. После подтверждения аккаунт центра крови проверит администратор BloodChain — вы сможете войти сразу после утверждения.',
+      submitForApproval: 'Отправить на утверждение',
       hospitalTitle: 'Зарегистрируйте вашу больницу',
       centerTitle: 'Зарегистрируйте ваш центр крови',
       submitted: 'Заявка на регистрацию отправлена',
@@ -1459,6 +1563,9 @@ export const ru: Catalog = {
     },
   },
   booking: {
+    noOpenDatesHint: 'Посмотрите следующий месяц или вернитесь и выберите другое место.',
+    unavailableDay: 'недоступно',
+    noOpenDates: 'В этом месяце нет свободных дней',
     chooseTime: 'Выберите свободное время',
     selectType: 'Выберите тип записи',
     whatToBook: 'Что вы хотите записать?',
@@ -1546,6 +1653,9 @@ export const ru: Catalog = {
     a11yRow: '{{type}} — {{date}}',
   },
   labBooking: {
+    selectDateSubtitleCalendar: 'Дни со свободным временем выделены.',
+    noOpenDatesHint: 'Посмотрите следующий месяц или вернитесь и выберите другую лабораторию.',
+    datesFailed: 'Не удалось загрузить свободные даты',
     selectTestTitle: 'Какой анализ?',
     selectTestSubtitle: 'Выберите нужную панель исследований.',
     selectLabTitle: 'Где?',

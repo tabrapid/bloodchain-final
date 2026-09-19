@@ -74,7 +74,7 @@ export default function SystemHealthPage() {
             className="flex items-center gap-2 bg-donor-elevated text-donor-text px-4 py-2 rounded-lg text-sm font-medium hover:bg-donor-border/60 disabled:opacity-50"
           >
             <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-            {refreshing ? 'Refreshing...' : 'Refresh'}
+            {refreshing ? t('ops.common.refreshing') : t('actions.refresh')}
           </button>
         </div>
 
@@ -159,7 +159,7 @@ export default function SystemHealthPage() {
             <div className="flex items-center justify-between p-3 bg-donor-dangerMuted rounded-lg">
               <div className="flex items-center gap-3">
                 <XCircle className="w-5 h-5 text-donor-onDangerMuted" />
-                <span className="text-sm text-donor-text">Failed Jobs (24h)</span>
+                <span className="text-sm text-donor-text">{t('ops.health.failedJobs24h')}</span>
               </div>
               <span className="font-semibold text-donor-text">{health?.recentErrors || 0}</span>
             </div>

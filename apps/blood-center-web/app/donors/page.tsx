@@ -137,7 +137,7 @@ export default function DonorsPage() {
     },
     { key: 'location', header: t('table.location'), render: (d) => [d.city, d.district].filter(Boolean).join(', ') || '—' },
     { key: 'donorStatus', header: t('table.status'), render: (d) => <StatusBadge variant={statusVariant(d.donorStatus)}>{d.donorStatus}</StatusBadge> },
-    { key: 'verificationStatus', header: t('ops.common.verification'), render: (d) => <StatusBadge variant={verificationVariant(d.verificationStatus)}>{d.verificationStatus.replace('_', ' ')}</StatusBadge> },
+    { key: 'verificationStatus', header: t('ops.common.verification'), render: (d) => <StatusBadge variant={verificationVariant(d.verificationStatus)}>{t(`status.verification.${d.verificationStatus}`)}</StatusBadge> },
     { key: 'createdAt', header: t('ops.common.joined'), render: (d) => new Date(d.createdAt).toLocaleDateString() },
     {
       key: 'verify',
@@ -204,7 +204,7 @@ export default function DonorsPage() {
       <div className="mb-6">
         <h1 className="font-display text-2xl font-semibold text-donor-text">{t('ops.donors.title')}</h1>
         <p className="text-sm text-donor-muted">
-          Browse the platform&apos;s registered donors by blood type, status, and location
+          {t('ops.donors.browseHint')}
         </p>
       </div>
 
@@ -259,7 +259,7 @@ export default function DonorsPage() {
         >
           <option value="">{t('ops.donors.allVerificationStates')}</option>
           {VERIFICATION_STATUSES.map((s) => (
-            <option key={s} value={s}>{s.replace('_', ' ')}</option>
+            <option key={s} value={s}>{t(`status.verification.${s}`)}</option>
           ))}
         </select>
       </div>

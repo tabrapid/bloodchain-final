@@ -41,6 +41,23 @@ export interface AppointmentSlot {
   isAvailable?: boolean;
 }
 
+/** One day's availability summary, as the calendar needs it. */
+export interface LaboratoryAvailableDate {
+  /** `YYYY-MM-DD` in the laboratory's calendar. */
+  date: string;
+  totalSlots: number;
+  availableSlots: number;
+  isAvailable: boolean;
+}
+
+export interface LaboratoryAvailability {
+  laboratoryId: string;
+  testTypeId: string;
+  from: string;
+  to: string;
+  dates: LaboratoryAvailableDate[];
+}
+
 export interface LaboratoryAppointment {
   id: string;
   referenceNumber: string;
@@ -129,6 +146,25 @@ export async function getAvailableSlots(
 ): Promise<AppointmentSlot[]> {
   return apiRequest<AppointmentSlot[]>(
     `${apiBasePath}/laboratories/${laboratoryId}/slots?testTypeId=${testTypeId}&date=${date}`
+  );
+}
+
+/**
+ * Availability for a whole window in one request.
+ *
+ * The calendar used to ask for one day at a time -- twenty-one requests to
+ * draw one screen. This returns only the per-day summary the grid shades with;
+ * `getAvailableSlots` still answers the day the donor picks.
+ */
+export async function getLaboratoryAvailableDates(
+  laboratoryId: string,
+  testTypeId: string,
+  from: string,
+  to: string
+): Promise<LaboratoryAvailability> {
+  const params = new URLSearchParams({ testTypeId, from, to });
+  return apiRequest<LaboratoryAvailability>(
+    `${apiBasePath}/laboratories/${laboratoryId}/available-dates?${params.toString()}`
   );
 }
 

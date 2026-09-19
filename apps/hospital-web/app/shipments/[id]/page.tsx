@@ -270,7 +270,7 @@ export default function ShipmentDetailPage() {
               <h3 className="mb-4 text-sm font-semibold text-donor-text">{t('ops.shipments.tracking')}</h3>
               <div className="grid gap-4 md:grid-cols-3">
                 <div>
-                  <p className="text-xs text-donor-muted">ETA</p>
+                  <p className="text-xs text-donor-muted">{t('ops.common.eta')}</p>
                   <p className="text-lg font-semibold text-donor-text">
                     {tracking.eta.etaMinutes < 60
                       ? `${tracking.eta.etaMinutes} min`
@@ -298,7 +298,7 @@ export default function ShipmentDetailPage() {
                 <h3 className="text-sm font-semibold text-donor-text">{t('ops.shipments.liveMap')}</h3>
                 <span className={`flex items-center gap-1.5 text-xs ${connected ? 'text-donor-success' : 'text-donor-muted'}`}>
                   <span className={`h-1.5 w-1.5 rounded-full ${connected ? 'bg-donor-success' : 'bg-donor-muted'}`} />
-                  {connected ? 'Live' : 'Offline'}
+                  {connected ? t('ops.common.live') : t('ops.common.offline')}
                 </span>
               </div>
               <LocationMap
@@ -358,7 +358,7 @@ export default function ShipmentDetailPage() {
                     <div className="mt-1 h-2 w-2 rounded-full bg-donor-primary" />
                     <div className="flex-1">
                       <div className="flex items-center justify-between">
-                        <p className="text-sm font-medium text-donor-text">{event.type.replace(/_/g, ' ')}</p>
+                        <p className="text-sm font-medium text-donor-text">{t(`status.shipmentEvent.${event.type}`)}</p>
                         <span className="text-xs text-donor-muted">
                           {new Date(event.timestamp).toLocaleString()}
                         </span>
@@ -461,7 +461,7 @@ export default function ShipmentDetailPage() {
             </select>
           </div>
           <div>
-            <label className="mb-2 block text-sm text-donor-muted">Notes (optional)</label>
+            <label className="mb-2 block text-sm text-donor-muted">{t('ops.common.notesOptional')}</label>
             <textarea
               value={deliveryNotes}
               onChange={(e) => setDeliveryNotes(e.target.value)}
@@ -472,7 +472,7 @@ export default function ShipmentDetailPage() {
           {unitsReceived < totalUnits && (
             <div>
               <label className="mb-2 block text-sm text-donor-muted">
-                Discrepancy Reason (required when units received &lt; units shipped)
+                {t('ops.shipments.discrepancyReason')}
               </label>
               <textarea
                 value={discrepancyReason}

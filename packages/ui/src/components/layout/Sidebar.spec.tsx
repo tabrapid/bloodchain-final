@@ -4,6 +4,15 @@ import { Activity, Droplet, LayoutDashboard, Package } from 'lucide-react';
 import { describe, expect, it, vi } from 'vitest';
 
 import { Sidebar, resolveActiveItem, type SidebarItem, type SidebarLinkComponent } from './Sidebar';
+import { createLocalization, DEFAULT_LOCALE } from '@bloodchain/i18n';
+
+/**
+ * The component now reads its words from the catalogue, so the assertions do
+ * too: hard-coding English here would pass only while the default language
+ * happened to be English.
+ */
+const { t } = createLocalization(DEFAULT_LOCALE);
+
 
 /**
  * P3-15 regression tests.
@@ -57,12 +66,12 @@ describe('Sidebar', () => {
   it('renders every item, with disabled ones marked for assistive tech', () => {
     render(<Sidebar items={items} />);
 
-    expect(screen.getByRole('navigation', { name: 'Main' })).toBeInTheDocument();
+    expect(screen.getByRole('navigation', { name: t('portal.nav.primary') })).toBeInTheDocument();
     for (const item of items) {
       expect(screen.getByText(item.label)).toBeInTheDocument();
     }
     expect(screen.getByText('Inventory').closest('[aria-disabled="true"]')).not.toBeNull();
-    expect(screen.getByText('Soon')).toBeInTheDocument();
+    expect(screen.getByText(t('common.comingSoon'))).toBeInTheDocument();
   });
 
   it('gives disabled items no link at all, so they cannot be navigated to', () => {

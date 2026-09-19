@@ -8,6 +8,7 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  Matches,
   MaxLength,
   ValidateNested,
 } from 'class-validator';
@@ -43,6 +44,32 @@ export class BookLaboratoryAppointmentDto {
   @IsString()
   @MaxLength(1000)
   notes?: string;
+}
+
+/**
+ * The donor calendar's range query. Declared as a class (rather than loose
+ * `@Query('from')` strings) so the global ValidationPipe actually runs: an
+ * inline `@Query() dto: { ... }` resolves to `Object` and is skipped entirely.
+ */
+export class AvailableDatesQueryDto {
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  testTypeId!: string;
+
+  @ApiProperty({ example: '2026-09-19', description: 'First calendar date in the window.' })
+  @IsString()
+  @Matches(/^\d{4}-\d{2}-\d{2}$/, {
+    message: 'from must be a calendar date in YYYY-MM-DD form.',
+  })
+  from!: string;
+
+  @ApiProperty({ example: '2026-10-19', description: 'Last calendar date in the window.' })
+  @IsString()
+  @Matches(/^\d{4}-\d{2}-\d{2}$/, {
+    message: 'to must be a calendar date in YYYY-MM-DD form.',
+  })
+  to!: string;
 }
 
 export class CancelLaboratoryAppointmentDto {

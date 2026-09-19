@@ -98,4 +98,22 @@ export function useTranslation(): LocaleContextValue {
   return useLocale();
 }
 
+/**
+ * Translation for a shared component that may render without a provider.
+ *
+ * The design-system components in `packages/ui/src/components` are rendered by
+ * the three consoles -- which do wrap everything in `LocaleProvider` -- and
+ * also, one at a time, by their own unit tests. Making them call `useLocale()`
+ * would have localised the consoles and thrown in every one of those tests, so
+ * the fallback is the default language rather than a crash. It is deliberately
+ * not exported for screens: a *page* that renders outside the provider is a
+ * bug, and `useTranslation` should keep saying so.
+ */
+export function useOptionalTranslation(): Localization {
+  const ctx = useContext(LocaleContext);
+  const fallbackLocale = ctx ? ctx.locale : DEFAULT_LOCALE;
+  const fallback = useMemo(() => createLocalization(fallbackLocale), [fallbackLocale]);
+  return ctx ?? fallback;
+}
+
 export { LOCALE_KEY };

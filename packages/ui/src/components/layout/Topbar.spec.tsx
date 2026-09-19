@@ -3,6 +3,15 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
 import { Topbar } from './Topbar';
+import { createLocalization, DEFAULT_LOCALE } from '@bloodchain/i18n';
+
+/**
+ * The component now reads its words from the catalogue, so the assertions do
+ * too: hard-coding English here would pass only while the default language
+ * happened to be English.
+ */
+const { t } = createLocalization(DEFAULT_LOCALE);
+
 
 /**
  * The Topbar renders each control only when given a handler for it, which is
@@ -30,17 +39,17 @@ describe('Topbar', () => {
   it('shows the notifications bell only when it has somewhere to go', () => {
     const onNotifications = vi.fn();
     const { rerender } = render(<Topbar title="Shipments" />);
-    expect(screen.queryByRole('button', { name: 'Notifications' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: t('portal.nav.notifications') })).not.toBeInTheDocument();
 
     rerender(<Topbar title="Shipments" onNotifications={onNotifications} />);
-    expect(screen.getByRole('button', { name: 'Notifications' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: t('portal.nav.notifications') })).toBeInTheDocument();
   });
 
   it('calls onLogout when the log out button is clicked', async () => {
     const onLogout = vi.fn();
     render(<Topbar title="Shipments" onLogout={onLogout} />);
 
-    await userEvent.click(screen.getByRole('button', { name: 'Log out' }));
+    await userEvent.click(screen.getByRole('button', { name: t('portal.signOut') }));
 
     expect(onLogout).toHaveBeenCalledTimes(1);
   });
@@ -49,7 +58,7 @@ describe('Topbar', () => {
     const onSearch = vi.fn();
     render(<Topbar title="Shipments" onSearch={onSearch} />);
 
-    await userEvent.type(screen.getByPlaceholderText('Search...'), 'ab');
+    await userEvent.type(screen.getByPlaceholderText(t('actions.searchPlaceholder')), 'ab');
 
     expect(onSearch).toHaveBeenCalledTimes(2);
     expect(onSearch).toHaveBeenLastCalledWith('ab');

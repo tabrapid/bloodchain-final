@@ -257,7 +257,7 @@ export default function OrganizationsPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <StatusBadgeWrapper status={org.status} />
+                        <StatusBadgeWrapper status={org.status} domain="organization" />
                       </td>
                       <td className="px-4 py-3 text-sm text-donor-muted">
                         {org.staffCount}
@@ -338,7 +338,7 @@ export default function OrganizationsPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-donor-muted">{t('table.status')}</p>
-                  <StatusBadgeWrapper status={selectedOrg.status} />
+                  <StatusBadgeWrapper status={selectedOrg.status} domain="organization" />
                 </div>
                 <div>
                   <p className="text-sm text-donor-muted">{t('ops.organizations.staffCount')}</p>

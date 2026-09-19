@@ -1,4 +1,5 @@
 import { Search, X } from 'lucide-react';
+import { useOptionalTranslation } from '../../i18n';
 import { cn } from '../cn';
 
 export interface SearchInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
@@ -7,6 +8,8 @@ export interface SearchInputProps extends React.InputHTMLAttributes<HTMLInputEle
 }
 
 export function SearchInput({ className, onClear, wrapperClassName, ...props }: SearchInputProps) {
+  const { t } = useOptionalTranslation();
+
   return (
     <div
       className={cn(
@@ -29,7 +32,7 @@ export function SearchInput({ className, onClear, wrapperClassName, ...props }: 
         <button
           type="button"
           onClick={onClear}
-          aria-label="Clear search"
+          aria-label={t('actions.clearSearch')}
           className="text-donor-muted hover:text-donor-text"
         >
           <X size={14} />

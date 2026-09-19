@@ -231,12 +231,17 @@ export default function BloodCenterDashboard() {
         <div className="flex flex-col items-center justify-center bc-glass rounded-card p-12 text-center">
           <Clock className="mb-4 text-donor-secondary" size={48} />
           <h2 className="mb-2 font-display text-2xl font-semibold text-donor-text">
-            {isPending ? 'Your blood center is pending approval' : 'Organization unavailable'}
+            {isPending
+              ? t('ops.dashboard.pendingApprovalBloodCenter')
+              : t('ops.common.organizationUnavailable')}
           </h2>
           <p className="mb-6 max-w-md text-donor-muted">
             {isPending
-              ? `${bloodCenterOrg.name} is still under review by a BloodChain admin. You'll get full access as soon as it's approved.`
-              : `${bloodCenterOrg.name} is currently ${bloodCenterOrg.organizationStatus.toLowerCase().replace('_', ' ')}. Contact your BloodChain admin for details.`}
+              ? t('ops.dashboard.pendingApprovalBody', { name: bloodCenterOrg.name })
+              : t('ops.dashboard.organizationStatusBody', {
+                  name: bloodCenterOrg.name,
+                  status: t(`status.organization.${bloodCenterOrg.organizationStatus}`),
+                })}
           </p>
           <button
             onClick={handleLogout}
@@ -328,10 +333,10 @@ export default function BloodCenterDashboard() {
           value={isLoadingStats || !overview ? '—' : overview.inventory.availableUnits.toString()}
           note={
             isLoadingStats || !overview
-              ? 'Loading...'
+              ? t('common.loading')
               : overview.inventory.criticalGroups.length > 0
-              ? `Critical: ${overview.inventory.criticalGroups.join(', ')}`
-              : 'units on hand'
+              ? t('ops.dashboard.criticalGroups', { groups: overview.inventory.criticalGroups.join(', ') })
+              : t('ops.dashboard.unitsOnHand')
           }
           icon={Droplet}
           variant={overview && overview.inventory.criticalGroups.length > 0 ? 'danger' : 'success'}
@@ -339,14 +344,14 @@ export default function BloodCenterDashboard() {
         <StatCard
           label={t('ops.dashboard.pendingTests')}
           value={isLoadingStats || !laboratory ? '—' : laboratory.summary.pendingTests.toString()}
-          note={isLoadingStats || !laboratory ? 'Loading...' : 'Awaiting results'}
+          note={isLoadingStats || !laboratory ? t('common.loading') : t('ops.dashboard.awaitingResults')}
           icon={Beaker}
           variant={laboratory && laboratory.summary.pendingTests > 0 ? 'warning' : 'success'}
         />
         <StatCard
           label={t('ops.dashboard.openShipments')}
           value={isLoadingStats || !shipments ? '—' : shipments.summary.active.toString()}
-          note={isLoadingStats || !shipments ? 'Loading...' : 'In transit'}
+          note={isLoadingStats || !shipments ? t('common.loading') : t('ops.dashboard.inTransit')}
           icon={Truck}
           variant="info"
         />
@@ -355,7 +360,7 @@ export default function BloodCenterDashboard() {
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="bc-glass rounded-card p-6 lg:col-span-2">
           <p className="text-xs font-bold uppercase tracking-widest text-donor-muted">
-            INVENTORY STATUS
+            {t('ops.common.inventoryStatus')}
           </p>
           {overview && (
             <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -385,7 +390,7 @@ export default function BloodCenterDashboard() {
         </div>
 
         <div className="bc-glass rounded-card p-6">
-          <p className="text-xs font-bold uppercase tracking-widest text-donor-muted">ALERTS</p>
+          <p className="text-xs font-bold uppercase tracking-widest text-donor-muted">{t('ops.common.alerts')}</p>
           <div className="mt-4 space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-sm text-donor-text">{t('medical.resultFlagsByCode.CRITICAL')}</span>

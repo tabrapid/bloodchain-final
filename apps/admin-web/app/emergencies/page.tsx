@@ -127,7 +127,7 @@ export default function EmergenciesPage() {
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        <StatusBadgeWrapper status={emergency.status} />
+                        <StatusBadgeWrapper status={emergency.status} domain="emergency" />
                       </td>
                       <td className="px-4 py-3 text-sm text-donor-muted">
                         {emergency.unitsCollected}/{emergency.unitsRequired}

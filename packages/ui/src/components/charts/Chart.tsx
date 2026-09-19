@@ -1,3 +1,4 @@
+import { useOptionalTranslation } from '../../i18n';
 import { cn } from '../cn';
 
 export interface BarChartDatum {
@@ -156,10 +157,12 @@ export function LineChart({
   showValues = true,
   className,
 }: LineChartProps) {
+  const { t } = useOptionalTranslation();
+
   if (data.length === 0) {
     return (
       <div className={cn('flex items-center justify-center text-donor-muted', className)} style={{ height }}>
-        No data available
+        {t('common.noData')}
       </div>
     );
   }

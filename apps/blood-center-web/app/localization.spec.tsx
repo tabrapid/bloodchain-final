@@ -91,7 +91,7 @@ describe('blood centre console: language', () => {
 
   it('translates the navigation, not just the form', async () => {
     await renderSignIn();
-    const nav = screen.getByRole('navigation', { name: 'Main' });
+    const nav = screen.getByRole('navigation');
 
     // Every declared entry, in Uzbek -- an untranslated one would show its
     // English fallback and still pass a "something is there" assertion.
@@ -108,7 +108,7 @@ describe('blood centre console: language', () => {
     await user.click(screen.getByRole('button', { name: 'Русский' }));
 
     expect(screen.getByRole('button', { name: 'Войти' })).toBeInTheDocument();
-    expect(screen.getByRole('navigation', { name: 'Main' })).toHaveTextContent('Панель');
+    expect(screen.getByRole('navigation')).toHaveTextContent('Панель');
     expect(document.documentElement.lang).toBe('ru');
     expect(window.localStorage.getItem(LOCALE_KEY)).toBe('ru');
   });
@@ -122,7 +122,7 @@ describe('blood centre console: language', () => {
     );
 
     await waitFor(() => expect(screen.getByRole('button', { name: 'Sign in' })).toBeInTheDocument());
-    expect(screen.getByRole('navigation', { name: 'Main' })).toHaveTextContent('Blood Requests');
+    expect(screen.getByRole('navigation')).toHaveTextContent('Blood Requests');
   });
 
   it('leaves no raw catalogue key on the screen, in any language', async () => {

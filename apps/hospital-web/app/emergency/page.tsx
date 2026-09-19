@@ -395,7 +395,7 @@ export default function EmergencyPage() {
                       </div>
                       <p className="mt-1 text-sm text-donor-muted">
                         {emergency.bloodType}-{emergency.rhFactor} •{' '}
-                        {emergency.componentType.replace('_', ' ')} •{' '}
+                        {t(`medical.components.${emergency.componentType}`)} •{' '}
                         {emergency.unitsRequired} unit
                         {emergency.unitsRequired !== 1 ? 's' : ''} required
                         {emergency.patientReference &&
@@ -643,7 +643,7 @@ export default function EmergencyPage() {
               >
                 {COMPONENT_TYPES.map((type) => (
                   <option key={type} value={type}>
-                    {type.replace('_', ' ')}
+                    {t(`medical.components.${type}`)}
                   </option>
                 ))}
               </select>
@@ -727,7 +727,7 @@ export default function EmergencyPage() {
                 disabled={isSubmitting}
                 className="rounded-lg bg-donor-primary px-4 py-2 font-semibold text-white transition-colors hover:bg-donor-primary/80 disabled:opacity-50"
               >
-                {isSubmitting ? 'Creating...' : 'Create Emergency'}
+                {isSubmitting ? t('ops.common.creating') : t('ops.emergency.createEmergency')}
               </button>
             </div>
           </div>

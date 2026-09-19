@@ -61,9 +61,7 @@ export default function RegisterBloodCenterPage() {
             {t('ops.register.submitted')}
           </h2>
           <p className="mb-6 max-w-md text-donor-muted">
-            {t('ops.common.check')} <strong>{adminEmail}</strong> to verify your email address. Once verified, your
-            blood center account will be reviewed by a BloodChain admin — you&apos;ll be able
-            to sign in as soon as it&apos;s approved.
+            {t('ops.register.verifyEmailBloodCenter', { email: adminEmail })}
           </p>
           <button
             onClick={() => router.push('/')}
@@ -190,7 +188,7 @@ export default function RegisterBloodCenterPage() {
               </div>
               <div>
                 <label htmlFor="adminPhone" className="mb-1 block text-xs font-medium text-donor-muted">
-                  Phone (optional)
+                  {t('ops.common.phoneOptional')}
                 </label>
                 <input
                   id="adminPhone"
@@ -226,7 +224,7 @@ export default function RegisterBloodCenterPage() {
             disabled={isSubmitting}
             className="w-full rounded-lg bg-donor-secondary px-6 py-3 font-semibold text-white transition-colors hover:bg-donor-secondary/80 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isSubmitting ? 'Submitting...' : 'Submit for approval'}
+            {isSubmitting ? t('ops.common.submitting') : t('ops.register.submitForApproval')}
           </button>
 
           <button

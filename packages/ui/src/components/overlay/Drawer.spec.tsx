@@ -3,6 +3,15 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
 import { Drawer } from './Drawer';
+import { createLocalization, DEFAULT_LOCALE } from '@bloodchain/i18n';
+
+/**
+ * The component now reads its words from the catalogue, so the assertions do
+ * too: hard-coding English here would pass only while the default language
+ * happened to be English.
+ */
+const { t } = createLocalization(DEFAULT_LOCALE);
+
 
 /** P3-16. Same two gaps as Modal — see that spec. */
 describe('Drawer', () => {
@@ -64,7 +73,7 @@ describe('Drawer', () => {
       </Drawer>,
     );
 
-    await userEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await userEvent.click(screen.getByRole('button', { name: t('common.close') }));
     await userEvent.click(container.querySelector('[aria-hidden="true"]')!);
 
     expect(onClose).toHaveBeenCalledTimes(2);

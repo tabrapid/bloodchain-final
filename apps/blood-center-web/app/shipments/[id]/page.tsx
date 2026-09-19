@@ -287,7 +287,9 @@ export default function ShipmentDetailPage() {
                 className="flex items-center gap-2 rounded-lg bg-donor-primary px-4 py-2 font-semibold text-white transition-colors hover:bg-donor-primary/80"
               >
                 <Users size={16} />
-                {shipment?.status === 'FAILED' ? 'Reassign Courier' : 'Assign Courier'}
+                {shipment?.status === 'FAILED'
+                  ? t('ops.shipments.reassignCourier')
+                  : t('ops.shipments.assignCourier')}
               </button>
             )}
             {canCancel && (
@@ -345,7 +347,7 @@ export default function ShipmentDetailPage() {
                 <h3 className="text-sm font-semibold text-donor-text">{t('ops.shipments.liveMap')}</h3>
                 <span className={`flex items-center gap-1.5 text-xs ${connected ? 'text-donor-success' : 'text-donor-muted'}`}>
                   <span className={`h-1.5 w-1.5 rounded-full ${connected ? 'bg-donor-success' : 'bg-donor-muted'}`} />
-                  {connected ? 'Live' : 'Offline'}
+                  {connected ? t('ops.common.live') : t('ops.common.offline')}
                 </span>
               </div>
               {tracking.eta && (
@@ -417,7 +419,7 @@ export default function ShipmentDetailPage() {
                     <div className="mt-1 h-2 w-2 rounded-full bg-donor-primary" />
                     <div className="flex-1">
                       <div className="flex items-center justify-between">
-                        <p className="text-sm font-medium text-donor-text">{event.type.replace(/_/g, ' ')}</p>
+                        <p className="text-sm font-medium text-donor-text">{t(`status.shipmentEvent.${event.type}`)}</p>
                         <span className="text-xs text-donor-muted">
                           {new Date(event.timestamp).toLocaleString()}
                         </span>
@@ -487,7 +489,11 @@ export default function ShipmentDetailPage() {
       <Modal
         open={showAssignModal}
         onClose={() => setShowAssignModal(false)}
-        title={shipment?.status === 'FAILED' ? 'Reassign Courier' : 'Assign Courier'}
+        title={
+          shipment?.status === 'FAILED'
+            ? t('ops.shipments.reassignCourier')
+            : t('ops.shipments.assignCourier')
+        }
       >
         <div className="mb-4">
           <label className="mb-2 block text-sm text-donor-muted">{t('ops.shipments.selectCourier')}</label>
@@ -517,8 +523,12 @@ export default function ShipmentDetailPage() {
             className="rounded-lg bg-donor-primary px-4 py-2 font-semibold text-white disabled:opacity-50"
           >
             {actionLoading
-              ? shipment?.status === 'FAILED' ? 'Reassigning...' : 'Assigning...'
-              : shipment?.status === 'FAILED' ? 'Reassign' : 'Assign'}
+              ? shipment?.status === 'FAILED'
+                ? t('ops.common.reassigning')
+                : t('ops.common.assigning')
+              : shipment?.status === 'FAILED'
+                ? t('actions.assign')
+                : t('actions.assign')}
           </button>
         </div>
       </Modal>
@@ -529,7 +539,7 @@ export default function ShipmentDetailPage() {
         title={t('ops.shipments.cancelShipment')}
       >
         <div className="mb-4">
-          <label className="mb-2 block text-sm text-donor-muted">Reason (optional)</label>
+          <label className="mb-2 block text-sm text-donor-muted">{t('ops.common.reasonOptional')}</label>
           <textarea
             value={cancelReason}
             onChange={(e) => setCancelReason(e.target.value)}

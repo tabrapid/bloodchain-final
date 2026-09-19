@@ -209,7 +209,7 @@ export default function InventoryPage() {
               <option value="">{t('filters.allTypes')}</option>
               {componentTypes.map((ct) => (
                 <option key={ct} value={ct}>
-                  {ct.replace(/_/g, ' ')}
+                  {t(`medical.components.${ct}`)}
                 </option>
               ))}
             </select>
@@ -240,7 +240,7 @@ export default function InventoryPage() {
                         {row.organization.name}
                       </p>
                       <p className="text-xs text-donor-muted">
-                        {row.componentType.replace(/_/g, ' ')}
+                        {t(`medical.components.${row.componentType}`)}
                       </p>
                     </div>
                   </div>

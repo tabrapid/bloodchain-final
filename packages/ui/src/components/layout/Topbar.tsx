@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Bell, LogOut, Menu, Search } from 'lucide-react';
 import { cn } from '../cn';
+import { useOptionalTranslation } from '../../i18n';
 
 export interface TopbarProps {
   title: string;
@@ -35,6 +36,7 @@ export function Topbar({
   actions,
   className,
 }: TopbarProps) {
+  const { t } = useOptionalTranslation();
   return (
     <header
       className={cn(
@@ -47,7 +49,7 @@ export function Topbar({
           <button
             onClick={onMenuClick}
             className={cn(iconButton, 'lg:hidden')}
-            aria-label="Open menu"
+            aria-label={t('portal.openMenu')}
           >
             <Menu size={18} />
           </button>
@@ -70,7 +72,7 @@ export function Topbar({
             <Search size={16} className="text-donor-muted" />
             <input
               type="text"
-              placeholder="Search..."
+              placeholder={t('actions.searchPlaceholder')}
               onChange={(e) => onSearch(e.target.value)}
               className="w-40 bg-transparent text-sm text-donor-text placeholder:text-donor-muted focus:outline-none lg:w-56"
             />
@@ -78,7 +80,7 @@ export function Topbar({
         )}
         {actions}
         {onNotifications && (
-          <button onClick={onNotifications} className={iconButton} aria-label="Notifications">
+          <button onClick={onNotifications} className={iconButton} aria-label={t('portal.nav.notifications')}>
             <Bell size={18} />
           </button>
         )}
@@ -93,7 +95,7 @@ export function Topbar({
           </div>
         )}
         {onLogout && (
-          <button onClick={onLogout} className={iconButton} aria-label="Log out">
+          <button onClick={onLogout} className={iconButton} aria-label={t('portal.signOut')}>
             <LogOut size={18} />
           </button>
         )}
