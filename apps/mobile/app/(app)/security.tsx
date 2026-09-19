@@ -97,13 +97,30 @@ export default function Security() {
     }
   };
 
-  const handleRevokeSession = (sessionId: string) => {
-    Alert.alert(t('security.revokeSessionTitle'), t('security.revokeSessionBody'), [
+  /**
+   * Revoking the current session signs the donor out of the phone in their
+   * hand -- a different thing from ending a session on a laptop they left at
+   * work, and it used to ask with exactly the same two sentences. The row is
+   * already labelled "Sign out" rather than "Revoke"; the confirmation now
+   * matches it, so the destructive answer is never the one you reach for by
+   * habit.
+   */
+  const handleRevokeSession = (session: { id: string; deviceName?: string | null; isCurrent?: boolean }) => {
+    const title = session.isCurrent
+      ? t('security.signOutThisDeviceTitle')
+      : t('security.revokeOtherSessionTitle', {
+          device: session.deviceName ?? t('security.unknownDevice'),
+        });
+    const body = session.isCurrent
+      ? t('security.signOutThisDeviceBody')
+      : t('security.revokeSessionBody');
+
+    Alert.alert(title, body, [
       { text: t('actions.cancel'), style: 'cancel' },
       {
-        text: t('security.revoke'),
+        text: session.isCurrent ? t('security.signOut') : t('security.revoke'),
         style: 'destructive',
-        onPress: () => revokeSession.mutate(sessionId),
+        onPress: () => revokeSession.mutate(session.id),
       },
     ]);
   };
@@ -241,7 +258,7 @@ export default function Security() {
                       </AppText>
                     </View>
                     <Pressable
-                      onPress={() => handleRevokeSession(session.id)}
+                      onPress={() => handleRevokeSession(session)}
                       hitSlop={8}
                       accessibilityRole="button"
                       accessibilityLabel={t('security.a11yRevoke', {

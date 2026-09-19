@@ -373,11 +373,10 @@ export default function Health() {
             </View>
             <View style={{ flex: 1 }}>
               <AppText style={{ fontSize: 17, fontWeight: '700', color: colors.text }}>
-                {latestInsight?.title ?? 'AI Insights'}
+                {latestInsight?.title ?? t('health.aiInsights')}
               </AppText>
               <AppText muted style={{ fontSize: 14, lineHeight: 20, marginTop: 4 }} numberOfLines={3}>
-                {latestInsight?.summary ??
-                  'Get plain-language explanations of your latest blood results.'}
+                {latestInsight?.summary ?? t('health.aiInsightsHint')}
               </AppText>
             </View>
             <ChevronRight size={18} color={colors.textMuted} />

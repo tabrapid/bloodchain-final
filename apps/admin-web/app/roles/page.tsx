@@ -148,9 +148,9 @@ export default function RolesPage() {
             <table className="w-full">
               <thead>
                 <tr className="bg-donor-elevated border-b border-donor-border/40">
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.role')}</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('ops.roles.permissions')}</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.actions')}</th>
+                  <th scope="col" className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.role')}</th>
+                  <th scope="col" className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('ops.roles.permissions')}</th>
+                  <th scope="col" className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.actions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-donor-border/40">

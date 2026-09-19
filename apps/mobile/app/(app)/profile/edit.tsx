@@ -102,13 +102,13 @@ export default function EditProfile() {
               onChangeText={(lastName) => setFormData((prev) => ({ ...prev, lastName }))}
             />
             <AppTextInput
-              label="Display name (optional)"
+              label={t('profileEdit.displayNameOptional')}
               placeholder={t('profileEdit.displayNameHint')}
               value={formData.displayName}
               onChangeText={(displayName) => setFormData((prev) => ({ ...prev, displayName }))}
             />
             <AppTextInput
-              label="Phone number (optional)"
+              label={t('profileEdit.phoneOptional')}
               placeholder="+1 234 567 8900"
               keyboardType="phone-pad"
               value={formData.phone}

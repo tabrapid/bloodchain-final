@@ -139,7 +139,7 @@ export default function EditDonorProfile() {
                 onChangeText={(city) => setFormData((prev) => ({ ...prev, city }))}
               />
               <AppTextInput
-                label="District (optional)"
+                label={t('profileEdit.districtOptional')}
                 placeholder={t('profileEdit.districtPlaceholder')}
                 value={formData.district}
                 onChangeText={(district) => setFormData((prev) => ({ ...prev, district }))}

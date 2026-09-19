@@ -226,6 +226,51 @@
 }
 
 /* ------------------------------------------------------------------ */
+/* Focus — one visible ring for everything a keyboard can reach.       */
+/* ------------------------------------------------------------------ */
+
+/*
+ * Sixty-one buttons across the three consoles carried no focus styling at all,
+ * so a keyboard user tabbing through a row of actions had nothing on screen
+ * telling them where they were. The handful of components that style focus
+ * themselves still win: `:where()` has zero specificity, so this is only the
+ * floor, and it is `:focus-visible` rather than `:focus` so a mouse click does
+ * not leave a ring behind.
+ *
+ * `--bc-focus` is the brand secondary, which clears 3:1 against every surface
+ * token in both themes.
+ */
+:root {
+  --bc-focus: 104 183 209;
+}
+
+:where(
+  a[href],
+  button,
+  input,
+  select,
+  textarea,
+  summary,
+  [role='button'],
+  [role='tab'],
+  [tabindex]:not([tabindex='-1'])
+):focus-visible {
+  outline: 2px solid rgb(var(--bc-focus));
+  outline-offset: 2px;
+}
+
+/*
+ * Several controls set `outline-none` to replace the browser ring with their
+ * own `focus:ring-*`. Tailwind's `outline-none` is a *transparent* outline, so
+ * those keep working; this only restores one where nothing replaced it.
+ */
+@media (forced-colors: active) {
+  :where(a[href], button, input, select, textarea, [role='button']):focus-visible {
+    outline: 2px solid Highlight;
+  }
+}
+
+/* ------------------------------------------------------------------ */
 /* Motion — subtle, and fully disabled under reduced-motion.           */
 /* ------------------------------------------------------------------ */
 

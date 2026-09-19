@@ -151,12 +151,12 @@ export default function ModerationPage() {
             <table className="w-full">
               <thead>
                 <tr className="bg-donor-elevated border-b border-donor-border/40">
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('ops.moderation.post')}</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.reason')}</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('ops.moderation.reporter')}</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.status')}</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('ops.moderation.reported')}</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.actions')}</th>
+                  <th scope="col" className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('ops.moderation.post')}</th>
+                  <th scope="col" className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.reason')}</th>
+                  <th scope="col" className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('ops.moderation.reporter')}</th>
+                  <th scope="col" className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.status')}</th>
+                  <th scope="col" className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('ops.moderation.reported')}</th>
+                  <th scope="col" className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.actions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-donor-border/40">

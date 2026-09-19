@@ -329,6 +329,7 @@ export const uz: Catalog = {
   },
 
   health: {
+    aiInsightsHint: 'So‘nggi qon tahlillaringiz uchun oddiy tilda izoh oling.',
     updatedToday: 'Bugun yangilandi',
     updatedYesterday: 'Kecha yangilandi',
     updatedDaysAgo: { one: '{{count}} kun oldin yangilandi', other: '{{count}} kun oldin yangilandi' },
@@ -1929,6 +1930,9 @@ export const uz: Catalog = {
     disclaimer: 'Bu ilova sog‘liqqa oid ma’lumotlar bilan ishlaydi. Ko‘rsatilgan ma’lumotlar professional tibbiy maslahat, tashxis yoki davolash o‘rnini bosmaydi.',
   },
   security: {
+    signOutThisDeviceTitle: 'Shu qurilmadan chiqilsinmi?',
+    signOutThisDeviceBody: 'Siz hozir qo‘lingizdagi qurilmadan chiqmoqdasiz. Ilovadan foydalanish uchun qayta kirishingiz kerak bo‘ladi.',
+    revokeOtherSessionTitle: '{{device}} bekor qilinsinmi?',
     thisDevice: 'Shu qurilma',
     signOut: 'Chiqish',
     title: 'Xavfsizlik',
@@ -1964,6 +1968,9 @@ export const uz: Catalog = {
     a11yShowPassword: 'Parolni ko‘rsatish',
   },
   profileEdit: {
+    displayNameOptional: 'Ko‘rsatiladigan ism (ixtiyoriy)',
+    phoneOptional: 'Telefon raqami (ixtiyoriy)',
+    districtOptional: 'Tuman (ixtiyoriy)',
     personalTitle: 'Shaxsiy ma’lumotlar',
     personalSection: 'Shaxsiy ma’lumot',
     displayNameHint: 'Boshqa donorlar sizni qanday ko‘radi',

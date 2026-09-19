@@ -348,6 +348,7 @@ export const en: Catalog = {
   },
 
   health: {
+    aiInsightsHint: 'Get plain-language explanations of your latest blood results.',
     updatedToday: 'Updated today',
     updatedYesterday: 'Updated yesterday',
     updatedDaysAgo: { one: 'Updated {{count}} day ago', other: 'Updated {{count}} days ago' },
@@ -1989,6 +1990,9 @@ export const en: Catalog = {
     disclaimer: 'This application handles health-related information. What it shows is not a substitute for professional medical advice, diagnosis, or treatment.',
   },
   security: {
+    signOutThisDeviceTitle: 'Sign out of this device?',
+    signOutThisDeviceBody: 'You are signing out the device you are holding. You will need to sign in again to use the app.',
+    revokeOtherSessionTitle: 'Revoke {{device}}?',
     thisDevice: 'This device',
     signOut: 'Sign out',
     title: 'Security',
@@ -2024,6 +2028,9 @@ export const en: Catalog = {
     a11yShowPassword: 'Show password',
   },
   profileEdit: {
+    displayNameOptional: 'Display name (optional)',
+    phoneOptional: 'Phone number (optional)',
+    districtOptional: 'District (optional)',
     personalTitle: 'Personal information',
     personalSection: 'Personal info',
     displayNameHint: 'How other donors see you',

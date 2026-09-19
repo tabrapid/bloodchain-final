@@ -101,13 +101,13 @@ export default function ShipmentsPage() {
             <table className="w-full">
               <thead>
                 <tr className="bg-donor-elevated border-b border-donor-border/40">
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('ops.requests.reference')}</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.status')}</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('ops.shipments.source')}</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('ops.shipments.destination')}</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.courier')}</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.units')}</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.created')}</th>
+                  <th scope="col" className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('ops.requests.reference')}</th>
+                  <th scope="col" className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.status')}</th>
+                  <th scope="col" className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('ops.shipments.source')}</th>
+                  <th scope="col" className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('ops.shipments.destination')}</th>
+                  <th scope="col" className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.courier')}</th>
+                  <th scope="col" className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.units')}</th>
+                  <th scope="col" className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.created')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-donor-border/40">

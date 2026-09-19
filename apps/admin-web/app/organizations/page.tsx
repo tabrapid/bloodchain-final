@@ -222,12 +222,12 @@ export default function OrganizationsPage() {
             <table className="w-full">
               <thead>
                 <tr className="bg-donor-elevated border-b border-donor-border/40">
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.organization')}</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.type')}</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.status')}</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('ops.organizations.staff')}</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.created')}</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.actions')}</th>
+                  <th scope="col" className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.organization')}</th>
+                  <th scope="col" className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.type')}</th>
+                  <th scope="col" className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.status')}</th>
+                  <th scope="col" className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('ops.organizations.staff')}</th>
+                  <th scope="col" className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.created')}</th>
+                  <th scope="col" className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.actions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-donor-border/40">

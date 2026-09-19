@@ -378,6 +378,7 @@ export const ru: Catalog = {
   },
 
   health: {
+    aiInsightsHint: 'Получите понятные пояснения к последним анализам крови.',
     updatedToday: 'Обновлено сегодня',
     updatedYesterday: 'Обновлено вчера',
     updatedDaysAgo: { one: 'Обновлено {{count}} день назад', few: 'Обновлено {{count}} дня назад', other: 'Обновлено {{count}} дней назад' },
@@ -1988,6 +1989,9 @@ export const ru: Catalog = {
     disclaimer: 'Это приложение работает с информацией о здоровье. Показанное не заменяет профессиональную медицинскую консультацию, диагностику или лечение.',
   },
   security: {
+    signOutThisDeviceTitle: 'Выйти на этом устройстве?',
+    signOutThisDeviceBody: 'Вы выходите на устройстве, которое держите в руках. Чтобы пользоваться приложением, потребуется войти заново.',
+    revokeOtherSessionTitle: 'Отозвать «{{device}}»?',
     thisDevice: 'Это устройство',
     signOut: 'Выйти',
     title: 'Безопасность',
@@ -2023,6 +2027,9 @@ export const ru: Catalog = {
     a11yShowPassword: 'Показать пароль',
   },
   profileEdit: {
+    displayNameOptional: 'Отображаемое имя (необязательно)',
+    phoneOptional: 'Номер телефона (необязательно)',
+    districtOptional: 'Район (необязательно)',
     personalTitle: 'Личные данные',
     personalSection: 'Личная информация',
     displayNameHint: 'Как вас видят другие доноры',
