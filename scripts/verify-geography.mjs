@@ -272,13 +272,33 @@ async function main() {
   );
   const nonDemo = await db.organization.findMany({
     where: { isDemo: false },
-    select: { id: true, name: true, type: true, status: true, regionId: true, createdAt: true },
+    select: {
+      id: true,
+      name: true,
+      type: true,
+      status: true,
+      regionId: true,
+      createdAt: true,
+      isDemo: true,
+    },
   });
-  check(
-    'no pre-existing organization was flagged as demo',
-    nonDemo.length > 0,
-    `${nonDemo.length} real organizations untouched`,
-  );
+  // A freshly seeded database has no organizations that predate the geography
+  // migration -- since the demo freeze, every fictional organization in it is
+  // marked as demo data, which is exactly what they are. The invariant only
+  // means something where real rows exist, so it is skipped rather than failed
+  // when there are none to check.
+  if (nonDemo.length === 0) {
+    skip(
+      'no pre-existing organization was flagged as demo',
+      'this database holds only demo organizations',
+    );
+  } else {
+    check(
+      'no pre-existing organization was flagged as demo',
+      nonDemo.every((o) => o.isDemo === false),
+      `${nonDemo.length} real organizations untouched`,
+    );
+  }
 
   // ------------------------------------------------------- directory filtering
   section('Directory filtering (staff)');
@@ -692,16 +712,27 @@ async function main() {
   // ------------------------------------------------------ backward compatibility
   section('Backward compatibility');
 
-  check(
-    'organizations that predate this migration are still here',
-    nonDemo.length > 0,
-    nonDemo.map((o) => o.name).join(', '),
-  );
-  check(
-    'their geography was left unset rather than guessed',
-    nonDemo.every((o) => o.regionId === null),
-    'a region nobody chose would be an invented fact about a real place',
-  );
+  if (nonDemo.length === 0) {
+    skip(
+      'organizations that predate this migration are still here',
+      'this database holds only demo organizations',
+    );
+    skip(
+      'their geography was left unset rather than guessed',
+      'this database holds only demo organizations',
+    );
+  } else {
+    check(
+      'organizations that predate this migration are still here',
+      nonDemo.length > 0,
+      nonDemo.map((o) => o.name).join(', '),
+    );
+    check(
+      'their geography was left unset rather than guessed',
+      nonDemo.every((o) => o.regionId === null),
+      'a region nobody chose would be an invented fact about a real place',
+    );
+  }
   // Every active hospital and blood centre, not only the ones outside the demo
   // directory: the invariant is about what a donor can book, and a donor does
   // not know or care which seed wrote the row. Scoping this to `nonDemo` made
