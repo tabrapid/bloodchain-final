@@ -9,6 +9,7 @@ import {
   Badge,
   Card,
   EmptyState,
+  ErrorState,
   GlassCard,
   LoadingState,
   Screen,
@@ -25,7 +26,7 @@ export default function CampaignsScreen() {
   const [joinError, setJoinError] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
-  const { data, isLoading, refetch } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['campaigns'],
     queryFn: () => getCampaigns({ page: 1, limit: 50, status: 'ACTIVE' }),
   });
@@ -53,6 +54,17 @@ export default function CampaignsScreen() {
       <Screen>
         <ScreenHeader title={t('campaigns.title')} />
         <LoadingState message={t('campaigns.loading')} />
+      </Screen>
+    );
+  }
+
+  // A network failure used to render as an empty list, which reads as
+  // "there are none" -- a different and wrong answer.
+  if (isError) {
+    return (
+      <Screen>
+        <ScreenHeader title={t('campaigns.title')} />
+        <ErrorState onRetry={() => void refetch()} />
       </Screen>
     );
   }

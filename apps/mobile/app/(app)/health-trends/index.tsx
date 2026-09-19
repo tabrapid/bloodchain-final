@@ -26,7 +26,7 @@ import {
 const TIME_RANGES = ['1M', '3M', '6M', '1Y', '2Y', 'ALL'] as const;
 
 export default function HealthTrendsScreen() {
-  const { t } = useTranslation();
+  const { t, formatDate } = useTranslation();
   const { colors } = useTheme();
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -118,14 +118,8 @@ export default function HealthTrendsScreen() {
     return `${sign}${change.toFixed(2)}${pctStr}`;
   };
 
-  const formatDate = (dateStr?: string) => {
-    if (!dateStr) return 'Unknown';
-    return new Date(dateStr).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
-  };
+  const formatPointDate = (dateStr?: string) =>
+    dateStr ? formatDate(dateStr, 'medium') : t('common.unknown');
 
   const chartData = trendData?.points && trendData.points.length > 0
     ? {
@@ -319,7 +313,7 @@ export default function HealthTrendsScreen() {
                   <AppText muted>{trendData.unit}</AppText>
                 </View>
                 <AppText muted style={{ fontSize: 13, marginTop: spacing.xs }}>
-                  {formatDate(trendData.latestValueDate)}
+                  {formatPointDate(trendData.latestValueDate)}
                   {trendData.latestValueLaboratory ? ` • ${trendData.latestValueLaboratory}` : ''}
                 </AppText>
               </View>
@@ -429,7 +423,7 @@ export default function HealthTrendsScreen() {
                     <AppText variant="heading">{item.value} {item.unit}</AppText>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.xs }}>
                       <Calendar size={12} color={colors.textMuted} />
-                      <AppText muted style={{ fontSize: 12 }}>{formatDate(item.date)}</AppText>
+                      <AppText muted style={{ fontSize: 12 }}>{formatPointDate(item.date)}</AppText>
                       {item.laboratoryName && (
                         <>
                           <AppText muted>•</AppText>

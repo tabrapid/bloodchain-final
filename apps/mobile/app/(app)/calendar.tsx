@@ -2,7 +2,15 @@ import { useState, useMemo } from 'react';
 import { View, Pressable, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { CalendarDays, ChevronLeft, ChevronRight, Droplet, FlaskConical, Plus, Stethoscope } from 'lucide-react-native';
-import { AppButton, AppText, Card, GlassCard, Screen, SectionHeader } from '../../src/components';
+import {
+  AppButton,
+  AppText,
+  Card,
+  ErrorState,
+  GlassCard,
+  Screen,
+  SectionHeader,
+} from '../../src/components';
 import { LucideIcon } from '../../src/types/icons';
 import { useMyAppointments } from '../../src/hooks/useAppointments';
 import type { Appointment } from '../../src/api/appointments';
@@ -40,7 +48,7 @@ function getFirstDayOfMonth(year: number, month: number): number {
 
 export default function Calendar() {
   const { colors } = useTheme();
-  const { t, formatMonth, formatWeekday, formatDate } = useTranslation();
+  const { t, formatMonth, formatWeekday, formatDate, formatTime } = useTranslation();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [viewDate, setViewDate] = useState<{ year: number; month: number }>({
@@ -51,7 +59,7 @@ export default function Calendar() {
   // Every appointment, not just the upcoming ones. Filtered to upcoming, the
   // grid could only ever dot future days and any past date you tapped claimed
   // you had nothing on -- in a calendar, where looking back is half the point.
-  const { data: appointments = [], isLoading } = useMyAppointments();
+  const { data: appointments = [], isLoading, isError, refetch } = useMyAppointments();
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -121,9 +129,6 @@ export default function Calendar() {
     const entry = typeOf(type);
     return entry ? colors[entry.color] : colors.textMuted;
   };
-
-  const formatTime = (dateStr: string) =>
-    new Date(dateStr).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
 
   const statusTone = (status: string) => {
     switch (status) {
@@ -275,11 +280,15 @@ export default function Calendar() {
       </GlassCard>
 
       <SectionHeader>
-        {selectedDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+        {formatDate(selectedDate, 'full')}
       </SectionHeader>
 
       {isLoading ? (
         <AppText muted>{t('common.loading')}</AppText>
+      ) : isError ? (
+        // The month grid dots and this list both come from one request, so a
+        // failed one made an empty calendar rather than saying it had failed.
+        <ErrorState onRetry={() => void refetch()} />
       ) : selectedDateAppointments.length === 0 ? (
         <Card style={styles.emptyCard}>
           <View style={styles.emptyIcon}>

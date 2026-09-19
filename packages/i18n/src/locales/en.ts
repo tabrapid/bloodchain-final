@@ -19,6 +19,7 @@ import type { Catalog } from '../translate';
  */
 export const en: Catalog = {
   common: {
+    daysAgo: { one: '{{count}} day ago', other: '{{count}} days ago' },
     dialog: 'Dialog',
     panel: 'Panel',
     noData: 'No data available',
@@ -347,6 +348,10 @@ export const en: Catalog = {
   },
 
   health: {
+    updatedToday: 'Updated today',
+    updatedYesterday: 'Updated yesterday',
+    updatedDaysAgo: { one: 'Updated {{count}} day ago', other: 'Updated {{count}} days ago' },
+    updatedOn: 'Updated {{date}}',
     a11yLatestMarker: 'Latest tracked marker. Open health trends',
     title: 'Health',
     subtitle: 'Your laboratory overview',

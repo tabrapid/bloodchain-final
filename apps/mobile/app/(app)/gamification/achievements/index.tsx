@@ -2,7 +2,7 @@ import React from 'react';
 import { View, ScrollView, StyleSheet, RefreshControl } from 'react-native';
 import { useAchievements } from '../../../../src/hooks/useGamification';
 import { Screen } from '../../../../src/components/Screen';
-import { ScreenHeader } from '../../../../src/components';
+import { ErrorState, ScreenHeader } from '../../../../src/components';
 import { AppText } from '../../../../src/components/AppText';
 import { AchievementCard } from '../../../../src/components/gamification/AchievementCard';
 import { layout, spacing, radius, useTheme, ThemeColors } from '../../../../src/theme';
@@ -12,7 +12,7 @@ export default function AchievementsScreen() {
   const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = React.useMemo(() => createStyles(colors), [colors]);
-  const { data: achievements, isLoading, refetch } = useAchievements();
+  const { data: achievements, isLoading, isError, refetch } = useAchievements();
   const [refreshing, setRefreshing] = React.useState(false);
 
   const onRefresh = React.useCallback(async () => {
@@ -28,6 +28,17 @@ export default function AchievementsScreen() {
         <View style={styles.loadingContainer}>
           <AppText variant="body" muted>{t('common.loading')}</AppText>
         </View>
+      </Screen>
+    );
+  }
+
+  // A network failure used to render as an empty screen, which reads as
+  // "you have none" -- a different and wrong answer.
+  if (isError && !achievements) {
+    return (
+      <Screen>
+        <ScreenHeader title={t('gamification.achievements')} />
+        <ErrorState onRetry={() => void refetch()} />
       </Screen>
     );
   }

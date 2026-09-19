@@ -88,7 +88,7 @@ function getVitalIconAndColor(
 
 export default function Health() {
   const { colors } = useTheme();
-  const { t } = useTranslation();
+  const { t, formatDate } = useTranslation();
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [summary, setSummary] = useState<TrendSummary | null>(null);
@@ -162,7 +162,10 @@ export default function Health() {
   const inRange = isWithinReferenceRange(trend);
 
   const measurementCount = trend ? trend.points.length : (latestParam?.measurementCount ?? 0);
-  const updatedLabel = formatUpdated(trend?.latestValueDate ?? latestParam?.latestValueDate);
+  const updatedLabel = formatUpdated(trend?.latestValueDate ?? latestParam?.latestValueDate, {
+    t,
+    formatDate,
+  });
 
   return (
     <Screen
@@ -423,11 +426,7 @@ export default function Health() {
                       </AppText>
                       <AppText muted style={{ fontSize: 12, marginTop: 2 }}>
                         {result.publishedAt
-                          ? new Date(result.publishedAt).toLocaleDateString('en-US', {
-                              day: 'numeric',
-                              month: 'short',
-                              year: 'numeric',
-                            })
+                          ? formatDate(result.publishedAt, 'medium')
                           : t('health.dateUnknown')}
                       </AppText>
                     </View>

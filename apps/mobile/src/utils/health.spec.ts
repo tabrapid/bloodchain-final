@@ -1,3 +1,4 @@
+import { createLocalization } from '@bloodchain/i18n';
 import { formatUpdated, isWithinReferenceRange } from './health';
 import type { TrendData } from '../api/health-trends';
 
@@ -67,18 +68,40 @@ describe('isWithinReferenceRange', () => {
 describe('formatUpdated', () => {
   const now = new Date('2026-09-06T12:00:00.000Z');
 
+  // The helper used to build these phrases in English and format the fallback
+  // date as `en-US`, so a donor reading the app in Uzbek saw "Updated 3 days
+  // ago" under an Uzbek heading. It takes the screen's own translator now, and
+  // the assertions read the catalogue rather than restating English.
+  const en = createLocalization('en');
+  const formatters = { t: en.t, formatDate: en.formatDate };
+
   it('describes recent dates in days, not calendar dates', () => {
-    expect(formatUpdated('2026-09-06T08:00:00.000Z', now)).toBe('Updated today');
-    expect(formatUpdated('2026-09-05T08:00:00.000Z', now)).toBe('Updated yesterday');
-    expect(formatUpdated('2026-09-03T08:00:00.000Z', now)).toBe('Updated 3 days ago');
+    expect(formatUpdated('2026-09-06T08:00:00.000Z', formatters, now)).toBe(
+      en.t('health.updatedToday'),
+    );
+    expect(formatUpdated('2026-09-05T08:00:00.000Z', formatters, now)).toBe(
+      en.t('health.updatedYesterday'),
+    );
+    expect(formatUpdated('2026-09-03T08:00:00.000Z', formatters, now)).toBe(
+      en.t('health.updatedDaysAgo', { count: 3 }),
+    );
   });
 
   it('falls back to a calendar date past a week', () => {
-    expect(formatUpdated('2026-08-20T08:00:00.000Z', now)).toMatch(/^Updated Aug \d+$/);
+    expect(formatUpdated('2026-08-20T08:00:00.000Z', formatters, now)).toBe(
+      en.t('health.updatedOn', { date: en.formatDate('2026-08-20T08:00:00.000Z', 'medium') }),
+    );
+  });
+
+  it('speaks the donor’s language, not the developer’s', () => {
+    const uz = createLocalization('uz');
+    expect(
+      formatUpdated('2026-09-06T08:00:00.000Z', { t: uz.t, formatDate: uz.formatDate }, now),
+    ).toBe(uz.t('health.updatedToday'));
   });
 
   it('returns nothing for a missing or unparseable date', () => {
-    expect(formatUpdated(undefined, now)).toBeNull();
-    expect(formatUpdated('not-a-date', now)).toBeNull();
+    expect(formatUpdated(undefined, formatters, now)).toBeNull();
+    expect(formatUpdated('not-a-date', formatters, now)).toBeNull();
   });
 });

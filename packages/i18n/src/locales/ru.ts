@@ -16,6 +16,7 @@ import type { Catalog } from '../translate';
  */
 export const ru: Catalog = {
   common: {
+    daysAgo: { one: '{{count}} день назад', few: '{{count}} дня назад', other: '{{count}} дней назад' },
     dialog: 'Диалог',
     panel: 'Панель',
     noData: 'Нет данных',
@@ -377,6 +378,10 @@ export const ru: Catalog = {
   },
 
   health: {
+    updatedToday: 'Обновлено сегодня',
+    updatedYesterday: 'Обновлено вчера',
+    updatedDaysAgo: { one: 'Обновлено {{count}} день назад', few: 'Обновлено {{count}} дня назад', other: 'Обновлено {{count}} дней назад' },
+    updatedOn: 'Обновлено {{date}}',
     a11yLatestMarker: 'Последний отслеженный показатель. Открыть динамику здоровья',
     title: 'Здоровье',
     subtitle: 'Обзор ваших анализов',

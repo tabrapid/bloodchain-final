@@ -5,6 +5,7 @@ import { Droplet, MapPin, ChevronRight } from 'lucide-react-native';
 import {
   AppText,
   EmptyState,
+  ErrorState,
   GlassCard,
   Screen,
   ScreenHeader,
@@ -45,7 +46,7 @@ export default function DonationsScreen() {
     [t],
   );
 
-  const { data, isLoading, refetch, isRefetching } = useMyDonations(FILTER_PARAMS[filter]);
+  const { data, isLoading, isError, refetch, isRefetching } = useMyDonations(FILTER_PARAMS[filter]);
   const { data: stats } = useDonationStatistics();
 
   const donations: Donation[] = data?.data ?? [];
@@ -97,6 +98,10 @@ export default function DonationsScreen() {
                 <SkeletonCard key={i} />
               ))}
             </View>
+          ) : isError ? (
+            // An unreachable server used to render the same "no donations yet"
+            // card as an account with none, which is a different fact.
+            <ErrorState onRetry={() => void refetch()} />
           ) : (
             <EmptyState
               title={t('donationHistory.empty')}

@@ -1,4 +1,5 @@
-import { render, screen } from '@testing-library/react';
+import { useState } from 'react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -122,5 +123,73 @@ describe('Modal', () => {
       </Modal>,
     );
     expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
+  });
+
+  /**
+   * `aria-modal` tells a screen reader the rest of the page is inert; it does
+   * not stop the browser tabbing into it. Without a trap, Tab from the last
+   * field landed on the page behind the dialog -- still visible, still
+   * clickable, and no longer obviously not the dialog.
+   */
+  it('moves focus into the dialog when it opens', async () => {
+    render(
+      <Modal open onClose={() => {}} title="Discard unit">
+        <input aria-label="Reason" />
+      </Modal>,
+    );
+
+    await waitFor(() => {
+      expect(document.activeElement).not.toBe(document.body);
+    });
+    expect(screen.getByRole('dialog').contains(document.activeElement)).toBe(true);
+  });
+
+  it('keeps Tab inside the dialog, wrapping at both ends', async () => {
+    const user = userEvent.setup();
+    render(
+      <>
+        <button>Behind the dialog</button>
+        <Modal open onClose={() => {}} title="Discard unit">
+          <input aria-label="Reason" />
+          <button>Confirm</button>
+        </Modal>
+      </>,
+    );
+
+    const dialog = screen.getByRole('dialog');
+    await waitFor(() => expect(dialog.contains(document.activeElement)).toBe(true));
+
+    // Round the whole dialog and back, never reaching the page behind it.
+    for (let step = 0; step < 6; step++) {
+      await user.tab();
+      expect(dialog.contains(document.activeElement)).toBe(true);
+    }
+
+    await user.tab({ shift: true });
+    expect(dialog.contains(document.activeElement)).toBe(true);
+  });
+
+  it('returns focus to whatever opened it', async () => {
+    function Harness() {
+      const [open, setOpen] = useState(false);
+      return (
+        <>
+          <button onClick={() => setOpen(true)}>Open</button>
+          <Modal open={open} onClose={() => setOpen(false)} title="Discard unit">
+            <button onClick={() => setOpen(false)}>Done</button>
+          </Modal>
+        </>
+      );
+    }
+
+    const user = userEvent.setup();
+    render(<Harness />);
+
+    const opener = screen.getByRole('button', { name: 'Open' });
+    await user.click(opener);
+    await waitFor(() => expect(screen.getByRole('dialog')).toBeInTheDocument());
+
+    await user.click(screen.getByRole('button', { name: 'Done' }));
+    await waitFor(() => expect(document.activeElement).toBe(opener));
   });
 });

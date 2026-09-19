@@ -49,7 +49,7 @@ const STATUS_VARIANT: Record<string, BadgeProps['variant']> = {
 };
 
 export default function AppointmentDetail() {
-  const { t } = useTranslation();
+  const { t, formatDate, formatTime } = useTranslation();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const params = useLocalSearchParams<{ id: string }>();
@@ -148,12 +148,7 @@ export default function AppointmentDetail() {
               icon={<Calendar size={18} color={colors.success} />}
               tint={`${colors.success}26`}
               label={t('table.date')}
-              value={start.toLocaleDateString('en-US', {
-                weekday: 'long',
-                month: 'long',
-                day: 'numeric',
-                year: 'numeric',
-              })}
+              value={formatDate(start, 'full')}
             />
             <View style={styles.divider} />
             <DetailRow
@@ -320,10 +315,6 @@ function DetailRow({ icon, tint, label, value, meta }: DetailRowProps) {
       </View>
     </View>
   );
-}
-
-function formatTime(date: Date): string {
-  return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
 }
 
 function createStyles(colors: ThemeColors) {

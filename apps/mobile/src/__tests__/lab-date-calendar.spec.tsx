@@ -152,7 +152,7 @@ describe('laboratory date step', () => {
     const enabled = dayCells(tree).filter((cell) => !cell.props.accessibilityState.disabled);
 
     expect(enabled).toHaveLength(1);
-    expect(enabled[0].props.accessibilityLabel).toContain(String(openDay.getDate()));
+    expect(enabled[0]?.props.accessibilityLabel).toContain(String(openDay.getDate()));
   });
 
   it('says a closed day is unavailable rather than leaving it silently inert', () => {

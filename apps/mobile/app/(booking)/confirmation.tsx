@@ -9,30 +9,16 @@ import { layout, spacing, translucentElevation, useTheme, ThemeColors } from '..
 import { useTranslation } from '../../src/i18n';
 
 export default function BookingConfirmation() {
-  const { t } = useTranslation();
+  const { t, formatDate, formatTime } = useTranslation();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const params = useLocalSearchParams<{ appointmentId: string; rescheduled?: string }>();
   const { data: appointment, isLoading } = useAppointment(params.appointmentId);
   const isRescheduled = params.rescheduled === '1';
 
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-  };
-
-  const formatTime = (dateStr: string) => {
-    return new Date(dateStr).toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-    });
-  };
-
+  // Dates and times used to be formatted with `toLocaleDateString('en-US')` and
+  // a 12-hour clock, regardless of the donor's language -- and against the
+  // product's own rule that Uzbekistan reads a 24-hour clock in all three.
   return (
     <Screen>
       <View style={styles.content}>

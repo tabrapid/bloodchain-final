@@ -16,6 +16,7 @@ import type { Catalog } from '../translate';
  */
 export const uz: Catalog = {
   common: {
+    daysAgo: { one: '{{count}} kun oldin', other: '{{count}} kun oldin' },
     dialog: 'Oyna',
     panel: 'Panel',
     noData: 'Ma’lumot yo‘q',
@@ -328,6 +329,10 @@ export const uz: Catalog = {
   },
 
   health: {
+    updatedToday: 'Bugun yangilandi',
+    updatedYesterday: 'Kecha yangilandi',
+    updatedDaysAgo: { one: '{{count}} kun oldin yangilandi', other: '{{count}} kun oldin yangilandi' },
+    updatedOn: '{{date}} yangilandi',
     a11yLatestMarker: 'Oxirgi kuzatilgan ko‘rsatkich. Salomatlik dinamikasini ochish',
     title: 'Salomatlik',
     subtitle: 'Laboratoriya ko‘rsatkichlaringiz',

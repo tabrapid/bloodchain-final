@@ -70,15 +70,24 @@ const POST_TYPES: Record<string, { labelKey: string; icon: LucideIcon; accent: A
   IMPACT: { labelKey: 'community.impact', icon: Sparkles, accent: 'success' },
 };
 
-/** "today" / "3 days ago" / "12 Mar". */
-function formatWhen(iso: string): string {
+/**
+ * "today" / "3 days ago" / "12 Mar", in the donor's language.
+ *
+ * The three words and the date format were all hardcoded English, on a feed
+ * whose posts are in Uzbek.
+ */
+function formatWhen(
+  iso: string,
+  t: (key: string, options?: { count?: number }) => string,
+  formatDate: (value: string, style?: 'full' | 'long' | 'medium' | 'short') => string,
+): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return '';
   const days = Math.floor((Date.now() - date.getTime()) / 86_400_000);
-  if (days <= 0) return 'Today';
-  if (days === 1) return 'Yesterday';
-  if (days < 7) return `${days} days ago`;
-  return date.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
+  if (days <= 0) return t('common.today');
+  if (days === 1) return t('common.yesterday');
+  if (days < 7) return t('common.daysAgo', { count: days });
+  return formatDate(iso, 'medium');
 }
 
 export default function CommunityScreen() {
@@ -220,7 +229,7 @@ function HeroStat({ value, label }: { value: number; label: string }) {
 
 function FeedPostCard({ post }: { post: CommunityPost }) {
   const { colors } = useTheme();
-  const { t } = useTranslation();
+  const { t, formatDate } = useTranslation();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const authorName =
     post.author?.displayName ||
@@ -277,7 +286,7 @@ function FeedPostCard({ post }: { post: CommunityPost }) {
             {authorName}
           </AppText>
           <AppText muted style={styles.tinyText}>
-            {formatWhen(post.publishedAt)}
+            {formatWhen(post.publishedAt, t, formatDate)}
           </AppText>
         </View>
         <View style={[styles.typePill, { backgroundColor: `${accent}26`, borderColor: `${accent}40` }]}>

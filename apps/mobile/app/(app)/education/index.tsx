@@ -16,6 +16,7 @@ import {
   Badge,
   Card,
   EmptyState,
+  ErrorState,
   GlassCard,
   LoadingState,
   Screen,
@@ -32,7 +33,7 @@ export default function EducationScreen() {
   const [actionError, setActionError] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
-  const { data: content, isLoading, refetch } = useQuery({
+  const { data: content, isLoading, isError, refetch } = useQuery({
     queryKey: ['educational-content'],
     queryFn: () => getEducationalContent({ page: 1, limit: 50 }),
   });
@@ -92,6 +93,17 @@ export default function EducationScreen() {
       <Screen>
         <ScreenHeader title={t('education.title')} />
         <LoadingState message={t('education.loading')} />
+      </Screen>
+    );
+  }
+
+  // A network failure used to render as an empty list, which reads as
+  // "there are none" -- a different and wrong answer.
+  if (isError) {
+    return (
+      <Screen>
+        <ScreenHeader title={t('education.title')} />
+        <ErrorState onRetry={() => void refetch()} />
       </Screen>
     );
   }

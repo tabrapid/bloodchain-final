@@ -1,7 +1,11 @@
-import { useEffect, useId } from 'react';
+import { useEffect, useId, useRef } from 'react';
 import { X } from 'lucide-react';
 import { useOptionalTranslation } from '../../i18n';
 import { cn } from '../cn';
+
+/** What Tab can reach, shared by the two dialog surfaces. */
+const FOCUSABLE =
+  'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 export interface DrawerProps {
   open: boolean;
@@ -15,17 +19,51 @@ export interface DrawerProps {
 export function Drawer({ open, onClose, title, children, footer, className }: DrawerProps) {
   const titleId = useId();
   const { t } = useOptionalTranslation();
+  const panelRef = useRef<HTMLDivElement>(null);
 
   // Same as Modal: without this the drawer cannot be dismissed from the
-  // keyboard at all.
+  // keyboard at all, and Tab walks straight out of it into the page behind.
   useEffect(() => {
     if (!open) return;
+
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
+      if (event.key === 'Escape') {
+        onClose();
+        return;
+      }
+      if (event.key !== 'Tab' || !panelRef.current) return;
+
+      const focusable = panelRef.current.querySelectorAll<HTMLElement>(FOCUSABLE);
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (!first || !last) return;
+
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
     };
+
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
   }, [open, onClose]);
+
+  useEffect(() => {
+    if (!open) return;
+    const previous = document.activeElement as HTMLElement | null;
+    const focus = window.setTimeout(() => {
+      if (panelRef.current?.contains(document.activeElement)) return;
+      panelRef.current?.querySelector<HTMLElement>(FOCUSABLE)?.focus();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(focus);
+      previous?.focus?.();
+    };
+  }, [open]);
 
   if (!open) return null;
 
@@ -37,6 +75,7 @@ export function Drawer({ open, onClose, title, children, footer, className }: Dr
         aria-hidden="true"
       />
       <div
+        ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-label={title ? undefined : t('common.panel')}

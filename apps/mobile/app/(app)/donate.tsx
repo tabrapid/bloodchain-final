@@ -67,13 +67,9 @@ function daysBetween(from: number, to: number): number {
   return Math.ceil((to - from) / 86_400_000);
 }
 
-function formatDate(date: Date): string {
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-}
-
 export default function Donate() {
   const { colors } = useTheme();
-  const { t } = useTranslation();
+  const { t, formatDate } = useTranslation();
   const { data: stats } = useDonationStatistics();
   // Enough history to count every donation per type -- at 3, the tiles below
   // were counting the three most recent donations and calling it a total.

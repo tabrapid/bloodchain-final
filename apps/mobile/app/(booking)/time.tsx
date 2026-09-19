@@ -19,7 +19,7 @@ import { useTranslation } from '../../src/i18n';
 const SCARCE_SPOTS = 3;
 
 export default function SelectTime() {
-  const { t, formatDayHeading } = useTranslation();
+  const { t, formatDayHeading, formatTime } = useTranslation();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const params = useLocalSearchParams<{
@@ -165,14 +165,6 @@ export default function SelectTime() {
       )}
     </BookingStep>
   );
-}
-
-function formatTime(dateStr: string): string {
-  return new Date(dateStr).toLocaleTimeString('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true,
-  });
 }
 
 function createStyles(colors: ThemeColors) {

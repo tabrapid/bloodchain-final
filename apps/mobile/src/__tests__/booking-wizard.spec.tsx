@@ -62,7 +62,7 @@ import { createLocalization } from '@bloodchain/i18n';
  * The screens' own words, looked up the way the screens look them up, so a
  * catalogue rewording moves the assertion with it instead of breaking it.
  */
-const { t } = createLocalization('en');
+const { t, formatTime } = createLocalization('en');
 
 const organization = {
   id: 'org-1',
@@ -257,11 +257,10 @@ describe('Booking wizard: what each step hands the next', () => {
 
     const tree = await render(<SelectTime />);
 
-    const slotLabel = new Date(slot.startAt).toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-    });
+    // The step labels its chips through the shared formatter, which is a
+    // 24-hour clock in every language on purpose -- so the assertion reads the
+    // same formatter rather than restating a US 12-hour format.
+    const slotLabel = formatTime(slot.startAt);
     await press(tree, slotLabel);
     await press(tree, t('common.continue'));
 

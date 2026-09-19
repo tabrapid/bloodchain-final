@@ -2,35 +2,29 @@ import { useMemo } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { Droplet, Calendar, Clock, Building2, MapPin, AlertCircle } from 'lucide-react-native';
-import { AppButton, AppText, Card, GlassCard, Screen, ScreenHeader } from '../../../src/components';
+import {
+  AppButton,
+  AppText,
+  Card,
+  ErrorState,
+  GlassCard,
+  Screen,
+  ScreenHeader,
+} from '../../../src/components';
 import { useDonation } from '../../../src/hooks/useDonations';
 import { layout, spacing, useTheme, ThemeColors } from '../../../src/theme';
 import { useTranslation } from '../../../src/i18n';
 
 export default function DonationDetailScreen() {
-  const { t } = useTranslation();
+  const { t, formatDate, formatTime } = useTranslation();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const params = useLocalSearchParams<{ id: string }>();
-  const { data: donation, isLoading } = useDonation(params.id);
+  const { data: donation, isLoading, isError, refetch } = useDonation(params.id);
 
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-  };
-
-  const formatTime = (dateStr: string) => {
-    return new Date(dateStr).toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-    });
-  };
-
+  // Dates and times used to be formatted with `toLocaleDateString('en-US')` and
+  // a 12-hour clock, regardless of the donor's language -- and against the
+  // product's own rule that Uzbekistan reads a 24-hour clock in all three.
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'COMPLETED':
@@ -51,6 +45,17 @@ export default function DonationDetailScreen() {
       <Screen>
         <ScreenHeader title={t('donationHistory.detailTitle')} />
         <AppText>{t('common.loading')}</AppText>
+      </Screen>
+    );
+  }
+
+  // "Not found" and "could not reach the server" were the same screen, which
+  // told the donor their donation was gone when the network had simply failed.
+  if (isError) {
+    return (
+      <Screen>
+        <ScreenHeader title={t('donationHistory.detailTitle')} />
+        <ErrorState onRetry={() => void refetch()} />
       </Screen>
     );
   }

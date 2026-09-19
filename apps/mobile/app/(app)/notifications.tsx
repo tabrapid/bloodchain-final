@@ -22,6 +22,7 @@ import {
   ScreenHeader,
   SegmentedControl,
   EmptyState,
+  ErrorState,
   SkeletonCard,
 } from '../../src/components';
 import {
@@ -88,7 +89,7 @@ export default function NotificationsCenter() {
   const [filter, setFilter] = useState<Filter>('all');
   const [refreshing, setRefreshing] = useState(false);
 
-  const { data, isLoading, refetch } = useNotifications(
+  const { data, isLoading, isError, refetch } = useNotifications(
     filter === 'unread' ? { isRead: false } : undefined,
   );
   const { data: stats } = useNotificationStats();
@@ -172,6 +173,10 @@ export default function NotificationsCenter() {
                 <SkeletonCard key={i} />
               ))}
             </View>
+          ) : isError ? (
+            // "All caught up" and "we could not reach the server" are not the
+            // same message, and one of them is reassuring when it should not be.
+            <ErrorState onRetry={() => void refetch()} />
           ) : (
             <EmptyState
               title={t('notifications.empty')}
