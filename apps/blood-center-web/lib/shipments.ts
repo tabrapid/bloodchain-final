@@ -25,6 +25,16 @@ export interface BloodRequest {
   deliveredAt?: string;
   cancelledAt?: string;
   cancellationReason?: string;
+  /**
+   * Set when the fulfilling blood centre declined the request.
+   *
+   * Kept apart from `cancelledAt`/`cancellationReason`, which record the
+   * requesting hospital withdrawing its own request -- the hospital reading
+   * this back needs to be able to tell the two apart.
+   */
+  rejectedAt?: string | null;
+  rejectedById?: string | null;
+  rejectionReason?: string | null;
   createdAt: string;
   updatedAt: string;
   items: BloodRequestItem[];
@@ -150,6 +160,24 @@ export function approveBloodRequest(
   return apiRequest(`/organizations/${organizationId}/blood-requests/${requestId}/approve`, {
     method: 'POST',
     body: JSON.stringify(params),
+  });
+}
+
+/**
+ * Decline a request outright, with a reason the hospital will see.
+ *
+ * Before this route existed the only way to refuse was to "approve" every item
+ * for zero units, which set REJECTED as a side effect and recorded no reason,
+ * no actor and no timestamp.
+ */
+export function rejectBloodRequest(
+  organizationId: string,
+  requestId: string,
+  reason: string,
+): Promise<BloodRequest> {
+  return apiRequest(`/organizations/${organizationId}/blood-requests/${requestId}/reject`, {
+    method: 'POST',
+    body: JSON.stringify({ reason }),
   });
 }
 

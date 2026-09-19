@@ -22,6 +22,7 @@ import { ShipmentsService } from './shipments.service';
 import {
   ApproveRequestDto,
   CreateBloodRequestDto,
+  RejectRequestDto,
   CreateShipmentDto,
   DeclineShipmentDto,
   FailShipmentDto,
@@ -85,6 +86,18 @@ export class ShipmentsController {
     @Req() req: Request,
   ) {
     return { data: await this.shipments.approveRequest(organizationId, userId, requestId, dto) };
+  }
+
+  @Post('organizations/:organizationId/blood-requests/:requestId/reject')
+  @Roles(RoleCode.BLOOD_CENTER_ADMIN, RoleCode.BLOOD_CENTER_STAFF, RoleCode.SUPER_ADMIN)
+  @ApiOperation({ summary: 'Reject blood request' })
+  async rejectRequest(
+    @Param('organizationId') organizationId: string,
+    @Param('requestId') requestId: string,
+    @Body() dto: RejectRequestDto,
+    @CurrentUser('sub') userId: string,
+  ) {
+    return { data: await this.shipments.rejectRequest(organizationId, userId, requestId, dto) };
   }
 
   @Post('organizations/:organizationId/blood-requests/:requestId/ready-for-pickup')

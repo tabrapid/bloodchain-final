@@ -313,6 +313,8 @@ export class DonorsService {
       throw new ForbiddenException('You can only view your own donor profile.');
     }
 
+    const isStaff = isHospitalStaff || isBloodCenterStaff;
+
     const profile = await this.db.donorProfile.findUnique({
       where: { userId: donorId },
       include: {
@@ -320,11 +322,18 @@ export class DonorsService {
           select: {
             id: true,
             email: true,
+            phone: true,
             firstName: true,
             lastName: true,
             displayName: true,
+            emailVerified: true,
+            phoneVerified: true,
+            status: true,
+            createdAt: true,
           },
         },
+        region: { select: { id: true, nameUz: true, nameRu: true, nameEn: true } },
+        districtRef: { select: { id: true, nameUz: true, nameRu: true, nameEn: true } },
       },
     });
 
@@ -332,7 +341,72 @@ export class DonorsService {
       throw new NotFoundException('Donor profile not found.');
     }
 
-    return { data: profile };
+    // A donor reading their own profile gets what they always got. The extra
+    // below is the operational picture a desk needs before it lets someone
+    // donate, and it is deliberately gated on the staff check above rather
+    // than being sent to every caller.
+    if (!isStaff) {
+      return { data: profile };
+    }
+
+    const [verifier, donationStats, recentDonations, lastDonation] = await Promise.all([
+      profile.bloodTypeVerifiedBy
+        ? this.db.user.findUnique({
+            where: { id: profile.bloodTypeVerifiedBy },
+            select: { id: true, firstName: true, lastName: true },
+          })
+        : Promise.resolve(null),
+
+      this.db.donation.aggregate({
+        where: { donorId, status: 'COMPLETED' },
+        _count: { _all: true },
+        _sum: { volumeMl: true },
+      }),
+
+      // A short history, not the whole record: enough for the desk to see the
+      // pattern without turning this into a medical file.
+      this.db.donation.findMany({
+        where: { donorId, status: 'COMPLETED' },
+        orderBy: { completedAt: 'desc' },
+        take: 5,
+        select: {
+          id: true,
+          donationReference: true,
+          completedAt: true,
+          volumeMl: true,
+          organization: { select: { id: true, name: true } },
+        },
+      }),
+
+      this.db.donation.findFirst({
+        where: { donorId, status: 'COMPLETED' },
+        orderBy: { completedAt: 'desc' },
+        select: { completedAt: true },
+      }),
+    ]);
+
+    return {
+      data: {
+        ...profile,
+        // Who vouched for the blood group, alongside when and from what source
+        // the profile already carried. A verification with no visible verifier
+        // is not provenance, it is a timestamp.
+        bloodTypeVerifier: verifier,
+        // Whether this person can be reached at all, without exposing the
+        // verification tokens themselves.
+        contact: {
+          hasVerifiedContact: hasVerifiedContact(profile.user),
+          emailVerified: profile.user.emailVerified,
+          phoneVerified: profile.user.phoneVerified,
+        },
+        donationSummary: {
+          completedCount: donationStats._count._all,
+          totalVolumeMl: donationStats._sum.volumeMl ?? 0,
+          lastDonationAt: lastDonation?.completedAt ?? null,
+        },
+        recentDonations,
+      },
+    };
   }
 
   async listDonors(

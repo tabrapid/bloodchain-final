@@ -158,6 +158,30 @@ export default function BloodRequestDetailPage() {
         )}
       </div>
 
+      {request.rejectionReason && (
+        <div className="mb-6 rounded-card border border-donor-danger/40 bg-donor-dangerMuted p-5">
+          <div className="flex items-start gap-3">
+            <XCircle size={18} className="mt-0.5 shrink-0 text-donor-onDangerMuted" />
+            <div>
+              <p className="text-sm font-semibold text-donor-onDangerMuted">
+                {t('ops.requests.rejected')}
+              </p>
+              <p className="mt-1 whitespace-pre-wrap text-sm text-donor-text">
+                {request.rejectionReason}
+              </p>
+              {request.rejectedAt && (
+                <p className="mt-2 text-xs text-donor-muted">
+                  {new Date(request.rejectedAt).toLocaleString()}
+                  {request.fulfillingOrganization
+                    ? ` \u00b7 ${request.fulfillingOrganization.name}`
+                    : ''}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
           <div className="bc-glass rounded-card p-5">

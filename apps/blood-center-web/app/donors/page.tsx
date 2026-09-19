@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Activity, Search, ShieldCheck, Users } from 'lucide-react';
 import {
   DataTable,
@@ -41,6 +42,7 @@ function verificationVariant(status: string): StatusVariant {
 
 export default function DonorsPage() {
   const { t } = useTranslation();
+  const router = useRouter();
   const [user, setUser] = useState<MeResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -277,7 +279,16 @@ export default function DonorsPage() {
         />
       ) : (
         <>
-          <DataTable columns={columns} rows={donors} keyExtractor={(d) => d.id} />
+          <DataTable
+            columns={columns}
+            rows={donors}
+            keyExtractor={(d) => d.id}
+            // The directory listed donors and led nowhere. A row now opens the
+            // record; `userId` rather than `id`, because `GET /donors/:id`
+            // takes the user id, not the profile's.
+            onRowClick={(d) => router.push(`/donors/${d.userId}`)}
+            rowLabel={(d) => `${d.user.firstName} ${d.user.lastName}`}
+          />
 
           {totalPages > 1 && (
             <div className="mt-4 flex items-center justify-between">

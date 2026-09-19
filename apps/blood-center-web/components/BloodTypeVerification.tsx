@@ -22,7 +22,9 @@ const SOURCES: VerificationSource[] = [
   'OTHER_AUTHORIZED_SOURCE',
 ];
 
-const SOURCE_KEYS: Record<VerificationSource, string> = {
+/** Catalogue key per provenance source; exported so the donor detail page
+ * names a verification's origin the same way this dialog does. */
+export const SOURCE_KEYS: Record<VerificationSource, string> = {
   BLOOD_CENTER: 'ops.donors.verification.sourceBloodCenter',
   HOSPITAL: 'ops.donors.verification.sourceHospital',
   LABORATORY: 'ops.donors.verification.sourceLaboratory',

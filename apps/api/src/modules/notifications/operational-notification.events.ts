@@ -66,3 +66,23 @@ export interface LevelUpPayload {
   userId: string;
   newLevel: number;
 }
+
+export const BLOOD_REQUEST_REJECTED_EVENT = 'blood-request.rejected';
+
+/**
+ * A blood centre declining a hospital's request.
+ *
+ * The hospital that raised the request is the audience: it has people waiting
+ * on an answer, and until now the only way to say no was to approve every item
+ * for zero units, which produced no reason and told nobody.
+ */
+export interface BloodRequestRejectedPayload {
+  requestId: string;
+  requestReference: string;
+  /** The hospital that asked; its staff are the recipients. */
+  requestingOrganizationId: string;
+  /** The blood centre that declined. */
+  fulfillingOrganizationId: string;
+  fulfillingOrganizationName: string;
+  reason: string;
+}

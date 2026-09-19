@@ -13,10 +13,12 @@ import {
 } from '../appointment-notification.events';
 import {
   ACHIEVEMENT_UNLOCKED_EVENT,
+  BLOOD_REQUEST_REJECTED_EVENT,
   INVENTORY_ALERT_EVENT,
   LEVEL_UP_EVENT,
   SECURITY_EVENT,
   type AchievementUnlockedPayload,
+  type BloodRequestRejectedPayload,
   type InventoryAlertPayload,
   type LevelUpPayload,
   type SecurityEventPayload,
@@ -370,6 +372,30 @@ export class NotificationEventHandler {
       }
     } catch (error) {
       this.logger.error('Failed to handle security event:', error);
+    }
+  }
+
+  @OnEvent(BLOOD_REQUEST_REJECTED_EVENT)
+  async handleBloodRequestRejected(payload: BloodRequestRejectedPayload) {
+    try {
+      this.logger.log(`Handling rejected blood request: ${payload.requestReference}`);
+
+      // The hospital that raised the request, not the centre that declined it.
+      const recipientIds = await this.organizationStaff(payload.requestingOrganizationId);
+      if (recipientIds.length === 0) {
+        this.logger.warn(
+          `Blood request ${payload.requestReference}: requesting organization has no active members to notify.`,
+        );
+        return;
+      }
+
+      const result = await this.router.routeBloodRequestRejected(payload, recipientIds);
+
+      for (const notification of result.notifications) {
+        await this.delivery.deliver(notification.id);
+      }
+    } catch (error) {
+      this.logger.error('Failed to handle blood request rejected event:', error);
     }
   }
 }

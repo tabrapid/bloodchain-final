@@ -26,6 +26,10 @@ import { LocationService } from './services/location.service';
 import { ShipmentStateMachine } from './services/shipment-state.service';
 import { ShipmentGateway } from '../../gateways/shipment.gateway';
 import { assertOrganizationActive } from '../../common/utils/organization-status.util';
+import {
+  BLOOD_REQUEST_REJECTED_EVENT,
+  type BloodRequestRejectedPayload,
+} from '../notifications/operational-notification.events';
 
 const SHIPMENT_EVENT = 'shipment.event';
 const DEFAULT_ETA_SPEED_KMH = 40;
@@ -419,6 +423,124 @@ export class ShipmentsService {
       organizationId,
       metadata: { status: result.status },
     });
+
+    return result;
+  }
+
+
+  /**
+   * The blood centre declines a request outright.
+   *
+   * Until now there was no way to say no. The only route that could reach
+   * REJECTED was `approveRequest`, as a side effect of approving every item for
+   * zero units -- so refusing a request meant claiming to have approved it, and
+   * left no reason, no named actor and no rejection timestamp. A hospital
+   * looking at the result could not tell a refusal from a fulfilment of
+   * nothing, and was never told at all.
+   *
+   * The request is not deleted and the items are not touched beyond recording
+   * that none were approved: the hospital keeps its record of what it asked
+   * for, and can raise a new request.
+   */
+  async rejectRequest(
+    organizationId: string,
+    userId: string,
+    requestId: string,
+    dto: { reason: string },
+  ) {
+    const { user } = await this.checkBloodCenterAccess(userId, organizationId);
+
+    const request = await this.db.bloodRequest.findUnique({
+      where: { id: requestId },
+      include: { items: true, requestingOrganization: { select: { id: true, name: true } } },
+    });
+
+    if (!request) {
+      throw new NotFoundException('Blood request not found.');
+    }
+
+    // The same two states `approveRequest` accepts. A request already approved,
+    // shipped or delivered is past the point where declining it means anything,
+    // and a second rejection is refused here rather than notifying twice.
+    if (
+      request.status !== BloodRequestStatus.SUBMITTED &&
+      request.status !== BloodRequestStatus.UNDER_REVIEW
+    ) {
+      throw new BadRequestException('Request cannot be rejected in its current state.');
+    }
+
+    const reason = dto.reason?.trim();
+    if (!reason) {
+      throw new BadRequestException('A reason is required to reject a blood request.');
+    }
+
+    const fulfillingOrganization = await this.db.organization.findUniqueOrThrow({
+      where: { id: organizationId },
+      select: { id: true, name: true },
+    });
+
+    const result = await this.db.$transaction(async (tx) => {
+      // Conditional update, so two staff rejecting at once produce one
+      // rejection rather than two events and two notifications.
+      const claim = await tx.bloodRequest.updateMany({
+        where: {
+          id: requestId,
+          status: { in: [BloodRequestStatus.SUBMITTED, BloodRequestStatus.UNDER_REVIEW] },
+        },
+        data: {
+          status: BloodRequestStatus.REJECTED,
+          fulfillingOrganizationId: organizationId,
+          rejectedAt: new Date(),
+          rejectedById: user.id,
+          rejectionReason: reason,
+        },
+      });
+
+      if (claim.count === 0) {
+        throw new BadRequestException('Request cannot be rejected in its current state.');
+      }
+
+      // Nothing was approved. Written explicitly rather than left at whatever
+      // a partial review had set, so the item rows agree with the status.
+      await tx.bloodRequestItem.updateMany({
+        where: { bloodRequestId: requestId },
+        data: { unitsApproved: 0 },
+      });
+
+      await tx.bloodRequestEvent.create({
+        data: {
+          bloodRequestId: requestId,
+          eventType: 'REJECTED',
+          actorId: user.id,
+          organizationId,
+          metadata: { reason },
+        },
+      });
+
+      return tx.bloodRequest.findUniqueOrThrow({
+        where: { id: requestId },
+        include: { items: true },
+      });
+    });
+
+    await this.audit.log({
+      actorId: user.id,
+      action: 'BLOOD_REQUEST_REJECTED',
+      entityType: 'BloodRequest',
+      entityId: requestId,
+      organizationId,
+      metadata: { requestReference: request.requestReference, reason },
+    });
+
+    const payload: BloodRequestRejectedPayload = {
+      requestId,
+      requestReference: request.requestReference,
+      requestingOrganizationId: request.requestingOrganizationId,
+      fulfillingOrganizationId: organizationId,
+      fulfillingOrganizationName: fulfillingOrganization.name,
+      reason,
+    };
+    this.eventEmitter.emit(BLOOD_REQUEST_REJECTED_EVENT, payload);
 
     return result;
   }

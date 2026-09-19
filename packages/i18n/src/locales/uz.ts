@@ -495,6 +495,16 @@ export const uz: Catalog = {
 
   // KLINIK KO‘RIB CHIQISH TALAB QILINADI — CLINICAL_REVIEW_KEYS ga qarang.
   status: {
+    verification: {
+      UNVERIFIED: 'Tasdiqlanmagan',
+      VERIFIED: 'Tasdiqlangan',
+      REQUIRES_REVIEW: 'Qayta ko‘rib chiqilsin',
+    },
+    donor: {
+      ACTIVE: 'Faol',
+      INACTIVE: 'Nofaol',
+      DEFERRED: 'Vaqtincha to‘xtatilgan',
+    },
     appointment: {
       PENDING: 'Kutilmoqda',
       CONFIRMED: 'Tasdiqlangan',
@@ -969,6 +979,11 @@ export const uz: Catalog = {
       donorFacingVolume: 'Bu donor o‘z qon topshirish tarixida ko‘radigan raqam.',
     },
     requests: {
+      rejected: 'So‘rov rad etildi',
+      rejectReasonRequired: 'Shifoxona sababni bilishi uchun izoh yozing.',
+      reviewNotesLabel: 'Izoh — rad etishda majburiy, shifoxonaga ko‘rinadi',
+      reservedUnits: 'Ushbu so‘rov uchun band qilingan birliklar',
+      reservedUnitsHint: 'So‘rov tasdiqlanganda eng eski zaxiradan band qilindi. So‘rov o‘zgarsa, ularni Inventardan bo‘shating.',
       title: 'Qon so‘rovlari',
       monitoring: 'Qon so‘rovlari monitoringi',
       monitoringHint: 'Platformadagi barcha qon so‘rovlarini kuzating',
@@ -1157,6 +1172,21 @@ export const uz: Catalog = {
       pageSubtitle: 'Ish ko‘rsatkichlari va operatsion tahlilni kuzating',
     },
     donors: {
+      detailSubtitle: 'Donor yozuvi',
+      backToDonors: 'Donorlarga qaytish',
+      notFound: 'Donor topilmadi',
+      notFoundHint: 'Bunday donor profili mavjud emas yoki uni ko‘rishga ruxsatingiz yo‘q.',
+      completedDonations: 'Yakunlangan topshirishlar',
+      totalVolume: 'Umumiy hajm',
+      lastDonation: 'Oxirgi topshirish',
+      bloodGroupProvenance: 'Qon guruhi va uning manbasi',
+      recentDonations: 'Oxirgi topshirishlar',
+      noDonations: 'Hali yakunlangan topshirish yo‘q.',
+      contactDetails: 'Aloqa',
+      verifiedContact: 'Tasdiqlangan',
+      unverifiedContact: 'Tasdiqlanmagan',
+      noVerifiedContactWarning:
+        'Bu donor bilan bog‘lanishning tasdiqlangan usuli yo‘q. Favqulodda moslashtirish bunday donorlarni o‘tkazib yuboradi.',
       title: 'Donorlar katalogi',
       allBloodTypes: 'Barcha qon guruhlari',
       searchCity: 'Shahar bo‘yicha qidirish…',
@@ -1169,6 +1199,8 @@ export const uz: Catalog = {
       searchByNameOrEmail: 'Ism yoki email bo‘yicha qidirish…',
       allVerificationStates: 'Barcha tekshiruv holatlari',
       verification: {
+        verifiedOn: '{{date}} tasdiqlangan',
+        selfReportedFull: 'Donor o‘zi kiritgan, hali xodim tomonidan tasdiqlanmagan.',
         action: 'Tekshirish',
         title: 'Qon guruhini tasdiqlash',
         forDonor: 'Profildagi qon guruhi: {{name}}',

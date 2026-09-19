@@ -23,6 +23,16 @@ export interface BloodRequest {
   deliveryPhone?: string;
   expectedDeliveryDate?: string;
   deliveredAt?: string;
+  /**
+   * Set when the fulfilling blood centre declined the request.
+   *
+   * Until Sprint 4 a refusal was an "approval" of zero units on every item, so
+   * a hospital reading a request back could not tell that it had been declined,
+   * let alone why. These three carry the answer.
+   */
+  rejectedAt?: string | null;
+  rejectedById?: string | null;
+  rejectionReason?: string | null;
   createdAt: string;
   items: BloodRequestItem[];
   shipment?: Shipment;

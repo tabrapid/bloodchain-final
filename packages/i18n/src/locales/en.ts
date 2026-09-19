@@ -555,6 +555,16 @@ export const en: Catalog = {
    * reviews it.
    */
   status: {
+    verification: {
+      UNVERIFIED: 'Unverified',
+      VERIFIED: 'Verified',
+      REQUIRES_REVIEW: 'Needs review',
+    },
+    donor: {
+      ACTIVE: 'Active',
+      INACTIVE: 'Inactive',
+      DEFERRED: 'Deferred',
+    },
     appointment: {
       PENDING: 'Pending',
       CONFIRMED: 'Confirmed',
@@ -1029,6 +1039,11 @@ export const en: Catalog = {
       donorFacingVolume: 'This is the figure the donor sees in their own donation history.',
     },
     requests: {
+      rejected: 'Request declined',
+      rejectReasonRequired: 'Give a reason so the hospital knows why this was declined.',
+      reviewNotesLabel: 'Notes — required when declining, shown to the hospital',
+      reservedUnits: 'Units held for this request',
+      reservedUnitsHint: 'Reserved when the request was approved, oldest stock first. Release them from Inventory if the request changes.',
       title: 'Blood requests',
       monitoring: 'Blood request monitoring',
       monitoringHint: 'Monitor all blood requests across the platform',
@@ -1217,6 +1232,21 @@ export const en: Catalog = {
       pageSubtitle: 'Monitor performance metrics and operational insights',
     },
     donors: {
+      detailSubtitle: 'Donor record',
+      backToDonors: 'Back to donors',
+      notFound: 'Donor not found',
+      notFoundHint: 'This donor profile does not exist, or you cannot view it.',
+      completedDonations: 'Completed donations',
+      totalVolume: 'Total volume',
+      lastDonation: 'Last donation',
+      bloodGroupProvenance: 'Blood group and where it came from',
+      recentDonations: 'Recent donations',
+      noDonations: 'No completed donations yet.',
+      contactDetails: 'Contact',
+      verifiedContact: 'Verified',
+      unverifiedContact: 'Unverified',
+      noVerifiedContactWarning:
+        'No verified way to reach this donor. Emergency matching skips donors who cannot be contacted.',
       title: 'Donor directory',
       allBloodTypes: 'All blood types',
       searchCity: 'Search by city…',
@@ -1229,6 +1259,8 @@ export const en: Catalog = {
       searchByNameOrEmail: 'Search by name or email…',
       allVerificationStates: 'All verification states',
       verification: {
+        verifiedOn: 'Verified {{date}}',
+        selfReportedFull: 'Self-reported by the donor and not yet verified by staff.',
         action: 'Verify',
         title: 'Blood type verification',
         forDonor: 'Blood group on file for {{name}}',

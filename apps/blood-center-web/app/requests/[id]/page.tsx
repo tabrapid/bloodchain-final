@@ -16,10 +16,12 @@ import { me, isAuthenticated, MeResponse } from '../../../lib/auth';
 import {
   getBloodRequest,
   approveBloodRequest,
+  rejectBloodRequest,
   markReadyForPickup,
   createShipment,
   BloodRequest,
 } from '../../../lib/shipments';
+import type { InventoryReservation } from '../../../lib/inventory';
 import { AppShell } from '../../../components/AppShell';
 import { useTranslation } from '@bloodchain/ui/i18n';
 
@@ -53,6 +55,7 @@ export default function BloodRequestDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [request, setRequest] = useState<BloodRequest | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [reservations, setReservations] = useState<InventoryReservation[]>([]);
   const [actionError, setActionError] = useState<string | null>(null);
 
   const [showReviewModal, setShowReviewModal] = useState(false);
@@ -97,6 +100,38 @@ export default function BloodRequestDetailPage() {
     if (organizationId) loadRequest();
   }, [organizationId, loadRequest]);
 
+  /**
+   * The units this request is actually holding.
+   *
+   * Approving a request reserves inventory in the same transaction -- oldest
+   * collected first -- and nothing in the console showed the result, so staff
+   * approved units and then had to go to the inventory page and read reasons
+   * to find out which ones. The reservations carry the request reference,
+   * which is what identifies them here.
+   */
+  const loadReservations = useCallback(async () => {
+    if (!organizationId || !request) return;
+    try {
+      const { getReservations } = await import('../../../lib/inventory');
+      const page = await getReservations(organizationId, { status: 'ACTIVE', limit: 100 });
+      setReservations(
+        page.data.filter((reservation) =>
+          reservation.reason?.includes(request.requestReference),
+        ),
+      );
+    } catch (err) {
+      // A missing reservation list must not take the request page down with
+      // it; the request itself is the point of this screen.
+      console.error('Failed to load reservations for request:', err);
+    }
+  }, [organizationId, request]);
+
+  useEffect(() => {
+    if (request && ['APPROVED', 'PARTIALLY_APPROVED', 'READY_FOR_PICKUP'].includes(request.status)) {
+      void loadReservations();
+    }
+  }, [request, loadReservations]);
+
   const openReviewModal = () => {
     if (!request) return;
     const defaults: Record<string, number> = {};
@@ -109,16 +144,38 @@ export default function BloodRequestDetailPage() {
     setShowReviewModal(true);
   };
 
+  /**
+   * Approve, or decline, on the route that means what it says.
+   *
+   * Declining used to be an approval of zero units on every item -- the server
+   * inferred REJECTED from the totals, which meant the record said the request
+   * had been reviewed and approved for nothing, with no reason attached and no
+   * word to the hospital. Rejection is now its own route, and the reason is
+   * required because it is what the hospital is shown.
+   */
   const submitReview = async (mode: 'approve' | 'reject') => {
     if (!request || !organizationId) return;
+
+    if (mode === 'reject' && !reviewNotes.trim()) {
+      setActionError(t('ops.requests.rejectReasonRequired'));
+      return;
+    }
+
     setActionLoading(true);
     setActionError(null);
     try {
-      const items = request.items.map((item) => ({
-        itemId: item.id,
-        unitsApproved: mode === 'reject' ? 0 : Math.max(0, approvals[item.id] ?? 0),
-      }));
-      await approveBloodRequest(organizationId, requestId, { items, notes: reviewNotes.trim() || undefined });
+      if (mode === 'reject') {
+        await rejectBloodRequest(organizationId, requestId, reviewNotes.trim());
+      } else {
+        const items = request.items.map((item) => ({
+          itemId: item.id,
+          unitsApproved: Math.max(0, approvals[item.id] ?? 0),
+        }));
+        await approveBloodRequest(organizationId, requestId, {
+          items,
+          notes: reviewNotes.trim() || undefined,
+        });
+      }
       setShowReviewModal(false);
       await loadRequest();
     } catch (err) {
@@ -285,6 +342,30 @@ export default function BloodRequestDetailPage() {
         </div>
       )}
 
+      {request.rejectionReason && (
+        <div className="mb-6 rounded-card border border-donor-danger/40 bg-donor-dangerMuted p-5">
+          <div className="flex items-start gap-3">
+            <XCircle size={18} className="mt-0.5 shrink-0 text-donor-onDangerMuted" />
+            <div>
+              <p className="text-sm font-semibold text-donor-onDangerMuted">
+                {t('ops.requests.rejected')}
+              </p>
+              <p className="mt-1 whitespace-pre-wrap text-sm text-donor-text">
+                {request.rejectionReason}
+              </p>
+              {request.rejectedAt && (
+                <p className="mt-2 text-xs text-donor-muted">
+                  {new Date(request.rejectedAt).toLocaleString()}
+                  {request.fulfillingOrganization
+                    ? ` \u00b7 ${request.fulfillingOrganization.name}`
+                    : ''}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
           <div className="bc-glass rounded-card p-5">
@@ -317,6 +398,36 @@ export default function BloodRequestDetailPage() {
               <span>{t('ops.requests.totalApproved')} <span className="font-semibold text-donor-text">{totalApproved}</span></span>
             </div>
           </div>
+
+          {reservations.length > 0 && (
+            <div className="bc-glass rounded-card p-5">
+              <h3 className="mb-4 text-sm font-semibold text-donor-text">
+                {t('ops.requests.reservedUnits')}
+              </h3>
+              <div className="space-y-2">
+                {reservations.map((reservation) => (
+                  <div
+                    key={reservation.id}
+                    className="flex items-center justify-between rounded-lg border border-donor-border/60 px-4 py-2.5 text-sm"
+                  >
+                    <span className="font-mono text-xs text-donor-text">
+                      {reservation.bloodUnit?.unitReference ?? reservation.bloodUnitId}
+                    </span>
+                    <span className="text-donor-text">
+                      {reservation.bloodUnit
+                        ? `${reservation.bloodUnit.bloodType}${
+                            reservation.bloodUnit.rhFactor === 'POSITIVE' ? '+' : '-'
+                          } \u00b7 ${reservation.bloodUnit.volumeMl} ml`
+                        : ''}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-3 text-xs text-donor-muted">
+                {t('ops.requests.reservedUnitsHint')}
+              </p>
+            </div>
+          )}
 
           {request.events && request.events.length > 0 && (
             <div className="bc-glass rounded-card p-5">
@@ -419,7 +530,9 @@ export default function BloodRequestDetailPage() {
         </div>
 
         <div className="mt-4">
-          <label className="mb-1 block text-xs text-donor-muted">Notes (optional)</label>
+          <label className="mb-1 block text-xs text-donor-muted">
+            {t('ops.requests.reviewNotesLabel')}
+          </label>
           <textarea
             value={reviewNotes}
             onChange={(e) => setReviewNotes(e.target.value)}

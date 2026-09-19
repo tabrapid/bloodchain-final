@@ -1,5 +1,15 @@
-import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsArray, IsDateString, IsNumber, IsOptional, IsString, Max, Min } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  IsArray,
+  IsDateString,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Max,
+  MaxLength,
+  Min,
+} from 'class-validator';
 
 export class CreateBloodRequestDto {
   @ApiPropertyOptional()
@@ -74,6 +84,21 @@ export class ApproveRequestDto {
   @IsOptional()
   @IsString()
   notes?: string;
+}
+
+/**
+ * Why a blood centre is declining a request.
+ *
+ * Required, and required non-empty: a rejection the hospital cannot understand
+ * is only marginally better than no answer, and this text is what appears in
+ * their notification and on the request itself.
+ */
+export class RejectRequestDto {
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(500)
+  reason!: string;
 }
 
 export class CreateShipmentDto {

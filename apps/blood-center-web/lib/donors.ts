@@ -83,6 +83,51 @@ export async function verifyBloodType(
   });
 }
 
+/**
+ * The operational picture behind one donor, for a staff desk.
+ *
+ * `GET /donors/:id` returned the bare profile and nothing else, so a console
+ * could list donors and had nowhere to send anyone who clicked one. The staff
+ * view now carries the blood group's provenance (including who signed it off),
+ * whether the person can be reached at all, and a short donation history --
+ * and nothing beyond that: this is a donation desk, not a medical record.
+ */
+export interface DonorDetail extends Donor {
+  user: Donor['user'] & {
+    phone?: string | null;
+    displayName?: string | null;
+    emailVerified: boolean;
+    phoneVerified: boolean;
+    status: string;
+    createdAt: string;
+  };
+  region?: { id: string; nameUz: string; nameRu: string; nameEn: string } | null;
+  districtRef?: { id: string; nameUz: string; nameRu: string; nameEn: string } | null;
+  bloodTypeVerifier?: { id: string; firstName: string; lastName: string } | null;
+  contact?: {
+    hasVerifiedContact: boolean;
+    emailVerified: boolean;
+    phoneVerified: boolean;
+  };
+  donationSummary?: {
+    completedCount: number;
+    totalVolumeMl: number;
+    lastDonationAt: string | null;
+  };
+  recentDonations?: Array<{
+    id: string;
+    donationReference: string;
+    completedAt: string | null;
+    volumeMl: number;
+    organization: { id: string; name: string };
+  }>;
+  dateOfBirth?: string | null;
+}
+
+export async function getDonor(donorUserId: string): Promise<DonorDetail> {
+  return apiRequest<DonorDetail>(`/donors/${donorUserId}`);
+}
+
 export async function listDonors(params: ListDonorsParams = {}): Promise<PaginatedResponse<Donor>> {
   const searchParams = new URLSearchParams();
   if (params.page) searchParams.set('page', String(params.page));

@@ -281,6 +281,41 @@ export class NotificationRouterService {
   }
 
   /**
+   * A declined blood request, to the hospital that raised it.
+   *
+   * Priority HIGH rather than CRITICAL: the request itself may have been
+   * routine, and the hospital needs to see this promptly without it outranking
+   * an active emergency in the same inbox.
+   */
+  async routeBloodRequestRejected(
+    event: {
+      requestId: string;
+      requestReference: string;
+      fulfillingOrganizationName: string;
+      reason: string;
+    },
+    recipientIds: string[],
+  ) {
+    return this.route({
+      type: NotificationType.BLOOD_REQUEST,
+      priority: NotificationPriority.HIGH,
+      title: 'Blood request declined',
+      body: `${event.fulfillingOrganizationName} could not fulfil ${event.requestReference}: ${event.reason}`,
+      data: { requestId: event.requestId, reason: event.reason },
+      // Blood requests are a portal workflow; the mobile app has no screen for
+      // one, so the deep link lands on home and each portal resolves its own
+      // route from `sourceType`.
+      deepLink: '/(app)/home',
+      sourceType: 'BLOOD_REQUEST',
+      sourceId: event.requestId,
+      recipientIds,
+      // A request can only be rejected once -- the status guard refuses a
+      // second attempt -- so the request id is the occurrence.
+      idempotencyKey: `BLOOD_REQUEST_REJECTED:${event.requestId}`,
+    });
+  }
+
+  /**
    * One security-relevant action, to the account it happened to.
    *
    * `occurrenceId` is part of the idempotency key. Without it the key was

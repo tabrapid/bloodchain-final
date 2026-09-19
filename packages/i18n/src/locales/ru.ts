@@ -539,6 +539,16 @@ export const ru: Catalog = {
 
   // ТРЕБУЕТСЯ КЛИНИЧЕСКАЯ ПРОВЕРКА — см. CLINICAL_REVIEW_KEYS.
   status: {
+    verification: {
+      UNVERIFIED: 'Не подтверждено',
+      VERIFIED: 'Подтверждено',
+      REQUIRES_REVIEW: 'Нужна проверка',
+    },
+    donor: {
+      ACTIVE: 'Активен',
+      INACTIVE: 'Неактивен',
+      DEFERRED: 'Отвод',
+    },
     appointment: {
       PENDING: 'Ожидает',
       CONFIRMED: 'Подтверждена',
@@ -1013,6 +1023,11 @@ export const ru: Catalog = {
       donorFacingVolume: 'Это число донор видит в своей истории сдач.',
     },
     requests: {
+      rejected: 'Запрос отклонён',
+      rejectReasonRequired: 'Укажите причину, чтобы больница знала, почему запрос отклонён.',
+      reviewNotesLabel: 'Комментарий — обязателен при отклонении, виден больнице',
+      reservedUnits: 'Единицы, зарезервированные под этот запрос',
+      reservedUnitsHint: 'Зарезервированы при одобрении запроса, сначала самые старые. Если запрос изменится, снимите резерв в разделе «Инвентарь».',
       title: 'Заявки на кровь',
       monitoring: 'Мониторинг заявок на кровь',
       monitoringHint: 'Отслеживайте все заявки на кровь на платформе',
@@ -1201,6 +1216,21 @@ export const ru: Catalog = {
       pageSubtitle: 'Отслеживайте показатели работы и операционную аналитику',
     },
     donors: {
+      detailSubtitle: 'Карточка донора',
+      backToDonors: 'Назад к донорам',
+      notFound: 'Донор не найден',
+      notFoundHint: 'Такого профиля нет или у вас нет доступа к нему.',
+      completedDonations: 'Завершённые донации',
+      totalVolume: 'Общий объём',
+      lastDonation: 'Последняя донация',
+      bloodGroupProvenance: 'Группа крови и её источник',
+      recentDonations: 'Последние донации',
+      noDonations: 'Завершённых донаций пока нет.',
+      contactDetails: 'Контакты',
+      verifiedContact: 'Подтверждён',
+      unverifiedContact: 'Не подтверждён',
+      noVerifiedContactWarning:
+        'Нет подтверждённого способа связаться с донором. Аварийный подбор пропускает таких доноров.',
       title: 'Каталог доноров',
       allBloodTypes: 'Все группы крови',
       searchCity: 'Поиск по городу…',
@@ -1213,6 +1243,8 @@ export const ru: Catalog = {
       searchByNameOrEmail: 'Поиск по имени или email…',
       allVerificationStates: 'Все статусы проверки',
       verification: {
+        verifiedOn: 'Подтверждено {{date}}',
+        selfReportedFull: 'Указано самим донором и пока не подтверждено сотрудником.',
         action: 'Проверить',
         title: 'Проверка группы крови',
         forDonor: 'Группа крови в профиле: {{name}}',

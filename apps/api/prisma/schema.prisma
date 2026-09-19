@@ -388,6 +388,7 @@ model User {
   reservations            BloodUnitReservation[]
   courier                 Courier?
   bloodRequestEvents      BloodRequestEvent[]
+  rejectedBloodRequests   BloodRequest[]           @relation("RejectedBloodRequests")
   shipmentEvents          ShipmentEvent[]
   emergencyRequests       EmergencyRequest[]       @relation("EmergencyCreator")
   emergencyMatches        EmergencyMatch[]         @relation("EmergencyDonor")
@@ -926,7 +927,6 @@ model Appointment {
   /**
    * When the "your appointment is coming up" reminder was sent for this
    * appointment, or null while it has not been.
-   *
    * This is what makes the reminder job idempotent. The job claims an
    * appointment by setting this column in a conditional update, so a restart
    * mid-run, two workers, or a cron that fires twice in the same window all
@@ -1211,9 +1211,17 @@ model BloodRequest {
   deliveredAt              DateTime?
   cancelledAt              DateTime?
   cancellationReason       String?
+  // Rejection is the fulfilling centre declining the request; cancellation is
+  // the requesting hospital withdrawing it. Sharing one pair of columns would
+  // make the two indistinguishable in the record, which is the one thing a
+  // hospital reading back a refused request needs to be able to tell.
+  rejectedAt               DateTime?
+  rejectedById             String?
+  rejectionReason          String?
   createdAt                DateTime             @default(now())
   updatedAt                DateTime             @updatedAt
 
+  rejectedBy             User?               @relation("RejectedBloodRequests", fields: [rejectedById], references: [id], onDelete: SetNull)
   requestingOrganization Organization        @relation("RequestingOrganization", fields: [requestingOrganizationId], references: [id], onDelete: Cascade)
   fulfillingOrganization Organization?       @relation("FulfillingOrganization", fields: [fulfillingOrganizationId], references: [id], onDelete: SetNull)
   items                  BloodRequestItem[]
