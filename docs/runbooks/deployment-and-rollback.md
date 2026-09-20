@@ -65,7 +65,24 @@ pnpm --filter @bloodchain/api exec prisma migrate deploy
 prompts — it is the production command. `prisma migrate dev` must never be run
 against a production database: it can reset.
 
-### 4. Deploy the application, then confirm readiness
+### 4. Write the reference data
+
+```bash
+pnpm db:seed:reference
+```
+
+Idempotent and upsert-only, so it runs on **every** deploy, not only the first
+— that is how a newly added permission reaches an existing deployment.
+
+On a first deployment it is not optional: migrations create empty tables, and
+without roles and permissions registration fails and every guard refuses. The
+demo seed cannot do this job — it TRUNCATEs, and refuses to run outside a local
+database.
+
+It writes no users. Create the first administrator yourself; a script that
+invents a password has to either print it or keep it.
+
+### 5. Deploy the application, then confirm readiness
 
 ```bash
 curl -fsS https://api.example/api/v1/health/ready
@@ -75,7 +92,7 @@ curl -fsS https://api.example/api/v1/health/ready
 carries no unfinished or rolled-back migration. It names the latest applied
 migration, so you can confirm the schema is the one this build expects.
 
-### 5. Watch
+### 6. Watch
 
 - `/api/v1/health/live` — liveness. Never touches the database.
 - `/api/v1/health/ready` — readiness. Take an instance out of the load balancer
@@ -131,6 +148,7 @@ verified rather than assumed.
 
 - [ ] CI green on the exact commit
 - [ ] `pnpm verify:backup` passed against production, within the hour
+- [ ] `pnpm db:seed:reference` in the deploy steps
 - [ ] Migrations reviewed: additive, or a restore plan written down
 - [ ] Production configuration dry-run starts without refusal
 - [ ] `/health/ready` checked immediately after deployment

@@ -25,6 +25,7 @@ function validProductionEnv(overrides: Record<string, string | undefined> = {}) 
     PHONE_TICKET_SECRET: 'Pl3Ok6Ij9Uh2Yg5Tf8Rd1Es4Wa7Qz0Xs3Cd6Vf9Bg2Nh5Mj8',
     SMS_PROVIDER: 'eskiz',
     SMTP_HOST: 'smtp.example.uz',
+    SMTP_FROM: 'BloodChain <no-reply@bloodchain.uz>',
     WEB_URL: 'https://hospital.example.uz,https://centre.example.uz',
     API_URL: 'https://api.example.uz',
     ...overrides,
@@ -148,6 +149,30 @@ describe('production configuration guard', () => {
   });
 
   describe('email', () => {
+    it('refuses the default SMTP_FROM, which is a domain nobody owns', () => {
+      // The quiet one. Configure a real provider, forget this single variable,
+      // and the deployment looks correct: the transport connects and nothing
+      // warns. Every message then goes out from donor.local.
+      const violations = checkProductionConfig(
+        validProductionEnv({ SMTP_FROM: 'BloodChain <no-reply@donor.local>' }),
+      );
+
+      expect(violations.map((v) => v.code)).toContain('SMTP_FROM_NOT_DELIVERABLE');
+    });
+
+    it.each(['a@localhost', 'noreply@example.com', 'BloodChain <x@donor.local>'])(
+      'refuses the undeliverable sender %s',
+      (from) => {
+        expect(codes(validProductionEnv({ SMTP_FROM: from }))).toContain('SMTP_FROM_NOT_DELIVERABLE');
+      },
+    );
+
+    it('permits a real sending domain', () => {
+      expect(codes(validProductionEnv({ SMTP_FROM: 'BloodChain <no-reply@bloodchain.uz>' }))).not.toContain(
+        'SMTP_FROM_NOT_DELIVERABLE',
+      );
+    });
+
     it('refuses an unconfigured SMTP host', () => {
       // The fallback logs the whole message. For a password reset that message
       // is a single-use link to somebody's account.

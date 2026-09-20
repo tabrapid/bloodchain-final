@@ -74,6 +74,7 @@ export interface ProductionConfigInput {
   SMS_PROVIDER?: string;
   SMS_DEV_LOG_FILE?: string;
   SMTP_HOST?: string;
+  SMTP_FROM?: string;
   DEMO_ALLOW_DATABASE?: string;
   AI_ENABLED?: string;
   AI_API_KEY?: string;
@@ -191,6 +192,26 @@ export function checkProductionConfig(env: ProductionConfigInput): ProductionCon
       message:
         'SMTP_HOST is not set. Outgoing email would be written to the log instead of delivered — including password-reset links — and account recovery would silently fail.',
       remedy: 'Configure SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD and SMTP_FROM.',
+    });
+  }
+
+  // The quieter half of the same problem.
+  //
+  // `SMTP_FROM` has a default -- `BloodChain <no-reply@donor.local>` -- so
+  // configuring a real provider and forgetting this one variable is a
+  // deployment that *looks* correct: SMTP_HOST is set, the transport connects,
+  // nothing warns. Every message is then sent from a domain nobody owns, and a
+  // provider either refuses it outright or it fails SPF at the recipient and
+  // lands in spam. Account recovery breaks again, for a different reason, and
+  // this time with a working mail server to point at.
+  const from = (env.SMTP_FROM ?? '').trim();
+  if (/donor\.local|localhost|example\.(com|org|net)/i.test(from)) {
+    violations.push({
+      code: 'SMTP_FROM_NOT_DELIVERABLE',
+      variable: 'SMTP_FROM',
+      message: `SMTP_FROM is "${from}", which is not a domain this deployment owns. Mail sent from it is refused by the provider or fails SPF at the recipient.`,
+      remedy:
+        'Set SMTP_FROM to a mailbox on the real sending domain, and publish SPF, DKIM and DMARC for it.',
     });
   }
 
