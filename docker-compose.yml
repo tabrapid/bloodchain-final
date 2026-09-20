@@ -25,7 +25,22 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      NODE_ENV: production
+      # Development by default, and that is now load-bearing rather than a
+      # detail.
+      #
+      # This said `production` while handing the API localhost console URLs, no
+      # SMS provider and no SMTP host -- a production label on a development
+      # configuration, which was harmless only because nothing checked. Sprint 8
+      # added the check: `assertProductionConfig` refuses to boot a deployment
+      # that claims production and cannot deliver an SMS, cannot send a
+      # password-reset email, and points its emailed links at localhost.
+      #
+      # So the label now matches what this file actually is: the convenient way
+      # to run BloodChain locally without installing Node, pnpm and Postgres.
+      # Set NODE_ENV=production here and the API will tell you, precisely, every
+      # value you still have to supply before it is safe to run -- which is the
+      # behaviour we want, and the reason not to paper over it.
+      NODE_ENV: ${NODE_ENV:-development}
       PORT: 3001
       DATABASE_URL: postgresql://${POSTGRES_USER:-donor}:${POSTGRES_PASSWORD:-donor}@postgres:5432/${POSTGRES_DB:-donor}
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?Set JWT_ACCESS_SECRET in .env (min 32 chars)}
@@ -46,6 +61,25 @@ services:
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       SMTP_FROM: ${SMTP_FROM:-BloodChain <no-reply@donor.local>}
       EMAIL_VERIFICATION_TTL_HOURS: ${EMAIL_VERIFICATION_TTL_HOURS:-24}
+      # The SMS surface was missing from this file entirely, so a container
+      # took the Joi default (`console`) with no way to choose otherwise --
+      # there was no route to a production adapter through Compose at all.
+      SMS_PROVIDER: ${SMS_PROVIDER:-console}
+      SMS_DEV_LOG_FILE: ${SMS_DEV_LOG_FILE:-}
+      OTP_TTL_SECONDS: ${OTP_TTL_SECONDS:-300}
+      OTP_MAX_ATTEMPTS: ${OTP_MAX_ATTEMPTS:-5}
+      OTP_RESEND_COOLDOWN_SECONDS: ${OTP_RESEND_COOLDOWN_SECONDS:-60}
+      OTP_MAX_PER_HOUR: ${OTP_MAX_PER_HOUR:-5}
+      OTP_THROTTLE_LIMIT: ${OTP_THROTTLE_LIMIT:-3}
+      OTP_VERIFY_THROTTLE_LIMIT: ${OTP_VERIFY_THROTTLE_LIMIT:-10}
+      AUTH_THROTTLE_LIMIT: ${AUTH_THROTTLE_LIMIT:-5}
+      OTP_HASH_SECRET: ${OTP_HASH_SECRET:-}
+      PHONE_TICKET_SECRET: ${PHONE_TICKET_SECRET:-}
+      # How long emergency journey location history is kept. A development
+      # default, not a lawful retention period -- see review-packs/
+      # legal-privacy-review.md LP-03.
+      EMERGENCY_LOCATION_RETENTION_HOURS: ${EMERGENCY_LOCATION_RETENTION_HOURS:-72}
+      APPOINTMENT_REMINDER_LEAD_MINUTES: ${APPOINTMENT_REMINDER_LEAD_MINUTES:-1440}
       DONATION_COOLDOWN_DAYS: ${DONATION_COOLDOWN_DAYS:-56}
       EXPO_ACCESS_TOKEN: ${EXPO_ACCESS_TOKEN:-}
       AI_ENABLED: ${AI_ENABLED:-false}

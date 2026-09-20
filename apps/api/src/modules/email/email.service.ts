@@ -10,10 +10,24 @@ export interface SendEmailInput {
 }
 
 /**
- * Thin wrapper around nodemailer. When SMTP_HOST is not configured (local
- * dev / test), falls back to a stream transport and logs the message body
- * instead of sending it, so registration never breaks in environments
- * without email credentials.
+ * Thin wrapper around nodemailer.
+ *
+ * When SMTP_HOST is not configured it falls back to a stream transport and
+ * logs the message body instead of sending it, so registration and password
+ * reset never break on a laptop with no mail credentials. That fallback is
+ * right for development and was silently available in production, where it is
+ * two failures at once:
+ *
+ *   * nothing is delivered, so account recovery is broken and nobody is told;
+ *   * the whole message is written to the log, and the password-reset message
+ *     contains a single-use reset link. Anyone who can read the application
+ *     log can take over any account that has requested a reset.
+ *
+ * So the fallback is now refused in production at boot, and the body is never
+ * logged there even if some future path reaches it. `assertProductionConfig`
+ * catches the same misconfiguration earlier and with a better report; this is
+ * the independent barrier for anything that builds the application without
+ * going through `main.ts`.
  */
 @Injectable()
 export class EmailService implements OnModuleInit {
@@ -24,9 +38,22 @@ export class EmailService implements OnModuleInit {
 
   constructor(private readonly config: ConfigService) {}
 
+  private get isProduction(): boolean {
+    return (this.config.get<string>('NODE_ENV') ?? '').trim().toLowerCase() === 'production';
+  }
+
   onModuleInit() {
     const host = this.config.get<string>('SMTP_HOST');
     this.fromAddress = this.config.get<string>('SMTP_FROM') || this.fromAddress;
+
+    if (!host && this.isProduction) {
+      throw new Error(
+        'SMTP_HOST is not set and this is production. Outgoing email would be written to the ' +
+          'log instead of delivered -- including password-reset links, which are single-use ' +
+          'account access -- and account recovery would fail silently. Configure SMTP_HOST, ' +
+          'SMTP_PORT, SMTP_USER, SMTP_PASSWORD and SMTP_FROM.',
+      );
+    }
 
     if (host) {
       const user = this.config.get<string>('SMTP_USER');
@@ -62,6 +89,13 @@ export class EmailService implements OnModuleInit {
 
       if (this.isConfigured) {
         this.logger.log(`Email sent to ${input.to} (${info.messageId})`);
+      } else if (this.isProduction) {
+        // Unreachable while onModuleInit refuses to boot without SMTP in
+        // production -- and written anyway, because "unreachable" is what
+        // every logged secret was before somebody found the path.
+        this.logger.error(
+          `Email to ${input.to} was NOT delivered: no SMTP transport is configured. Subject: ${input.subject}`,
+        );
       } else {
         this.logger.log(`[dev email — not delivered] To: ${input.to} | Subject: ${input.subject}\n${input.text}`);
       }

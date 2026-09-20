@@ -59,6 +59,16 @@ import { IdempotencyModule } from './modules/idempotency/idempotency.module';
       pinoHttp: {
         level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
         transport: process.env.NODE_ENV !== 'production' ? { target: 'pino-pretty' } : undefined,
+        // What must never reach a log line, an aggregator, or its retention
+        // period.
+        //
+        // The first six were here already and cover passwords and bearer
+        // tokens. The rest are the credentials Sprints 1B and 0.5 added and
+        // nobody came back to redact: a one-time code is a live credential for
+        // its five-minute life, a password-reset token is single-use account
+        // access, and a phone number is the identifier this product signs
+        // donors in with. `code` in particular was logged in full on every
+        // failed verification -- the requests most worth reading back.
         redact: {
           paths: [
             'req.headers.authorization',
@@ -67,6 +77,19 @@ import { IdempotencyModule } from './modules/idempotency/idempotency.module';
             'req.body.refreshToken',
             'req.body.currentPassword',
             'req.body.newPassword',
+            // One-time codes. Live credentials while they last.
+            'req.body.code',
+            // Password-reset and email-verification tokens: single-use account access.
+            'req.body.token',
+            // The signed proof-of-phone-ownership ticket, between "code accepted"
+            // and "account created".
+            'req.body.verificationToken',
+            // The donor's phone number. Their sign-in identifier, and PII.
+            'req.body.phone',
+            // Responses, too: the login response carries both tokens, and an
+            // error response can echo the body it rejected.
+            'res.body.accessToken',
+            'res.body.refreshToken',
           ],
           remove: true,
         },

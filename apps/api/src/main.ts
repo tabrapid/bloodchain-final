@@ -6,6 +6,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module';
 import { configureApp } from './bootstrap';
+import { assertProductionConfig } from './config/production-config';
 
 /** Every non-internal IPv4 address this machine answers on. */
 function reachableUrls(port: number): string[] {
@@ -21,6 +22,18 @@ function reachableUrls(port: number): string[] {
 }
 
 async function bootstrap() {
+  // Before anything is constructed.
+  //
+  // Deliberately ahead of NestFactory.create: a deployment whose configuration
+  // is unsafe should not get as far as opening a database connection, starting
+  // a cron, or binding a port. It should print what is wrong and stop.
+  //
+  // It reads process.env rather than ConfigService because Joi's defaults
+  // erase the distinction this guard cares about -- an unset SMS_PROVIDER and
+  // a deliberately-chosen `console` are the same value once defaults are
+  // applied, and they are different mistakes.
+  assertProductionConfig(process.env);
+
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
   const config = app.get(ConfigService);
   const logger = app.get(Logger);

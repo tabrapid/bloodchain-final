@@ -1,5 +1,6 @@
 import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { maskPhone } from '../../common/utils/phone.util';
 import { SMS_PROVIDER, type SmsDeliveryResult, type SmsMessage, type SmsProvider } from './providers/sms-provider.interface';
 
 /**
@@ -52,14 +53,33 @@ export class SmsService implements OnModuleInit {
   }
 
   async send(message: SmsMessage): Promise<SmsDeliveryResult> {
+    // The number is masked in both log lines.
+    //
+    // A failed send is the one path that logs anything about a recipient, and
+    // it logged the full E.164 number. Every OTP request to a number that the
+    // vendor rejects -- a landline, a barred number, a wrong country code --
+    // wrote that number into the application log, where it joins the log
+    // aggregator and its retention period. The audit trail already records the
+    // masked form (`PHONE_OTP_REQUESTED`), which is the record that is supposed
+    // to exist; this line is for diagnosing a vendor, and a vendor problem is
+    // diagnosable without the subscriber's number.
+    //
+    // The provider's own error text IS logged, deliberately: it is how an
+    // operator finds out the account is out of credit or the sender ID is
+    // unregistered. It never reaches the user -- `PhoneVerificationService`
+    // answers a failed send with a fixed message and the OTP_SEND_FAILED code.
     try {
       const result = await this.provider.send(message);
       if (!result.accepted) {
-        this.logger.error(`SMS to ${message.to} refused by ${this.provider.name}: ${result.error}`);
+        this.logger.error(
+          `SMS to ${maskPhone(message.to)} refused by ${this.provider.name}: ${result.error}`,
+        );
       }
       return result;
     } catch (error) {
-      this.logger.error(`SMS to ${message.to} failed: ${(error as Error).message}`);
+      this.logger.error(
+        `SMS to ${maskPhone(message.to)} failed via ${this.provider.name}: ${(error as Error).message}`,
+      );
       return { accepted: false, error: (error as Error).message };
     }
   }
