@@ -10,6 +10,8 @@ import {
   seededOrganizations,
   tokenFor,
   type TestDonor,
+  recordFixtureReleaseDecision,
+  releasedUnitFields,
 } from './utils/e2e';
 
 /**
@@ -87,12 +89,16 @@ describe('Inventory lifecycle (e2e)', () => {
         bloodType: 'A',
         rhFactor: 'POSITIVE',
         volumeMl: 450,
-        status: 'AVAILABLE',
         collectedAt: new Date(),
-        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        // Released stock, with the decision that released it. See
+        // `releasedUnitFields`: after Sprint 7, `status: 'AVAILABLE'` alone is
+        // a unit the clinical release gate never cleared, and reserve and issue
+        // refuse it.
+        ...(await releasedUnitFields(app)),
       },
     });
     unitId = unit.id;
+    await recordFixtureReleaseDecision(app, unit.id, bloodCenterId);
   });
 
   afterEach(async () => {

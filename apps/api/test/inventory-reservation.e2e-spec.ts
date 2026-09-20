@@ -19,6 +19,8 @@ import {
   seededOrganizations,
   tokenFor,
   type TestDonor,
+  recordFixtureReleaseDecision,
+  releasedUnitFields,
 } from './utils/e2e';
 
 /**
@@ -111,12 +113,14 @@ describe('a blood unit can be held for someone, and given back', () => {
         bloodType,
         rhFactor: RhFactor.NEGATIVE,
         volumeMl: 450,
-        status: BloodUnitStatus.AVAILABLE,
         collectedAt: new Date(),
-        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        // Released stock, with the decision that released it. See
+        // `releasedUnitFields`.
+        ...(await releasedUnitFields(app)),
       },
     });
     createdUnitIds.push(unit.id);
+    await recordFixtureReleaseDecision(app, unit.id, bloodCenterId);
 
     return unit;
   }

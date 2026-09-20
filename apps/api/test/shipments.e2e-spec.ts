@@ -10,6 +10,8 @@ import {
   seededOrganizations,
   tokenFor,
   type TestDonor,
+  recordFixtureReleaseDecision,
+  releasedUnitFields,
 } from './utils/e2e';
 
 /**
@@ -100,12 +102,15 @@ describe('Blood request and shipment chain (e2e)', () => {
         bloodType: 'AB',
         rhFactor: 'NEGATIVE',
         volumeMl: 450,
-        status: 'AVAILABLE',
         collectedAt,
-        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        // Released stock, with the decision that released it. See
+        // `releasedUnitFields`: approving a blood request now picks only units
+        // that carry one.
+        ...(await releasedUnitFields(app)),
       },
     });
     fixtureUnitId = unit.id;
+    await recordFixtureReleaseDecision(app, unit.id, bloodCenterId);
 
     // The seeded courier is OFFLINE by default; assignment requires AVAILABLE.
     const courier = await db.courier.findFirstOrThrow({

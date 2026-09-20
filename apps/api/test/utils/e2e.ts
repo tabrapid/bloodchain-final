@@ -258,3 +258,83 @@ export async function waitFor<T>(
     await new Promise((resolve) => setTimeout(resolve, intervalMs));
   }
 }
+
+/**
+ * The fields a fixture must set to create a unit that is genuinely in
+ * transfusable stock, rather than one that merely says `status: 'AVAILABLE'`.
+ *
+ * After Sprint 7 those are two different things. A unit reaches AVAILABLE by
+ * passing the clinical release gate, and reserve, issue, blood-request approval
+ * and shipment receipt all refuse a unit that carries no release decision. A
+ * fixture that writes `status: 'AVAILABLE'` straight into the database is
+ * fabricating stock the gate never cleared, and the suites that did so started
+ * failing the moment the gate existed -- correctly.
+ *
+ * So the fixtures fabricate the decision too, explicitly, under the same
+ * development-only policy the seed installs. Spreading this rather than hiding
+ * it behind a helper keeps it visible at each call site: a test that wants
+ * released stock has to say so.
+ *
+ * `expirySource` is DEVELOPMENT_POLICY for the same reason -- an expiry with no
+ * stated provenance is exactly what the gate refuses.
+ */
+export async function releasedUnitFields(app: INestApplication): Promise<{
+  status: 'AVAILABLE';
+  clinicalReleasedAt: Date;
+  expiresAt: Date;
+  expirySource: 'DEVELOPMENT_POLICY';
+  bloodGroupSource: 'DONOR_PROFILE_COPY';
+}> {
+  const db = app.get(PrismaService);
+
+  // Asserted rather than assumed: if the seed ever stops installing the
+  // development policy, these suites should say so in one clear line instead of
+  // failing later with a conflict on every reserve.
+  const policy = await db.clinicalReleasePolicy.findFirst({
+    where: { kind: 'DEVELOPMENT_ONLY', status: 'APPROVED' },
+  });
+  if (!policy) {
+    throw new Error(
+      'No development clinical release policy found. These suites run against a seeded database — ' +
+        'run `pnpm --filter @bloodchain/api prisma:seed` first.',
+    );
+  }
+
+  return {
+    status: 'AVAILABLE',
+    clinicalReleasedAt: new Date(),
+    expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    expirySource: 'DEVELOPMENT_POLICY',
+    bloodGroupSource: 'DONOR_PROFILE_COPY',
+  };
+}
+
+/**
+ * Record the `ReleaseDecision` behind a fixture's released unit, so the unit's
+ * history says where its clearance came from rather than leaving a released
+ * unit with no decision on record — the exact shape Sprint 7 makes impossible
+ * through the API.
+ */
+export async function recordFixtureReleaseDecision(
+  app: INestApplication,
+  unitId: string,
+  organizationId: string,
+): Promise<void> {
+  const db = app.get(PrismaService);
+  const policy = await db.clinicalReleasePolicy.findFirstOrThrow({
+    where: { kind: 'DEVELOPMENT_ONLY', status: 'APPROVED' },
+  });
+
+  await db.releaseDecision.create({
+    data: {
+      bloodUnitId: unitId,
+      organizationId,
+      policyId: policy.id,
+      policyVersion: policy.version,
+      policyKind: 'DEVELOPMENT_ONLY',
+      outcome: 'RELEASED',
+      reasonCode: 'RELEASED',
+      unmetRequirements: [],
+    },
+  });
+}
