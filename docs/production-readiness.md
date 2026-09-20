@@ -92,10 +92,10 @@ The four packs live in [`review-packs/`](review-packs/).
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | **IN-01** | No production environment. Everything runs locally against a local Postgres. | P0 | INFRA | INFRA | Absent | Choose hosting; provision API, database, three web apps | PILOT |
 | **IN-02** | No TLS, no domain, no certificate management. | P0 | INFRA | INFRA | Absent | Domains and certificates | PILOT |
-| **IN-03** | Secrets are in `.env` files with development values, including JWT secrets. | P0 | INFRA | INFRA | `apps/api/.env` | A secret manager; rotate everything before the first real deployment | PILOT |
-| **IN-04** | No CI pipeline. Every gate is run by hand. | P1 | INFRA | ENG | Every gate passes locally, and since S7 `verify:safety` and `demo:verify` are repeatable with no reset between them — so they can run unattended | Wire typecheck, lint, test, e2e, `verify:*` and `verify:e2e-isolation` into CI | QA |
-| **IN-05** | No migration strategy for a live database — migrations are applied by hand. | P0 | INFRA | ENG + INFRA | `prisma migrate deploy` run manually | A deployment runbook with a rollback path | PILOT |
-| **IN-06** | Rate limiting is in-process, so it resets on restart and does not span instances. | P1 | INFRA | ENG | `ThrottlerModule`, in memory | Shared store, or accept single-instance for the pilot | PILOT |
+| **IN-03** | Secrets are in `.env` files with development values, including JWT secrets. | P0 | INFRA | INFRA | **Refused at boot (S8).** `assertProductionConfig` refuses a production start on the `.env.example` placeholder secrets, which are 52 characters long and published in this repository, so a minimum-length check cannot see them. Also refuses `SMS_DEV_LOG_FILE` and `DEMO_ALLOW_DATABASE` | A secret manager and a rotation procedure. The refusal makes a bad deployment impossible; it does not store anything | PILOT |
+| **IN-04** | CI existed and had never seen the work. 110 green runs, every one against `main`; all of Sprints 0–7 lives on `claude/local-test-ready`. Its e2e job could not have passed on that branch — the seed refuses the database name it uses. | — | **ENG-CLOSED** | ENG | **Closed (S8).** Triggers on the canonical branch, database renamed so the seed guard recognises it, and two new jobs: the Sprint 7 four-step sequence against a live API, and `verify:e2e-isolation`. The whole verification job was reproduced locally end to end | None | — |
+| **IN-05** | No migration strategy for a live database — migrations are applied by hand. | P1 | INFRA | INFRA | **Runbook written (S8).** `runbooks/deployment-and-rollback.md`, grounded in a checked fact: no migration in this repository drops a column or table, so the fast rollback is redeploying the previous build. Prisma has no `migrate down`, so restore is the rollback path | Downgraded from P0: the procedure exists and is verifiable. What remains needs the hosting decision (IN-01) to say what "deploy" concretely means | PILOT |
+| **IN-06** | Rate limiting is in-process, so it resets on restart and does not span instances. | P1 | INFRA | ENG + OPS | Unchanged. Nothing in this repository uses Redis, and Sprint 8 did not add it: a shared store is only needed once the pilot runs more than one instance | Accept single-instance for the pilot, or decide to scale out and add a shared store then. An operator decision, not an engineering one | PILOT |
 | **IN-07** | No load or capacity testing at any scale. | P1 | INFRA | ENG | Never run | Establish the pilot's expected volume, then test to it | PILOT |
 | **IN-08** | No staging environment that mirrors production. | P1 | INFRA | INFRA | Absent | Provision alongside IN-01 | PILOT |
 
@@ -103,8 +103,8 @@ The four packs live in [`review-packs/`](review-packs/).
 
 | ID | Blocker | Sev | Class | Owner | State | Next action | Blocks |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| **MS-01** | No SMS vendor. OTP and emergency alerts have a provider abstraction and no provider behind it. | P0 | INFRA | PO + INFRA | Abstraction exists; development logs the code | Select an Uzbek SMS provider, contract, integrate | PILOT |
-| **MS-02** | Email is a local catcher (MailHog). No production SMTP, no sender domain, no SPF/DKIM/DMARC. | P0 | INFRA | INFRA | Local only | Transactional email provider and domain authentication | PILOT |
+| **MS-01** | No SMS vendor. OTP and emergency alerts have a provider abstraction and no provider behind it. | P0 | INFRA | PO | **Boundary complete (S8).** Registry, config surface, four independent production refusals, masked recipients in logs, and tests. No adapter ships: the market is several aggregators with incompatible APIs and one written against a guess would pass its own tests and fail on contact. A test asserts the production-adapter list is empty | `docs/sms-provider-integration.md` lists the seven things the operator must supply. Items 1, 2 and 5 have external lead times no engineering shortens | PILOT |
+| **MS-02** | Email is a local catcher (MailHog). No production SMTP, no sender domain, no SPF/DKIM/DMARC. | P0 | INFRA | INFRA | **Silent degradation closed (S8).** `EmailService` fell back to logging the *whole message* when `SMTP_HOST` was unset — in production that broke account recovery and published every password-reset link to the log at the same time. Now refused at boot, twice, and the body is never logged in production | A transactional email provider and a sender domain with SPF/DKIM/DMARC. Both external | PILOT |
 | **MS-03** | Push notifications use Expo's service with no production credentials. | P1 | INFRA | ENG + INFRA | Expo push, development | FCM and APNs credentials | BETA |
 | **MS-04** | No delivery monitoring — a failed OTP or emergency alert is invisible. | P1 | INFRA | ENG | Failures log only | Delivery status tracking and alerting | PILOT |
 | **MS-05** | No production job queue; scheduled work runs on `@nestjs/schedule` in-process. | P1 | INFRA | ENG | In-process cron | Only blocks multi-instance deployment | PROD |
@@ -115,8 +115,8 @@ The four packs live in [`review-packs/`](review-packs/).
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | **DG-01** | Geography is demo data, not authoritative SOATO. | P1 | REVIEWER | PO + OPS | 14 regions seeded as demo; `verify:geography` treats real data separately | Obtain SOATO; import as reference data | PILOT |
 | **DG-02** | All 22 seeded organisations are `isDemo: true`. No real organisation exists. | P0 | REVIEWER | PO + OPS | By design since the demo freeze | Onboard the pilot organisations as real records | PILOT |
-| **DG-03** | No production backup or restore procedure. | P0 | INFRA | INFRA | Absent | Backup schedule, retention, and a *tested* restore | PILOT |
-| **DG-04** | No seed path for a production deployment — `prisma/seed.ts` is demo data and guarded to local databases. | P1 | INFRA | ENG | Local only by guard | A reference-data-only seed: roles, permissions, test types, geography | PILOT |
+| **DG-03** | No production backup or restore procedure. | P0 | INFRA | INFRA | **Procedure built and rehearsed (S8).** `pnpm verify:backup` dumps, restores into a scratch database, compares every table and row count, checks the rows a blood service cannot lose by name, and confirms the restored schema has no unfinished migration. Run locally: 85 tables, 2178 rows, green | Schedule, retention, off-host storage and encryption — all operator decisions, listed in `runbooks/backup-and-restore.md` | PILOT |
+| **DG-04** | No seed path for a production deployment. Worse than recorded: the demo seed refuses to run outside a local database, so a production deployment reached an empty database with **no roles and no permissions** — registration fails, every guard fails, there is no way in. | — | **ENG-CLOSED** | ENG | **Closed (S8).** `pnpm db:seed:reference` — upsert-only, idempotent, roles + permissions + the fourteen ISO 3166-2:UZ regions. No users, no organisations, no districts, no test types, no clinical release policy; sixteen tests assert it stays that way | None. Test types and reference ranges are deliberately excluded and belong to LR-05 | — |
 | **DG-05** | No low-stock threshold is configured for any organisation, so no shortage can be detected. | P1 | REVIEWER | OPS | **New (S7).** `LOW_STOCK_THRESHOLD = 5` is gone; thresholds are per organisation, blood group and component. Production with nothing configured raises `LOW_STOCK_THRESHOLD_NOT_CONFIGURED` rather than inventing a number | `blood-center-operations-review.md` OR-01: each pilot site's own numbers | PILOT |
 | **DG-06** | No clinical release policy exists for any organisation, so no unit can be released in production. | P0 | REVIEWER | CLIN | **New (S7).** The policy tables ship empty and the repository seeds only a development stand-in, which is refused in production and is created only by a seed guarded to local databases | `laboratory-review.md` LR-01 and LR-02 | PILOT |
 
@@ -145,10 +145,10 @@ The four packs live in [`review-packs/`](review-packs/).
 
 | ID | Blocker | Sev | Class | Owner | State | Next action | Blocks |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| **MO-01** | No uptime monitoring or alerting on any service. | P0 | INFRA | INFRA | Absent | Health checks and on-call alerting | PILOT |
+| **MO-01** | No uptime monitoring or alerting on any service. | P0 | INFRA | INFRA | **Probes built (S8).** `/health` returned 200 with a body saying `degraded` while the database was down, so every probe that decides by status code kept a broken API in rotation. Liveness and readiness are now separate endpoints with correct codes; readiness also refuses on an unfinished migration | The monitoring service that calls them, and the on-call rotation that answers. Both external | PILOT |
 | **MO-02** | No centralised logging; logs go to stdout and are lost. | P0 | INFRA | INFRA | Absent | Log aggregation with retention | PILOT |
 | **MO-03** | No error tracking on the API or the consoles. | P1 | INFRA | ENG | Absent | Sentry or equivalent | PILOT |
-| **MO-04** | Database backups do not exist (DG-03), and no restore has ever been rehearsed. | P0 | INFRA | INFRA | Absent | Automate, then *restore from a backup* to prove it | PILOT |
+| **MO-04** | Database backups do not exist (DG-03), and no restore has ever been rehearsed. | P1 | INFRA | INFRA | **Rehearsal automated (S8).** The restore is performed, not described — `pnpm verify:backup`. Downgraded from P0 because "no restore has ever been rehearsed" is no longer true | Run it against the production database once it exists | PILOT |
 | **MO-05** | No metrics or dashboards — no visibility of request rates, latency or job failures. | P1 | INFRA | INFRA | `/health` exists | Metrics and dashboards | PILOT |
 | **MO-06** | No incident process: no on-call, no escalation, no runbook. | P0 | INFRA | PO + INFRA | Absent | Define before real blood depends on it | PILOT |
 
@@ -177,13 +177,12 @@ The four packs live in [`review-packs/`](review-packs/).
 
 ## Summary by gate
 
-Counted from the tables above. CL-06 is excluded: it is closed and carries no
-severity.
+Counted from the tables above. Rows with no severity are closed and excluded.
 
 | Gate | P0 | P1 | P2 |
 | --- | --- | --- | --- |
-| **QA** | 2 | 1 | 0 |
-| **PILOT** | 31 | 22 | 0 |
+| **QA** | 2 | 0 | 0 |
+| **PILOT** | 29 | 23 | 0 |
 | **BETA** | 4 | 10 | 0 |
 | **PROD** | 0 | 1 | 2 |
 
@@ -191,70 +190,116 @@ severity.
 
 | Class | Count |
 | --- | --- |
-| **ENG-CLOSED** | 1 |
+| **ENG-CLOSED** | 3 |
 | **REVIEWER** | 37 |
-| **INFRA** | 28 |
+| **INFRA** | 26 |
 | **STORE** | 8 |
 
-## What Sprint 7 changed
+---
 
-The pilot P0 count went from 30 to 31, and that is the honest number. One item
-closed and one appeared, and three more were added at P1.
+## The 29 pilot P0 blockers, by who can answer them
 
-**Closed.** CL-06 — donor deferral. There is now a real deferral domain: kind,
-reason, period, actor and lift kept as permanent history, one predicate gating
-booking, check-in and emergency matching, and an assessment recorded as
-DEFERRED raising a deferral in the same transaction. Nothing clinical was
-invented to do it, and nothing further is owed by engineering. The reason
-vocabulary it reads is a reviewer question (CL-15).
+Sprint 8 was asked to classify every remaining P0 into seven buckets. Here they
+are, by *who* can move them — which is the only classification that changes what
+anyone does on Monday.
 
-**Appeared.** DG-06 — no clinical release policy exists, so no unit can be
-released in production. This is not a regression. Before Sprint 7 a unit
-reached transfusable stock on one click with no gate at all, and the register
-recorded that as CL-01. The gate now exists and fails closed, which turns a
-silent hazard into a visible, blocking, *correct* refusal. A pilot cannot issue
-blood until a clinician fills the policy in — which was always true and is now
-enforced rather than hoped for.
+| Bucket | Count | Blockers |
+| --- | --- | --- |
+| **A. Clinical review** | 3 | CL-04, CL-07, CL-08 |
+| **B. Laboratory review** | 3 | CL-01, CL-05, DG-06 |
+| **C. Operations review** | 4 | DG-02, IO-02, IO-04, IO-05 |
+| **D. Legal / privacy review** | 8 | CL-03, PR-01, PR-02, PR-03, PR-04, PR-07, IO-01, IO-06 |
+| **E. Infrastructure / DevOps** | 10 | IN-01, IN-02, IN-03, MS-01, MS-02, DG-03, WB-02, MO-01, MO-02, MO-06 |
+| **F. Store / deployment** | 0 | *(ST-01, ST-02, MB-02 and PR-08 are all BETA-gate, not PILOT)* |
+| **G. Engineering blocked by A–D** | 1 | CL-02 |
 
-**Reclassified, not fixed.** CL-01, CL-03, CL-04 and CL-05 keep their severity
-and lose their engineering half:
+Each A–D blocker has an entry in [`review-packs/`](review-packs/) stating the
+question, the allowed answer format, and what the software does with each
+answer. **G** is one row and it is the expensive one: CL-02 is the donation
+screening subsystem, and whether it is a subsystem at all is what LR-02 asks —
+so it cannot be designed, let alone built, until that is answered.
 
-- **CL-01** — the gate is built, has no override and no force-release route,
-  and refuses an empty requirement set as firmly as a missing policy. What
-  remains is LR-01: what must be satisfied.
-- **CL-03** — issuing a unit now writes a structured disposition, and one
-  endpoint returns the chain from donor to final disposition. What remains is
-  LP-01: what may identify a recipient. The chain reports
-  `identityPolicy: UNDEFINED` rather than implying the question is settled.
-- **CL-04** — expiry is known-or-unknown with recorded provenance, and an
-  unknown shelf life is refused rather than guessed. What remains is CR-08.
-- **CL-05** — a unit records whether its group came from the donor's profile,
-  from staff at collection, or from typing the unit itself, and the console
-  shows it. What remains is LR-03.
+Two QA-gate P0s remain outside this table: **MB-01** and **WB-01**, which need a
+physical device and a real browser. Neither exists in the environment this was
+built in.
 
-**Added at P1.** CL-15, CL-16 and CL-17 are questions Sprint 7's own model
-raises and is not entitled to answer; DG-05 is the low-stock threshold, which
-stopped being a constant and became configuration nobody has filled in yet.
+### Reconciling this against the Sprint 7 report
 
-The engineering work that can start today without a reviewer is now visibly
-small: the INFRA column. That is the point of the reclassification.
+Sprint 7 claimed "17 reviewer decisions + 14 infrastructure blockers". Both
+numbers were wrong, and the register rows never changed — only the prose about
+them did.
 
-## Where the critical path actually is
+- **17 was a miscount.** The list printed directly beneath it in that report
+  contained 19 IDs. The list was right.
+- **14 mixed two gates.** It reached 14 by including MB-01 and WB-01, which are
+  QA-gate P0s rather than PILOT ones. Within PILOT, infrastructure was 12.
 
-Of 31 pilot P0s:
+So Sprint 7's 31 was **19 reviewer + 12 infrastructure**, not 17 + 14. Sprint 8
+closed two infrastructure blockers outright and downgraded two more, giving
+**19 reviewer + 10 infrastructure = 29**.
 
-1. **Reviewer decisions — 17.** CL-01 … CL-05, CL-07, CL-08, PR-01 … PR-04,
-   PR-07, DG-02, DG-06, IO-01, IO-02, IO-04 … IO-06. Every one has an entry in
-   `review-packs/` stating the question, the allowed answer format, and what
-   the software does with each answer. No amount of engineering substitutes,
-   and none of them is waiting on engineering.
-2. **Infrastructure — 14.** IN-01 … IN-03, IN-05, MS-01, MS-02, DG-03, WB-02,
-   MO-01, MO-02, MO-04, MO-06, and the two QA P0s (MB-01, WB-01). Ordinary
-   work, none of it started.
-3. **Engineering that can start today — 0.** Sprint 7 took the last two
-   (CL-04's model and CL-06) off this list. Everything remaining is (1) or (2).
+---
 
-The single most valuable hour anyone can spend on this project is a laboratory
-specialist answering LR-01 and LR-02. Until then no unit can be released, and
-the subsystem that would satisfy a release requirement cannot be designed,
-because whether it is a subsystem at all is what LR-02 asks.
+## What Sprint 8 changed
+
+The brief was to use reviewer waiting time on every P0 that does not need a
+clinical, laboratory, legal or operational decision. Pilot P0s went 31 → 29, and
+the two that closed were closed outright rather than reclassified.
+
+### Closed
+
+- **IN-04 — CI.** The register said "no CI pipeline". There was one, it had run
+  110 times, and every run was green because every run was against `main`. All
+  of Sprints 0–7 lives on `claude/local-test-ready`, which CI had never seen.
+  It also could not have passed if it had looked: the e2e job's database is
+  named such that the seed guard refuses it, which was reproduced locally before
+  it was fixed. CI now watches the canonical branch and runs the Sprint 7
+  four-step sequence against a live API.
+- **DG-04 — production seed.** Recorded as P1 "no seed path"; actually fatal.
+  The demo seed refuses to run outside a local database, so a production
+  deployment reached an empty database with no roles and no permissions —
+  registration fails, every guard fails, nobody can sign in. `pnpm
+  db:seed:reference` closes it.
+
+### Downgraded from P0, because the procedure now exists and is verifiable
+
+- **IN-05 → P1** — deployment and rollback runbook, grounded in a checked fact
+  about this repository's migrations rather than a habit.
+- **MO-04 → P1** — "no restore has ever been rehearsed" stopped being true.
+  `pnpm verify:backup` performs one.
+
+### Still P0, but materially safer than they were
+
+- **IN-03, MS-01, MS-02** — a deployment that would have shipped placeholder
+  secrets, printed one-time codes into a log, or logged every password-reset
+  link instead of sending it now refuses to boot and says why. The blockers stay
+  open because a secret manager, an SMS contract and a sender domain are all
+  external; what changed is that getting them wrong is no longer silent.
+- **MO-01** — the probes exist and mean what they say. What is missing is the
+  service that calls them.
+
+### The worst thing found
+
+`EmailService` fell back to a stream transport whenever `SMTP_HOST` was unset,
+logging the entire message. In production that is two failures wearing one
+missing variable: account recovery silently broken, and every password-reset
+link — single-use access to an account — written to the application log. It had
+no production guard at all. It has two now.
+
+---
+
+## Where the critical path is
+
+Unchanged in shape, shorter by two:
+
+1. **Reviewer decisions — 19.** Every one has a pack entry. None is waiting on
+   engineering.
+2. **Infrastructure — 10.** Every one now needs an external thing: a hosting
+   platform, a domain, a secret manager, an SMS contract, a sender domain, a
+   monitoring service, an on-call rota. Sprint 8 took the in-repo half of each
+   as far as it goes.
+3. **Engineering that can start today without a reviewer or an account — 0.**
+
+The single most valuable hour remains a laboratory specialist answering LR-01
+and LR-02. Until then no unit can be released, and the subsystem that would
+satisfy a release requirement cannot be designed.

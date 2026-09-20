@@ -119,7 +119,8 @@ pnpm build
 ```
 
 The API also has an end-to-end suite that runs against a **real** PostgreSQL
-database rather than mocks — 103 tests covering auth, the donation lifecycle,
+database rather than mocks — 214 tests covering auth, the donation lifecycle,
+the clinical release gate and donor deferral,
 the blood-request → shipment → delivery chain, emergency donor matching, the
 inventory lifecycle, education progress and XP, request-body validation, the
 response envelope every client depends on, and gamification concurrency. It needs a migrated **and
@@ -131,8 +132,23 @@ pnpm --filter @bloodchain/api prisma:seed
 pnpm --filter @bloodchain/api test:e2e
 ```
 
-All four of these run in CI on every push and pull request to `main` — see
-`.github/workflows/ci.yml`.
+All of these run in CI on every push and pull request to `claude/local-test-ready`
+(the canonical development branch) and to `main` — see `.github/workflows/ci.yml`.
+
+CI also runs the gates that need a live API, which is what the
+`verification-scripts` job is for:
+
+```bash
+pnpm verify:safety     # the server refuses what a buggy client or an attacker would try
+pnpm demo:verify       # the three demo flows, end to end
+pnpm verify:geography  # the Uzbekistan geography and organization directory contract
+pnpm verify:booleans   # strict boolean parsing on every request field
+pnpm verify:backup     # takes a backup, restores it, and checks the data survived
+```
+
+None of them needs a database reset, before or between runs. `verify:safety` and
+`demo:verify` create the donors they use and delete them afterwards, so they run
+in any order, any number of times — which is what lets CI run them unattended.
 
 ### Docker (API + PostgreSQL)
 
