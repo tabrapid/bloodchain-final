@@ -4,8 +4,8 @@ import { AlertType, BloodUnitStatus, MovementType, ReservationStatus } from '@pr
 import { PrismaService } from '../../database/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { InventoryService } from './inventory.service';
+import { InventoryThresholdsService } from '../inventory-thresholds/inventory-thresholds.service';
 
-const LOW_STOCK_THRESHOLD = 5;
 const EXPIRING_SOON_WINDOW_HOURS = 72;
 
 @Injectable()
@@ -16,6 +16,7 @@ export class InventoryCronService {
     private readonly db: PrismaService,
     private readonly audit: AuditLogsService,
     private readonly inventory: InventoryService,
+    private readonly thresholds: InventoryThresholdsService,
   ) {}
 
   @Cron(CronExpression.EVERY_HOUR)
@@ -149,7 +150,21 @@ export class InventoryCronService {
     return releasedCount;
   }
 
-  /** Refreshes LOW_STOCK and EXPIRING_SOON alerts per organization/bloodType/rhFactor. */
+  /**
+   * Refreshes LOW_STOCK and EXPIRING_SOON alerts per organization/bloodType/rhFactor.
+   *
+   * The low-stock half used to compare every organisation, every blood group
+   * and every component against `const LOW_STOCK_THRESHOLD = 5` -- a number
+   * nobody chose, presented to staff as though the software knew what a
+   * shortage was. It now asks `InventoryThresholdsService`, which answers with
+   * what the organisation configured, a clearly-labelled development fallback,
+   * or nothing at all.
+   *
+   * "Nothing at all" is the production answer for an unconfigured organisation,
+   * and it raises `LOW_STOCK_THRESHOLD_NOT_CONFIGURED` rather than silently
+   * skipping: an organisation receiving no low-stock alerts because nobody set
+   * a threshold looks exactly like one that is well stocked.
+   */
   async checkStockLevels(): Promise<void> {
     const lowStockGroups = await this.db.bloodUnit.groupBy({
       by: ['organizationId', 'bloodType', 'rhFactor'],
@@ -157,8 +172,26 @@ export class InventoryCronService {
       _count: { _all: true },
     });
 
+    // One read of each organisation's configuration, not one per blood group.
+    const thresholdRowsByOrg = new Map<string, Awaited<ReturnType<InventoryThresholdsService['listRows']>>>();
+    for (const organizationId of new Set(lowStockGroups.map((group) => group.organizationId))) {
+      thresholdRowsByOrg.set(organizationId, await this.thresholds.listRows(organizationId));
+    }
+
+    const unconfigured = new Set<string>();
+
     for (const group of lowStockGroups) {
-      if (group._count._all < LOW_STOCK_THRESHOLD) {
+      const resolved = this.thresholds.resolveFrom(thresholdRowsByOrg.get(group.organizationId) ?? [], {
+        bloodType: group.bloodType,
+        rhFactor: group.rhFactor,
+      });
+
+      if (resolved.threshold === null) {
+        unconfigured.add(group.organizationId);
+        continue;
+      }
+
+      if (group._count._all < resolved.threshold) {
         await this.inventory.ensureAlert(
           group.organizationId,
           AlertType.LOW_STOCK,
@@ -166,9 +199,17 @@ export class InventoryCronService {
           group.bloodType,
           group.rhFactor,
           group._count._all,
-          LOW_STOCK_THRESHOLD,
+          resolved.threshold,
         );
       }
+    }
+
+    for (const organizationId of unconfigured) {
+      await this.inventory.ensureAlert(
+        organizationId,
+        AlertType.LOW_STOCK_THRESHOLD_NOT_CONFIGURED,
+        'Low-stock alerting is not configured for this organization, so no shortage can be detected. An administrator has to set the thresholds.',
+      );
     }
 
     const expiringCutoff = new Date(Date.now() + EXPIRING_SOON_WINDOW_HOURS * 60 * 60 * 1000);

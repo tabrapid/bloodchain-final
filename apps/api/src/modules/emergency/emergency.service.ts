@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
+  BloodGroupProvenance,
   BloodType,
   ComponentType,
   DonationType,
@@ -32,6 +33,7 @@ import {
   EMERGENCY_RESPONSE_COMPLETED_EVENT,
 } from '../gamification/events/gamification-event.handler';
 import { DonationEligibilityService } from '../donation-eligibility/donation-eligibility.service';
+import { DonorDeferralsService } from '../donor-deferrals/donor-deferrals.service';
 import { PlatformSettingsService } from '../platform-settings/platform-settings.service';
 import { assertOrganizationActive } from '../../common/utils/organization-status.util';
 import { haversineDistanceKm } from '../../common/utils/geo.util';
@@ -72,6 +74,7 @@ export class EmergencyService {
     private readonly eventEmitter: EventEmitter2,
     private readonly gateway: EmergencyGateway,
     private readonly donationEligibility: DonationEligibilityService,
+    private readonly donorDeferrals: DonorDeferralsService,
     private readonly platformSettings: PlatformSettingsService,
   ) {}
 
@@ -182,6 +185,11 @@ export class EmergencyService {
     if (user.donorProfile.donorStatus !== DonorStatus.ACTIVE) {
       throw new ForbiddenException('Donor is not active.');
     }
+
+    // The deferral rows, not just the profile flag. Same reason as in matching:
+    // the flag is a cache, and a cache is not what an emergency should be
+    // gated on.
+    await this.donorDeferrals.assertNotDeferredAt(userId, new Date());
 
     if (!user.donorProfile.bloodType || !user.donorProfile.rhFactor) {
       throw new ForbiddenException('Donor blood type not verified.');
@@ -383,11 +391,27 @@ export class EmergencyService {
         donors.map((donor) => donor.id),
       );
 
+      // Deferral, from the deferral rows rather than from the profile flag.
+      //
+      // The `donorStatus: ACTIVE` filter above still runs and still excludes
+      // most deferred donors, because the flag is kept in step as a cache. This
+      // is the authority: a flag that drifted -- a profile written directly, a
+      // deferral raised while a stale row was in flight -- must not be able to
+      // put a deferred donor in front of an emergency. One query for the whole
+      // candidate set, not one per donor.
+      const deferredDonorIds = await this.donorDeferrals.findDeferredDonorIds(
+        donors.map((donor) => donor.id),
+        matchedAt,
+      );
+
       const compatibleDonors = donors.filter((donor) => {
         if (!donor.donorProfile || !donor.donorProfile.bloodType || !donor.donorProfile.rhFactor) {
           return false;
         }
         if (donor.emergencyMatches.length > 0 || donor.emergencyResponses.length > 0) {
+          return false;
+        }
+        if (deferredDonorIds.has(donor.id)) {
           return false;
         }
         if (!this.donationEligibility.isEligibleAt(nextEligibleDates.get(donor.id), matchedAt)) {
@@ -1048,6 +1072,12 @@ export class EmergencyService {
               volumeMl,
               status: 'COLLECTED',
               collectedAt: new Date(),
+              // The group here comes from the donor's profile, which is what
+              // emergency matching selected on. A record of the donor, not of
+              // the bag -- see CL-05.
+              bloodGroupSource: BloodGroupProvenance.DONOR_PROFILE_COPY,
+              bloodGroupSourceNote: 'Donor profile, matched for this emergency',
+              expirySource: 'UNKNOWN',
             },
           });
 

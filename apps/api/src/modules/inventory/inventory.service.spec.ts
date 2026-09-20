@@ -5,6 +5,7 @@ import { BloodUnitStatus, ComponentType, OrganizationStatus, ReservationStatus }
 import { PrismaService } from '../../database/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { InventoryService } from './inventory.service';
+import { ClinicalReleaseService } from '../clinical-release/clinical-release.service';
 
 function makeUnit(overrides: Record<string, any> = {}) {
   return {
@@ -32,6 +33,8 @@ describe('InventoryService unit status transitions', () => {
       },
       inventoryMovement: { create: jest.fn().mockResolvedValue({}) },
       bloodUnitReservation: { updateMany: jest.fn().mockResolvedValue({ count: 0 }) },
+      bloodUnitDisposition: { upsert: jest.fn().mockResolvedValue({}) },
+      releaseDecision: { create: jest.fn().mockResolvedValue({}) },
     };
 
     prisma = {
@@ -51,6 +54,30 @@ describe('InventoryService unit status transitions', () => {
         { provide: EventEmitter2, useValue: { emit: jest.fn() } },
         { provide: PrismaService, useValue: prisma },
         { provide: AuditLogsService, useValue: { log: jest.fn().mockResolvedValue({}) } },
+        // A permissive gate, because these tests are about the atomicity of the
+        // status transitions and not about the gate. That the gate refuses when
+        // it should is proved against the real service in
+        // clinical-release.service.spec.ts and end to end in
+        // clinical-release.e2e-spec.ts -- a stub here could not prove it.
+        {
+          provide: ClinicalReleaseService,
+          useValue: {
+            evaluate: jest.fn().mockResolvedValue({
+              permitted: true,
+              policyId: 'policy-1',
+              policyVersion: 1,
+              policyKind: 'DEVELOPMENT_ONLY',
+              expiresAt: new Date('2027-01-01T00:00:00.000Z'),
+              expirySource: 'DEVELOPMENT_POLICY',
+              developmentOnly: true,
+            }),
+            recordDecision: jest.fn().mockResolvedValue(undefined),
+            assertReleased: jest.fn(),
+            isReleased: jest.fn().mockReturnValue(true),
+            refusalException: jest.fn(),
+            getPolicyStatus: jest.fn().mockResolvedValue({ configured: true, policy: null }),
+          },
+        },
       ],
     }).compile();
 
@@ -65,7 +92,15 @@ describe('InventoryService unit status transitions', () => {
 
       expect(tx.bloodUnit.updateMany).toHaveBeenCalledWith({
         where: { id: 'unit-1', status: { in: [BloodUnitStatus.COLLECTED, BloodUnitStatus.QUARANTINED] } },
-        data: { status: BloodUnitStatus.AVAILABLE },
+        // The release timestamp and the expiry are written in the same
+        // statement as the status, so a unit cannot become AVAILABLE without
+        // carrying the decision that made it so.
+        data: {
+          status: BloodUnitStatus.AVAILABLE,
+          clinicalReleasedAt: expect.any(Date),
+          expiresAt: new Date('2027-01-01T00:00:00.000Z'),
+          expirySource: 'DEVELOPMENT_POLICY',
+        },
       });
       expect(tx.inventoryMovement.create).toHaveBeenCalled();
     });
@@ -293,6 +328,17 @@ describe('InventoryService organization-status access checks', () => {
         { provide: EventEmitter2, useValue: { emit: jest.fn() } },
         { provide: PrismaService, useValue: prisma },
         { provide: AuditLogsService, useValue: { log: jest.fn().mockResolvedValue({}) } },
+        // Permissive: these tests are about organisation status, and a refusing
+        // gate would hide the refusal they are actually looking for.
+        {
+          provide: ClinicalReleaseService,
+          useValue: {
+            evaluate: jest.fn(),
+            recordDecision: jest.fn(),
+            assertReleased: jest.fn(),
+            isReleased: jest.fn().mockReturnValue(true),
+          },
+        },
       ],
     }).compile();
 

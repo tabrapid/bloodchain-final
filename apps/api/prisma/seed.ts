@@ -109,8 +109,68 @@ async function resetSeedData(): Promise<void> {
   await db.$executeRawUnsafe(`TRUNCATE TABLE ${list} RESTART IDENTITY CASCADE`);
 }
 
+/**
+ * Shelf life for the development-only clinical release policy, in days.
+ *
+ * TEN YEARS, and deliberately absurd. No component keeps for ten years, which
+ * is the point: this number exists so that development and demo units have
+ * *some* known expiry for the release gate to accept, and it must be impossible
+ * for anyone reading a screen, a log or this file to mistake it for a clinical
+ * shelf life somebody signed off.
+ *
+ * The real value is a clinical decision nobody has made (CL-04), and the
+ * release gate refuses rather than guesses when it is missing. This is not that
+ * value and never becomes it: it is only ever read from a policy whose kind is
+ * DEVELOPMENT_ONLY, every expiry derived from it is stamped
+ * `ExpiryProvenance.DEVELOPMENT_POLICY`, and the whole policy is refused when
+ * NODE_ENV=production.
+ */
+const DEVELOPMENT_SHELF_LIFE_DAYS = 3650;
+
+/**
+ * The development-only clinical release policy.
+ *
+ * Two independent barriers keep this away from real blood, and both have to
+ * fail before it could release anything in production:
+ *
+ * 1. It is created only here, and this file refuses to run against anything but
+ *    a local development database (`resetSeedData` above calls the same guard
+ *    the demo scripts use). There is no API route that creates one.
+ * 2. `ClinicalReleaseService` refuses a DEVELOPMENT_ONLY policy outright when
+ *    NODE_ENV=production, whatever its status or effective dates.
+ *
+ * Every release made under it records `policyKind: DEVELOPMENT_ONLY` on the
+ * `ReleaseDecision`, and the consoles read that field to label the clearance as
+ * development rather than clinical. Nothing here is, or can be presented as, a
+ * clinical clearance.
+ */
+async function seedDevelopmentReleasePolicy() {
+  return db.clinicalReleasePolicy.create({
+    data: {
+      organizationId: null,
+      scopeKey: 'PLATFORM',
+      version: 1,
+      status: 'APPROVED',
+      kind: 'DEVELOPMENT_ONLY',
+      title: 'Development stand-in — NOT a clinical release policy',
+      sourceReference:
+        'No clinical source. Created by prisma/seed.ts so development and demo flows can exercise the release path. Refused in production by ClinicalReleaseService.',
+      approvedBy: null,
+      approvedAt: new Date(),
+      developmentShelfLifeDays: DEVELOPMENT_SHELF_LIFE_DAYS,
+      // No requirements, and that is not an oversight: a DEVELOPMENT_ONLY
+      // policy states no clinical requirements because it makes no clinical
+      // claim. A PRODUCTION policy with an empty requirement set is refused by
+      // the gate (CLINICAL_RELEASE_POLICY_HAS_NO_REQUIREMENTS) precisely so
+      // that emptiness can never read as approval where it would matter.
+    },
+  });
+}
+
 async function main() {
   await resetSeedData();
+
+  const developmentReleasePolicy = await seedDevelopmentReleasePolicy();
 
   const permissions = [
     { code: 'user.read.self', name: 'Read own profile' },
@@ -1184,7 +1244,12 @@ async function main() {
           completedAt: new Date(Date.now() - unit.daysAgo * 24 * 60 * 60 * 1000 + 30 * 60000),
         },
       });
-      return db.bloodUnit.create({
+      const collectedAt = new Date(Date.now() - unit.daysAgo * 24 * 60 * 60 * 1000);
+      // Quarantined stock has not been released and must not look as though it
+      // has: no release timestamp, no expiry, no decision row.
+      const quarantined = index === 2;
+
+      const seededUnit = await db.bloodUnit.create({
         data: {
           unitReference: `BU-${new Date().getFullYear()}-${String(index + 1).padStart(6, '0')}`,
           donationId: seedDonation.id,
@@ -1193,12 +1258,48 @@ async function main() {
           rhFactor: unit.rhFactor,
           componentType: ComponentType.WHOLE_BLOOD,
           volumeMl: unit.volumeMl,
-          status: index === 2 ? 'QUARANTINED' : 'AVAILABLE',
-          locationId: index === 2 ? quarantineStorage.id : mainStorage.id,
-          collectedAt: new Date(Date.now() - unit.daysAgo * 24 * 60 * 60 * 1000),
-          expiresAt: new Date(Date.now() - unit.daysAgo * 24 * 60 * 60 * 1000 + 42 * 24 * 60 * 60 * 1000),
+          status: quarantined ? 'QUARANTINED' : 'AVAILABLE',
+          locationId: quarantined ? quarantineStorage.id : mainStorage.id,
+          collectedAt,
+          // The expiry used to be `collectedAt + 42 days`: a component shelf
+          // life, hard-coded in the seed, that nobody had signed. It now comes
+          // from the development policy's own obviously-non-clinical shelf
+          // life, and says so in `expirySource`.
+          expiresAt: quarantined
+            ? null
+            : new Date(collectedAt.getTime() + DEVELOPMENT_SHELF_LIFE_DAYS * 24 * 60 * 60 * 1000),
+          expirySource: quarantined ? 'UNKNOWN' : 'DEVELOPMENT_POLICY',
+          // Seeded stock takes its group from the donor it was seeded against,
+          // like every unit this system creates. Recorded, not implied.
+          bloodGroupSource: 'DONOR_PROFILE_COPY',
+          bloodGroupSourceNote: 'Seeded development stock',
+          // Seeded AVAILABLE stock carries a release decision rather than
+          // bypassing the gate. Without this the seed would be creating exactly
+          // the state Sprint 7 exists to make impossible -- transfusable stock
+          // that no policy ever cleared -- and every demo would be running
+          // against it.
+          clinicalReleasedAt: quarantined ? null : collectedAt,
         },
       });
+
+      if (!quarantined) {
+        await db.releaseDecision.create({
+          data: {
+            bloodUnitId: seededUnit.id,
+            organizationId: centerOrg.id,
+            policyId: developmentReleasePolicy.id,
+            policyVersion: developmentReleasePolicy.version,
+            policyKind: 'DEVELOPMENT_ONLY',
+            outcome: 'RELEASED',
+            reasonCode: 'RELEASED',
+            unmetRequirements: [],
+            decidedBy: null,
+            decidedAt: collectedAt,
+          },
+        });
+      }
+
+      return seededUnit;
     }),
   );
 
@@ -2045,7 +2146,24 @@ async function main() {
   ];
   const achievements: Record<string, { id: string; xpReward: number }> = {};
   for (const spec of achievementSpecs) {
-    const created = await db.achievement.create({ data: { ...spec, isActive: true } });
+    // Upsert, not create, and this one is not cosmetic.
+    //
+    // `GamificationService.onModuleInit` seeds its own achievement catalogue by
+    // code at every API boot. Running `pnpm demo:reset` against a running API
+    // -- which the demo instructions tell you to do -- therefore races it: the
+    // seed truncates, the API restarts (a regenerated Prisma client is a file
+    // change, so `nest start --watch` reloads), the API writes its catalogue,
+    // and the seed then dies on `Unique constraint failed on the fields: code`
+    // somewhere in the middle, leaving a half-populated database and an error
+    // that points at achievements when the cause is a lifecycle hook.
+    //
+    // Keyed by code, which is the unique column, so either order converges on
+    // the same catalogue.
+    const created = await db.achievement.upsert({
+      where: { code: spec.code },
+      create: { ...spec, isActive: true },
+      update: { ...spec, isActive: true },
+    });
     achievements[spec.code] = { id: created.id, xpReward: created.xpReward };
   }
 
@@ -2062,12 +2180,16 @@ async function main() {
   const badges: Record<string, string> = {};
   for (const spec of badgeSpecs) {
     const { achievementCode, ...rest } = spec;
-    const created = await db.badge.create({
-      data: {
-        ...rest,
-        isActive: true,
-        achievementId: achievementCode ? achievements[achievementCode]!.id : null,
-      },
+    // Same race, same fix: `BadgeService.seedBadges` runs at every API boot.
+    const data = {
+      ...rest,
+      isActive: true,
+      achievementId: achievementCode ? achievements[achievementCode]!.id : null,
+    };
+    const created = await db.badge.upsert({
+      where: { code: spec.code },
+      create: data,
+      update: data,
     });
     badges[spec.code] = created.id;
   }

@@ -335,6 +335,18 @@ export class ShipmentsService {
               bloodType: item.bloodType,
               rhFactor: item.rhFactor,
               status: 'AVAILABLE',
+              // The clinical release gate, applied where units are reserved
+              // automatically rather than by a person clicking reserve.
+              //
+              // This is the path that most needed it: approving a blood request
+              // picks units out of stock with no human looking at any of them,
+              // so a unit that reached AVAILABLE before the gate existed would
+              // be committed to a patient by a background query. Filtering here
+              // rather than throwing is deliberate -- an approval should use
+              // the released units it can find, and report a shortfall through
+              // the discrepancy it already reports, not fail wholesale because
+              // one unreleased unit sorted early.
+              clinicalReleasedAt: { not: null },
             },
             take: approval.unitsApproved,
             orderBy: { collectedAt: 'asc' },
@@ -2158,13 +2170,28 @@ export class ShipmentsService {
           },
         });
 
-        await tx.bloodUnit.update({
-          where: { id: unit.bloodUnitId },
+        // Transfer-in makes the unit transfusable stock at a second
+        // organisation, so the release decision has to still be true here. It
+        // is: `clinicalReleasedAt` travels with the row, and the unit could not
+        // have been reserved for this shipment without it. Written as a
+        // condition rather than trusted, because "it must already be true" is
+        // how the original release path came to have no gate at all.
+        const { count: received } = await tx.bloodUnit.updateMany({
+          where: { id: unit.bloodUnitId, clinicalReleasedAt: { not: null } },
           data: {
             organizationId: organizationId,
             status: 'AVAILABLE',
           },
         });
+
+        if (received === 0) {
+          throw new ConflictException({
+            code: 'CLINICAL_RELEASE_DECISION_MISSING',
+            message:
+              'A unit on this shipment carries no clinical release decision, so it cannot be received into transfusable stock.',
+            details: { bloodUnitId: unit.bloodUnitId },
+          });
+        }
 
         await tx.inventoryMovement.create({
           data: {

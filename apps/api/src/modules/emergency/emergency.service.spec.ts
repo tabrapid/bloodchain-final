@@ -14,6 +14,7 @@ import { PrismaService } from '../../database/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { EmergencyGateway } from '../../gateways/emergency.gateway';
 import { DonationEligibilityService } from '../donation-eligibility/donation-eligibility.service';
+import { DonorDeferralsService } from '../donor-deferrals/donor-deferrals.service';
 import { PlatformSettingsService } from '../platform-settings/platform-settings.service';
 import { EmergencyService } from './emergency.service';
 import {
@@ -84,6 +85,20 @@ describe('EmergencyService.completeEmergency', () => {
             computeDefaultNextEligibleDate: jest.fn(
               (from: Date) => new Date(from.getTime() + 56 * 24 * 60 * 60 * 1000),
             ),
+          },
+        },
+        {
+          provide: DonorDeferralsService,
+          useValue: {
+            // No deferral in force, so these suites keep testing what they were
+            // written to test. That matching excludes a deferred donor is
+            // proved against the real service in donor-deferrals.service.spec.ts
+            // and end to end in clinical-safety.e2e-spec.ts.
+            isDeferredAt: jest.fn().mockResolvedValue(false),
+            assertNotDeferredAt: jest.fn().mockResolvedValue(undefined),
+            findDeferredDonorIds: jest.fn().mockResolvedValue(new Set<string>()),
+            getActiveDeferral: jest.fn().mockResolvedValue(null),
+            createInTransaction: jest.fn().mockResolvedValue({ id: 'deferral-1' }),
           },
         },
         { provide: PlatformSettingsService, useValue: { isEnabled: jest.fn().mockResolvedValue(true) } },
@@ -211,6 +226,19 @@ describe('EmergencyService.checkDonorEligibility', () => {
         { provide: EventEmitter2, useValue: { emit: jest.fn() } },
         { provide: EmergencyGateway, useValue: {} },
         { provide: DonationEligibilityService, useValue: donationEligibility },
+        {
+          provide: DonorDeferralsService,
+          useValue: {
+            // No deferral in force, so these suites keep testing what they were
+            // written to test. The deferral gates themselves are proved in
+            // donor-deferrals.service.spec.ts and clinical-safety.e2e-spec.ts.
+            isDeferredAt: jest.fn().mockResolvedValue(false),
+            assertNotDeferredAt: jest.fn().mockResolvedValue(undefined),
+            findDeferredDonorIds: jest.fn().mockResolvedValue(new Set<string>()),
+            getActiveDeferral: jest.fn().mockResolvedValue(null),
+            createInTransaction: jest.fn().mockResolvedValue({ id: 'deferral-1' }),
+          },
+        },
         { provide: PlatformSettingsService, useValue: { isEnabled: jest.fn().mockResolvedValue(true) } },
       ],
     }).compile();
@@ -257,6 +285,19 @@ describe('EmergencyService.createEmergency', () => {
         { provide: EventEmitter2, useValue: { emit: jest.fn() } },
         { provide: EmergencyGateway, useValue: {} },
         { provide: DonationEligibilityService, useValue: {} },
+        {
+          provide: DonorDeferralsService,
+          useValue: {
+            // No deferral in force, so these suites keep testing what they were
+            // written to test. The deferral gates themselves are proved in
+            // donor-deferrals.service.spec.ts and clinical-safety.e2e-spec.ts.
+            isDeferredAt: jest.fn().mockResolvedValue(false),
+            assertNotDeferredAt: jest.fn().mockResolvedValue(undefined),
+            findDeferredDonorIds: jest.fn().mockResolvedValue(new Set<string>()),
+            getActiveDeferral: jest.fn().mockResolvedValue(null),
+            createInTransaction: jest.fn().mockResolvedValue({ id: 'deferral-1' }),
+          },
+        },
         { provide: PlatformSettingsService, useValue: platformSettings },
       ],
     }).compile();
@@ -305,6 +346,19 @@ describe('EmergencyService.createEmergency', () => {
         { provide: EventEmitter2, useValue: { emit: jest.fn() } },
         { provide: EmergencyGateway, useValue: {} },
         { provide: DonationEligibilityService, useValue: {} },
+        {
+          provide: DonorDeferralsService,
+          useValue: {
+            // No deferral in force, so these suites keep testing what they were
+            // written to test. The deferral gates themselves are proved in
+            // donor-deferrals.service.spec.ts and clinical-safety.e2e-spec.ts.
+            isDeferredAt: jest.fn().mockResolvedValue(false),
+            assertNotDeferredAt: jest.fn().mockResolvedValue(undefined),
+            findDeferredDonorIds: jest.fn().mockResolvedValue(new Set<string>()),
+            getActiveDeferral: jest.fn().mockResolvedValue(null),
+            createInTransaction: jest.fn().mockResolvedValue({ id: 'deferral-1' }),
+          },
+        },
         { provide: PlatformSettingsService, useValue: platformSettings },
       ],
     }).compile();
@@ -331,6 +385,19 @@ describe('EmergencyService.createEmergency', () => {
         { provide: EventEmitter2, useValue: { emit: jest.fn() } },
         { provide: EmergencyGateway, useValue: {} },
         { provide: DonationEligibilityService, useValue: {} },
+        {
+          provide: DonorDeferralsService,
+          useValue: {
+            // No deferral in force, so these suites keep testing what they were
+            // written to test. The deferral gates themselves are proved in
+            // donor-deferrals.service.spec.ts and clinical-safety.e2e-spec.ts.
+            isDeferredAt: jest.fn().mockResolvedValue(false),
+            assertNotDeferredAt: jest.fn().mockResolvedValue(undefined),
+            findDeferredDonorIds: jest.fn().mockResolvedValue(new Set<string>()),
+            getActiveDeferral: jest.fn().mockResolvedValue(null),
+            createInTransaction: jest.fn().mockResolvedValue({ id: 'deferral-1' }),
+          },
+        },
         { provide: PlatformSettingsService, useValue: platformSettings },
       ],
     }).compile();
@@ -374,6 +441,19 @@ describe('EmergencyService.createEmergency', () => {
         { provide: EventEmitter2, useValue: { emit: jest.fn() } },
         { provide: EmergencyGateway, useValue: {} },
         { provide: DonationEligibilityService, useValue: {} },
+        {
+          provide: DonorDeferralsService,
+          useValue: {
+            // No deferral in force, so these suites keep testing what they were
+            // written to test. The deferral gates themselves are proved in
+            // donor-deferrals.service.spec.ts and clinical-safety.e2e-spec.ts.
+            isDeferredAt: jest.fn().mockResolvedValue(false),
+            assertNotDeferredAt: jest.fn().mockResolvedValue(undefined),
+            findDeferredDonorIds: jest.fn().mockResolvedValue(new Set<string>()),
+            getActiveDeferral: jest.fn().mockResolvedValue(null),
+            createInTransaction: jest.fn().mockResolvedValue({ id: 'deferral-1' }),
+          },
+        },
         { provide: PlatformSettingsService, useValue: platformSettings },
       ],
     }).compile();
@@ -409,6 +489,19 @@ describe('EmergencyService.checkHospitalAccess', () => {
         { provide: EventEmitter2, useValue: { emit: jest.fn() } },
         { provide: EmergencyGateway, useValue: {} },
         { provide: DonationEligibilityService, useValue: {} },
+        {
+          provide: DonorDeferralsService,
+          useValue: {
+            // No deferral in force, so these suites keep testing what they were
+            // written to test. The deferral gates themselves are proved in
+            // donor-deferrals.service.spec.ts and clinical-safety.e2e-spec.ts.
+            isDeferredAt: jest.fn().mockResolvedValue(false),
+            assertNotDeferredAt: jest.fn().mockResolvedValue(undefined),
+            findDeferredDonorIds: jest.fn().mockResolvedValue(new Set<string>()),
+            getActiveDeferral: jest.fn().mockResolvedValue(null),
+            createInTransaction: jest.fn().mockResolvedValue({ id: 'deferral-1' }),
+          },
+        },
         { provide: PlatformSettingsService, useValue: { isEnabled: jest.fn().mockResolvedValue(true) } },
       ],
     }).compile();
@@ -517,6 +610,19 @@ describe('EmergencyService.activateEmergency', () => {
         { provide: EventEmitter2, useValue: eventEmitter },
         { provide: EmergencyGateway, useValue: {} },
         { provide: DonationEligibilityService, useValue: donationEligibility },
+        {
+          provide: DonorDeferralsService,
+          useValue: {
+            // No deferral in force, so these suites keep testing what they were
+            // written to test. The deferral gates themselves are proved in
+            // donor-deferrals.service.spec.ts and clinical-safety.e2e-spec.ts.
+            isDeferredAt: jest.fn().mockResolvedValue(false),
+            assertNotDeferredAt: jest.fn().mockResolvedValue(undefined),
+            findDeferredDonorIds: jest.fn().mockResolvedValue(new Set<string>()),
+            getActiveDeferral: jest.fn().mockResolvedValue(null),
+            createInTransaction: jest.fn().mockResolvedValue({ id: 'deferral-1' }),
+          },
+        },
         { provide: PlatformSettingsService, useValue: { isEnabled: jest.fn().mockResolvedValue(true) } },
       ],
     }).compile();

@@ -7,6 +7,7 @@ import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { DonationEligibilityService } from '../donation-eligibility/donation-eligibility.service';
 import { APPOINTMENT_COMPLETED_EVENT } from '../gamification/events/gamification-event.handler';
 import { AppointmentsService } from './appointments.service';
+import { DonorDeferralsService } from '../donor-deferrals/donor-deferrals.service';
 
 function makeSlot(overrides: Record<string, any> = {}) {
   return {
@@ -79,6 +80,19 @@ describe('AppointmentsService', () => {
         { provide: AuditLogsService, useValue: { log: jest.fn().mockResolvedValue({}) } },
         { provide: EventEmitter2, useValue: eventEmitter },
         { provide: DonationEligibilityService, useValue: eligibility },
+        {
+          provide: DonorDeferralsService,
+          useValue: {
+            // No deferral in force, so these suites keep testing what they were
+            // written to test. The deferral gates themselves are proved in
+            // donor-deferrals.service.spec.ts and clinical-safety.e2e-spec.ts.
+            isDeferredAt: jest.fn().mockResolvedValue(false),
+            assertNotDeferredAt: jest.fn().mockResolvedValue(undefined),
+            findDeferredDonorIds: jest.fn().mockResolvedValue(new Set<string>()),
+            getActiveDeferral: jest.fn().mockResolvedValue(null),
+            createInTransaction: jest.fn().mockResolvedValue({ id: 'deferral-1' }),
+          },
+        },
       ],
     }).compile();
 
@@ -472,6 +486,10 @@ describe('AppointmentsService reference numbers', () => {
         {
           provide: DonationEligibilityService,
           useValue: { assertEligibleToDonateAt: jest.fn().mockResolvedValue(undefined) },
+        },
+        {
+          provide: DonorDeferralsService,
+          useValue: { assertNotDeferredAt: jest.fn().mockResolvedValue(undefined) },
         },
       ],
     }).compile();

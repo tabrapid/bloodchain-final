@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { AlertType, BloodType, BloodUnitStatus, ComponentType, LocationType, MovementType, ReservationStatus, RhFactor } from '@prisma/client';
-import { IsBoolean, IsDateString, IsEnum, IsInt, IsNotEmpty, IsOptional, IsString, Min } from 'class-validator';
+import { IsBoolean, IsDateString, IsEnum, IsInt, IsNotEmpty, IsOptional, IsString, MaxLength, Min } from 'class-validator';
 import { OptionalBooleanField } from '../../../common/decorators/strict-boolean.decorator';
 
 export class GetInventoryDto {
@@ -157,10 +157,35 @@ export class DiscardUnitDto {
 }
 
 export class IssueUnitDto {
-  @ApiPropertyOptional({ description: 'Why this unit was issued - include a patient/recipient reference here if applicable' })
+  @ApiPropertyOptional({ description: 'Why this unit was issued' })
   @IsOptional()
   @IsString()
   reason?: string;
+
+  /**
+   * The recipient reference, as its own field rather than buried in `reason`.
+   *
+   * It used to be prose: the old description asked staff to "include a
+   * patient/recipient reference here if applicable", which put the one fact a
+   * look-back needs into a free-text column nothing can query (CL-03).
+   *
+   * The string is OPAQUE and this repository attaches no identity policy to
+   * it. What identifies a transfusion recipient in this jurisdiction -- a
+   * national ID, a hospital number, something else -- is an unresolved legal
+   * and clinical question (PR-02), and inventing an answer here would write an
+   * identity workflow nobody asked for into the API. Optional for the same
+   * reason: refusing an issue for want of a format that has not been agreed
+   * would block real work over an open question.
+   */
+  @ApiPropertyOptional({
+    description:
+      'Opaque reference for the receiving patient or ward, recorded for traceability. No identity format is imposed or validated.',
+    maxLength: 120,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  recipientReference?: string;
 }
 
 export class AdjustUnitDto {

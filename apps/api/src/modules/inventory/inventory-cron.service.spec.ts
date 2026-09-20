@@ -3,6 +3,7 @@ import { BloodUnitStatus, ReservationStatus } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { InventoryService } from './inventory.service';
+import { InventoryThresholdsService } from '../inventory-thresholds/inventory-thresholds.service';
 import { InventoryCronService } from './inventory-cron.service';
 
 describe('InventoryCronService', () => {
@@ -32,6 +33,22 @@ describe('InventoryCronService', () => {
         { provide: PrismaService, useValue: prisma },
         { provide: AuditLogsService, useValue: { log: jest.fn().mockResolvedValue({}) } },
         { provide: InventoryService, useValue: inventory },
+        // The threshold service, stubbed to the development fallback these
+        // tests were written against, so they keep asserting what they were
+        // written to assert: which groups cross a threshold, not where the
+        // number comes from. That it now comes from configuration is proved in
+        // inventory-thresholds.service.spec.ts.
+        {
+          provide: InventoryThresholdsService,
+          useValue: {
+            listRows: jest.fn().mockResolvedValue([]),
+            resolveFrom: jest.fn().mockReturnValue({
+              threshold: 5,
+              source: 'DEVELOPMENT_FALLBACK',
+              scopeKey: null,
+            }),
+          },
+        },
       ],
     }).compile();
 
@@ -157,6 +174,17 @@ describe('InventoryCronService', () => {
           { provide: PrismaService, useValue: prisma },
           { provide: AuditLogsService, useValue: audit },
           { provide: InventoryService, useValue: inventory },
+          {
+            provide: InventoryThresholdsService,
+            useValue: {
+              listRows: jest.fn().mockResolvedValue([]),
+              resolveFrom: jest.fn().mockReturnValue({
+                threshold: 5,
+                source: 'DEVELOPMENT_FALLBACK',
+                scopeKey: null,
+              }),
+            },
+          },
         ],
       }).compile();
       const svc = module.get<InventoryCronService>(InventoryCronService);

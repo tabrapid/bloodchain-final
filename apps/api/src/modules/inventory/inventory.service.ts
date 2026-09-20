@@ -25,6 +25,8 @@ import {
   type InventoryAlertPayload,
 } from '../notifications/operational-notification.events';
 import { assertOrganizationActive } from '../../common/utils/organization-status.util';
+import { ClinicalReleaseService } from '../clinical-release/clinical-release.service';
+import { DispositionType } from '@prisma/client';
 import {
   AdjustUnitDto,
   CreateLocationDto,
@@ -47,6 +49,7 @@ export class InventoryService {
     private readonly db: PrismaService,
     private readonly audit: AuditLogsService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly clinicalRelease: ClinicalReleaseService,
   ) {}
 
   private generateUnitReference(): string {
@@ -201,6 +204,11 @@ export class InventoryService {
             reservedForOrganization: { select: { id: true, name: true } },
           },
         },
+        releaseDecisions: {
+          orderBy: { decidedAt: 'desc' },
+          include: { decider: { select: { id: true, firstName: true, lastName: true } } },
+        },
+        disposition: true,
       },
     });
 
@@ -208,7 +216,266 @@ export class InventoryService {
       throw new NotFoundException('Blood unit not found.');
     }
 
-    return { data: unit };
+    // Why this unit is not transfusable stock, computed once on the server.
+    //
+    // The console needs to say more than "not released": it needs the reason,
+    // and it must not re-derive that reason from the policy in a component,
+    // because two implementations of a safety rule are one too many.
+    const clinicalRelease = this.clinicalRelease.isReleased(unit)
+      ? {
+          released: true as const,
+          releasedAt: unit.clinicalReleasedAt,
+          blockedReasonCode: null,
+          blockedMessage: null,
+          unmetRequirements: [] as string[],
+        }
+      : await this.describeReleaseBlock(unit);
+
+    return { data: { ...unit, clinicalRelease } };
+  }
+
+  /** The refusal a release would produce right now, for display. Writes nothing. */
+  private async describeReleaseBlock(unit: Parameters<ClinicalReleaseService['evaluate']>[0]) {
+    const evaluation = await this.clinicalRelease.evaluate(unit);
+    if (evaluation.permitted) {
+      return {
+        released: false as const,
+        releasedAt: null,
+        blockedReasonCode: null,
+        blockedMessage: null,
+        unmetRequirements: [] as string[],
+      };
+    }
+    return {
+      released: false as const,
+      releasedAt: null,
+      blockedReasonCode: evaluation.reasonCode,
+      blockedMessage: evaluation.message,
+      unmetRequirements: evaluation.unmetRequirements,
+    };
+  }
+
+  /**
+   * The whole chain for one unit, in one answer:
+   *
+   *   donor → donation → unit → movements → reservations → blood request
+   *         → shipment → receiving organisation → final disposition
+   *
+   * Every link already existed in the schema; what did not exist was a way to
+   * ask for them together. Assembling this in a console meant five round trips
+   * and a client-side join, which is why nobody did, and why a look-back had to
+   * be run by hand against the database.
+   *
+   * Where a link is genuinely absent the answer says so rather than omitting
+   * it -- `recipient.reference` is null until the recipient identity question
+   * (CL-03, PR-02) is answered, and a chain that quietly stopped at "issued"
+   * would read as complete.
+   */
+  async getUnitTraceability(organizationId: string, unitId: string, requestingUserId: string) {
+    await this.getAuthorizedUser(requestingUserId, organizationId);
+
+    const unit = await this.db.bloodUnit.findFirst({
+      where: { id: unitId, organizationId },
+      include: {
+        organization: { select: { id: true, name: true, type: true } },
+        location: { select: { id: true, name: true, code: true } },
+        donation: {
+          include: {
+            donor: { select: { id: true, firstName: true, lastName: true } },
+            organization: { select: { id: true, name: true, type: true } },
+            assessment: { select: { id: true, decision: true, assessedAt: true } },
+          },
+        },
+        movements: {
+          orderBy: { createdAt: 'asc' },
+          include: {
+            fromLocation: { select: { id: true, name: true, code: true } },
+            toLocation: { select: { id: true, name: true, code: true } },
+            actor: { select: { id: true, firstName: true, lastName: true } },
+          },
+        },
+        reservations: {
+          orderBy: { createdAt: 'asc' },
+          include: {
+            reservedForOrganization: { select: { id: true, name: true, type: true } },
+            bloodRequestItems: {
+              include: {
+                bloodRequest: {
+                  select: {
+                    id: true,
+                    requestReference: true,
+                    status: true,
+                    requestingOrganization: { select: { id: true, name: true, type: true } },
+                  },
+                },
+              },
+            },
+          },
+        },
+        shipmentUnits: {
+          orderBy: { createdAt: 'asc' },
+          include: {
+            shipment: {
+              select: {
+                id: true,
+                shipmentReference: true,
+                status: true,
+                deliveredAt: true,
+                sourceOrganization: { select: { id: true, name: true, type: true } },
+                destinationOrganization: { select: { id: true, name: true, type: true } },
+              },
+            },
+          },
+        },
+        releaseDecisions: {
+          orderBy: { decidedAt: 'asc' },
+          include: { decider: { select: { id: true, firstName: true, lastName: true } } },
+        },
+        disposition: {
+          include: {
+            recorder: { select: { id: true, firstName: true, lastName: true } },
+            bloodRequest: { select: { id: true, requestReference: true } },
+            shipment: { select: { id: true, shipmentReference: true } },
+          },
+        },
+      },
+    });
+
+    if (!unit) {
+      throw new NotFoundException('Blood unit not found.');
+    }
+
+    const bloodRequests = unit.reservations
+      .flatMap((reservation) => reservation.bloodRequestItems)
+      .map((item) => item.bloodRequest)
+      .filter((request, index, all) => all.findIndex((r) => r.id === request.id) === index);
+
+    return {
+      data: {
+        unit: {
+          id: unit.id,
+          unitReference: unit.unitReference,
+          componentType: unit.componentType,
+          status: unit.status,
+          volumeMl: unit.volumeMl,
+          collectedAt: unit.collectedAt,
+          organization: unit.organization,
+          location: unit.location,
+        },
+        bloodGroup: {
+          bloodType: unit.bloodType,
+          rhFactor: unit.rhFactor,
+          /**
+           * Never presented as a result for this unit. DONOR_PROFILE_COPY means
+           * the donor's record said this; it does not mean the bag was typed.
+           */
+          provenance: unit.bloodGroupSource,
+          provenanceNote: unit.bloodGroupSourceNote,
+          typedFromUnit: unit.bloodGroupSource === 'UNIT_TYPED',
+        },
+        expiry: {
+          expiresAt: unit.expiresAt,
+          provenance: unit.expirySource,
+          known: unit.expiresAt !== null && unit.expirySource !== 'UNKNOWN',
+        },
+        donor: unit.donation.donor,
+        donation: {
+          id: unit.donation.id,
+          donationReference: unit.donation.donationReference,
+          status: unit.donation.status,
+          collectedAt: unit.donation.collectionCompletedAt,
+          organization: unit.donation.organization,
+          assessment: unit.donation.assessment,
+        },
+        clinicalRelease: {
+          released: unit.clinicalReleasedAt !== null,
+          releasedAt: unit.clinicalReleasedAt,
+          decisions: unit.releaseDecisions,
+        },
+        movements: unit.movements,
+        reservations: unit.reservations.map((reservation) => ({
+          id: reservation.id,
+          status: reservation.status,
+          reservedAt: reservation.reservedAt,
+          releasedAt: reservation.releasedAt,
+          fulfilledAt: reservation.fulfilledAt,
+          reservedForOrganization: reservation.reservedForOrganization,
+        })),
+        bloodRequests,
+        shipments: unit.shipmentUnits.map((shipmentUnit) => ({
+          id: shipmentUnit.shipment.id,
+          shipmentReference: shipmentUnit.shipment.shipmentReference,
+          status: shipmentUnit.shipment.status,
+          deliveredAt: shipmentUnit.shipment.deliveredAt,
+          unitStatus: shipmentUnit.status,
+          fromOrganization: shipmentUnit.shipment.sourceOrganization,
+          toOrganization: shipmentUnit.shipment.destinationOrganization,
+        })),
+        receivingOrganizations: unit.shipmentUnits
+          .map((shipmentUnit) => shipmentUnit.shipment.destinationOrganization)
+          .filter((org, index, all) => all.findIndex((o) => o.id === org.id) === index),
+        disposition: unit.disposition
+          ? {
+              type: unit.disposition.type,
+              occurredAt: unit.disposition.occurredAt,
+              recordedBy: unit.disposition.recorder,
+              bloodRequest: unit.disposition.bloodRequest,
+              shipment: unit.disposition.shipment,
+              notes: unit.disposition.notes,
+              recipient: {
+                /**
+                 * Opaque, and null until somebody decides what identifies a
+                 * recipient here. The chain says so rather than ending at
+                 * "issued" as though that were the whole story.
+                 */
+                reference: unit.disposition.recipientReference,
+                identityPolicy: 'UNDEFINED',
+              },
+            }
+          : null,
+      },
+    };
+  }
+
+  /** The policy in force for this organisation, for the console header. */
+  async getClinicalReleasePolicyStatus(organizationId: string, requestingUserId: string) {
+    await this.getAuthorizedUser(requestingUserId, organizationId);
+    return { data: await this.clinicalRelease.getPolicyStatus(organizationId) };
+  }
+
+  /** Units collected or quarantined here that are waiting on a release decision. */
+  async getUnitsAwaitingRelease(organizationId: string, requestingUserId: string) {
+    await this.getAuthorizedUser(requestingUserId, organizationId);
+
+    const units = await this.db.bloodUnit.findMany({
+      where: {
+        organizationId,
+        clinicalReleasedAt: null,
+        status: { in: [BloodUnitStatus.COLLECTED, BloodUnitStatus.QUARANTINED] },
+      },
+      orderBy: { collectedAt: 'asc' },
+      include: { donation: { select: { donationReference: true } } },
+    });
+
+    const policyStatus = await this.clinicalRelease.getPolicyStatus(organizationId);
+
+    return {
+      data: {
+        policy: policyStatus,
+        units: units.map((unit) => ({
+          id: unit.id,
+          unitReference: unit.unitReference,
+          componentType: unit.componentType,
+          bloodType: unit.bloodType,
+          rhFactor: unit.rhFactor,
+          status: unit.status,
+          collectedAt: unit.collectedAt,
+          donationReference: unit.donation.donationReference,
+          bloodGroupProvenance: unit.bloodGroupSource,
+          expiryKnown: unit.expiresAt !== null && unit.expirySource !== 'UNKNOWN',
+        })),
+      },
+    };
   }
 
   async releaseUnit(
@@ -224,13 +491,61 @@ export class InventoryService {
       throw new BadRequestException(`Cannot release unit with status ${unit.status}. Only COLLECTED or QUARANTINED units can be released.`);
     }
 
+    // The clinical gate. Asked before the status transition and with no regard
+    // for who is asking: there is no role, flag or parameter that skips it, and
+    // no force-release route anywhere in this controller. A SUPER_ADMIN gets
+    // the same answer as a porter.
+    //
+    // A refusal is recorded as a ReleaseDecision before it is thrown, because
+    // "the system would not let us release this unit, and why" is the first
+    // question an incident review asks, and an unrecorded refusal is
+    // indistinguishable from nobody having tried.
+    const evaluation = await this.clinicalRelease.evaluate(unit);
+
+    if (!evaluation.permitted) {
+      await this.db.$transaction((tx) =>
+        this.clinicalRelease.recordDecision(tx, {
+          unitId,
+          organizationId,
+          evaluation,
+          decidedBy: requestingUserId,
+        }),
+      );
+
+      await this.audit.log({
+        actorId: requestingUserId,
+        action: 'BLOOD_UNIT_RELEASE_REFUSED',
+        entityType: 'BloodUnit',
+        entityId: unitId,
+        organizationId,
+        metadata: {
+          unitReference: unit.unitReference,
+          reasonCode: evaluation.reasonCode,
+          policyId: evaluation.policyId,
+          policyVersion: evaluation.policyVersion,
+          policyKind: evaluation.policyKind,
+          unmetRequirements: evaluation.unmetRequirements,
+        },
+        ipAddress,
+      });
+
+      throw this.clinicalRelease.refusalException(evaluation);
+    }
+
     const result = await this.db.$transaction(async (tx) => {
       // Atomic conditional update: only succeeds if the unit is still in an
       // allowed status at the moment Postgres acquires the row lock, closing
       // the race window between the pre-check above and this transaction.
       const claim = await tx.bloodUnit.updateMany({
         where: { id: unitId, status: { in: [BloodUnitStatus.COLLECTED, BloodUnitStatus.QUARANTINED] } },
-        data: { status: BloodUnitStatus.AVAILABLE },
+        data: {
+          status: BloodUnitStatus.AVAILABLE,
+          // Written in the same statement as the status, so a unit cannot be
+          // AVAILABLE without carrying the decision that made it so.
+          clinicalReleasedAt: new Date(),
+          expiresAt: evaluation.expiresAt,
+          expirySource: evaluation.expirySource,
+        },
       });
 
       if (claim.count === 0) {
@@ -241,6 +556,13 @@ export class InventoryService {
       }
 
       const updated = await tx.bloodUnit.findUniqueOrThrow({ where: { id: unitId } });
+
+      await this.clinicalRelease.recordDecision(tx, {
+        unitId,
+        organizationId,
+        evaluation,
+        decidedBy: requestingUserId,
+      });
 
       await tx.inventoryMovement.create({
         data: {
@@ -261,11 +583,34 @@ export class InventoryService {
       entityType: 'BloodUnit',
       entityId: unitId,
       organizationId,
-      metadata: { unitReference: unit.unitReference, status: result.status },
+      metadata: {
+        unitReference: unit.unitReference,
+        status: result.status,
+        policyId: evaluation.policyId,
+        policyVersion: evaluation.policyVersion,
+        policyKind: evaluation.policyKind,
+        // Carried into the audit trail so a development clearance is never
+        // mistaken for a clinical one when the log is read back.
+        developmentOnly: evaluation.developmentOnly,
+        expiresAt: result.expiresAt?.toISOString() ?? null,
+        expirySource: result.expirySource,
+      },
       ipAddress,
     });
 
-    return { data: { id: result.id, status: result.status, unitReference: result.unitReference } };
+    return {
+      data: {
+        id: result.id,
+        status: result.status,
+        unitReference: result.unitReference,
+        clinicalReleasedAt: result.clinicalReleasedAt,
+        expiresAt: result.expiresAt,
+        expirySource: result.expirySource,
+        releasePolicyVersion: evaluation.policyVersion,
+        releasePolicyKind: evaluation.policyKind,
+        developmentOnly: evaluation.developmentOnly,
+      },
+    };
   }
 
   async quarantineUnit(
@@ -371,6 +716,15 @@ export class InventoryService {
         },
       });
 
+      await this.recordDisposition(tx, {
+        unitId,
+        organizationId,
+        type: DispositionType.DISCARDED,
+        recordedBy: requestingUserId,
+        recipientReference: null,
+        notes: dto.reason ?? null,
+      });
+
       return updated;
     });
 
@@ -399,6 +753,10 @@ export class InventoryService {
     if (unit.status !== BloodUnitStatus.AVAILABLE && unit.status !== BloodUnitStatus.RESERVED) {
       throw new BadRequestException(`Cannot issue unit with status ${unit.status}. Only AVAILABLE or RESERVED units can be issued.`);
     }
+
+    // The last point at which software can still refuse. Everything after this
+    // call is a bag leaving the fridge.
+    this.clinicalRelease.assertReleased(unit);
 
     const result = await this.db.$transaction(async (tx) => {
       // Atomic conditional update: closes the race window between the
@@ -431,6 +789,18 @@ export class InventoryService {
       await tx.bloodUnitReservation.updateMany({
         where: { bloodUnitId: unitId, status: ReservationStatus.ACTIVE },
         data: { status: ReservationStatus.FULFILLED, fulfilledAt: new Date() },
+      });
+
+      // The end of the traceability chain, as a row rather than as a movement
+      // reason. `MovementType.USED` records that the unit left; it does not
+      // record where it went, and a look-back cannot be run against prose.
+      await this.recordDisposition(tx, {
+        unitId,
+        organizationId,
+        type: DispositionType.ISSUED,
+        recordedBy: requestingUserId,
+        recipientReference: dto.recipientReference ?? null,
+        notes: dto.reason ?? null,
       });
 
       return updated;
@@ -616,6 +986,13 @@ export class InventoryService {
     if (unit.status !== BloodUnitStatus.AVAILABLE) {
       throw new ConflictException('UNIT_NOT_AVAILABLE: Only AVAILABLE units can be reserved.');
     }
+
+    // AVAILABLE is meant to imply a release decision, and after this sprint it
+    // does for every unit released through the gate. This check is what makes
+    // that an invariant rather than an assumption: units that reached AVAILABLE
+    // before the gate existed carry no decision, and a reservation is the step
+    // that commits one to a patient.
+    this.clinicalRelease.assertReleased(unit);
 
     const activeReservation = await this.db.bloodUnitReservation.findFirst({
       where: { bloodUnitId: unitId, status: ReservationStatus.ACTIVE },
@@ -1025,8 +1402,10 @@ export class InventoryService {
     organizationId: string,
     type: AlertType,
     message: string,
-    bloodType: BloodType | null,
-    rhFactor: RhFactor | null,
+    // Nullable and defaulted: an alert about the organisation's configuration
+    // rather than about one blood group has no group to name.
+    bloodType: BloodType | null = null,
+    rhFactor: RhFactor | null = null,
     currentValue?: number,
     threshold?: number,
   ) {
@@ -1065,6 +1444,44 @@ export class InventoryService {
     this.eventEmitter.emit(INVENTORY_ALERT_EVENT, payload);
 
     return alert;
+  }
+
+  /**
+   * Write the unit's final disposition.
+   *
+   * Upsert rather than create: a unit reaches a terminal state once, but
+   * `expireUnits` and a staff discard can race on the same bag at the hour
+   * boundary, and a unique-constraint crash there would roll back a legitimate
+   * status change over a bookkeeping row. First writer wins; the movement log
+   * keeps the full sequence either way.
+   */
+  private async recordDisposition(
+    tx: Prisma.TransactionClient,
+    input: {
+      unitId: string;
+      organizationId: string;
+      type: DispositionType;
+      recordedBy: string | null;
+      recipientReference: string | null;
+      notes: string | null;
+      bloodRequestId?: string | null;
+      shipmentId?: string | null;
+    },
+  ): Promise<void> {
+    await tx.bloodUnitDisposition.upsert({
+      where: { bloodUnitId: input.unitId },
+      create: {
+        bloodUnitId: input.unitId,
+        organizationId: input.organizationId,
+        type: input.type,
+        recordedBy: input.recordedBy,
+        recipientReference: input.recipientReference,
+        notes: input.notes,
+        bloodRequestId: input.bloodRequestId ?? null,
+        shipmentId: input.shipmentId ?? null,
+      },
+      update: {},
+    });
   }
 
   private async getAuthorizedUser(userId: string, organizationId: string) {

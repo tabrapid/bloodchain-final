@@ -9,7 +9,11 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   AppointmentStatus,
   AssessmentDecision,
+  BloodGroupProvenance,
   BloodType,
+  CancellationReason,
+  DeferralKind,
+  DeferralSource,
   DonationEventType,
   DonationStatus,
   DonationType,
@@ -33,6 +37,7 @@ import {
 } from './dto/donation.dto';
 import { DONATION_COMPLETED_EVENT, DonationCompletedPayload } from '../gamification/events/gamification-event.handler';
 import { DonationEligibilityService } from '../donation-eligibility/donation-eligibility.service';
+import { DonorDeferralsService } from '../donor-deferrals/donor-deferrals.service';
 
 @Injectable()
 export class DonationsService {
@@ -41,6 +46,7 @@ export class DonationsService {
     private readonly audit: AuditLogsService,
     private readonly eventEmitter: EventEmitter2,
     private readonly donationEligibility: DonationEligibilityService,
+    private readonly donorDeferrals: DonorDeferralsService,
   ) {}
 
   private generateDonationReference(): string {
@@ -119,6 +125,11 @@ export class DonationsService {
     // extended their window on a previous donation. Asked about now, because
     // this is the moment the donation would happen.
     await this.donationEligibility.assertEligibleToDonateAt(appointment.donorId, new Date());
+    // Re-checked here for the same reason the recovery window is: a donor who
+    // was clear when they booked may have been deferred since, at this centre
+    // or another one. Asked about now, because this is the moment the donation
+    // would happen.
+    await this.donorDeferrals.assertNotDeferredAt(appointment.donorId, new Date());
 
     const result = await withUniqueRetry(
       () =>
@@ -248,7 +259,7 @@ export class DonationsService {
         });
       }
 
-      await tx.donationAssessment.create({
+      const assessment = await tx.donationAssessment.create({
         data: {
           donationId,
           decision: dto.decision,
@@ -257,6 +268,53 @@ export class DonationsService {
           assessedBy: staffId,
         },
       });
+
+      // Deferring a donor at the chair now defers the donor.
+      //
+      // `AssessmentDecision.DEFERRED` used to be a word written on one
+      // donation: it stopped that donation and reached nothing else, so the
+      // donor could book again the next morning and emergency matching, which
+      // reads the profile flag, still considered them available (DEF-05). It
+      // now raises a real deferral, in the same transaction as the assessment
+      // that justified it -- a deferral without its assessment, or an
+      // assessment marked DEFERRED that deferred nobody, are both worse than
+      // this call failing.
+      //
+      // INDEFINITE, because nothing here knows how long any deferral should
+      // last. No deferral schedule exists to read a period from, and inventing
+      // one -- three months, six, a year -- would be exactly the clinical rule
+      // this sprint may not write. Staff lift it, or replace it with a dated
+      // one, from the donor record.
+      if (dto.decision === AssessmentDecision.DEFERRED) {
+        await tx.donation.update({
+          where: { id: donationId },
+          data: {
+            status: DonationStatus.REJECTED,
+            rejectedAt: new Date(),
+            rejectedReason: dto.reasonCategory,
+            staffNotes: dto.notes,
+            cancellationReason: CancellationReason.DEFERRED,
+          },
+        });
+
+        if (donation.appointmentId) {
+          await tx.appointment.update({
+            where: { id: donation.appointmentId },
+            data: { status: AppointmentStatus.CANCELLED },
+          });
+        }
+
+        await this.donorDeferrals.createInTransaction(tx, {
+          donorId: donation.donorId,
+          organizationId,
+          kind: DeferralKind.INDEFINITE,
+          reasonCode: dto.reasonCategory ?? null,
+          reasonText: dto.notes ?? null,
+          source: DeferralSource.DONATION_ASSESSMENT,
+          sourceDonationId: donationId,
+          createdBy: staffId,
+        });
+      }
 
       await tx.donationEvent.create({
         data: {
@@ -267,6 +325,8 @@ export class DonationsService {
           metadata: {
             decision: dto.decision,
             reasonCategory: dto.reasonCategory,
+            assessmentId: assessment.id,
+            deferralRaised: dto.decision === AssessmentDecision.DEFERRED,
           },
         },
       });
@@ -295,6 +355,7 @@ export class DonationsService {
       metadata: {
         decision: dto.decision,
         reasonCategory: dto.reasonCategory,
+        deferralRaised: dto.decision === AssessmentDecision.DEFERRED,
       },
       ipAddress,
     });
@@ -525,6 +586,25 @@ export class DonationsService {
               volumeMl: dto.volumeMl,
               status: 'COLLECTED',
               collectedAt: completedAt,
+              // Where the group on this bag came from, recorded rather than
+              // implied. Neither source is a typing of the unit: one is the
+              // donor's verified profile, the other is what the collecting
+              // staff wrote down. Presenting either as though the bag had been
+              // grouped in a laboratory is precisely the confusion CL-05 names,
+              // and this column is what prevents it.
+              bloodGroupSource:
+                collected.source === 'STAFF_ENTERED'
+                  ? BloodGroupProvenance.STAFF_RECORDED_AT_COLLECTION
+                  : BloodGroupProvenance.DONOR_PROFILE_COPY,
+              bloodGroupSourceNote:
+                collected.source === 'VERIFIED_PROFILE'
+                  ? `Donor profile, verification source ${donation.donor.donorProfile?.bloodTypeSource ?? 'UNRECORDED'}`
+                  : 'Entered by collecting staff at completion',
+              // No expiry, and the column says why: no component shelf life is
+              // encoded anywhere in this repository (CL-04). The release gate
+              // refuses a unit whose shelf life is unknown rather than guessing
+              // one here.
+              expirySource: 'UNKNOWN',
             },
           });
 

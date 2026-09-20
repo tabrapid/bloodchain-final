@@ -42,7 +42,12 @@ describe('ShipmentsService status transitions', () => {
       },
       shipmentEvent: { create: jest.fn().mockResolvedValue({}) },
       shipmentUnit: { update: jest.fn().mockResolvedValue({}) },
-      bloodUnit: { update: jest.fn().mockResolvedValue({}) },
+      bloodUnit: {
+        update: jest.fn().mockResolvedValue({}),
+        // `count: 1` = the unit carries a clinical release decision, which is
+        // the condition confirmDeliveryFull now receives units under.
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+      },
       bloodUnitReservation: { update: jest.fn().mockResolvedValue({}) },
       inventoryMovement: { create: jest.fn().mockResolvedValue({}) },
       courier: {
@@ -1016,7 +1021,17 @@ describe('ShipmentsService.approveRequest', () => {
     });
 
     expect(tx.bloodUnit.findMany).toHaveBeenCalledWith({
-      where: { organizationId: 'org-1', bloodType: 'O', rhFactor: 'POSITIVE', status: 'AVAILABLE' },
+      where: {
+        organizationId: 'org-1',
+        bloodType: 'O',
+        rhFactor: 'POSITIVE',
+        status: 'AVAILABLE',
+        // The clinical release gate, in the query rather than after it.
+        // Approving a request commits units to a patient with nobody looking at
+        // any of them, so an unreleased unit must never reach the candidate set
+        // in the first place.
+        clinicalReleasedAt: { not: null },
+      },
       take: 1,
       orderBy: { collectedAt: 'asc' },
     });

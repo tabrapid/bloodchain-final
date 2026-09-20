@@ -68,6 +68,101 @@ enum DonorStatus {
   DEFERRED
 }
 
+/// How long a deferral is meant to last.
+///
+/// Deliberately two members and no third. TEMPORARY carries an end date;
+/// INDEFINITE does not and stays in force until an authorized actor lifts it.
+/// No clinical deferral *period* is implied by either -- the period is whatever
+/// the staff member records, because no signed deferral schedule exists yet
+/// (see docs/review-packs/clinical-review.md).
+enum DeferralKind {
+  TEMPORARY
+  INDEFINITE
+}
+
+/// Where a deferral came from. Context, not a reason: the clinical reason lives
+/// in `reasonCode`/`reasonText`, and `reasonCode` points at a vocabulary this
+/// repository ships EMPTY on purpose.
+enum DeferralSource {
+  /// Raised at the chair, from a donation assessment recorded as DEFERRED.
+  DONATION_ASSESSMENT
+  /// Raised directly by authorized staff against the donor record.
+  STAFF_DECISION
+  /// Reconstructed by a migration from `DonorProfile.donorStatus = DEFERRED`,
+  /// which carried no reason, no actor and no date. Provenance, kept honest.
+  MIGRATED
+}
+
+enum ClinicalReleasePolicyStatus {
+  DRAFT
+  APPROVED
+  RETIRED
+}
+
+/// The hard line between a policy a clinician signed and a stand-in that lets
+/// developers exercise the code path.
+///
+/// This is not a flag on one policy kind: it partitions them. A
+/// DEVELOPMENT_ONLY policy can never release a unit when NODE_ENV=production --
+/// not by configuration, by refusal in `ClinicalReleaseService` -- and every
+/// `ReleaseDecision` records which kind decided it, so no development
+/// clearance can later be read as a clinical one.
+enum ClinicalReleasePolicyKind {
+  PRODUCTION
+  DEVELOPMENT_ONLY
+}
+
+enum ReleaseDecisionOutcome {
+  RELEASED
+  REFUSED
+}
+
+/// Where a blood unit's ABO/Rh actually came from.
+///
+/// The system copies the donor's profile group onto the unit at collection.
+/// That is a record of the donor, not of the bag, and this column is what stops
+/// the two being confused (CL-05). UNIT_TYPED is reachable only once per-unit
+/// grouping exists as a workflow; nothing in this repository sets it yet.
+enum BloodGroupProvenance {
+  /// Copied from the donor's VERIFIED profile group at collection. A record of
+  /// the donor, not a result for this bag.
+  DONOR_PROFILE_COPY
+  /// Written down by the collecting staff at completion. Closer to the bag than
+  /// a profile copy, and still not a laboratory typing of it.
+  STAFF_RECORDED_AT_COLLECTION
+  /// Typed from this unit by a laboratory. Nothing in this repository sets it:
+  /// per-unit grouping does not exist as a workflow yet (CL-05).
+  UNIT_TYPED
+  /// Rows that predate this column. Their provenance is genuinely unknown and
+  /// is recorded as unknown rather than backfilled with a guess.
+  UNKNOWN
+}
+
+/// Where a blood unit's expiry date came from.
+///
+/// No component shelf life is encoded anywhere in this repository, so UNKNOWN
+/// is the honest default and the one `ClinicalReleaseService` refuses to treat
+/// as safe.
+enum ExpiryProvenance {
+  UNKNOWN
+  /// Derived from a DEVELOPMENT_ONLY policy's `developmentShelfLifeDays`.
+  /// Never a clinical shelf life; refused in production with the policy itself.
+  DEVELOPMENT_POLICY
+  /// Derived from an APPROVED PRODUCTION policy's shelf life. Unreachable until
+  /// a clinician signs one.
+  CLINICAL_POLICY
+  /// Entered by staff against this unit.
+  STAFF_RECORDED
+}
+
+/// What finally happened to a unit. The end of the traceability chain.
+enum DispositionType {
+  ISSUED
+  DISCARDED
+  EXPIRED
+  TRANSFERRED_OUT
+}
+
 enum VerificationStatus {
   UNVERIFIED
   VERIFIED
@@ -228,6 +323,10 @@ enum AlertType {
   EXPIRING_SOON
   EXPIRED
   QUARANTINED
+  /// The organization has no low-stock threshold configured, so the alert
+  /// engine has nothing to compare its stock against. Raised instead of
+  /// inventing a number (see `InventoryThreshold`).
+  LOW_STOCK_THRESHOLD_NOT_CONFIGURED
 }
 
 enum BloodRequestStatus {
@@ -409,6 +508,15 @@ model User {
   aiConversations         AIConversation[]
   aiFeedback              AIFeedback[]
   userBadges              UserBadge[]
+  deferrals               DonorDeferral[]          @relation("DonorDeferralDonor")
+  deferralsCreated        DonorDeferral[]          @relation("DonorDeferralCreator")
+  deferralsLifted         DonorDeferral[]          @relation("DonorDeferralLifter")
+  approvedReleasePolicies ClinicalReleasePolicy[]  @relation("ClinicalReleasePolicyApprover")
+  createdReleasePolicies  ClinicalReleasePolicy[]  @relation("ClinicalReleasePolicyCreator")
+  releaseDecisions        ReleaseDecision[]        @relation("ReleaseDecisionDecider")
+  unitDispositions        BloodUnitDisposition[]   @relation("BloodUnitDispositionRecorder")
+  thresholdsCreated       InventoryThreshold[]     @relation("InventoryThresholdCreator")
+  thresholdsUpdated       InventoryThreshold[]     @relation("InventoryThresholdUpdater")
 
   @@index([email])
   @@index([status])
@@ -648,6 +756,11 @@ model Organization {
   verifiedBy             User?                    @relation("OrganizationVerifier", fields: [verifiedById], references: [id], onDelete: SetNull)
   services               OrganizationService[]
   hours                  OrganizationHours[]
+  donorDeferrals         DonorDeferral[]
+  releasePolicies        ClinicalReleasePolicy[]
+  releaseDecisions       ReleaseDecision[]
+  unitDispositions       BloodUnitDisposition[]
+  inventoryThresholds    InventoryThreshold[]
 
   @@index([type])
   @@index([status])
@@ -1022,6 +1135,7 @@ model Donation {
   events            DonationEvent[]
   assessment        DonationAssessment?
   bloodUnit         BloodUnit?
+  deferrals         DonorDeferral[]
 
   @@index([donorId])
   @@index([organizationId])
@@ -1070,30 +1184,45 @@ model DonationAssessment {
 }
 
 model BloodUnit {
-  id             String          @id @default(cuid())
-  unitReference  String          @unique
-  donationId     String          @unique
-  organizationId String
-  componentType  ComponentType   @default(WHOLE_BLOOD)
-  bloodType      BloodType
-  rhFactor       RhFactor
-  volumeMl       Int
-  status         BloodUnitStatus @default(COLLECTED)
-  locationId     String?
-  collectedAt    DateTime
-  expiresAt      DateTime?
-  verifiedAt     DateTime?
-  verifiedBy     String?
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
+  id                   String               @id @default(cuid())
+  unitReference        String               @unique
+  donationId           String               @unique
+  organizationId       String
+  componentType        ComponentType        @default(WHOLE_BLOOD)
+  bloodType            BloodType
+  rhFactor             RhFactor
+  volumeMl             Int
+  status               BloodUnitStatus      @default(COLLECTED)
+  locationId           String?
+  collectedAt          DateTime
+  expiresAt            DateTime?
+  /// Where `expiresAt` came from. UNKNOWN whenever `expiresAt` is null, and
+  /// the reason a unit with no expiry cannot be released: an unknown shelf
+  /// life is not a safe one (CL-04).
+  expirySource         ExpiryProvenance     @default(UNKNOWN)
+  /// Where `bloodType`/`rhFactor` came from. The unit is not typed; the donor
+  /// was. Recording that honestly is the whole point of this column (CL-05).
+  bloodGroupSource     BloodGroupProvenance @default(UNKNOWN)
+  /// The donor profile's own `bloodTypeSource` at the moment of the copy, when
+  /// `bloodGroupSource` is DONOR_PROFILE_COPY. Provenance of the provenance.
+  bloodGroupSourceNote String?              @db.VarChar(120)
+  /// When this unit passed a clinical release evaluation. Null until it does,
+  /// including for every unit that predates the gate.
+  clinicalReleasedAt   DateTime?
+  verifiedAt           DateTime?
+  verifiedBy           String?
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
 
-  donation      Donation               @relation(fields: [donationId], references: [id], onDelete: Cascade)
-  organization  Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  location      InventoryLocation?     @relation(fields: [locationId], references: [id], onDelete: SetNull)
-  verifier      User?                  @relation("BloodUnitVerifier", fields: [verifiedBy], references: [id], onDelete: SetNull)
-  movements     InventoryMovement[]
-  reservations  BloodUnitReservation[]
-  shipmentUnits ShipmentUnit[]
+  donation         Donation               @relation(fields: [donationId], references: [id], onDelete: Cascade)
+  organization     Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  location         InventoryLocation?     @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  verifier         User?                  @relation("BloodUnitVerifier", fields: [verifiedBy], references: [id], onDelete: SetNull)
+  movements        InventoryMovement[]
+  reservations     BloodUnitReservation[]
+  shipmentUnits    ShipmentUnit[]
+  releaseDecisions ReleaseDecision[]
+  disposition      BloodUnitDisposition?
 
   @@index([donationId])
   @@index([organizationId])
@@ -1102,6 +1231,7 @@ model BloodUnit {
   @@index([collectedAt])
   @@index([locationId])
   @@index([unitReference])
+  @@index([clinicalReleasedAt])
 }
 
 model InventoryLocation {
@@ -1174,6 +1304,249 @@ model BloodUnitReservation {
   @@index([reservedAt])
 }
 
+/// A donor deferral, kept as history.
+///
+/// Before this model there were two half-answers: `AssessmentDecision.DEFERRED`
+/// on a single donation, which expressed no period and reached nothing outside
+/// that donation, and `DonorProfile.donorStatus = DEFERRED`, a flag with no
+/// reason, no actor, no date and no history (DEF-01 .. DEF-05 in
+/// docs/clinical-safety-gaps.md). Emergency matching read the flag; booking
+/// read neither. Deferring a donor at the chair did not stop them booking
+/// tomorrow.
+///
+/// Rows are never deleted and never rewritten in place. Lifting a deferral
+/// sets `liftedAt`/`liftedBy`/`liftReason`; it does not remove the row, so
+/// "was this donor ever deferred, and why" stays answerable.
+///
+/// NO CLINICAL DEFERRAL REASONS ARE DEFINED HERE. `reasonCode` points at a
+/// vocabulary that ships empty, on purpose: no signed deferral schedule exists
+/// (docs/review-packs/clinical-review.md, question CR-04).
+model DonorDeferral {
+  id               String         @id @default(cuid())
+  donorId          String
+  /// The organization whose staff raised it. Null for deferrals reconstructed
+  /// by migration, which have no recorded origin.
+  organizationId   String?
+  kind             DeferralKind
+  /// Configurable vocabulary. Ships empty; free text lives in `reasonText`.
+  reasonCode       String?        @db.VarChar(80)
+  reasonText       String?
+  startsAt         DateTime       @default(now())
+  /// Null for INDEFINITE. A TEMPORARY deferral without an end date would be an
+  /// indefinite one wearing the wrong label, so the service refuses it.
+  endsAt           DateTime?
+  source           DeferralSource
+  sourceDonationId String?
+  createdBy        String?
+  liftedAt         DateTime?
+  liftedBy         String?
+  liftReason       String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  donor          User          @relation("DonorDeferralDonor", fields: [donorId], references: [id], onDelete: Cascade)
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  creator        User?         @relation("DonorDeferralCreator", fields: [createdBy], references: [id], onDelete: SetNull)
+  lifter         User?         @relation("DonorDeferralLifter", fields: [liftedBy], references: [id], onDelete: SetNull)
+  sourceDonation Donation?     @relation(fields: [sourceDonationId], references: [id], onDelete: SetNull)
+
+  @@index([donorId])
+  /// The shape `isDeferredAt` queries: this donor, not yet lifted.
+  @@index([donorId, liftedAt])
+  @@index([startsAt])
+  @@index([endsAt])
+  @@index([organizationId])
+}
+
+/// The boundary between this software and a clinical decision it is not
+/// entitled to make.
+///
+/// Nothing in this repository knows which transfusion-transmissible infections
+/// must be screened for, at what outcome, or how long a component keeps. Until
+/// a clinician records that here as an APPROVED PRODUCTION policy, a unit
+/// cannot become transfusable stock: `ClinicalReleaseService` answers
+/// `CLINICAL_RELEASE_POLICY_NOT_CONFIGURED` and the unit stays where it is.
+///
+/// An APPROVED policy with no requirements is NOT an approval to release
+/// everything. An empty requirement set is read as "nobody has said what must
+/// be tested", which is exactly the state that has to fail closed.
+///
+/// THIS REPOSITORY SHIPS NO PRODUCTION POLICY AND NO REQUIREMENTS. Both are
+/// data, entered by the people entitled to enter them.
+model ClinicalReleasePolicy {
+  id                       String                      @id @default(cuid())
+  /// Null for a platform-wide policy. An organization-scoped policy wins over
+  /// a platform-wide one for that organization.
+  organizationId           String?
+  /// `organizationId` or the literal "PLATFORM". Exists because Postgres treats
+  /// NULLs as distinct in a unique index, so `@@unique([organizationId, version])`
+  /// would happily accept two platform-wide version 1 policies.
+  scopeKey                 String
+  version                  Int
+  status                   ClinicalReleasePolicyStatus @default(DRAFT)
+  kind                     ClinicalReleasePolicyKind
+  title                    String                      @db.VarChar(200)
+  /// Where the rules came from: a standard, a protocol, a signed document.
+  sourceReference          String?
+  approvedBy               String?
+  approvedAt               DateTime?
+  effectiveFrom            DateTime?
+  effectiveUntil           DateTime?
+  /// Shelf life in days, for DEVELOPMENT_ONLY policies only.
+  ///
+  /// NOT a clinical shelf life and not usable as one: the service refuses to
+  /// read it from a PRODUCTION policy, and any expiry derived from it is
+  /// stamped `ExpiryProvenance.DEVELOPMENT_POLICY` so it can never be mistaken
+  /// for a component shelf life somebody signed.
+  developmentShelfLifeDays Int?
+  createdBy                String?
+  createdAt                DateTime                    @default(now())
+  updatedAt                DateTime                    @updatedAt
+
+  organization Organization?                @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  approver     User?                        @relation("ClinicalReleasePolicyApprover", fields: [approvedBy], references: [id], onDelete: SetNull)
+  creator      User?                        @relation("ClinicalReleasePolicyCreator", fields: [createdBy], references: [id], onDelete: SetNull)
+  requirements ClinicalReleaseRequirement[]
+  decisions    ReleaseDecision[]
+
+  @@unique([scopeKey, version])
+  @@index([organizationId])
+  @@index([status])
+  @@index([kind])
+}
+
+/// One thing that must be satisfied before a unit may be released.
+///
+/// Configuration, not code. The repository ships none, and inventing any here
+/// -- a TTI panel, an outcome, a threshold -- is precisely what Sprint 7
+/// forbids. What the shape guarantees is that whatever a clinician eventually
+/// writes down is evaluated per unit and recorded against the decision.
+model ClinicalReleaseRequirement {
+  id            String         @id @default(cuid())
+  policyId      String
+  /// Stable identifier used in refusal payloads and decision records.
+  code          String         @db.VarChar(80)
+  description   String
+  /// Null means the requirement applies to every component type.
+  componentType ComponentType?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  policy ClinicalReleasePolicy @relation(fields: [policyId], references: [id], onDelete: Cascade)
+
+  @@unique([policyId, code])
+  @@index([policyId])
+}
+
+/// The record of a release evaluation -- both outcomes.
+///
+/// A refusal is recorded as well as a release, because "the system would not
+/// let us release this unit, at this time, for this reason" is exactly the
+/// question an incident review asks, and an unrecorded refusal is
+/// indistinguishable from nobody having tried.
+///
+/// `policyVersion` and `policyKind` are copied onto the row rather than read
+/// through the relation: the decision must still be readable as the decision
+/// that was actually made, after the policy is superseded or retired.
+model ReleaseDecision {
+  id                String                     @id @default(cuid())
+  bloodUnitId       String
+  organizationId    String
+  policyId          String?
+  policyVersion     Int?
+  policyKind        ClinicalReleasePolicyKind?
+  outcome           ReleaseDecisionOutcome
+  /// Machine-readable. `CLINICAL_RELEASE_POLICY_NOT_CONFIGURED` and friends.
+  reasonCode        String                     @db.VarChar(80)
+  /// Requirement codes that were not satisfied, when that is why it refused.
+  unmetRequirements String[]
+  decidedBy         String?
+  decidedAt         DateTime                   @default(now())
+
+  bloodUnit    BloodUnit              @relation(fields: [bloodUnitId], references: [id], onDelete: Cascade)
+  organization Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  policy       ClinicalReleasePolicy? @relation(fields: [policyId], references: [id], onDelete: SetNull)
+  decider      User?                  @relation("ReleaseDecisionDecider", fields: [decidedBy], references: [id], onDelete: SetNull)
+
+  @@index([bloodUnitId])
+  @@index([organizationId])
+  @@index([outcome])
+  @@index([decidedAt])
+}
+
+/// What finally happened to a unit, as one row at the end of its chain.
+///
+/// `recipientReference` is deliberately an opaque string with no identity
+/// semantics. What identifies a transfusion recipient in this jurisdiction is
+/// an unresolved legal and clinical question (CL-03, PR-02), and guessing at it
+/// -- a national ID, a passport number, a name -- would write an invented
+/// identity policy into the schema. The column exists so the eventual answer is
+/// a configuration and UI change rather than a migration; until then it stays
+/// null and the traceability chain says so.
+model BloodUnitDisposition {
+  id                 String          @id @default(cuid())
+  bloodUnitId        String          @unique
+  organizationId     String
+  type               DispositionType
+  occurredAt         DateTime        @default(now())
+  recordedBy         String?
+  /// Opaque. No identity policy is attached to this field. See the model note.
+  recipientReference String?         @db.VarChar(120)
+  bloodRequestId     String?
+  shipmentId         String?
+  notes              String?
+  createdAt          DateTime        @default(now())
+
+  bloodUnit    BloodUnit     @relation(fields: [bloodUnitId], references: [id], onDelete: Cascade)
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  recorder     User?         @relation("BloodUnitDispositionRecorder", fields: [recordedBy], references: [id], onDelete: SetNull)
+  bloodRequest BloodRequest? @relation(fields: [bloodRequestId], references: [id], onDelete: SetNull)
+  shipment     Shipment?     @relation(fields: [shipmentId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@index([type])
+  @@index([occurredAt])
+}
+
+/// The low-stock threshold for one organization, at one level of specificity.
+///
+/// Replaces `const LOW_STOCK_THRESHOLD = 5`, which was a number nobody chose
+/// applied to every organization, every blood group and every component at
+/// once. Five units of O-negative and five units of AB-positive are not the
+/// same situation, and the right number is a property of the site, not of this
+/// repository.
+///
+/// Resolution is most-specific-first: an exact (type, Rh, component) row beats
+/// a (type, Rh) row, which beats the organization default. `scopeKey` encodes
+/// which level a row is at -- see `InventoryThresholdService` -- and exists for
+/// the same reason it does on `ClinicalReleasePolicy`: Postgres would not
+/// enforce uniqueness across nullable columns.
+///
+/// NO THRESHOLD IS SEEDED FOR PRODUCTION. With nothing configured, the alert
+/// engine raises `LOW_STOCK_THRESHOLD_NOT_CONFIGURED` instead of comparing
+/// stock against a number it made up.
+model InventoryThreshold {
+  id                String         @id @default(cuid())
+  organizationId    String
+  /// "ORG" | "TYPE:<bloodType>:<rhFactor>" | "TYPE:<bloodType>:<rhFactor>:<componentType>"
+  scopeKey          String         @db.VarChar(80)
+  bloodType         BloodType?
+  rhFactor          RhFactor?
+  componentType     ComponentType?
+  lowStockThreshold Int
+  createdBy         String?
+  updatedBy         String?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  creator      User?        @relation("InventoryThresholdCreator", fields: [createdBy], references: [id], onDelete: SetNull)
+  updater      User?        @relation("InventoryThresholdUpdater", fields: [updatedBy], references: [id], onDelete: SetNull)
+
+  @@unique([organizationId, scopeKey])
+  @@index([organizationId])
+}
+
 model InventoryAlert {
   id             String     @id @default(cuid())
   organizationId String
@@ -1227,6 +1600,8 @@ model BloodRequest {
   items                  BloodRequestItem[]
   events                 BloodRequestEvent[]
   shipment               Shipment?
+
+  unitDispositions BloodUnitDisposition[]
 
   @@index([requestingOrganizationId])
   @@index([fulfillingOrganizationId])
@@ -1334,6 +1709,8 @@ model Shipment {
   units                   ShipmentUnit[]
   events                  ShipmentEvent[]
   locations               ShipmentLocation[]
+
+  unitDispositions BloodUnitDisposition[]
 
   @@index([bloodRequestId])
   @@index([sourceOrganizationId])

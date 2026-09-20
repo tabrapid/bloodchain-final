@@ -53,6 +53,33 @@ export class InventoryController {
     return this.inventory.getInventory(organizationId, userId, filters);
   }
 
+  /**
+   * The clinical release policy in force here, or the fact that there is none.
+   *
+   * Read-only, and above the unit routes on purpose: a console that cannot
+   * release anything should say why at the top of the screen rather than after
+   * a staff member has clicked a button and been refused.
+   */
+  @Get('clinical-release/policy')
+  @Roles(RoleCode.SUPER_ADMIN, RoleCode.HOSPITAL_ADMIN, RoleCode.HOSPITAL_STAFF, RoleCode.BLOOD_CENTER_ADMIN, RoleCode.BLOOD_CENTER_STAFF)
+  @ApiOperation({ summary: 'Clinical release policy in force for this organization' })
+  getClinicalReleasePolicy(
+    @Param('organizationId') organizationId: string,
+    @CurrentUser('sub') userId: string,
+  ) {
+    return this.inventory.getClinicalReleasePolicyStatus(organizationId, userId);
+  }
+
+  @Get('clinical-release/awaiting')
+  @Roles(RoleCode.SUPER_ADMIN, RoleCode.BLOOD_CENTER_ADMIN, RoleCode.BLOOD_CENTER_STAFF)
+  @ApiOperation({ summary: 'Units awaiting a clinical release decision' })
+  getUnitsAwaitingRelease(
+    @Param('organizationId') organizationId: string,
+    @CurrentUser('sub') userId: string,
+  ) {
+    return this.inventory.getUnitsAwaitingRelease(organizationId, userId);
+  }
+
   @Get('units/:unitId')
   @Roles(RoleCode.SUPER_ADMIN, RoleCode.HOSPITAL_ADMIN, RoleCode.HOSPITAL_STAFF, RoleCode.BLOOD_CENTER_ADMIN, RoleCode.BLOOD_CENTER_STAFF)
   @ApiOperation({ summary: 'Get inventory unit details' })
@@ -64,6 +91,26 @@ export class InventoryController {
     return this.inventory.getUnit(organizationId, unitId, userId);
   }
 
+  @Get('units/:unitId/traceability')
+  @Roles(RoleCode.SUPER_ADMIN, RoleCode.HOSPITAL_ADMIN, RoleCode.HOSPITAL_STAFF, RoleCode.BLOOD_CENTER_ADMIN, RoleCode.BLOOD_CENTER_STAFF)
+  @ApiOperation({ summary: 'Full traceability chain for one unit: donor to final disposition' })
+  getUnitTraceability(
+    @Param('organizationId') organizationId: string,
+    @Param('unitId') unitId: string,
+    @CurrentUser('sub') userId: string,
+  ) {
+    return this.inventory.getUnitTraceability(organizationId, unitId, userId);
+  }
+
+  /**
+   * Releases a unit into transfusable stock -- IF the clinical release gate
+   * permits it.
+   *
+   * There is deliberately no sibling route that skips the gate. SUPER_ADMIN
+   * appears in the role list because platform administrators operate on behalf
+   * of blood centres, not because the role carries clinical authority: the
+   * service never reads who is asking.
+   */
   @Post('units/:unitId/release')
   @Roles(RoleCode.SUPER_ADMIN, RoleCode.BLOOD_CENTER_ADMIN, RoleCode.BLOOD_CENTER_STAFF)
   @ApiOperation({ summary: 'Release unit to inventory' })
