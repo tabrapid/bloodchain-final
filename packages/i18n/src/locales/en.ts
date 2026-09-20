@@ -799,6 +799,11 @@ export const en: Catalog = {
     },
   },
   table: {
+    reference: 'Reference',
+    bloodType: 'Blood type',
+    rhFactor: 'Rh factor',
+    component: 'Component',
+    collected: 'Collected',
     status: 'Status',
     type: 'Type',
     actions: 'Actions',
@@ -836,6 +841,9 @@ export const en: Catalog = {
     address: 'Address',
     city: 'City',
     region: 'Region',
+  },
+  errors: {
+    generic: 'Something went wrong. Please try again.',
   },
   actions: {
     cannotBeUndone: 'This cannot be undone.',
@@ -896,6 +904,70 @@ export const en: Catalog = {
     last30Days: 'Last 30 days',
   },
   ops: {
+    clinicalRelease: {
+      tab: 'Clinical release',
+      notConfiguredTitle: 'No clinical release policy is configured',
+      notConfiguredBody:
+        'Until an approved policy is recorded, no unit can be released into transfusable stock. This is deliberate: nothing in this system knows what must be tested before a unit is safe to issue, and releasing one anyway would be a claim it cannot support.',
+      developmentTitle: 'Development policy in force — this is not clinical clearance',
+      developmentBody:
+        'Releases made here are recorded as development decisions, not as clinical clearances, and this policy is refused outright in production. It exists so the release path can be exercised before a clinician has signed one.',
+      inForceTitle: 'Clinical release policy v{{version}} in force',
+      inForceBody: '{{count}} requirement(s) must be satisfied before a unit can be released.',
+      policyName: 'Policy',
+      policyVersion: 'Version',
+      approvedAt: 'Approved',
+      source: 'Source',
+      requirements: 'Requirements ({{count}})',
+      awaitingTitle: 'Units awaiting a clinical release decision',
+      awaitingHint:
+        'Collected and quarantined units that have not been released. Releasing one is a clinical decision made under the policy above; there is no override.',
+      noneAwaiting: 'Nothing is waiting on a release decision',
+      noneAwaitingHint: 'Units appear here once a donation is completed and before they are released.',
+      groupSource: 'Group recorded from',
+      expiry: 'Expiry',
+      expiryKnown: 'Known',
+      expiryUnknown: 'Unknown',
+      blockedTitle: 'This unit cannot be released',
+      provenance: {
+        DONOR_PROFILE_COPY: "Donor's verified profile",
+        STAFF_RECORDED_AT_COLLECTION: 'Staff, at collection',
+        UNIT_TYPED: 'Typed from this unit',
+        UNKNOWN: 'Unknown',
+      },
+      reason: {
+        CLINICAL_RELEASE_POLICY_NOT_CONFIGURED: 'No approved clinical release policy is configured.',
+        CLINICAL_RELEASE_POLICY_DEVELOPMENT_ONLY:
+          'The only policy in force is marked development-only and cannot release a unit here.',
+        CLINICAL_RELEASE_POLICY_HAS_NO_REQUIREMENTS:
+          'The approved policy lists no requirements, which is not an approval to release.',
+        CLINICAL_RELEASE_REQUIREMENTS_NOT_MET: 'This unit does not satisfy every requirement of the policy in force.',
+        CLINICAL_RELEASE_EXPIRY_UNKNOWN: 'This unit has no known expiry date, so it cannot be treated as safe.',
+        CLINICAL_RELEASE_DECISION_MISSING: 'This unit carries no clinical release decision.',
+      },
+    },
+    thresholds: {
+      tab: 'Stock thresholds',
+      title: 'Low-stock thresholds',
+      hint:
+        'What counts as low here. Set a default for the whole organisation, and override it for the groups and components where a different number matters.',
+      scope: 'Applies to',
+      organizationDefault: 'Whole organisation',
+      byGroup: 'One blood group',
+      byComponent: 'One blood group and component',
+      threshold: 'Alert below',
+      units: '{{count}} unit(s)',
+      invalid: 'Enter a whole number of units, zero or more.',
+      noneTitle: 'No thresholds configured',
+      noneHint: 'Set at least an organisation default, or no shortage can be detected here.',
+      notConfiguredTitle: 'Low-stock alerting is not configured',
+      notConfiguredBody:
+        'No threshold is set for this organisation, so no shortage can be detected and no low-stock alert will be raised.',
+      developmentFallback:
+        'No threshold is set, so a development default of {{value}} units is being used. It is not an operational figure and is unavailable in production.',
+      removeTitle: 'Remove this threshold?',
+      removeBody: 'Stock in this scope falls back to the next most general threshold, or to none at all.',
+    },
     common: {
       refreshing: 'Refreshing…',
       creating: 'Creating…',

@@ -40,6 +40,8 @@ import {
 } from '../../lib/inventory';
 import { AppShell } from '../../components/AppShell';
 import { ReservationsPanel } from '../../components/ReservationsPanel';
+import { ClinicalReleasePanel } from '../../components/ClinicalReleasePanel';
+import { StockThresholds } from '../../components/StockThresholds';
 import { useTranslation } from '@bloodchain/ui/i18n';
 
 const BLOOD_TYPES = ['A', 'B', 'AB', 'O'] as const;
@@ -83,7 +85,16 @@ export default function InventoryPage() {
 
   // Units are the stock; reservations are the promises made against it. Both
   // are this page's job, and until now only the first had a surface.
-  const [tab, setTab] = useState<'units' | 'holds'>('units');
+  //
+  // Two more since Sprint 7. `release` is where staff see whether the clinical
+  // gate is configured at all and what is waiting on it -- a unit now needs a
+  // release decision to become transfusable stock, and a console that did not
+  // show the gate would leave people clicking a button that always fails.
+  // `thresholds` is where an organisation says what counts as low stock, which
+  // used to be one hard-coded number for every site in the country.
+  const [tab, setTab] = useState<'units' | 'holds' | 'release' | 'thresholds'>('units');
+  /** Bumped when units change, so the release queue reloads with them. */
+  const [releaseRefresh, setReleaseRefresh] = useState(0);
   const [showReserveModal, setShowReserveModal] = useState(false);
   const [reserveForm, setReserveForm] = useState({ reason: '', expiresAt: '' });
 
@@ -203,6 +214,7 @@ export default function InventoryPage() {
       setSelectedUnit(null);
       loadUnits();
       loadData();
+      setReleaseRefresh((n) => n + 1);
     } catch (err: unknown) {
       setError((err as Error).message);
     } finally {
@@ -235,6 +247,7 @@ export default function InventoryPage() {
       setSelectedUnit(null);
       loadUnits();
       loadData();
+      setReleaseRefresh((n) => n + 1);
     } catch (err: unknown) {
       // In the dialog, not a page banner the operator has to go looking for.
       setConfirmError((err as Error).message);
@@ -256,6 +269,7 @@ export default function InventoryPage() {
       setSelectedUnit(null);
       loadUnits();
       loadData();
+      setReleaseRefresh((n) => n + 1);
     } catch (err: unknown) {
       setError((err as Error).message);
     } finally {
@@ -282,6 +296,7 @@ export default function InventoryPage() {
       setReserveForm({ reason: '', expiresAt: '' });
       loadUnits();
       loadData();
+      setReleaseRefresh((n) => n + 1);
     } catch (err: unknown) {
       // The server refuses a second reservation on the same unit inside its
       // own transaction, so a double-click loses here rather than producing
@@ -389,8 +404,8 @@ export default function InventoryPage() {
         <StatCard label={t('status.unit.RESERVED')} value={summary?.reservedUnits?.toString() ?? '—'} variant="info" icon={Clock} />
       </div>
 
-      <div className="mb-6 flex items-center gap-2 border-b border-donor-border/60">
-        {(['units', 'holds'] as const).map((key) => (
+      <div className="mb-6 flex flex-wrap items-center gap-2 border-b border-donor-border/60">
+        {(['units', 'holds', 'release', 'thresholds'] as const).map((key) => (
           <button
             key={key}
             type="button"
@@ -403,12 +418,22 @@ export default function InventoryPage() {
                 : 'border-b-2 border-transparent px-4 py-2.5 text-sm font-semibold text-donor-muted transition-colors hover:text-donor-text'
             }
           >
-            {key === 'units' ? t('ops.inventory.title') : t('ops.inventory.reservations')}
+            {key === 'units'
+              ? t('ops.inventory.title')
+              : key === 'holds'
+                ? t('ops.inventory.reservations')
+                : key === 'release'
+                  ? t('ops.clinicalRelease.tab')
+                  : t('ops.thresholds.tab')}
           </button>
         ))}
       </div>
 
-      {tab === 'holds' ? (
+      {tab === 'release' ? (
+        <ClinicalReleasePanel organizationId={organizationId} refreshToken={releaseRefresh} />
+      ) : tab === 'thresholds' ? (
+        <StockThresholds organizationId={organizationId} />
+      ) : tab === 'holds' ? (
         <ReservationsPanel
           organizationId={organizationId}
           onChanged={() => {

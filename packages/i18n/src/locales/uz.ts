@@ -739,6 +739,11 @@ export const uz: Catalog = {
     },
   },
   table: {
+    reference: 'Raqam',
+    bloodType: 'Qon guruhi',
+    rhFactor: 'Rezus omil',
+    component: 'Komponent',
+    collected: 'Yigʻilgan',
     status: 'Holat',
     type: 'Turi',
     actions: 'Amallar',
@@ -776,6 +781,9 @@ export const uz: Catalog = {
     address: 'Manzil',
     city: 'Shahar',
     region: 'Viloyat',
+  },
+  errors: {
+    generic: 'Nimadir xato ketdi. Qayta urinib koʻring.',
   },
   actions: {
     cannotBeUndone: 'Buni orqaga qaytarib bo‘lmaydi.',
@@ -836,6 +844,70 @@ export const uz: Catalog = {
     last30Days: 'Oxirgi 30 kun',
   },
   ops: {
+    clinicalRelease: {
+      tab: 'Klinik chiqarish',
+      notConfiguredTitle: 'Klinik chiqarish siyosati sozlanmagan',
+      notConfiguredBody:
+        'Tasdiqlangan siyosat yozilmagunicha hech bir dona quyish uchun yaroqli zaxiraga chiqarilmaydi. Bu ataylab shunday: tizim dona xavfsiz boʻlishi uchun qanday tekshiruv kerakligini bilmaydi va baribir chiqarish — u asoslay olmaydigan daʼvo boʻlardi.',
+      developmentTitle: 'Test siyosati amalda — bu klinik ruxsat emas',
+      developmentBody:
+        'Bu yerdagi chiqarishlar klinik ruxsat emas, test qarori sifatida yoziladi va bunday siyosat produksiyada butunlay rad etiladi. U klinisist siyosatni imzolashidan oldin jarayonni tekshirish uchun mavjud.',
+      inForceTitle: 'Klinik chiqarish siyosati v{{version}} amalda',
+      inForceBody: 'Dona chiqarilishidan oldin {{count}} ta talab bajarilishi kerak.',
+      policyName: 'Siyosat',
+      policyVersion: 'Versiya',
+      approvedAt: 'Tasdiqlangan',
+      source: 'Manba',
+      requirements: 'Talablar ({{count}})',
+      awaitingTitle: 'Klinik chiqarish qarorini kutayotgan donalar',
+      awaitingHint:
+        'Yigʻilgan va karantindagi, hali chiqarilmagan donalar. Chiqarish — yuqoridagi siyosat asosidagi klinik qaror; chetlab oʻtish yoʻli yoʻq.',
+      noneAwaiting: 'Chiqarish qarorini kutayotgan narsa yoʻq',
+      noneAwaitingHint: 'Donalar donorlik yakunlangandan keyin va chiqarilgunga qadar shu yerda koʻrinadi.',
+      groupSource: 'Guruh qayerdan yozilgan',
+      expiry: 'Yaroqlilik muddati',
+      expiryKnown: 'Maʼlum',
+      expiryUnknown: 'Nomaʼlum',
+      blockedTitle: 'Bu donani chiqarib boʻlmaydi',
+      provenance: {
+        DONOR_PROFILE_COPY: 'Donorning tasdiqlangan profili',
+        STAFF_RECORDED_AT_COLLECTION: 'Xodim, yigʻish paytida',
+        UNIT_TYPED: 'Shu donadan aniqlangan',
+        UNKNOWN: 'Nomaʼlum',
+      },
+      reason: {
+        CLINICAL_RELEASE_POLICY_NOT_CONFIGURED: 'Tasdiqlangan klinik chiqarish siyosati sozlanmagan.',
+        CLINICAL_RELEASE_POLICY_DEVELOPMENT_ONLY:
+          'Amaldagi yagona siyosat test siyosati deb belgilangan va bu yerda donani chiqara olmaydi.',
+        CLINICAL_RELEASE_POLICY_HAS_NO_REQUIREMENTS:
+          'Tasdiqlangan siyosatda talablar koʻrsatilmagan va bu chiqarishga ruxsat emas.',
+        CLINICAL_RELEASE_REQUIREMENTS_NOT_MET: 'Bu dona amaldagi siyosatning har bir talabiga javob bermaydi.',
+        CLINICAL_RELEASE_EXPIRY_UNKNOWN: 'Bu donaning yaroqlilik muddati nomaʼlum, shuning uchun uni xavfsiz deb boʻlmaydi.',
+        CLINICAL_RELEASE_DECISION_MISSING: 'Bu donada klinik chiqarish qarori yoʻq.',
+      },
+    },
+    thresholds: {
+      tab: 'Zaxira chegaralari',
+      title: 'Kam zaxira chegaralari',
+      hint:
+        'Bu yerda nima kam zaxira hisoblanadi. Butun tashkilot uchun standart qiymat belgilang va boshqa raqam muhim boʻlgan guruh va komponentlar uchun uni qayta belgilang.',
+      scope: 'Qoʻllanadi',
+      organizationDefault: 'Butun tashkilot',
+      byGroup: 'Bitta qon guruhi',
+      byComponent: 'Qon guruhi va komponent',
+      threshold: 'Shundan past boʻlsa ogohlantirish',
+      units: '{{count}} ta dona',
+      invalid: 'Butun sondagi dona miqdorini kiriting, noldan kam emas.',
+      noneTitle: 'Chegaralar sozlanmagan',
+      noneHint: 'Hech boʻlmasa tashkilot uchun standart qiymat belgilang, aks holda taqchillikni aniqlab boʻlmaydi.',
+      notConfiguredTitle: 'Kam zaxira ogohlantirishi sozlanmagan',
+      notConfiguredBody:
+        'Bu tashkilot uchun chegara belgilanmagan, shuning uchun taqchillikni aniqlab boʻlmaydi va ogohlantirish chiqmaydi.',
+      developmentFallback:
+        'Chegara belgilanmagan, shuning uchun {{value}} ta donalik test qiymati ishlatilmoqda. Bu operatsion raqam emas va produksiyada mavjud emas.',
+      removeTitle: 'Bu chegara olib tashlansinmi?',
+      removeBody: 'Bu doiradagi zaxira uchun keyingi umumiyroq chegara qoʻllanadi yoki umuman qoʻllanmaydi.',
+    },
     common: {
       refreshing: 'Yangilanmoqda…',
       creating: 'Yaratilmoqda…',

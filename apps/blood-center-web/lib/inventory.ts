@@ -333,3 +333,142 @@ export function releaseReservation(
     { method: 'POST', body: JSON.stringify({ reason }) },
   );
 }
+
+// --- clinical release ------------------------------------------------------
+
+export interface ClinicalReleasePolicySummary {
+  id: string;
+  version: number;
+  kind: 'PRODUCTION' | 'DEVELOPMENT_ONLY';
+  status: string;
+  title: string;
+  /**
+   * The single field this console keys "not a clinical clearance" off.
+   *
+   * Never derived in a component from `kind`: the server decides what counts as
+   * a development policy, and a second implementation of that rule in the UI is
+   * one that can drift away from the one the gate uses.
+   */
+  developmentOnly: boolean;
+  organizationId: string | null;
+  sourceReference: string | null;
+  approvedAt: string | null;
+  effectiveFrom: string | null;
+  effectiveUntil: string | null;
+  requirementCount: number;
+  requirements: { code: string; description: string; componentType: string | null }[];
+}
+
+export interface ClinicalReleasePolicyStatus {
+  /** False when nothing usable is in force here. The gate refuses everything. */
+  configured: boolean;
+  reasonCode: string | null;
+  message: string | null;
+  policy: ClinicalReleasePolicySummary | null;
+}
+
+export interface UnitAwaitingRelease {
+  id: string;
+  unitReference: string;
+  componentType: string;
+  bloodType: string;
+  rhFactor: string;
+  status: string;
+  collectedAt: string;
+  donationReference: string;
+  bloodGroupProvenance: string;
+  expiryKnown: boolean;
+}
+
+export function getClinicalReleasePolicy(
+  organizationId: string,
+): Promise<ClinicalReleasePolicyStatus> {
+  return apiRequest(`/organizations/${organizationId}/inventory/clinical-release/policy`);
+}
+
+export function getUnitsAwaitingRelease(
+  organizationId: string,
+): Promise<{ policy: ClinicalReleasePolicyStatus; units: UnitAwaitingRelease[] }> {
+  return apiRequest(`/organizations/${organizationId}/inventory/clinical-release/awaiting`);
+}
+
+export interface ReleaseDecisionRecord {
+  id: string;
+  outcome: 'RELEASED' | 'REFUSED';
+  reasonCode: string;
+  policyVersion: number | null;
+  policyKind: 'PRODUCTION' | 'DEVELOPMENT_ONLY' | null;
+  unmetRequirements: string[];
+  decidedAt: string;
+  decider?: { id: string; firstName: string; lastName: string } | null;
+}
+
+export interface UnitTraceability {
+  unit: { id: string; unitReference: string; componentType: string; status: string; volumeMl: number; collectedAt: string };
+  bloodGroup: { bloodType: string; rhFactor: string; provenance: string; provenanceNote: string | null; typedFromUnit: boolean };
+  expiry: { expiresAt: string | null; provenance: string; known: boolean };
+  donor: { id: string; firstName: string; lastName: string };
+  donation: { id: string; donationReference: string; status: string };
+  clinicalRelease: { released: boolean; releasedAt: string | null; decisions: ReleaseDecisionRecord[] };
+  disposition: {
+    type: string;
+    occurredAt: string;
+    recipient: { reference: string | null; identityPolicy: string };
+  } | null;
+}
+
+export function getUnitTraceability(
+  organizationId: string,
+  unitId: string,
+): Promise<UnitTraceability> {
+  return apiRequest(`/organizations/${organizationId}/inventory/units/${unitId}/traceability`);
+}
+
+// --- low-stock thresholds --------------------------------------------------
+
+export interface StockThreshold {
+  id: string;
+  scopeKey: string;
+  bloodType: string | null;
+  rhFactor: string | null;
+  componentType: string | null;
+  lowStockThreshold: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface StockThresholdSettings {
+  /** False when nothing is configured: no shortage can be detected here. */
+  configured: boolean;
+  productionFallbackAvailable: boolean;
+  developmentFallback: number | null;
+  thresholds: StockThreshold[];
+}
+
+export function getStockThresholds(organizationId: string): Promise<StockThresholdSettings> {
+  return apiRequest(`/organizations/${organizationId}/inventory/thresholds`);
+}
+
+export function setStockThreshold(
+  organizationId: string,
+  params: {
+    bloodType?: string;
+    rhFactor?: string;
+    componentType?: string;
+    lowStockThreshold: number;
+  },
+): Promise<StockThreshold> {
+  return apiRequest(`/organizations/${organizationId}/inventory/thresholds`, {
+    method: 'PUT',
+    body: JSON.stringify(params),
+  });
+}
+
+export function deleteStockThreshold(
+  organizationId: string,
+  thresholdId: string,
+): Promise<{ id: string; deleted: boolean }> {
+  return apiRequest(`/organizations/${organizationId}/inventory/thresholds/${thresholdId}`, {
+    method: 'DELETE',
+  });
+}
