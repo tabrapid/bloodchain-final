@@ -34,6 +34,7 @@ import * as argon2 from 'argon2';
 // @ts-expect-error -- plain ESM module shared with scripts/, no declarations
 import { checkLocalDatabase } from '../../../scripts/demo-guard.mjs';
 import { seedUzGeographyAndOrganizations } from './seeds/uz-demo-organizations';
+import { seedAccessControl } from './seeds/access-control.reference';
 
 const db = new PrismaClient();
 
@@ -172,167 +173,13 @@ async function main() {
 
   const developmentReleasePolicy = await seedDevelopmentReleasePolicy();
 
-  const permissions = [
-    { code: 'user.read.self', name: 'Read own profile' },
-    { code: 'user.update.self', name: 'Update own profile' },
-    { code: 'donor.read.self', name: 'Read own donor profile' },
-    { code: 'donor.update.self', name: 'Update own donor profile' },
-    { code: 'donor.verify', name: 'Verify donor blood type' },
-    { code: 'organization.read', name: 'Read organization' },
-    { code: 'organization.update', name: 'Update organization' },
-    { code: 'hospital.read', name: 'Read hospital data' },
-    { code: 'hospital.manage', name: 'Manage hospital' },
-    { code: 'hospital.sos.create', name: 'Create SOS requests' },
-    { code: 'hospital.donation.create', name: 'Create donations' },
-    { code: 'hospital.inventory.read', name: 'Read hospital inventory' },
-    { code: 'hospital.inventory.manage', name: 'Manage hospital inventory' },
-    { code: 'blood_center.read', name: 'Read blood center data' },
-    { code: 'blood_center.manage', name: 'Manage blood center' },
-    { code: 'blood_test.create', name: 'Create blood tests' },
-    { code: 'blood_test.update', name: 'Update blood tests' },
-    { code: 'blood_test.publish', name: 'Publish blood test results' },
-    { code: 'inventory.read', name: 'Read inventory' },
-    { code: 'inventory.manage', name: 'Manage inventory' },
-    { code: 'shipment.create', name: 'Create shipments' },
-    { code: 'shipment.manage', name: 'Manage shipments' },
-    { code: 'courier.read', name: 'Read courier data' },
-    { code: 'courier.manage', name: 'Manage courier' },
-    { code: 'analytics.read', name: 'Read analytics' },
-    { code: 'audit.read', name: 'Read audit logs' },
-    { code: 'admin.manage', name: 'Platform administration' },
-  ];
-
-  for (const perm of permissions) {
-    await db.permission.upsert({
-      where: { code: perm.code },
-      update: {},
-      create: { code: perm.code, name: perm.name },
-    });
-  }
-
-  const rolePermissions: Record<string, string[]> = {
-    [RoleCode.SUPER_ADMIN]: [...permissions.map((p) => p.code), 'donor.verify'],
-    [RoleCode.DONOR]: [
-      'user.read.self',
-      'user.update.self',
-      'donor.read.self',
-      'donor.update.self',
-      'organization.read',
-    ],
-    [RoleCode.HOSPITAL_ADMIN]: [
-      'user.read.self',
-      'user.update.self',
-      'donor.read.self',
-      'donor.update.self',
-      'donor.verify',
-      'organization.read',
-      'organization.update',
-      'hospital.read',
-      'hospital.manage',
-      'hospital.sos.create',
-      'hospital.donation.create',
-      'hospital.inventory.read',
-      'hospital.inventory.manage',
-      'analytics.read',
-      'audit.read',
-    ],
-    [RoleCode.HOSPITAL_STAFF]: [
-      'user.read.self',
-      'user.update.self',
-      'donor.read.self',
-      'donor.update.self',
-      'donor.verify',
-      'organization.read',
-      'hospital.read',
-      'hospital.sos.create',
-      'hospital.donation.create',
-      'hospital.inventory.read',
-    ],
-    [RoleCode.BLOOD_CENTER_ADMIN]: [
-      'user.read.self',
-      'user.update.self',
-      'donor.read.self',
-      'donor.update.self',
-      'donor.verify',
-      'organization.read',
-      'organization.update',
-      'blood_center.read',
-      'blood_center.manage',
-      'blood_test.create',
-      'blood_test.update',
-      'blood_test.publish',
-      'inventory.read',
-      'inventory.manage',
-      'shipment.create',
-      'shipment.manage',
-      'analytics.read',
-      'audit.read',
-    ],
-    [RoleCode.BLOOD_CENTER_STAFF]: [
-      'user.read.self',
-      'user.update.self',
-      'donor.read.self',
-      'donor.update.self',
-      'donor.verify',
-      'organization.read',
-      'blood_center.read',
-      'blood_test.create',
-      'blood_test.update',
-      'inventory.read',
-      'shipment.create',
-    ],
-    [RoleCode.COURIER]: [
-      'user.read.self',
-      'user.update.self',
-      'organization.read',
-      'shipment.create',
-      'shipment.manage',
-      'courier.read',
-    ],
-    [RoleCode.LAB_TECHNICIAN]: [
-      'user.read.self',
-      'user.update.self',
-      'organization.read',
-      'blood_test.create',
-      'blood_test.update',
-    ],
-    [RoleCode.LAB_REVIEWER]: [
-      'user.read.self',
-      'user.update.self',
-      'organization.read',
-      'blood_test.update',
-      'blood_test.publish',
-    ],
-    [RoleCode.LAB_ADMIN]: [
-      'user.read.self',
-      'user.update.self',
-      'organization.read',
-      'organization.update',
-      'blood_test.create',
-      'blood_test.update',
-      'blood_test.publish',
-      'analytics.read',
-      'audit.read',
-    ],
-  };
-
-  for (const code of Object.values(RoleCode)) {
-    const role = await db.role.upsert({
-      where: { code },
-      update: {},
-      create: { code, name: code.replaceAll('_', ' ') },
-    });
-
-    const perms = rolePermissions[code] ?? [];
-    for (const permCode of perms) {
-      const permission = await db.permission.findUniqueOrThrow({ where: { code: permCode } });
-      await db.rolePermission.upsert({
-        where: { roleId_permissionId: { roleId: role.id, permissionId: permission.id } },
-        update: {},
-        create: { roleId: role.id, permissionId: permission.id },
-      });
-    }
-  }
+  // Roles, permissions and their mapping, from the shared reference module.
+  //
+  // It used to be declared here, which meant the production reference seed
+  // would have had to declare it again -- two lists that agree on the day they
+  // are written. A permission only one of them knows about is a role that works
+  // on every developer's machine and silently cannot do its job in production.
+  await seedAccessControl(db);
 
   const passwordHash = await argon2.hash('DevelopmentOnly!123');
 
