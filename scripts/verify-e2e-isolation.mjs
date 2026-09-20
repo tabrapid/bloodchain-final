@@ -19,8 +19,11 @@
  * It also checks the suite leaves nothing behind, by counting the rows that
  * matter before and after.
  */
+import { Buffer } from 'node:buffer';
 import { execFileSync } from 'node:child_process';
+import { closeSync, mkdtempSync, openSync, readSync, rmSync, statSync } from 'node:fs';
 import { createRequire } from 'node:module';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { assertLocalDatabase, fail } from './demo-guard.mjs';
@@ -82,17 +85,74 @@ async function census() {
   };
 }
 
-function runSuite(label) {
+/** Where each run's streams are written. Removed again once everything passes. */
+const LOG_DIR = mkdtempSync(path.join(tmpdir(), 'bloodchain-e2e-isolation-'));
+
+/** The last `bytes` of a file, without reading the whole thing into memory. */
+function tailOf(file, bytes) {
+  const { size } = statSync(file);
+  const start = Math.max(0, size - bytes);
+  const buffer = Buffer.alloc(size - start);
+  const fd = openSync(file, 'r');
   try {
-    execFileSync('pnpm', ['test:e2e'], { cwd: ROOT, stdio: 'pipe' });
+    readSync(fd, buffer, 0, buffer.length, start);
+  } finally {
+    closeSync(fd);
+  }
+  return buffer.toString('utf8');
+}
+
+/**
+ * Run the suite once, with its output going to files rather than down a pipe.
+ *
+ * This used to be `execFileSync(..., { stdio: 'pipe' })`, which buffers the
+ * child's output in memory under Node's default `maxBuffer` of 1 MiB. The e2e
+ * suite writes about 0.95 MiB of request logs to stdout all by itself, so this
+ * check spent its whole life roughly one log line short of the ceiling. On a
+ * machine that logged a little more -- a CI runner, as it turned out -- Node
+ * killed jest partway through the run and threw ENOBUFS, and this script
+ * faithfully reported that as "the suite is not isolated".
+ *
+ * It was the most misleading failure available. The label named the property
+ * under test, so the report read as a real regression in donor-state coupling;
+ * the captured output was a 4 KiB fragment that began mid-stack-trace and
+ * ended on a row of PASS lines with no jest summary anywhere in it; and the
+ * suite itself was green the whole time. The check was not measuring the
+ * suite. It was measuring how chatty the application's logger is.
+ *
+ * Files have no such ceiling, so the run is never truncated and never killed.
+ * Keeping the two streams apart is the other half of the fix: jest writes its
+ * results to stderr and the application writes its request log to stdout, so
+ * the failure report below quotes the stream that says which test failed
+ * instead of the one that says which requests were served.
+ */
+function runSuite(label) {
+  const outFile = path.join(LOG_DIR, `${label}.stdout.log`);
+  const errFile = path.join(LOG_DIR, `${label}.stderr.log`);
+  const out = openSync(outFile, 'w');
+  const err = openSync(errFile, 'w');
+  try {
+    execFileSync('pnpm', ['test:e2e'], { cwd: ROOT, stdio: ['ignore', out, err] });
     return { ok: true, output: '' };
   } catch (error) {
+    closeSync(out);
+    closeSync(err);
+    const reported = tailOf(errFile, 8000).trim() || tailOf(outFile, 8000).trim();
     return {
       ok: false,
-      output: `${error.stdout ?? ''}${error.stderr ?? ''}`.slice(-4000),
+      output:
+        `the suite exited ${error.status ?? error.signal}. jest's own output ends:\n` +
+        `${reported}\n  (full streams kept at ${outFile} and ${errFile})`,
     };
   } finally {
-    void label;
+    // Closing a descriptor twice throws EBADF, and the catch above has already
+    // closed both on the failing path.
+    try {
+      closeSync(out);
+      closeSync(err);
+    } catch {
+      /* already closed on the failure path */
+    }
   }
 }
 
@@ -160,4 +220,5 @@ if (failed.length > 0) {
   console.log(`  ✗ ${failed.length} of ${results.length} checks failed.\n`);
   process.exit(1);
 }
+rmSync(LOG_DIR, { recursive: true, force: true });
 console.log(`  ✓ All ${results.length} checks passed. The suite owns its own data.\n`);
