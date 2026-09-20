@@ -1,11 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ForbiddenException } from '@nestjs/common';
+import { InventoryThresholdsService } from '../../inventory-thresholds/inventory-thresholds.service';
 import { PrismaService } from '../../../database/prisma.service';
 import { AnalyticsService, DateRangeType } from './analytics.service';
 
 describe('AnalyticsService', () => {
   let service: AnalyticsService;
   let prisma: any;
+  let thresholds: any;
 
   beforeEach(async () => {
     prisma = {
@@ -21,8 +23,23 @@ describe('AnalyticsService', () => {
       inventoryAlert: { findMany: jest.fn() },
     };
 
+    thresholds = {
+      listRows: jest.fn().mockResolvedValue([]),
+      resolveFrom: jest
+        .fn()
+        .mockReturnValue({ threshold: 5, source: 'DEVELOPMENT_FALLBACK', scopeKey: null }),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
-      providers: [AnalyticsService, { provide: PrismaService, useValue: prisma }],
+      providers: [
+        AnalyticsService,
+        { provide: PrismaService, useValue: prisma },
+        // Defaults to the development fallback these tests were written
+        // against, so the existing assertions keep describing what they
+        // described. Two tests below override it to say where the number comes
+        // from.
+        { provide: InventoryThresholdsService, useValue: thresholds },
+      ],
     }).compile();
 
     service = module.get<AnalyticsService>(AnalyticsService);
@@ -385,6 +402,42 @@ describe('AnalyticsService', () => {
       const result = await callGetInventorySummary(units);
 
       expect(result.lowStockGroups).not.toContain('O+');
+      expect(result.criticalGroups).not.toContain('O+');
+    });
+
+    /**
+     * The three tests above describe a threshold of five, which is what the
+     * stubbed service answers. These two say where the five comes from -- the
+     * dashboard used to carry its own `count < 5`, a second copy of the
+     * constant the alert engine used, and the two could disagree about whether
+     * a group was low.
+     */
+    it('uses the threshold the organisation configured, not a number of its own', async () => {
+      thresholds.resolveFrom.mockReturnValue({
+        threshold: 20,
+        source: 'CONFIGURED',
+        scopeKey: 'TYPE:O:POSITIVE',
+      });
+      const units = Array.from({ length: 12 }, () => ({ status: 'AVAILABLE', bloodType: 'O', rhFactor: 'POSITIVE' }));
+
+      const result = await callGetInventorySummary(units);
+
+      // Twelve units: comfortably above five, and low against this site's
+      // own threshold of twenty.
+      expect(result.lowStockGroups).toContain('O+');
+    });
+
+    it('flags nothing as low in production when no threshold is configured', async () => {
+      thresholds.resolveFrom.mockReturnValue({ threshold: null, source: 'NOT_CONFIGURED', scopeKey: null });
+      const units = Array.from({ length: 1 }, () => ({ status: 'AVAILABLE', bloodType: 'O', rhFactor: 'POSITIVE' }));
+
+      const result = await callGetInventorySummary(units);
+
+      // One unit, and the dashboard says nothing -- because nobody has said
+      // what low means here, and guessing is what this sprint removed.
+      expect(result.lowStockGroups).not.toContain('O+');
+      // Zero would still be critical: no configuration is needed to know that
+      // none is none.
       expect(result.criticalGroups).not.toContain('O+');
     });
   });

@@ -1,4 +1,5 @@
 import { Injectable, ForbiddenException } from '@nestjs/common';
+import { InventoryThresholdsService } from '../../inventory-thresholds/inventory-thresholds.service';
 import { PrismaService } from '../../../database/prisma.service';
 import {
   LaboratoryResultStatus,
@@ -19,7 +20,10 @@ export enum DateRangeType {
 
 @Injectable()
 export class AnalyticsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly thresholds: InventoryThresholdsService,
+  ) {}
 
   async getOverview(organizationId: string, userId: string, filters: any) {
     await this.validateOrganizationAccess(organizationId, userId);
@@ -328,15 +332,35 @@ export class AnalyticsService {
 
     const lowStock: string[] = [];
     const criticalStock: string[] = [];
-    const allBloodGroups = ['A', 'B', 'AB', 'O'];
+    const allBloodGroups = ['A', 'B', 'AB', 'O'] as const;
+
+    // The threshold is the organisation's own, not `count < 5`.
+    //
+    // This was a second copy of the number the alert cron used, in a second
+    // module, and the two could disagree: the dashboard called a group low
+    // while the alert engine did not, or the reverse. Both now ask the same
+    // service, which answers with what the organisation configured, a
+    // clearly-labelled development fallback, or nothing at all.
+    //
+    // "Nothing at all" -- production with no configuration -- leaves `lowStock`
+    // empty rather than falling back to a guess. An empty list here means
+    // "nobody has said what low means", and the console's own threshold screen
+    // is where that gets fixed. Zero units is still reported as critical,
+    // because no configuration is needed to know that none is none.
+    const thresholdRows = await this.thresholds.listRows(organizationId);
 
     for (const bg of allBloodGroups) {
-      for (const rh of ['POSITIVE', 'NEGATIVE']) {
+      for (const rh of ['POSITIVE', 'NEGATIVE'] as const) {
         const posNeg = rh === 'POSITIVE' ? '+' : '-';
         const key = `${bg}${posNeg}`;
         const count = bloodGroupCounts.get(key) || 0;
-        if (count === 0) criticalStock.push(key);
-        else if (count < 5) lowStock.push(key);
+        if (count === 0) {
+          criticalStock.push(key);
+          continue;
+        }
+
+        const resolved = this.thresholds.resolveFrom(thresholdRows, { bloodType: bg, rhFactor: rh });
+        if (resolved.threshold !== null && count < resolved.threshold) lowStock.push(key);
       }
     }
 
