@@ -2,6 +2,10 @@ module.exports = {
   preset: 'jest-expo',
   testMatch: ['**/src/**/*.spec.tsx', '**/src/**/*.spec.ts'],
   setupFiles: ['<rootDir>/jest.setup.js'],
+  // Runs inside the sandbox, after the test framework, so it can register an
+  // afterAll hook. It disposes the React Query caches each spec creates; see
+  // the file for why the suite cannot exit without it.
+  setupFilesAfterEnv: ['<rootDir>/jest.teardown-query.js'],
   // The first test to mount a screen pays a one-off cost: Babel transforming the
   // whole React Native module graph. With a warm jest cache that is milliseconds,
   // but CI starts cold every run, where it measured ~8.4s -- over the default 5s
