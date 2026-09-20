@@ -3,6 +3,11 @@
 Every clinically meaningful string in the product, in all three languages, for a
 clinician to confirm before release.
 
+> **Not to be confused with** `review-packs/clinical-review.md`, which is a
+> different document with a similar name. That one asks the transfusion
+> specialist about rules — intervals, deferral reasons, compatibility, shelf
+> life. This one is the terminology list, and the pack refers to it as CR-10.
+
 **106 terms — 106 pending, 0 approved.**
 
 ## How to read this

@@ -1,5 +1,26 @@
 # Clinical safety gap map
 
+> **Sprint 7 status.** This document was written before the work it proposed.
+> Two of its three proposals are now built, and this header says which so the
+> findings below are not read as current:
+>
+> - **§2.4 (release gate)** — built, in the shape proposed, with the names
+>   adapted: `ClinicalReleasePolicy`, `ClinicalReleaseRequirement` and
+>   `ReleaseDecision`. The requirement tables ship empty and the gate refuses
+>   everything, including an approved policy that lists nothing. §1.2's "that
+>   is the complete gate" no longer describes the code.
+> - **§3.3 (deferral model)** — built as `DonorDeferral`, with the predicate in
+>   the eligibility path and `DonorProfile.donorStatus` demoted to a cache.
+>   DEF-01 and DEF-05 are closed; DEF-02, DEF-03 and DEF-04 are closed by the
+>   model and open only on the reason vocabulary, which is `review-packs/
+>   clinical-review.md` CR-04.
+> - **§2 (screening)** — NOT built, and still the pilot blocker. Nothing can
+>   satisfy a release requirement, which is why the gate refuses. What to build
+>   depends on `review-packs/laboratory-review.md` LR-02.
+>
+> Everything else below stands. `docs/production-readiness.md` carries the
+> current status of every item.
+
 Three audits, run against the repository as it stands: the blood-unit release
 path, the testing/TTI workflow, and the donor deferral model. Plus a survey of
 where a real blood-bank team would still reach for paper.
