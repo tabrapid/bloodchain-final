@@ -160,9 +160,71 @@ export async function createTestDonor(
     email,
     token: await tokenFor(app, email),
     cleanup: async () => {
+      // Slots first, then the user.
+      //
+      // `AppointmentSlot.bookedCount` is maintained by the booking and
+      // cancellation paths, not by a foreign key -- so deleting an appointment
+      // row directly, which is what the cascade below does, leaves the counter
+      // incremented and that slot's capacity permanently spent. Nothing notices
+      // until a slot reaches FULL and a later suite cannot book it, at which
+      // point the failure looks like a booking bug and the only cure is a
+      // reset. The suites are supposed to leave the database as they found it,
+      // and a counter is part of that.
+      const slotIds = (
+        await db.appointment.findMany({
+          where: { donorId: donor.id },
+          select: { slotId: true },
+          distinct: ['slotId'],
+        })
+      ).map((appointment) => appointment.slotId);
+
       await db.user.deleteMany({ where: { id: donor.id } });
+      await restoreSlotCounts(db, slotIds);
     },
   };
+}
+
+/**
+ * Recompute `bookedCount` for each slot from the appointments that actually
+ * remain, and reopen any slot that is no longer full.
+ *
+ * Recomputed rather than decremented: a decrement assumes it knows how many
+ * bookings the suite made against the slot, and a suite that died halfway
+ * through does not. Counting what is left is correct however the run ended.
+ */
+export async function restoreSlotCounts(db: PrismaService, slotIds: string[]): Promise<void> {
+  for (const slotId of new Set(slotIds)) {
+    const slot = await db.appointmentSlot.findUnique({ where: { id: slotId } });
+    if (!slot) continue;
+
+    const remaining = await db.appointment.count({
+      where: {
+        slotId,
+        status: {
+          in: [
+            'PENDING',
+            'CONFIRMED',
+            'CHECKED_IN',
+            'IN_PROGRESS',
+            'RESULT_PENDING',
+            'RESULT_READY',
+          ],
+        },
+      },
+    });
+
+    if (remaining === slot.bookedCount && !(slot.status === 'FULL' && remaining < slot.capacity)) {
+      continue;
+    }
+
+    await db.appointmentSlot.update({
+      where: { id: slotId },
+      data: {
+        bookedCount: remaining,
+        status: remaining >= slot.capacity ? 'FULL' : slot.status === 'FULL' ? 'AVAILABLE' : slot.status,
+      },
+    });
+  }
 }
 
 /** The demo accounts created by prisma/seed.ts. */

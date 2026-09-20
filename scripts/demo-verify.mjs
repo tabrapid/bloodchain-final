@@ -6,16 +6,30 @@
  * actually matters the morning of a demo: "does the thing I am about to show
  * still work". Every step here is a real HTTP call producing a real database
  * change, in the same order the presenter will click through.
+ *
+ * Since Sprint 7 it does all of that against donors it creates for the run and
+ * deletes at the end, and it no longer resets the database at all.
+ *
+ * What it used to do: run all three flows through `donor@donor.local` and, in
+ * between, shell out to `pnpm demo:reset` -- three times. Two things followed
+ * from that. The flows and `pnpm verify:safety` fought over one donor's
+ * recovery window, so whichever ran second failed on a rule the first had just
+ * proved. And the reset truncates every table while the API is still running,
+ * which is not something a verification script should do to a live process:
+ * the API re-seeds its gamification catalogue at boot, a regenerated Prisma
+ * client makes `nest start --watch` reload, and the reset died on a unique
+ * constraint somewhere in the middle, leaving a half-populated database and an
+ * error pointing at achievements.
+ *
+ * Nothing about the flows or the rules they exercise has changed. What changed
+ * is that each flow gets its own donor, with no history for the recovery window
+ * to fire on, and the demo's own data is left exactly as it was found.
  */
-import { execFileSync } from 'node:child_process';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { assertLocalDatabase, fail } from './demo-guard.mjs';
+import { cleanupAll, createScriptDonor, db, disconnect, tokenFor } from './verify-fixtures.mjs';
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const API = process.env.DEMO_API_URL ?? 'http://localhost:3001';
 const BASE = `${API}/api/v1`;
-const PW = 'DevelopmentOnly!123';
 
 try {
   assertLocalDatabase();
@@ -82,30 +96,37 @@ function list(body) {
   return [];
 }
 
+/**
+ * A token for a seeded staff account, minted rather than fetched.
+ *
+ * This used to be `POST /auth/login`, which is rate limited to five attempts
+ * per minute per IP -- deliberately, and this script signs in six actors. The
+ * old advice was to restart the API with `AUTH_THROTTLE_LIMIT=100`, i.e. to
+ * turn off a real protection so a verification script could run. The rate
+ * limiter is shared global state like any other, and not depending on it is
+ * what makes this script runnable back to back with `pnpm verify:safety`.
+ *
+ * The token is genuine and every guard validates it; see verify-fixtures.mjs.
+ * The login route itself is covered end to end by app.e2e-spec.ts.
+ */
 async function login(email) {
-  const res = await call('POST', '/auth/login', null, { email, password: PW });
-  if (res.status === 429) {
-    fail(
-      'Rate limited while signing in. Sign-in allows 5 attempts per minute per IP. ' +
-        'Restart the API with AUTH_THROTTLE_LIMIT=100 (pnpm demo:start does this) and re-run.',
-    );
+  try {
+    return await tokenFor(email);
+  } catch (error) {
+    fail(`${error.message}`);
   }
-  if (res.status !== 200) {
-    fail(`Could not sign in as ${email} (${res.status}). Run pnpm demo:reset first.`);
-  }
-  return res.body.accessToken;
 }
 
-async function reset() {
-  console.log('\n  Resetting to the seeded starting state...');
-  execFileSync('node', [path.join(root, 'scripts', 'demo-reset.mjs')], {
-    cwd: root,
-    stdio: ['ignore', 'ignore', 'pipe'],
-    env: process.env,
-  });
-  // Spend the stale keep-alive socket on a request that is safe to repeat, so
-  // the first real call of the next flow starts on a live connection.
-  await call('GET', '/health');
+/** Donors this run created, deleted at the end however the run ends. */
+const ownedDonors = [];
+
+/** Emergencies this run raised. They belong to a hospital, not to a donor. */
+const ownedEmergencyIds = [];
+
+async function ownDonor(options) {
+  const donor = await createScriptDonor(options);
+  ownedDonors.push(donor);
+  return donor;
 }
 
 /**
@@ -169,7 +190,13 @@ async function firstSlot(token, organizationId, type) {
 // ---------------------------------------------------------------- flow C
 async function labFlow() {
   flow('Flow C — blood test: book, collect, publish, donor sees the result');
-  const donor = await login('donor@donor.local');
+
+  // This flow's own donor. It books a laboratory test rather than a donation,
+  // so it carries no recovery window either way -- but giving each flow its own
+  // donor is what lets the three run in any order, and lets the whole script
+  // run repeatedly without a reset.
+  const donorFixture = await ownDonor({ label: 'lab-flow', organizationId: SEED_ORG.id });
+  const donor = donorFixture.token;
 
   const labs = list((await call('GET', '/laboratories', donor)).body);
   if (!step('donor can list laboratories', labs.length >= 2, `${labs.length} found`)) return;
@@ -252,15 +279,57 @@ async function labFlow() {
     `${flagged.length}/${items.length} flagged`,
   );
 
+  // A second booking, so the flow has an upcoming appointment of its own for
+  // health trends to surface.
+  //
+  // This used to lean on the seeded donor's history: `totalTests >= 2` counted
+  // one result from the seed plus this one, and `nextUpcomingAppointment` was
+  // an appointment the seed had left lying around. Both assertions were really
+  // about the seed rather than about this flow, and neither survived the move
+  // to a donor with no history. Booking one here makes them about what this run
+  // actually did.
+  let nextSlot = null;
+  for (let offset = 1; offset < 7 && !nextSlot; offset += 1) {
+    const res = await call(
+      'GET',
+      `/laboratories/${lab.id}/slots?testTypeId=${testType.id}&date=${dayAfter(offset)}`,
+      donor,
+    );
+    const slots = list(res.body).filter((candidate) => candidate.id !== slot.id);
+    if (res.status === 200 && slots.length) nextSlot = slots[0];
+  }
+  const nextBooking = nextSlot
+    ? await call('POST', '/laboratory-appointments', donor, {
+        laboratoryId: lab.id,
+        testTypeId: testType.id,
+        slotId: nextSlot.id,
+      })
+    : { status: 0 };
+  step('donor books a follow-up test', nextBooking.status === 201, nextBooking.body?.referenceNumber);
+
   const trends = (await call('GET', '/me/health-trends', donor)).body;
-  step('health trends include the new test', (trends?.totalTests ?? 0) >= 2, `${trends?.totalTests} tests`);
+  step('health trends include the new test', (trends?.totalTests ?? 0) >= 1, `${trends?.totalTests} tests`);
   step('a next test date is shown', Boolean(trends?.nextUpcomingAppointment));
 }
 
 // ---------------------------------------------------------------- flow B
 async function sosFlow() {
   flow('Flow B — emergency SOS: match, accept, travel, arrive, complete');
-  const donor = await login('donor@donor.local');
+
+  // Its own donor, with location consent, because this flow shares a journey
+  // location. Completing an emergency donation opens a recovery window on
+  // whoever made it -- which is exactly why this flow used to need a reset
+  // after it, and why it no longer does.
+  const donorFixture = await ownDonor({
+    label: 'sos-flow',
+    organizationId: SEED_ORG.id,
+    bloodType: 'O',
+    rhFactor: 'NEGATIVE',
+    consentLocation: true,
+    latitude: 40.115,
+    longitude: 67.842,
+  });
+  const donor = donorFixture.token;
   const staff = await login('hospital.staff@donor.local');
 
   const profile = (await call('GET', '/donors/profile', donor)).body;
@@ -282,6 +351,7 @@ async function sosFlow() {
   });
   if (!step('hospital creates the request', created.status === 201, created.raw?.message)) return;
   const emergencyId = created.body.id;
+  ownedEmergencyIds.push(emergencyId);
 
   const activated = await call('POST', `/organizations/${hospital.id}/emergencies/${emergencyId}/activate`, staff, {});
   if (!step('hospital activates it', activated.status === 201)) return;
@@ -334,7 +404,11 @@ async function sosFlow() {
 // ---------------------------------------------------------------- flow A
 async function donationFlow() {
   flow('Flow A — donation: book, check in, collect, donor sees the volume');
-  const donor = await login('donor@donor.local');
+
+  // Its own donor, with no donation history, so the recovery window this flow
+  // is about to open belongs to nobody else.
+  const donorFixture = await ownDonor({ label: 'donation-flow', organizationId: SEED_ORG.id });
+  const donor = donorFixture.token;
 
   const orgs = list((await call('GET', '/organizations/discover?limit=100', donor)).body);
   step('several organisations are bookable', orgs.length >= 5, `${orgs.length} listed`);
@@ -427,18 +501,62 @@ try {
   fail(`The API is not answering at ${API}. Start it with pnpm demo:start.`);
 }
 
-await reset();
-await labFlow();
-// The SOS completes a donation, which puts the donor inside the recovery
-// window -- so the booked donation needs a clean slate after it.
-await sosFlow();
-await reset();
-await donationFlow();
-await reset();
+/**
+ * The organisation this run's donors belong to.
+ *
+ * Donors need an ACTIVE DONOR membership somewhere for emergency matching to
+ * consider them, and it does not matter where -- the flows pick their own
+ * hospital and laboratory by name. Resolved from a seeded staff account's own
+ * membership rather than by asking for "the first blood centre", because the
+ * Uzbekistan demo directory added seventeen organisations and `findFirst`
+ * stopped meaning what it used to.
+ */
+const seedMembership = await db().organizationMembership.findFirst({
+  where: { user: { email: 'blood.center.staff@donor.local' }, status: 'ACTIVE' },
+  include: { organization: true },
+});
+if (!seedMembership) {
+  fail('blood.center.staff@donor.local has no organisation. Run `pnpm demo:reset` once to seed the database.');
+}
+const SEED_ORG = seedMembership.organization;
+
+// No resets between the flows, and none after.
+//
+// Each flow owns its donor, so the recovery window one flow opens cannot reach
+// another, and nothing here touches the demo's own accounts. The three run in
+// sequence because they share the API, not because they share state.
+let runError = null;
+try {
+  await labFlow();
+  await sosFlow();
+  await donationFlow();
+} catch (error) {
+  runError = error;
+} finally {
+  // Everything else cascades off the donors: their appointments, donations,
+  // blood units, laboratory bookings, notifications and emergency responses.
+  // The emergency requests belong to a hospital, so they go explicitly.
+  try {
+    const prisma = db();
+    if (ownedEmergencyIds.length > 0) {
+      await prisma.emergencyMatch.deleteMany({ where: { emergencyRequestId: { in: ownedEmergencyIds } } });
+      await prisma.emergencyResponse.deleteMany({ where: { emergencyRequestId: { in: ownedEmergencyIds } } });
+      await prisma.emergencyRequest.deleteMany({ where: { id: { in: ownedEmergencyIds } } });
+    }
+  } finally {
+    await cleanupAll(ownedDonors);
+    await disconnect();
+  }
+}
+
+if (runError) {
+  fail(`${runError.stack ?? runError.message ?? runError}`);
+}
 
 console.log('');
 if (failures) {
   console.log(`  ✗ ${failures} step(s) failed.\n`);
   process.exit(1);
 }
-console.log('  ✓ All three flows work end to end. Demo data is back at its starting state.\n');
+console.log('  ✓ All three flows work end to end.');
+console.log('    This run owned its own donors and deleted them; the demo data is untouched.\n');

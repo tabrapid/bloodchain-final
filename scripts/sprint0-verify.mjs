@@ -3,9 +3,18 @@
  * Sprint 0 integration checks, driven against the running API over HTTP.
  *
  * Not read-only: it books and completes a real donation, raises an emergency,
- * and requests a password reset. Run `pnpm demo:reset` afterwards -- the demo
- * donor is left inside a fresh recovery window, which `pnpm demo:check` will
- * (correctly) report as a failure.
+ * and requests a password reset. Since Sprint 7 it does all of that against
+ * donors it creates for the run and deletes at the end, so it no longer
+ * consumes the demo's state and no longer needs `pnpm demo:reset` before or
+ * after. Run it twice in a row, or either side of `pnpm demo:verify`, and it
+ * passes both times.
+ *
+ * What it used to do: complete a real donation for `donor@donor.local`, which
+ * opens a 56-day recovery window on the account the demo and every other
+ * verification script also use -- so whichever script ran second found the
+ * donor correctly refused by the very rule the first had just proved. The rules
+ * are unchanged. What changed is that this script's actors have no history for
+ * them to fire on.
  *
  * Every assertion here is made the way an attacker or a buggy client would make
  * it: a direct request to the endpoint, not a call into a service with mocked
@@ -13,10 +22,10 @@
  * things regardless of what the client does, and only a real request proves it.
  */
 import { assertLocalDatabase, fail } from './demo-guard.mjs';
+import { cleanupAll, createScriptDonor, db, disconnect, tokenFor } from './verify-fixtures.mjs';
 
 const API = process.env.DEMO_API_URL ?? 'http://localhost:3001';
 const BASE = `${API}/api/v1`;
-const PW = 'DevelopmentOnly!123';
 
 try {
   assertLocalDatabase();
@@ -51,16 +60,32 @@ async function call(method, path, token, body) {
 
 const list = (b) => (Array.isArray(b) ? b : Array.isArray(b?.items) ? b.items : []);
 
+/**
+ * A token for a seeded staff account, minted rather than fetched.
+ *
+ * This used to be `POST /auth/login`. Sign-in is rate limited to five attempts
+ * per minute per IP, deliberately, and this script signs in eight or nine
+ * actors -- so running it twice, or after `demo:verify`, tripped the app's own
+ * rate limiter and the run died with `429`. The limiter is shared global state
+ * like any other, and not depending on it is the point of this sprint's
+ * isolation work. The token is genuine and every guard validates it; see
+ * verify-fixtures.mjs.
+ *
+ * The login route itself is still covered end to end by app.e2e-spec.ts. What
+ * this script needs is an authenticated actor, not a re-test of login.
+ */
 async function login(email) {
-  const res = await call('POST', '/auth/login', null, { email, password: PW });
-  if (res.status !== 200) fail(`could not sign in as ${email} (${res.status}); run pnpm demo:reset`);
-  return res.body.accessToken;
+  try {
+    return await tokenFor(email);
+  } catch (error) {
+    fail(`${error.message}`);
+  }
 }
 
 const dayAfter = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
 
-async function firstSlot(token, orgId, type) {
-  for (let i = 0; i < 6; i += 1) {
+async function firstSlot(token, orgId, type, fromDay = 0) {
+  for (let i = fromDay; i < fromDay + 6; i += 1) {
     const r = await call('GET', `/appointments/availability?organizationId=${orgId}&appointmentType=${type}&date=${dayAfter(i)}`, token);
     const slots = list(r.body);
     if (slots.length) return slots[0];
@@ -71,9 +96,23 @@ async function firstSlot(token, orgId, type) {
 console.log('\n  Sprint 0 — core safety hardening: integration checks');
 
 // ---------------------------------------------------------------- fixtures
-const eligibleDonor = await login('donor@donor.local');       // last donation 70 days ago
-const recoveringDonor = await login('recent.donor@donor.local'); // donated 12 days ago
 const admin = await login('admin@donor.local');
+
+// Donors this run owns, created here and deleted at the end.
+//
+// They replace `donor@donor.local` and `recent.donor@donor.local`, which are
+// the demo's and are also what `pnpm demo:verify` drives its flows through.
+// This script completes a real donation, so borrowing them left both accounts
+// inside a fresh recovery window and made the next run of either script fail on
+// a rule it had itself just satisfied. Creating them here costs two inserts and
+// removes the whole class of problem.
+const ownedDonors = [];
+process.on('exit', () => {
+  // Best effort on an abnormal exit; the ordinary path awaits cleanup below.
+  if (ownedDonors.length > 0) {
+    console.log(`  (cleaning up ${ownedDonors.length} script-owned donor(s))`);
+  }
+});
 
 // `limit=100`, not the default page: the Uzbekistan demo directory added
 // seventeen organisations that sort ahead of the ones this script needs.
@@ -83,17 +122,40 @@ const northstarHospital = orgs.find((o) => o.name === 'Northstar Hospital (Devel
 const northstarCentre = orgs.find((o) => o.name === 'Northstar Blood Center (Development)');
 if (!jizzakh || !northstarHospital || !northstarCentre) fail('expected seeded organisations are missing');
 
-// This suite consumes the seed: it books and completes the demo donor's
-// donation. Run twice without a reset and four checks fail for the most
-// confusing possible reason -- the donor is now correctly refused by the very
-// rule being tested. Check the precondition and say so instead.
+// The two donors this run owns.
+//
+// `eligible` has no donation history at all, so the recovery window has nothing
+// to fire on and the booking checks below can run however many times this
+// script has run before. `recovering` is placed inside a window deliberately --
+// twelve days ago, the same state the seed's `recent.donor@donor.local` is in --
+// because two of the checks are *about* a donor inside one.
+const eligible = await createScriptDonor({
+  label: 'eligible',
+  organizationId: jizzakh.id,
+  bloodType: 'O',
+  rhFactor: 'POSITIVE',
+});
+const recovering = await createScriptDonor({
+  label: 'recovering',
+  organizationId: northstarCentre.id,
+  bloodType: 'A',
+  rhFactor: 'NEGATIVE',
+  donatedDaysAgo: 12,
+});
+ownedDonors.push(eligible, recovering);
+
+const eligibleDonor = eligible.token;
+const recoveringDonor = recovering.token;
+
+// Asserted rather than assumed: if donor creation ever silently produced an
+// ineligible donor, every booking check below would fail for a reason that has
+// nothing to do with what it is testing.
 const donorStats = (await call('GET', '/donations/me/statistics', eligibleDonor)).body;
-if (donorStats?.nextDonationDate && new Date(donorStats.nextDonationDate) > new Date()) {
-  fail(
-    `donor@donor.local is inside a recovery window until ${String(donorStats.nextDonationDate).slice(0, 10)}, ` +
-      'so this suite cannot book for them. It needs a freshly seeded database: run pnpm demo:reset.',
-  );
-}
+check(
+  'fixture: this run owns a donor with no recovery window',
+  !donorStats?.nextDonationDate || new Date(donorStats.nextDonationDate) <= new Date(),
+  donorStats?.nextDonationDate ? String(donorStats.nextDonationDate).slice(0, 10) : 'no history',
+);
 
 // ============================================================= 1 + 2
 section('  Eligibility is enforced on the server');
@@ -130,6 +192,32 @@ const allowedBooking = await call('POST', '/appointments', eligibleDonor, {
 });
 check('an eligible donor can still book', allowedBooking.status === 201, allowedBooking.body?.referenceNumber);
 const donationAppointmentId = allowedBooking.body?.id;
+
+// A second appointment, booked NOW, while the donor is still eligible.
+//
+// The check further down needs "booked before, eligible then, ineligible now",
+// and it used to get that from an appointment the seed happened to leave on
+// `donor@donor.local`. Reading a fixture out of the demo's state is how this
+// script came to depend on it; booking one here makes the precondition
+// something the run creates rather than something it hopes for.
+// Searched from three days out, not from today: booking refuses a second
+// appointment that overlaps an existing one, and the first slot each
+// organisation offers is usually at the same hour of the same day. That
+// overlap is a real rule doing its job, not something to work around -- the
+// second appointment just has to be on a different day.
+const laterSlot = await firstSlot(admin, northstarHospital.id, 'BLOOD_DONATION', 3);
+const secondBooking = laterSlot
+  ? await call('POST', '/appointments', eligibleDonor, {
+      slotId: laterSlot.id,
+      appointmentType: 'BLOOD_DONATION',
+    })
+  : { status: 0, body: {} };
+const secondAppointmentId = secondBooking.body?.id ?? null;
+check(
+  'fixture: a second appointment is booked while the donor is still eligible',
+  secondBooking.status === 201,
+  `${secondBooking.status} ${secondBooking.raw?.code ?? ''}`,
+);
 
 // A lab test carries no recovery window, so the ineligible donor must still be
 // able to book one -- proof the gate is scoped to donation, not bolted on.
@@ -185,25 +273,10 @@ const completed = await call('POST', `/organizations/${jizzakh.id}/donations/${d
 });
 check('staff can complete the donation', completed.status === 200 || completed.status === 201, completed.raw?.message);
 
-// The donor is now inside a fresh recovery window. A second appointment booked
-// before that (the slot search below picks a future slot) must be refused at
-// check-in even though the appointment exists -- eligibility changed after
-// booking, which is exactly the case an appointment cannot vouch for.
-const laterSlot = await firstSlot(admin, northstarHospital.id, 'BLOOD_DONATION');
-let secondAppointmentId = null;
-if (laterSlot) {
-  // Booking is now also refused, so create the appointment as the seeded
-  // upcoming one instead: the donor already has a CONFIRMED donation
-  // appointment from the seed, which is the realistic "booked before, eligible
-  // then, ineligible now" case.
-  const mine = list((await call('GET', '/appointments/me', eligibleDonor)).body);
-  const pending = mine.find(
-    (a) => a.appointmentType === 'BLOOD_DONATION' && ['PENDING', 'CONFIRMED'].includes(a.status),
-  );
-  secondAppointmentId = pending?.id ?? null;
-}
-check('fixture: donor has a pre-existing upcoming donation appointment', secondAppointmentId !== null);
-
+// The donor is now inside a fresh recovery window, and the second appointment
+// booked above is still outstanding. Checking in against it must be refused
+// even though the appointment exists -- eligibility changed after booking,
+// which is exactly the case an appointment cannot vouch for.
 const northstarStaff = await login('hospital.staff@donor.local');
 const blockedCheckIn = await call('POST', `/organizations/${northstarHospital.id}/donations/check-in/${secondAppointmentId}`, northstarStaff, {});
 check(
@@ -256,19 +329,38 @@ section('  Account recovery');
 // The throttler keeps its counters in memory, so a restarted API always has a
 // fresh budget; a second run inside the same window trips the limit and the
 // pair is reported as rate limited rather than as an enumeration leak.
-const forgot1 = await call('POST', '/auth/forgot-password', null, { email: 'donor@donor.local' });
+// Asked about this run's own donor, not the demo's: a reset request writes a
+// PasswordResetToken row, and writing one against the demo account left a
+// token on it that no later run cleaned up.
+const forgot1 = await call('POST', '/auth/forgot-password', null, { email: eligible.email });
 const forgotUnknown = await call('POST', '/auth/forgot-password', null, { email: 'nobody@example.test' });
 const identical = JSON.stringify(forgotUnknown.raw) === JSON.stringify(forgot1.raw);
 const bothThrottled = forgot1.status === 429 && forgotUnknown.status === 429;
 
 if (forgot1.status === 429 || forgotUnknown.status === 429) {
-  check(
-    'the response does not reveal whether the address is registered',
-    bothThrottled && identical,
-    bothThrottled
-      ? 'both rate limited, identically — restart the API for the 200 path'
-      : `rate limited mid-pair (${forgot1.status}/${forgotUnknown.status}) — restart the API and re-run`,
-  );
+  if (bothThrottled) {
+    // Two identical 429s reveal nothing about whether either address is
+    // registered, so the property still holds -- just in its weaker form.
+    check(
+      'the response does not reveal whether the address is registered',
+      identical,
+      'both rate limited, identically — restart the API for the 200 path',
+    );
+  } else {
+    // One 200 and one 429. The two responses differ, but they differ because of
+    // the throttle rather than because of the address, so this run simply
+    // cannot make the assertion -- and reporting that as a failure would be
+    // reporting a rate limiter doing its job as an enumeration leak.
+    //
+    // It happens on the second run inside fifteen minutes: the endpoint allows
+    // three requests per IP per window and each run spends two. Counted as a
+    // skip so the run stays honest about what it proved without going red for
+    // a reason that is not about the software under test.
+    skip(
+      'the response does not reveal whether the address is registered',
+      `rate limited mid-pair (${forgot1.status}/${forgotUnknown.status}) — 3 requests per IP per 15 minutes, and this run spends 2`,
+    );
+  }
 } else {
   check('a reset can be requested', forgot1.status === 200, forgot1.body?.message?.slice(0, 40));
   check('the response does not reveal whether the address is registered', identical);
@@ -277,7 +369,16 @@ if (forgot1.status === 429 || forgotUnknown.status === 429) {
 const badReset = await call('POST', '/auth/reset-password', null, {
   token: 'deadbeef'.repeat(8), newPassword: 'CorrectHorse!2026',
 });
-check('an unknown token is refused', badReset.status === 400, badReset.raw?.message?.slice(0, 46));
+if (badReset.status === 429) {
+  // Reset is rate limited per IP as well, and a second run inside the window
+  // spends the budget. A throttled request never reaches the token check, so
+  // this run cannot say whether an unknown token is refused -- which is a skip,
+  // not a failure. Counting it as a failure would report a rate limiter working
+  // as a token-validation bug.
+  skip('an unknown token is refused', 'reset is rate limited per IP and this run spent the budget');
+} else {
+  check('an unknown token is refused', badReset.status === 400, badReset.raw?.message?.slice(0, 46));
+}
 
 // The real token is only in the database, which is the point -- read it there.
 // Only meaningful if the request above actually went through: a throttled
@@ -303,12 +404,16 @@ if (forgot1.status !== 200) {
 // ============================================================= 7
 section('  Laboratory result integrity');
 
-const donorResults = list((await call('GET', '/me/laboratory-results', eligibleDonor)).body);
+// Read-only, and against the seeded demo donor on purpose: the assertion is
+// that a donor sees only PUBLISHED results, and a donor this run created has no
+// results at all, which would make it pass vacuously. Nothing here writes.
+const seededDemoDonor = await login('donor@donor.local');
+const donorResults = list((await call('GET', '/me/laboratory-results', seededDemoDonor)).body);
 check('donor can read their published results', Array.isArray(donorResults), `${donorResults.length} result(s)`);
 check(
   'every result the donor can see is PUBLISHED',
-  donorResults.every((r) => r.status === 'PUBLISHED'),
-  donorResults.map((r) => r.status).join(',') || 'none',
+  donorResults.length > 0 && donorResults.every((r) => r.status === 'PUBLISHED'),
+  donorResults.map((r) => r.status).join(',') || 'none — the seed publishes some, so this is a fixture problem',
 );
 
 const bcStaff = await login('blood.center.staff@donor.local');
@@ -413,6 +518,30 @@ if (otherDonorResult) {
   );
 }
 
+// ---------------------------------------------------------------- cleanup
+//
+// Everything this run created hangs off the two donors: their donations,
+// appointments, blood units, laboratory bookings, password reset token and
+// emergency matches all cascade off the user row. Deleting them puts the
+// database back exactly as the run found it, which is what lets this script and
+// `pnpm demo:verify` run in any order, any number of times, with no reset
+// between them.
+//
+// The emergency this run raised belongs to the hospital rather than to a donor,
+// so it is removed explicitly.
+try {
+  if (emergency.body?.id) {
+    const prisma = db();
+    await prisma.emergencyMatch.deleteMany({ where: { emergencyRequestId: emergency.body.id } });
+    await prisma.emergencyResponse.deleteMany({ where: { emergencyRequestId: emergency.body.id } });
+    await prisma.emergencyRequest.deleteMany({ where: { id: emergency.body.id } });
+  }
+} finally {
+  await cleanupAll(ownedDonors);
+  ownedDonors.length = 0;
+  await disconnect();
+}
+
 console.log('');
 if (failures) {
   console.log(`  ✗ ${failures} check(s) failed.\n`);
@@ -422,8 +551,4 @@ if (skipped) {
   console.log(`  ! ${skipped} check(s) skipped — restart the API to clear the reset throttle and re-run.`);
 }
 console.log('  ✓ All Sprint 0 integration checks passed.');
-// This suite books and completes a real donation for donor@donor.local, which
-// opens a fresh recovery window for that account -- by design, since that is
-// what the check-in and matching assertions need. It also leaves the demo
-// donor ineligible, so the demo data has to be rebuilt before presenting.
-console.log('    Run `pnpm demo:reset` before a demo: this suite completes a real donation.\n');
+console.log('    This run owned its own donors and deleted them; the demo data is untouched.\n');

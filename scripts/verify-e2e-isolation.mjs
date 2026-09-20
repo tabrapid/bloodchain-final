@@ -42,18 +42,44 @@ const record = (ok, label, detail = '') => {
   console.log(`  ${ok ? '✓' : '✗'} ${label}${detail ? ` — ${detail}` : ''}`);
 };
 
-/** Rows the suites create; any growth across a run is a leak. */
+/**
+ * Rows the suites create; any growth across a run is a leak.
+ *
+ * `bookedSlotCapacity` is not a row count, and it is here because counting rows
+ * missed a real leak for a whole sprint. `AppointmentSlot.bookedCount` is
+ * maintained by the booking and cancellation paths rather than by a foreign
+ * key, so a suite that deletes its donor -- cascading the appointment away --
+ * leaves the counter incremented and that slot's capacity permanently spent.
+ * The slot row is still there, so the census was satisfied, and the symptom
+ * appeared runs later as a booking that could not find a free slot.
+ */
 async function census() {
-  const [users, donations, units, appointments, slots, emergencies, shipments] = await Promise.all([
-    db.user.count(),
-    db.donation.count(),
-    db.bloodUnit.count(),
-    db.appointment.count(),
-    db.appointmentSlot.count(),
-    db.emergencyRequest.count(),
-    db.shipment.count(),
-  ]);
-  return { users, donations, units, appointments, slots, emergencies, shipments };
+  const [users, donations, units, appointments, slots, emergencies, shipments, booked, decisions, deferrals] =
+    await Promise.all([
+      db.user.count(),
+      db.donation.count(),
+      db.bloodUnit.count(),
+      db.appointment.count(),
+      db.appointmentSlot.count(),
+      db.emergencyRequest.count(),
+      db.shipment.count(),
+      db.appointmentSlot.aggregate({ _sum: { bookedCount: true } }),
+      db.releaseDecision.count(),
+      db.donorDeferral.count(),
+    ]);
+
+  return {
+    users,
+    donations,
+    units,
+    appointments,
+    slots,
+    emergencies,
+    shipments,
+    bookedSlotCapacity: booked._sum.bookedCount ?? 0,
+    releaseDecisions: decisions,
+    donorDeferrals: deferrals,
+  };
 }
 
 function runSuite(label) {
