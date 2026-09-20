@@ -6,6 +6,7 @@ import { PrismaService } from '../../database/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { InventoryService } from './inventory.service';
 import { ClinicalReleaseService } from '../clinical-release/clinical-release.service';
+import { CustodyLedgerService } from '../custody/custody-ledger.service';
 
 function makeUnit(overrides: Record<string, any> = {}) {
   return {
@@ -31,7 +32,11 @@ describe('InventoryService unit status transitions', () => {
         findUnique: jest.fn().mockResolvedValue(makeUnit()),
         findUniqueOrThrow: jest.fn().mockImplementation(async () => makeUnit()),
       },
-      inventoryMovement: { create: jest.fn().mockResolvedValue({}) },
+      inventoryMovement: {
+        create: jest.fn().mockResolvedValue({}),
+        // The custody ledger reads the unit's highest sequence before appending.
+        aggregate: jest.fn().mockResolvedValue({ _max: { sequence: null } }),
+      },
       bloodUnitReservation: { updateMany: jest.fn().mockResolvedValue({ count: 0 }) },
       bloodUnitDisposition: { upsert: jest.fn().mockResolvedValue({}) },
       releaseDecision: { create: jest.fn().mockResolvedValue({}) },
@@ -51,6 +56,7 @@ describe('InventoryService unit status transitions', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         InventoryService,
+        CustodyLedgerService,
         { provide: EventEmitter2, useValue: { emit: jest.fn() } },
         { provide: PrismaService, useValue: prisma },
         { provide: AuditLogsService, useValue: { log: jest.fn().mockResolvedValue({}) } },
@@ -325,6 +331,7 @@ describe('InventoryService organization-status access checks', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         InventoryService,
+        CustodyLedgerService,
         { provide: EventEmitter2, useValue: { emit: jest.fn() } },
         { provide: PrismaService, useValue: prisma },
         { provide: AuditLogsService, useValue: { log: jest.fn().mockResolvedValue({}) } },

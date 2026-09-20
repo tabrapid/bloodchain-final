@@ -5,6 +5,7 @@ import { PrismaService } from '../../database/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { InventoryService } from './inventory.service';
 import { InventoryThresholdsService } from '../inventory-thresholds/inventory-thresholds.service';
+import { CustodyLedgerService } from '../custody/custody-ledger.service';
 
 const EXPIRING_SOON_WINDOW_HOURS = 72;
 
@@ -17,6 +18,7 @@ export class InventoryCronService {
     private readonly audit: AuditLogsService,
     private readonly inventory: InventoryService,
     private readonly thresholds: InventoryThresholdsService,
+    private readonly custody: CustodyLedgerService,
   ) {}
 
   @Cron(CronExpression.EVERY_HOUR)
@@ -65,13 +67,11 @@ export class InventoryCronService {
         });
         if (claim.count === 0) return false;
 
-        await tx.inventoryMovement.create({
-          data: {
-            bloodUnitId: unit.id,
-            organizationId: unit.organizationId,
-            type: MovementType.EXPIRED,
-            reason: 'Automatic expiration - past expiresAt',
-          },
+        await this.custody.record(tx, {
+          bloodUnitId: unit.id,
+          organizationId: unit.organizationId,
+          type: MovementType.EXPIRED,
+          reason: 'Automatic expiration - past expiresAt',
         });
 
         await tx.bloodUnitReservation.updateMany({
@@ -131,13 +131,11 @@ export class InventoryCronService {
         });
 
         if (unitClaim.count > 0) {
-          await tx.inventoryMovement.create({
-            data: {
-              bloodUnitId: reservation.bloodUnitId,
-              organizationId: reservation.organizationId,
-              type: MovementType.RELEASED,
-              reason: 'Automatic release - reservation expired',
-            },
+          await this.custody.record(tx, {
+            bloodUnitId: reservation.bloodUnitId,
+            organizationId: reservation.organizationId,
+            type: MovementType.RELEASED,
+            reason: 'Automatic release - reservation expired',
           });
         }
 

@@ -8,6 +8,7 @@ import { LocationService } from './services/location.service';
 import { ShipmentStateMachine } from './services/shipment-state.service';
 import { ShipmentsService } from './shipments.service';
 import { ShipmentGateway } from '../../gateways/shipment.gateway';
+import { CustodyLedgerService } from '../custody/custody-ledger.service';
 
 function makeShipment(overrides: Record<string, any> = {}) {
   return {
@@ -49,7 +50,11 @@ describe('ShipmentsService status transitions', () => {
         updateMany: jest.fn().mockResolvedValue({ count: 1 }),
       },
       bloodUnitReservation: { update: jest.fn().mockResolvedValue({}) },
-      inventoryMovement: { create: jest.fn().mockResolvedValue({}) },
+      inventoryMovement: {
+        create: jest.fn().mockResolvedValue({}),
+        // The custody ledger reads the unit's highest sequence before appending.
+        aggregate: jest.fn().mockResolvedValue({ _max: { sequence: null } }),
+      },
       courier: {
         update: jest.fn().mockResolvedValue({}),
         updateMany: jest.fn().mockResolvedValue({ count: 1 }),
@@ -78,6 +83,7 @@ describe('ShipmentsService status transitions', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ShipmentsService,
+        CustodyLedgerService,
         { provide: PrismaService, useValue: prisma },
         { provide: AuditLogsService, useValue: { log: jest.fn().mockResolvedValue({}) } },
         { provide: EventEmitter2, useValue: eventEmitter },
@@ -656,6 +662,7 @@ describe('ShipmentsService organization-status access checks', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ShipmentsService,
+        CustodyLedgerService,
         { provide: PrismaService, useValue: prisma },
         { provide: AuditLogsService, useValue: { log: jest.fn().mockResolvedValue({}) } },
         { provide: EventEmitter2, useValue: { emit: jest.fn() } },
@@ -786,6 +793,7 @@ describe('ShipmentsService.getShipmentTracking', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ShipmentsService,
+        CustodyLedgerService,
         { provide: PrismaService, useValue: prisma },
         { provide: AuditLogsService, useValue: { log: jest.fn().mockResolvedValue({}) } },
         { provide: EventEmitter2, useValue: { emit: jest.fn() } },
@@ -892,6 +900,7 @@ describe('ShipmentsService reference-number collision retry', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ShipmentsService,
+        CustodyLedgerService,
         { provide: PrismaService, useValue: prisma },
         { provide: AuditLogsService, useValue: { log: jest.fn().mockResolvedValue({}) } },
         { provide: EventEmitter2, useValue: { emit: jest.fn() } },
@@ -982,7 +991,11 @@ describe('ShipmentsService.approveRequest', () => {
         updateMany: jest.fn().mockResolvedValue({ count: 1 }),
       },
       bloodUnitReservation: { create: jest.fn().mockResolvedValue({ id: 'res-1' }) },
-      inventoryMovement: { create: jest.fn().mockResolvedValue({}) },
+      inventoryMovement: {
+        create: jest.fn().mockResolvedValue({}),
+        // The custody ledger reads the unit's highest sequence before appending.
+        aggregate: jest.fn().mockResolvedValue({ _max: { sequence: null } }),
+      },
       bloodRequest: { update: jest.fn().mockResolvedValue({ id: 'req-1', status: 'APPROVED' }) },
       bloodRequestEvent: { create: jest.fn().mockResolvedValue({}) },
     };
@@ -1003,6 +1016,7 @@ describe('ShipmentsService.approveRequest', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ShipmentsService,
+        CustodyLedgerService,
         { provide: PrismaService, useValue: prisma },
         { provide: AuditLogsService, useValue: { log: jest.fn().mockResolvedValue({}) } },
         { provide: EventEmitter2, useValue: { emit: jest.fn() } },

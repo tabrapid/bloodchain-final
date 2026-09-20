@@ -26,6 +26,7 @@ import { LocationService } from './services/location.service';
 import { ShipmentStateMachine } from './services/shipment-state.service';
 import { ShipmentGateway } from '../../gateways/shipment.gateway';
 import { assertOrganizationActive } from '../../common/utils/organization-status.util';
+import { CustodyLedgerService } from '../custody/custody-ledger.service';
 import {
   BLOOD_REQUEST_REJECTED_EVENT,
   type BloodRequestRejectedPayload,
@@ -45,6 +46,7 @@ export class ShipmentsService {
     private readonly eventEmitter: EventEmitter2,
     private readonly locationService: LocationService,
     private readonly shipmentGateway: ShipmentGateway,
+    private readonly custody: CustodyLedgerService,
   ) {}
 
   private generateShipmentReference(): string {
@@ -376,14 +378,12 @@ export class ShipmentsService {
               },
             });
 
-            await tx.inventoryMovement.create({
-              data: {
-                bloodUnitId: unit.id,
-                organizationId,
-                type: MovementType.RESERVED,
-                actorId: user.id,
-                reason: `Blood request ${request.requestReference}`,
-              },
+            await this.custody.record(tx, {
+              bloodUnitId: unit.id,
+              organizationId,
+              type: MovementType.RESERVED,
+              actorId: user.id,
+              reason: `Blood request ${request.requestReference}`,
             });
           }
         }
@@ -1272,15 +1272,13 @@ export class ShipmentsService {
           },
         });
 
-        await tx.inventoryMovement.create({
-          data: {
-            bloodUnitId: unit.bloodUnitId,
-            organizationId: shipment.sourceOrganizationId,
-            fromLocationId: unit.bloodUnit.locationId || undefined,
-            type: MovementType.TRANSFER_OUT,
-            actorId: courier.userId,
-            reason: `Shipment ${shipment.shipmentReference} pickup`,
-          },
+        await this.custody.record(tx, {
+          bloodUnitId: unit.bloodUnitId,
+          organizationId: shipment.sourceOrganizationId,
+          fromLocationId: unit.bloodUnit.locationId || undefined,
+          type: MovementType.TRANSFER_OUT,
+          actorId: courier.userId,
+          reason: `Shipment ${shipment.shipmentReference} pickup`,
         });
       }
 
@@ -2193,14 +2191,12 @@ export class ShipmentsService {
           });
         }
 
-        await tx.inventoryMovement.create({
-          data: {
-            bloodUnitId: unit.bloodUnitId,
-            organizationId,
-            type: MovementType.TRANSFER_IN,
-            actorId: user.id,
-            reason: `Shipment ${shipment.shipmentReference} delivery`,
-          },
+        await this.custody.record(tx, {
+          bloodUnitId: unit.bloodUnitId,
+          organizationId,
+          type: MovementType.TRANSFER_IN,
+          actorId: user.id,
+          reason: `Shipment ${shipment.shipmentReference} delivery`,
         });
 
         await tx.bloodUnitReservation.update({

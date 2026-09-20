@@ -7,6 +7,7 @@ import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { DonationEligibilityService } from '../donation-eligibility/donation-eligibility.service';
 import { DonationsService } from './donations.service';
 import { DonorDeferralsService } from '../donor-deferrals/donor-deferrals.service';
+import { CustodyLedgerService } from '../custody/custody-ledger.service';
 
 /** A donor profile that staff have verified - an authoritative blood group. */
 function verifiedProfile(overrides: Record<string, any> = {}) {
@@ -50,7 +51,16 @@ describe('DonationsService.completeDonation', () => {
   beforeEach(async () => {
     events = { emit: jest.fn() };
     tx = {
-      donation: { update: jest.fn().mockResolvedValue(makeDonation({ status: DonationStatus.COMPLETED })) },
+      donation: {
+        // Completion is claimed, not assumed: `updateMany` guarded on
+        // status IN_PROGRESS, then a read-back. `count: 1` is "this caller won
+        // the claim"; the loser gets 0 and a BadRequestException.
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+        findUniqueOrThrow: jest
+          .fn()
+          .mockResolvedValue(makeDonation({ status: DonationStatus.COMPLETED })),
+        update: jest.fn().mockResolvedValue(makeDonation({ status: DonationStatus.COMPLETED })),
+      },
       appointment: { update: jest.fn().mockResolvedValue({}) },
       donationEvent: { create: jest.fn().mockResolvedValue({}) },
       bloodUnit: { create: jest.fn().mockResolvedValue({}) },
@@ -69,6 +79,7 @@ describe('DonationsService.completeDonation', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         DonationsService,
+        CustodyLedgerService,
         { provide: PrismaService, useValue: prisma },
         { provide: AuditLogsService, useValue: { log: jest.fn().mockResolvedValue({}) } },
         { provide: EventEmitter2, useValue: events },
@@ -99,7 +110,7 @@ describe('DonationsService.completeDonation', () => {
     } as any);
 
     expect(donationEligibility.computeDefaultNextEligibleDate).toHaveBeenCalled();
-    expect(tx.donation.update).toHaveBeenCalledWith(
+    expect(tx.donation.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ nextDonationDate: new Date('2026-02-26T00:00:00.000Z') }),
       }),
@@ -116,7 +127,7 @@ describe('DonationsService.completeDonation', () => {
     } as any);
 
     expect(donationEligibility.computeDefaultNextEligibleDate).not.toHaveBeenCalled();
-    expect(tx.donation.update).toHaveBeenCalledWith(
+    expect(tx.donation.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ nextDonationDate: new Date(staffDate) }),
       }),
@@ -221,8 +232,37 @@ describe('DonationsService.completeDonation', () => {
 
       // Neither half happened: no completion, no unit, no XP event.
       expect(prisma.$transaction).not.toHaveBeenCalled();
-      expect(tx.donation.update).not.toHaveBeenCalled();
+      expect(tx.donation.updateMany).not.toHaveBeenCalled();
       expect(tx.bloodUnit.create).not.toHaveBeenCalled();
+      expect(events.emit).not.toHaveBeenCalled();
+    });
+
+    it('refuses the second of two concurrent completions, and creates no unit for it', async () => {
+      // The replacement for a guarantee the schema used to provide by accident.
+      //
+      // `BloodUnit.donationId` was @unique, so a double-submitted completion
+      // died on a constraint violation while creating its second unit. Sprint 9
+      // removed that constraint -- one donation legitimately yields several
+      // components -- and `@Idempotent('donation.complete')` was never the
+      // backstop either, because it keys on a header no client sends.
+      //
+      // What stands in its place is the conditional claim: update the row only
+      // while it is still IN_PROGRESS. This is the loser's view of that race.
+      // The status check before the transaction passed, because it read the row
+      // before the winner committed.
+      tx.donation.updateMany.mockResolvedValue({ count: 0 });
+
+      await expect(
+        service.completeDonation('donation-1', 'org-1', 'staff-1', {
+          volumeMl: 450,
+          bloodType: 'O',
+          rhFactor: 'POSITIVE',
+        } as any),
+      ).rejects.toBeInstanceOf(BadRequestException);
+
+      // The donor is not credited twice, and no second bag enters inventory.
+      expect(tx.bloodUnit.create).not.toHaveBeenCalled();
+      expect(tx.donationEvent.create).not.toHaveBeenCalled();
       expect(events.emit).not.toHaveBeenCalled();
     });
 
@@ -238,7 +278,7 @@ describe('DonationsService.completeDonation', () => {
     });
 
     it('creates no unit when the completion update fails, because both are one transaction', async () => {
-      tx.donation.update.mockRejectedValue(new Error('database went away'));
+      tx.donation.updateMany.mockRejectedValue(new Error('database went away'));
       prisma.$transaction.mockImplementation(async (cb: any) => cb(tx));
 
       await expect(
@@ -272,7 +312,7 @@ describe('DonationsService.completeDonation', () => {
     }
 
     it('marks the donation the SOS response produced as an emergency donation', async () => {
-      tx.donation.update.mockResolvedValue(
+      tx.donation.findUniqueOrThrow.mockResolvedValue(
         makeDonation({ status: DonationStatus.COMPLETED, emergencyResponseId: 'response-1' }),
       );
 
@@ -285,7 +325,7 @@ describe('DonationsService.completeDonation', () => {
       // The donor has an emergency response on record - the old heuristic's
       // only input. This donation simply is not linked to it.
       prisma.emergencyResponse.findFirst.mockResolvedValue({ id: 'response-1' });
-      tx.donation.update.mockResolvedValue(
+      tx.donation.findUniqueOrThrow.mockResolvedValue(
         makeDonation({ status: DonationStatus.COMPLETED, emergencyResponseId: null }),
       );
 
@@ -346,6 +386,7 @@ describe('DonationsService.checkInDonation', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         DonationsService,
+        CustodyLedgerService,
         { provide: PrismaService, useValue: prisma },
         { provide: AuditLogsService, useValue: { log: jest.fn().mockResolvedValue({}) } },
         { provide: EventEmitter2, useValue: { emit: jest.fn() } },
@@ -442,6 +483,7 @@ describe('DonationsService.getMyDonationStatistics', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         DonationsService,
+        CustodyLedgerService,
         { provide: PrismaService, useValue: prisma },
         { provide: AuditLogsService, useValue: { log: jest.fn() } },
         { provide: EventEmitter2, useValue: { emit: jest.fn() } },

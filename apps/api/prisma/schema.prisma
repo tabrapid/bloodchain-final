@@ -156,11 +156,27 @@ enum ExpiryProvenance {
 }
 
 /// What finally happened to a unit. The end of the traceability chain.
+/// What finally happened to a unit.
+///
+/// Two axes, deliberately in one vocabulary because a unit has exactly one
+/// final disposition. The first four are the blood centre's view of a unit
+/// leaving its custody. The rest are the receiving hospital's view of what
+/// became of it, which is the half that closes the traceability chain.
+///
+/// NO CLINICAL CLASSIFICATION IS ENCODED HERE. `REACTION_REPORTED` records
+/// that a reaction was reported, not what kind: transfusion reaction
+/// categories are a clinical vocabulary this project does not have (CR-08),
+/// and the reported detail stays in the free-text context field.
 enum DispositionType {
   ISSUED
   DISCARDED
   EXPIRED
   TRANSFERRED_OUT
+  TRANSFUSED
+  RETURNED
+  DISCARDED_AT_HOSPITAL
+  REACTION_REPORTED
+  UNACCOUNTED_FOR
 }
 
 enum VerificationStatus {
@@ -308,6 +324,111 @@ enum MovementType {
   TRANSFER_OUT
   TRANSFER_IN
   ADJUSTED
+  /// A component was prepared from a parent collected unit.
+  COMPONENT_PREPARED
+  /// A hold was placed on the unit, or lifted from it. Neither changes the
+  /// unit's lifecycle status -- that is the point of the hold being its own
+  /// record -- but both belong in the custody ledger.
+  HELD
+  HOLD_RESOLVED
+  /// The two ledger holes Sprint 9 closed: a shipment that failed and a
+  /// delivery whose contents did not match, both of which moved stock without
+  /// recording that they had.
+  DELIVERY_FAILED_RETURN
+  DELIVERY_DISCREPANCY_RETURN
+}
+
+/// Why a unit is held. Holds are NOT lifecycle states: a held unit keeps the
+/// status it had, and the hold is a separate record that refuses release.
+///
+/// Collapsing these into `QUARANTINED` was the available shortcut and would
+/// have been wrong twice over. It loses the reason -- "reactive" and "dropped
+/// on the floor" are not the same event to an investigator -- and, because
+/// leaving QUARANTINED is `releaseUnit`, it would make lifting a hold and
+/// clinically releasing a unit the same operation, which is exactly what the
+/// product decision forbids.
+enum BloodUnitHoldKind {
+  REACTIVE
+  ABO_DISCREPANCY
+  TEMPERATURE_EXCURSION
+  DAMAGED
+  QUALITY_HOLD
+}
+
+enum BloodUnitHoldStatus {
+  ACTIVE
+  RESOLVED
+}
+
+/// Where a temperature observation was taken. Not a judgement about it.
+enum ColdChainEventType {
+  STORAGE
+  TRANSPORT
+  RECEIPT
+}
+
+enum TemperatureSource {
+  DEVICE_LOGGER
+  MANUAL_READING
+  UNKNOWN
+}
+
+enum ContainerIntegrity {
+  INTACT
+  COMPROMISED
+  UNKNOWN
+}
+
+/// The purposes personal data is processed for. A vocabulary, not a legal
+/// determination: which of these a deployment may lawfully require is
+/// `ConsentRequirement.mode`, set per deployment, and pending legal validation
+/// (LP-01 .. LP-09).
+///
+/// `SERVICE_NOTIFICATIONS` and `MARKETING_COMMUNICATIONS` are separate members
+/// on purpose. A transactional notice -- your appointment is tomorrow, your
+/// result is ready -- is not marketing, and a consent model that cannot tell
+/// them apart either spams people who refused marketing or silences the
+/// service messages they are entitled to.
+enum ConsentPurpose {
+  CORE_ACCOUNT
+  HEALTH_DONATION_DATA
+  HEALTHCARE_SHARING
+  EMERGENCY_MATCHING
+  EMERGENCY_LIVE_LOCATION
+  SERVICE_NOTIFICATIONS
+  MARKETING_COMMUNICATIONS
+  CROSS_BORDER_PROCESSING
+}
+
+enum ConsentDocumentStatus {
+  DRAFT
+  APPROVED
+  RETIRED
+}
+
+/// How strongly a deployment requires a purpose. Configuration, not law.
+enum ConsentRequirementMode {
+  REQUIRED_FOR_FEATURE
+  OPTIONAL
+  NOTICE_ONLY
+  DISABLED
+}
+
+enum ConsentAcceptanceSource {
+  MOBILE_APP
+  WEB_CONSOLE
+  STAFF_RECORDED
+  MIGRATION
+}
+
+/// What may be done with a category of data. No periods: how long each
+/// category must be kept is a legal question (LP-06) and is a property of the
+/// deployment, not of this repository.
+enum RetentionMode {
+  ACTIVE
+  ARCHIVED_RESTRICTED
+  DELETABLE
+  LEGAL_HOLD
 }
 
 enum ReservationStatus {
@@ -517,6 +638,16 @@ model User {
   unitDispositions        BloodUnitDisposition[]   @relation("BloodUnitDispositionRecorder")
   thresholdsCreated       InventoryThreshold[]     @relation("InventoryThresholdCreator")
   thresholdsUpdated       InventoryThreshold[]     @relation("InventoryThresholdUpdater")
+  samplesCollected        DonationSample[]         @relation("DonationSampleCollector")
+  holdsRaised             BloodUnitHold[]          @relation("BloodUnitHoldRaiser")
+  holdsResolved           BloodUnitHold[]          @relation("BloodUnitHoldResolver")
+  coldChainEvents         ColdChainEvent[]         @relation("ColdChainEventActor")
+  approvedStoragePolicies StoragePolicy[]          @relation("StoragePolicyApprover")
+  approvedConsentDocs     ConsentDocument[]        @relation("ConsentDocumentApprover")
+  consentAcceptances      ConsentAcceptance[]      @relation("ConsentAcceptanceUser")
+  consentRecorded         ConsentAcceptance[]      @relation("ConsentAcceptanceRecorder")
+  movementsDispatched     InventoryMovement[]      @relation("InventoryMovementDispatcher")
+  movementsReceived       InventoryMovement[]      @relation("InventoryMovementReceiver")
 
   @@index([email])
   @@index([status])
@@ -761,6 +892,14 @@ model Organization {
   releaseDecisions       ReleaseDecision[]
   unitDispositions       BloodUnitDisposition[]
   inventoryThresholds    InventoryThreshold[]
+  donationSamples        DonationSample[]
+  unitHolds              BloodUnitHold[]
+  coldChainEvents        ColdChainEvent[]
+  storagePolicies        StoragePolicy[]
+  consentDocuments       ConsentDocument[]
+  consentAcceptances     ConsentAcceptance[]
+  consentRequirements    ConsentRequirement[]
+  retentionPolicies      RetentionPolicy[]
 
   @@index([type])
   @@index([status])
@@ -1134,7 +1273,17 @@ model Donation {
   emergencyResponse EmergencyResponse?  @relation(fields: [emergencyResponseId], references: [id], onDelete: SetNull)
   events            DonationEvent[]
   assessment        DonationAssessment?
-  bloodUnit         BloodUnit?
+  /// One donation, many components.
+  ///
+  /// This was `bloodUnit BloodUnit?` -- exactly one unit per donation, enforced
+  /// by a `@unique` on the far side. That is not how a blood service works: a
+  /// whole-blood collection is routinely separated into red cells, plasma and
+  /// platelets, each with its own identity, its own fate and its own release
+  /// decision. The old shape could not express that, and the seed and test
+  /// fixtures worked around it by inventing a throwaway parent donation for
+  /// every unit they needed.
+  bloodUnits        BloodUnit[]
+  samples           DonationSample[]
   deferrals         DonorDeferral[]
 
   @@index([donorId])
@@ -1186,7 +1335,11 @@ model DonationAssessment {
 model BloodUnit {
   id                   String               @id @default(cuid())
   unitReference        String               @unique
-  donationId           String               @unique
+  /// No longer unique: one donation yields many components. See
+  /// `Donation.bloodUnits` for why, and `completeDonation` for the conditional
+  /// claim that replaced the accidental double-completion guard this
+  /// constraint used to provide.
+  donationId           String
   organizationId       String
   componentType        ComponentType        @default(WHOLE_BLOOD)
   bloodType            BloodType
@@ -1209,6 +1362,26 @@ model BloodUnit {
   /// When this unit passed a clinical release evaluation. Null until it does,
   /// including for every unit that predates the gate.
   clinicalReleasedAt   DateTime?
+  /// The unit this component was separated from, when it was one.
+  ///
+  /// A whole-blood collection arrives as one bag and is separated into
+  /// components; each component is its own `BloodUnit` row pointing back at the
+  /// bag it came from. Null for a unit that was collected directly.
+  parentUnitId         String?
+  /// When this component was prepared, which is not when the donation was
+  /// collected. Null for a directly collected unit.
+  preparedAt           DateTime?
+  /// The storage requirement this component is held under, as a REFERENCE.
+  ///
+  /// Deliberately a foreign key and not a temperature. What a component must be
+  /// stored at is a clinical and regulatory value this project does not have
+  /// (CR-06), and `StoragePolicy` ships empty for that reason.
+  storagePolicyId      String?
+  /// Codes describing how the component was processed -- leucodepleted,
+  /// irradiated, and so on. A vocabulary that SHIPS EMPTY: which attributes
+  /// exist, and what each implies clinically, is a laboratory reviewer's
+  /// answer (LR-04), not this repository's.
+  processingAttributes String[]
   verifiedAt           DateTime?
   verifiedBy           String?
   createdAt            DateTime             @default(now())
@@ -1218,12 +1391,19 @@ model BloodUnit {
   organization     Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   location         InventoryLocation?     @relation(fields: [locationId], references: [id], onDelete: SetNull)
   verifier         User?                  @relation("BloodUnitVerifier", fields: [verifiedBy], references: [id], onDelete: SetNull)
+  parentUnit       BloodUnit?             @relation("BloodUnitComponents", fields: [parentUnitId], references: [id], onDelete: Restrict)
+  components       BloodUnit[]            @relation("BloodUnitComponents")
+  storagePolicy    StoragePolicy?         @relation(fields: [storagePolicyId], references: [id], onDelete: Restrict)
   movements        InventoryMovement[]
   reservations     BloodUnitReservation[]
   shipmentUnits    ShipmentUnit[]
   releaseDecisions ReleaseDecision[]
+  holds            BloodUnitHold[]
+  coldChainEvents  ColdChainEvent[]
   disposition      BloodUnitDisposition?
 
+  @@index([parentUnitId])
+  @@index([storagePolicyId])
   @@index([donationId])
   @@index([organizationId])
   @@index([bloodType])
@@ -1253,27 +1433,73 @@ model InventoryLocation {
   @@index([active])
 }
 
+/// The chain of custody. Append-only, ordered, and never the place a fact is
+/// replaced rather than added.
+///
+/// Three things were wrong with this table before Sprint 9, and all three
+/// mattered for exactly the question a ledger exists to answer.
+///
+/// 1. It cascaded from `BloodUnit`, so deleting a unit deleted its own history.
+///    An "immutable movement history" that a `DELETE` removes is a log, not a
+///    ledger. It is `Restrict` now: the history refuses to let the unit go.
+/// 2. It had no total order. The only ordering column was `createdAt`, which
+///    Postgres fills with transaction-start time -- identical for every row
+///    written in one transaction, so a multi-event transaction produced a
+///    custody history nobody could put in order. `sequence` is per-unit and
+///    monotonic.
+/// 3. It recorded a free-text `reason` and nothing about what actually changed,
+///    so the status history lived only in `AuditLog`. `fromStatus`/`toStatus`
+///    put it back where an investigator will look for it.
 model InventoryMovement {
-  id             String       @id @default(cuid())
-  bloodUnitId    String
-  organizationId String
-  fromLocationId String?
-  toLocationId   String?
-  type           MovementType
-  actorId        String?
-  reason         String?
-  createdAt      DateTime     @default(now())
+  id                 String           @id @default(cuid())
+  bloodUnitId        String
+  organizationId     String
+  /// Monotonic per unit. Unique with `bloodUnitId`, so two concurrent writers
+  /// cannot claim the same position in one unit's history.
+  sequence           Int
+  fromLocationId     String?
+  toLocationId       String?
+  type               MovementType
+  /// The lifecycle transition this movement records, when it recorded one.
+  fromStatus         BloodUnitStatus?
+  toStatus           BloodUnitStatus?
+  actorId            String?
+  /// Who handed the unit over and who took it, when those are different people
+  /// from whoever operated the system.
+  dispatchedBy       String?
+  receivedBy         String?
+  dispatchedAt       DateTime?
+  receivedAt         DateTime?
+  /// The physical container, its seal, and the scan that was read. Free-form
+  /// references: what a container or seal identifier looks like is an
+  /// operational decision (OR-03), not one this schema should make.
+  containerReference String?          @db.VarChar(120)
+  sealReference      String?          @db.VarChar(120)
+  scanReference      String?          @db.VarChar(120)
+  /// The hold or cold-chain observation that occasioned this movement.
+  holdId             String?
+  coldChainEventId   String?
+  reason             String?
+  notes              String?
+  createdAt          DateTime         @default(now())
 
-  bloodUnit    BloodUnit          @relation(fields: [bloodUnitId], references: [id], onDelete: Cascade)
-  organization Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  fromLocation InventoryLocation? @relation("FromLocation", fields: [fromLocationId], references: [id], onDelete: SetNull)
-  toLocation   InventoryLocation? @relation("ToLocation", fields: [toLocationId], references: [id], onDelete: SetNull)
-  actor        User?              @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  bloodUnit      BloodUnit          @relation(fields: [bloodUnitId], references: [id], onDelete: Restrict)
+  organization   Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  fromLocation   InventoryLocation? @relation("FromLocation", fields: [fromLocationId], references: [id], onDelete: SetNull)
+  toLocation     InventoryLocation? @relation("ToLocation", fields: [toLocationId], references: [id], onDelete: SetNull)
+  actor          User?              @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  dispatcher     User?              @relation("InventoryMovementDispatcher", fields: [dispatchedBy], references: [id], onDelete: SetNull)
+  receiver       User?              @relation("InventoryMovementReceiver", fields: [receivedBy], references: [id], onDelete: SetNull)
+  hold           BloodUnitHold?     @relation(fields: [holdId], references: [id], onDelete: SetNull)
+  coldChainEvent ColdChainEvent?    @relation(fields: [coldChainEventId], references: [id], onDelete: SetNull)
 
+  @@unique([bloodUnitId, sequence])
   @@index([bloodUnitId])
   @@index([organizationId])
   @@index([type])
   @@index([createdAt])
+  @@index([holdId])
+  @@index([coldChainEventId])
 }
 
 model BloodUnitReservation {
@@ -1490,10 +1716,25 @@ model BloodUnitDisposition {
   type               DispositionType
   occurredAt         DateTime        @default(now())
   recordedBy         String?
-  /// Opaque. No identity policy is attached to this field. See the model note.
+  /// Opaque, and scoped to `organizationId`. No identity policy is attached to
+  /// this field. See the model note.
+  ///
+  /// "Organization-scoped" is load-bearing: the same string from two hospitals
+  /// is two different people, and nothing in this schema or its indexes treats
+  /// it as a global identifier. A blood centre reading a unit's chain sees that
+  /// a disposition exists; resolving the reference to a person is the receiving
+  /// organization's business and requires their own records.
   recipientReference String?         @db.VarChar(120)
+  /// The episode of care, where the receiving organization records one. Also
+  /// opaque, also organization-scoped, also optional -- an encounter identifier
+  /// is not something this project may require (CL-03, PR-02).
+  encounterReference String?         @db.VarChar(120)
   bloodRequestId     String?
   shipmentId         String?
+  /// Free-text context for the disposition. For REACTION_REPORTED this is
+  /// where the report goes: no reaction classification is encoded, because none
+  /// has been validated (CR-08).
+  context            String?
   notes              String?
   createdAt          DateTime        @default(now())
 
@@ -1506,6 +1747,338 @@ model BloodUnitDisposition {
   @@index([organizationId])
   @@index([type])
   @@index([occurredAt])
+  @@index([organizationId, recipientReference])
+}
+
+/// A sample taken at collection, kept as its own identity.
+///
+/// A sample is not a component: it is the tube that goes to the laboratory,
+/// and it must be traceable back to the same donation the components came
+/// from. `sampleType` is a code from a vocabulary that SHIPS EMPTY -- which
+/// tubes are drawn, and what is done with each, is a laboratory reviewer's
+/// answer (LR-05) and not something this schema will invent.
+model DonationSample {
+  id              String   @id @default(cuid())
+  /// Human-readable and barcode-ready, derived from the parent donation's
+  /// identifier so the relationship survives being printed on a label.
+  sampleReference String   @unique
+  donationId      String
+  organizationId  String
+  sampleType      String?  @db.VarChar(80)
+  collectedAt     DateTime @default(now())
+  collectedBy     String?
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  donation     Donation     @relation(fields: [donationId], references: [id], onDelete: Restrict)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  collector    User?        @relation("DonationSampleCollector", fields: [collectedBy], references: [id], onDelete: SetNull)
+
+  @@index([donationId])
+  @@index([organizationId])
+  @@index([sampleReference])
+}
+
+/// A storage requirement, as a reference a component can point at.
+///
+/// SHIPS EMPTY, and has no numeric fields on purpose. The temperatures a
+/// component must be held at are clinical and regulatory values this project
+/// does not have (CR-06, OR-05). `requirementText` exists so a reviewer's
+/// signed answer has somewhere to live without this repository guessing at it
+/// first. Versioned and approved on the `ClinicalReleasePolicy` pattern, so a
+/// component's storage requirement stays readable after the policy moves on.
+model StoragePolicy {
+  id              String                @id @default(cuid())
+  organizationId  String?
+  /// `organizationId`, or the literal 'PLATFORM'. Exists because Postgres
+  /// treats NULLs as distinct in a unique index, so a nullable column cannot
+  /// carry the uniqueness this needs. Same reason as ClinicalReleasePolicy.
+  scopeKey        String
+  code            String                @db.VarChar(80)
+  version         Int
+  status          ConsentDocumentStatus @default(DRAFT)
+  /// The reviewer's own words. No temperature is parsed out of it.
+  requirementText String?
+  sourceReference String?
+  approvedBy      String?
+  approvedAt      DateTime?
+  effectiveFrom   DateTime?
+  effectiveUntil  DateTime?
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  approver     User?         @relation("StoragePolicyApprover", fields: [approvedBy], references: [id], onDelete: SetNull)
+  units        BloodUnit[]
+
+  @@unique([scopeKey, code, version])
+  @@index([organizationId])
+  @@index([status])
+}
+
+/// A restriction on a unit that is not a lifecycle state.
+///
+/// The unit keeps whatever status it had. This row is what refuses release,
+/// reservation and issue while it is ACTIVE, and resolving it does exactly
+/// one thing: it marks the hold resolved. It does NOT set `clinicalReleasedAt`,
+/// does NOT change `status`, and does NOT touch `expiresAt` -- so lifting a
+/// hold can never be, or be mistaken for, a clinical release. A unit that was
+/// held before release still has to pass the Sprint 7 gate afterwards.
+///
+/// Rows are never deleted. A hold that was raised and lifted is part of the
+/// unit's history and stays answerable.
+model BloodUnitHold {
+  id               String              @id @default(cuid())
+  bloodUnitId      String
+  organizationId   String
+  kind             BloodUnitHoldKind
+  status           BloodUnitHoldStatus @default(ACTIVE)
+  /// Machine-readable, from a vocabulary that ships empty. The clinical
+  /// meaning of a hold reason is a reviewer's answer (CR-07).
+  reasonCode       String?             @db.VarChar(80)
+  reasonText       String?
+  raisedBy         String?
+  raisedAt         DateTime            @default(now())
+  resolvedBy       String?
+  resolvedAt       DateTime?
+  resolutionText   String?
+  /// The cold-chain observation that caused this hold, when one did.
+  coldChainEventId String?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  bloodUnit      BloodUnit           @relation(fields: [bloodUnitId], references: [id], onDelete: Restrict)
+  organization   Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  raiser         User?               @relation("BloodUnitHoldRaiser", fields: [raisedBy], references: [id], onDelete: SetNull)
+  resolver       User?               @relation("BloodUnitHoldResolver", fields: [resolvedBy], references: [id], onDelete: SetNull)
+  coldChainEvent ColdChainEvent?     @relation(fields: [coldChainEventId], references: [id], onDelete: SetNull)
+  movements      InventoryMovement[]
+
+  @@index([bloodUnitId])
+  @@index([organizationId])
+  @@index([status])
+  @@index([kind])
+  @@index([raisedAt])
+}
+
+/// A temperature or integrity observation, recorded as a fact.
+///
+/// NO THRESHOLD IS ENCODED. This model cannot decide whether a reading is
+/// safe, because what is safe is a clinical value nobody has signed off
+/// (CR-06). `excursionDeclared` is therefore an assertion by an authorized
+/// person or device, not a comparison this code performs -- and when it is
+/// true, the unit goes into a TEMPERATURE_EXCURSION hold.
+model ColdChainEvent {
+  id                   String             @id @default(cuid())
+  bloodUnitId          String?
+  shipmentId           String?
+  organizationId       String
+  type                 ColdChainEventType
+  /// References to the physical equipment. Free-form: what a storage device or
+  /// data logger identifier looks like is operational (OR-03).
+  deviceReference      String?            @db.VarChar(120)
+  containerReference   String?            @db.VarChar(120)
+  loggerReference      String?            @db.VarChar(120)
+  measuredAt           DateTime
+  /// Recorded to one decimal place. A number, with no rule attached to it.
+  temperatureC         Decimal?           @db.Decimal(5, 1)
+  source               TemperatureSource  @default(UNKNOWN)
+  /// When the logger was last calibrated, and against what. A reading from an
+  /// uncalibrated device is still a reading; whether it can be relied on is
+  /// the quality workflow's judgement, not this row's.
+  calibratedAt         DateTime?
+  calibrationReference String?            @db.VarChar(120)
+  sealIntact           ContainerIntegrity @default(UNKNOWN)
+  /// Asserted by the person or device recording it. Never computed here.
+  excursionDeclared    Boolean            @default(false)
+  actorId              String?
+  notes                String?
+  createdAt            DateTime           @default(now())
+
+  bloodUnit    BloodUnit?          @relation(fields: [bloodUnitId], references: [id], onDelete: Restrict)
+  shipment     Shipment?           @relation(fields: [shipmentId], references: [id], onDelete: SetNull)
+  organization Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  actor        User?               @relation("ColdChainEventActor", fields: [actorId], references: [id], onDelete: SetNull)
+  holds        BloodUnitHold[]
+  movements    InventoryMovement[]
+
+  @@index([bloodUnitId])
+  @@index([shipmentId])
+  @@index([organizationId])
+  @@index([type])
+  @@index([measuredAt])
+  @@index([excursionDeclared])
+}
+
+/// A consent document, versioned and approved before it can be relied on.
+///
+/// NO LEGAL WORDING IS AUTHORED HERE, and none ships. What a deployment
+/// presents to a donor is a document its own counsel wrote; this model records
+/// which one, in which language, at which version, and whether anybody with
+/// authority approved it.
+///
+/// `contentHash` is what makes a version immutable in practice: the text can
+/// live in this row or behind `contentReference`, but either way the hash is
+/// what an acceptance is bound to, so nobody can quietly edit the wording
+/// somebody already agreed to and keep the agreement.
+///
+/// Approval is never automatic. A document is created DRAFT and stays DRAFT
+/// until a person approves it, and production refuses to record an acceptance
+/// against anything but an APPROVED one -- the same fail-closed shape as the
+/// Sprint 7 clinical release policy, for the same reason.
+model ConsentDocument {
+  id               String                @id @default(cuid())
+  purpose          ConsentPurpose
+  organizationId   String?
+  /// `organizationId`, or the literal 'PLATFORM'. See StoragePolicy.scopeKey.
+  scopeKey         String
+  /// BCP 47. Uzbek, Russian and English are what this product ships in; the
+  /// column does not constrain that, because which languages a deployment must
+  /// offer is a legal question (LP-04).
+  locale           String                @db.VarChar(16)
+  version          Int
+  /// The wording, or a pointer to where it lives. Exactly one is expected;
+  /// neither is required by the schema, because a deployment may hold the
+  /// authoritative text in a document management system.
+  content          String?
+  contentReference String?
+  /// SHA-256 of the exact text this version presents. An acceptance stores it
+  /// too, so a mismatch is detectable rather than silent.
+  contentHash      String                @db.VarChar(64)
+  status           ConsentDocumentStatus @default(DRAFT)
+  effectiveAt      DateTime?
+  approvedBy       String?
+  approvedAt       DateTime?
+  retiredAt        DateTime?
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+
+  organization Organization?       @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  approver     User?               @relation("ConsentDocumentApprover", fields: [approvedBy], references: [id], onDelete: SetNull)
+  acceptances  ConsentAcceptance[]
+
+  @@unique([scopeKey, purpose, locale, version])
+  @@index([purpose])
+  @@index([status])
+  @@index([organizationId])
+  @@index([effectiveAt])
+}
+
+/// That a person agreed to a specific version of a specific document.
+///
+/// Never updated in place and never deleted. Withdrawing consent sets
+/// `withdrawnAt`; it does not remove the row, because "did this person ever
+/// consent, to what, and when did they change their mind" has to stay
+/// answerable -- which is the whole evidentiary point of a consent record.
+///
+/// The document's purpose, version, locale and content hash are COPIED onto
+/// this row rather than only referenced. The audit found that mirroring
+/// ReleaseDecision literally would inherit `onDelete: Cascade` from
+/// Organization, so deleting an organization would destroy the evidence that
+/// somebody consented. The organization link is `Restrict` here and the facts
+/// are denormalised, so the record survives the document being retired, the
+/// wording being superseded, and the organization being wound up.
+model ConsentAcceptance {
+  id              String                  @id @default(cuid())
+  userId          String
+  documentId      String
+  /// Denormalised, deliberately. See the model note.
+  purpose         ConsentPurpose
+  documentVersion Int
+  locale          String                  @db.VarChar(16)
+  contentHash     String                  @db.VarChar(64)
+  organizationId  String?
+  acceptedAt      DateTime                @default(now())
+  withdrawnAt     DateTime?
+  source          ConsentAcceptanceSource @default(MOBILE_APP)
+  /// Where the acceptance came from. Deliberately coarse: a client name and a
+  /// version, not an IP address or a device fingerprint, because collecting
+  /// more to prove consent than the consent itself is worth is its own privacy
+  /// problem.
+  clientReference String?                 @db.VarChar(120)
+  context         String?
+  /// Set when a staff member recorded the acceptance on someone's behalf,
+  /// which is a materially different act from the person tapping it themselves.
+  recordedBy      String?
+  createdAt       DateTime                @default(now())
+
+  user         User            @relation("ConsentAcceptanceUser", fields: [userId], references: [id], onDelete: Restrict)
+  document     ConsentDocument @relation(fields: [documentId], references: [id], onDelete: Restrict)
+  organization Organization?   @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  recorder     User?           @relation("ConsentAcceptanceRecorder", fields: [recordedBy], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([documentId])
+  @@index([purpose])
+  @@index([acceptedAt])
+  @@index([withdrawnAt])
+}
+
+/// How strongly this deployment requires a purpose.
+///
+/// Configuration, not law. Whether a blood service may lawfully refuse to
+/// register a donor who declines a given purpose is a question for counsel
+/// (LP-01, LP-02), and this row is where their answer will land. Until it
+/// does, the posture is the product owner's and is recorded as such.
+///
+/// Soft-retired rather than deleted: an acceptance is only interpretable
+/// against the mode that was in force when it was given, and the audit found
+/// that the obvious template for this model -- InventoryThreshold -- exposes a
+/// hard delete that would erase exactly that context.
+model ConsentRequirement {
+  id             String                 @id @default(cuid())
+  purpose        ConsentPurpose
+  organizationId String?
+  scopeKey       String
+  mode           ConsentRequirementMode
+  /// The feature this purpose gates, when it gates one. Free-form so a
+  /// deployment can name its own features without a schema change.
+  featureKey     String?                @db.VarChar(80)
+  note           String?
+  retiredAt      DateTime?
+  retiredBy      String?
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@unique([scopeKey, purpose, featureKey])
+  @@index([purpose])
+  @@index([mode])
+  @@index([organizationId])
+}
+
+/// What may be done with a category of data, by reference.
+///
+/// NO PERIOD IS ENCODED AND NONE SHIPS. How long a blood service must keep a
+/// donation record, and how long it may keep a phone number, are legal answers
+/// this project does not have (LP-06). `RetentionMode` says what class of
+/// treatment a category is under; `authorityReference` is where the rule that
+/// says so is cited. A category with no row is not deletable by default --
+/// absence of a policy is not permission.
+model RetentionPolicy {
+  id                 String        @id @default(cuid())
+  /// The data category this governs -- a key, not an enum, so a deployment can
+  /// describe its own data map without a migration.
+  category           String        @db.VarChar(80)
+  organizationId     String?
+  scopeKey           String
+  mode               RetentionMode
+  /// Citation for the rule. Empty until counsel supplies one.
+  authorityReference String?
+  /// Set while a legal hold suspends any deletion for this category.
+  legalHoldUntil     DateTime?
+  legalHoldReason    String?
+  note               String?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@unique([scopeKey, category])
+  @@index([category])
+  @@index([mode])
 }
 
 /// The low-stock threshold for one organization, at one level of specificity.
@@ -1709,6 +2282,7 @@ model Shipment {
   units                   ShipmentUnit[]
   events                  ShipmentEvent[]
   locations               ShipmentLocation[]
+  coldChainEvents         ColdChainEvent[]
 
   unitDispositions BloodUnitDisposition[]
 

@@ -31,6 +31,7 @@ import { GamificationModule } from './modules/gamification/gamification.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
 import { ClinicalReleaseModule } from './modules/clinical-release/clinical-release.module';
+import { CustodyModule } from './modules/custody/custody.module';
 import { DonorDeferralsModule } from './modules/donor-deferrals/donor-deferrals.module';
 import { InventoryThresholdsModule } from './modules/inventory-thresholds/inventory-thresholds.module';
 import { LaboratoryModule } from './modules/laboratory/laboratory.module';
@@ -131,6 +132,7 @@ import { IdempotencyModule } from './modules/idempotency/idempotency.module';
     // predicate are what the inventory, donation, appointment and emergency
     // paths ask, so they have to exist first.
     ClinicalReleaseModule,
+    CustodyModule,
     DonorDeferralsModule,
     InventoryThresholdsModule,
     InventoryModule,

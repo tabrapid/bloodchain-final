@@ -5,6 +5,7 @@ import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { InventoryService } from './inventory.service';
 import { InventoryThresholdsService } from '../inventory-thresholds/inventory-thresholds.service';
 import { InventoryCronService } from './inventory-cron.service';
+import { CustodyLedgerService } from '../custody/custody-ledger.service';
 
 describe('InventoryCronService', () => {
   let service: InventoryCronService;
@@ -15,7 +16,11 @@ describe('InventoryCronService', () => {
   beforeEach(async () => {
     tx = {
       bloodUnit: { updateMany: jest.fn().mockResolvedValue({ count: 1 }) },
-      inventoryMovement: { create: jest.fn().mockResolvedValue({}) },
+      inventoryMovement: {
+        create: jest.fn().mockResolvedValue({}),
+        // The custody ledger reads the unit's highest sequence before appending.
+        aggregate: jest.fn().mockResolvedValue({ _max: { sequence: null } }),
+      },
       bloodUnitReservation: { updateMany: jest.fn().mockResolvedValue({ count: 1 }) },
     };
 
@@ -30,6 +35,7 @@ describe('InventoryCronService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         InventoryCronService,
+        CustodyLedgerService,
         { provide: PrismaService, useValue: prisma },
         { provide: AuditLogsService, useValue: { log: jest.fn().mockResolvedValue({}) } },
         { provide: InventoryService, useValue: inventory },
@@ -171,6 +177,7 @@ describe('InventoryCronService', () => {
       const module: TestingModule = await Test.createTestingModule({
         providers: [
           InventoryCronService,
+        CustodyLedgerService,
           { provide: PrismaService, useValue: prisma },
           { provide: AuditLogsService, useValue: audit },
           { provide: InventoryService, useValue: inventory },

@@ -531,8 +531,26 @@ export class DonationsService {
     const result = await withUniqueRetry(
       () =>
         this.db.$transaction(async (tx) => {
-          const updated = await tx.donation.update({
-            where: { id: donationId },
+          // The completion is CLAIMED, not assumed.
+          //
+          // The status check above runs outside this transaction, on a row read
+          // before it opened, so two concurrent completions both pass it. Until
+          // Sprint 9 the damage was contained by an accident of the schema:
+          // `BloodUnit.donationId` was `@unique`, so the second transaction
+          // died on a constraint violation while creating its unit. Sprint 9
+          // removes that constraint, because one donation legitimately yields
+          // several components -- and with it the only thing standing between a
+          // double-submitted completion and a donor credited twice for one bag.
+          //
+          // `@Idempotent('donation.complete')` is not that backstop either: it
+          // keys on a header no client sends, so it no-ops in practice.
+          //
+          // So the guard moves inside the transaction and becomes a conditional
+          // claim, the idiom every inventory transition already uses: update the
+          // row only while it is still IN_PROGRESS, and treat "nothing was
+          // updated" as "somebody else completed it first".
+          const claimed = await tx.donation.updateMany({
+            where: { id: donationId, status: DonationStatus.IN_PROGRESS },
             data: {
               status: DonationStatus.COMPLETED,
               volumeMl: dto.volumeMl,
@@ -545,6 +563,12 @@ export class DonationsService {
               completedBy: staffId,
             },
           });
+
+          if (claimed.count === 0) {
+            throw new BadRequestException('Only in-progress donations can be completed.');
+          }
+
+          const updated = await tx.donation.findUniqueOrThrow({ where: { id: donationId } });
 
           if (donation.appointmentId) {
             await tx.appointment.update({
@@ -927,13 +951,6 @@ export class DonationsService {
                 lastName: true,
               },
             },
-          },
-        },
-        bloodUnit: {
-          select: {
-            id: true,
-            status: true,
-            collectedAt: true,
           },
         },
       },

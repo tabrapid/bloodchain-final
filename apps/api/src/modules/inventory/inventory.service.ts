@@ -26,6 +26,7 @@ import {
 } from '../notifications/operational-notification.events';
 import { assertOrganizationActive } from '../../common/utils/organization-status.util';
 import { ClinicalReleaseService } from '../clinical-release/clinical-release.service';
+import { CustodyLedgerService } from '../custody/custody-ledger.service';
 import { DispositionType } from '@prisma/client';
 import {
   AdjustUnitDto,
@@ -50,6 +51,7 @@ export class InventoryService {
     private readonly audit: AuditLogsService,
     private readonly eventEmitter: EventEmitter2,
     private readonly clinicalRelease: ClinicalReleaseService,
+    private readonly custody: CustodyLedgerService,
   ) {}
 
   private generateUnitReference(): string {
@@ -564,14 +566,12 @@ export class InventoryService {
         decidedBy: requestingUserId,
       });
 
-      await tx.inventoryMovement.create({
-        data: {
-          bloodUnitId: unitId,
-          organizationId,
-          type: MovementType.RELEASED,
-          actorId: requestingUserId,
-          reason: dto.reason,
-        },
+      await this.custody.record(tx, {
+        bloodUnitId: unitId,
+        organizationId,
+        type: MovementType.RELEASED,
+        actorId: requestingUserId,
+        reason: dto.reason,
       });
 
       return updated;
@@ -641,14 +641,12 @@ export class InventoryService {
 
       const updated = await tx.bloodUnit.findUniqueOrThrow({ where: { id: unitId } });
 
-      await tx.inventoryMovement.create({
-        data: {
-          bloodUnitId: unitId,
-          organizationId,
-          type: MovementType.QUARANTINED,
-          actorId: requestingUserId,
-          reason: dto.reason,
-        },
+      await this.custody.record(tx, {
+        bloodUnitId: unitId,
+        organizationId,
+        type: MovementType.QUARANTINED,
+        actorId: requestingUserId,
+        reason: dto.reason,
       });
 
       return updated;
@@ -706,14 +704,12 @@ export class InventoryService {
 
       const updated = await tx.bloodUnit.findUniqueOrThrow({ where: { id: unitId } });
 
-      await tx.inventoryMovement.create({
-        data: {
-          bloodUnitId: unitId,
-          organizationId,
-          type: MovementType.DISCARDED,
-          actorId: requestingUserId,
-          reason: dto.reason,
-        },
+      await this.custody.record(tx, {
+        bloodUnitId: unitId,
+        organizationId,
+        type: MovementType.DISCARDED,
+        actorId: requestingUserId,
+        reason: dto.reason,
       });
 
       await this.recordDisposition(tx, {
@@ -775,14 +771,12 @@ export class InventoryService {
 
       const updated = await tx.bloodUnit.findUniqueOrThrow({ where: { id: unitId } });
 
-      await tx.inventoryMovement.create({
-        data: {
-          bloodUnitId: unitId,
-          organizationId,
-          type: MovementType.USED,
-          actorId: requestingUserId,
-          reason: dto.reason,
-        },
+      await this.custody.record(tx, {
+        bloodUnitId: unitId,
+        organizationId,
+        type: MovementType.USED,
+        actorId: requestingUserId,
+        reason: dto.reason,
       });
 
       // Issuing a reserved unit fulfills whatever reservation was holding it.
@@ -863,14 +857,12 @@ export class InventoryService {
 
       const updated = await tx.bloodUnit.findUniqueOrThrow({ where: { id: unitId } });
 
-      await tx.inventoryMovement.create({
-        data: {
-          bloodUnitId: unitId,
-          organizationId,
-          type: MovementType.ADJUSTED,
-          actorId: requestingUserId,
-          reason: dto.reason,
-        },
+      await this.custody.record(tx, {
+        bloodUnitId: unitId,
+        organizationId,
+        type: MovementType.ADJUSTED,
+        actorId: requestingUserId,
+        reason: dto.reason,
       });
 
       return updated;
@@ -946,16 +938,14 @@ export class InventoryService {
 
       const updated = await tx.bloodUnit.findUniqueOrThrow({ where: { id: unitId } });
 
-      await tx.inventoryMovement.create({
-        data: {
-          bloodUnitId: unitId,
-          organizationId,
-          fromLocationId: unit.locationId,
-          toLocationId: dto.toLocationId,
-          type: MovementType.MOVED,
-          actorId: requestingUserId,
-          reason: dto.reason,
-        },
+      await this.custody.record(tx, {
+        bloodUnitId: unitId,
+        organizationId,
+        fromLocationId: unit.locationId,
+        toLocationId: dto.toLocationId,
+        type: MovementType.MOVED,
+        actorId: requestingUserId,
+        reason: dto.reason,
       });
 
       return updated;
@@ -1028,14 +1018,12 @@ export class InventoryService {
         },
       });
 
-      await tx.inventoryMovement.create({
-        data: {
-          bloodUnitId: unitId,
-          organizationId,
-          type: MovementType.RESERVED,
-          actorId: requestingUserId,
-          reason: dto.reason,
-        },
+      await this.custody.record(tx, {
+        bloodUnitId: unitId,
+        organizationId,
+        type: MovementType.RESERVED,
+        actorId: requestingUserId,
+        reason: dto.reason,
       });
 
       return { unit: updated, reservation };
@@ -1086,14 +1074,12 @@ export class InventoryService {
         },
       });
 
-      await tx.inventoryMovement.create({
-        data: {
-          bloodUnitId: reservation.bloodUnitId,
-          organizationId,
-          type: MovementType.RELEASED,
-          actorId: requestingUserId,
-          reason: dto.reason,
-        },
+      await this.custody.record(tx, {
+        bloodUnitId: reservation.bloodUnitId,
+        organizationId,
+        type: MovementType.RELEASED,
+        actorId: requestingUserId,
+        reason: dto.reason,
       });
 
       return updated;
