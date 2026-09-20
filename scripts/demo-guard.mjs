@@ -38,8 +38,21 @@ const ALLOWED_ENVIRONMENTS = new Set(['', 'development', 'dev', 'test']);
 /** Names that identify a database as disposable without further confirmation. */
 const DEV_DATABASE_PATTERN = /(^|[^a-z])(dev|development|test|demo|local|sandbox|scratch)([^a-z]|$)/i;
 
+/**
+ * Fill in anything the environment has not already set, from `.env`.
+ *
+ * It used to return early when `DATABASE_URL` was set, on the reasonable
+ * assumption that a caller who had exported that had exported everything. That
+ * stopped being true when `verify-fixtures.mjs` started minting access tokens:
+ * it needs `JWT_ACCESS_SECRET`, and a CI job that exports only `DATABASE_URL`
+ * -- which is the normal thing to do -- got a hard "JWT_ACCESS_SECRET is not
+ * set" from a function whose whole job is to have set it.
+ *
+ * Reading the file always, and never overwriting a variable the environment
+ * already carries, is what the per-key loop below already did. The early return
+ * was an optimisation that became a bug when the function grew a second reader.
+ */
 export function loadEnvFile() {
-  if (process.env.DATABASE_URL) return;
   const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
   for (const candidate of [path.join(root, '.env'), path.join(root, 'apps', 'api', '.env')]) {
     if (!fs.existsSync(candidate)) continue;
@@ -50,7 +63,6 @@ export function loadEnvFile() {
       if (process.env[key] !== undefined) continue;
       process.env[key] = rawValue.trim().replace(/^["']|["']$/g, '');
     }
-    if (process.env.DATABASE_URL) return;
   }
 }
 

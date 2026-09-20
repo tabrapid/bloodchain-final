@@ -59,8 +59,14 @@ pnpm demo:check     # PASS/FAIL on everything the demo needs
 console you did not start, or about the mail catcher, are fine.
 
 If you want the strongest possible assurance, `pnpm demo:verify` drives all
-three flows against the running API and puts the data back afterwards. It takes
-about a minute and it *is* the demo, performed by a script.
+three flows against the running API. It takes about a minute and it *is* the
+demo, performed by a script.
+
+It does **not** reset the database, before or after — since Sprint 7 each flow
+runs against a donor the script creates and deletes, so the accounts above are
+left exactly as you left them. That means you can run it after `demo:reset` and
+`demo:check` without undoing them, and you can run it again minutes before you
+present.
 
 ---
 

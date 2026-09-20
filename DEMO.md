@@ -99,9 +99,12 @@ reading another donor's laboratory result or journey, listing another
 organisation's donations — and asserts the server refuses each one. Run it
 after changing eligibility, laboratory or emergency code.
 
-It is not read-only: it completes a real donation, which leaves the demo donor
-inside a fresh recovery window. **Run `pnpm demo:reset` after it** — otherwise
-`demo:check` will correctly report the demo donor as ineligible.
+It is not read-only: it books and completes a real donation, raises an
+emergency and requests a password reset. Since Sprint 7 it does all of that
+against donors it creates for the run and deletes at the end, so **no reset is
+needed before or after it**, and the demo accounts are left exactly as it found
+them. Run it twice in a row, or either side of `pnpm demo:verify`, and it passes
+both times.
 
 ---
 
@@ -407,7 +410,7 @@ after the API started — restart it.
 | **No slots on the date you picked** | Slots are seeded for five days from the day you last reset. Reset again, or pick a nearer date. |
 | **The donor cannot accept an emergency** | They are inside the 56-day recovery window — probably because you already ran Part 4. Reset, or use a different donor. |
 | **"This donor is in the post-donation recovery window until …" when booking or checking in** | Working as intended: the server refuses a donation for a donor who is not yet due, at booking and again at check-in. It happens to `donor@donor.local` once you have completed a donation in this session — `pnpm demo:reset` puts them back. `recent.donor@donor.local` is seeded inside the window deliberately. |
-| **`demo:check` says the demo donor is not eligible, right after `verify:safety` passed** | `verify:safety` completes a real donation, so it leaves the demo donor inside a fresh recovery window. Run `pnpm demo:reset`. |
+| **`demo:check` says the demo donor is not eligible, right after `verify:safety` passed** | This was true before Sprint 7 and is not any more: `verify:safety` now completes its donation against a donor it created for the run and deleted afterwards, so it cannot touch the demo donor's eligibility. If the demo donor really is ineligible, something else completed a donation for them — check `pnpm demo:check`'s own report rather than resetting reflexively. |
 | **The reset email never arrives** | With no `SMTP_HOST` set, mail is logged instead of sent — the full message, including the link, is in the API log. Start `pnpm mail:dev` before `pnpm demo:start` to have it delivered somewhere readable (§10). |
 | **"This link no longer works" on the reset screen** | Reset links are single-use and expire within the hour. The API answers the same way for an unknown, used and expired token on purpose, so the app cannot tell you which. Request a new one and open the most recent email. |
 | **`verify:recovery` says port 1025 is busy** | It runs its own mail sink so it can read the message. Stop `pnpm mail:dev` (or `docker compose stop mailpit`) and run it again. |

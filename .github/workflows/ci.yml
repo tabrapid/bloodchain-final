@@ -1,10 +1,21 @@
 name: CI
 
+# Which branches CI actually guards.
+#
+# This used to be `main` alone, and for 110 green runs that looked fine. It was
+# not: every one of those runs was against a commit on `main`, and all of
+# Sprints 0-7 -- the eligibility gates, the clinical release lock, the deferral
+# domain, the verification isolation -- lives on `claude/local-test-ready`,
+# which CI had never seen. The pipeline was green because it was looking at the
+# wrong branch, which is the most expensive kind of green there is.
+#
+# `claude/local-test-ready` is the canonical development branch. `main` stays
+# listed so it keeps its guard when the sprint line is eventually merged down.
 on:
   push:
-    branches: [main]
+    branches: [claude/local-test-ready, main]
   pull_request:
-    branches: [main]
+    branches: [claude/local-test-ready, main]
   workflow_dispatch: {}
 
 concurrency:
@@ -13,6 +24,20 @@ concurrency:
 
 env:
   NODE_VERSION: '22'
+  # Named so the seed's own guard recognises it as disposable.
+  #
+  # `prisma/seed.ts` TRUNCATEs every table it owns, so it refuses to run unless
+  # the database is on a loopback host AND its name identifies it as a
+  # development database. The previous name here was `donor_e2e`, which matches
+  # none of dev/development/test/demo/local/sandbox/scratch -- so the seed step
+  # refused, and the whole e2e job would have failed the first time CI ran
+  # against a branch that carries the guard. It never did, because CI only
+  # watched `main`, where the guard does not exist yet.
+  CI_DATABASE: bloodchain_ci_test
+  CI_DATABASE_URL: postgresql://donor:donor@localhost:5432/bloodchain_ci_test
+  # Test-only. Long enough for the schema, and obviously not a real secret.
+  CI_JWT_ACCESS_SECRET: ci-only-access-secret-at-least-32-characters-long
+  CI_JWT_REFRESH_SECRET: ci-only-refresh-secret-at-least-32-characters-long
 
 jobs:
   lint-and-typecheck:
@@ -57,18 +82,18 @@ jobs:
         env:
           POSTGRES_USER: donor
           POSTGRES_PASSWORD: donor
-          POSTGRES_DB: donor_e2e
+          POSTGRES_DB: bloodchain_ci_test
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U donor -d donor_e2e"
+          --health-cmd "pg_isready -U donor -d bloodchain_ci_test"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
     env:
-      DATABASE_URL: postgresql://donor:donor@localhost:5432/donor_e2e
-      JWT_ACCESS_SECRET: ci-e2e-access-secret-at-least-32-characters-long
-      JWT_REFRESH_SECRET: ci-e2e-refresh-secret-at-least-32-characters-long
+      DATABASE_URL: postgresql://donor:donor@localhost:5432/bloodchain_ci_test
+      JWT_ACCESS_SECRET: ci-only-access-secret-at-least-32-characters-long
+      JWT_REFRESH_SECRET: ci-only-refresh-secret-at-least-32-characters-long
       NODE_ENV: test
     steps:
       - uses: actions/checkout@v4
@@ -83,9 +108,151 @@ jobs:
         run: pnpm --filter @bloodchain/api prisma:generate
       - name: Apply migrations
         run: pnpm --filter @bloodchain/api exec prisma migrate deploy
-      - name: Seed database (roles/permissions the app requires to function, e.g. register needs the DONOR role to exist)
+      - name: Seed database (the app needs its roles and permissions to exist at all)
         run: pnpm --filter @bloodchain/api prisma:seed
       - run: pnpm --filter @bloodchain/api test:e2e
+
+  verification-scripts:
+    # The gates that need a running API, which is why they were never in CI.
+    #
+    # Until Sprint 7 they could not have run here anyway: they drove their flows
+    # through one shared demo donor and completed real donations with it, so the
+    # second script to run found that donor inside a 56-day recovery window and
+    # failed on the rule the first had just proved. They own their data now, so
+    # the sequence below -- safety, demo, safety, demo, with NO reset between
+    # them -- is the contract Sprint 7 established, asserted on every push.
+    name: Verification scripts (running API)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: donor
+          POSTGRES_PASSWORD: donor
+          POSTGRES_DB: bloodchain_ci_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U donor -d bloodchain_ci_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://donor:donor@localhost:5432/bloodchain_ci_test
+      JWT_ACCESS_SECRET: ci-only-access-secret-at-least-32-characters-long
+      JWT_REFRESH_SECRET: ci-only-refresh-secret-at-least-32-characters-long
+      # Not production: these scripts drive the development SMS adapter and the
+      # development clinical release policy, both of which the API refuses to
+      # run in production by design.
+      NODE_ENV: development
+      PORT: '3001'
+      # Two names, because the scripts grew at different times: the Sprint 0
+      # and demo scripts read DEMO_API_URL, the geography and boolean verifiers
+      # read VERIFY_API_URL. Both are set rather than relying on the shared
+      # default, so moving the API off 3001 here does not silently point half
+      # the suite at nothing.
+      DEMO_API_URL: http://localhost:3001
+      VERIFY_API_URL: http://localhost:3001
+      WEB_URL: http://localhost:3000,http://localhost:3002,http://localhost:3003
+      SMS_PROVIDER: console
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Generate Prisma client
+        run: pnpm --filter @bloodchain/api prisma:generate
+      - name: Apply migrations
+        run: pnpm --filter @bloodchain/api exec prisma migrate deploy
+      - name: Seed database
+        run: pnpm --filter @bloodchain/api prisma:seed
+      - name: Build API
+        run: pnpm --filter @bloodchain/api build
+      - name: Start API
+        run: |
+          node apps/api/dist/src/main.js > /tmp/api.log 2>&1 &
+          echo $! > /tmp/api.pid
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:3001/api/v1/health > /dev/null; then
+              echo "API up after ${i}s"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "API did not become healthy. Log follows:"
+          cat /tmp/api.log
+          exit 1
+
+      # The four-step sequence, in this order and with no reset between them.
+      # Running them in any other order, or needing a reset, is the regression.
+      - name: verify:safety (1 of 2)
+        run: pnpm verify:safety
+      - name: demo:verify (1 of 2)
+        run: pnpm demo:verify
+      - name: verify:safety (2 of 2, no reset in between)
+        run: pnpm verify:safety
+      - name: demo:verify (2 of 2, no reset in between)
+        run: pnpm demo:verify
+
+      - name: verify:geography
+        run: pnpm verify:geography
+      - name: verify:booleans
+        run: pnpm verify:booleans
+
+      - name: API log on failure
+        if: failure()
+        run: tail -200 /tmp/api.log
+      - name: Stop API
+        if: always()
+        run: kill "$(cat /tmp/api.pid)" 2>/dev/null || true
+
+  e2e-isolation:
+    # Proves the e2e suite does not depend on state it does not own, by putting
+    # the shared donor inside a recovery window first and then running the whole
+    # suite twice against it. Runs the suite twice, so it is slower than
+    # `test-e2e` and deliberately does not gate the fast signal.
+    name: e2e isolation (suite runs twice)
+    runs-on: ubuntu-latest
+    needs: [test-e2e]
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: donor
+          POSTGRES_PASSWORD: donor
+          POSTGRES_DB: bloodchain_ci_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U donor -d bloodchain_ci_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://donor:donor@localhost:5432/bloodchain_ci_test
+      JWT_ACCESS_SECRET: ci-only-access-secret-at-least-32-characters-long
+      JWT_REFRESH_SECRET: ci-only-refresh-secret-at-least-32-characters-long
+      NODE_ENV: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Generate Prisma client
+        run: pnpm --filter @bloodchain/api prisma:generate
+      - name: Apply migrations
+        run: pnpm --filter @bloodchain/api exec prisma migrate deploy
+      - name: Seed database
+        run: pnpm --filter @bloodchain/api prisma:seed
+      - run: pnpm verify:e2e-isolation
 
   build:
     name: Build all apps

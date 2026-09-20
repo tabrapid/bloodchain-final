@@ -115,7 +115,7 @@ both, so that cannot happen again.
 
 ```bash
 pnpm test
-pnpm test:e2e    # needs `pnpm demo:reset` (or migrate + seed) first
+pnpm test:e2e    # needs a migrated + seeded database; repeatable without a reset
 ```
 
 The API has unit tests for authentication (including user status checks, suspended/deactivated users), the roles guard, permissions service, and the health controller. Web and mobile tests are placeholder foundations.
