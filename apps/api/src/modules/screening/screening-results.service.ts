@@ -553,6 +553,14 @@ export class ScreeningResultsService {
       });
     }
 
+    // Announced after the transaction committed, for the reason
+    // `RecallService.announce` gives: a notification sent from inside a
+    // transaction that then rolls back tells a hospital to quarantine blood
+    // for a recall that does not exist, and nothing can un-send it.
+    if (outcome.openedRecall) {
+      this.recall.announce(outcome.openedRecall);
+    }
+
     return {
       data: {
         id: outcome.replacement.id,

@@ -16,11 +16,13 @@ import {
   BLOOD_REQUEST_REJECTED_EVENT,
   INVENTORY_ALERT_EVENT,
   LEVEL_UP_EVENT,
+  RECALL_OPENED_EVENT,
   SECURITY_EVENT,
   type AchievementUnlockedPayload,
   type BloodRequestRejectedPayload,
   type InventoryAlertPayload,
   type LevelUpPayload,
+  type RecallOpenedPayload,
   type SecurityEventPayload,
 } from '../operational-notification.events';
 import { PrismaService } from '../../../database/prisma.service';
@@ -352,6 +354,42 @@ export class NotificationEventHandler {
       }
     } catch (error) {
       this.logger.error('Failed to handle inventory alert event:', error);
+    }
+  }
+
+  /**
+   * A recall reaches every organisation holding an affected component, not only
+   * the one that opened it.
+   *
+   * Fanned out per organisation rather than as one flat recipient list, because
+   * the notification's `data` names the organisation it was sent to and a
+   * hospital's staff must not receive a notification addressed to a blood
+   * centre. An organisation with no active members is logged rather than
+   * silently skipped: a recall that reached nobody is a fact somebody needs to
+   * be able to find.
+   */
+  @OnEvent(RECALL_OPENED_EVENT)
+  async handleRecallOpened(payload: RecallOpenedPayload) {
+    try {
+      this.logger.log(`Handling recall: ${payload.recallReference}`);
+
+      for (const organizationId of payload.affectedOrganizationIds) {
+        const recipientIds = await this.organizationStaff(organizationId);
+        if (recipientIds.length === 0) {
+          this.logger.warn(
+            `Recall ${payload.recallReference}: organization ${organizationId} holds an affected component and has no active members to notify.`,
+          );
+          continue;
+        }
+
+        const result = await this.router.routeRecallOpened(payload, organizationId, recipientIds);
+
+        for (const notification of result.notifications) {
+          await this.delivery.deliver(notification.id);
+        }
+      }
+    } catch (error) {
+      this.logger.error('Failed to handle recall opened event:', error);
     }
   }
 

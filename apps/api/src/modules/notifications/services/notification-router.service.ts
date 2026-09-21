@@ -281,6 +281,55 @@ export class NotificationRouterService {
   }
 
   /**
+   * A recall, to the staff of one organisation holding affected components.
+   *
+   * CRITICAL priority, and deliberately: every other inventory notification is
+   * about stock running short or ageing, and this one is about blood that may
+   * already be in a fridge somewhere it should not be. It is the only
+   * notification in this router that says "stop using something you already
+   * have".
+   *
+   * The body is the recall's `operationalReason` and nothing else. The clinical
+   * detail stays on the case, readable only by the organisation that opened it.
+   */
+  async routeRecallOpened(
+    event: {
+      recallCaseId: string;
+      recallReference: string;
+      operationalReason: string | null;
+      affectedCount: number;
+      triggerKind: string;
+    },
+    organizationId: string,
+    recipientIds: string[],
+  ) {
+    return this.route({
+      type: NotificationType.INVENTORY,
+      priority: NotificationPriority.CRITICAL,
+      title: `Recall ${event.recallReference}`,
+      body:
+        event.operationalReason ??
+        'A recall has been opened for components from one donation. Quarantine any component you hold from it and await instructions from the collecting organization.',
+      data: {
+        recallCaseId: event.recallCaseId,
+        recallReference: event.recallReference,
+        triggerKind: event.triggerKind,
+        affectedCount: event.affectedCount,
+        organizationId,
+      },
+      // Recall handling is a web console workflow; the mobile app has no screen
+      // for it, so a stray tap lands on home rather than a dead route.
+      deepLink: '/(app)/home',
+      sourceType: 'RECALL',
+      sourceId: event.recallCaseId,
+      recipientIds,
+      // One notification per person per recall, however many times the case is
+      // announced.
+      idempotencyKey: `RECALL_OPENED:${event.recallCaseId}`,
+    });
+  }
+
+  /**
    * A declined blood request, to the hospital that raised it.
    *
    * Priority HIGH rather than CRITICAL: the request itself may have been

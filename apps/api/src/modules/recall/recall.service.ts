@@ -14,9 +14,15 @@ import {
   RoleCode,
 } from '@prisma/client';
 
+import { EventEmitter2 } from '@nestjs/event-emitter';
+
 import { PrismaService } from '../../database/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { HoldsService } from '../custody/holds.service';
+import {
+  RECALL_OPENED_EVENT,
+  type RecallOpenedPayload,
+} from '../notifications/operational-notification.events';
 
 /** Why a recall was opened. Codes, not narratives. */
 export const RecallTrigger = {
@@ -44,6 +50,18 @@ export interface OpenedRecall {
   affectedCount: number;
   quarantinedCount: number;
   alreadyTransfusedCount: number;
+  /**
+   * Every organisation holding an affected component, plus the opener.
+   *
+   * Collected while the components are being walked rather than re-queried
+   * afterwards: the point of a recall is that it reaches the people holding the
+   * blood, and a second query is a second chance to miss one.
+   */
+  affectedOrganizationIds: string[];
+  /** The organisation that opened the case, named rather than positional. */
+  openedByOrganizationId: string;
+  triggerKind: RecallTriggerKind;
+  operationalReason: string | null;
 }
 
 /**
@@ -74,6 +92,7 @@ export class RecallService {
     private readonly db: PrismaService,
     private readonly audit: AuditLogsService,
     private readonly holds: HoldsService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   private generateRecallReference(): string {
@@ -134,8 +153,10 @@ export class RecallService {
 
     let quarantined = 0;
     let alreadyTransfused = 0;
+    const affectedOrganizationIds = new Set<string>([input.organizationId]);
 
     for (const unit of units) {
+      affectedOrganizationIds.add(unit.organizationId);
       // Transfused is read from the DISPOSITION, never from the status.
       // `BloodUnitStatus.USED` means the unit left stock; a unit can be issued,
       // shipped and never given to anybody. Only a TRANSFUSED disposition says
@@ -190,7 +211,37 @@ export class RecallService {
       affectedCount: units.length,
       quarantinedCount: quarantined,
       alreadyTransfusedCount: alreadyTransfused,
+      affectedOrganizationIds: [...affectedOrganizationIds],
+      openedByOrganizationId: input.organizationId,
+      triggerKind: input.triggerKind,
+      operationalReason: input.operationalReason ?? null,
     };
+  }
+
+  /**
+   * Tell the organisations holding the components, after the case has
+   * committed.
+   *
+   * Emitted outside the transaction on purpose. A notification is an outbound
+   * side effect: sent from inside a transaction that then rolls back, it tells
+   * a hospital to quarantine blood for a recall that does not exist, and
+   * nothing can un-send it. Emitted after commit, the worst case is a recall
+   * that exists and was not announced -- which the worklist still shows and an
+   * operator can re-announce.
+   *
+   * Carries `operationalReason` and never `confidentialDetail`: this fans out
+   * to every member of every affected organisation, through push and email.
+   */
+  announce(opened: OpenedRecall): void {
+    this.eventEmitter.emit(RECALL_OPENED_EVENT, {
+      recallCaseId: opened.id,
+      recallReference: opened.recallReference,
+      organizationId: opened.openedByOrganizationId,
+      affectedOrganizationIds: opened.affectedOrganizationIds,
+      triggerKind: opened.triggerKind,
+      operationalReason: opened.operationalReason,
+      affectedCount: opened.affectedCount,
+    } satisfies RecallOpenedPayload);
   }
 
   /** Open a recall by hand. */
@@ -257,6 +308,8 @@ export class RecallService {
       },
       ipAddress,
     });
+
+    this.announce(opened);
 
     return { data: await this.getCaseView(opened.id, organizationId) };
   }

@@ -23,7 +23,7 @@ describe('ScreeningResultsService', () => {
   let prisma: any;
   let tx: any;
   let donorReview: { openInTransaction: jest.Mock };
-  let recall: { openForDonationInTransaction: jest.Mock };
+  let recall: { openForDonationInTransaction: jest.Mock; announce: jest.Mock };
   let audit: { log: jest.Mock };
 
   const ORG = 'org-1';
@@ -100,7 +100,12 @@ describe('ScreeningResultsService', () => {
         affectedCount: 1,
         quarantinedCount: 1,
         alreadyTransfusedCount: 0,
+        affectedOrganizationIds: [ORG],
+        openedByOrganizationId: ORG,
+        triggerKind: RecallTrigger.SCREENING_RESULT_CORRECTED,
+        operationalReason: null,
       }),
+      announce: jest.fn(),
     };
     audit = { log: jest.fn().mockResolvedValue({}) };
 
@@ -451,6 +456,29 @@ describe('ScreeningResultsService', () => {
       // believing the new result with nobody told.
       expect(recall.openForDonationInTransaction.mock.calls[0][0]).toBe(tx);
       expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    });
+
+    it('announces the recall only after the transaction has committed', async () => {
+      prisma.bloodUnit.count.mockResolvedValue(1);
+      const order: string[] = [];
+      prisma.$transaction.mockImplementation(async (cb: any) => {
+        const result = await cb(tx);
+        order.push('commit');
+        return result;
+      });
+      recall.announce.mockImplementation(() => order.push('announce'));
+
+      await correct();
+
+      expect(order).toEqual(['commit', 'announce']);
+    });
+
+    it('announces nothing when no recall was opened', async () => {
+      prisma.bloodUnit.count.mockResolvedValue(0);
+
+      await correct();
+
+      expect(recall.announce).not.toHaveBeenCalled();
     });
 
     it('opens no recall when nothing has been released yet', async () => {

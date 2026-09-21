@@ -86,3 +86,31 @@ export interface BloodRequestRejectedPayload {
   fulfillingOrganizationName: string;
   reason: string;
 }
+
+export const RECALL_OPENED_EVENT = 'recall.opened';
+
+/**
+ * A recall, reaching the organisations that are holding the components.
+ *
+ * A recall that only the organisation which opened it can see has not been
+ * communicated to anybody. The worklist makes it findable; this makes it
+ * arrive.
+ *
+ * Note what the payload does NOT carry: `confidentialDetail`. A notification is
+ * fanned out to every member of every affected organisation and is delivered
+ * through push and email, so the clinical half of a recall has no business in
+ * it. `operationalReason` -- what a receiving organisation must DO -- is the
+ * whole of what travels.
+ */
+export interface RecallOpenedPayload {
+  recallCaseId: string;
+  recallReference: string;
+  /** The organisation that opened the case. */
+  organizationId: string;
+  /** Every organisation holding an affected component, including the opener. */
+  affectedOrganizationIds: string[];
+  triggerKind: string;
+  /** Safe for every recipient. Never the confidential detail. */
+  operationalReason: string | null;
+  affectedCount: number;
+}

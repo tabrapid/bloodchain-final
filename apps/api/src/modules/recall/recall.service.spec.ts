@@ -1,4 +1,5 @@
 import { ConflictException, ForbiddenException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, TestingModule } from '@nestjs/testing';
 import {
   BloodUnitHoldKind,
@@ -31,6 +32,7 @@ describe('RecallService', () => {
   let tx: any;
   let holds: { raiseInTransaction: jest.Mock };
   let audit: { log: jest.Mock };
+  let events: { emit: jest.Mock };
 
   const ORG = 'org-1';
   const OTHER_ORG = 'org-2';
@@ -128,6 +130,7 @@ describe('RecallService', () => {
 
     holds = { raiseInTransaction: jest.fn().mockResolvedValue({ id: 'hold-1' }) };
     audit = { log: jest.fn().mockResolvedValue({}) };
+    events = { emit: jest.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -135,6 +138,7 @@ describe('RecallService', () => {
         { provide: PrismaService, useValue: prisma },
         { provide: AuditLogsService, useValue: audit },
         { provide: HoldsService, useValue: holds },
+        { provide: EventEmitter2, useValue: events },
       ],
     }).compile();
 
@@ -380,6 +384,49 @@ describe('RecallService', () => {
       // tell a hospital that clinical detail exists and is being withheld.
       expect(Object.keys(view.data)).not.toContain('confidentialDetail');
       expect(serialised).not.toContain('CONFIDENTIAL-MARKER');
+    });
+  });
+
+  describe('telling the organizations that hold the components', () => {
+    it('announces after the case has committed, never from inside the transaction', async () => {
+      await service.openForDonation(ORG, 'donation-1', 'staff-1', {
+        operationalReason: 'Quarantine and await instructions.',
+        confidentialDetail: 'CONFIDENTIAL-MARKER clinical detail',
+      });
+
+      // A notification sent from inside a transaction that then rolls back
+      // tells a hospital to quarantine blood for a recall that does not exist,
+      // and nothing can un-send it.
+      expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+      expect(events.emit).toHaveBeenCalledTimes(1);
+      const [, payload] = events.emit.mock.calls[0];
+      expect(payload.recallReference).toBe('RCL-2026-000001');
+    });
+
+    it('addresses every organization holding a component, not only the opener', async () => {
+      tx.bloodUnit.findMany.mockResolvedValue([
+        unit({ id: 'unit-a', organizationId: ORG }),
+        unit({ id: 'unit-b', organizationId: OTHER_ORG }),
+      ]);
+
+      await service.openForDonation(ORG, 'donation-1', 'staff-1', {});
+
+      const [, payload] = events.emit.mock.calls[0];
+      expect([...payload.affectedOrganizationIds].sort()).toEqual([ORG, OTHER_ORG].sort());
+      expect(payload.organizationId).toBe(ORG);
+    });
+
+    it('carries the operational instruction and never the clinical detail', async () => {
+      await service.openForDonation(ORG, 'donation-1', 'staff-1', {
+        operationalReason: 'Quarantine and await instructions.',
+        confidentialDetail: 'CONFIDENTIAL-MARKER clinical detail',
+      });
+
+      // This fans out to every member of every affected organization, through
+      // push and email. The clinical half has no business in it.
+      const [, payload] = events.emit.mock.calls[0];
+      expect(payload.operationalReason).toContain('Quarantine');
+      expect(JSON.stringify(payload)).not.toContain('CONFIDENTIAL-MARKER');
     });
   });
 
