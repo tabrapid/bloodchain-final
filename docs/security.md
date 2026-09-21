@@ -146,7 +146,7 @@ The following are automatically redacted from logs:
 - All connections use PostgreSQL
 - Foreign keys enforce referential integrity
 - Indexes on frequently queried fields
-- AuditLog immutability via database triggers
+- AuditLog is append-only, enforced by database triggers (see below)
 
 ## WebSocket Security
 
@@ -178,9 +178,41 @@ The following are automatically redacted from logs:
 - Admin actions
 
 ### Audit Log Immutability
-- Database trigger prevents UPDATE on AuditLog
-- Database trigger prevents DELETE on AuditLog
-- Application-level protection in place
+
+Enforced by two `BEFORE` row triggers on `AuditLog`, added in migration
+`20260921100000_auditlog_append_only`. Both call `audit_log_append_only()`,
+which raises a `check_violation`.
+
+| Operation | Behaviour |
+| --- | --- |
+| `INSERT` | Allowed. The table is append-only, not read-only. |
+| `UPDATE` | Refused, for every role including the application's and including a superuser. Row-level triggers are not bypassed by privilege. |
+| `DELETE` | Refused, on the same terms. A blanket `DELETE ... WHERE` is refused row by row, which is the shape a careless cleanup actually takes. |
+| `UPDATE` setting `actorId` or `organizationId` to `NULL` | **Allowed**, and only this. `AuditLog.actorId` and `AuditLog.organizationId` are `onDelete: SetNull`, and Postgres implements SET NULL as an UPDATE on this table — so a trigger refusing every update would make it impossible to delete any user who had ever appeared in an audit entry, which is every real user. Every column the entry asserts (`action`, `entityType`, `entityId`, `metadata`, `ipAddress`, `createdAt`) must be byte-identical for the update to pass, and setting those two columns to a *different* value rather than to `NULL` is still refused. Detaching a key that no longer resolves changes nothing about who did what to which record when. |
+| `TRUNCATE` | **Not** blocked. Postgres fires statement-level TRUNCATE triggers rather than row-level DELETE triggers, so `prisma/seed.ts` still resets a local database — itself guarded by `checkLocalDatabase`, which refuses to run against anything that is not one. |
+
+Proved rather than asserted: `apps/api/test/audit-log-immutability.e2e-spec.ts`
+drives every case above through `$executeRawUnsafe` and through the ORM, including both sides of the referential-detach boundary. Raw SQL
+is deliberate — testing this through the Prisma client would only prove the
+application does not call `update`, which was already true and was exactly the
+reassurance that let the gap survive.
+
+**What this does not claim.** This is not cryptographic immutability. There is
+no hash chain and no signature, and anyone holding sufficient SQL privileges
+can drop the trigger. What it prevents is application code, an ORM call, a
+migration or a hand at a prompt rewriting audit history — accidentally or
+casually.
+
+**History.** Until Sprint 9 this section described a control that did not
+exist. There was no trigger in any migration, no ORM middleware and no revoked
+privilege; the audit trail was an ordinary table anything with a connection
+could rewrite. The wording above now matches the migration line for line, and
+the e2e suite fails if it stops doing so.
+
+**Retention.** No retention period is implied or enforced by these triggers,
+and none is set anywhere in this repository (LP-06). A retention rule, when one
+is validated, will need an explicit and audited mechanism of its own; it does
+not get one by leaving this door open.
 
 ## Security Monitoring
 

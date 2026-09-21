@@ -67,8 +67,11 @@ describe('P3-7: admin courier suspend validates its request body', () => {
   });
 
   afterAll(async () => {
-    // Courier cascades from User.
-    await db.auditLog.deleteMany({ where: { entityType: 'Courier', entityId: courierId } });
+    // Courier cascades from User. The audit entries this suite produced are
+    // deliberately NOT cleaned up: AuditLog is append-only in the database as
+    // of Sprint 9, so this delete would now raise -- and the rows are harmless,
+    // since `AuditLog.actorId` is SetNull on user deletion and nothing counts
+    // audit rows for leak detection.
     await db.user.delete({ where: { id: courierUserId } });
     await app.close();
   });
