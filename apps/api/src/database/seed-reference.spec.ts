@@ -95,12 +95,36 @@ describe('the production reference seed', () => {
       expect(code).not.toMatch(/db\.district\./);
     });
 
-    it('writes exactly two kinds of thing, and they are both reference data', () => {
+    it('writes only reference data and product configuration, nothing else', () => {
       const written = [...code.matchAll(/db\.(\w+)\.upsert\(/g)].map((match) => match[1]);
       const viaAccessControl = ['seedAccessControl'];
 
-      expect(new Set(written)).toEqual(new Set(['region']));
+      // `consentRequirement` joined `region` in Sprint 9, and this assertion
+      // caught it -- which is what it is for. It earns its place on three
+      // counts, all of which a reviewer should be able to check:
+      //
+      //   * It carries NO legal text. A requirement row says how strongly this
+      //     deployment requires a purpose; the wording lives in a
+      //     ConsentDocument, and no document is seeded here or anywhere.
+      //   * The application does not work without it. An unconfigured purpose
+      //     fails closed, so a production deployment with no posture refuses
+      //     every gated feature -- the same first-deployment hole DG-04 was.
+      //   * It is configuration, not a claim. Every mode is changeable without
+      //     a migration, and the legally-required-versus-optional question is
+      //     still counsel's (LP-01, LP-02).
+      //
+      // Anything else appearing in this set needs the same argument made for
+      // it, in writing, before this line is edited again.
+      expect(new Set(written)).toEqual(new Set(['region', 'consentRequirement']));
       expect(viaAccessControl.every((call) => code.includes(call))).toBe(true);
+    });
+
+    it('seeds no consent document, only the posture', () => {
+      // The distinction the whole consent design rests on. A posture is a
+      // product decision; a document is wording somebody's counsel wrote, and
+      // this repository has none and must not invent any.
+      expect(code).not.toMatch(/db\.consentDocument\./);
+      expect(code).not.toMatch(/db\.consentAcceptance\./);
     });
   });
 

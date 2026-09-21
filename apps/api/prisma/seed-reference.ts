@@ -53,6 +53,8 @@
  */
 import { PrismaClient } from '@prisma/client';
 
+import { ConsentPurpose, ConsentRequirementMode } from '@prisma/client';
+
 import { seedAccessControl, PERMISSIONS } from './seeds/access-control.reference';
 import { UZ_REGIONS, REGION_SOURCE } from '../src/modules/geography/uz-regions.reference';
 
@@ -85,6 +87,81 @@ async function seedOfficialGeography(): Promise<number> {
   return UZ_REGIONS.length;
 }
 
+/**
+ * How strongly this deployment requires each processing purpose.
+ *
+ * PRODUCT CONFIGURATION, NOT LEGAL TRUTH. Whether a blood service may lawfully
+ * refuse to register a donor who declines a given purpose is a question for
+ * counsel (LP-01, LP-02), and these rows are where their answer will land. What
+ * ships is the product owner's posture, and every row is changeable without a
+ * migration.
+ *
+ * No consent DOCUMENT is seeded, here or anywhere. A purpose marked
+ * REQUIRED_FOR_FEATURE with no approved document fails closed -- the feature is
+ * refused rather than offered on the strength of wording nobody wrote.
+ */
+const CONSENT_POSTURE: { purpose: ConsentPurpose; mode: ConsentRequirementMode; note: string }[] = [
+  {
+    purpose: ConsentPurpose.MARKETING_COMMUNICATIONS,
+    mode: ConsentRequirementMode.OPTIONAL,
+    note: 'Campaign and marketing messages. Separate from service notices by design.',
+  },
+  {
+    purpose: ConsentPurpose.SERVICE_NOTIFICATIONS,
+    mode: ConsentRequirementMode.NOTICE_ONLY,
+    note: 'Transactional notices -- appointment reminders, results ready. Not marketing, and not gated by a marketing refusal.',
+  },
+  {
+    purpose: ConsentPurpose.EMERGENCY_LIVE_LOCATION,
+    mode: ConsentRequirementMode.OPTIONAL,
+    note: 'Live location during an emergency response.',
+  },
+  {
+    purpose: ConsentPurpose.EMERGENCY_MATCHING,
+    mode: ConsentRequirementMode.OPTIONAL,
+    note: 'Being matched to emergency requests.',
+  },
+  {
+    purpose: ConsentPurpose.CROSS_BORDER_PROCESSING,
+    mode: ConsentRequirementMode.DISABLED,
+    note: 'Off by default. A deployment that has not decided this must not be doing it.',
+  },
+  {
+    purpose: ConsentPurpose.CORE_ACCOUNT,
+    mode: ConsentRequirementMode.REQUIRED_FOR_FEATURE,
+    note: 'Pending legal validation (LP-01). Fails closed until an approved document exists.',
+  },
+  {
+    purpose: ConsentPurpose.HEALTH_DONATION_DATA,
+    mode: ConsentRequirementMode.REQUIRED_FOR_FEATURE,
+    note: 'Pending legal validation (LP-02). Fails closed until an approved document exists.',
+  },
+  {
+    purpose: ConsentPurpose.HEALTHCARE_SHARING,
+    mode: ConsentRequirementMode.REQUIRED_FOR_FEATURE,
+    note: 'Pending legal validation (LP-03). Fails closed until an approved document exists.',
+  },
+];
+
+async function seedConsentPosture(): Promise<number> {
+  for (const row of CONSENT_POSTURE) {
+    await db.consentRequirement.upsert({
+      where: {
+        scopeKey_purpose_featureKey: { scopeKey: 'PLATFORM', purpose: row.purpose, featureKey: '' },
+      },
+      update: { mode: row.mode, note: row.note },
+      create: {
+        purpose: row.purpose,
+        scopeKey: 'PLATFORM',
+        featureKey: '',
+        mode: row.mode,
+        note: row.note,
+      },
+    });
+  }
+  return CONSENT_POSTURE.length;
+}
+
 async function main(): Promise<void> {
   const target = new URL(process.env.DATABASE_URL ?? '');
   console.log(`\n  BloodChain reference seed → ${target.pathname.replace(/^\//, '')} on ${target.hostname}`);
@@ -97,6 +174,9 @@ async function main(): Promise<void> {
     db.rolePermission.count(),
   ]);
   console.log(`  ✓ access control — ${roleCount} roles, ${permissionCount} permissions, ${linkCount} grants`);
+
+  const posture = await seedConsentPosture();
+  console.log(`  ✓ consent posture — ${posture} purposes configured (no documents; none may be invented)`);
 
   const regions = await seedOfficialGeography();
   console.log(`  ✓ geography — ${regions} regions (ISO 3166-2:UZ, OFFICIAL_REFERENCE)`);

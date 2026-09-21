@@ -2047,7 +2047,13 @@ model ConsentRequirement {
   mode           ConsentRequirementMode
   /// The feature this purpose gates, when it gates one. Free-form so a
   /// deployment can name its own features without a schema change.
-  featureKey     String?                @db.VarChar(80)
+  ///
+  /// Empty string rather than NULL for "the purpose as a whole", because
+  /// Postgres treats NULLs as distinct in a unique index -- so a nullable
+  /// column here would let the same purpose be configured twice with
+  /// contradictory modes and no constraint to catch it. Same reason
+  /// `scopeKey` exists on this model and on ClinicalReleasePolicy.
+  featureKey     String                 @default("") @db.VarChar(80)
   note           String?
   retiredAt      DateTime?
   retiredBy      String?
