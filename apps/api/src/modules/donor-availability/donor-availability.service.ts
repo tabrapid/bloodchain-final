@@ -2,7 +2,10 @@ import { ConflictException, Injectable } from '@nestjs/common';
 
 import { DonationEligibilityService } from '../donation-eligibility/donation-eligibility.service';
 import { DonorDeferralsService } from '../donor-deferrals/donor-deferrals.service';
-import { DonorReviewService } from '../donor-review/donor-review.service';
+import {
+  DONOR_REVIEW_DONOR_MESSAGE_KEY,
+  DonorReviewService,
+} from '../donor-review/donor-review.service';
 
 /** Why a donor may not donate at a given moment. */
 export const DonorAvailabilityReason = {
@@ -79,8 +82,19 @@ export class DonorAvailabilityService {
     if (await this.review.isUnderReview(donorId)) {
       throw new ConflictException({
         code: DonorAvailabilityReason.MEDICAL_REVIEW_REQUIRED,
+        /**
+         * A catalogue key, so a client can say this in the donor's own
+         * language rather than rendering the English below.
+         *
+         * The sentence used to be written in the third person -- "before THIS
+         * DONOR can give blood again" -- which is staff wording, and this
+         * refusal is read by the donor's own phone. It is second person now and
+         * matches the catalogue sentence word for word, so the translated and
+         * untranslated paths say the same thing.
+         */
+        messageKey: DONOR_REVIEW_DONOR_MESSAGE_KEY,
         message:
-          'Medical review is required before this donor can give blood again. Staff at the blood centre can help.',
+          'Medical review is required before your next donation. Staff at the blood centre can help.',
       });
     }
 

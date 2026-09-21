@@ -147,31 +147,66 @@ export class ScreeningResultsService {
     );
 
     const created = await this.db.$transaction(async (tx) => {
-      const result = await tx.screeningResult.create({
-        data: {
+      /*
+       * One live result per requirement, refused here and guaranteed by the
+       * database.
+       *
+       * The release gate reads the NEWEST live result for a requirement
+       * (`ClinicalReleaseService.unmetRequirements`). Without this, recording a
+       * second result silently overrode the first -- a blocking result could be
+       * followed by a clearing one and the component became releasable, with no
+       * reason recorded, no `ScreeningResultRevision`, no recall evaluation, and
+       * the blocking row visible in NEITHER the current nor the superseded list
+       * the console shows. The reviewer who has to sign the clearing result off
+       * had no way to see what it replaced.
+       *
+       * Repeating a test IS a correction, and `correctResult` is where it
+       * belongs: it supersedes, records why, and opens a recall when the
+       * corrected meaning is worse than the one a component went out on.
+       *
+       * This check is inside the transaction, but a count cannot lock a row
+       * that does not exist yet, so two concurrent first attempts can both read
+       * zero. That is what the partial unique index
+       * `ScreeningResult_one_live_per_requirement` is for; the catch below
+       * turns its violation into the same refusal so the loser gets a clean
+       * 409 rather than a 500. The check exists for the message, the index
+       * exists for the guarantee.
+       */
+      const live = await tx.screeningResult.count({
+        where: {
           screeningOrderId: order.id,
-          requirementId: requirement.id,
-          // Copied, so the row stays readable if the policy moves.
           requirementCode: requirement.code,
-          sampleId,
-          resultCode: input.resultCode,
-          resultValue: input.resultValue ?? null,
-          disposition: resolution.disposition,
-          // Null when no rule described the code. The marker that the system
-          // defaulted rather than being told.
-          dispositionPolicyVersion: resolution.policyVersion,
-          source: input.source ?? ScreeningResultSource.MANUAL,
-          methodReference: input.methodReference ?? null,
-          reagentReference: input.reagentReference ?? null,
-          reagentLot: input.reagentLot ?? null,
-          reagentExpiresAt: input.reagentExpiresAt ? new Date(input.reagentExpiresAt) : null,
-          analyzerReference: input.analyzerReference ?? null,
-          performedBy: actorId,
-          performedAt: input.performedAt ? new Date(input.performedAt) : new Date(),
-          receivedAt: input.receivedAt ? new Date(input.receivedAt) : null,
-          comment: input.comment ?? null,
-          confidentialComment: input.confidentialComment ?? null,
+          superseded: false,
         },
+      });
+
+      if (live > 0) {
+        throw this.refusal(ScreeningReason.REQUIREMENT_ALREADY_ANSWERED);
+      }
+
+      const result = await this.createResult(tx, {
+        screeningOrderId: order.id,
+        requirementId: requirement.id,
+        // Copied, so the row stays readable if the policy moves.
+        requirementCode: requirement.code,
+        sampleId,
+        resultCode: input.resultCode,
+        resultValue: input.resultValue ?? null,
+        disposition: resolution.disposition,
+        // Null when no rule described the code. The marker that the system
+        // defaulted rather than being told.
+        dispositionPolicyVersion: resolution.policyVersion,
+        source: input.source ?? ScreeningResultSource.MANUAL,
+        methodReference: input.methodReference ?? null,
+        reagentReference: input.reagentReference ?? null,
+        reagentLot: input.reagentLot ?? null,
+        reagentExpiresAt: input.reagentExpiresAt ? new Date(input.reagentExpiresAt) : null,
+        analyzerReference: input.analyzerReference ?? null,
+        performedBy: actorId,
+        performedAt: input.performedAt ? new Date(input.performedAt) : new Date(),
+        receivedAt: input.receivedAt ? new Date(input.receivedAt) : null,
+        comment: input.comment ?? null,
+        confidentialComment: input.confidentialComment ?? null,
       });
 
       let reviewTriggerId: string | null = null;
@@ -415,31 +450,29 @@ export class ScreeningResultsService {
         throw this.refusal(ScreeningReason.RESULT_SUPERSEDED);
       }
 
-      const replacement = await tx.screeningResult.create({
-        data: {
-          screeningOrderId: order.id,
-          requirementId: original.requirementId,
-          requirementCode: original.requirementCode,
-          sampleId: original.sampleId,
-          resultCode: input.resultCode,
-          resultValue: input.resultValue ?? null,
-          disposition: corrected.disposition,
-          dispositionPolicyVersion: corrected.policyVersion,
-          source: original.source,
-          methodReference: original.methodReference,
-          reagentReference: original.reagentReference,
-          reagentLot: original.reagentLot,
-          reagentExpiresAt: original.reagentExpiresAt,
-          analyzerReference: original.analyzerReference,
-          performedBy: actorId,
-          performedAt: new Date(),
-          receivedAt: original.receivedAt,
-          comment: input.comment ?? null,
-          confidentialComment: input.confidentialComment ?? null,
-          // Deliberately NOT carried over: `reviewedBy` and `reviewedAt`. A
-          // corrected result has not been reviewed, whatever was true of the
-          // value it replaces.
-        },
+      const replacement = await this.createResult(tx, {
+        screeningOrderId: order.id,
+        requirementId: original.requirementId,
+        requirementCode: original.requirementCode,
+        sampleId: original.sampleId,
+        resultCode: input.resultCode,
+        resultValue: input.resultValue ?? null,
+        disposition: corrected.disposition,
+        dispositionPolicyVersion: corrected.policyVersion,
+        source: original.source,
+        methodReference: original.methodReference,
+        reagentReference: original.reagentReference,
+        reagentLot: original.reagentLot,
+        reagentExpiresAt: original.reagentExpiresAt,
+        analyzerReference: original.analyzerReference,
+        performedBy: actorId,
+        performedAt: new Date(),
+        receivedAt: original.receivedAt,
+        comment: input.comment ?? null,
+        confidentialComment: input.confidentialComment ?? null,
+        // Deliberately NOT carried over: `reviewedBy` and `reviewedAt`. A
+        // corrected result has not been reviewed, whatever was true of the
+        // value it replaces.
       });
 
       let recallCaseId: string | null = null;
@@ -649,6 +682,34 @@ export class ScreeningResultsService {
           : {}),
       },
     });
+  }
+
+  /**
+   * Create a screening result, translating the database's own uniqueness
+   * refusal into this service's.
+   *
+   * `ScreeningResult_one_live_per_requirement` is a partial unique index over
+   * (`screeningOrderId`, `requirementCode`) WHERE `superseded` = false. The
+   * index is the guarantee; the count in `recordResult` only buys a good error
+   * message, because a count cannot lock a row that does not exist yet and two
+   * concurrent first attempts can both read zero. Without this translation the
+   * loser of that race would receive a 500 for doing nothing wrong.
+   *
+   * Any P2002 on this table is that index: the only other unique column is the
+   * primary key, which is a generated cuid.
+   */
+  private async createResult(
+    tx: Prisma.TransactionClient,
+    data: Prisma.ScreeningResultUncheckedCreateInput,
+  ) {
+    try {
+      return await tx.screeningResult.create({ data });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        throw this.refusal(ScreeningReason.REQUIREMENT_ALREADY_ANSWERED);
+      }
+      throw error;
+    }
   }
 
   private refusal(reasonCode: ScreeningReasonCode): ConflictException {

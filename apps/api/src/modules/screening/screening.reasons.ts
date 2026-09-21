@@ -43,6 +43,18 @@ export const ScreeningReason = {
    * anybody else without a clinical role.
    */
   NOT_A_CLINICAL_REVIEWER: 'SCREENING_NOT_A_CLINICAL_REVIEWER',
+  /**
+   * A live result already answers this requirement.
+   *
+   * Refused rather than accepted as a second opinion. The release gate reads
+   * the NEWEST live result for a requirement, so a second one silently
+   * overrides the first -- including overriding a blocking result with a
+   * clearing one, with no reason recorded, no revision row, no recall
+   * evaluation, and nothing visible to the reviewer who has to sign it off.
+   * Repeating a test is a correction, and the correction path is where it
+   * belongs.
+   */
+  REQUIREMENT_ALREADY_ANSWERED: 'SCREENING_REQUIREMENT_ALREADY_ANSWERED',
   /** The result has already been superseded by a correction. */
   RESULT_SUPERSEDED: 'SCREENING_RESULT_SUPERSEDED',
   /** The result has already been reviewed. */
@@ -75,6 +87,8 @@ export const SCREENING_MESSAGES: Record<ScreeningReasonCode, string> = {
     'The person who recorded a screening result cannot be the person who reviews it. Recording a result and reviewing it are two different acts.',
   [ScreeningReason.NOT_A_CLINICAL_REVIEWER]:
     'This account holds no clinical role at this organization, so it cannot review screening results. Administering the platform is not reviewing a result.',
+  [ScreeningReason.REQUIREMENT_ALREADY_ANSWERED]:
+    'A result is already recorded for this requirement. Correct it rather than recording a second one.',
   [ScreeningReason.RESULT_SUPERSEDED]:
     'This result has been superseded by a correction. Act on the correction instead.',
   [ScreeningReason.RESULT_ALREADY_REVIEWED]:

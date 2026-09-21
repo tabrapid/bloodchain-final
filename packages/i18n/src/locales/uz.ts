@@ -2237,6 +2237,10 @@ export const uz: Catalog = {
     rhFactor: 'Rezus omil',
     rhPositive: 'Rezus musbat',
     rhNegative: 'Rezus manfiy',
+    refusals: {
+      DONOR_MEDICAL_REVIEW_REQUIRED:
+        'Keyingi donatsiyadan oldin tibbiy koʻrik talab qilinadi. Qon markazi xodimlari yordam beradi.',
+    },
     eligibility: {
       eligible: 'Qon topshirishga yaroqli',
       notYetEligible: 'Hali yaroqli emas',

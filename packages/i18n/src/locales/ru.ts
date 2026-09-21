@@ -2296,6 +2296,10 @@ export const ru: Catalog = {
     rhFactor: 'Резус-фактор',
     rhPositive: 'Резус положительный',
     rhNegative: 'Резус отрицательный',
+    refusals: {
+      DONOR_MEDICAL_REVIEW_REQUIRED:
+        'Перед следующей донацией требуется медицинский пересмотр. Сотрудники центра крови помогут.',
+    },
     eligibility: {
       eligible: 'Допущен к донации',
       notYetEligible: 'Пока не допущен',

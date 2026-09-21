@@ -254,6 +254,59 @@ jobs:
         run: pnpm --filter @bloodchain/api prisma:seed
       - run: pnpm verify:e2e-isolation
 
+  verify-migrations:
+    # Rehearses the two migration paths that actually happen: a clean install
+    # from empty, and the newest migration applied to a database that already
+    # holds rows.
+    #
+    # The second is the one that breaks a deployment, and none of the ways it
+    # breaks -- an ADD COLUMN NOT NULL with no default, a unique index over a
+    # column that already has duplicates, an ALTER TYPE that uses its own new
+    # value -- fails on an empty database. Sprint 10 added the rehearsal and
+    # left it to be run by hand, which is the same shape as the bug this
+    # workflow's own branch list once had: a safety net nothing exercises.
+    #
+    # Seeded first, deliberately: the script refuses to report success against
+    # an empty source, because migrating nothing proves nothing.
+    name: Migration rehearsal (clean install + populated upgrade)
+    runs-on: ubuntu-latest
+    needs: [test-e2e]
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: donor
+          POSTGRES_PASSWORD: donor
+          POSTGRES_DB: bloodchain_ci_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U donor -d bloodchain_ci_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://donor:donor@localhost:5432/bloodchain_ci_test
+      JWT_ACCESS_SECRET: ci-only-access-secret-at-least-32-characters-long
+      JWT_REFRESH_SECRET: ci-only-refresh-secret-at-least-32-characters-long
+      NODE_ENV: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Generate Prisma client
+        run: pnpm --filter @bloodchain/api prisma:generate
+      - name: Apply migrations
+        run: pnpm --filter @bloodchain/api exec prisma migrate deploy
+      - name: Seed database
+        run: pnpm --filter @bloodchain/api prisma:seed
+      - run: pnpm verify:migrations
+
   build:
     name: Build all apps
     runs-on: ubuntu-latest

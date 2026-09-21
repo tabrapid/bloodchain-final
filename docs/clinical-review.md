@@ -3,7 +3,7 @@
 Every clinically meaningful string in the product, in all three languages, for a
 clinician to confirm before release.
 
-**108 terms — 108 pending, 0 approved.**
+**109 terms — 109 pending, 0 approved.**
 
 ## How to read this
 
@@ -136,6 +136,7 @@ recorded in this file.
 | `medical.reference.referenceRange` | Reference range | Me’yoriy oraliq | Референсный интервал | Donor app › app/health-trends | Explains a reference range to a donor reading their own result. | PENDING |  |
 | `medical.reference.referenceUnavailable` | Reference range unavailable | Me’yoriy oraliq mavjud emas | Референсный интервал недоступен | Donor app › app/health-trends | Explains a reference range to a donor reading their own result. | PENDING |  |
 | `medical.reference.trend` | Trend | Dinamika | Динамика | Not currently rendered | Explains a reference range to a donor reading their own result. | PENDING |  |
+| `medical.refusals.DONOR_MEDICAL_REVIEW_REQUIRED` | Medical review is required before your next donation. Staff at the blood centre can help. | Keyingi donatsiyadan oldin tibbiy koʻrik talab qilinadi. Qon markazi xodimlari yordam beradi. | Перед следующей донацией требуется медицинский пересмотр. Сотрудники центра крови помогут. | Not currently rendered | Shown to a donor or to staff in a clinical context. | PENDING |  |
 | `medical.resultFlags.noReference` | No reference range | Me’yoriy oraliq yo‘q | Нет референсного интервала | Not currently rendered | Tells a donor whether a result of theirs is normal. Wrong here is read as reassurance or as alarm about their health. | PENDING |  |
 | `medical.resultFlags.normal` | Normal | Me’yorda | В норме | Donor app › app/health | Tells a donor whether a result of theirs is normal. Wrong here is read as reassurance or as alarm about their health. | PENDING |  |
 | `medical.resultFlags.outsideRange` | Outside healthy range | Me’yordan tashqarida | Вне нормы | Donor app › app/health | Tells a donor whether a result of theirs is normal. Wrong here is read as reassurance or as alarm about their health. | PENDING |  |

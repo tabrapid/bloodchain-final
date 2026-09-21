@@ -2297,6 +2297,10 @@ export const en: Catalog = {
     rhFactor: 'Rh factor',
     rhPositive: 'Rh positive',
     rhNegative: 'Rh negative',
+    refusals: {
+      DONOR_MEDICAL_REVIEW_REQUIRED:
+        'Medical review is required before your next donation. Staff at the blood centre can help.',
+    },
     eligibility: {
       eligible: 'Eligible to donate',
       notYetEligible: 'Not yet eligible',

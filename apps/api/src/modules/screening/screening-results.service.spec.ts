@@ -1,6 +1,6 @@
 import { ConflictException, ForbiddenException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { SafetyDisposition, ScreeningOrderStatus } from '@prisma/client';
+import { Prisma, SafetyDisposition, ScreeningOrderStatus } from '@prisma/client';
 
 import { PrismaService } from '../../database/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
@@ -62,6 +62,9 @@ describe('ScreeningResultsService', () => {
   beforeEach(async () => {
     tx = {
       screeningResult: {
+        // No live result for this requirement yet, which is the ordinary case.
+        // The tests that care about a second one raise it.
+        count: jest.fn().mockResolvedValue(0),
         create: jest.fn().mockResolvedValue({
           id: 'result-new',
           resultCode: 'CODE-PASS',
@@ -230,6 +233,60 @@ describe('ScreeningResultsService', () => {
       await record();
 
       expect(donorReview.openInTransaction).not.toHaveBeenCalled();
+    });
+
+    it('refuses a second live result for a requirement that already has one', async () => {
+      // F1. The release gate reads the NEWEST live result, so a second one
+      // silently overrode the first -- a BLOCK followed by a CLEAR made the
+      // component releasable with no reason, no revision and no recall, and
+      // the blocking row appeared in neither list the console renders.
+      tx.screeningResult.count.mockResolvedValue(1);
+
+      await expect(record()).rejects.toMatchObject({
+        response: { code: ScreeningReason.REQUIREMENT_ALREADY_ANSWERED },
+      });
+
+      // And no second row was written.
+      expect(tx.screeningResult.create).not.toHaveBeenCalled();
+    });
+
+    it('asks the database for the live count inside the transaction', async () => {
+      // Inside, because outside it is a read that anything can invalidate
+      // before the insert lands.
+      await record();
+
+      expect(tx.screeningResult.count).toHaveBeenCalledWith({
+        where: {
+          screeningOrderId: ORDER,
+          requirementCode: 'REQ-A',
+          superseded: false,
+        },
+      });
+    });
+
+    it('refuses the loser of two concurrent first attempts with the same code, not a 500', async () => {
+      // The count cannot lock a row that does not exist yet, so both callers
+      // read zero and both insert. The partial unique index decides it; this
+      // asserts the violation is translated rather than escaping as a server
+      // error, because the loser did nothing wrong.
+      tx.screeningResult.count.mockResolvedValue(0);
+      tx.screeningResult.create.mockRejectedValue(
+        new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+          code: 'P2002',
+          clientVersion: 'test',
+          meta: { target: 'ScreeningResult_one_live_per_requirement' },
+        }),
+      );
+
+      await expect(record()).rejects.toMatchObject({
+        response: { code: ScreeningReason.REQUIREMENT_ALREADY_ANSWERED },
+      });
+    });
+
+    it('lets an unrelated database error through rather than mislabelling it', async () => {
+      tx.screeningResult.create.mockRejectedValue(new Error('connection reset'));
+
+      await expect(record()).rejects.toThrow('connection reset');
     });
 
     it('refuses a requirement the order\'s pinned policy version does not list', async () => {

@@ -1,0 +1,42 @@
+-- One live screening result per requirement, guaranteed by the database.
+--
+-- WHY THIS IS A CONSTRAINT AND NOT A CHECK IN THE SERVICE
+--
+-- The clinical release gate reads the NEWEST non-superseded result for a
+-- requirement. Until this index existed, recording a second result for the same
+-- requirement silently overrode the first: a BLOCK could be followed by a CLEAR
+-- and the component became releasable, with no reason recorded, no
+-- ScreeningResultRevision, no recall evaluation, and the blocking row visible in
+-- neither the current nor the superseded list the console renders.
+--
+-- The service refuses this too, with a readable message. That check cannot be
+-- the guarantee: a COUNT cannot lock a row that does not exist yet, so two
+-- concurrent first attempts both read zero and both insert. Only the index
+-- decides that race.
+--
+-- WHY PARTIAL
+--
+-- `superseded = false` is the whole point. A correction supersedes the original
+-- and inserts its replacement in the same transaction, in that order, so at the
+-- moment of the insert the old row is already outside the index's predicate.
+-- Repeat testing keeps working; it just has to go through the correction path,
+-- which records why and evaluates a recall.
+--
+-- ADDITIVE AND SAFE
+--
+-- No DROP, no data rewrite, no column change. The index is created over existing
+-- rows, so if a database already holds two live results for one requirement this
+-- migration FAILS rather than silently picking a winner. That is deliberate: a
+-- duplicate is exactly the state this constraint exists to make impossible, and
+-- resolving it is a clinical decision about which result stands, not one a
+-- migration may make. Find them with:
+--
+--   SELECT "screeningOrderId", "requirementCode", count(*)
+--     FROM "ScreeningResult" WHERE superseded = false
+--    GROUP BY 1, 2 HAVING count(*) > 1;
+--
+-- and supersede all but the correct one before re-running.
+
+CREATE UNIQUE INDEX "ScreeningResult_one_live_per_requirement"
+  ON "ScreeningResult" ("screeningOrderId", "requirementCode")
+  WHERE "superseded" = false;

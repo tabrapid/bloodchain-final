@@ -1,8 +1,8 @@
 # Clinical safety gap map
 
-> **Sprint 7 status.** This document was written before the work it proposed.
-> Two of its three proposals are now built, and this header says which so the
-> findings below are not read as current:
+> **Sprint 10 status.** This document was written before the work it proposed.
+> All three of its proposals are now built, and this header says so, because
+> the findings below describe a repository that no longer exists:
 >
 > - **§2.4 (release gate)** — built, in the shape proposed, with the names
 >   adapted: `ClinicalReleasePolicy`, `ClinicalReleaseRequirement` and
@@ -14,9 +14,26 @@
 >   DEF-01 and DEF-05 are closed; DEF-02, DEF-03 and DEF-04 are closed by the
 >   model and open only on the reason vocabulary, which is `review-packs/
 >   clinical-review.md` CR-04.
-> - **§2 (screening)** — NOT built, and still the pilot blocker. Nothing can
->   satisfy a release requirement, which is why the gate refuses. What to build
->   depends on `review-packs/laboratory-review.md` LR-02.
+> - **§2 (screening)** — built in Sprint 10 as `ScreeningOrder`,
+>   `ScreeningResult`, `ScreeningResultRevision` and `ScreeningDispositionRule`,
+>   with the order pinned to the policy version it was raised under and one live
+>   result per requirement enforced by a partial unique index. A requirement is
+>   satisfied only by a live result whose raw code the policy IN FORCE reads as
+>   CLEAR and which a second person has reviewed.
+>
+>   **The pilot blocker has moved, not closed.** It is no longer "nothing can
+>   satisfy a release requirement because no subsystem exists"; it is
+>   `docs/clinical-operational-decisions.md` **CD-080** — the screening
+>   requirements themselves, and the rules mapping a laboratory's raw result
+>   codes to a safety consequence. Both tables ship EMPTY, so with nothing
+>   recorded the gate still refuses every release. That is safe and unusable,
+>   and only a qualified reviewer can change it (`review-packs/
+>   laboratory-review.md` LR-02).
+>
+> Sprint 10 also closed two findings this document does not list, because it
+> predates them: `reserveUnit` and `issueUnit` did not refuse a component under
+> an active hold, so a recalled unit could still be reserved for a patient and
+> issued out of the building.
 >
 > Everything else below stands. `docs/production-readiness.md` carries the
 > current status of every item.
@@ -355,9 +372,12 @@ Where a real blood-bank team would still need paper, Excel or a phone call.
 
 Nine P0-PILOT findings, in three clusters:
 
-1. **The release gate does not exist** — BU-01, BU-02, BU-03, BU-04, LAB-01,
-   OPS-01, OPS-02, OPS-03. A unit can go from a donor's arm into a patient with
-   no test data anywhere in the record.
+1. ~~**The release gate does not exist**~~ — BU-01, BU-02, BU-03, BU-04,
+   LAB-01, OPS-01, OPS-02, OPS-03. **Closed by Sprints 7 and 10.** The gate
+   exists, refuses by default, and screening is what satisfies it. What remains
+   of this cluster is CD-080: the requirement list and the disposition rules
+   nobody has signed. A unit can no longer reach a patient with no test data —
+   it cannot be released at all until somebody records what must be tested.
 2. **Deferral is half-wired** — DEF-01, DEF-05, OPS-05. One flag, two
    subsystems, two different answers.
 3. **Identity and traceability are incomplete** — CD-012, OPS-06, BU-04. A unit

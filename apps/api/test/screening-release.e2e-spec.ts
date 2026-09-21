@@ -425,6 +425,128 @@ describe('Blood-bank screening, release, recall and hemovigilance (e2e)', () => 
   });
 
   // ===================================================================
+  // One live result per requirement (F1)
+  // ===================================================================
+  describe('a requirement can only be answered once', () => {
+    afterAll(async () => {
+      // These tests record blocking results, and a blocking result opens a
+      // medical review on the donor this suite shares. Left standing they would
+      // decide the outcome of the review tests that follow -- correctly, which
+      // is precisely the problem: an assertion about a rule must not depend on
+      // rows another test happened to leave behind.
+      await db.donorReviewTrigger.deleteMany({ where: { donorId: donor.id } });
+      await db.donorProfile.updateMany({
+        where: { userId: donor.id },
+        data: { donorStatus: DonorStatus.ACTIVE },
+      });
+    });
+
+    it('refuses a second result, so a blocking one cannot be overridden by a clearing one', async () => {
+      // F1, end to end. The release gate reads the NEWEST live result for a
+      // requirement, so before this guard a technician could record BLOCK and
+      // then CLEAR and the component became releasable -- with no reason
+      // recorded, no revision row, no recall evaluation, and the blocking row
+      // visible in neither list the console renders.
+      const { donation, unit } = await collectedComponent();
+      const order = await raiseOrder(donation.id);
+      const orderId = order.body.data.id;
+
+      const blocked = await recordResult(orderId, { resultCode: BLOCK });
+      expect(blocked.status).toBe(201);
+      expect(blocked.body.data.disposition).toBe(SafetyDisposition.BLOCK);
+
+      const second = await recordResult(orderId, { resultCode: PASS });
+
+      expect(second.status).toBe(409);
+      expect(second.body.error?.code ?? second.body.code).toBe(
+        'SCREENING_REQUIREMENT_ALREADY_ANSWERED',
+      );
+
+      // Exactly one live row, and it is still the blocking one.
+      const live = await db.screeningResult.findMany({
+        where: { screeningOrderId: orderId, superseded: false },
+      });
+      expect(live).toHaveLength(1);
+      expect(live[0]!.resultCode).toBe(BLOCK);
+
+      // And the component is still refused, for the right reason.
+      const release = await post(
+        `/organizations/${bloodCenterId}/inventory/units/${unit.id}/release`,
+        technicianToken,
+        { reason: 'e2e' },
+      );
+      expect(release.status).toBe(409);
+      expect(release.body.error?.code ?? release.body.code).toBe(
+        'CLINICAL_RELEASE_REQUIREMENTS_NOT_MET',
+      );
+      const after = await db.bloodUnit.findUniqueOrThrow({ where: { id: unit.id } });
+      expect(after.status).toBe('COLLECTED');
+      expect(after.clinicalReleasedAt).toBeNull();
+    });
+
+    it('lets exactly one of two simultaneous first attempts win', async () => {
+      // The service counts inside the transaction, but a count cannot lock a
+      // row that does not exist yet, so both callers read zero. The partial
+      // unique index decides it, and the loser gets the same 409 rather than a
+      // 500 for doing nothing wrong.
+      const { donation } = await collectedComponent();
+      const order = await raiseOrder(donation.id);
+      const orderId = order.body.data.id;
+
+      const responses = await Promise.all([
+        recordResult(orderId, { resultCode: PASS }),
+        recordResult(orderId, { resultCode: BLOCK }),
+      ]);
+
+      const statuses = responses.map((response) => response.status).sort();
+      expect(statuses).toEqual([201, 409]);
+
+      const loser = responses.find((response) => response.status === 409)!;
+      expect(loser.body.error?.code ?? loser.body.code).toBe(
+        'SCREENING_REQUIREMENT_ALREADY_ANSWERED',
+      );
+
+      const live = await db.screeningResult.findMany({
+        where: { screeningOrderId: orderId, superseded: false },
+      });
+      expect(live).toHaveLength(1);
+    });
+
+    it('still lets a correction replace the live result, which is where a repeat belongs', async () => {
+      // The guard must not break the legitimate path. A correction supersedes
+      // the original and inserts its replacement in the same transaction, in
+      // that order, so the old row is outside the index's predicate by the time
+      // the new one lands.
+      const { donation } = await collectedComponent();
+      const order = await raiseOrder(donation.id);
+      const first = await recordResult(order.body.data.id, { resultCode: PASS });
+
+      const corrected = await post(
+        `/organizations/${bloodCenterId}/screening/results/${first.body.data.id}/correct`,
+        reviewerToken,
+        { resultCode: BLOCK, reason: 'E2E: repeat testing goes through correction.' },
+      );
+
+      expect(corrected.status).toBe(201);
+
+      const rows = await db.screeningResult.findMany({
+        where: { screeningOrderId: order.body.data.id },
+        orderBy: { createdAt: 'asc' },
+      });
+      expect(rows).toHaveLength(2);
+      expect(rows.filter((row) => !row.superseded)).toHaveLength(1);
+      expect(rows.find((row) => !row.superseded)!.resultCode).toBe(BLOCK);
+      // The original survives as evidence of what was known.
+      expect(rows.find((row) => row.superseded)!.resultCode).toBe(PASS);
+      // And the revision joins the two.
+      const revision = await db.screeningResultRevision.findFirstOrThrow({
+        where: { originalResultId: first.body.data.id },
+      });
+      expect(revision.correctedResultCode).toBe(BLOCK);
+    });
+  });
+
+  // ===================================================================
   // The donor side of a blocking result
   // ===================================================================
   describe('a result about blood is not a diagnosis about a donor', () => {

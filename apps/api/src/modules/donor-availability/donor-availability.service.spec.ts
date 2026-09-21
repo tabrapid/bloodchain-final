@@ -101,8 +101,14 @@ describe('DonorAvailabilityService', () => {
       const error = await service.assertAvailableAt('donor-1', WHEN).catch((e) => e);
       const response = error.getResponse();
 
-      // Two keys, and no third one for somebody to put details in later.
-      expect(Object.keys(response)).toEqual(['code', 'message']);
+      // Three keys, and no fourth one for somebody to put details in later.
+      // `messageKey` is a catalogue reference, not clinical detail: it is what
+      // lets a client say this in the donor's own language.
+      expect(Object.keys(response).sort()).toEqual(['code', 'message', 'messageKey']);
+      expect(response.messageKey).toBe('medical.eligibility.medicalReviewRequired');
+      // Second person, because this refusal is read by the donor's own phone.
+      expect(response.message).toContain('your next donation');
+      expect(response.message).not.toContain('this donor');
       // The code is fixed and says only that a review is required.
       expect(response.code).toBe(DonorAvailabilityReason.MEDICAL_REVIEW_REQUIRED);
       // The prose names nothing clinical at all.

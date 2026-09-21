@@ -721,6 +721,17 @@ and refuses on, rather than one it used to answer by accident.
   donation, and that staff can help. No disposition, no source, no count, no
   organisation, no diagnostic wording of any kind.
 - **Encoded in:** `donor-review.service.ts`; `DonorStatus.MEDICAL_REVIEW_REQUIRED`.
+- **Forward constraint — recruitment messaging.** The Product Owner's decision
+  lists a fourth effect: a donor under medical review must not receive
+  recruitment notifications. That effect is satisfied today only because **no
+  donor recruitment messaging exists** — the sole bulk fan-out to donors is
+  emergency matching, which is gated twice (a `donorStatus: ACTIVE` filter in
+  the query and the canonical availability guard over the whole candidate set).
+  Nothing suppresses recruitment, because there is nothing to suppress. Whoever
+  builds campaign, re-engagement or "you are eligible again" messaging inherits
+  this obligation, and the way to meet it is
+  `DonorAvailabilityService.findUnavailableDonorIds` over the candidate set —
+  not a fourth independent status check.
 - **Class:** CLINICAL
 - **Status:** PENDING_CLINICAL
 - **Reviewer:** transfusion specialist
