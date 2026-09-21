@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import {
   BloodRequestStatus,
+  BloodUnitStatus,
   CourierStatus,
   DeliveryFailureReason,
   MovementType,
@@ -27,6 +28,7 @@ import { ShipmentStateMachine } from './services/shipment-state.service';
 import { ShipmentGateway } from '../../gateways/shipment.gateway';
 import { assertOrganizationActive } from '../../common/utils/organization-status.util';
 import { CustodyLedgerService } from '../custody/custody-ledger.service';
+import { ClinicalReleaseService } from '../clinical-release/clinical-release.service';
 import {
   BLOOD_REQUEST_REJECTED_EVENT,
   type BloodRequestRejectedPayload,
@@ -47,7 +49,64 @@ export class ShipmentsService {
     private readonly locationService: LocationService,
     private readonly shipmentGateway: ShipmentGateway,
     private readonly custody: CustodyLedgerService,
+    private readonly clinicalRelease: ClinicalReleaseService,
   ) {}
+
+  /**
+   * Bring a unit back from a shipment that did not deliver it.
+   *
+   * Both callers -- a failed shipment and a delivery whose contents did not
+   * match -- used to do this with an unconditional `tx.bloodUnit.update` to
+   * RESERVED and no movement row at all. That is two defects in the two events
+   * an investigation is most likely to be about: a held unit came back into
+   * usable stock with nothing consulted, and the custody ledger had a hole
+   * exactly where the unit went missing from.
+   *
+   * So: the claim is conditional and carries the hold predicate, and the
+   * movement is always recorded. If a hold stands, the unit does NOT return to
+   * RESERVED -- it keeps the status it has, which is the honest answer, because
+   * a held unit is not stock somebody may draw on. The movement is still
+   * written, with the reason saying so, because the bag physically moved
+   * whatever its availability.
+   */
+  private async returnUnitFromShipment(
+    tx: Prisma.TransactionClient,
+    params: {
+      bloodUnitId: string;
+      organizationId: string;
+      actorId: string;
+      type: MovementType;
+      reason: string;
+    },
+  ): Promise<void> {
+    const before = await tx.bloodUnit.findUnique({
+      where: { id: params.bloodUnitId },
+      select: { status: true },
+    });
+
+    const { count } = await tx.bloodUnit.updateMany({
+      where: {
+        id: params.bloodUnitId,
+        ...ClinicalReleaseService.NO_ACTIVE_HOLD,
+      },
+      data: { status: BloodUnitStatus.RESERVED },
+    });
+
+    const held = count === 0;
+
+    await this.custody.record(tx, {
+      bloodUnitId: params.bloodUnitId,
+      organizationId: params.organizationId,
+      type: params.type,
+      fromStatus: before?.status ?? null,
+      toStatus: held ? (before?.status ?? null) : BloodUnitStatus.RESERVED,
+      actorId: params.actorId,
+      reason: params.reason,
+      notes: held
+        ? 'An active hold stands on this unit, so it was not returned to reserved stock.'
+        : null,
+    });
+  }
 
   private generateShipmentReference(): string {
     const year = new Date().getFullYear();
@@ -357,8 +416,15 @@ export class ShipmentsService {
           for (const unit of availableUnits) {
             // Atomic conditional update: only claim the unit if it's still
             // AVAILABLE at lock time, closing the race with concurrent approvals.
+            // A held unit is not stock this shipment may draw on, whatever its
+            // status says -- which is the whole reason the hold is a record and
+            // not a status.
             const { count } = await tx.bloodUnit.updateMany({
-              where: { id: unit.id, status: 'AVAILABLE' },
+              where: {
+                id: unit.id,
+                status: 'AVAILABLE',
+                ...ClinicalReleaseService.NO_ACTIVE_HOLD,
+              },
               data: { status: 'RESERVED' },
             });
             if (count === 0) continue;
@@ -1611,9 +1677,12 @@ export class ShipmentsService {
           data: { status: 'FAILED' },
         });
 
-        await tx.bloodUnit.update({
-          where: { id: unit.bloodUnitId },
-          data: { status: 'RESERVED' },
+        await this.returnUnitFromShipment(tx, {
+          bloodUnitId: unit.bloodUnitId,
+          organizationId: shipment.sourceOrganizationId,
+          actorId: courier.userId,
+          type: MovementType.DELIVERY_FAILED_RETURN,
+          reason: 'Shipment failed; unit returned to the dispatching organization.',
         });
       }
 
@@ -2174,8 +2243,20 @@ export class ShipmentsService {
         // have been reserved for this shipment without it. Written as a
         // condition rather than trusted, because "it must already be true" is
         // how the original release path came to have no gate at all.
+        //
+        // The hold predicate belongs here too, and this is the scenario the
+        // cold chain exists for: the excursion happens in transit, so the
+        // moment that matters is the receiving organisation's own receipt. A
+        // check that verified only the release decision would let a unit held
+        // en route land in a second organisation's transfusable stock -- and
+        // once there, every inventory read is scoped to that organisation, so
+        // the hold raised by the sender is nobody's first question.
         const { count: received } = await tx.bloodUnit.updateMany({
-          where: { id: unit.bloodUnitId, clinicalReleasedAt: { not: null } },
+          where: {
+            id: unit.bloodUnitId,
+            clinicalReleasedAt: { not: null },
+            ...ClinicalReleaseService.NO_ACTIVE_HOLD,
+          },
           data: {
             organizationId: organizationId,
             status: 'AVAILABLE',
@@ -2183,6 +2264,12 @@ export class ShipmentsService {
         });
 
         if (received === 0) {
+          // Two reasons the claim can fail, and they deserve different answers.
+          // Ask the gate about the hold first: it is the more specific finding,
+          // and a held unit arriving at its destination is an event the
+          // receiving staff have to be told about in those terms.
+          await this.clinicalRelease.assertNotHeld(tx, unit.bloodUnitId);
+
           throw new ConflictException({
             code: 'CLINICAL_RELEASE_DECISION_MISSING',
             message:
@@ -2216,11 +2303,12 @@ export class ShipmentsService {
           },
         });
 
-        await tx.bloodUnit.update({
-          where: { id: unit.bloodUnitId },
-          data: {
-            status: 'RESERVED',
-          },
+        await this.returnUnitFromShipment(tx, {
+          bloodUnitId: unit.bloodUnitId,
+          organizationId: shipment.sourceOrganizationId,
+          actorId: user.id,
+          type: MovementType.DELIVERY_DISCREPANCY_RETURN,
+          reason: 'Delivery discrepancy; unit not accounted for at the destination.',
         });
       }
 

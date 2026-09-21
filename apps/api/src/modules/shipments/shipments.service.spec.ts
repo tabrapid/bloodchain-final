@@ -9,6 +9,7 @@ import { ShipmentStateMachine } from './services/shipment-state.service';
 import { ShipmentsService } from './shipments.service';
 import { ShipmentGateway } from '../../gateways/shipment.gateway';
 import { CustodyLedgerService } from '../custody/custody-ledger.service';
+import { ClinicalReleaseService } from '../clinical-release/clinical-release.service';
 
 function makeShipment(overrides: Record<string, any> = {}) {
   return {
@@ -44,9 +45,13 @@ describe('ShipmentsService status transitions', () => {
       shipmentEvent: { create: jest.fn().mockResolvedValue({}) },
       shipmentUnit: { update: jest.fn().mockResolvedValue({}) },
       bloodUnit: {
+        // The return-from-shipment helper reads the unit's current status so
+        // the ledger can record what it moved from.
+        findUnique: jest.fn().mockResolvedValue({ status: 'IN_TRANSIT' }),
         update: jest.fn().mockResolvedValue({}),
-        // `count: 1` = the unit carries a clinical release decision, which is
-        // the condition confirmDeliveryFull now receives units under.
+        // `count: 1` = the unit carries a clinical release decision and no
+        // active hold, which is the condition confirmDeliveryFull now receives
+        // units under.
         updateMany: jest.fn().mockResolvedValue({ count: 1 }),
       },
       bloodUnitReservation: { update: jest.fn().mockResolvedValue({}) },
@@ -84,6 +89,16 @@ describe('ShipmentsService status transitions', () => {
       providers: [
         ShipmentsService,
         CustodyLedgerService,
+        // Permissive here on purpose: these tests are about the atomicity of
+        // the shipment state machine, not about the hold gate. That a held unit
+        // is actually refused is proved against the real service end to end in
+        // test/clinical-safety.e2e-spec.ts -- a stub here could not prove it,
+        // and a stub that always permits must never be the only thing a
+        // refusal is tested against.
+        {
+          provide: ClinicalReleaseService,
+          useValue: { assertNotHeld: jest.fn().mockResolvedValue(undefined) },
+        },
         { provide: PrismaService, useValue: prisma },
         { provide: AuditLogsService, useValue: { log: jest.fn().mockResolvedValue({}) } },
         { provide: EventEmitter2, useValue: eventEmitter },
@@ -448,10 +463,23 @@ describe('ShipmentsService status transitions', () => {
         where: { id: 'su-2' },
         data: { status: 'DISCREPANCY' },
       });
-      expect(tx.bloodUnit.update).toHaveBeenCalledWith({
-        where: { id: 'bu-2' },
+      // The shortfall unit comes back to RESERVED through the guarded claim,
+      // not the unconditional update this used to assert. Two properties, both
+      // of which were missing before Sprint 9: a hold stops the unit
+      // re-entering stock, and the return is recorded in the custody ledger
+      // instead of vanishing from it at exactly the moment a unit went astray.
+      expect(tx.bloodUnit.updateMany).toHaveBeenCalledWith({
+        where: { id: 'bu-2', holds: { none: { status: 'ACTIVE' } } },
         data: { status: 'RESERVED' },
       });
+      expect(tx.inventoryMovement.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            bloodUnitId: 'bu-2',
+            type: 'DELIVERY_DISCREPANCY_RETURN',
+          }),
+        }),
+      );
       expect(tx.bloodUnitReservation.update).toHaveBeenCalledTimes(1);
       expect(tx.bloodRequest.update).toHaveBeenCalledWith(
         expect.objectContaining({ data: expect.objectContaining({ status: 'PARTIALLY_DELIVERED' }) }),
@@ -663,6 +691,16 @@ describe('ShipmentsService organization-status access checks', () => {
       providers: [
         ShipmentsService,
         CustodyLedgerService,
+        // Permissive here on purpose: these tests are about the atomicity of
+        // the shipment state machine, not about the hold gate. That a held unit
+        // is actually refused is proved against the real service end to end in
+        // test/clinical-safety.e2e-spec.ts -- a stub here could not prove it,
+        // and a stub that always permits must never be the only thing a
+        // refusal is tested against.
+        {
+          provide: ClinicalReleaseService,
+          useValue: { assertNotHeld: jest.fn().mockResolvedValue(undefined) },
+        },
         { provide: PrismaService, useValue: prisma },
         { provide: AuditLogsService, useValue: { log: jest.fn().mockResolvedValue({}) } },
         { provide: EventEmitter2, useValue: { emit: jest.fn() } },
@@ -794,6 +832,16 @@ describe('ShipmentsService.getShipmentTracking', () => {
       providers: [
         ShipmentsService,
         CustodyLedgerService,
+        // Permissive here on purpose: these tests are about the atomicity of
+        // the shipment state machine, not about the hold gate. That a held unit
+        // is actually refused is proved against the real service end to end in
+        // test/clinical-safety.e2e-spec.ts -- a stub here could not prove it,
+        // and a stub that always permits must never be the only thing a
+        // refusal is tested against.
+        {
+          provide: ClinicalReleaseService,
+          useValue: { assertNotHeld: jest.fn().mockResolvedValue(undefined) },
+        },
         { provide: PrismaService, useValue: prisma },
         { provide: AuditLogsService, useValue: { log: jest.fn().mockResolvedValue({}) } },
         { provide: EventEmitter2, useValue: { emit: jest.fn() } },
@@ -901,6 +949,16 @@ describe('ShipmentsService reference-number collision retry', () => {
       providers: [
         ShipmentsService,
         CustodyLedgerService,
+        // Permissive here on purpose: these tests are about the atomicity of
+        // the shipment state machine, not about the hold gate. That a held unit
+        // is actually refused is proved against the real service end to end in
+        // test/clinical-safety.e2e-spec.ts -- a stub here could not prove it,
+        // and a stub that always permits must never be the only thing a
+        // refusal is tested against.
+        {
+          provide: ClinicalReleaseService,
+          useValue: { assertNotHeld: jest.fn().mockResolvedValue(undefined) },
+        },
         { provide: PrismaService, useValue: prisma },
         { provide: AuditLogsService, useValue: { log: jest.fn().mockResolvedValue({}) } },
         { provide: EventEmitter2, useValue: { emit: jest.fn() } },
@@ -1017,6 +1075,16 @@ describe('ShipmentsService.approveRequest', () => {
       providers: [
         ShipmentsService,
         CustodyLedgerService,
+        // Permissive here on purpose: these tests are about the atomicity of
+        // the shipment state machine, not about the hold gate. That a held unit
+        // is actually refused is proved against the real service end to end in
+        // test/clinical-safety.e2e-spec.ts -- a stub here could not prove it,
+        // and a stub that always permits must never be the only thing a
+        // refusal is tested against.
+        {
+          provide: ClinicalReleaseService,
+          useValue: { assertNotHeld: jest.fn().mockResolvedValue(undefined) },
+        },
         { provide: PrismaService, useValue: prisma },
         { provide: AuditLogsService, useValue: { log: jest.fn().mockResolvedValue({}) } },
         { provide: EventEmitter2, useValue: { emit: jest.fn() } },
@@ -1057,7 +1125,9 @@ describe('ShipmentsService.approveRequest', () => {
     });
 
     expect(tx.bloodUnit.updateMany).toHaveBeenCalledWith({
-      where: { id: 'bu-1', status: 'AVAILABLE' },
+      // The hold predicate is part of the claim, not a check beside it: a hold
+      // raised between the read and the write still wins.
+      where: { id: 'bu-1', status: 'AVAILABLE', holds: { none: { status: 'ACTIVE' } } },
       data: { status: 'RESERVED' },
     });
   });

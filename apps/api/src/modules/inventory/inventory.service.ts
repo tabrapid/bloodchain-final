@@ -1061,9 +1061,37 @@ export class InventoryService {
     assertOrganizationActive(reservation.organization);
 
     const result = await this.db.$transaction(async (tx) => {
-      const updated = await tx.bloodUnit.update({
-        where: { id: reservation.bloodUnitId },
+      // Releasing a reservation puts the unit back into available stock, which
+      // makes this one of the paths a hold has to be able to stop.
+      //
+      // It used to be an unconditional `update`: whatever the unit's status, and
+      // whatever stood against it, it came back AVAILABLE. That is how a held
+      // unit re-entered usable inventory without anything consulting the gate.
+      // It is a conditional claim now, with the hold predicate inside the
+      // where-clause rather than checked beside it, so the check and the write
+      // are one statement and a hold raised concurrently still wins.
+      const { count } = await tx.bloodUnit.updateMany({
+        where: {
+          id: reservation.bloodUnitId,
+          status: BloodUnitStatus.RESERVED,
+          ...ClinicalReleaseService.NO_ACTIVE_HOLD,
+        },
         data: { status: BloodUnitStatus.AVAILABLE },
+      });
+
+      if (count === 0) {
+        // Either the unit moved on under us, or a hold stands. Ask the gate
+        // which, so the caller gets the specific refusal rather than a generic
+        // conflict -- and so a held unit is never silently left reserved.
+        await this.clinicalRelease.assertNotHeld(tx, reservation.bloodUnitId, reservation.bloodUnit.unitReference);
+
+        throw new ConflictException(
+          'This reservation could not be released because the unit is no longer reserved.',
+        );
+      }
+
+      const updated = await tx.bloodUnit.findUniqueOrThrow({
+        where: { id: reservation.bloodUnitId },
       });
 
       await tx.bloodUnitReservation.update({
@@ -1078,6 +1106,8 @@ export class InventoryService {
         bloodUnitId: reservation.bloodUnitId,
         organizationId,
         type: MovementType.RELEASED,
+        fromStatus: BloodUnitStatus.RESERVED,
+        toStatus: BloodUnitStatus.AVAILABLE,
         actorId: requestingUserId,
         reason: dto.reason,
       });

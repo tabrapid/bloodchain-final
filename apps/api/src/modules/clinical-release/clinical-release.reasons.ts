@@ -32,6 +32,17 @@ export const ClinicalReleaseReason = {
    * issued or shipped. What every pre-gate unit answers.
    */
   DECISION_MISSING: 'CLINICAL_RELEASE_DECISION_MISSING',
+  /**
+   * An active hold stands on this unit, so it may not enter or re-enter usable
+   * stock -- whatever its lifecycle status says.
+   *
+   * A hold is deliberately not a status (see `BloodUnitHold`), which is exactly
+   * why it needs its own refusal: a held unit that was AVAILABLE is still
+   * AVAILABLE, and every path that reads only `status` or only
+   * `clinicalReleasedAt` would happily move it onward. This is the code that
+   * stops them.
+   */
+  ON_HOLD: 'BLOOD_UNIT_ON_HOLD',
 } as const;
 
 export type ClinicalReleaseReasonCode =
@@ -51,4 +62,6 @@ export const CLINICAL_RELEASE_MESSAGES: Record<ClinicalReleaseReasonCode, string
     'This unit has no known expiry date, and an unknown shelf life cannot be treated as safe for clinical release.',
   [ClinicalReleaseReason.DECISION_MISSING]:
     'This unit carries no clinical release decision, so it is not transfusable stock and cannot be reserved, issued or shipped.',
+  [ClinicalReleaseReason.ON_HOLD]:
+    'An active hold stands on this unit. It cannot be reserved, issued, shipped or returned to available stock until the hold is resolved by the quality workflow, and resolving a hold does not by itself release the unit clinically.',
 };

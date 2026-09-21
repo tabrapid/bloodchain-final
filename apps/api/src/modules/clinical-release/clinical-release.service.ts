@@ -2,6 +2,7 @@ import { ConflictException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   BloodUnit,
+  BloodUnitHoldStatus,
   ClinicalReleasePolicy,
   ClinicalReleasePolicyKind,
   ClinicalReleasePolicyStatus,
@@ -336,6 +337,57 @@ export class ClinicalReleaseService {
   /** Whether a unit carries a release decision, without throwing. */
   isReleased(unit: Pick<BloodUnit, 'clinicalReleasedAt'>): boolean {
     return unit.clinicalReleasedAt !== null;
+  }
+
+  /**
+   * The where-clause fragment meaning "no active hold stands on this unit".
+   *
+   * Exported as data rather than as a second method because the paths that need
+   * it are atomic claims: a `updateMany` guarded on status, whose whole point is
+   * that the check and the write are one statement. Checking the hold
+   * separately would reintroduce exactly the read-then-write race those claims
+   * exist to close, so the predicate goes INTO the claim.
+   *
+   * Spread it into the `where` of any claim that puts a unit into or back into
+   * usable stock. A claim that returns count 0 then means "status moved, or a
+   * hold appeared" -- both of which are correct reasons to refuse.
+   */
+  static readonly NO_ACTIVE_HOLD = {
+    holds: { none: { status: BloodUnitHoldStatus.ACTIVE } },
+  } as const;
+
+  /**
+   * Refuse anything that would put a unit into usable stock while a hold stands.
+   *
+   * The companion to `assertReleased`, and needed for the same reason that one
+   * is: `clinicalReleasedAt` was the only unit-level fact every downstream path
+   * consulted, and a hold deliberately does not change it, or the status, or
+   * anything else those paths read. Without this, a held unit that had already
+   * been released would sail through every one of them.
+   *
+   * Takes no actor, exactly like `evaluate`. There is no role that may move a
+   * held unit, so there is no parameter here for one to be passed in.
+   */
+  async assertNotHeld(
+    db: Pick<Prisma.TransactionClient, 'bloodUnitHold'>,
+    unitId: string,
+    unitReference?: string,
+  ): Promise<void> {
+    const hold = await db.bloodUnitHold.findFirst({
+      where: { bloodUnitId: unitId, status: BloodUnitHoldStatus.ACTIVE },
+      orderBy: { raisedAt: 'asc' },
+    });
+
+    if (!hold) return;
+
+    throw new ConflictException({
+      code: ClinicalReleaseReason.ON_HOLD,
+      message: CLINICAL_RELEASE_MESSAGES[ClinicalReleaseReason.ON_HOLD],
+      // The KIND of hold is operational information the holder of the unit
+      // needs. The reason TEXT is not returned: it can carry clinical detail,
+      // and this refusal is read by every console.
+      details: { unitReference, holdKind: hold.kind, raisedAt: hold.raisedAt },
+    });
   }
 
   /**
