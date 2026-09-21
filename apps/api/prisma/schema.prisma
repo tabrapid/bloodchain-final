@@ -66,6 +66,22 @@ enum DonorStatus {
   ACTIVE
   INACTIVE
   DEFERRED
+  /// A safety hold pending clinician review. NOT a deferral and NOT a diagnosis.
+  ///
+  /// Raised when a blood-bank screening result maps, under the approved policy,
+  /// to BLOCK or REVIEW_REQUIRED. While it stands the donor cannot book, cannot
+  /// check in, and is excluded from emergency matching -- but no `DonorDeferral`
+  /// row exists, because nobody clinical has decided anything yet.
+  ///
+  /// That distinction is the whole point. A reactive screening result is not a
+  /// diagnosis; it is a reason for a clinician to look. Writing it into the
+  /// deferral history automatically would record a clinical judgement that no
+  /// clinician made, and this state exists precisely so the system can be safe
+  /// without pretending to be clinical.
+  ///
+  /// Only an authorized clinician resolves it, and only they may turn it into a
+  /// deferral. It never becomes DEFERRED on its own.
+  MEDICAL_REVIEW_REQUIRED
 }
 
 /// How long a deferral is meant to last.
@@ -431,6 +447,89 @@ enum RetentionMode {
   LEGAL_HOLD
 }
 
+/// Where a sample is in its own life, which is not where the donation is.
+enum DonationSampleStatus {
+  COLLECTED
+  IN_TRANSIT
+  RECEIVED
+  IN_TESTING
+  CONSUMED
+  /// Unusable. A rejected sample cannot satisfy a screening requirement, so the
+  /// order it belonged to needs another one.
+  REJECTED
+}
+
+enum ScreeningOrderStatus {
+  OPEN
+  IN_PROGRESS
+  AWAITING_REVIEW
+  COMPLETED
+  CANCELLED
+}
+
+/// How a screening result reached the system.
+enum ScreeningResultSource {
+  MANUAL
+  ANALYZER
+  EXTERNAL_LAB
+}
+
+/// What a result means for the SAFETY of the blood -- never what it means
+/// clinically for the donor.
+///
+/// The application understands these three consequences without knowing why a
+/// particular assay produced one. The mapping from a raw result code to a
+/// disposition lives in `ScreeningDispositionRule`, on the approved policy, and
+/// ships empty: which markers exist and what a reactive result implies is a
+/// clinical question nobody has answered for this project (CR-01 .. CR-03).
+enum SafetyDisposition {
+  CLEAR
+  BLOCK
+  REVIEW_REQUIRED
+}
+
+enum DonorReviewTriggerStatus {
+  OPEN
+  RESOLVED
+}
+
+/// What a clinician decided when they resolved a review trigger.
+enum DonorReviewResolution {
+  RETURNED_TO_ACTIVE
+  TEMPORARY_DEFERRAL
+  INDEFINITE_DEFERRAL
+  /// Looked at, not concluded. The donor stays under review.
+  REMAINS_UNDER_REVIEW
+}
+
+enum RecallCaseStatus {
+  OPEN
+  ACKNOWLEDGED
+  CLOSED
+}
+
+/// What a recall means for one affected component, which is not the
+/// component's lifecycle status.
+///
+/// Recall is an additional axis, deliberately. A component that was TRANSFUSED
+/// stays TRANSFUSED -- rewriting its status to RECALLED would destroy the very
+/// chain a recall exists to follow.
+enum RecallComponentState {
+  IDENTIFIED
+  QUARANTINED
+  RETURNED
+  DESTROYED
+  /// Already transfused when the recall opened. Traceable, not retrievable.
+  TRANSFUSED_BEFORE_RECALL
+  UNACCOUNTED
+}
+
+enum HemovigilanceStatus {
+  REPORTED
+  UNDER_INVESTIGATION
+  CLOSED
+}
+
 enum ReservationStatus {
   ACTIVE
   RELEASED
@@ -589,65 +688,79 @@ model User {
   failedLoginAttempts Int        @default(0)
   lockoutUntil        DateTime?
 
-  memberships             OrganizationMembership[]
-  donorProfile            DonorProfile?
-  notificationPreference  NotificationPreference?
-  refreshTokens           RefreshToken[]
-  auditLogs               AuditLog[]
-  verifiedOrganizations   Organization[]           @relation("OrganizationVerifier")
-  emailVerification       EmailVerificationToken?
-  passwordReset           PasswordResetToken?
-  sessions                Session[]
-  appointments            Appointment[]
-  appointmentHistory      AppointmentHistory[]
-  donations               Donation[]
-  donationEvents          DonationEvent[]
-  donationAssessments     DonationAssessment[]
-  verifiedBloodUnits      BloodUnit[]              @relation("BloodUnitVerifier")
-  inventoryMovements      InventoryMovement[]
-  reservations            BloodUnitReservation[]
-  courier                 Courier?
-  bloodRequestEvents      BloodRequestEvent[]
-  rejectedBloodRequests   BloodRequest[]           @relation("RejectedBloodRequests")
-  shipmentEvents          ShipmentEvent[]
-  emergencyRequests       EmergencyRequest[]       @relation("EmergencyCreator")
-  emergencyMatches        EmergencyMatch[]         @relation("EmergencyDonor")
-  emergencyResponses      EmergencyResponse[]      @relation("EmergencyResponseDonor")
-  laboratoryResults       LaboratoryResult[]       @relation("LaboratoryResultDonor")
-  gamificationProfile     GamificationProfile?
-  xpTransactions          XpTransaction[]
-  achievementUnlocks      AchievementUnlock[]
-  reputationTransactions  ReputationTransaction[]
-  communityPosts          CommunityPost[]          @relation("CommunityPostAuthor")
-  campaignParticipations  CampaignParticipant[]
-  challengeParticipations ChallengeParticipant[]
-  educationProgress       EducationProgress[]
-  contentReports          ContentReport[]          @relation("ContentReportReporter")
-  reviewedReports         ContentReport[]          @relation("ContentReportReviewer")
-  createdChallenges       Challenge[]              @relation("ChallengeCreator")
-  aiInsights              AIInsight[]
-  aiConversations         AIConversation[]
-  aiFeedback              AIFeedback[]
-  userBadges              UserBadge[]
-  deferrals               DonorDeferral[]          @relation("DonorDeferralDonor")
-  deferralsCreated        DonorDeferral[]          @relation("DonorDeferralCreator")
-  deferralsLifted         DonorDeferral[]          @relation("DonorDeferralLifter")
-  approvedReleasePolicies ClinicalReleasePolicy[]  @relation("ClinicalReleasePolicyApprover")
-  createdReleasePolicies  ClinicalReleasePolicy[]  @relation("ClinicalReleasePolicyCreator")
-  releaseDecisions        ReleaseDecision[]        @relation("ReleaseDecisionDecider")
-  unitDispositions        BloodUnitDisposition[]   @relation("BloodUnitDispositionRecorder")
-  thresholdsCreated       InventoryThreshold[]     @relation("InventoryThresholdCreator")
-  thresholdsUpdated       InventoryThreshold[]     @relation("InventoryThresholdUpdater")
-  samplesCollected        DonationSample[]         @relation("DonationSampleCollector")
-  holdsRaised             BloodUnitHold[]          @relation("BloodUnitHoldRaiser")
-  holdsResolved           BloodUnitHold[]          @relation("BloodUnitHoldResolver")
-  coldChainEvents         ColdChainEvent[]         @relation("ColdChainEventActor")
-  approvedStoragePolicies StoragePolicy[]          @relation("StoragePolicyApprover")
-  approvedConsentDocs     ConsentDocument[]        @relation("ConsentDocumentApprover")
-  consentAcceptances      ConsentAcceptance[]      @relation("ConsentAcceptanceUser")
-  consentRecorded         ConsentAcceptance[]      @relation("ConsentAcceptanceRecorder")
-  movementsDispatched     InventoryMovement[]      @relation("InventoryMovementDispatcher")
-  movementsReceived       InventoryMovement[]      @relation("InventoryMovementReceiver")
+  memberships               OrganizationMembership[]
+  donorProfile              DonorProfile?
+  notificationPreference    NotificationPreference?
+  refreshTokens             RefreshToken[]
+  auditLogs                 AuditLog[]
+  verifiedOrganizations     Organization[]            @relation("OrganizationVerifier")
+  emailVerification         EmailVerificationToken?
+  passwordReset             PasswordResetToken?
+  sessions                  Session[]
+  appointments              Appointment[]
+  appointmentHistory        AppointmentHistory[]
+  donations                 Donation[]
+  donationEvents            DonationEvent[]
+  donationAssessments       DonationAssessment[]
+  verifiedBloodUnits        BloodUnit[]               @relation("BloodUnitVerifier")
+  inventoryMovements        InventoryMovement[]
+  reservations              BloodUnitReservation[]
+  courier                   Courier?
+  bloodRequestEvents        BloodRequestEvent[]
+  rejectedBloodRequests     BloodRequest[]            @relation("RejectedBloodRequests")
+  shipmentEvents            ShipmentEvent[]
+  emergencyRequests         EmergencyRequest[]        @relation("EmergencyCreator")
+  emergencyMatches          EmergencyMatch[]          @relation("EmergencyDonor")
+  emergencyResponses        EmergencyResponse[]       @relation("EmergencyResponseDonor")
+  laboratoryResults         LaboratoryResult[]        @relation("LaboratoryResultDonor")
+  gamificationProfile       GamificationProfile?
+  xpTransactions            XpTransaction[]
+  achievementUnlocks        AchievementUnlock[]
+  reputationTransactions    ReputationTransaction[]
+  communityPosts            CommunityPost[]           @relation("CommunityPostAuthor")
+  campaignParticipations    CampaignParticipant[]
+  challengeParticipations   ChallengeParticipant[]
+  educationProgress         EducationProgress[]
+  contentReports            ContentReport[]           @relation("ContentReportReporter")
+  reviewedReports           ContentReport[]           @relation("ContentReportReviewer")
+  createdChallenges         Challenge[]               @relation("ChallengeCreator")
+  aiInsights                AIInsight[]
+  aiConversations           AIConversation[]
+  aiFeedback                AIFeedback[]
+  userBadges                UserBadge[]
+  deferrals                 DonorDeferral[]           @relation("DonorDeferralDonor")
+  deferralsCreated          DonorDeferral[]           @relation("DonorDeferralCreator")
+  deferralsLifted           DonorDeferral[]           @relation("DonorDeferralLifter")
+  approvedReleasePolicies   ClinicalReleasePolicy[]   @relation("ClinicalReleasePolicyApprover")
+  createdReleasePolicies    ClinicalReleasePolicy[]   @relation("ClinicalReleasePolicyCreator")
+  releaseDecisions          ReleaseDecision[]         @relation("ReleaseDecisionDecider")
+  unitDispositions          BloodUnitDisposition[]    @relation("BloodUnitDispositionRecorder")
+  thresholdsCreated         InventoryThreshold[]      @relation("InventoryThresholdCreator")
+  thresholdsUpdated         InventoryThreshold[]      @relation("InventoryThresholdUpdater")
+  samplesCollected          DonationSample[]          @relation("DonationSampleCollector")
+  holdsRaised               BloodUnitHold[]           @relation("BloodUnitHoldRaiser")
+  holdsResolved             BloodUnitHold[]           @relation("BloodUnitHoldResolver")
+  coldChainEvents           ColdChainEvent[]          @relation("ColdChainEventActor")
+  approvedStoragePolicies   StoragePolicy[]           @relation("StoragePolicyApprover")
+  approvedConsentDocs       ConsentDocument[]         @relation("ConsentDocumentApprover")
+  consentAcceptances        ConsentAcceptance[]       @relation("ConsentAcceptanceUser")
+  consentRecorded           ConsentAcceptance[]       @relation("ConsentAcceptanceRecorder")
+  movementsDispatched       InventoryMovement[]       @relation("InventoryMovementDispatcher")
+  movementsReceived         InventoryMovement[]       @relation("InventoryMovementReceiver")
+  samplesRejected           DonationSample[]          @relation("DonationSampleRejector")
+  screeningOrdersRequested  ScreeningOrder[]          @relation("ScreeningOrderRequester")
+  screeningOrdersReviewed   ScreeningOrder[]          @relation("ScreeningOrderReviewer")
+  screeningResultsPerformed ScreeningResult[]         @relation("ScreeningResultPerformer")
+  screeningResultsReviewed  ScreeningResult[]         @relation("ScreeningResultReviewer")
+  screeningCorrections      ScreeningResultRevision[] @relation("ScreeningResultCorrector")
+  reviewTriggers            DonorReviewTrigger[]      @relation("DonorReviewTriggerDonor")
+  reviewTriggersRaised      DonorReviewTrigger[]      @relation("DonorReviewTriggerRaiser")
+  reviewTriggersResolved    DonorReviewTrigger[]      @relation("DonorReviewTriggerResolver")
+  recallsOpened             RecallCase[]              @relation("RecallCaseOpener")
+  recallsClosed             RecallCase[]              @relation("RecallCaseCloser")
+  recallAcknowledgements    RecallAcknowledgement[]   @relation("RecallAcknowledger")
+  hemovigilanceReported     HemovigilanceEvent[]      @relation("HemovigilanceReporter")
+  hemovigilanceClosed       HemovigilanceEvent[]      @relation("HemovigilanceCloser")
 
   @@index([email])
   @@index([status])
@@ -866,25 +979,25 @@ model Organization {
   locations              InventoryLocation[]
   movements              InventoryMovement[]
   reservations           BloodUnitReservation[]
-  reservedFor            BloodUnitReservation[]   @relation("ReservationForOrganization")
+  reservedFor            BloodUnitReservation[]    @relation("ReservationForOrganization")
   alerts                 InventoryAlert[]
-  bloodRequestsRequested BloodRequest[]           @relation("RequestingOrganization")
-  bloodRequestsFulfilled BloodRequest[]           @relation("FulfillingOrganization")
-  shipmentsSource        Shipment[]               @relation("ShipmentSource")
-  shipmentsDestination   Shipment[]               @relation("ShipmentDestination")
+  bloodRequestsRequested BloodRequest[]            @relation("RequestingOrganization")
+  bloodRequestsFulfilled BloodRequest[]            @relation("FulfillingOrganization")
+  shipmentsSource        Shipment[]                @relation("ShipmentSource")
+  shipmentsDestination   Shipment[]                @relation("ShipmentDestination")
   couriers               Courier[]
   bloodRequestEvents     BloodRequestEvent[]
   shipmentEvents         ShipmentEvent[]
   emergencyRequests      EmergencyRequest[]
   laboratoryProfile      LaboratoryProfile?
-  laboratoryResults      LaboratoryResult[]       @relation("LaboratoryResultOrganization")
+  laboratoryResults      LaboratoryResult[]        @relation("LaboratoryResultOrganization")
   testReferenceRanges    TestReferenceRange[]
   communityPosts         CommunityPost[]
   campaigns              Campaign[]
   challenges             Challenge[]
-  region                 Region?                  @relation(fields: [regionId], references: [id], onDelete: SetNull)
-  district               District?                @relation(fields: [districtId], references: [id], onDelete: SetNull)
-  verifiedBy             User?                    @relation("OrganizationVerifier", fields: [verifiedById], references: [id], onDelete: SetNull)
+  region                 Region?                   @relation(fields: [regionId], references: [id], onDelete: SetNull)
+  district               District?                 @relation(fields: [districtId], references: [id], onDelete: SetNull)
+  verifiedBy             User?                     @relation("OrganizationVerifier", fields: [verifiedById], references: [id], onDelete: SetNull)
   services               OrganizationService[]
   hours                  OrganizationHours[]
   donorDeferrals         DonorDeferral[]
@@ -900,6 +1013,12 @@ model Organization {
   consentAcceptances     ConsentAcceptance[]
   consentRequirements    ConsentRequirement[]
   retentionPolicies      RetentionPolicy[]
+  screeningOrders        ScreeningOrder[]
+  donorReviewTriggers    DonorReviewTrigger[]
+  recallCases            RecallCase[]
+  recallAffectedHeld     RecallAffectedComponent[] @relation("RecallAffectedHolder")
+  recallAcknowledgements RecallAcknowledgement[]
+  hemovigilanceEvents    HemovigilanceEvent[]
 
   @@index([type])
   @@index([status])
@@ -1284,6 +1403,8 @@ model Donation {
   /// every unit they needed.
   bloodUnits        BloodUnit[]
   samples           DonationSample[]
+  screeningOrders   ScreeningOrder[]
+  recallCases       RecallCase[]
   deferrals         DonorDeferral[]
 
   @@index([donorId])
@@ -1387,20 +1508,22 @@ model BloodUnit {
   createdAt            DateTime             @default(now())
   updatedAt            DateTime             @updatedAt
 
-  donation         Donation               @relation(fields: [donationId], references: [id], onDelete: Cascade)
-  organization     Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  location         InventoryLocation?     @relation(fields: [locationId], references: [id], onDelete: SetNull)
-  verifier         User?                  @relation("BloodUnitVerifier", fields: [verifiedBy], references: [id], onDelete: SetNull)
-  parentUnit       BloodUnit?             @relation("BloodUnitComponents", fields: [parentUnitId], references: [id], onDelete: Restrict)
-  components       BloodUnit[]            @relation("BloodUnitComponents")
-  storagePolicy    StoragePolicy?         @relation(fields: [storagePolicyId], references: [id], onDelete: Restrict)
-  movements        InventoryMovement[]
-  reservations     BloodUnitReservation[]
-  shipmentUnits    ShipmentUnit[]
-  releaseDecisions ReleaseDecision[]
-  holds            BloodUnitHold[]
-  coldChainEvents  ColdChainEvent[]
-  disposition      BloodUnitDisposition?
+  donation            Donation                  @relation(fields: [donationId], references: [id], onDelete: Cascade)
+  organization        Organization              @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  location            InventoryLocation?        @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  verifier            User?                     @relation("BloodUnitVerifier", fields: [verifiedBy], references: [id], onDelete: SetNull)
+  parentUnit          BloodUnit?                @relation("BloodUnitComponents", fields: [parentUnitId], references: [id], onDelete: Restrict)
+  components          BloodUnit[]               @relation("BloodUnitComponents")
+  storagePolicy       StoragePolicy?            @relation(fields: [storagePolicyId], references: [id], onDelete: Restrict)
+  movements           InventoryMovement[]
+  reservations        BloodUnitReservation[]
+  shipmentUnits       ShipmentUnit[]
+  releaseDecisions    ReleaseDecision[]
+  holds               BloodUnitHold[]
+  coldChainEvents     ColdChainEvent[]
+  recallAffected      RecallAffectedComponent[]
+  hemovigilanceEvents HemovigilanceEvent[]
+  disposition         BloodUnitDisposition?
 
   @@index([parentUnitId])
   @@index([storagePolicyId])
@@ -1426,6 +1549,7 @@ model InventoryLocation {
 
   organization  Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   bloodUnits    BloodUnit[]
+  samples       DonationSample[]
   movementsFrom InventoryMovement[] @relation("FromLocation")
   movementsTo   InventoryMovement[] @relation("ToLocation")
 
@@ -1583,11 +1707,14 @@ model DonorDeferral {
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
 
-  donor          User          @relation("DonorDeferralDonor", fields: [donorId], references: [id], onDelete: Cascade)
-  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
-  creator        User?         @relation("DonorDeferralCreator", fields: [createdBy], references: [id], onDelete: SetNull)
-  lifter         User?         @relation("DonorDeferralLifter", fields: [liftedBy], references: [id], onDelete: SetNull)
-  sourceDonation Donation?     @relation(fields: [sourceDonationId], references: [id], onDelete: SetNull)
+  donor          User                 @relation("DonorDeferralDonor", fields: [donorId], references: [id], onDelete: Cascade)
+  organization   Organization?        @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  creator        User?                @relation("DonorDeferralCreator", fields: [createdBy], references: [id], onDelete: SetNull)
+  lifter         User?                @relation("DonorDeferralLifter", fields: [liftedBy], references: [id], onDelete: SetNull)
+  sourceDonation Donation?            @relation(fields: [sourceDonationId], references: [id], onDelete: SetNull)
+  /// Review triggers a clinician resolved by creating this deferral. The
+  /// deferral is the clinician's decision; the trigger is what prompted it.
+  reviewTriggers DonorReviewTrigger[]
 
   @@index([donorId])
   /// The shape `isDeferredAt` queries: this donor, not yet lifted.
@@ -1638,15 +1765,26 @@ model ClinicalReleasePolicy {
   /// stamped `ExpiryProvenance.DEVELOPMENT_POLICY` so it can never be mistaken
   /// for a component shelf life somebody signed.
   developmentShelfLifeDays Int?
+  /// Whether results against this policy must be reviewed by a second person
+  /// before they can satisfy a requirement.
+  ///
+  /// Defaults to true, and that default is the safe direction: a deployment
+  /// that has not thought about review gets review. Turning it off is a
+  /// deliberate act recorded on an approved policy version.
+  requiresResultReview     Boolean                     @default(true)
+  /// The standard operating procedure this policy implements, by reference.
+  sopReference             String?
   createdBy                String?
   createdAt                DateTime                    @default(now())
   updatedAt                DateTime                    @updatedAt
 
-  organization Organization?                @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  approver     User?                        @relation("ClinicalReleasePolicyApprover", fields: [approvedBy], references: [id], onDelete: SetNull)
-  creator      User?                        @relation("ClinicalReleasePolicyCreator", fields: [createdBy], references: [id], onDelete: SetNull)
-  requirements ClinicalReleaseRequirement[]
-  decisions    ReleaseDecision[]
+  organization     Organization?                @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  approver         User?                        @relation("ClinicalReleasePolicyApprover", fields: [approvedBy], references: [id], onDelete: SetNull)
+  creator          User?                        @relation("ClinicalReleasePolicyCreator", fields: [createdBy], references: [id], onDelete: SetNull)
+  requirements     ClinicalReleaseRequirement[]
+  decisions        ReleaseDecision[]
+  screeningOrders  ScreeningOrder[]
+  dispositionRules ScreeningDispositionRule[]
 
   @@unique([scopeKey, version])
   @@index([organizationId])
@@ -1661,19 +1799,64 @@ model ClinicalReleasePolicy {
 /// forbids. What the shape guarantees is that whatever a clinician eventually
 /// writes down is evaluated per unit and recorded against the decision.
 model ClinicalReleaseRequirement {
-  id            String         @id @default(cuid())
-  policyId      String
+  id                String         @id @default(cuid())
+  policyId          String
   /// Stable identifier used in refusal payloads and decision records.
-  code          String         @db.VarChar(80)
-  description   String
+  code              String         @db.VarChar(80)
+  description       String
   /// Null means the requirement applies to every component type.
-  componentType ComponentType?
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  componentType     ComponentType?
+  /// The screening test this requirement is satisfied by, as a code in the
+  /// policy's own vocabulary.
+  ///
+  /// DELIBERATELY NOT a foreign key to `TestType`. `TestType` is the
+  /// donor-facing diagnostics catalogue -- it is what a donor books a blood
+  /// test appointment against, its categories are a wellness taxonomy
+  /// (HEMATOLOGY, IRON, LIPID) and its results are published to the donor.
+  /// Blood-bank screening asks a different question about a different subject:
+  /// not "is this person's haemoglobin in range" but "is this unit safe to
+  /// transfuse". Binding the two together at the schema level would conflate
+  /// them permanently, and the first symptom would be a screening result
+  /// appearing in a donor's own results list.
+  ///
+  /// The vocabulary SHIPS EMPTY. Which markers are required is CR-01..CR-03.
+  screeningTestCode String?        @db.VarChar(80)
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  policy  ClinicalReleasePolicy @relation(fields: [policyId], references: [id], onDelete: Cascade)
+  results ScreeningResult[]
+
+  @@unique([policyId, code])
+  @@index([policyId])
+}
+
+/// How a raw screening result maps to a blood-safety consequence.
+///
+/// THE ONLY PLACE THAT MAPPING EXISTS, and it is data on an approved policy
+/// rather than logic in the application. The service reads a rule; it does not
+/// know that "reactive" is worse than "non-reactive", or what either means. A
+/// rule is written by whoever approves the policy, which is the only person
+/// entitled to say so.
+///
+/// SHIPS EMPTY. With no rule for a result, the disposition is REVIEW_REQUIRED
+/// -- an unmapped result is an unanswered question, and an unanswered question
+/// does not release blood.
+model ScreeningDispositionRule {
+  id              String            @id @default(cuid())
+  policyId        String
+  /// Matches `ClinicalReleaseRequirement.code`.
+  requirementCode String            @db.VarChar(80)
+  /// The raw result code as the laboratory records it.
+  resultCode      String            @db.VarChar(80)
+  disposition     SafetyDisposition
+  note            String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
 
   policy ClinicalReleasePolicy @relation(fields: [policyId], references: [id], onDelete: Cascade)
 
-  @@unique([policyId, code])
+  @@unique([policyId, requirementCode, resultCode])
   @@index([policyId])
 }
 
@@ -1771,26 +1954,234 @@ model BloodUnitDisposition {
 /// tubes are drawn, and what is done with each, is a laboratory reviewer's
 /// answer (LR-05) and not something this schema will invent.
 model DonationSample {
-  id              String   @id @default(cuid())
+  id              String               @id @default(cuid())
   /// Human-readable and barcode-ready, derived from the parent donation's
   /// identifier so the relationship survives being printed on a label.
-  sampleReference String   @unique
+  sampleReference String               @unique
   donationId      String
   organizationId  String
-  sampleType      String?  @db.VarChar(80)
-  collectedAt     DateTime @default(now())
+  /// A code in a configurable vocabulary. SHIPS EMPTY: which tubes are drawn
+  /// for a donation is a laboratory reviewer's answer (LR-05).
+  sampleType      String?              @db.VarChar(80)
+  status          DonationSampleStatus @default(COLLECTED)
+  collectedAt     DateTime             @default(now())
   collectedBy     String?
+  /// Where the sample physically is, when the organisation tracks that.
+  locationId      String?
+  rejectedAt      DateTime?
+  rejectedBy      String?
+  /// Why the sample is unusable -- a structured code, not a clinical finding.
+  rejectionReason String?              @db.VarChar(120)
   notes           String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
 
-  donation     Donation     @relation(fields: [donationId], references: [id], onDelete: Restrict)
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  collector    User?        @relation("DonationSampleCollector", fields: [collectedBy], references: [id], onDelete: SetNull)
+  donation         Donation           @relation(fields: [donationId], references: [id], onDelete: Restrict)
+  organization     Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  collector        User?              @relation("DonationSampleCollector", fields: [collectedBy], references: [id], onDelete: SetNull)
+  rejector         User?              @relation("DonationSampleRejector", fields: [rejectedBy], references: [id], onDelete: SetNull)
+  location         InventoryLocation? @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  screeningOrders  ScreeningOrder[]
+  screeningResults ScreeningResult[]
 
   @@index([donationId])
   @@index([organizationId])
   @@index([sampleReference])
+  @@index([status])
+}
+
+/// The work item that pins a screening job to the exact policy it was ordered
+/// under.
+///
+/// The pinning is the whole reason this model exists. A screening order records
+/// `policyVersion` as a column, not only as a relation, so approving policy
+/// version 4 tomorrow cannot silently rewrite what version 3 required of a
+/// donation screened today. Historical requirements are history.
+model ScreeningOrder {
+  id                 String               @id @default(cuid())
+  orderReference     String               @unique
+  donationId         String
+  sampleId           String?
+  organizationId     String
+  policyId           String
+  /// Copied onto the row, deliberately. See the model note.
+  policyVersion      Int
+  status             ScreeningOrderStatus @default(OPEN)
+  requestedAt        DateTime             @default(now())
+  /// Null when the order was raised by the system rather than a person --
+  /// donation completion raises one automatically, and "nobody" is the honest
+  /// answer rather than attributing it to whoever happened to click complete.
+  requestedBy        String?
+  /// Set when the system raised it, so an automated actor is distinguishable
+  /// from an unrecorded one.
+  systemRaised       Boolean              @default(false)
+  completedAt        DateTime?
+  reviewedAt         DateTime?
+  reviewedBy         String?
+  cancelledAt        DateTime?
+  cancellationReason String?              @db.VarChar(120)
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+
+  donation       Donation              @relation(fields: [donationId], references: [id], onDelete: Restrict)
+  sample         DonationSample?       @relation(fields: [sampleId], references: [id], onDelete: Restrict)
+  organization   Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  policy         ClinicalReleasePolicy @relation(fields: [policyId], references: [id], onDelete: Restrict)
+  requester      User?                 @relation("ScreeningOrderRequester", fields: [requestedBy], references: [id], onDelete: SetNull)
+  reviewer       User?                 @relation("ScreeningOrderReviewer", fields: [reviewedBy], references: [id], onDelete: SetNull)
+  results        ScreeningResult[]
+  reviewTriggers DonorReviewTrigger[]
+
+  @@index([donationId])
+  @@index([sampleId])
+  @@index([organizationId])
+  @@index([status])
+  @@index([policyId])
+}
+
+/// One screening result, with enough provenance to audit it years later.
+///
+/// Never updated in place. A correction writes a new row and supersedes this
+/// one; `ScreeningResultRevision` records what changed and why. The original
+/// value survives, because "what did we know, and when" is the question a
+/// look-back exists to answer.
+///
+/// `disposition` is the NORMALISED safety consequence the approved policy
+/// produced for `resultCode`. The application acts on the disposition and never
+/// interprets the raw code.
+model ScreeningResult {
+  id                       String                @id @default(cuid())
+  screeningOrderId         String
+  requirementId            String?
+  /// Copied from the requirement, so the row stays readable if the policy moves.
+  requirementCode          String                @db.VarChar(80)
+  sampleId                 String?
+  /// The laboratory's own result code. Uninterpreted here.
+  resultCode               String                @db.VarChar(80)
+  /// A measured value, where the assay produces one.
+  resultValue              String?
+  /// What the approved policy said that result means for blood safety.
+  disposition              SafetyDisposition
+  /// The policy version whose rule produced `disposition`.
+  dispositionPolicyVersion Int?
+  source                   ScreeningResultSource @default(MANUAL)
+  methodReference          String?               @db.VarChar(120)
+  reagentReference         String?               @db.VarChar(120)
+  reagentLot               String?               @db.VarChar(80)
+  reagentExpiresAt         DateTime?
+  analyzerReference        String?               @db.VarChar(120)
+  performedBy              String?
+  performedAt              DateTime?
+  receivedAt               DateTime?
+  reviewedBy               String?
+  reviewedAt               DateTime?
+  /// True once this row has been superseded by a correction.
+  superseded               Boolean               @default(false)
+  supersededAt             DateTime?
+  /// Operational comment. Confidential clinical detail does NOT go here; it
+  /// goes in `confidentialComment`, which no cross-organisation projection
+  /// returns.
+  comment                  String?
+  confidentialComment      String?
+  createdAt                DateTime              @default(now())
+  updatedAt                DateTime              @updatedAt
+
+  screeningOrder ScreeningOrder              @relation(fields: [screeningOrderId], references: [id], onDelete: Restrict)
+  requirement    ClinicalReleaseRequirement? @relation(fields: [requirementId], references: [id], onDelete: SetNull)
+  sample         DonationSample?             @relation(fields: [sampleId], references: [id], onDelete: Restrict)
+  performer      User?                       @relation("ScreeningResultPerformer", fields: [performedBy], references: [id], onDelete: SetNull)
+  reviewer       User?                       @relation("ScreeningResultReviewer", fields: [reviewedBy], references: [id], onDelete: SetNull)
+  revisions      ScreeningResultRevision[]   @relation("ScreeningResultRevisionOf")
+  supersedes     ScreeningResultRevision[]   @relation("ScreeningResultRevisionReplacement")
+  reviewTriggers DonorReviewTrigger[]
+
+  @@index([screeningOrderId])
+  @@index([requirementCode])
+  @@index([disposition])
+  @@index([superseded])
+  @@index([sampleId])
+}
+
+/// What changed between two screening results, and why.
+///
+/// A correction never overwrites. It creates a new `ScreeningResult` and one of
+/// these rows joining the two, so the original code, the corrected code, the
+/// reason, the actor and the moment all survive.
+model ScreeningResultRevision {
+  id                   String            @id @default(cuid())
+  originalResultId     String
+  replacementResultId  String?
+  originalResultCode   String            @db.VarChar(80)
+  correctedResultCode  String            @db.VarChar(80)
+  originalDisposition  SafetyDisposition
+  correctedDisposition SafetyDisposition
+  /// Structured where possible; free text is operational, not clinical.
+  reason               String
+  correctedBy          String?
+  correctedAt          DateTime          @default(now())
+  /// Set when the correction changed the safety consequence for a component
+  /// that had already been released.
+  recallCaseId         String?
+  createdAt            DateTime          @default(now())
+
+  originalResult    ScreeningResult  @relation("ScreeningResultRevisionOf", fields: [originalResultId], references: [id], onDelete: Restrict)
+  replacementResult ScreeningResult? @relation("ScreeningResultRevisionReplacement", fields: [replacementResultId], references: [id], onDelete: Restrict)
+  corrector         User?            @relation("ScreeningResultCorrector", fields: [correctedBy], references: [id], onDelete: SetNull)
+  recallCase        RecallCase?      @relation(fields: [recallCaseId], references: [id], onDelete: SetNull)
+
+  @@index([originalResultId])
+  @@index([replacementResultId])
+  @@index([recallCaseId])
+}
+
+/// Why a donor is under medical review, and what a clinician did about it.
+///
+/// This is the record behind `DonorStatus.MEDICAL_REVIEW_REQUIRED`. It is NOT a
+/// deferral: no `DonorDeferral` row is created when one of these opens, and the
+/// donor never becomes DEFERRED on its own. A reactive screening result is a
+/// reason for a clinician to look, not a clinical judgement anybody has made.
+///
+/// Several may be open at once. Resolving one does NOT return the donor to
+/// ACTIVE while another is still open -- that rule is enforced in the service
+/// and tested, because the failure mode is silent and dangerous.
+model DonorReviewTrigger {
+  id                   String                   @id @default(cuid())
+  donorId              String
+  organizationId       String
+  status               DonorReviewTriggerStatus @default(OPEN)
+  /// What raised it. Blood-bank screening is the only source today, and naming
+  /// it means a future source cannot be mistaken for this one.
+  sourceKind           String                   @db.VarChar(60)
+  screeningOrderId     String?
+  screeningResultId    String?
+  /// The disposition that triggered review: BLOCK or REVIEW_REQUIRED.
+  triggerDisposition   SafetyDisposition
+  raisedAt             DateTime                 @default(now())
+  /// Null when the system raised it.
+  raisedBy             String?
+  systemRaised         Boolean                  @default(false)
+  resolvedAt           DateTime?
+  resolvedBy           String?
+  resolution           DonorReviewResolution?
+  resolutionNote       String?
+  /// The deferral a clinician created when resolving, if they created one.
+  resultingDeferralId  String?
+  resultingDonorStatus DonorStatus?
+  createdAt            DateTime                 @default(now())
+  updatedAt            DateTime                 @updatedAt
+
+  donor             User             @relation("DonorReviewTriggerDonor", fields: [donorId], references: [id], onDelete: Cascade)
+  organization      Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  screeningOrder    ScreeningOrder?  @relation(fields: [screeningOrderId], references: [id], onDelete: SetNull)
+  screeningResult   ScreeningResult? @relation(fields: [screeningResultId], references: [id], onDelete: SetNull)
+  raiser            User?            @relation("DonorReviewTriggerRaiser", fields: [raisedBy], references: [id], onDelete: SetNull)
+  resolver          User?            @relation("DonorReviewTriggerResolver", fields: [resolvedBy], references: [id], onDelete: SetNull)
+  resultingDeferral DonorDeferral?   @relation(fields: [resultingDeferralId], references: [id], onDelete: SetNull)
+
+  @@index([donorId])
+  @@index([organizationId])
+  @@index([status])
+  @@index([screeningOrderId])
 }
 
 /// A storage requirement, as a reference a component can point at.
@@ -1861,12 +2252,13 @@ model BloodUnitHold {
   createdAt        DateTime            @default(now())
   updatedAt        DateTime            @updatedAt
 
-  bloodUnit      BloodUnit           @relation(fields: [bloodUnitId], references: [id], onDelete: Restrict)
-  organization   Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  raiser         User?               @relation("BloodUnitHoldRaiser", fields: [raisedBy], references: [id], onDelete: SetNull)
-  resolver       User?               @relation("BloodUnitHoldResolver", fields: [resolvedBy], references: [id], onDelete: SetNull)
-  coldChainEvent ColdChainEvent?     @relation(fields: [coldChainEventId], references: [id], onDelete: SetNull)
+  bloodUnit      BloodUnit                 @relation(fields: [bloodUnitId], references: [id], onDelete: Restrict)
+  organization   Organization              @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  raiser         User?                     @relation("BloodUnitHoldRaiser", fields: [raisedBy], references: [id], onDelete: SetNull)
+  resolver       User?                     @relation("BloodUnitHoldResolver", fields: [resolvedBy], references: [id], onDelete: SetNull)
+  coldChainEvent ColdChainEvent?           @relation(fields: [coldChainEventId], references: [id], onDelete: SetNull)
   movements      InventoryMovement[]
+  recallAffected RecallAffectedComponent[]
 
   @@index([bloodUnitId])
   @@index([organizationId])
@@ -2076,6 +2468,163 @@ model ConsentRequirement {
 /// treatment a category is under; `authorityReference` is where the rule that
 /// says so is cited. A category with no row is not deletable by default --
 /// absence of a policy is not permission.
+/// A recall, as a case rather than as a status change.
+///
+/// The distinction is the safety property. A recall does NOT rewrite the
+/// lifecycle status of everything it touches: a component that was TRANSFUSED
+/// stays TRANSFUSED, one that is IN_TRANSIT stays IN_TRANSIT, and the custody
+/// ledger is not edited. Recall is an ADDITIONAL AXIS, carried by
+/// `RecallAffectedComponent`, because the chain of what actually happened is
+/// precisely what a recall exists to follow. Overwriting it would destroy the
+/// evidence in the act of responding to it.
+///
+/// `reasonCode` is a generic policy reference. NO CLINICAL RECALL CATEGORIES
+/// ARE DEFINED: what kinds of recall exist, and what each obliges anybody to
+/// do, is a clinical and regulatory question this project has not been given
+/// an answer to.
+model RecallCase {
+  id                 String           @id @default(cuid())
+  recallReference    String           @unique
+  organizationId     String
+  status             RecallCaseStatus @default(OPEN)
+  /// What opened it -- a corrected screening result, a cold-chain finding, a
+  /// report from a hospital. A code, not a narrative.
+  triggerKind        String           @db.VarChar(60)
+  /// The screening result revision that opened it, when that is what did.
+  donationId         String?
+  reasonCode         String?          @db.VarChar(80)
+  /// Safe to show every affected organisation: what they must DO.
+  operationalReason  String?
+  /// Clinical detail. Never returned to an organisation that is not the one
+  /// that opened the case.
+  confidentialDetail String?
+  openedBy           String?
+  openedAt           DateTime         @default(now())
+  closedBy           String?
+  closedAt           DateTime?
+  closureNote        String?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  organization        Organization              @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  donation            Donation?                 @relation(fields: [donationId], references: [id], onDelete: SetNull)
+  opener              User?                     @relation("RecallCaseOpener", fields: [openedBy], references: [id], onDelete: SetNull)
+  closer              User?                     @relation("RecallCaseCloser", fields: [closedBy], references: [id], onDelete: SetNull)
+  components          RecallAffectedComponent[]
+  acknowledgements    RecallAcknowledgement[]
+  revisions           ScreeningResultRevision[]
+  hemovigilanceEvents HemovigilanceEvent[]
+
+  @@index([organizationId])
+  @@index([status])
+  @@index([donationId])
+  @@index([openedAt])
+}
+
+/// One component caught by a recall, and what became of it.
+///
+/// `state` is the recall's view. The component's own `status` is untouched, so
+/// both questions stay answerable: what happened to this unit, and what the
+/// recall did about it.
+model RecallAffectedComponent {
+  id                    String               @id @default(cuid())
+  recallCaseId          String
+  bloodUnitId           String
+  state                 RecallComponentState @default(IDENTIFIED)
+  /// Where it was when the recall found it. A snapshot, not a rewrite.
+  statusAtRecall        BloodUnitStatus?
+  /// The organisation holding it at that moment, which may not be the one that
+  /// opened the case.
+  holdingOrganizationId String?
+  shipmentId            String?
+  /// The hold this recall placed on the component, when it placed one.
+  holdId                String?
+  note                  String?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+
+  recallCase          RecallCase     @relation(fields: [recallCaseId], references: [id], onDelete: Cascade)
+  bloodUnit           BloodUnit      @relation(fields: [bloodUnitId], references: [id], onDelete: Restrict)
+  holdingOrganization Organization?  @relation("RecallAffectedHolder", fields: [holdingOrganizationId], references: [id], onDelete: SetNull)
+  shipment            Shipment?      @relation(fields: [shipmentId], references: [id], onDelete: SetNull)
+  hold                BloodUnitHold? @relation(fields: [holdId], references: [id], onDelete: SetNull)
+
+  @@unique([recallCaseId, bloodUnitId])
+  @@index([recallCaseId])
+  @@index([bloodUnitId])
+  @@index([state])
+}
+
+/// That an affected organisation has seen a recall and said what it did.
+model RecallAcknowledgement {
+  id             String   @id @default(cuid())
+  recallCaseId   String
+  organizationId String
+  acknowledgedBy String?
+  acknowledgedAt DateTime @default(now())
+  /// What the organisation reports doing. Operational, not clinical.
+  responseNote   String?
+  createdAt      DateTime @default(now())
+
+  recallCase   RecallCase   @relation(fields: [recallCaseId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  acknowledger User?        @relation("RecallAcknowledger", fields: [acknowledgedBy], references: [id], onDelete: SetNull)
+
+  @@unique([recallCaseId, organizationId])
+  @@index([recallCaseId])
+  @@index([organizationId])
+}
+
+/// A transfusion-related event reported after a component was given.
+///
+/// GENERIC BY DESIGN. NO REACTION CLASSIFICATION IS IMPLEMENTED: `eventCode` is
+/// a reference into a vocabulary that ships empty, because transfusion reaction
+/// categories are clinical content nobody has validated for this project
+/// (CR-08). The architecture accepts a validated vocabulary later without a
+/// migration.
+///
+/// Recipient identity stays where Sprint 9 put it: an opaque,
+/// organisation-scoped reference. A blood centre reading a linked recall sees
+/// that an event exists and what it obliges them to do, not who it happened to.
+model HemovigilanceEvent {
+  id                    String              @id @default(cuid())
+  eventReference        String              @unique
+  organizationId        String
+  bloodUnitId           String?
+  /// Opaque and organisation-scoped, exactly as on BloodUnitDisposition.
+  recipientReference    String?             @db.VarChar(120)
+  encounterReference    String?             @db.VarChar(120)
+  /// A code from a vocabulary that ships empty. Not a classification.
+  eventCode             String?             @db.VarChar(80)
+  status                HemovigilanceStatus @default(REPORTED)
+  occurredAt            DateTime?
+  reportedAt            DateTime            @default(now())
+  reportedBy            String?
+  /// Clinical narrative. Confidential: never returned outside the reporting
+  /// organisation.
+  confidentialNarrative String?
+  /// What other organisations may be told: that an event was reported against
+  /// a component, and what they must do.
+  operationalSummary    String?
+  investigationNote     String?
+  closedAt              DateTime?
+  closedBy              String?
+  recallCaseId          String?
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  bloodUnit    BloodUnit?   @relation(fields: [bloodUnitId], references: [id], onDelete: Restrict)
+  reporter     User?        @relation("HemovigilanceReporter", fields: [reportedBy], references: [id], onDelete: SetNull)
+  closer       User?        @relation("HemovigilanceCloser", fields: [closedBy], references: [id], onDelete: SetNull)
+  recallCase   RecallCase?  @relation(fields: [recallCaseId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@index([bloodUnitId])
+  @@index([status])
+  @@index([recallCaseId])
+}
+
 model RetentionPolicy {
   id                 String        @id @default(cuid())
   /// The data category this governs -- a key, not an enum, so a deployment can
@@ -2294,14 +2843,15 @@ model Shipment {
   createdAt                 DateTime               @default(now())
   updatedAt                 DateTime               @updatedAt
 
-  bloodRequest            BloodRequest       @relation(fields: [bloodRequestId], references: [id], onDelete: Cascade)
-  sourceOrganization      Organization       @relation("ShipmentSource", fields: [sourceOrganizationId], references: [id], onDelete: Cascade)
-  destinationOrganization Organization       @relation("ShipmentDestination", fields: [destinationOrganizationId], references: [id], onDelete: Cascade)
-  courier                 Courier?           @relation(fields: [courierId], references: [id], onDelete: SetNull)
+  bloodRequest            BloodRequest              @relation(fields: [bloodRequestId], references: [id], onDelete: Cascade)
+  sourceOrganization      Organization              @relation("ShipmentSource", fields: [sourceOrganizationId], references: [id], onDelete: Cascade)
+  destinationOrganization Organization              @relation("ShipmentDestination", fields: [destinationOrganizationId], references: [id], onDelete: Cascade)
+  courier                 Courier?                  @relation(fields: [courierId], references: [id], onDelete: SetNull)
   units                   ShipmentUnit[]
   events                  ShipmentEvent[]
   locations               ShipmentLocation[]
   coldChainEvents         ColdChainEvent[]
+  recallAffected          RecallAffectedComponent[]
 
   unitDispositions BloodUnitDisposition[]
 
