@@ -461,10 +461,33 @@ export class InventoryService {
 
     const policyStatus = await this.clinicalRelease.getPolicyStatus(organizationId);
 
+    /*
+     * Each unit carries the answer the RELEASE PATH would give, produced by the
+     * same `evaluate` call that path makes.
+     *
+     * Sprint 10 asks for one canonical answer to "can this component be
+     * released right now", and a worklist that reports a second opinion is the
+     * classic way to end up with two. The console previously showed what a unit
+     * was waiting on only by trying to release it and reading the 409, which
+     * meant a staff member learned the answer by being refused.
+     *
+     * This costs one evaluation per waiting unit rather than one for the list.
+     * That is a deliberate trade: the list is bounded by the units a single
+     * organisation has collected and not yet released, and the alternative --
+     * deriving the reason in the client from the policy and the screening rows
+     * -- is a second implementation of the gate.
+     */
+    const evaluated = await Promise.all(
+      units.map(async (unit) => ({
+        unit,
+        block: await this.describeReleaseBlock(unit),
+      })),
+    );
+
     return {
       data: {
         policy: policyStatus,
-        units: units.map((unit) => ({
+        units: evaluated.map(({ unit, block }) => ({
           id: unit.id,
           unitReference: unit.unitReference,
           componentType: unit.componentType,
@@ -475,6 +498,14 @@ export class InventoryService {
           donationReference: unit.donation.donationReference,
           bloodGroupProvenance: unit.bloodGroupSource,
           expiryKnown: unit.expiresAt !== null && unit.expirySource !== 'UNKNOWN',
+          /**
+           * Null when the gate would permit the release. Any other value is the
+           * exact code the refusal would carry, so the console renders the same
+           * sentence whether the operator looked first or clicked first.
+           */
+          blockedReasonCode: block.blockedReasonCode,
+          blockedMessage: block.blockedMessage,
+          unmetRequirements: block.unmetRequirements,
         })),
       },
     };

@@ -107,6 +107,34 @@ export function ClinicalReleasePanel({
           <StatusBadge variant="warning">{t('ops.clinicalRelease.expiryUnknown')}</StatusBadge>
         ),
     },
+    {
+      /**
+       * What the gate would say, before anybody clicks.
+       *
+       * The code and the sentence come from the server's own evaluation of
+       * this unit -- the same call the release path makes -- so the console
+       * cannot disagree with the gate about why a unit is waiting. Before
+       * Sprint 10 the only way to find out was to press Release and read the
+       * 409, which taught a staff member the same thing the slow way.
+       */
+      key: 'blocked',
+      header: t('ops.clinicalRelease.wouldBeRefused'),
+      render: (unit) =>
+        unit.blockedReasonCode ? (
+          <span className="flex flex-col gap-1">
+            <StatusBadge variant="warning">
+              {t(`ops.clinicalRelease.reason.${unit.blockedReasonCode}`)}
+            </StatusBadge>
+            {unit.unmetRequirements.length > 0 && (
+              <span className="font-mono text-[11px] text-donor-muted">
+                {unit.unmetRequirements.join(', ')}
+              </span>
+            )}
+          </span>
+        ) : (
+          <StatusBadge variant="success">{t('ops.clinicalRelease.wouldBePermitted')}</StatusBadge>
+        ),
+    },
   ];
 
   return (

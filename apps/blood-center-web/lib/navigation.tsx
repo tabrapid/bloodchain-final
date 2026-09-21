@@ -9,6 +9,7 @@ import {
   LayoutDashboard,
   Package,
   UserRound,
+  TestTubes,
   Truck,
   Users,
 } from 'lucide-react';
@@ -20,6 +21,11 @@ export const sidebarItems: SidebarItem[] = [
   { id: 'requests', label: 'Blood Requests', labelKey: 'portal.nav.requests', icon: Droplet, href: '/requests' },
   { id: 'inventory', label: 'Inventory', labelKey: 'portal.nav.inventory', icon: Package, href: '/inventory' },
   { id: 'laboratory', label: 'Laboratory', labelKey: 'portal.nav.laboratory', icon: Beaker, href: '/laboratory' },
+  // Blood-bank screening, deliberately separate from Laboratory. The laboratory
+  // module is donor-facing diagnostics keyed to appointments; this is the
+  // screening a component's release depends on, and conflating the two is what
+  // would let a donor's health check satisfy a blood-safety requirement.
+  { id: 'screening', label: 'Screening', labelKey: 'portal.nav.screening', icon: TestTubes, href: '/screening' },
   { id: 'shipments', label: 'Shipments', labelKey: 'portal.nav.shipments', icon: Truck, href: '/shipments' },
   { id: 'couriers', label: 'Couriers', labelKey: 'portal.nav.couriers', icon: Users, href: '/couriers' },
   { id: 'appointments', label: 'Appointments', labelKey: 'portal.nav.appointments', icon: CalendarDays, href: '/appointments' },

@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
 import { SafetyDisposition } from '@prisma/client';
 
 import {
@@ -104,12 +107,10 @@ describe('screening disposition', () => {
   describe('what the module does not contain', () => {
     it('names no marker, assay, analyser or threshold', () => {
       // Read as source rather than asserted through behaviour, because the
-      // failure mode is somebody adding a "sensible default" rule set later.
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const source: string = require('fs').readFileSync(
-        require('path').join(__dirname, 'screening-disposition.ts'),
-        'utf8',
-      );
+      // failure mode is somebody adding a "sensible default" rule set later --
+      // and a rule set is data, which no behavioural assertion over this pure
+      // function can see until it is already there.
+      const source = readFileSync(join(__dirname, 'screening-disposition.ts'), 'utf8');
 
       for (const forbidden of [/\bHIV\b/, /\bHBV\b/, /\bHCV\b/, /\bHBsAg\b/i, /\bsyphilis\b/i, /\bNAT\b/]) {
         expect(source).not.toMatch(forbidden);

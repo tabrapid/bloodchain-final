@@ -378,6 +378,13 @@ export interface UnitAwaitingRelease {
   donationReference: string;
   bloodGroupProvenance: string;
   expiryKnown: boolean;
+  /**
+   * What the release path would answer for this unit right now, produced by
+   * the gate itself rather than derived here. Null means it would permit it.
+   */
+  blockedReasonCode: string | null;
+  blockedMessage: string | null;
+  unmetRequirements: string[];
 }
 
 export function getClinicalReleasePolicy(
