@@ -22,6 +22,10 @@ function makeUnit(overrides: Record<string, unknown> = {}) {
     id: 'unit-1',
     unitReference: 'BU-2026-000001',
     organizationId: 'org-1',
+    // Sprint 10: the gate reads screening against the parent donation, so the
+    // fixture has to name one. A unit with no donation is not a thing that
+    // exists.
+    donationId: 'donation-1',
     componentType: 'WHOLE_BLOOD' as const,
     collectedAt: new Date('2026-09-01T00:00:00.000Z'),
     expiresAt: null,
@@ -49,7 +53,12 @@ function makePolicy(overrides: Record<string, unknown> = {}) {
     createdBy: null,
     createdAt: new Date(),
     updatedAt: new Date(),
+    requiresResultReview: true,
+    sopReference: null,
     requirements: [],
+    // Sprint 10. Ships empty, exactly as the repository does: with no rule,
+    // no raw result code means CLEAR, so no requirement can be satisfied.
+    dispositionRules: [],
     ...overrides,
   };
 }
@@ -63,6 +72,9 @@ describe('ClinicalReleaseService', () => {
     prisma = {
       clinicalReleasePolicy: { findFirst: jest.fn().mockResolvedValue(null) },
       releaseDecision: { findMany: jest.fn().mockResolvedValue([]) },
+      // Sprint 10. The default is "nothing recorded", which is the state a
+      // freshly collected unit is actually in.
+      screeningResult: { findMany: jest.fn().mockResolvedValue([]) },
     };
 
     const module: TestingModule = await Test.createTestingModule({

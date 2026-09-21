@@ -14,7 +14,7 @@ import { PrismaService } from '../../database/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { EmergencyGateway } from '../../gateways/emergency.gateway';
 import { DonationEligibilityService } from '../donation-eligibility/donation-eligibility.service';
-import { DonorDeferralsService } from '../donor-deferrals/donor-deferrals.service';
+import { DonorAvailabilityService } from '../donor-availability/donor-availability.service';
 import { PlatformSettingsService } from '../platform-settings/platform-settings.service';
 import { EmergencyService } from './emergency.service';
 import {
@@ -88,17 +88,19 @@ describe('EmergencyService.completeEmergency', () => {
           },
         },
         {
-          provide: DonorDeferralsService,
+          provide: DonorAvailabilityService,
           useValue: {
-            // No deferral in force, so these suites keep testing what they were
-            // written to test. That matching excludes a deferred donor is
-            // proved against the real service in donor-deferrals.service.spec.ts
-            // and end to end in clinical-safety.e2e-spec.ts.
-            isDeferredAt: jest.fn().mockResolvedValue(false),
-            assertNotDeferredAt: jest.fn().mockResolvedValue(undefined),
-            findDeferredDonorIds: jest.fn().mockResolvedValue(new Set<string>()),
-            getActiveDeferral: jest.fn().mockResolvedValue(null),
-            createInTransaction: jest.fn().mockResolvedValue({ id: 'deferral-1' }),
+            // Nothing standing against the donor -- no recovery window, no
+            // deferral, no medical review -- so these suites keep testing what
+            // they were written to test. That matching excludes an unavailable
+            // donor for each of the three reasons is proved against the real
+            // guard in donor-availability.service.spec.ts, and end to end in
+            // clinical-safety.e2e-spec.ts and screening-release.e2e-spec.ts.
+            assertAvailableAt: jest.fn().mockResolvedValue(undefined),
+            checkAvailableAt: jest
+              .fn()
+              .mockResolvedValue({ available: true, reasonCode: null }),
+            findUnavailableDonorIds: jest.fn().mockResolvedValue(new Set<string>()),
           },
         },
         { provide: PlatformSettingsService, useValue: { isEnabled: jest.fn().mockResolvedValue(true) } },
@@ -227,17 +229,12 @@ describe('EmergencyService.checkDonorEligibility', () => {
         { provide: EmergencyGateway, useValue: {} },
         { provide: DonationEligibilityService, useValue: donationEligibility },
         {
-          provide: DonorDeferralsService,
-          useValue: {
-            // No deferral in force, so these suites keep testing what they were
-            // written to test. The deferral gates themselves are proved in
-            // donor-deferrals.service.spec.ts and clinical-safety.e2e-spec.ts.
-            isDeferredAt: jest.fn().mockResolvedValue(false),
-            assertNotDeferredAt: jest.fn().mockResolvedValue(undefined),
-            findDeferredDonorIds: jest.fn().mockResolvedValue(new Set<string>()),
-            getActiveDeferral: jest.fn().mockResolvedValue(null),
-            createInTransaction: jest.fn().mockResolvedValue({ id: 'deferral-1' }),
-          },
+          provide: DonorAvailabilityService,
+          // Nothing standing against the donor. That the guard refuses a
+          // deferred donor, one inside their recovery window and one under
+          // medical review is proved against the real guard in
+          // donor-availability.service.spec.ts.
+          useValue: { assertAvailableAt: jest.fn().mockResolvedValue(undefined) },
         },
         { provide: PlatformSettingsService, useValue: { isEnabled: jest.fn().mockResolvedValue(true) } },
       ],
@@ -286,16 +283,19 @@ describe('EmergencyService.createEmergency', () => {
         { provide: EmergencyGateway, useValue: {} },
         { provide: DonationEligibilityService, useValue: {} },
         {
-          provide: DonorDeferralsService,
+          provide: DonorAvailabilityService,
           useValue: {
-            // No deferral in force, so these suites keep testing what they were
-            // written to test. The deferral gates themselves are proved in
-            // donor-deferrals.service.spec.ts and clinical-safety.e2e-spec.ts.
-            isDeferredAt: jest.fn().mockResolvedValue(false),
-            assertNotDeferredAt: jest.fn().mockResolvedValue(undefined),
-            findDeferredDonorIds: jest.fn().mockResolvedValue(new Set<string>()),
-            getActiveDeferral: jest.fn().mockResolvedValue(null),
-            createInTransaction: jest.fn().mockResolvedValue({ id: 'deferral-1' }),
+            // Nothing standing against the donor -- no recovery window, no
+            // deferral, no medical review -- so these suites keep testing what
+            // they were written to test. That matching excludes an unavailable
+            // donor for each of the three reasons is proved against the real
+            // guard in donor-availability.service.spec.ts, and end to end in
+            // clinical-safety.e2e-spec.ts and screening-release.e2e-spec.ts.
+            assertAvailableAt: jest.fn().mockResolvedValue(undefined),
+            checkAvailableAt: jest
+              .fn()
+              .mockResolvedValue({ available: true, reasonCode: null }),
+            findUnavailableDonorIds: jest.fn().mockResolvedValue(new Set<string>()),
           },
         },
         { provide: PlatformSettingsService, useValue: platformSettings },
@@ -347,16 +347,19 @@ describe('EmergencyService.createEmergency', () => {
         { provide: EmergencyGateway, useValue: {} },
         { provide: DonationEligibilityService, useValue: {} },
         {
-          provide: DonorDeferralsService,
+          provide: DonorAvailabilityService,
           useValue: {
-            // No deferral in force, so these suites keep testing what they were
-            // written to test. The deferral gates themselves are proved in
-            // donor-deferrals.service.spec.ts and clinical-safety.e2e-spec.ts.
-            isDeferredAt: jest.fn().mockResolvedValue(false),
-            assertNotDeferredAt: jest.fn().mockResolvedValue(undefined),
-            findDeferredDonorIds: jest.fn().mockResolvedValue(new Set<string>()),
-            getActiveDeferral: jest.fn().mockResolvedValue(null),
-            createInTransaction: jest.fn().mockResolvedValue({ id: 'deferral-1' }),
+            // Nothing standing against the donor -- no recovery window, no
+            // deferral, no medical review -- so these suites keep testing what
+            // they were written to test. That matching excludes an unavailable
+            // donor for each of the three reasons is proved against the real
+            // guard in donor-availability.service.spec.ts, and end to end in
+            // clinical-safety.e2e-spec.ts and screening-release.e2e-spec.ts.
+            assertAvailableAt: jest.fn().mockResolvedValue(undefined),
+            checkAvailableAt: jest
+              .fn()
+              .mockResolvedValue({ available: true, reasonCode: null }),
+            findUnavailableDonorIds: jest.fn().mockResolvedValue(new Set<string>()),
           },
         },
         { provide: PlatformSettingsService, useValue: platformSettings },
@@ -386,16 +389,19 @@ describe('EmergencyService.createEmergency', () => {
         { provide: EmergencyGateway, useValue: {} },
         { provide: DonationEligibilityService, useValue: {} },
         {
-          provide: DonorDeferralsService,
+          provide: DonorAvailabilityService,
           useValue: {
-            // No deferral in force, so these suites keep testing what they were
-            // written to test. The deferral gates themselves are proved in
-            // donor-deferrals.service.spec.ts and clinical-safety.e2e-spec.ts.
-            isDeferredAt: jest.fn().mockResolvedValue(false),
-            assertNotDeferredAt: jest.fn().mockResolvedValue(undefined),
-            findDeferredDonorIds: jest.fn().mockResolvedValue(new Set<string>()),
-            getActiveDeferral: jest.fn().mockResolvedValue(null),
-            createInTransaction: jest.fn().mockResolvedValue({ id: 'deferral-1' }),
+            // Nothing standing against the donor -- no recovery window, no
+            // deferral, no medical review -- so these suites keep testing what
+            // they were written to test. That matching excludes an unavailable
+            // donor for each of the three reasons is proved against the real
+            // guard in donor-availability.service.spec.ts, and end to end in
+            // clinical-safety.e2e-spec.ts and screening-release.e2e-spec.ts.
+            assertAvailableAt: jest.fn().mockResolvedValue(undefined),
+            checkAvailableAt: jest
+              .fn()
+              .mockResolvedValue({ available: true, reasonCode: null }),
+            findUnavailableDonorIds: jest.fn().mockResolvedValue(new Set<string>()),
           },
         },
         { provide: PlatformSettingsService, useValue: platformSettings },
@@ -442,16 +448,19 @@ describe('EmergencyService.createEmergency', () => {
         { provide: EmergencyGateway, useValue: {} },
         { provide: DonationEligibilityService, useValue: {} },
         {
-          provide: DonorDeferralsService,
+          provide: DonorAvailabilityService,
           useValue: {
-            // No deferral in force, so these suites keep testing what they were
-            // written to test. The deferral gates themselves are proved in
-            // donor-deferrals.service.spec.ts and clinical-safety.e2e-spec.ts.
-            isDeferredAt: jest.fn().mockResolvedValue(false),
-            assertNotDeferredAt: jest.fn().mockResolvedValue(undefined),
-            findDeferredDonorIds: jest.fn().mockResolvedValue(new Set<string>()),
-            getActiveDeferral: jest.fn().mockResolvedValue(null),
-            createInTransaction: jest.fn().mockResolvedValue({ id: 'deferral-1' }),
+            // Nothing standing against the donor -- no recovery window, no
+            // deferral, no medical review -- so these suites keep testing what
+            // they were written to test. That matching excludes an unavailable
+            // donor for each of the three reasons is proved against the real
+            // guard in donor-availability.service.spec.ts, and end to end in
+            // clinical-safety.e2e-spec.ts and screening-release.e2e-spec.ts.
+            assertAvailableAt: jest.fn().mockResolvedValue(undefined),
+            checkAvailableAt: jest
+              .fn()
+              .mockResolvedValue({ available: true, reasonCode: null }),
+            findUnavailableDonorIds: jest.fn().mockResolvedValue(new Set<string>()),
           },
         },
         { provide: PlatformSettingsService, useValue: platformSettings },
@@ -490,16 +499,19 @@ describe('EmergencyService.checkHospitalAccess', () => {
         { provide: EmergencyGateway, useValue: {} },
         { provide: DonationEligibilityService, useValue: {} },
         {
-          provide: DonorDeferralsService,
+          provide: DonorAvailabilityService,
           useValue: {
-            // No deferral in force, so these suites keep testing what they were
-            // written to test. The deferral gates themselves are proved in
-            // donor-deferrals.service.spec.ts and clinical-safety.e2e-spec.ts.
-            isDeferredAt: jest.fn().mockResolvedValue(false),
-            assertNotDeferredAt: jest.fn().mockResolvedValue(undefined),
-            findDeferredDonorIds: jest.fn().mockResolvedValue(new Set<string>()),
-            getActiveDeferral: jest.fn().mockResolvedValue(null),
-            createInTransaction: jest.fn().mockResolvedValue({ id: 'deferral-1' }),
+            // Nothing standing against the donor -- no recovery window, no
+            // deferral, no medical review -- so these suites keep testing what
+            // they were written to test. That matching excludes an unavailable
+            // donor for each of the three reasons is proved against the real
+            // guard in donor-availability.service.spec.ts, and end to end in
+            // clinical-safety.e2e-spec.ts and screening-release.e2e-spec.ts.
+            assertAvailableAt: jest.fn().mockResolvedValue(undefined),
+            checkAvailableAt: jest
+              .fn()
+              .mockResolvedValue({ available: true, reasonCode: null }),
+            findUnavailableDonorIds: jest.fn().mockResolvedValue(new Set<string>()),
           },
         },
         { provide: PlatformSettingsService, useValue: { isEnabled: jest.fn().mockResolvedValue(true) } },
@@ -558,14 +570,14 @@ describe('EmergencyService.activateEmergency', () => {
   let prisma: any;
   let tx: any;
   let eventEmitter: { emit: jest.Mock };
-  // Matching now asks the shared service which donors are still inside a
-  // recovery window, so the mock answers with real Map/predicate semantics:
-  // tests that care put dates in `nextEligible`, the rest leave it empty.
+  // Matching asks ONE question of the canonical guard: which of these donors
+  // may not donate right now. Sprint 10 folded the recovery window, deferral
+  // and medical review into that single set-based answer, so the mock computes
+  // it from `nextEligible` with real semantics -- tests that care about the
+  // recovery window put dates in the map, the rest leave it empty, and the
+  // behaviour they assert is unchanged.
   let nextEligible: Map<string, Date>;
-  let donationEligibility: {
-    getNextEligibleDonationDates: jest.Mock;
-    isEligibleAt: jest.Mock;
-  };
+  let donorAvailability: { findUnavailableDonorIds: jest.Mock };
 
   beforeEach(async () => {
     tx = {
@@ -575,11 +587,15 @@ describe('EmergencyService.activateEmergency', () => {
     };
 
     nextEligible = new Map<string, Date>();
-    donationEligibility = {
-      getNextEligibleDonationDates: jest.fn().mockImplementation(async () => nextEligible),
-      isEligibleAt: jest.fn(
-        (date: Date | null | undefined, when: Date) => !date || date.getTime() <= when.getTime(),
-      ),
+    donorAvailability = {
+      findUnavailableDonorIds: jest.fn(async (donorIds: string[], when: Date) => {
+        const unavailable = new Set<string>();
+        for (const donorId of donorIds) {
+          const date = nextEligible.get(donorId);
+          if (date && date.getTime() > when.getTime()) unavailable.add(donorId);
+        }
+        return unavailable;
+      }),
     };
 
     prisma = {
@@ -609,20 +625,8 @@ describe('EmergencyService.activateEmergency', () => {
         { provide: AuditLogsService, useValue: { log: jest.fn().mockResolvedValue({}) } },
         { provide: EventEmitter2, useValue: eventEmitter },
         { provide: EmergencyGateway, useValue: {} },
-        { provide: DonationEligibilityService, useValue: donationEligibility },
-        {
-          provide: DonorDeferralsService,
-          useValue: {
-            // No deferral in force, so these suites keep testing what they were
-            // written to test. The deferral gates themselves are proved in
-            // donor-deferrals.service.spec.ts and clinical-safety.e2e-spec.ts.
-            isDeferredAt: jest.fn().mockResolvedValue(false),
-            assertNotDeferredAt: jest.fn().mockResolvedValue(undefined),
-            findDeferredDonorIds: jest.fn().mockResolvedValue(new Set<string>()),
-            getActiveDeferral: jest.fn().mockResolvedValue(null),
-            createInTransaction: jest.fn().mockResolvedValue({ id: 'deferral-1' }),
-          },
-        },
+        { provide: DonationEligibilityService, useValue: {} },
+        { provide: DonorAvailabilityService, useValue: donorAvailability },
         { provide: PlatformSettingsService, useValue: { isEnabled: jest.fn().mockResolvedValue(true) } },
       ],
     }).compile();
@@ -693,8 +697,10 @@ describe('EmergencyService.activateEmergency', () => {
 
     const matched = tx.emergencyMatch.create.mock.calls.map((call: any) => call[0].data.donorId);
     expect(matched).toEqual(['eligible-donor']);
-    // Asked once for the whole candidate set, not once per donor.
-    expect(donationEligibility.getNextEligibleDonationDates).toHaveBeenCalledTimes(1);
+    // Asked once for the whole candidate set, not once per donor. The
+    // set-based shape is what makes using the canonical guard here affordable;
+    // a per-donor call would invite the SQL-filter shortcut back.
+    expect(donorAvailability.findUnavailableDonorIds).toHaveBeenCalledTimes(1);
   });
 
   it('alerts a donor whose recovery window has already closed', async () => {

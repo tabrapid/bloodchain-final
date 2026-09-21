@@ -23,8 +23,7 @@ import {
 } from '../notifications/appointment-notification.events';
 import { assertOrganizationActive } from '../../common/utils/organization-status.util';
 import { withUniqueRetry } from '../../common/utils/unique-retry.util';
-import { DonationEligibilityService } from '../donation-eligibility/donation-eligibility.service';
-import { DonorDeferralsService } from '../donor-deferrals/donor-deferrals.service';
+import { DonorAvailabilityService } from '../donor-availability/donor-availability.service';
 
 const REFERENCE_PREFIX: Record<AppointmentType, string> = {
   [AppointmentType.BLOOD_DONATION]: 'DON',
@@ -38,8 +37,7 @@ export class AppointmentsService {
     private readonly db: PrismaService,
     private readonly audit: AuditLogsService,
     private readonly eventEmitter: EventEmitter2,
-    private readonly donationEligibility: DonationEligibilityService,
-    private readonly donorDeferrals: DonorDeferralsService,
+    private readonly donorAvailability: DonorAvailabilityService,
   ) {}
 
   /**
@@ -119,14 +117,21 @@ export class AppointmentsService {
     // Only blood donation is gated -- a laboratory test or a consultation is
     // not a donation and carries no recovery window.
     if (dto.appointmentType === AppointmentType.BLOOD_DONATION) {
-      await this.donationEligibility.assertEligibleToDonateAt(donorId, slot.startAt);
-      // Deferral, checked here for the first time. Emergency matching has
-      // always excluded deferred donors; booking read the flag nowhere at all,
-      // so deferring a donor at the chair did not stop them booking the next
-      // morning (DEF-01, DEF-05). Asked about the slot's start for the same
-      // reason the recovery window is: a donor whose temporary deferral ends on
-      // Thursday may legitimately book for Friday.
-      await this.donorDeferrals.assertNotDeferredAt(donorId, slot.startAt);
+      // One guard, three rules.
+      //
+      // Deferral was checked here for the first time in Sprint 9: booking read
+      // the flag nowhere at all, so deferring a donor at the chair did not stop
+      // them booking the next morning (DEF-01, DEF-05). Sprint 10 adds medical
+      // review, and rather than a third line here and a third line at check-in
+      // and a third line in emergency matching, all three call the canonical
+      // guard. A fourth rule later is one method to edit.
+      //
+      // Asked about the slot's start for the recovery window and the deferral:
+      // a donor whose temporary deferral ends on Thursday may legitimately book
+      // for Friday. Medical review is the exception inside that and the guard
+      // owns the distinction -- a review has no scheduled end, so there is no
+      // future moment at which it can be assumed lifted.
+      await this.donorAvailability.assertAvailableAt(donorId, slot.startAt);
     }
 
     const conflictingAppointment = await this.db.appointment.findFirst({
@@ -514,8 +519,7 @@ export class AppointmentsService {
     // legitimately could be moved into the donor's recovery window and the
     // check at booking would have been pointless.
     if (appointment.appointmentType === AppointmentType.BLOOD_DONATION) {
-      await this.donationEligibility.assertEligibleToDonateAt(donorId, newSlot.startAt);
-      await this.donorDeferrals.assertNotDeferredAt(donorId, newSlot.startAt);
+      await this.donorAvailability.assertAvailableAt(donorId, newSlot.startAt);
     }
 
     const conflictingAppointment = await this.db.appointment.findFirst({

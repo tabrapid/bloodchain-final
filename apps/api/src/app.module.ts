@@ -33,6 +33,11 @@ import { InventoryModule } from './modules/inventory/inventory.module';
 import { ClinicalReleaseModule } from './modules/clinical-release/clinical-release.module';
 import { ConsentModule } from './modules/consent/consent.module';
 import { CustodyModule } from './modules/custody/custody.module';
+import { DonorAvailabilityModule } from './modules/donor-availability/donor-availability.module';
+import { DonorReviewModule } from './modules/donor-review/donor-review.module';
+import { HemovigilanceModule } from './modules/hemovigilance/hemovigilance.module';
+import { RecallModule } from './modules/recall/recall.module';
+import { ScreeningModule } from './modules/screening/screening.module';
 import { DonorDeferralsModule } from './modules/donor-deferrals/donor-deferrals.module';
 import { InventoryThresholdsModule } from './modules/inventory-thresholds/inventory-thresholds.module';
 import { LaboratoryModule } from './modules/laboratory/laboratory.module';
@@ -135,6 +140,14 @@ import { IdempotencyModule } from './modules/idempotency/idempotency.module';
     ClinicalReleaseModule,
     ConsentModule,
     CustodyModule,
+    // Sprint 10. Order matters only for readability: every one of these is
+    // @Global, because a safety gate some paths can reach and others cannot is
+    // not a safety gate.
+    RecallModule,
+    DonorReviewModule,
+    DonorAvailabilityModule,
+    ScreeningModule,
+    HemovigilanceModule,
     DonorDeferralsModule,
     InventoryThresholdsModule,
     InventoryModule,

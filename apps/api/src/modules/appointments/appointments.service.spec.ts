@@ -4,10 +4,9 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { AppointmentStatus, AppointmentType, OrganizationStatus, Prisma, SlotStatus } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
-import { DonationEligibilityService } from '../donation-eligibility/donation-eligibility.service';
+import { DonorAvailabilityService } from '../donor-availability/donor-availability.service';
 import { APPOINTMENT_COMPLETED_EVENT } from '../gamification/events/gamification-event.handler';
 import { AppointmentsService } from './appointments.service';
-import { DonorDeferralsService } from '../donor-deferrals/donor-deferrals.service';
 
 function makeSlot(overrides: Record<string, any> = {}) {
   return {
@@ -39,7 +38,14 @@ describe('AppointmentsService', () => {
   let prisma: any;
   let tx: any;
   let eventEmitter: { emit: jest.Mock };
-  let eligibility: { assertEligibleToDonateAt: jest.Mock };
+  /**
+   * Sprint 10 replaced two separate gates here with the canonical
+   * donor-availability guard, so the assertions move with them: what booking
+   * must do is ask ONE question about the slot's start time. The individual
+   * rules -- recovery window, deferral, medical review -- are proved in
+   * donor-availability.service.spec.ts and in the e2e suites.
+   */
+  let availability: { assertAvailableAt: jest.Mock };
 
   beforeEach(async () => {
     tx = {
@@ -71,7 +77,7 @@ describe('AppointmentsService', () => {
     };
 
     eventEmitter = { emit: jest.fn() };
-    eligibility = { assertEligibleToDonateAt: jest.fn().mockResolvedValue(undefined) };
+    availability = { assertAvailableAt: jest.fn().mockResolvedValue(undefined) };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -79,20 +85,9 @@ describe('AppointmentsService', () => {
         { provide: PrismaService, useValue: prisma },
         { provide: AuditLogsService, useValue: { log: jest.fn().mockResolvedValue({}) } },
         { provide: EventEmitter2, useValue: eventEmitter },
-        { provide: DonationEligibilityService, useValue: eligibility },
-        {
-          provide: DonorDeferralsService,
-          useValue: {
-            // No deferral in force, so these suites keep testing what they were
-            // written to test. The deferral gates themselves are proved in
-            // donor-deferrals.service.spec.ts and clinical-safety.e2e-spec.ts.
-            isDeferredAt: jest.fn().mockResolvedValue(false),
-            assertNotDeferredAt: jest.fn().mockResolvedValue(undefined),
-            findDeferredDonorIds: jest.fn().mockResolvedValue(new Set<string>()),
-            getActiveDeferral: jest.fn().mockResolvedValue(null),
-            createInTransaction: jest.fn().mockResolvedValue({ id: 'deferral-1' }),
-          },
-        },
+        // Nothing standing against the donor, so these suites keep testing what
+        // they were written to test.
+        { provide: DonorAvailabilityService, useValue: availability },
       ],
     }).compile();
 
@@ -135,14 +130,14 @@ describe('AppointmentsService', () => {
         appointmentType: AppointmentType.BLOOD_DONATION,
       });
 
-      expect(eligibility.assertEligibleToDonateAt).toHaveBeenCalledWith('donor-1', slot.startAt);
+      expect(availability.assertAvailableAt).toHaveBeenCalledWith('donor-1', slot.startAt);
     });
 
     it('does not open a transaction when the donor is inside their recovery window', async () => {
       prisma.user.findUnique.mockResolvedValue(makeDonor());
       prisma.appointmentSlot.findUnique.mockResolvedValue(makeSlot());
       prisma.appointment.findFirst.mockResolvedValue(null);
-      eligibility.assertEligibleToDonateAt.mockRejectedValue(
+      availability.assertAvailableAt.mockRejectedValue(
         new ConflictException({ code: 'DONOR_IN_RECOVERY_WINDOW' }),
       );
 
@@ -169,7 +164,7 @@ describe('AppointmentsService', () => {
         appointmentType: AppointmentType.BLOOD_TEST,
       });
 
-      expect(eligibility.assertEligibleToDonateAt).not.toHaveBeenCalled();
+      expect(availability.assertAvailableAt).not.toHaveBeenCalled();
       expect(tx.appointment.create).toHaveBeenCalled();
     });
 
@@ -484,12 +479,8 @@ describe('AppointmentsService reference numbers', () => {
         { provide: AuditLogsService, useValue: { log: jest.fn() } },
         { provide: EventEmitter2, useValue: { emit: jest.fn() } },
         {
-          provide: DonationEligibilityService,
-          useValue: { assertEligibleToDonateAt: jest.fn().mockResolvedValue(undefined) },
-        },
-        {
-          provide: DonorDeferralsService,
-          useValue: { assertNotDeferredAt: jest.fn().mockResolvedValue(undefined) },
+          provide: DonorAvailabilityService,
+          useValue: { assertAvailableAt: jest.fn().mockResolvedValue(undefined) },
         },
       ],
     }).compile();

@@ -4,7 +4,10 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { BloodType, DonationStatus, Prisma, RhFactor, VerificationStatus } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
+import { ClinicalReleaseService } from '../clinical-release/clinical-release.service';
 import { DonationEligibilityService } from '../donation-eligibility/donation-eligibility.service';
+import { DonorAvailabilityService } from '../donor-availability/donor-availability.service';
+import { ScreeningOrdersService } from '../screening/screening-orders.service';
 import { DonationsService } from './donations.service';
 import { DonorDeferralsService } from '../donor-deferrals/donor-deferrals.service';
 import { CustodyLedgerService } from '../custody/custody-ledger.service';
@@ -95,6 +98,30 @@ describe('DonationsService.completeDonation', () => {
             findDeferredDonorIds: jest.fn().mockResolvedValue(new Set<string>()),
             getActiveDeferral: jest.fn().mockResolvedValue(null),
             createInTransaction: jest.fn().mockResolvedValue({ id: 'deferral-1' }),
+          },
+        },
+        {
+          provide: DonorAvailabilityService,
+          // Nothing standing against the donor -- no recovery window, no
+          // deferral, no medical review. The guard's own rules are proved in
+          // donor-availability.service.spec.ts.
+          useValue: { assertAvailableAt: jest.fn().mockResolvedValue(undefined) },
+        },
+        {
+          provide: ClinicalReleaseService,
+          // No approved policy, which is how the repository ships. Completion
+          // still succeeds and the absent screening order is recorded as a
+          // skip -- see the screening mock below.
+          useValue: { getPolicyInForce: jest.fn().mockResolvedValue(null) },
+        },
+        {
+          provide: ScreeningOrdersService,
+          useValue: {
+            raiseForDonationInTransaction: jest.fn().mockResolvedValue({
+              raised: false,
+              reasonCode: 'SCREENING_POLICY_NOT_CONFIGURED',
+              message: 'No approved clinical release policy is in force.',
+            }),
           },
         },
       ],
@@ -340,7 +367,12 @@ describe('DonationsService.checkInDonation', () => {
   let service: DonationsService;
   let prisma: any;
   let tx: any;
-  let eligibility: { assertEligibleToDonateAt: jest.Mock };
+  /**
+   * Sprint 10 folded the recovery window, the deferral and the medical review
+   * into one canonical guard, so what check-in must do is ask that guard one
+   * question about the current moment. The assertions move with the call.
+   */
+  let availability: { assertAvailableAt: jest.Mock };
 
   const appointment = {
     id: 'appt-1',
@@ -381,7 +413,7 @@ describe('DonationsService.checkInDonation', () => {
       $transaction: jest.fn().mockImplementation(async (cb: any) => cb(tx)),
     };
 
-    eligibility = { assertEligibleToDonateAt: jest.fn().mockResolvedValue(undefined) };
+    availability = { assertAvailableAt: jest.fn().mockResolvedValue(undefined) };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -390,18 +422,33 @@ describe('DonationsService.checkInDonation', () => {
         { provide: PrismaService, useValue: prisma },
         { provide: AuditLogsService, useValue: { log: jest.fn().mockResolvedValue({}) } },
         { provide: EventEmitter2, useValue: { emit: jest.fn() } },
-        { provide: DonationEligibilityService, useValue: eligibility },
+        { provide: DonationEligibilityService, useValue: {} },
         {
           provide: DonorDeferralsService,
           useValue: {
-            // No deferral in force, so these suites keep testing what they were
-            // written to test. The deferral gates themselves are proved in
-            // donor-deferrals.service.spec.ts and clinical-safety.e2e-spec.ts.
             isDeferredAt: jest.fn().mockResolvedValue(false),
             assertNotDeferredAt: jest.fn().mockResolvedValue(undefined),
             findDeferredDonorIds: jest.fn().mockResolvedValue(new Set<string>()),
             getActiveDeferral: jest.fn().mockResolvedValue(null),
             createInTransaction: jest.fn().mockResolvedValue({ id: 'deferral-1' }),
+          },
+        },
+        { provide: DonorAvailabilityService, useValue: availability },
+        {
+          provide: ClinicalReleaseService,
+          // No approved policy, which is how the repository ships. Completion
+          // still succeeds and the absent screening order is recorded as a
+          // skip -- see the screening mock below.
+          useValue: { getPolicyInForce: jest.fn().mockResolvedValue(null) },
+        },
+        {
+          provide: ScreeningOrdersService,
+          useValue: {
+            raiseForDonationInTransaction: jest.fn().mockResolvedValue({
+              raised: false,
+              reasonCode: 'SCREENING_POLICY_NOT_CONFIGURED',
+              message: 'No approved clinical release policy is in force.',
+            }),
           },
         },
       ],
@@ -421,15 +468,15 @@ describe('DonationsService.checkInDonation', () => {
 
     await service.checkInDonation('appt-1', 'org-1', 'staff-1', {} as any);
 
-    expect(eligibility.assertEligibleToDonateAt).toHaveBeenCalledTimes(1);
-    const [donorId, when] = eligibility.assertEligibleToDonateAt.mock.calls[0];
+    expect(availability.assertAvailableAt).toHaveBeenCalledTimes(1);
+    const [donorId, when] = availability.assertAvailableAt.mock.calls[0];
     expect(donorId).toBe(appointment.donorId);
     expect(when.getTime()).toBeGreaterThanOrEqual(before);
     expect(when.getTime()).toBeLessThanOrEqual(Date.now());
   });
 
   it('refuses check-in without creating a donation when the donor is inside their recovery window', async () => {
-    eligibility.assertEligibleToDonateAt.mockRejectedValue(
+    availability.assertAvailableAt.mockRejectedValue(
       new ConflictException({ code: 'DONOR_IN_RECOVERY_WINDOW' }),
     );
 
@@ -499,6 +546,30 @@ describe('DonationsService.getMyDonationStatistics', () => {
             findDeferredDonorIds: jest.fn().mockResolvedValue(new Set<string>()),
             getActiveDeferral: jest.fn().mockResolvedValue(null),
             createInTransaction: jest.fn().mockResolvedValue({ id: 'deferral-1' }),
+          },
+        },
+        {
+          provide: DonorAvailabilityService,
+          // Nothing standing against the donor -- no recovery window, no
+          // deferral, no medical review. The guard's own rules are proved in
+          // donor-availability.service.spec.ts.
+          useValue: { assertAvailableAt: jest.fn().mockResolvedValue(undefined) },
+        },
+        {
+          provide: ClinicalReleaseService,
+          // No approved policy, which is how the repository ships. Completion
+          // still succeeds and the absent screening order is recorded as a
+          // skip -- see the screening mock below.
+          useValue: { getPolicyInForce: jest.fn().mockResolvedValue(null) },
+        },
+        {
+          provide: ScreeningOrdersService,
+          useValue: {
+            raiseForDonationInTransaction: jest.fn().mockResolvedValue({
+              raised: false,
+              reasonCode: 'SCREENING_POLICY_NOT_CONFIGURED',
+              message: 'No approved clinical release policy is in force.',
+            }),
           },
         },
       ],

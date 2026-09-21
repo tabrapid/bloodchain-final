@@ -33,7 +33,7 @@ import {
   EMERGENCY_RESPONSE_COMPLETED_EVENT,
 } from '../gamification/events/gamification-event.handler';
 import { DonationEligibilityService } from '../donation-eligibility/donation-eligibility.service';
-import { DonorDeferralsService } from '../donor-deferrals/donor-deferrals.service';
+import { DonorAvailabilityService } from '../donor-availability/donor-availability.service';
 import { PlatformSettingsService } from '../platform-settings/platform-settings.service';
 import { assertOrganizationActive } from '../../common/utils/organization-status.util';
 import { haversineDistanceKm } from '../../common/utils/geo.util';
@@ -74,7 +74,7 @@ export class EmergencyService {
     private readonly eventEmitter: EventEmitter2,
     private readonly gateway: EmergencyGateway,
     private readonly donationEligibility: DonationEligibilityService,
-    private readonly donorDeferrals: DonorDeferralsService,
+    private readonly donorAvailability: DonorAvailabilityService,
     private readonly platformSettings: PlatformSettingsService,
   ) {}
 
@@ -186,10 +186,15 @@ export class EmergencyService {
       throw new ForbiddenException('Donor is not active.');
     }
 
-    // The deferral rows, not just the profile flag. Same reason as in matching:
-    // the flag is a cache, and a cache is not what an emergency should be
-    // gated on.
-    await this.donorDeferrals.assertNotDeferredAt(userId, new Date());
+    // The canonical guard, not a local reading of the profile flag.
+    //
+    // This used to be a deferral check written here, next to a status check
+    // written here, and the two between them were the whole of what an
+    // emergency asked. Sprint 10 adds a third rule -- medical review -- and
+    // adding it to this call site, to booking and to check-in independently
+    // would have been three chances to forget it. One guard, asked about now,
+    // because the emergency is now.
+    await this.donorAvailability.assertAvailableAt(userId, new Date());
 
     if (!user.donorProfile.bloodType || !user.donorProfile.rhFactor) {
       throw new ForbiddenException('Donor blood type not verified.');
@@ -387,19 +392,22 @@ export class EmergencyService {
       // The window is the existing rule from DonationEligibilityService,
       // unchanged, asked about now because the emergency is now.
       const matchedAt = new Date();
-      const nextEligibleDates = await this.donationEligibility.getNextEligibleDonationDates(
-        donors.map((donor) => donor.id),
-      );
 
-      // Deferral, from the deferral rows rather than from the profile flag.
+      // Every reason a donor may not donate, from the rows rather than from the
+      // profile flag, in one set-based call for the whole candidate pool.
       //
-      // The `donorStatus: ACTIVE` filter above still runs and still excludes
-      // most deferred donors, because the flag is kept in step as a cache. This
-      // is the authority: a flag that drifted -- a profile written directly, a
-      // deferral raised while a stale row was in flight -- must not be able to
-      // put a deferred donor in front of an emergency. One query for the whole
-      // candidate set, not one per donor.
-      const deferredDonorIds = await this.donorDeferrals.findDeferredDonorIds(
+      // The `donorStatus: ACTIVE` filter in the query above still runs and
+      // still excludes most unavailable donors, because the column is kept in
+      // step as a cache -- and since Sprint 10 that includes
+      // MEDICAL_REVIEW_REQUIRED, which is not ACTIVE. This is the authority: a
+      // flag that drifted, for any of the three reasons, must not be able to
+      // put an unavailable donor in front of an emergency.
+      //
+      // Set-based on purpose. Asking the guard per donor would put a query per
+      // candidate inside the matching path, and the tempting shortcut then is
+      // to trust the SQL filter alone -- which is exactly the duplicated check
+      // the canonical guard exists to prevent.
+      const unavailableDonorIds = await this.donorAvailability.findUnavailableDonorIds(
         donors.map((donor) => donor.id),
         matchedAt,
       );
@@ -411,10 +419,7 @@ export class EmergencyService {
         if (donor.emergencyMatches.length > 0 || donor.emergencyResponses.length > 0) {
           return false;
         }
-        if (deferredDonorIds.has(donor.id)) {
-          return false;
-        }
-        if (!this.donationEligibility.isEligibleAt(nextEligibleDates.get(donor.id), matchedAt)) {
+        if (unavailableDonorIds.has(donor.id)) {
           return false;
         }
         return this.isBloodCompatible(

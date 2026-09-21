@@ -37,7 +37,10 @@ import {
 } from './dto/donation.dto';
 import { DONATION_COMPLETED_EVENT, DonationCompletedPayload } from '../gamification/events/gamification-event.handler';
 import { DonationEligibilityService } from '../donation-eligibility/donation-eligibility.service';
+import { ClinicalReleaseService } from '../clinical-release/clinical-release.service';
+import { DonorAvailabilityService } from '../donor-availability/donor-availability.service';
 import { DonorDeferralsService } from '../donor-deferrals/donor-deferrals.service';
+import { ScreeningOrdersService } from '../screening/screening-orders.service';
 
 @Injectable()
 export class DonationsService {
@@ -47,6 +50,9 @@ export class DonationsService {
     private readonly eventEmitter: EventEmitter2,
     private readonly donationEligibility: DonationEligibilityService,
     private readonly donorDeferrals: DonorDeferralsService,
+    private readonly donorAvailability: DonorAvailabilityService,
+    private readonly clinicalRelease: ClinicalReleaseService,
+    private readonly screeningOrders: ScreeningOrdersService,
   ) {}
 
   private generateDonationReference(): string {
@@ -124,12 +130,10 @@ export class DonationsService {
     // now: the donor may have donated elsewhere in between, or staff may have
     // extended their window on a previous donation. Asked about now, because
     // this is the moment the donation would happen.
-    await this.donationEligibility.assertEligibleToDonateAt(appointment.donorId, new Date());
-    // Re-checked here for the same reason the recovery window is: a donor who
-    // was clear when they booked may have been deferred since, at this centre
-    // or another one. Asked about now, because this is the moment the donation
-    // would happen.
-    await this.donorDeferrals.assertNotDeferredAt(appointment.donorId, new Date());
+    // The canonical guard: the recovery window, any deferral, and any medical
+    // review, in one answer. Asked about now for all three, because this is the
+    // moment the donation would happen.
+    await this.donorAvailability.assertAvailableAt(appointment.donorId, new Date());
 
     const result = await withUniqueRetry(
       () =>
@@ -391,6 +395,14 @@ export class DonationsService {
       throw new BadRequestException('Donation cannot proceed without approved assessment.');
     }
 
+    // Asked again at the needle, not inherited from check-in.
+    //
+    // Minutes or hours can pass between a donor checking in and the collection
+    // starting, and a medical review or a deferral raised in that window is
+    // raised precisely because somebody decided this donor should not give
+    // blood. Check-in passing is not evidence about now.
+    await this.donorAvailability.assertAvailableAt(donation.donorId, new Date());
+
     const result = await this.db.$transaction(async (tx) => {
       const updated = await tx.donation.update({
         where: { id: donationId },
@@ -528,6 +540,13 @@ export class DonationsService {
       ? new Date(dto.nextDonationDate)
       : this.donationEligibility.computeDefaultNextEligibleDate(now);
 
+    // Resolved before the transaction opens, so the policy read is not holding a
+    // row lock and the same policy answers both the order and any later
+    // release. A donation whose organisation has no approved policy still
+    // completes -- see `raiseForDonationInTransaction` for why refusing would
+    // be the more dangerous choice -- and the skip is audited below.
+    const screeningPolicy = await this.clinicalRelease.getPolicyInForce(organizationId);
+
     const result = await withUniqueRetry(
       () =>
         this.db.$transaction(async (tx) => {
@@ -647,10 +666,32 @@ export class DonationsService {
             },
           });
 
-          return updated;
+          // Screening is ORDERED here, and nothing more than ordered.
+          //
+          // A completed donation is not a screened one, an order is not a
+          // result, and a result is not a release. This line creates the work
+          // item and says nothing about any of the others: the component that
+          // was just created carries no expiry, no release decision and no
+          // screening, and the release gate refuses it until every requirement
+          // of the policy in force is satisfied.
+          //
+          // `requestedBy: null` with `systemRaised: true` because nobody
+          // requested it. Attributing the order to whoever clicked Complete
+          // would put their name on a laboratory decision they did not make.
+          const screening = await this.screeningOrders.raiseForDonationInTransaction(tx, {
+            donationId,
+            organizationId,
+            requestedBy: null,
+            systemRaised: true,
+            policy: screeningPolicy,
+          });
+
+          return { donation: updated, screening };
         }),
-      { uniqueFields: ['unitReference'] },
+      { uniqueFields: ['unitReference', 'orderReference'] },
     );
+
+    const completed = result.donation;
 
     await this.audit.log({
       actorId: staffId,
@@ -659,7 +700,7 @@ export class DonationsService {
       entityId: donationId,
       organizationId,
       metadata: {
-        donationReference: result.donationReference,
+        donationReference: completed.donationReference,
         volumeMl: dto.volumeMl,
         // The group that was actually recorded, with where it came from -- not
         // the request fields, which are empty when the profile was the source.
@@ -667,6 +708,35 @@ export class DonationsService {
         rhFactor: collected.rhFactor,
         bloodTypeSource: collected.source,
       },
+      ipAddress,
+    });
+
+    // The screening order, or the fact that none was raised.
+    //
+    // A donation that produced no screening order is a fact somebody has to be
+    // able to find, and "nothing in the audit log" is not a way to find it. The
+    // skip reason is recorded with the same weight as the raise.
+    await this.audit.log({
+      actorId: staffId,
+      action: result.screening.raised ? 'SCREENING_ORDER_RAISED' : 'SCREENING_ORDER_NOT_RAISED',
+      entityType: result.screening.raised ? 'ScreeningOrder' : 'Donation',
+      entityId: result.screening.raised ? result.screening.orderId : donationId,
+      organizationId,
+      metadata: result.screening.raised
+        ? {
+            donationId,
+            donationReference: completed.donationReference,
+            orderReference: result.screening.orderReference,
+            policyId: result.screening.policyId,
+            policyVersion: result.screening.policyVersion,
+            requirementCount: result.screening.requirementCodes.length,
+            systemRaised: true,
+          }
+        : {
+            donationId,
+            donationReference: completed.donationReference,
+            reasonCode: result.screening.reasonCode,
+          },
       ipAddress,
     });
 
@@ -682,10 +752,10 @@ export class DonationsService {
      * writes when it creates the donation; a donation booked through an
      * appointment never carries one, which is exactly the right answer.
      */
-    const isEmergency = result.emergencyResponseId !== null;
+    const isEmergency = completed.emergencyResponseId !== null;
 
     this.eventEmitter.emit(DONATION_COMPLETED_EVENT, {
-      donationId: result.id,
+      donationId: completed.id,
       donorId: donation.donorId,
       organizationId,
       isEmergency,
@@ -693,16 +763,30 @@ export class DonationsService {
 
     return {
       data: {
-        id: result.id,
-        donationReference: result.donationReference,
-        status: result.status,
-        volumeMl: result.volumeMl,
-        bloodType: result.bloodType,
-        rhFactor: result.rhFactor,
-        collectionStartedAt: result.collectionStartedAt,
-        collectionCompletedAt: result.collectionCompletedAt,
-        completedAt: result.completedAt,
-        nextDonationDate: result.nextDonationDate,
+        id: completed.id,
+        donationReference: completed.donationReference,
+        status: completed.status,
+        volumeMl: completed.volumeMl,
+        bloodType: completed.bloodType,
+        rhFactor: completed.rhFactor,
+        collectionStartedAt: completed.collectionStartedAt,
+        collectionCompletedAt: completed.collectionCompletedAt,
+        completedAt: completed.completedAt,
+        nextDonationDate: completed.nextDonationDate,
+        /**
+         * Reported so the collecting console never has to infer it. A
+         * completed donation with no screening order is a state the operator
+         * must be able to see, and the reason is the code, not prose.
+         */
+        screening: result.screening.raised
+          ? {
+              ordered: true,
+              orderId: result.screening.orderId,
+              orderReference: result.screening.orderReference,
+              policyVersion: result.screening.policyVersion,
+              requirementCount: result.screening.requirementCodes.length,
+            }
+          : { ordered: false, reasonCode: result.screening.reasonCode },
       },
     };
   }

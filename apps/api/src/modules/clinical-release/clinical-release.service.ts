@@ -11,9 +11,15 @@ import {
   ExpiryProvenance,
   Prisma,
   ReleaseDecisionOutcome,
+  ScreeningDispositionRule,
+  ScreeningOrderStatus,
 } from '@prisma/client';
 
 import { PrismaService } from '../../database/prisma.service';
+import {
+  resolveDisposition,
+  satisfiesRequirement,
+} from '../screening/screening-disposition';
 import {
   CLINICAL_RELEASE_MESSAGES,
   ClinicalReleaseReason,
@@ -26,6 +32,10 @@ export type EvaluableUnit = Pick<
   | 'id'
   | 'unitReference'
   | 'organizationId'
+  // The parent donation, which is what screening is recorded against. A
+  // component inherits its screening from the bag it was made from; nothing is
+  // screened per component.
+  | 'donationId'
   | 'componentType'
   | 'collectedAt'
   | 'expiresAt'
@@ -35,6 +45,7 @@ export type EvaluableUnit = Pick<
 
 type PolicyWithRequirements = ClinicalReleasePolicy & {
   requirements: ClinicalReleaseRequirement[];
+  dispositionRules: ScreeningDispositionRule[];
 };
 
 export interface ClinicalReleaseRefusal {
@@ -127,14 +138,14 @@ export class ClinicalReleaseService {
     const scoped = await this.db.clinicalReleasePolicy.findFirst({
       where: { ...effective, organizationId },
       orderBy: { version: 'desc' },
-      include: { requirements: true },
+      include: { requirements: true, dispositionRules: true },
     });
     if (scoped) return scoped;
 
     return this.db.clinicalReleasePolicy.findFirst({
       where: { ...effective, organizationId: null },
       orderBy: { version: 'desc' },
-      include: { requirements: true },
+      include: { requirements: true, dispositionRules: true },
     });
   }
 
@@ -170,7 +181,7 @@ export class ClinicalReleaseService {
         return this.refuse(ClinicalReleaseReason.POLICY_HAS_NO_REQUIREMENTS, policy);
       }
 
-      const unmet = await this.unmetRequirements(unit, applicable);
+      const unmet = await this.unmetRequirements(unit, applicable, policy);
       if (unmet.length > 0) {
         return this.refuse(ClinicalReleaseReason.REQUIREMENTS_NOT_MET, policy, unmet);
       }
@@ -195,22 +206,100 @@ export class ClinicalReleaseService {
   /**
    * Which of a policy's requirements this unit does not satisfy.
    *
-   * Every one of them, today. Satisfying a requirement means a screening record
-   * against this unit's donation, and no screening subsystem exists: the
-   * laboratory module in this repository is donor diagnostics keyed to
-   * appointments, not donation screening (CL-02, LAB-01). Rather than pretend
-   * otherwise, this returns every applicable requirement code, so an approved
-   * production policy refuses with an exact list of what is missing.
+   * Sprint 7 left this method returning every requirement code unconditionally,
+   * because no screening subsystem existed and pretending one did would have
+   * been the more dangerous lie. Sprint 10 fills the seam, and the shape of
+   * what it fills it with matters more than the fact that it is filled.
    *
-   * This method is the seam the screening subsystem plugs into. Nothing else in
-   * the release path needs to change when it arrives.
+   * A requirement is satisfied when ALL of the following hold. Any one of them
+   * missing is a refusal, and none of them is inferred from another:
+   *
+   * 1. A screening result exists for that requirement code, against the
+   *    donation this component came from, ordered at this organisation.
+   * 2. That result is the live one -- a superseded result is what we USED to
+   *    believe, and a correction exists precisely because it was wrong.
+   * 3. The raw result code means CLEAR under the policy IN FORCE NOW. See
+   *    below: this is a re-derivation, not a reading of the stored disposition.
+   * 4. Where the policy requires review, a second person has reviewed it.
+   *    An unreviewed result is a measurement, not an answer.
+   *
+   * ## Why the disposition is re-derived rather than read
+   *
+   * `ScreeningResult.disposition` is the historical record: what the policy
+   * said when the result was entered. It is right for an audit and wrong for a
+   * release. If version 4 of the policy decides that a code version 3 treated
+   * as clear is no longer clear, a component still sitting in the fridge must
+   * not be released on version 3's answer -- and the stored row must not be
+   * rewritten either, because it is evidence of what was known at the time.
+   *
+   * So the raw laboratory code is the fact, and the policy in force is asked
+   * what that fact means, every time. A rule that has not changed produces the
+   * same answer, so an ordinary version bump breaks nothing; a rule that HAS
+   * changed is honoured immediately for anything not yet released. Components
+   * already released on the old answer are a recall question, which is what the
+   * recall path exists for.
+   *
+   * Note what is NOT consulted anywhere in here: who is asking. A requirement
+   * is met or it is not, and no role satisfies one.
    */
   private async unmetRequirements(
     unit: EvaluableUnit,
     requirements: ClinicalReleaseRequirement[],
+    policy: PolicyWithRequirements,
   ): Promise<string[]> {
-    void unit;
-    return requirements.map((requirement) => requirement.code);
+    // Live results for this donation, from orders raised at the organisation
+    // that holds the component. Screening belongs to the collecting
+    // organisation; another organisation's results are not this gate's evidence.
+    const results = await this.db.screeningResult.findMany({
+      where: {
+        superseded: false,
+        screeningOrder: {
+          donationId: unit.donationId,
+          organizationId: unit.organizationId,
+          // A cancelled order's results are not an answer to anything.
+          status: { not: ScreeningOrderStatus.CANCELLED },
+        },
+      },
+      select: {
+        requirementCode: true,
+        resultCode: true,
+        reviewedAt: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const unmet: string[] = [];
+
+    for (const requirement of requirements) {
+      // Newest first, so a repeat test supersedes an earlier attempt without
+      // needing the earlier one to be marked superseded -- which it is not,
+      // because a repeat is not a correction.
+      const result = results.find((row) => row.requirementCode === requirement.code);
+
+      if (!result) {
+        unmet.push(requirement.code);
+        continue;
+      }
+
+      const resolution = resolveDisposition(
+        requirement.code,
+        result.resultCode,
+        policy.dispositionRules,
+        policy.version,
+      );
+
+      if (!satisfiesRequirement(resolution)) {
+        unmet.push(requirement.code);
+        continue;
+      }
+
+      if (policy.requiresResultReview && result.reviewedAt === null) {
+        unmet.push(requirement.code);
+      }
+    }
+
+    return unmet;
   }
 
   /**
