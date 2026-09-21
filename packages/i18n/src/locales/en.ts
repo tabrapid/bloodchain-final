@@ -2304,6 +2304,8 @@ export const en: Catalog = {
       // Phrasing of the interval itself is deliberately neutral: the number of
       // days is configuration, not a claim this catalogue makes.
       recoveryPeriod: 'Recovery period after your last donation',
+      medicalReviewRequired:
+        'Medical review is required before your next donation. Staff at the blood centre can help.',
     },
     markers: {
       hemoglobin: 'Haemoglobin',
@@ -2367,6 +2369,7 @@ export const en: Catalog = {
       ACTIVE: 'Active donor',
       INACTIVE: 'Inactive',
       DEFERRED: 'Deferred',
+      MEDICAL_REVIEW_REQUIRED: 'Medical review required',
     },
     verification: {
       UNVERIFIED: 'Blood type not verified',

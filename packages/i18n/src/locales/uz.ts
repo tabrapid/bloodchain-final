@@ -2242,6 +2242,8 @@ export const uz: Catalog = {
       notYetEligible: 'Hali yaroqli emas',
       nextEligibleOn: 'Keyingi muddat: {{date}}',
       recoveryPeriod: 'Oxirgi topshirishdan keyingi tiklanish davri',
+      medicalReviewRequired:
+        'Keyingi donatsiyadan oldin tibbiy koʻrik talab qilinadi. Qon markazi xodimlari yordam beradi.',
     },
     markers: {
       hemoglobin: 'Gemoglobin',
@@ -2305,6 +2307,7 @@ export const uz: Catalog = {
       ACTIVE: 'Faol donor',
       INACTIVE: 'Nofaol',
       DEFERRED: 'Vaqtincha chetlatilgan',
+      MEDICAL_REVIEW_REQUIRED: 'Tibbiy koʻrik talab qilinadi',
     },
     verification: {
       UNVERIFIED: 'Qon guruhi tasdiqlanmagan',

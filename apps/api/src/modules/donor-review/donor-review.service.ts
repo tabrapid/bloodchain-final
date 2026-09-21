@@ -32,8 +32,16 @@ export const DONOR_REVIEW_ROLES: RoleCode[] = [
   RoleCode.BLOOD_CENTER_STAFF,
 ];
 
-/** What a donor's own client is told. Never why. */
-export const DONOR_REVIEW_DONOR_MESSAGE_KEY = 'donor.medicalReviewRequired';
+/**
+ * What a donor's own client is told. Never why.
+ *
+ * A catalogue key, not a message identifier of this module's own invention:
+ * `medical.eligibility.medicalReviewRequired` exists in uz, ru and en and is on
+ * the clinician's review list in `docs/clinical-review.md`. The English
+ * sentence below it is the fallback for a client that cannot resolve the key,
+ * not the wording a donor is meant to read.
+ */
+export const DONOR_REVIEW_DONOR_MESSAGE_KEY = 'medical.eligibility.medicalReviewRequired';
 
 export interface OpenReviewSummary {
   id: string;

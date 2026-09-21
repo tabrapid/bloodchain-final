@@ -3,12 +3,7 @@
 Every clinically meaningful string in the product, in all three languages, for a
 clinician to confirm before release.
 
-> **Not to be confused with** `review-packs/clinical-review.md`, which is a
-> different document with a similar name. That one asks the transfusion
-> specialist about rules — intervals, deferral reasons, compatibility, shelf
-> life. This one is the terminology list, and the pack refers to it as CR-10.
-
-**106 terms — 106 pending, 0 approved.**
+**108 terms — 108 pending, 0 approved.**
 
 ## How to read this
 
@@ -108,10 +103,12 @@ recorded in this file.
 | `medical.donationTypes.plasma` | Plasma | Plazma | Плазма | Donor app › app/donate | Names the procedure the donor is consenting to. Wrong here is consent to the wrong thing. | PENDING |  |
 | `medical.donationTypes.platelets` | Platelets | Trombotsitlar | Тромбоциты | Donor app › app/donate | Names the procedure the donor is consenting to. Wrong here is consent to the wrong thing. | PENDING |  |
 | `medical.donationTypes.wholeBlood` | Whole Blood | To‘liq qon | Цельная кровь | Donor app › app/donate | Names the procedure the donor is consenting to. Wrong here is consent to the wrong thing. | PENDING |  |
-| `medical.donorStatus.ACTIVE` | Active donor | Faol donor | Активный донор | Not currently rendered | The donor’s standing, including deferral. Wrong here misstates whether they may donate. | PENDING |  |
-| `medical.donorStatus.DEFERRED` | Deferred | Vaqtincha chetlatilgan | Отвод | Not currently rendered | The donor’s standing, including deferral. Wrong here misstates whether they may donate. | PENDING |  |
-| `medical.donorStatus.INACTIVE` | Inactive | Nofaol | Неактивный | Not currently rendered | The donor’s standing, including deferral. Wrong here misstates whether they may donate. | PENDING |  |
+| `medical.donorStatus.ACTIVE` | Active donor | Faol donor | Активный донор | Donor app › app/security | The donor’s standing, including deferral. Wrong here misstates whether they may donate. | PENDING |  |
+| `medical.donorStatus.DEFERRED` | Deferred | Vaqtincha chetlatilgan | Отвод | Donor app › app/security | The donor’s standing, including deferral. Wrong here misstates whether they may donate. | PENDING |  |
+| `medical.donorStatus.INACTIVE` | Inactive | Nofaol | Неактивный | Donor app › app/security | The donor’s standing, including deferral. Wrong here misstates whether they may donate. | PENDING |  |
+| `medical.donorStatus.MEDICAL_REVIEW_REQUIRED` | Medical review required | Tibbiy koʻrik talab qilinadi | Требуется медицинский пересмотр | Donor app › app/security | The donor’s standing, including deferral. Wrong here misstates whether they may donate. | PENDING |  |
 | `medical.eligibility.eligible` | Eligible to donate | Qon topshirishga yaroqli | Допущен к донации | Not currently rendered | Tells a donor whether they may donate, and why not. Wrong here turns away a safe donor or invites an unsafe one. | PENDING |  |
+| `medical.eligibility.medicalReviewRequired` | Medical review is required before your next donation. Staff at the blood centre can help. | Keyingi donatsiyadan oldin tibbiy koʻrik talab qilinadi. Qon markazi xodimlari yordam beradi. | Перед следующей донацией требуется медицинский пересмотр. Сотрудники центра крови помогут. | Not currently rendered | Tells a donor whether they may donate, and why not. Wrong here turns away a safe donor or invites an unsafe one. | PENDING |  |
 | `medical.eligibility.nextEligibleOn` | Next eligible on {{date}} | Keyingi muddat: {{date}} | Следующая дата: {{date}} | Not currently rendered | Tells a donor whether they may donate, and why not. Wrong here turns away a safe donor or invites an unsafe one. | PENDING |  |
 | `medical.eligibility.notYetEligible` | Not yet eligible | Hali yaroqli emas | Пока не допущен | Not currently rendered | Tells a donor whether they may donate, and why not. Wrong here turns away a safe donor or invites an unsafe one. | PENDING |  |
 | `medical.eligibility.recoveryPeriod` | Recovery period after your last donation | Oxirgi topshirishdan keyingi tiklanish davri | Период восстановления после последней донации | Not currently rendered | Tells a donor whether they may donate, and why not. Wrong here turns away a safe donor or invites an unsafe one. | PENDING |  |

@@ -2301,6 +2301,8 @@ export const ru: Catalog = {
       notYetEligible: 'Пока не допущен',
       nextEligibleOn: 'Следующая дата: {{date}}',
       recoveryPeriod: 'Период восстановления после последней донации',
+      medicalReviewRequired:
+        'Перед следующей донацией требуется медицинский пересмотр. Сотрудники центра крови помогут.',
     },
     markers: {
       hemoglobin: 'Гемоглобин',
@@ -2364,6 +2366,7 @@ export const ru: Catalog = {
       ACTIVE: 'Активный донор',
       INACTIVE: 'Неактивный',
       DEFERRED: 'Отвод',
+      MEDICAL_REVIEW_REQUIRED: 'Требуется медицинский пересмотр',
     },
     verification: {
       UNVERIFIED: 'Группа крови не подтверждена',

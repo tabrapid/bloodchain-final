@@ -303,7 +303,16 @@ export default function Security() {
             <Badge
               variant={status === 'ACTIVE' ? 'success' : status ? 'warning' : 'default'}
             >
-              {status ? status.replace(/_/g, ' ').toLowerCase() : 'unknown'}
+              {/*
+                Translated rather than de-underscored.
+                `status.replace(/_/g, ' ').toLowerCase()` put the raw enum on
+                the screen in English, which was survivable while the values
+                were ACTIVE and DEFERRED and stopped being so the moment
+                MEDICAL_REVIEW_REQUIRED existed: the one status a donor most
+                needs to understand was the one shown in a language they may
+                not read.
+              */}
+              {status ? t(`medical.donorStatus.${status}`) : t('common.unknown')}
             </Badge>
           </View>
         </GlassCard>

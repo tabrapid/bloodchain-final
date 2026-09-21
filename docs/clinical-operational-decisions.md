@@ -39,6 +39,28 @@ textbook is not validation.
 
 ---
 
+## What has changed since this register was written
+
+This register was written as a **Sprint 6 snapshot** and several of its rows
+describe behaviour that no longer exists. A register that is three sprints out
+of date is worse than an absent one, because people rely on it -- which is the
+same mistake `docs/security.md` made about the audit trail, and which Sprint 9
+spent itself correcting.
+
+So every row that has changed now carries a **Changed since** bullet naming the
+sprint and what it does today. The original wording is left in place rather than
+rewritten: "this is what it used to do, and here is what it does now" is the
+sentence a reviewer needs, and deleting the first half destroys it.
+
+**Nothing has become VALIDATED.** Sprints 7, 9 and 10 changed what the software
+does; none of them produced a signed clinical review, and no row below claims
+one. Several rows moved from "the software does something unsafe" to "the
+software refuses until somebody qualified answers a question", which is progress
+of a different kind: the question is now visible and fatal rather than invisible
+and permissive.
+
+---
+
 ## A. Donor eligibility and recovery
 
 ### CD-001 — Post-donation recovery window is 56 days
@@ -135,6 +157,16 @@ textbook is not validation.
 - **Pilot without it?** **NO.** This is an inconsistency, not a missing feature:
   one subsystem enforces the flag and another ignores it. See DEF-01 in
   `docs/clinical-safety-gaps.md`.
+- **Changed since:** **Sprint 9** replaced the flag with `DonorDeferral` rows
+  carrying a kind, a structured reason code, a period, an actor and a lift
+  history, and made booking, reschedule and check-in consult them. **Sprint 10**
+  folded that check, the recovery window and the new medical review into one
+  canonical guard (`donor-availability.service.ts`) which booking, reschedule,
+  check-in, donation start and emergency matching all call, so a fourth rule is
+  one method to edit rather than five call sites to remember.
+  `DonorProfile.donorStatus` survives as a cache that no gate reads.
+  **Still open:** the deferral reason vocabulary ships empty, because no signed
+  deferral schedule exists (see CD-081).
 
 ---
 
@@ -231,6 +263,14 @@ textbook is not validation.
 - **Engineering dependency:** Large — requires the screening subsystem that does
   not exist (see `docs/clinical-safety-gaps.md`, section TTI).
 - **Pilot without it?** **NO.** See BU-01.
+- **Changed since:** **Sprint 7** put a gate in front of this route: with no
+  approved `ClinicalReleasePolicy`, every release is refused, and an approved
+  policy listing nothing is refused too. **Sprint 10** filled the seam Sprint 7
+  left open -- a requirement is satisfied only by a live screening result whose
+  raw code the policy in force reads as CLEAR and which a second person has
+  reviewed. There is still no role, flag or route that skips it.
+  **Still open:** which requirements a policy must list. The repository ships
+  none (see CD-080).
 
 ### CD-022 — Quarantine is a manual status with a free-text reason
 
@@ -238,6 +278,12 @@ textbook is not validation.
 - **Behaviour:** Staff move a unit to QUARANTINED with a typed reason. Nothing
   puts a unit into quarantine automatically, and nothing prevents the same
   person releasing it again a moment later.
+- **Changed since:** **Sprint 9** added `BloodUnitHold`, which is deliberately
+  NOT a status: a hold stands beside the lifecycle and every path that puts a
+  unit into usable stock refuses while one is active. Resolving a hold writes
+  `status = RESOLVED` on the hold row and nothing else -- it never releases the
+  unit. **Sprint 10** closed the two remaining paths that took a held unit the
+  other way, toward a patient: reserve and issue.
 - **Encoded in:** `inventory.service.ts` (`quarantineUnit`), `releaseUnit`.
 - **Class:** OPERATIONAL
 - **Status:** PENDING_OPERATIONAL
@@ -263,6 +309,15 @@ textbook is not validation.
 - **Engineering dependency:** Medium.
 - **Pilot without it?** **NO** for transfusion. The traceability chain is broken
   at the last link.
+- **Changed since:** **Sprint 9** closed the last link: `BloodUnitDisposition`
+  records what finally happened to a unit, with an opaque, organisation-scoped
+  recipient reference, so a look-back from a component to a donation and a
+  traceback from a recipient's organisation both work. **Sprint 7** added
+  `assertReleased`, so a unit with no release decision cannot be issued at all,
+  and **Sprint 10** added the hold predicate to the issue claim — a component
+  under an open recall or a declared temperature excursion no longer leaves the
+  building. **Still open:** no crossmatch record and no compatibility check, and
+  neither is proposed here (CD-060 owns the compatibility question).
 
 ### CD-024 — Discard is available to blood-centre staff with a typed reason
 
@@ -425,6 +480,14 @@ textbook is not validation.
 - **Reviewer:** laboratory specialist + transfusion specialist
 - **Engineering dependency:** Large.
 - **Pilot without it?** **NO** for unit release.
+- **Changed since:** **Sprint 10** added a screening subsystem with a repeat
+  concept (a newer result for a requirement supersedes an earlier attempt), a
+  correction concept (`ScreeningResultRevision`, which never overwrites), and a
+  normalised safety consequence (`SafetyDisposition`: CLEAR, BLOCK,
+  REVIEW_REQUIRED). It deliberately added **no reactive/non-reactive vocabulary
+  and no assay rules**: which markers exist and what any particular result means
+  lives in `ScreeningDispositionRule` rows on an approved policy, and the
+  repository ships without a single one. See CD-080 and CD-082.
 
 ### CD-053 — Seeded test types are haematology and chemistry, not screening
 
@@ -550,20 +613,227 @@ textbook is not validation.
 
 ---
 
+## J. Blood-bank screening, medical review, recall and hemovigilance
+
+Added by Sprint 10. Every row here is a question the software now asks out loud
+and refuses on, rather than one it used to answer by accident.
+
+### CD-080 — No screening requirement, marker or assay rule is encoded
+
+- **Domain:** donation screening
+- **Behaviour:** A `ClinicalReleasePolicy` lists the requirements a component
+  must satisfy before release, and `ScreeningDispositionRule` maps a
+  laboratory's raw result code to CLEAR, BLOCK or REVIEW_REQUIRED for one
+  requirement. **The repository ships zero of each.** With no rule, no result
+  code means CLEAR, so no requirement can be satisfied and every release under
+  an approved production policy is refused with an exact list of what is
+  missing.
+- **Encoded in:** `apps/api/src/modules/screening/screening-disposition.ts`
+  (a pure function over rows, with no marker, assay, analyser or threshold named
+  anywhere in it — asserted by its own spec);
+  `ScreeningDispositionRule` in `apps/api/prisma/schema.prisma`.
+- **Class:** CLINICAL
+- **Status:** PENDING_CLINICAL
+- **Reviewer:** transfusion specialist + laboratory specialist, against the
+  Uzbek national requirement
+- **Risk if wrong:** A rule set invented by this project would be a clinical
+  claim nobody made, applied to every component it releases.
+- **Engineering dependency:** None. The architecture accepts a signed rule set as
+  data, with no migration and no code change.
+- **Pilot without it?** **NO.** Without it the system refuses every release,
+  which is safe and unusable.
+
+### CD-081 — An unmapped result code requires a person and never satisfies anything
+
+- **Domain:** donation screening
+- **Behaviour:** A result code no rule in the approved policy describes resolves
+  to REVIEW_REQUIRED with a **null** `dispositionPolicyVersion`, which is the
+  marker that the system defaulted rather than being told. It never satisfies a
+  release requirement, and it does **not** open a medical review on the donor.
+- **Why not BLOCK:** BLOCK is an assertion that the result means the blood is
+  unsafe. The software is not entitled to assert that about a code no approved
+  policy describes, and doing so would be the donor-diagnosis-from-screening
+  this sprint forbids. Safety does not turn on the choice, because neither
+  satisfies a requirement.
+- **Why no medical review:** with the rule table empty — how the repository
+  ships — every donor who ever gave blood would be placed under medical review
+  by their first result. A flag that fires on everything is a flag nobody reads.
+  The component is refused either way; the donor is not accused of anything.
+- **Encoded in:** `resolveDisposition`, `satisfiesRequirement` and
+  `requiresDonorReview` in `screening-disposition.ts`.
+- **Class:** PRODUCT (with a CLINICAL consequence)
+- **Status:** PENDING_CLINICAL — the reasoning is engineering, the acceptance is
+  not
+- **Reviewer:** transfusion specialist
+- **Pilot without it?** Acceptable as written, provided CD-080 is answered.
+
+### CD-082 — The release gate re-derives meaning from the raw code, every time
+
+- **Domain:** clinical release
+- **Behaviour:** `ScreeningResult.disposition` records what the policy said when
+  the result was entered and is never rewritten. The release gate does **not**
+  read it: it takes the stored raw `resultCode` and asks the policy IN FORCE NOW
+  what that code means. An unchanged rule gives the same answer, so an ordinary
+  policy version bump breaks nothing; a changed rule is honoured immediately for
+  anything not yet released.
+- **Why:** if version 4 stops treating a code as clear, a component still in the
+  fridge must not go out on version 3's answer — and the historical row must not
+  be rewritten either, because it is evidence of what was known at the time.
+  Components already released on the old answer are a recall question, which is
+  what the recall path exists for.
+- **Encoded in:** `ClinicalReleaseService.unmetRequirements`.
+- **Class:** TECHNICAL (with a CLINICAL consequence)
+- **Status:** PENDING_CLINICAL
+- **Reviewer:** transfusion specialist
+- **Pilot without it?** Acceptable as written.
+
+### CD-083 — Entering a result is not reviewing it
+
+- **Domain:** donation screening
+- **Behaviour:** A result carries `performedBy`/`performedAt` and, separately,
+  `reviewedBy`/`reviewedAt`. The performer cannot be the reviewer, whatever
+  roles they hold. A policy with `requiresResultReview` (the default, including
+  for every policy that existed before Sprint 10) does not treat an unreviewed
+  result as satisfying anything. SUPER_ADMIN is refused: administering the
+  platform is not clinical review.
+- **Encoded in:** `screening-results.service.ts` (`reviewResult`),
+  `ClinicalReleasePolicy.requiresResultReview`.
+- **Class:** OPERATIONAL
+- **Status:** PENDING_OPERATIONAL — whether a second person is required, and
+  which role they hold, is a blood-centre's own SOP
+- **Reviewer:** blood-centre operator
+- **Pilot without it?** Acceptable as written; the requirement can be relaxed
+  per policy if an operator signs that off.
+
+### CD-084 — `MEDICAL_REVIEW_REQUIRED` is a safety hold, not a deferral or a diagnosis
+
+- **Domain:** donor status
+- **Behaviour:** A screening result the approved policy maps to BLOCK or
+  REVIEW_REQUIRED opens a `DonorReviewTrigger` and moves the donor's cached
+  status from ACTIVE to MEDICAL_REVIEW_REQUIRED. While it stands the donor
+  cannot book, be checked in, start a donation, or be matched to an emergency.
+  It creates **no** `DonorDeferral`, never becomes DEFERRED on its own, and is
+  never permanent. Only an authorised clinician at the raising organisation can
+  resolve it, and the only route to a deferral is that clinician choosing one
+  and supplying a structured reason code. Resolving one review does not return
+  the donor to ACTIVE while another review, or any deferral, still stands.
+- **What the donor is told:** that a medical review is required before their next
+  donation, and that staff can help. No disposition, no source, no count, no
+  organisation, no diagnostic wording of any kind.
+- **Encoded in:** `donor-review.service.ts`; `DonorStatus.MEDICAL_REVIEW_REQUIRED`.
+- **Class:** CLINICAL
+- **Status:** PENDING_CLINICAL
+- **Reviewer:** transfusion specialist
+- **Risk if wrong:** Too permissive and a donor with an unanswered question
+  donates again. Too aggressive and donors are told, by implication, that
+  something is wrong with them when nobody has decided that.
+- **Pilot without it?** Acceptable as written. The semantics were set by the
+  Product Owner and are enforced and tested, not described.
+
+### CD-085 — A recall is a second axis, never a status rewrite
+
+- **Domain:** recall
+- **Behaviour:** Opening a recall records `statusAtRecall` as a snapshot, tracks
+  what the recall did on its own `RecallComponentState` axis, and raises a
+  `QUALITY_HOLD` on every component that is still retrievable. It never writes
+  `BloodUnit.status`. A component that was transfused stays TRANSFUSED, and
+  "transfused" is read from the disposition and never from
+  `BloodUnitStatus.USED`, which a unit also reaches by being issued, shipped or
+  discarded at a hospital. Closing a recall lifts nothing.
+- **Why QUALITY_HOLD and not REACTIVE:** the hold kind reaches labels and
+  consoles, and naming a clinical finding there would be a claim about the donor
+  that nobody has made.
+- **Encoded in:** `recall.service.ts`; `RecallComponentState`.
+- **Class:** OPERATIONAL
+- **Status:** PENDING_OPERATIONAL
+- **Reviewer:** blood-centre operator + hospital operator
+- **Still open:** what a receiving organisation is obliged to do on a recall, and
+  in what time. The software records what they say they did; it does not require
+  anything by a deadline, because no such obligation has been supplied.
+- **Pilot without it?** Acceptable as written.
+
+### CD-086 — No transfusion reaction is classified
+
+- **Domain:** hemovigilance
+- **Behaviour:** `HemovigilanceEvent.eventCode` is a reference into a vocabulary
+  that ships **empty**. Nothing classifies, grades, or names a reaction, and
+  nothing infers one from another. Reporting an event never un-transfuses a
+  unit, returns it to stock, or changes its status.
+- **Encoded in:** `hemovigilance.service.ts`; `HemovigilanceEvent`.
+- **Class:** CLINICAL
+- **Status:** PENDING_CLINICAL
+- **Reviewer:** transfusion specialist, against the national hemovigilance
+  scheme
+- **Engineering dependency:** None. A validated vocabulary loads as data.
+- **Pilot without it?** Acceptable for recording; **NO** for any claim that this
+  constitutes hemovigilance reporting.
+
+### CD-087 — Screening is not the laboratory module, deliberately
+
+- **Domain:** donation screening vs donor diagnostics
+- **Behaviour:** `ClinicalReleaseRequirement.screeningTestCode` is a plain
+  string and is **deliberately not a foreign key to `TestType`**. The laboratory
+  module is donor-facing diagnostics keyed to appointments (CD-050); blood-bank
+  screening is keyed to a donation and decides whether a component may be
+  released. The two vocabularies are kept apart so a donor's health check can
+  never satisfy a blood-safety requirement.
+- **Encoded in:** `schema.prisma` (the field, with the reasoning in its doc
+  comment); separate `/screening` route and console tab.
+- **Class:** TECHNICAL (with a CLINICAL consequence)
+- **Status:** PENDING_CLINICAL
+- **Reviewer:** laboratory specialist
+- **Pilot without it?** Acceptable as written.
+
+### CD-088 — A completed donation with no policy still completes, and says so
+
+- **Domain:** donation completion
+- **Behaviour:** Completing a donation raises a screening order against the
+  policy in force. With no approved policy, or one that lists nothing, **no order
+  is raised and the donation still completes** — and the skip is written to the
+  audit log with its reason code and returned in the response.
+- **Why:** the blood is already in the bag by the time this runs, and refusing
+  to record a donation that physically happened would lose the only record of
+  it. The opposite failure — an unscreened component reaching a patient — is
+  prevented at the release gate, which refuses a component with no approved
+  policy regardless of whether an order exists.
+- **Encoded in:** `screening-orders.service.ts`
+  (`raiseForDonationInTransaction`), `donations.service.ts` (`completeDonation`).
+- **Class:** OPERATIONAL
+- **Status:** PENDING_OPERATIONAL
+- **Reviewer:** blood-centre operator
+- **Pilot without it?** Acceptable as written.
+
+---
+
 ## I. Summary
 
 | Status | Count |
 | --- | --- |
 | VALIDATED | **0** |
 | DEVELOPMENT_DEFAULT | 6 |
-| PENDING_CLINICAL | 14 |
-| PENDING_OPERATIONAL | 9 |
+| PENDING_CLINICAL | 20 |
+| PENDING_OPERATIONAL | 13 |
 | PENDING_LEGAL | 2 |
 
 **Decisions that block a controlled pilot outright (answer NO):**
-CD-001, CD-002 *(if non-whole-blood)*, CD-005, CD-010, CD-012, CD-020, CD-021,
-CD-023, CD-050, CD-051 *(if donor-visible)*, CD-052, CD-053, CD-060, CD-063.
+CD-001, CD-002 *(if non-whole-blood)*, CD-010, CD-012, CD-020,
+CD-051 *(if donor-visible)*, CD-053, CD-060, CD-063, CD-080,
+CD-086 *(for any hemovigilance claim)*.
 
-The two that need a decision before anything else can be scheduled are
-**CD-021** (a unit reaches transfusable stock with no testing gate) and
-**CD-060** (the compatibility table nobody has signed).
+Three rows have left that list since Sprint 6, and it is worth being precise
+about why, because none of them left because somebody validated it:
+
+- **CD-005** (a deferral that stopped nobody booking) and **CD-021** (a unit
+  reaching transfusable stock with no testing gate) were behaviour defects.
+  Sprints 7, 9 and 10 replaced the behaviour. What remains of each is a
+  question — the deferral vocabulary and the requirement list — and both are
+  now fatal rather than permissive: with nothing recorded, the software refuses.
+- **CD-023** and **CD-052** were partially superseded for the same reason, and
+  their rows say what still stands.
+
+**The one that now needs a decision before anything else can be scheduled is
+CD-080**: the screening requirements and the rules mapping a laboratory's result
+codes to a safety consequence. Every other release-path question is answered by
+the architecture and refuses safely in the meantime; this is the one that makes
+the system usable rather than merely safe. **CD-060** (the compatibility table
+nobody has signed) is unchanged and remains the other blocker.
