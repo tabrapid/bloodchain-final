@@ -539,7 +539,21 @@ export class InventoryService {
       // allowed status at the moment Postgres acquires the row lock, closing
       // the race window between the pre-check above and this transaction.
       const claim = await tx.bloodUnit.updateMany({
-        where: { id: unitId, status: { in: [BloodUnitStatus.COLLECTED, BloodUnitStatus.QUARANTINED] } },
+        where: {
+          id: unitId,
+          status: { in: [BloodUnitStatus.COLLECTED, BloodUnitStatus.QUARANTINED] },
+          // The primary availability path, and therefore the one a hold most
+          // needs to stop.
+          //
+          // The gate above answers "has this unit satisfied the clinical
+          // release policy". It does not answer "is anything standing against
+          // this unit right now", because a hold is not a lifecycle state and
+          // changes nothing `evaluate` reads. Without this predicate a held
+          // unit went straight to AVAILABLE and had `clinicalReleasedAt`
+          // stamped on it in the same statement -- released, in stock, and
+          // with the hold still open underneath.
+          ...ClinicalReleaseService.NO_ACTIVE_HOLD,
+        },
         data: {
           status: BloodUnitStatus.AVAILABLE,
           // Written in the same statement as the status, so a unit cannot be
@@ -551,6 +565,11 @@ export class InventoryService {
       });
 
       if (claim.count === 0) {
+        // Ask about the hold first: it is the more specific finding, and
+        // "there is an open quality hold on this unit" is a different
+        // conversation from "somebody else moved it".
+        await this.clinicalRelease.assertNotHeld(tx, unitId, unit.unitReference);
+
         const current = await tx.bloodUnit.findUnique({ where: { id: unitId }, select: { status: true } });
         throw new ConflictException(
           `Cannot release unit with status ${current?.status ?? 'UNKNOWN'}. Only COLLECTED or QUARANTINED units can be released.`,

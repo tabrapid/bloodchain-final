@@ -84,6 +84,9 @@ describe('InventoryService unit status transitions', () => {
             }),
             recordDecision: jest.fn().mockResolvedValue(undefined),
             assertReleased: jest.fn(),
+            // Permissive, like the rest of this stub. The refusal itself is
+            // proved by the dedicated test below and end to end.
+            assertNotHeld: jest.fn().mockResolvedValue(undefined),
             isReleased: jest.fn().mockReturnValue(true),
             refusalException: jest.fn(),
             getPolicyStatus: jest.fn().mockResolvedValue({ configured: true, policy: null }),
@@ -102,7 +105,13 @@ describe('InventoryService unit status transitions', () => {
       await service.releaseUnit('org-1', 'unit-1', 'user-1', { reason: 'ok' } as any);
 
       expect(tx.bloodUnit.updateMany).toHaveBeenCalledWith({
-        where: { id: 'unit-1', status: { in: [BloodUnitStatus.COLLECTED, BloodUnitStatus.QUARANTINED] } },
+        where: {
+          id: 'unit-1',
+          status: { in: [BloodUnitStatus.COLLECTED, BloodUnitStatus.QUARANTINED] },
+          // Sprint 9: a held unit does not match the claim, so the primary
+          // availability path cannot release one.
+          holds: { none: { status: 'ACTIVE' } },
+        },
         // The release timestamp and the expiry are written in the same
         // statement as the status, so a unit cannot become AVAILABLE without
         // carrying the decision that made it so.
@@ -125,6 +134,43 @@ describe('InventoryService unit status transitions', () => {
         service.releaseUnit('org-1', 'unit-1', 'user-1', { reason: 'ok' } as any),
       ).rejects.toThrow(ConflictException);
       expect(tx.inventoryMovement.create).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('releaseUnit and holds', () => {
+    it('does not release a unit while a hold stands, and stamps no release decision on it', async () => {
+      // The sixth bypass, and the most dangerous: releaseUnit is the primary
+      // availability path, and it writes `status` and `clinicalReleasedAt` in
+      // one statement. A held unit reaching it would come out released, in
+      // stock, with the hold still open underneath.
+      //
+      // The claim carries the hold predicate, so a held unit simply does not
+      // match and the count comes back 0.
+      prisma.bloodUnit.findFirst.mockResolvedValue({
+        id: 'unit-1',
+        unitReference: 'BU-1',
+        status: 'COLLECTED',
+        organizationId: 'org-1',
+        componentType: 'WHOLE_BLOOD',
+        expiresAt: null,
+        expirySource: 'UNKNOWN',
+        clinicalReleasedAt: null,
+        organization: { status: 'ACTIVE' },
+      });
+      tx.bloodUnit.updateMany.mockResolvedValue({ count: 0 });
+
+      await expect(
+        service.releaseUnit('org-1', 'unit-1', 'staff-1', {} as any),
+      ).rejects.toBeTruthy();
+
+      // The hold predicate really is in the claim.
+      expect(tx.bloodUnit.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ holds: { none: { status: 'ACTIVE' } } }),
+        }),
+      );
+      // And nothing was recorded as released.
+      expect(tx.bloodUnit.findUniqueOrThrow).not.toHaveBeenCalled();
     });
   });
 
@@ -348,6 +394,9 @@ describe('InventoryService organization-status access checks', () => {
             evaluate: jest.fn(),
             recordDecision: jest.fn(),
             assertReleased: jest.fn(),
+            // Permissive, like the rest of this stub. The refusal itself is
+            // proved by the dedicated test below and end to end.
+            assertNotHeld: jest.fn().mockResolvedValue(undefined),
             isReleased: jest.fn().mockReturnValue(true),
           },
         },
