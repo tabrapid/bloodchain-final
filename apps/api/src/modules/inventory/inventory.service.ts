@@ -777,11 +777,24 @@ export class InventoryService {
       // Atomic conditional update: closes the race window between the
       // pre-check above and this transaction.
       const claim = await tx.bloodUnit.updateMany({
-        where: { id: unitId, status: { in: [BloodUnitStatus.AVAILABLE, BloodUnitStatus.RESERVED] } },
+        where: {
+          id: unitId,
+          status: { in: [BloodUnitStatus.AVAILABLE, BloodUnitStatus.RESERVED] },
+          // The eighth hold bypass, and the worst of them: the comment above
+          // calls this the last point at which software can still refuse, and
+          // until Sprint 10 the only thing it refused on was the release
+          // decision. A hold is deliberately not a status and does not touch
+          // `clinicalReleasedAt`, so a unit under an open quality hold -- a
+          // declared temperature excursion, or a recall opened an hour ago --
+          // passed every check here and left the building.
+          ...ClinicalReleaseService.NO_ACTIVE_HOLD,
+        },
         data: { status: BloodUnitStatus.USED },
       });
 
       if (claim.count === 0) {
+        await this.clinicalRelease.assertNotHeld(tx, unitId, unit.unitReference);
+
         const current = await tx.bloodUnit.findUnique({ where: { id: unitId }, select: { status: true } });
         throw new ConflictException(
           `Cannot issue unit with status ${current?.status ?? 'UNKNOWN'}. Only AVAILABLE or RESERVED units can be issued.`,
@@ -1016,11 +1029,29 @@ export class InventoryService {
       // at the moment Postgres acquires the row lock, closing the race window
       // between the pre-check above and this transaction.
       const { count } = await tx.bloodUnit.updateMany({
-        where: { id: unitId, status: BloodUnitStatus.AVAILABLE },
+        where: {
+          id: unitId,
+          status: BloodUnitStatus.AVAILABLE,
+          // The seventh hold bypass, found by Sprint 10's recall tests.
+          //
+          // Sprint 9 closed every path that put a held unit back INTO usable
+          // stock and stopped there, because that was the failure it was
+          // hunting. Reserving takes a unit the other way -- out of general
+          // stock and committed to a named patient -- so it read as the safe
+          // direction and was left alone. It is not: a recall raises a hold and
+          // changes nothing else about the unit, so without this predicate a
+          // recalled component could still be reserved for somebody, and the
+          // hold that was supposed to stop it stopped nothing.
+          ...ClinicalReleaseService.NO_ACTIVE_HOLD,
+        },
         data: { status: BloodUnitStatus.RESERVED },
       });
 
       if (count === 0) {
+        // Ask about the hold first: "there is an open quality hold on this
+        // unit" is a different conversation from "somebody else took it".
+        await this.clinicalRelease.assertNotHeld(tx, unitId, unit.unitReference);
+
         throw new ConflictException('UNIT_NOT_AVAILABLE: Only AVAILABLE units can be reserved.');
       }
 

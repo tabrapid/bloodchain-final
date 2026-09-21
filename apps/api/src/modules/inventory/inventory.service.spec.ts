@@ -174,6 +174,71 @@ describe('InventoryService unit status transitions', () => {
     });
   });
 
+  /**
+   * Sprint 10: the two bypasses Sprint 9 did not look for.
+   *
+   * Sprint 9 hunted paths that put a held unit back INTO usable stock and
+   * closed every one it found. Reserving and issuing take a unit the other
+   * way -- out of stock, committed to a named patient, out of the building --
+   * so they read as the safe direction and were left alone. A recall raises a
+   * hold and changes nothing else about the unit, so neither of them refused
+   * a recalled component. Both failures are silent.
+   */
+  describe('reserveUnit and issueUnit, and holds', () => {
+    function availableReleasedUnit() {
+      return {
+        id: 'unit-1',
+        unitReference: 'BU-1',
+        status: BloodUnitStatus.AVAILABLE,
+        organizationId: 'org-1',
+        componentType: 'WHOLE_BLOOD',
+        donationId: 'donation-1',
+        expiresAt: new Date(Date.now() + 86400000),
+        expirySource: 'STAFF_RECORDED',
+        // Released, so `assertReleased` passes and the hold is the only thing
+        // that can stop this. That is the point of the fixture.
+        clinicalReleasedAt: new Date(),
+        organization: { status: 'ACTIVE' },
+      };
+    }
+
+    it('does not reserve a held unit for a patient', async () => {
+      prisma.bloodUnit.findFirst.mockResolvedValue(availableReleasedUnit());
+      prisma.bloodUnitReservation = { findFirst: jest.fn().mockResolvedValue(null) };
+      tx.bloodUnitReservation.create = jest.fn().mockResolvedValue({ id: 'res-1' });
+      tx.bloodUnit.updateMany.mockResolvedValue({ count: 0 });
+
+      await expect(
+        service.reserveUnit('org-1', 'unit-1', 'staff-1', {} as any),
+      ).rejects.toBeTruthy();
+
+      expect(tx.bloodUnit.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ holds: { none: { status: 'ACTIVE' } } }),
+        }),
+      );
+      expect(tx.bloodUnitReservation.create).not.toHaveBeenCalled();
+    });
+
+    it('does not issue a held unit, whatever its release decision says', async () => {
+      prisma.bloodUnit.findFirst.mockResolvedValue(availableReleasedUnit());
+      tx.bloodUnit.updateMany.mockResolvedValue({ count: 0 });
+
+      await expect(
+        service.issueUnit('org-1', 'unit-1', 'staff-1', { reason: 'e2e' } as any),
+      ).rejects.toBeTruthy();
+
+      expect(tx.bloodUnit.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ holds: { none: { status: 'ACTIVE' } } }),
+        }),
+      );
+      // Nothing left the fridge: no disposition, no custody movement.
+      expect(tx.bloodUnitDisposition.upsert).not.toHaveBeenCalled();
+      expect(tx.inventoryMovement.create).not.toHaveBeenCalled();
+    });
+  });
+
   describe('quarantineUnit', () => {
     it('claims the transition atomically when the unit is AVAILABLE or COLLECTED', async () => {
       prisma.bloodUnit.findFirst.mockResolvedValue(makeUnit({ status: BloodUnitStatus.AVAILABLE }));
@@ -228,7 +293,16 @@ describe('InventoryService unit status transitions', () => {
       await service.issueUnit('org-1', 'unit-1', 'user-1', { reason: 'Transfused to patient MRN-1234' } as any);
 
       expect(tx.bloodUnit.updateMany).toHaveBeenCalledWith({
-        where: { id: 'unit-1', status: { in: [BloodUnitStatus.AVAILABLE, BloodUnitStatus.RESERVED] } },
+        where: {
+          id: 'unit-1',
+          status: { in: [BloodUnitStatus.AVAILABLE, BloodUnitStatus.RESERVED] },
+          // Sprint 10. Issuing is the last point at which software can refuse,
+          // and until the recall work it refused only on the release decision
+          // -- which a hold deliberately does not touch. The predicate is
+          // asserted here rather than merely present, because its absence is
+          // silent: a held unit simply leaves the building.
+          ...ClinicalReleaseService.NO_ACTIVE_HOLD,
+        },
         data: { status: BloodUnitStatus.USED },
       });
       expect(tx.bloodUnitReservation.updateMany).toHaveBeenCalledWith({

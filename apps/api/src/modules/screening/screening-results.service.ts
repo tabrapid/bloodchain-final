@@ -443,6 +443,9 @@ export class ScreeningResultsService {
       });
 
       let recallCaseId: string | null = null;
+      let openedRecall: Awaited<
+        ReturnType<RecallService['openForDonationInTransaction']>
+      > | null = null;
 
       if (shouldRecall) {
         const opened = await this.recall.openForDonationInTransaction(tx, {
@@ -459,6 +462,7 @@ export class ScreeningResultsService {
           openedBy: actorId,
         });
         recallCaseId = opened.id;
+        openedRecall = opened;
       }
 
       await tx.screeningResultRevision.create({
@@ -493,7 +497,7 @@ export class ScreeningResultsService {
 
       await this.advanceOrderStatus(tx, order.id);
 
-      return { replacement, recallCaseId, reviewTriggerId };
+      return { replacement, recallCaseId, reviewTriggerId, openedRecall };
     });
 
     await this.audit.log({
@@ -519,6 +523,35 @@ export class ScreeningResultsService {
       },
       ipAddress,
     });
+
+    // The recall gets its own audit entry, not a mention inside the
+    // correction's.
+    //
+    // A recall opened by hand writes RECALL_CASE_OPENED; one opened
+    // automatically by a correction wrote nothing, so "when was this recall
+    // opened, and by what" was answerable for the deliberate case and not for
+    // the automatic one -- which is the case an incident review actually asks
+    // about. Both write the same action now.
+    if (outcome.openedRecall) {
+      await this.audit.log({
+        actorId,
+        action: 'RECALL_CASE_OPENED',
+        entityType: 'RecallCase',
+        entityId: outcome.openedRecall.id,
+        organizationId,
+        metadata: {
+          recallReference: outcome.openedRecall.recallReference,
+          donationId: order.donationId,
+          triggerKind: RecallTrigger.SCREENING_RESULT_CORRECTED,
+          reasonCode: 'SCREENING_RESULT_CORRECTED',
+          correctedResultId: outcome.replacement.id,
+          affectedCount: outcome.openedRecall.affectedCount,
+          quarantinedCount: outcome.openedRecall.quarantinedCount,
+          alreadyTransfusedCount: outcome.openedRecall.alreadyTransfusedCount,
+        },
+        ipAddress,
+      });
+    }
 
     return {
       data: {
