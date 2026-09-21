@@ -334,4 +334,244 @@ describe('ClinicalReleaseService', () => {
       expect(status.policy?.developmentOnly).toBe(true);
     });
   });
+  /**
+   * Sprint 10: the seam Sprint 7 left open.
+   *
+   * `unmetRequirements` used to return every applicable requirement code
+   * unconditionally, because no screening subsystem existed and pretending one
+   * did would have been the more dangerous lie. These are the properties of
+   * what replaced it, and each of them is a way the gate could quietly permit
+   * something.
+   */
+  describe('screening, as the thing that satisfies a requirement', () => {
+    const REQUIREMENT = { id: 'req-1', code: 'REQ-A', description: null, componentType: null };
+
+    function policyWith(rules: { resultCode: string; disposition: string }[], overrides = {}) {
+      return makePolicy({
+        requirements: [REQUIREMENT],
+        dispositionRules: rules.map((rule, index) => ({
+          id: `rule-${index}`,
+          policyId: 'policy-1',
+          requirementCode: REQUIREMENT.code,
+          resultCode: rule.resultCode,
+          disposition: rule.disposition,
+          note: null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })),
+        ...overrides,
+      });
+    }
+
+    function result(overrides: Record<string, unknown> = {}) {
+      return {
+        requirementCode: REQUIREMENT.code,
+        resultCode: 'CODE-PASS',
+        reviewedAt: new Date('2026-09-02T00:00:00.000Z'),
+        createdAt: new Date('2026-09-02T00:00:00.000Z'),
+        ...overrides,
+      };
+    }
+
+    it('refuses when no result has been recorded against the requirement', async () => {
+      prisma.clinicalReleasePolicy.findFirst.mockResolvedValue(
+        policyWith([{ resultCode: 'CODE-PASS', disposition: 'CLEAR' }]),
+      );
+      prisma.screeningResult.findMany.mockResolvedValue([]);
+
+      const evaluation = await service.evaluate(makeUnit());
+
+      expect(evaluation.permitted).toBe(false);
+      expect((evaluation as any).reasonCode).toBe(ClinicalReleaseReason.REQUIREMENTS_NOT_MET);
+      expect((evaluation as any).unmetRequirements).toEqual(['REQ-A']);
+    });
+
+    it('refuses a result the policy in force has no rule for', async () => {
+      // The state a fresh installation is in: results exist, no rule describes
+      // them, nothing is satisfied. A code that READS like a pass is still not
+      // one -- the gate never interprets a string on its own.
+      prisma.clinicalReleasePolicy.findFirst.mockResolvedValue(policyWith([]));
+      prisma.screeningResult.findMany.mockResolvedValue([result({ resultCode: 'NEGATIVE' })]);
+
+      const evaluation = await service.evaluate(makeUnit());
+
+      expect(evaluation.permitted).toBe(false);
+      expect((evaluation as any).unmetRequirements).toEqual(['REQ-A']);
+    });
+
+    it('refuses a result the policy maps to BLOCK', async () => {
+      prisma.clinicalReleasePolicy.findFirst.mockResolvedValue(
+        policyWith([{ resultCode: 'CODE-BLOCK', disposition: 'BLOCK' }]),
+      );
+      prisma.screeningResult.findMany.mockResolvedValue([result({ resultCode: 'CODE-BLOCK' })]);
+
+      const evaluation = await service.evaluate(makeUnit());
+
+      expect(evaluation.permitted).toBe(false);
+    });
+
+    it('refuses a result the policy maps to REVIEW_REQUIRED, which is not a pass with a note', async () => {
+      prisma.clinicalReleasePolicy.findFirst.mockResolvedValue(
+        policyWith([{ resultCode: 'CODE-REVIEW', disposition: 'REVIEW_REQUIRED' }]),
+      );
+      prisma.screeningResult.findMany.mockResolvedValue([result({ resultCode: 'CODE-REVIEW' })]);
+
+      const evaluation = await service.evaluate(makeUnit());
+
+      expect(evaluation.permitted).toBe(false);
+    });
+
+    it('permits when every requirement has a CLEAR, reviewed result', async () => {
+      prisma.clinicalReleasePolicy.findFirst.mockResolvedValue(
+        policyWith([{ resultCode: 'CODE-PASS', disposition: 'CLEAR' }], {
+          // An expiry the unit itself carries with a known provenance, so this
+          // test is about screening and not about shelf life.
+        }),
+      );
+      prisma.screeningResult.findMany.mockResolvedValue([result()]);
+
+      const evaluation = await service.evaluate(
+        makeUnit({
+          expiresAt: new Date('2026-10-01T00:00:00.000Z'),
+          expirySource: 'STORAGE_POLICY',
+        }),
+      );
+
+      expect(evaluation.permitted).toBe(true);
+    });
+
+    it('refuses an unreviewed result when the policy requires review', async () => {
+      // Entry is not review. A measurement nobody has signed off is not an
+      // answer, whatever it says.
+      prisma.clinicalReleasePolicy.findFirst.mockResolvedValue(
+        policyWith([{ resultCode: 'CODE-PASS', disposition: 'CLEAR' }], {
+          requiresResultReview: true,
+        }),
+      );
+      prisma.screeningResult.findMany.mockResolvedValue([result({ reviewedAt: null })]);
+
+      const evaluation = await service.evaluate(
+        makeUnit({ expiresAt: new Date('2026-10-01T00:00:00.000Z'), expirySource: 'STORAGE_POLICY' }),
+      );
+
+      expect(evaluation.permitted).toBe(false);
+      expect((evaluation as any).unmetRequirements).toEqual(['REQ-A']);
+    });
+
+    it('permits an unreviewed result only when the policy says review is not required', async () => {
+      prisma.clinicalReleasePolicy.findFirst.mockResolvedValue(
+        policyWith([{ resultCode: 'CODE-PASS', disposition: 'CLEAR' }], {
+          requiresResultReview: false,
+        }),
+      );
+      prisma.screeningResult.findMany.mockResolvedValue([result({ reviewedAt: null })]);
+
+      const evaluation = await service.evaluate(
+        makeUnit({ expiresAt: new Date('2026-10-01T00:00:00.000Z'), expirySource: 'STORAGE_POLICY' }),
+      );
+
+      expect(evaluation.permitted).toBe(true);
+    });
+
+    it('re-derives the meaning under the policy in force, not from what was stored', async () => {
+      // The version-bump case. The laboratory recorded CODE-PASS and the policy
+      // of the day called it CLEAR; the policy now in force has no rule for it.
+      // A component still in the fridge must not go out on the old answer, and
+      // the stored row must not be rewritten either -- so the gate asks the
+      // current policy what the RAW code means, every time.
+      //
+      // `disposition` is deliberately absent from what the gate selects: if it
+      // were read, this test would pass for the wrong reason.
+      prisma.clinicalReleasePolicy.findFirst.mockResolvedValue(
+        policyWith([{ resultCode: 'CODE-SOMETHING-ELSE', disposition: 'CLEAR' }], { version: 4 }),
+      );
+      prisma.screeningResult.findMany.mockResolvedValue([
+        result({ resultCode: 'CODE-PASS', disposition: 'CLEAR' }),
+      ]);
+
+      const evaluation = await service.evaluate(makeUnit());
+
+      expect(evaluation.permitted).toBe(false);
+      expect((evaluation as any).unmetRequirements).toEqual(['REQ-A']);
+    });
+
+    it('reads only live results, from this donation, at this organisation, from orders that are not cancelled', async () => {
+      // Four separate ways the gate could be fed evidence it must not use, all
+      // of them in one `where`. Asserted on the query rather than through
+      // behaviour, because a missing predicate here fails open.
+      prisma.clinicalReleasePolicy.findFirst.mockResolvedValue(
+        policyWith([{ resultCode: 'CODE-PASS', disposition: 'CLEAR' }]),
+      );
+      prisma.screeningResult.findMany.mockResolvedValue([]);
+
+      await service.evaluate(makeUnit());
+
+      const where = prisma.screeningResult.findMany.mock.calls[0][0].where;
+      expect(where.superseded).toBe(false);
+      expect(where.screeningOrder.donationId).toBe('donation-1');
+      expect(where.screeningOrder.organizationId).toBe('org-1');
+      expect(where.screeningOrder.status).toEqual({ not: 'CANCELLED' });
+    });
+
+    it('takes the newest result for a requirement, so a repeat supersedes an earlier attempt', async () => {
+      prisma.clinicalReleasePolicy.findFirst.mockResolvedValue(
+        policyWith([{ resultCode: 'CODE-PASS', disposition: 'CLEAR' }]),
+      );
+      // Ordered newest first by the query; the gate takes the first match.
+      prisma.screeningResult.findMany.mockResolvedValue([
+        result({ resultCode: 'CODE-PASS', createdAt: new Date('2026-09-05T00:00:00.000Z') }),
+        result({ resultCode: 'CODE-UNKNOWN', createdAt: new Date('2026-09-02T00:00:00.000Z') }),
+      ]);
+
+      const evaluation = await service.evaluate(
+        makeUnit({ expiresAt: new Date('2026-10-01T00:00:00.000Z'), expirySource: 'STORAGE_POLICY' }),
+      );
+
+      expect(evaluation.permitted).toBe(true);
+      expect(prisma.screeningResult.findMany.mock.calls[0][0].orderBy).toEqual({
+        createdAt: 'desc',
+      });
+    });
+
+    it('is not satisfied by a result recorded against a different requirement', async () => {
+      prisma.clinicalReleasePolicy.findFirst.mockResolvedValue(
+        policyWith([{ resultCode: 'CODE-PASS', disposition: 'CLEAR' }]),
+      );
+      prisma.screeningResult.findMany.mockResolvedValue([
+        result({ requirementCode: 'REQ-SOMETHING-ELSE' }),
+      ]);
+
+      const evaluation = await service.evaluate(makeUnit());
+
+      expect(evaluation.permitted).toBe(false);
+      expect((evaluation as any).unmetRequirements).toEqual(['REQ-A']);
+    });
+
+    it('names every unsatisfied requirement, not just the first', async () => {
+      prisma.clinicalReleasePolicy.findFirst.mockResolvedValue(
+        makePolicy({
+          requirements: [
+            REQUIREMENT,
+            { id: 'req-2', code: 'REQ-B', description: null, componentType: null },
+          ],
+          dispositionRules: [],
+        }),
+      );
+      prisma.screeningResult.findMany.mockResolvedValue([]);
+
+      const evaluation = await service.evaluate(makeUnit());
+
+      expect((evaluation as any).unmetRequirements).toEqual(['REQ-A', 'REQ-B']);
+    });
+
+    it('still takes no actor, so no role satisfies a requirement', async () => {
+      prisma.clinicalReleasePolicy.findFirst.mockResolvedValue(policyWith([]));
+      prisma.screeningResult.findMany.mockResolvedValue([result()]);
+
+      // The signature is the proof: there is nowhere to pass one.
+      expect(service.evaluate.length).toBeLessThanOrEqual(2);
+      const evaluation = await service.evaluate(makeUnit());
+      expect(evaluation.permitted).toBe(false);
+    });
+  });
 });
