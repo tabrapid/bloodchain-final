@@ -1,14 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import {
-  AlertTriangle,
-  CheckCircle2,
-  CircleHelp,
-  FlaskConical,
-  RefreshCw,
-  ShieldAlert,
-} from 'lucide-react';
+import { AlertTriangle, CircleHelp, FlaskConical, RefreshCw, ShieldAlert } from 'lucide-react';
 import { DataTable, EmptyState, Modal, StatusBadge } from '@bloodchain/ui/components';
 import type { DataTableColumn } from '@bloodchain/ui/components';
 import { useTranslation } from '@bloodchain/ui/i18n';
@@ -787,14 +780,5 @@ function Field({
         className="w-full rounded-lg border border-donor-border bg-donor-surface px-3 py-2 text-sm text-donor-text"
       />
     </label>
-  );
-}
-
-/** Exported for the release screen: what screening still owes a component. */
-export function ScreeningSummaryIcon({ satisfied }: { satisfied: boolean }) {
-  return satisfied ? (
-    <CheckCircle2 className="h-4 w-4 text-donor-success" aria-hidden="true" />
-  ) : (
-    <AlertTriangle className="h-4 w-4 text-donor-warning" aria-hidden="true" />
   );
 }
