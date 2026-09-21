@@ -21,10 +21,19 @@ export class CreateDeferralDto {
   @MaxLength(80)
   reasonCode?: string;
 
-  @ApiPropertyOptional()
+  /**
+   * Confidential clinical note. Visible only to staff of the organisation that
+   * raised the deferral, never across an organisation boundary, and never to
+   * the donor.
+   */
+  @ApiPropertyOptional({
+    description:
+      'Confidential clinical note. Readable only by staff of the organization that raised the deferral.',
+  })
   @IsOptional()
   @IsString()
-  reasonText?: string;
+  @MaxLength(2000)
+  confidentialNote?: string;
 
   /** Required for a TEMPORARY deferral; refused for an INDEFINITE one. */
   @ApiPropertyOptional({ description: 'ISO date. Required when kind is TEMPORARY.' })

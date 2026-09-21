@@ -309,7 +309,7 @@ export class DonationsService {
           organizationId,
           kind: DeferralKind.INDEFINITE,
           reasonCode: dto.reasonCategory ?? null,
-          reasonText: dto.notes ?? null,
+          confidentialNote: dto.notes ?? null,
           source: DeferralSource.DONATION_ASSESSMENT,
           sourceDonationId: donationId,
           createdBy: staffId,

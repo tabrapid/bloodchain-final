@@ -1556,7 +1556,20 @@ model DonorDeferral {
   kind             DeferralKind
   /// Configurable vocabulary. Ships empty; free text lives in `reasonText`.
   reasonCode       String?        @db.VarChar(80)
-  reasonText       String?
+  /// Free text a clinician wrote at the chair. CONFIDENTIAL.
+  ///
+  /// Renamed from `reasonText`, which read like a display string and was
+  /// treated as one: the staff member's verbatim assessment notes are copied
+  /// here when an assessment defers a donor, and every staff member of every
+  /// organisation could read them for every donor. The name now says what the
+  /// column holds, so the next person to add it to a projection has to decide
+  /// to, rather than do it by reflex.
+  ///
+  /// Readable only by staff of the organisation that raised the deferral. What
+  /// crosses an organisation boundary is `kind`, `reasonCode` and the dates --
+  /// enough for donor safety, which is the reason the other organisation is
+  /// asking.
+  confidentialNote String?
   startsAt         DateTime       @default(now())
   /// Null for INDEFINITE. A TEMPORARY deferral without an end date would be an
   /// indefinite one wearing the wrong label, so the service refuses it.

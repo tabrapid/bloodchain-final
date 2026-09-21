@@ -23,7 +23,9 @@ export interface ActiveDeferralSummary {
   id: string;
   kind: DeferralKind;
   reasonCode: string | null;
-  reasonText: string | null;
+  /// Deliberately absent: `confidentialNote`. This summary drives eligibility
+  /// refusals and emergency-matching exclusions, which are safety decisions and
+  /// need the code and the dates, never the clinician's prose.
   startsAt: Date;
   endsAt: Date | null;
   source: DeferralSource;
@@ -106,7 +108,6 @@ export class DonorDeferralsService {
       id: deferral.id,
       kind: deferral.kind,
       reasonCode: deferral.reasonCode,
-      reasonText: deferral.reasonText,
       startsAt: deferral.startsAt,
       endsAt: deferral.endsAt,
       source: deferral.source,
@@ -155,7 +156,7 @@ export class DonorDeferralsService {
       organizationId: string | null;
       kind: DeferralKind;
       reasonCode?: string | null;
-      reasonText?: string | null;
+      confidentialNote?: string | null;
       startsAt?: Date;
       endsAt?: Date | null;
       source: DeferralSource;
@@ -178,7 +179,7 @@ export class DonorDeferralsService {
         organizationId: input.organizationId,
         kind: input.kind,
         reasonCode: input.reasonCode ?? null,
-        reasonText: input.reasonText ?? null,
+        confidentialNote: input.confidentialNote ?? null,
         startsAt: input.startsAt ?? new Date(),
         endsAt: input.endsAt ?? null,
         source: input.source,
@@ -205,7 +206,7 @@ export class DonorDeferralsService {
     input: {
       kind: DeferralKind;
       reasonCode?: string | null;
-      reasonText?: string | null;
+      confidentialNote?: string | null;
       endsAt?: string | null;
     },
     ipAddress?: string,
@@ -219,7 +220,7 @@ export class DonorDeferralsService {
         organizationId,
         kind: input.kind,
         reasonCode: input.reasonCode ?? null,
-        reasonText: input.reasonText ?? null,
+        confidentialNote: input.confidentialNote ?? null,
         endsAt: input.endsAt ? new Date(input.endsAt) : null,
         source: DeferralSource.STAFF_DECISION,
         createdBy: actorId,
@@ -242,7 +243,8 @@ export class DonorDeferralsService {
       ipAddress,
     });
 
-    return { data: this.serialize(deferral) };
+    // The caller's own organisation raised it a moment ago.
+    return { data: this.serialize(deferral, { includeConfidential: true }) };
   }
 
   /**
@@ -265,6 +267,23 @@ export class DonorDeferralsService {
     if (!deferral) {
       throw new NotFoundException('Deferral not found.');
     }
+
+    // Found while fixing the confidentiality defect, and the same shape of
+    // mistake: `assertStaffOf` above proves the caller works for the
+    // organisation in the URL, and nothing proved the deferral did. Staff of
+    // one organisation could lift a deferral another organisation's clinician
+    // had raised -- a clinical decision about a donor they had not assessed --
+    // and the response then serialised the whole row back to them.
+    //
+    // Deferrals with no organisation are the ones the Sprint 7 migration
+    // reconstructed from `DonorStatus.DEFERRED`. They have no owner to defend,
+    // so any organisation may lift one; they also carry no note to leak.
+    if (deferral.organizationId && deferral.organizationId !== organizationId) {
+      throw new ForbiddenException(
+        'This deferral was raised by another organization. Only the organization that raised it can lift it.',
+      );
+    }
+
     if (deferral.liftedAt) {
       throw new ConflictException('This deferral has already been lifted.');
     }
@@ -303,12 +322,28 @@ export class DonorDeferralsService {
       ipAddress,
     });
 
-    return { data: this.serialize(lifted) };
+    return {
+      data: this.serialize(lifted, {
+        includeConfidential: lifted.organizationId === organizationId,
+      }),
+    };
   }
 
   /** Every deferral a donor has ever had, newest first. Staff view. */
+  /**
+   * A donor's deferral history, as this organisation may see it.
+   *
+   * The query is still national, and deliberately so: a donor deferred at one
+   * centre must not be able to donate at the next one down the road, so the
+   * OTHER organisation's deferrals have to be visible here. What changes is
+   * what "visible" means. A row raised by this organisation comes back whole.
+   * A row raised elsewhere comes back as the minimum donor safety needs -- kind,
+   * structured reason code, dates, whether it is still in force -- and without
+   * the clinician's note, which belongs to the organisation whose clinician
+   * wrote it.
+   */
   async listForDonor(organizationId: string, donorId: string, actorId: string) {
-    await this.assertStaffOf(actorId, organizationId);
+    const { isStaffHere } = await this.assertStaffOf(actorId, organizationId);
 
     const deferrals = await this.db.donorDeferral.findMany({
       where: { donorId },
@@ -324,7 +359,12 @@ export class DonorDeferralsService {
       data: {
         active: await this.getActiveDeferral(donorId, now),
         history: deferrals.map((deferral) => ({
-          ...this.serialize(deferral),
+          ...this.serialize(deferral, {
+            // Both halves required: the row must belong to this organisation,
+            // AND the caller must really be its clinical staff rather than an
+            // administrator passing through.
+            includeConfidential: isStaffHere && deferral.organizationId === organizationId,
+          }),
           createdByName: deferral.creator
             ? `${deferral.creator.firstName} ${deferral.creator.lastName}`
             : null,
@@ -365,14 +405,22 @@ export class DonorDeferralsService {
     };
   }
 
-  private serialize(deferral: DonorDeferral) {
+  /**
+   * One deferral, projected for a reader.
+   *
+   * `includeConfidential` is a parameter rather than a default because the
+   * default was the bug: this returned the clinician's verbatim note to
+   * whoever asked, and the only thing deciding who asked was which endpoint
+   * they happened to call.
+   */
+  private serialize(deferral: DonorDeferral, options: { includeConfidential: boolean }) {
     return {
       id: deferral.id,
       donorId: deferral.donorId,
       organizationId: deferral.organizationId,
       kind: deferral.kind,
       reasonCode: deferral.reasonCode,
-      reasonText: deferral.reasonText,
+      ...(options.includeConfidential ? { confidentialNote: deferral.confidentialNote } : {}),
       startsAt: deferral.startsAt,
       endsAt: deferral.endsAt,
       source: deferral.source,
@@ -394,7 +442,24 @@ export class DonorDeferralsService {
    * platform administrator may legitimately correct, while releasing blood is a
    * clinical decision no administrative role is entitled to make.
    */
-  private async assertStaffOf(actorId: string, organizationId: string): Promise<void> {
+  /**
+   * May this actor act for this organisation, and are they actually its staff?
+   *
+   * Two different questions, and conflating them is how a platform
+   * administrator would have become a clinical reader of every organisation's
+   * notes. A SUPER_ADMIN may reach these routes -- they administer the
+   * platform, and locking them out of the deferral machinery would make some
+   * incidents unfixable -- but administering a platform is not assessing a
+   * donor, and the confidential note is written by the clinician who did.
+   *
+   * So the return value distinguishes them: `isStaffHere` is membership of THIS
+   * organisation in a clinical role, and that, not the role's power, is what
+   * unlocks the note.
+   */
+  private async assertStaffOf(
+    actorId: string,
+    organizationId: string,
+  ): Promise<{ isStaffHere: boolean }> {
     const memberships = await this.db.organizationMembership.findMany({
       where: { userId: actorId, status: 'ACTIVE' },
       include: { role: true },
@@ -408,6 +473,8 @@ export class DonorDeferralsService {
     if (!isSuperAdmin && !isStaffHere) {
       throw new ForbiddenException('You do not have permission to manage deferrals here.');
     }
+
+    return { isStaffHere };
   }
 
   private async assertDonorExists(donorId: string): Promise<void> {

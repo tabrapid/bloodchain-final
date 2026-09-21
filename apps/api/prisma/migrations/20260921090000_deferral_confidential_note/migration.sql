@@ -1,0 +1,13 @@
+-- Deferral notes are confidential, and the column name now says so.
+--
+-- `reasonText` held the verbatim free text a clinician typed at the chair --
+-- `RecordAssessmentDto.notes` is copied into it when an assessment defers a
+-- donor -- and it read like a display string. It was treated as one: the
+-- staff-facing deferral history query filtered on the donor and not on the
+-- organisation, and serialised this column to every staff member of every
+-- organisation, for every donor.
+--
+-- A rename rather than a new column: the data is the same data, and splitting
+-- it would leave the old column behind holding exactly what the fix is about.
+-- The structured half of the split already existed as `reasonCode`.
+ALTER TABLE "DonorDeferral" RENAME COLUMN "reasonText" TO "confidentialNote";
