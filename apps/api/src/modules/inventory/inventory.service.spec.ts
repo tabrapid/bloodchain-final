@@ -38,7 +38,12 @@ describe('InventoryService unit status transitions', () => {
         aggregate: jest.fn().mockResolvedValue({ _max: { sequence: null } }),
       },
       bloodUnitReservation: { updateMany: jest.fn().mockResolvedValue({ count: 0 }) },
-      bloodUnitDisposition: { upsert: jest.fn().mockResolvedValue({}) },
+      bloodUnitDisposition: {
+        upsert: jest.fn().mockResolvedValue({}),
+        // Read back after the upsert, so a second disposition with a different
+        // outcome is refused rather than silently discarded.
+        findUnique: jest.fn().mockResolvedValue(null),
+      },
       releaseDecision: { create: jest.fn().mockResolvedValue({}) },
     };
 

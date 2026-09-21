@@ -1479,6 +1479,8 @@ export class InventoryService {
       type: DispositionType;
       recordedBy: string | null;
       recipientReference: string | null;
+      encounterReference?: string | null;
+      context?: string | null;
       notes: string | null;
       bloodRequestId?: string | null;
       shipmentId?: string | null;
@@ -1492,12 +1494,123 @@ export class InventoryService {
         type: input.type,
         recordedBy: input.recordedBy,
         recipientReference: input.recipientReference,
+        encounterReference: input.encounterReference ?? null,
+        context: input.context ?? null,
         notes: input.notes,
         bloodRequestId: input.bloodRequestId ?? null,
         shipmentId: input.shipmentId ?? null,
       },
+      // Write-once, and loud about it.
+      //
+      // An empty `update` meant a second call reported success while writing
+      // nothing, so a correction or a back-fill of the recipient reference
+      // silently did not happen. A disposition is the end of the chain and is
+      // meant to be written once; the caller should hear that it already was,
+      // rather than believe it just wrote it.
       update: {},
     });
+
+    // The upsert's empty `update` means a second call writes nothing. That was
+    // silent: a correction or a back-fill reported success and changed nothing.
+    // Read the row back and say so, rather than letting the caller believe the
+    // write happened.
+    const existing = await tx.bloodUnitDisposition.findUnique({
+      where: { bloodUnitId: input.unitId },
+      select: { type: true },
+    });
+
+    if (existing && existing.type !== input.type) {
+      throw new ConflictException({
+        code: 'DISPOSITION_ALREADY_RECORDED',
+        message:
+          'This unit already has a final disposition. A disposition is written once; record a correction as a new audited event rather than overwriting it.',
+        details: { existing: existing.type, attempted: input.type },
+      });
+    }
+  }
+
+  /**
+   * The hospital's half of the chain: what actually became of a unit.
+   *
+   * `DispositionType` carries two axes. The blood centre's -- ISSUED,
+   * DISCARDED, EXPIRED, TRANSFERRED_OUT -- says how a unit left its custody.
+   * These say what happened to it afterwards, which is the half that closes
+   * traceability, and only the receiving organisation can answer it.
+   *
+   * `recipientReference` and `encounterReference` are opaque and scoped to the
+   * recording organisation. The same string from two hospitals is two different
+   * people, and nothing here treats either as a global identifier. No national
+   * identity number is required, requested or accepted as a special case
+   * (CL-03, PR-02) -- what identifies a transfusion recipient in this
+   * jurisdiction is an unresolved legal question, and a column that quietly
+   * became a JSHSHIR would be this project answering it by accident.
+   *
+   * NO REACTION CLASSIFICATION IS ENCODED. `REACTION_REPORTED` records that a
+   * reaction was reported; what kind is clinical vocabulary this project does
+   * not have (CR-08), so the detail stays in free-text `context`.
+   */
+  async recordFinalDisposition(
+    organizationId: string,
+    unitId: string,
+    requestingUserId: string,
+    dto: {
+      type: DispositionType;
+      recipientReference?: string;
+      encounterReference?: string;
+      context?: string;
+      notes?: string;
+    },
+    ipAddress?: string,
+  ) {
+    const unit = await this.db.bloodUnit.findFirst({
+      where: { id: unitId, organizationId },
+      select: { id: true, unitReference: true, status: true },
+    });
+
+    if (!unit) {
+      throw new NotFoundException('Blood unit not found in this organization.');
+    }
+
+    const result = await this.db.$transaction(async (tx) => {
+      await this.recordDisposition(tx, {
+        unitId,
+        organizationId,
+        type: dto.type,
+        recordedBy: requestingUserId,
+        recipientReference: dto.recipientReference ?? null,
+        encounterReference: dto.encounterReference ?? null,
+        context: dto.context ?? null,
+        notes: dto.notes ?? null,
+      });
+
+      return tx.bloodUnitDisposition.findUniqueOrThrow({ where: { bloodUnitId: unitId } });
+    });
+
+    await this.audit.log({
+      actorId: requestingUserId,
+      action: 'BLOOD_UNIT_FINAL_DISPOSITION_RECORDED',
+      entityType: 'BloodUnit',
+      entityId: unitId,
+      organizationId,
+      // The TYPE and the fact a reference was supplied; never the reference
+      // itself and never the free-text context. Both can identify a patient,
+      // and the audit log is read far more widely than this endpoint.
+      metadata: {
+        unitReference: unit.unitReference,
+        type: result.type,
+        hasRecipientReference: Boolean(result.recipientReference),
+        hasEncounterReference: Boolean(result.encounterReference),
+      },
+      ipAddress,
+    });
+
+    return {
+      data: {
+        bloodUnitId: unitId,
+        type: result.type,
+        occurredAt: result.occurredAt,
+      },
+    };
   }
 
   private async getAuthorizedUser(userId: string, organizationId: string) {
