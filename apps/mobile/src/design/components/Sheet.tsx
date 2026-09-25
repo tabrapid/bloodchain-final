@@ -1,5 +1,16 @@
 import { useEffect, useRef, type ReactNode } from 'react';
-import { Animated, BackHandler, Modal as RNModal, Pressable, View, type ViewStyle } from 'react-native';
+import {
+  Animated,
+  BackHandler,
+  KeyboardAvoidingView,
+  Modal as RNModal,
+  Platform,
+  Pressable,
+  ScrollView,
+  View,
+  useWindowDimensions,
+  type ViewStyle,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDesign } from '../useDesign';
 import { icon as iconScale, motion, radius, space } from '../tokens';
@@ -63,9 +74,24 @@ export function BottomSheet({
     return () => subscription.remove();
   }, [visible, onClose]);
 
+  const { height: windowHeight } = useWindowDimensions();
+
   return (
     <RNModal visible={visible} transparent animationType="none" onRequestClose={onClose} statusBarTranslucent>
-      <View style={{ flex: 1, justifyContent: 'flex-end' }}>
+      {/*
+        Two things a bottom-anchored sheet has to survive: a body taller than
+        the phone, and a keyboard.
+       
+        The region picker in booking is twelve rows plus a header; anchored to
+        the bottom with nothing to scroll, it grew off the TOP of the screen and
+        took its own title and close button with it. And every sheet with a text
+        field in it -- decline a delivery, report a problem -- had the keyboard
+        cover the field and the submit button, because nothing lifted it.
+      */}
+      <KeyboardAvoidingView
+        style={{ flex: 1, justifyContent: 'flex-end' }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
         <Animated.View style={{ ...fill, backgroundColor: colors.scrim, opacity: slide }}>
           <Pressable
             accessibilityRole="button"
@@ -125,10 +151,20 @@ export function BottomSheet({
             />
           </View>
 
-          {children}
+          {children ? (
+            <ScrollView
+              style={{ maxHeight: windowHeight * 0.6 }}
+              contentContainerStyle={{ paddingBottom: space.xs }}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+              bounces={false}
+            >
+              {children}
+            </ScrollView>
+          ) : null}
           {footer}
         </Animated.View>
-      </View>
+      </KeyboardAvoidingView>
     </RNModal>
   );
 }

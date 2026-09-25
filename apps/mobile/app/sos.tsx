@@ -141,22 +141,40 @@ export default function SosScreen() {
   const [explainerVisible, setExplainerVisible] = useState(false);
   const [cancelVisible, setCancelVisible] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const loadEmergencies = useCallback(async () => {
-    setStatus('loading');
-    try {
-      const response: DonorEmergenciesResponse = await getDonorEmergencies();
-      setEmergencies(response.active);
-      setMyResponses(response.myResponses);
-      setStatus('idle');
-    } catch (err: any) {
-      setError(err.message || t('sos.loadFailed'));
-      setStatus('error');
-    }
-  }, []);
+  /**
+   * Load, without blanking what is already on screen.
+   *
+   * `setStatus('loading')` swapped the whole screen for a centred spinner --
+   * and every action calls this afterwards, so a donor who pressed "I have
+   * arrived" watched the journey, the hospital card and the map disappear and
+   * come back. Only the first load has nothing to keep; a refresh keeps it and
+   * says so through the pull-to-refresh spinner instead.
+   */
+  const loadEmergencies = useCallback(
+    async (mode: 'initial' | 'refresh' = 'initial') => {
+      if (mode === 'initial') setStatus('loading');
+      else setRefreshing(true);
+      try {
+        const response: DonorEmergenciesResponse = await getDonorEmergencies();
+        setEmergencies(response.active);
+        setMyResponses(response.myResponses);
+        setStatus('idle');
+      } catch (err: any) {
+        setError(err.message || t('sos.loadFailed'));
+        // A refresh that fails leaves what was already there, with the failure
+        // said in a banner; only a first load has nothing to fall back to.
+        if (mode === 'initial') setStatus('error');
+      } finally {
+        setRefreshing(false);
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
-    loadEmergencies();
+    loadEmergencies('initial');
   }, [loadEmergencies]);
 
   const locationSubscription = useRef<Location.LocationSubscription | null>(null);
@@ -293,7 +311,7 @@ export default function SosScreen() {
     setActionError(null);
     try {
       const response = await acceptEmergency(emergency.matchId);
-      await loadEmergencies();
+      await loadEmergencies('refresh');
       // Carry the donor straight into their accepted response rather than
       // dropping them back on the list to hunt for it again. They have just
       // committed to travelling to a hospital under time pressure; the next
@@ -314,7 +332,7 @@ export default function SosScreen() {
     setActionError(null);
     try {
       await declineEmergency(emergency.matchId);
-      await loadEmergencies();
+      await loadEmergencies('refresh');
       setStatus('idle');
       setSelectedEmergency(null);
     } catch (err: any) {
@@ -327,7 +345,7 @@ export default function SosScreen() {
     setActionError(null);
     try {
       await startJourney(emergency.responseId);
-      await loadEmergencies();
+      await loadEmergencies('refresh');
       setSelectedEmergency({ ...emergency, responseStatus: 'EN_ROUTE' });
       setStatus('en_route');
     } catch (err: any) {
@@ -340,7 +358,7 @@ export default function SosScreen() {
     setActionError(null);
     try {
       await arriveAtHospital(emergency.responseId);
-      await loadEmergencies();
+      await loadEmergencies('refresh');
       setSelectedEmergency({ ...emergency, responseStatus: 'ARRIVED' });
       setStatus('arrived');
     } catch (err: any) {
@@ -354,7 +372,7 @@ export default function SosScreen() {
     setCancelling(true);
     try {
       await cancelResponse(responseId);
-      await loadEmergencies();
+      await loadEmergencies('refresh');
       setCancelVisible(false);
       setStatus('idle');
       setSelectedEmergency(null);
@@ -751,8 +769,8 @@ export default function SosScreen() {
           backLabel={t('common.a11yGoBack')}
         />
       }
-      refreshing={false}
-      onRefresh={loadEmergencies}
+      refreshing={refreshing}
+      onRefresh={() => void loadEmergencies('refresh')}
     >
       <Stack gap="xl">
         {actionError ? <Banner tone="critical" title={actionError} /> : null}

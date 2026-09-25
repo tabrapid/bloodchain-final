@@ -16,6 +16,7 @@ import {
   radius,
   space,
   useDesign,
+  SectionError,
 } from '../../src/design';
 import { useAppointment } from '../../src/hooks/useAppointments';
 import { useTranslation } from '../../src/i18n';
@@ -34,7 +35,7 @@ export default function BookingConfirmation() {
   const { t, formatDate, formatTime } = useTranslation();
   const { colors } = useDesign();
   const params = useLocalSearchParams<{ appointmentId: string; rescheduled?: string }>();
-  const { data: appointment, isPending } = useAppointment(params.appointmentId);
+  const { data: appointment, isPending, refetch } = useAppointment(params.appointmentId);
   const isRescheduled = params.rescheduled === '1';
 
   return (
@@ -117,7 +118,16 @@ export default function BookingConfirmation() {
               ]}
             />
           </Stack>
-        ) : null}
+        ) : (
+          // Same as the laboratory receipt: the appointment was booked, and
+          // reading it back can still fail. A green tick over an empty card
+          // with no reference number is the one thing this screen must not be.
+          <SectionError
+            message={t('booking.detailsFailed')}
+            retryLabel={t('common.retry')}
+            onRetry={() => void refetch()}
+          />
+        )}
 
         <Banner tone="clinical" title={t('booking.arriveEarly')} />
 

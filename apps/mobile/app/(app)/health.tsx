@@ -338,19 +338,33 @@ export default function Health() {
             <ListGroup
               rows={parameters.slice(0, 5).map((param, index) => {
                 const code = param.code.toUpperCase();
-                const { icon: Icon, tone } = markerVisual(param.code, index);
+                const { icon: Icon } = markerVisual(param.code, index);
                 const flag = flagByParameterCode.get(code);
                 const descriptionKey = MARKER_DESCRIPTION_KEY_BY_CODE[code];
+                const measurement =
+                  param.latestValue !== undefined
+                    ? `${param.latestValue}${param.unit ? ` ${param.unit}` : ''}`
+                    : '—';
                 return (
                   <ListRow
                     key={param.code}
-                    leading={<Icon size={iconSize.lg} color={colors[tone].base} />}
+                    // The glyph is not a status.
+                    //
+                    // `markerVisual` picks a tone from the marker's identity --
+                    // platelets amber, red cells rose -- and the row also
+                    // carries a status badge, so an amber icon sat beside a
+                    // green "Normal" and the two contradicted each other. One
+                    // neutral colour for every marker; the badge says the state.
+                    leading={<Icon size={iconSize.lg} color={colors.textSecondary} />}
                     title={param.name}
-                    subtitle={descriptionKey ? t(descriptionKey) : undefined}
-                    value={
-                      param.latestValue !== undefined
-                        ? `${param.latestValue}${param.unit ? ` ${param.unit}` : ''}`
-                        : '—'
+                    // Five things competed for one 52pt line -- icon, title,
+                    // two-line plain-language note, value with unit, and a
+                    // badge -- and the only flexible column was the title, so
+                    // "Red blood cells" rendered as "Red Bloo…" in English
+                    // before Russian or Uzbek made it worse. The measurement
+                    // reads on the subtitle line, which returns that width.
+                    subtitle={
+                      descriptionKey ? `${measurement} · ${t(descriptionKey)}` : measurement
                     }
                     trailing={
                       flag ? (

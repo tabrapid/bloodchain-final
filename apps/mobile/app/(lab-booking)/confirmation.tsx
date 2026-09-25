@@ -16,6 +16,7 @@ import {
   radius,
   space,
   useDesign,
+  SectionError,
 } from '../../src/design';
 import { useDonorLaboratoryAppointment } from '../../src/hooks/useLaboratory';
 import { useTranslation } from '../../src/i18n';
@@ -31,7 +32,11 @@ export default function LabBookingConfirmation() {
   const { t, formatDate, formatTime } = useTranslation();
   const { colors } = useDesign();
   const params = useLocalSearchParams<{ appointmentId: string }>();
-  const { data: appointment, isPending } = useDonorLaboratoryAppointment(params.appointmentId);
+  const {
+    data: appointment,
+    isPending,
+    refetch,
+  } = useDonorLaboratoryAppointment(params.appointmentId);
 
   return (
     <ScrollScreen>
@@ -116,7 +121,18 @@ export default function LabBookingConfirmation() {
               ]}
             />
           </Stack>
-        ) : null}
+        ) : (
+          // The booking succeeded -- that is why this screen is here -- but the
+          // read-back of it can still fail, and then the receipt showed a green
+          // tick and "Test booked" with no reference number, no laboratory, no
+          // date and no way to ask again. The appointment exists either way;
+          // what is missing is the detail.
+          <SectionError
+            message={t('booking.detailsFailed')}
+            retryLabel={t('common.retry')}
+            onRetry={() => void refetch()}
+          />
+        )}
 
         <Banner tone="clinical" title={t('labBooking.arriveEarly')} />
 
