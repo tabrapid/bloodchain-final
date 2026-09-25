@@ -52,8 +52,8 @@ export {
 } from './components/Feedback';
 export type { SkeletonProps, EmptyStateProps, ErrorStateProps } from './components/Feedback';
 
-export { Field, PhoneField, SearchField } from './components/Field';
-export type { FieldProps, PhoneFieldProps, SearchFieldProps } from './components/Field';
+export { Field, PasswordField, PhoneField, SearchField } from './components/Field';
+export type { FieldProps, PasswordFieldProps, PhoneFieldProps, SearchFieldProps } from './components/Field';
 
 export { OtpField } from './components/OtpField';
 export type { OtpFieldProps } from './components/OtpField';

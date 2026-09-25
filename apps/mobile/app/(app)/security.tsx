@@ -1,18 +1,27 @@
-import { useMemo, useState } from 'react';
-import { View, StyleSheet, ScrollView, Alert, Pressable } from 'react-native';
+import { useState } from 'react';
+import { View } from 'react-native';
 import { router } from 'expo-router';
-import { Eye, EyeOff, Key, Smartphone, LogOut } from 'lucide-react-native';
+import { Key, LogOut, Smartphone } from 'lucide-react-native';
 import {
-  AppButton,
-  AppText,
-  AppTextInput,
   Badge,
-  GlassCard,
-  Screen,
+  Banner,
+  Button,
+  ConfirmationSheet,
+  Divider,
+  ListGroup,
+  ListRow,
+  PasswordField,
+  Row,
   ScreenHeader,
+  ScrollScreen,
   SectionHeader,
-} from '../../src/components';
-import { spacing, useTheme, ThemeColors } from '../../src/theme';
+  Stack,
+  Surface,
+  Text,
+  iconSize,
+  space,
+  useDesign,
+} from '../../src/design';
 import { useSessions, useRevokeSession, useRevokeAllSessions } from '../../src/hooks/useSessions';
 import { useDonorProfile } from '../../src/hooks/useDonors';
 import { clearAuthTokens } from '../../src/auth/storage';
@@ -20,6 +29,7 @@ import { useAuthStore } from '../../src/stores/auth.store';
 import { apiRequest, ApiRequestError } from '../../src/api/client';
 import { apiBasePath } from '../../src/api/config';
 import { useTranslation } from '../../src/i18n';
+import type { TranslateFn } from '@bloodchain/i18n';
 
 const MIN_PASSWORD_LENGTH = 12;
 
@@ -27,10 +37,7 @@ const MIN_PASSWORD_LENGTH = 12;
  * Takes the translator rather than calling a hook: this runs inside a row's
  * render, and a string built without it is stuck in the bundle's language.
  */
-function formatRelativeTime(
-  dateStr: string | undefined,
-  t: (key: string, options?: Record<string, string | number>) => string,
-): string {
+function formatRelativeTime(dateStr: string | undefined, t: TranslateFn): string {
   if (!dateStr) return t('common.unknown');
   const diffMins = Math.floor((Date.now() - new Date(dateStr).getTime()) / 60000);
   if (diffMins < 1) return t('security.activeNow');
@@ -40,10 +47,24 @@ function formatRelativeTime(
   return t('common.daysAgoShort', { count: Math.floor(diffHours / 24) });
 }
 
+type Session = { id: string; deviceName?: string | null; isCurrent?: boolean };
+
+/**
+ * Security, rebuilt for V2.
+ *
+ * Five system alerts used to carry this screen: two confirmations, two
+ * outcomes and one failure. On Android they are unstyled OS dialogs stacked on
+ * top of the app, and the one that mattered most -- "your password changed,
+ * you have been signed out" -- was dismissed by the navigation that followed
+ * it, so the donor arrived at the sign-in screen with no idea why.
+ *
+ * Confirmations are sheets now, and outcomes are said on the screen. The
+ * password change no longer signs the donor out from under an alert: it
+ * reports what happened and the donor signs in again when they are ready.
+ */
 export default function Security() {
   const { t } = useTranslation();
-  const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const { colors } = useDesign();
   const { data: sessions } = useSessions();
   const revokeSession = useRevokeSession();
   const revokeAllSessions = useRevokeAllSessions();
@@ -53,8 +74,12 @@ export default function Security() {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [reveal, setReveal] = useState({ current: false, next: false, confirm: false });
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [passwordChanged, setPasswordChanged] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [revoking, setRevoking] = useState<Session | null>(null);
+  const [confirmingLogoutAll, setConfirmingLogoutAll] = useState(false);
 
   // Validated inline rather than behind an alert on submit: a rule the donor
   // can read while typing is the difference between one attempt and three.
@@ -74,402 +99,262 @@ export default function Security() {
 
   const handleChangePassword = async () => {
     setIsChangingPassword(true);
+    setError(null);
     try {
       await apiRequest(`${apiBasePath}/auth/change-password`, {
         method: 'POST',
         body: JSON.stringify({ currentPassword, newPassword }),
       });
-
-      Alert.alert(t('security.passwordChanged'), t('security.passwordChangedBody'));
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
-      await clearAuthTokens();
-      clearAuth();
-      router.replace('/(auth)/login');
-    } catch (error) {
-      Alert.alert(
-        t('security.passwordChangeFailed'),
-        error instanceof ApiRequestError ? error.error.message : t('common.error'),
-      );
+      setPasswordChanged(true);
+    } catch (err) {
+      setError(err instanceof ApiRequestError ? err.error.message : t('security.passwordChangeFailed'));
     } finally {
       setIsChangingPassword(false);
     }
   };
 
-  /**
-   * Revoking the current session signs the donor out of the phone in their
-   * hand -- a different thing from ending a session on a laptop they left at
-   * work, and it used to ask with exactly the same two sentences. The row is
-   * already labelled "Sign out" rather than "Revoke"; the confirmation now
-   * matches it, so the destructive answer is never the one you reach for by
-   * habit.
-   */
-  const handleRevokeSession = (session: { id: string; deviceName?: string | null; isCurrent?: boolean }) => {
-    const title = session.isCurrent
-      ? t('security.signOutThisDeviceTitle')
-      : t('security.revokeOtherSessionTitle', {
-          device: session.deviceName ?? t('security.unknownDevice'),
-        });
-    const body = session.isCurrent
-      ? t('security.signOutThisDeviceBody')
-      : t('security.revokeSessionBody');
-
-    Alert.alert(title, body, [
-      { text: t('actions.cancel'), style: 'cancel' },
-      {
-        text: session.isCurrent ? t('security.signOut') : t('security.revoke'),
-        style: 'destructive',
-        onPress: () => revokeSession.mutate(session.id),
-      },
-    ]);
-  };
-
-  const handleLogoutAll = () => {
-    Alert.alert(
-      t('security.logOutAllTitle'),
-      t('security.logOutAllBody'),
-      [
-        { text: t('actions.cancel'), style: 'cancel' },
-        {
-          text: t('security.logOutAllConfirm'),
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await revokeAllSessions.mutateAsync();
-              Alert.alert(t('common.done'), t('security.sessionsRevoked'));
-            } catch {
-              Alert.alert(t('common.error'), t('security.revokeFailed'));
-            }
-          },
-        },
-      ],
-    );
+  const signInAgain = async () => {
+    await clearAuthTokens();
+    clearAuth();
+    router.replace('/(auth)/login');
   };
 
   const status = donorProfile?.donorStatus;
 
   return (
-    <Screen scroll={false}>
-      <ScreenHeader title={t('security.title')} subtitle={t('security.subtitle')} />
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <SectionHeader>{t('security.authentication')}</SectionHeader>
-        <GlassCard>
-          <View style={styles.cardHead}>
-            <View style={styles.cardHeadIcon}>
-              <Key size={16} color={colors.onMuted.success} />
-            </View>
-            <View style={styles.cardHeadBody}>
-              <AppText style={styles.cardHeadTitle}>{t('security.changePassword')}</AppText>
-              <AppText style={styles.cardHeadMeta}>
-                At least {MIN_PASSWORD_LENGTH} characters
-              </AppText>
-            </View>
-          </View>
+    <ScrollScreen
+      header={
+        <ScreenHeader
+          title={t('security.title')}
+          eyebrow={t('security.subtitle')}
+          onBack={() => router.back()}
+          backLabel={t('common.a11yGoBack')}
+        />
+      }
+    >
+      <Stack gap="xl">
+        {notice ? <Banner tone="success" title={notice} /> : null}
+        {error ? <Banner tone="critical" title={error} /> : null}
 
-          <View style={styles.fields}>
-            <AppTextInput
-              label={t('security.currentPassword')}
-              placeholder={t('security.currentPasswordPlaceholder')}
-              secureTextEntry={!reveal.current}
-              value={currentPassword}
-              onChangeText={setCurrentPassword}
-              autoCapitalize="none"
-              trailing={
-                <RevealToggle
-                  shown={reveal.current}
-                  onToggle={() => setReveal((r) => ({ ...r, current: !r.current }))}
-                />
-              }
-            />
-            <AppTextInput
-              label={t('auth.resetPassword.newPassword')}
-              placeholder={t('security.newPasswordPlaceholder')}
-              secureTextEntry={!reveal.next}
-              value={newPassword}
-              onChangeText={setNewPassword}
-              autoCapitalize="none"
-              error={lengthError}
-              trailing={
-                <RevealToggle
-                  shown={reveal.next}
-                  onToggle={() => setReveal((r) => ({ ...r, next: !r.next }))}
-                />
-              }
-            />
-            <AppTextInput
-              label={t('auth.resetPassword.confirmPassword')}
-              placeholder={t('auth.resetPassword.confirmPassword')}
-              secureTextEntry={!reveal.confirm}
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              autoCapitalize="none"
-              error={matchError}
-              trailing={
-                <RevealToggle
-                  shown={reveal.confirm}
-                  onToggle={() => setReveal((r) => ({ ...r, confirm: !r.confirm }))}
-                />
-              }
-            />
-          </View>
+        {/* --------------------------------------------------- password */}
+        <Stack gap="md">
+          <SectionHeader title={t('security.authentication')} />
+          <Surface>
+            {passwordChanged ? (
+              <Stack gap="md">
+                <Row gap="md">
+                  <Key size={iconSize.lg} color={colors.success.base} />
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <Text variant="bodyStrong">{t('security.passwordChanged')}</Text>
+                    <Text variant="caption" tone="secondary">
+                      {t('security.passwordChangedBody')}
+                    </Text>
+                  </View>
+                </Row>
+                <Button label={t('auth.login.submit')} onPress={() => void signInAgain()} />
+              </Stack>
+            ) : (
+              <Stack gap="lg">
+                <Row gap="md">
+                  <Key size={iconSize.lg} color={colors.success.base} />
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <Text variant="bodyStrong">{t('security.changePassword')}</Text>
+                    {/* `At least {n} characters` was an English literal. */}
+                    <Text variant="caption" tone="secondary">
+                      {t('security.minimumLength', { count: MIN_PASSWORD_LENGTH })}
+                    </Text>
+                  </View>
+                </Row>
 
-          <AppButton
-            onPress={handleChangePassword}
-            disabled={!canSubmit}
-            loading={isChangingPassword}
-            style={styles.submit}
-          >
-            {t('security.changePassword')}
-          </AppButton>
-        </GlassCard>
+                <PasswordField
+                  label={t('security.currentPassword')}
+                  placeholder={t('security.currentPasswordPlaceholder')}
+                  value={currentPassword}
+                  onChangeText={setCurrentPassword}
+                  showLabel={t('security.a11yShowPassword')}
+                  hideLabel={t('security.a11yHidePassword')}
+                />
+                <PasswordField
+                  label={t('auth.resetPassword.newPassword')}
+                  placeholder={t('security.newPasswordPlaceholder')}
+                  value={newPassword}
+                  onChangeText={setNewPassword}
+                  error={lengthError}
+                  showLabel={t('security.a11yShowPassword')}
+                  hideLabel={t('security.a11yHidePassword')}
+                />
+                <PasswordField
+                  label={t('auth.resetPassword.confirmPassword')}
+                  placeholder={t('auth.resetPassword.confirmPassword')}
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  error={matchError}
+                  showLabel={t('security.a11yShowPassword')}
+                  hideLabel={t('security.a11yHidePassword')}
+                />
 
-        <SectionHeader>{t('security.activeSessions')}</SectionHeader>
-        <GlassCard>
+                <Button
+                  label={t('security.changePassword')}
+                  disabled={!canSubmit}
+                  loading={isChangingPassword}
+                  onPress={() => void handleChangePassword()}
+                />
+              </Stack>
+            )}
+          </Surface>
+        </Stack>
+
+        {/* --------------------------------------------------- sessions */}
+        <Stack gap="md">
+          <SectionHeader title={t('security.activeSessions')} />
           {sessions && sessions.length > 0 ? (
-            <View style={styles.sessionList}>
+            <Surface padded="lg">
               {sessions.map((session, index) => (
                 <View key={session.id}>
-                  {index > 0 && <View style={styles.divider} />}
-                  <View style={styles.sessionRow}>
-                    <View style={styles.sessionIcon}>
-                      <Smartphone size={16} color={colors.textMuted} />
-                    </View>
-                    <View style={styles.sessionBody}>
-                      <View style={styles.sessionTitleRow}>
-                        <AppText style={styles.sessionDevice}>
+                  {index > 0 ? <Divider /> : null}
+                  <Row gap="md" style={{ paddingVertical: space.md }}>
+                    <Smartphone size={iconSize.lg} color={colors.textTertiary} />
+                    <View style={{ flex: 1, gap: 2 }}>
+                      <Row gap="sm">
+                        <Text variant="body" numberOfLines={1} style={{ flexShrink: 1 }}>
                           {session.deviceName || session.deviceType || t('security.unknownDevice')}
-                        </AppText>
+                        </Text>
                         {/* The server decides this from the token the request
                             carried; without it every row offers the same
                             "revoke" and none of them says which one signs you
                             out of the device in your hand. */}
-                        {session.isCurrent && (
-                          <View style={styles.currentBadge}>
-                            <AppText style={styles.currentBadgeText}>
-                              {t('security.thisDevice')}
-                            </AppText>
-                          </View>
-                        )}
-                      </View>
-                      <AppText style={styles.sessionMeta}>
-                        {session.ipAddress ? `${session.ipAddress} · ` : ''}
-                        {formatRelativeTime(session.lastUsedAt ?? session.createdAt, t)}
-                      </AppText>
+                        {session.isCurrent ? (
+                          <Badge label={t('security.thisDevice')} tone="clinical" />
+                        ) : null}
+                      </Row>
+                      <Text variant="caption" tone="tertiary">
+                        {`${session.ipAddress ? `${session.ipAddress} · ` : ''}${formatRelativeTime(
+                          session.lastUsedAt ?? session.createdAt,
+                          t,
+                        )}`}
+                      </Text>
                     </View>
-                    <Pressable
-                      onPress={() => handleRevokeSession(session)}
-                      hitSlop={8}
-                      accessibilityRole="button"
+                    <Button
+                      label={session.isCurrent ? t('security.signOut') : t('security.revoke')}
+                      variant="secondary"
+                      size="md"
+                      block={false}
                       accessibilityLabel={t('security.a11yRevoke', {
                         device: session.deviceName ?? t('security.thisSession'),
                       })}
-                    >
-                      <AppText style={styles.revoke}>
-                        {session.isCurrent ? t('security.signOut') : t('security.revoke')}
-                      </AppText>
-                    </Pressable>
-                  </View>
+                      onPress={() => setRevoking(session)}
+                    />
+                  </Row>
                 </View>
               ))}
-            </View>
+            </Surface>
           ) : (
-            <AppText style={styles.emptyText}>{t('security.noOtherSessions')}</AppText>
+            <Surface>
+              <Text variant="body" tone="secondary">
+                {t('security.noOtherSessions')}
+              </Text>
+            </Surface>
           )}
-        </GlassCard>
 
-        <Pressable
-          onPress={handleLogoutAll}
-          accessibilityRole="button"
-          style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
-        >
-          <GlassCard style={styles.compactCard}>
-            <View style={styles.compactRow}>
-              <View style={styles.dangerIcon}>
-                <LogOut size={16} color={colors.onMuted.danger} />
+          <Surface
+            onPress={() => setConfirmingLogoutAll(true)}
+            accessibilityLabel={`${t('security.logOutAll')}. ${t('security.logOutAllHint')}`}
+          >
+            <Row gap="md">
+              <LogOut size={iconSize.lg} color={colors.critical.base} />
+              <View style={{ flex: 1, gap: 2 }}>
+                <Text variant="bodyStrong" tone="critical">
+                  {t('security.logOutAll')}
+                </Text>
+                <Text variant="caption" tone="secondary">
+                  {t('security.logOutAllHint')}
+                </Text>
               </View>
-              <View style={styles.compactBody}>
-                <AppText style={styles.dangerTitle}>{t('security.logOutAll')}</AppText>
-                <AppText style={styles.sessionMeta}>{t('security.logOutAllHint')}</AppText>
-              </View>
-            </View>
-          </GlassCard>
-        </Pressable>
+            </Row>
+          </Surface>
+        </Stack>
 
-        <SectionHeader>{t('security.accountStatus')}</SectionHeader>
-        <GlassCard style={styles.compactCard}>
-          <View style={styles.statusRow}>
-            <AppText style={styles.statusLabel}>{t('security.donorStatus')}</AppText>
-            <Badge
-              variant={status === 'ACTIVE' ? 'success' : status ? 'warning' : 'default'}
-            >
-              {/*
-                Translated rather than de-underscored.
-                `status.replace(/_/g, ' ').toLowerCase()` put the raw enum on
-                the screen in English, which was survivable while the values
-                were ACTIVE and DEFERRED and stopped being so the moment
-                MEDICAL_REVIEW_REQUIRED existed: the one status a donor most
-                needs to understand was the one shown in a language they may
-                not read.
-              */}
-              {status ? t(`medical.donorStatus.${status}`) : t('common.unknown')}
-            </Badge>
-          </View>
-        </GlassCard>
-      </ScrollView>
-    </Screen>
+        {/* ----------------------------------------------- account status */}
+        <Stack gap="md">
+          <SectionHeader title={t('security.accountStatus')} />
+          <ListGroup
+            rows={[
+              <ListRow
+                key="status"
+                title={t('security.donorStatus')}
+                trailing={
+                  <Badge
+                    /*
+                      Translated rather than de-underscored.
+                      `status.replace(/_/g, ' ').toLowerCase()` put the raw
+                      enum on the screen in English, which was survivable while
+                      the values were ACTIVE and DEFERRED and stopped being so
+                      the moment MEDICAL_REVIEW_REQUIRED existed: the one
+                      status a donor most needs to understand was the one shown
+                      in a language they may not read.
+                    */
+                    label={status ? t(`medical.donorStatus.${status}`) : t('common.unknown')}
+                    tone={status === 'ACTIVE' ? 'success' : status ? 'warning' : 'neutral'}
+                  />
+                }
+              />,
+            ]}
+          />
+        </Stack>
+      </Stack>
+
+      {/*
+        Revoking the current session signs the donor out of the phone in their
+        hand -- a different thing from ending a session on a laptop they left
+        at work, and it used to ask with exactly the same two sentences.
+      */}
+      <ConfirmationSheet
+        visible={revoking !== null}
+        onCancel={() => setRevoking(null)}
+        onConfirm={() => {
+          const session = revoking;
+          setRevoking(null);
+          if (session) revokeSession.mutate(session.id);
+        }}
+        title={
+          revoking?.isCurrent
+            ? t('security.signOutThisDeviceTitle')
+            : t('security.revokeOtherSessionTitle', {
+                device: revoking?.deviceName ?? t('security.unknownDevice'),
+              })
+        }
+        description={
+          revoking?.isCurrent
+            ? t('security.signOutThisDeviceBody')
+            : t('security.revokeSessionBody')
+        }
+        confirmLabel={revoking?.isCurrent ? t('security.signOut') : t('security.revoke')}
+        cancelLabel={t('actions.cancel')}
+        busy={revokeSession.isPending}
+        destructive
+      />
+
+      <ConfirmationSheet
+        visible={confirmingLogoutAll}
+        onCancel={() => setConfirmingLogoutAll(false)}
+        onConfirm={() => {
+          setConfirmingLogoutAll(false);
+          setError(null);
+          revokeAllSessions.mutate(undefined, {
+            onSuccess: () => setNotice(t('security.sessionsRevoked')),
+            onError: () => setError(t('security.revokeFailed')),
+          });
+        }}
+        title={t('security.logOutAllTitle')}
+        description={t('security.logOutAllBody')}
+        confirmLabel={t('security.logOutAllConfirm')}
+        cancelLabel={t('actions.cancel')}
+        busy={revokeAllSessions.isPending}
+        destructive
+      />
+    </ScrollScreen>
   );
-}
-
-function RevealToggle({ shown, onToggle }: { shown: boolean; onToggle: () => void }) {
-  const { t } = useTranslation();
-  const { colors } = useTheme();
-  return (
-    <Pressable
-      onPress={onToggle}
-      hitSlop={8}
-      accessibilityRole="button"
-      accessibilityLabel={shown ? t('security.a11yHidePassword') : t('security.a11yShowPassword')}
-    >
-      {shown ? (
-        <EyeOff size={20} color={colors.textMuted} />
-      ) : (
-        <Eye size={20} color={colors.textMuted} />
-      )}
-    </Pressable>
-  );
-}
-
-function createStyles(colors: ThemeColors) {
-  return StyleSheet.create({
-    content: {
-      paddingBottom: spacing['2xl'],
-    },
-    cardHead: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 12,
-      marginBottom: spacing.md,
-    },
-    cardHeadIcon: {
-      width: 36,
-      height: 36,
-      borderRadius: 10,
-      backgroundColor: colors.successMuted,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    cardHeadBody: { flex: 1 },
-    cardHeadTitle: {
-      fontSize: 14,
-      fontWeight: '500',
-      color: colors.text,
-    },
-    cardHeadMeta: {
-      fontSize: 12,
-      color: colors.textMuted,
-      marginTop: 1,
-    },
-    fields: {
-      gap: 14,
-    },
-    submit: {
-      marginTop: spacing.md,
-    },
-
-    sessionList: {
-      gap: 14,
-    },
-    divider: {
-      height: 1,
-      backgroundColor: colors.borderSubtle,
-      marginBottom: 14,
-    },
-    sessionRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 12,
-    },
-    sessionIcon: {
-      width: 36,
-      height: 36,
-      borderRadius: 10,
-      backgroundColor: colors.surfaceElevated,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    sessionBody: { flex: 1 },
-    sessionTitleRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 8,
-      flexWrap: 'wrap',
-    },
-    currentBadge: {
-      paddingHorizontal: 8,
-      paddingVertical: 2,
-      borderRadius: 999,
-      backgroundColor: colors.successMuted,
-    },
-    currentBadgeText: {
-      fontSize: 10,
-      fontWeight: '700',
-      letterSpacing: 0.3,
-      color: colors.onMuted.success,
-    },
-    sessionDevice: {
-      fontSize: 13,
-      fontWeight: '500',
-      color: colors.text,
-    },
-    sessionMeta: {
-      fontSize: 11,
-      color: colors.textMuted,
-      marginTop: 1,
-    },
-    revoke: {
-      fontSize: 12,
-      fontWeight: '600',
-      color: colors.primary,
-    },
-    emptyText: {
-      fontSize: 13,
-      color: colors.textMuted,
-    },
-
-    compactCard: {
-      paddingVertical: 12,
-      paddingHorizontal: 14,
-    },
-    compactRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 12,
-    },
-    compactBody: { flex: 1 },
-    dangerIcon: {
-      width: 36,
-      height: 36,
-      borderRadius: 10,
-      backgroundColor: colors.dangerMuted,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    dangerTitle: {
-      fontSize: 14,
-      fontWeight: '500',
-      color: colors.onMuted.danger,
-    },
-    statusRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: spacing.md,
-      minHeight: 36,
-    },
-    statusLabel: {
-      fontSize: 14,
-      color: colors.text,
-    },
-  });
 }

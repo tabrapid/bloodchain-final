@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { View } from 'react-native';
 import { Activity, Minus, TrendingDown, TrendingUp } from 'lucide-react-native';
 import { LineChart } from 'react-native-chart-kit';
@@ -75,7 +75,7 @@ export default function HealthTrendsScreen() {
   const trend = useParameterTrend(selectedParam, range);
   const history = useParameterHistory(selectedParam, 10);
 
-  const available = parameters.data ?? [];
+  const available = useMemo(() => parameters.data ?? [], [parameters.data]);
 
   useEffect(() => {
     if (!selectedParam && available.length > 0) {

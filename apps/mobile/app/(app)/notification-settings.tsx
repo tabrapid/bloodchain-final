@@ -1,18 +1,28 @@
-import { useMemo, useState } from 'react';
-import { View, StyleSheet, ScrollView, Switch, Alert } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Linking, View } from 'react-native';
+import { router } from 'expo-router';
+import * as Notifications from 'expo-notifications';
+import { Bell } from 'lucide-react-native';
 import {
-  AppText,
-  GlassCard,
-  LoadingState,
-  Screen,
+  Banner,
+  Button,
+  ErrorState,
+  PermissionExplainer,
   ScreenHeader,
+  ScrollScreen,
   SectionHeader,
-} from '../../src/components';
-import { spacing, useTheme, ThemeColors } from '../../src/theme';
+  Skeleton,
+  Stack,
+  Surface,
+  Text,
+  Toggle,
+  space,
+} from '../../src/design';
 import {
   useNotificationPreferences,
   useUpdateNotificationPreferences,
 } from '../../src/hooks/useNotifications';
+import { registerForPushNotificationsAsync } from '../../src/notifications/push';
 import type { NotificationPreferences } from '../../src/api/notifications';
 import { useTranslation } from '../../src/i18n';
 
@@ -36,163 +46,197 @@ type DonorCategory = keyof Pick<
 >;
 
 const CATEGORIES: Array<{ key: DonorCategory; labelKey: string; hintKey: string }> = [
-  {
-    key: 'emergencyRequests',
-    labelKey: 'notificationSettings.emergency',
-    hintKey: 'notificationSettings.emergencyHint',
-  },
-  {
-    key: 'appointments',
-    labelKey: 'notificationSettings.appointments',
-    hintKey: 'notificationSettings.appointmentsHint',
-  },
-  {
-    key: 'donationReminders',
-    labelKey: 'notificationSettings.reminders',
-    hintKey: 'notificationSettings.remindersHint',
-  },
-  {
-    key: 'healthResults',
-    labelKey: 'notificationSettings.results',
-    hintKey: 'notificationSettings.resultsHint',
-  },
-  {
-    key: 'gamification',
-    labelKey: 'notificationSettings.gamification',
-    hintKey: 'notificationSettings.gamificationHint',
-  },
-  {
-    key: 'system',
-    labelKey: 'notificationSettings.system',
-    hintKey: 'notificationSettings.systemHint',
-  },
+  { key: 'emergencyRequests', labelKey: 'notificationSettings.emergency', hintKey: 'notificationSettings.emergencyHint' },
+  { key: 'appointments', labelKey: 'notificationSettings.appointments', hintKey: 'notificationSettings.appointmentsHint' },
+  { key: 'donationReminders', labelKey: 'notificationSettings.reminders', hintKey: 'notificationSettings.remindersHint' },
+  { key: 'healthResults', labelKey: 'notificationSettings.results', hintKey: 'notificationSettings.resultsHint' },
+  { key: 'gamification', labelKey: 'notificationSettings.gamification', hintKey: 'notificationSettings.gamificationHint' },
+  { key: 'system', labelKey: 'notificationSettings.system', hintKey: 'notificationSettings.systemHint' },
 ];
+
+/** What the operating system currently allows. */
+type DevicePermission = 'unknown' | 'granted' | 'askable' | 'blocked';
 
 export default function NotificationSettings() {
   const { t } = useTranslation();
-  const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
 
-  const { data: preferences, isLoading, isError } = useNotificationPreferences();
+  const { data: preferences, isPending, isError } = useNotificationPreferences();
   const updatePreferences = useUpdateNotificationPreferences();
 
   // The switch follows the finger immediately and falls back to the server's
   // answer if the write fails, rather than freezing until the round trip.
   const [pending, setPending] = useState<Partial<Record<DonorCategory, boolean>>>({});
+  const [error, setError] = useState<string | null>(null);
+  const [device, setDevice] = useState<DevicePermission>('unknown');
+  const [explaining, setExplaining] = useState(false);
+
+  /**
+   * Whether the phone will show any of this at all.
+   *
+   * A donor who onboarded before S11, or who declined then, has no other way
+   * back: registration no longer asks, precisely so that nothing asks without
+   * explaining. This screen is where the explanation lives afterwards.
+   */
+  useEffect(() => {
+    let cancelled = false;
+    Notifications.getPermissionsAsync()
+      .then(({ status, canAskAgain }) => {
+        if (cancelled) return;
+        setDevice(status === 'granted' ? 'granted' : canAskAgain ? 'askable' : 'blocked');
+      })
+      .catch(() => {
+        if (!cancelled) setDevice('unknown');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  /** Only ever reached from the explainer's Allow button. */
+  const askOperatingSystem = async () => {
+    setExplaining(false);
+    const { status, canAskAgain } = await Notifications.requestPermissionsAsync();
+    if (status === 'granted') {
+      setDevice('granted');
+      void registerForPushNotificationsAsync();
+      return;
+    }
+    setDevice(canAskAgain ? 'askable' : 'blocked');
+  };
 
   const valueOf = (key: DonorCategory): boolean =>
     pending[key] ?? (preferences ? Boolean(preferences[key]) : false);
 
+  const clearPending = (key: DonorCategory) =>
+    setPending((current) => {
+      const next = { ...current };
+      delete next[key];
+      return next;
+    });
+
   const toggle = (key: DonorCategory, value: boolean) => {
+    setError(null);
     setPending((current) => ({ ...current, [key]: value }));
     updatePreferences.mutate(
       { [key]: value },
       {
         onError: () => {
-          setPending((current) => {
-            const next = { ...current };
-            delete next[key];
-            return next;
-          });
-          Alert.alert(t('common.error'), t('notificationSettings.updateFailed'));
+          clearPending(key);
+          setError(t('notificationSettings.updateFailed'));
         },
-        onSuccess: () => {
-          setPending((current) => {
-            const next = { ...current };
-            delete next[key];
-            return next;
-          });
-        },
+        onSuccess: () => clearPending(key),
       },
     );
   };
 
   return (
-    <Screen scroll={false}>
-      <ScreenHeader
-        title={t('notificationSettings.title')}
-        subtitle={t('notificationSettings.subtitle')}
-      />
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {isLoading ? (
-          <LoadingState />
+    <ScrollScreen
+      header={
+        <ScreenHeader
+          title={t('notificationSettings.title')}
+          eyebrow={t('notificationSettings.subtitle')}
+          onBack={() => router.back()}
+          backLabel={t('common.a11yGoBack')}
+        />
+      }
+    >
+      <Stack gap="xl">
+        {error ? <Banner tone="critical" title={error} /> : null}
+
+        {/* ------------------------------------------- the phone's own switch */}
+        {device !== 'unknown' && device !== 'granted' ? (
+          <Stack gap="md">
+            <SectionHeader title={t('notificationSettings.deviceSection')} />
+            {device === 'blocked' ? (
+              <Banner
+                tone="warning"
+                title={t('onboarding.notificationsBlockedTitle')}
+                description={t('onboarding.notificationsBlockedBody')}
+                action={
+                  <Button
+                    label={t('sos.locationDeniedOpenSettings')}
+                    variant="secondary"
+                    size="md"
+                    block={false}
+                    onPress={() => void Linking.openSettings()}
+                  />
+                }
+              />
+            ) : (
+              <Surface>
+                <Stack gap="md">
+                  <Text variant="body" tone="secondary">
+                    {t('notificationSettings.notAllowedYet')}
+                  </Text>
+                  <Button
+                    label={t('onboarding.explainNotifications')}
+                    variant="secondary"
+                    size="md"
+                    onPress={() => setExplaining(true)}
+                  />
+                </Stack>
+              </Surface>
+            )}
+          </Stack>
+        ) : null}
+
+        {/* ----------------------------------------------- what you receive */}
+        {isPending ? (
+          <Stack gap="md">
+            <Skeleton height={64} />
+            <Skeleton height={64} />
+            <Skeleton height={64} />
+          </Stack>
         ) : isError || !preferences ? (
-          <GlassCard>
-            <AppText style={styles.error}>{t('notificationSettings.loadFailed')}</AppText>
-          </GlassCard>
+          <ErrorState
+            title={t('notificationSettings.loadFailed')}
+            description={t('common.errorBody')}
+            retryLabel={t('common.retry')}
+            onRetry={() => router.replace('/(app)/notification-settings')}
+          />
         ) : (
-          <>
-            <SectionHeader>{t('notificationSettings.whatYouReceive')}</SectionHeader>
-            <GlassCard>
-              {CATEGORIES.map((category, index) => (
-                <View key={category.key}>
-                  {index > 0 && <View style={styles.divider} />}
-                  <View style={styles.toggleRow}>
-                    <View style={styles.toggleText}>
-                      <AppText style={styles.toggleLabel}>{t(category.labelKey)}</AppText>
-                      <AppText style={styles.toggleDesc}>{t(category.hintKey)}</AppText>
-                    </View>
-                    <Switch
-                      value={valueOf(category.key)}
-                      onValueChange={(value) => toggle(category.key, value)}
-                      disabled={updatePreferences.isPending}
-                      trackColor={{ false: colors.surfaceElevated, true: colors.primary }}
-                      thumbColor={colors.white}
-                    />
-                  </View>
-                </View>
-              ))}
-            </GlassCard>
+          <Stack gap="md">
+            <SectionHeader title={t('notificationSettings.whatYouReceive')} />
+            <Surface padded={false}>
+              <View style={{ paddingHorizontal: space.lg }}>
+                {CATEGORIES.map((category) => (
+                  <Toggle
+                    key={category.key}
+                    label={t(category.labelKey)}
+                    description={t(category.hintKey)}
+                    value={valueOf(category.key)}
+                    onValueChange={(value) => toggle(category.key, value)}
+                    busy={updatePreferences.isPending}
+                  />
+                ))}
+              </View>
+            </Surface>
 
             {/* Said out loud because it is a real exception in the delivery
                 service, not a reassurance: an emergency override reaches the
                 donor during quiet hours. */}
-            <AppText style={styles.note}>{t('notificationSettings.emergencyNote')}</AppText>
-          </>
+            <Text variant="caption" tone="tertiary">
+              {t('notificationSettings.emergencyNote')}
+            </Text>
+          </Stack>
         )}
-      </ScrollView>
-    </Screen>
-  );
-}
+      </Stack>
 
-function createStyles(colors: ThemeColors) {
-  return StyleSheet.create({
-    content: {
-      paddingBottom: spacing.xl,
-    },
-    toggleRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: spacing.md,
-      paddingVertical: spacing.sm,
-    },
-    toggleText: {
-      flex: 1,
-    },
-    toggleLabel: {
-      fontSize: 15,
-      fontWeight: '600',
-      color: colors.text,
-    },
-    toggleDesc: {
-      fontSize: 12,
-      color: colors.textMuted,
-      marginTop: 2,
-    },
-    divider: {
-      height: 1,
-      backgroundColor: colors.border,
-    },
-    error: {
-      fontSize: 13,
-      color: colors.onMuted.danger,
-    },
-    note: {
-      fontSize: 12,
-      lineHeight: 17,
-      color: colors.textMuted,
-      marginTop: spacing.lg,
-    },
-  });
+      <PermissionExplainer
+        visible={explaining}
+        title={t('onboarding.notificationsExplainerTitle')}
+        description={t('onboarding.notificationsExplainerBody')}
+        assurances={[
+          t('onboarding.notificationsAssuranceCategories'),
+          t('onboarding.notificationsAssuranceNoMarketing'),
+          t('onboarding.notificationsAssuranceChangeLater'),
+        ]}
+        allowLabel={t('onboarding.notificationsAllow')}
+        denyLabel={t('sos.locationNotNow')}
+        onAllow={() => void askOperatingSystem()}
+        onDeny={() => setExplaining(false)}
+        icon={({ size, color }) => <Bell size={size} color={color} />}
+      />
+    </ScrollScreen>
+  );
 }

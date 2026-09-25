@@ -2036,6 +2036,8 @@ export const uz: Catalog = {
     response: 'Javob',
   },
   notificationSettings: {
+    deviceSection: 'Ushbu qurilmada',
+    notAllowedYet: 'Telefoningiz hozircha Bloodchain bildirishnomalarini ko‘rsatmayapti.',
     title: 'Bildirishnoma sozlamalari',
     subtitle: 'Ilova sizga nima haqida xabar berishini tanlang',
     whatYouReceive: 'Siz oladigan xabarlar',
@@ -2241,6 +2243,7 @@ export const uz: Catalog = {
     disclaimer: 'Bu ilova sog‘liqqa oid ma’lumotlar bilan ishlaydi. Ko‘rsatilgan ma’lumotlar professional tibbiy maslahat, tashxis yoki davolash o‘rnini bosmaydi.',
   },
   security: {
+    minimumLength: 'Kamida {{count}} ta belgi',
     signOutThisDeviceTitle: 'Shu qurilmadan chiqilsinmi?',
     signOutThisDeviceBody: 'Siz hozir qo‘lingizdagi qurilmadan chiqmoqdasiz. Ilovadan foydalanish uchun qayta kirishingiz kerak bo‘ladi.',
     revokeOtherSessionTitle: '{{device}} bekor qilinsinmi?',

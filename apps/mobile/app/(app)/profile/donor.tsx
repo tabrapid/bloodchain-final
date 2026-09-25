@@ -1,17 +1,18 @@
-import { useEffect, useMemo, useState } from 'react';
-import { View, StyleSheet, ScrollView, Pressable, KeyboardAvoidingView, Platform } from 'react-native';
+import { useEffect, useState } from 'react';
 import { router } from 'expo-router';
 import {
-  AppButton,
-  AppText,
-  AppTextInput,
-  GlassCard,
-  Screen,
+  Banner,
+  Button,
+  Field,
+  FormScreen,
+  OptionGrid,
   ScreenHeader,
   SectionHeader,
-} from '../../../src/components';
+  Stack,
+  Text,
+  Well,
+} from '../../../src/design';
 import { useDonorProfile, useUpdateDonorProfile } from '../../../src/hooks/useDonors';
-import { spacing, radius, useTheme, ThemeColors } from '../../../src/theme';
 import { ApiRequestError } from '../../../src/api/client';
 import { useTranslation } from '../../../src/i18n';
 
@@ -34,8 +35,6 @@ const BLOOD_TYPE_CHIPS = [
 
 export default function EditDonorProfile() {
   const { t } = useTranslation();
-  const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
   const { data: donor } = useDonorProfile();
   const updateProfile = useUpdateDonorProfile();
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -71,9 +70,7 @@ export default function EditDonorProfile() {
       router.back();
     } catch (error) {
       setSaveError(
-        error instanceof ApiRequestError
-          ? error.error.message
-          : t('profileEdit.saveFailed'),
+        error instanceof ApiRequestError ? error.error.message : t('profileEdit.saveFailed'),
       );
     }
   };
@@ -84,140 +81,78 @@ export default function EditDonorProfile() {
     formData.city !== (donor?.city ?? '') ||
     formData.district !== (donor?.district ?? '');
 
+  const selectedLabel =
+    BLOOD_TYPE_CHIPS.find(
+      (chip) => chip.bloodType === formData.bloodType && chip.rhFactor === formData.rhFactor,
+    )?.label ?? null;
+
   return (
-    <Screen scroll={false}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.flex}
-      >
-        <ScreenHeader title={t('profileEdit.donorTitle')} subtitle={t('profileEdit.donorSubtitle')} />
+    <FormScreen
+      header={
+        <ScreenHeader
+          title={t('profileEdit.donorTitle')}
+          eyebrow={t('profileEdit.donorSubtitle')}
+          onBack={() => router.back()}
+          backLabel={t('common.a11yGoBack')}
+        />
+      }
+    >
+      <Stack gap="xl">
+        <Stack gap="md">
+          <SectionHeader title={t('medical.bloodGroup')} />
+          {/* The chips announced themselves as `Blood type A+` in English on
+              a screen that ships in three languages, and as `button` rather
+              than one of eight radios. */}
+          <OptionGrid
+            accessibilityLabel={t('medical.bloodGroup')}
+            columns={4}
+            value={selectedLabel}
+            onChange={(label) => {
+              const chip = BLOOD_TYPE_CHIPS.find((candidate) => candidate.label === label)!;
+              setFormData((prev) => ({
+                ...prev,
+                bloodType: chip.bloodType,
+                rhFactor: chip.rhFactor,
+              }));
+            }}
+            options={BLOOD_TYPE_CHIPS.map((chip) => ({
+              value: chip.label,
+              label: chip.label,
+              accessibilityLabel: t('onboarding.a11yBloodType', { type: chip.label }),
+            }))}
+          />
+          <Well>
+            <Text variant="caption" tone="secondary">
+              {t('medical.verification.unverifiedNote')}
+            </Text>
+          </Well>
+        </Stack>
 
-        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          <SectionHeader>{t('medical.bloodGroup')}</SectionHeader>
-          <View style={styles.chipGrid}>
-            {BLOOD_TYPE_CHIPS.map((chip) => {
-              const selected =
-                formData.bloodType === chip.bloodType && formData.rhFactor === chip.rhFactor;
-              return (
-                <View key={chip.label} style={styles.chipCell}>
-                  <Pressable
-                    onPress={() =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        bloodType: chip.bloodType,
-                        rhFactor: chip.rhFactor,
-                      }))
-                    }
-                    accessibilityRole="button"
-                    accessibilityState={{ selected }}
-                    accessibilityLabel={`Blood type ${chip.label}`}
-                    style={({ pressed }) => [
-                      styles.chip,
-                      selected && styles.chipSelected,
-                      { opacity: pressed && !selected ? 0.6 : 1 },
-                    ]}
-                  >
-                    <AppText style={[styles.chipLabel, selected && styles.chipLabelSelected]}>
-                      {chip.label}
-                    </AppText>
-                  </Pressable>
-                </View>
-              );
-            })}
-          </View>
-          <AppText style={styles.note}>
-            {t('medical.verification.unverifiedNote')}
-          </AppText>
+        <Stack gap="md">
+          <SectionHeader title={t('table.location')} />
+          <Field
+            label={t('table.city')}
+            placeholder={t('profileEdit.cityPlaceholder')}
+            value={formData.city}
+            onChangeText={(city) => setFormData((prev) => ({ ...prev, city }))}
+          />
+          <Field
+            label={t('profileEdit.districtOptional')}
+            placeholder={t('profileEdit.districtPlaceholder')}
+            value={formData.district}
+            onChangeText={(district) => setFormData((prev) => ({ ...prev, district }))}
+          />
+        </Stack>
 
-          <SectionHeader>{t('table.location')}</SectionHeader>
-          <GlassCard>
-            <View style={styles.fields}>
-              <AppTextInput
-                label={t('table.city')}
-                placeholder={t('profileEdit.cityPlaceholder')}
-                value={formData.city}
-                onChangeText={(city) => setFormData((prev) => ({ ...prev, city }))}
-              />
-              <AppTextInput
-                label={t('profileEdit.districtOptional')}
-                placeholder={t('profileEdit.districtPlaceholder')}
-                value={formData.district}
-                onChangeText={(district) => setFormData((prev) => ({ ...prev, district }))}
-              />
-            </View>
-          </GlassCard>
+        {saveError ? <Banner tone="critical" title={saveError} /> : null}
 
-          {saveError && <AppText style={styles.error}>{saveError}</AppText>}
-
-          <AppButton
-            onPress={handleSave}
-            disabled={!hasChanges || updateProfile.isPending}
-            loading={updateProfile.isPending}
-            style={styles.save}
-          >
-            {t('actions.saveChanges')}
-          </AppButton>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </Screen>
+        <Button
+          label={t('actions.saveChanges')}
+          disabled={!hasChanges || updateProfile.isPending}
+          loading={updateProfile.isPending}
+          onPress={() => void handleSave()}
+        />
+      </Stack>
+    </FormScreen>
   );
-}
-
-function createStyles(colors: ThemeColors) {
-  return StyleSheet.create({
-    flex: { flex: 1 },
-    content: {
-      paddingBottom: spacing.xl,
-    },
-    chipGrid: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      marginHorizontal: -4,
-    },
-    chipCell: {
-      width: '25%',
-      paddingHorizontal: 4,
-      paddingBottom: 8,
-    },
-    chip: {
-      minHeight: 46,
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderRadius: radius.sm,
-      backgroundColor: colors.glass.standard.fill,
-      borderWidth: 1,
-      borderColor: colors.glass.standard.border,
-    },
-    chipSelected: {
-      backgroundColor: colors.primary,
-      borderColor: 'transparent',
-    },
-    chipLabel: {
-      fontSize: 15,
-      fontWeight: '500',
-      color: colors.text,
-    },
-    chipLabelSelected: {
-      fontWeight: '800',
-      color: colors.white,
-    },
-    note: {
-      fontSize: 12,
-      lineHeight: 18,
-      fontStyle: 'italic',
-      color: colors.textMuted,
-      marginTop: 4,
-    },
-    fields: {
-      gap: 14,
-    },
-    error: {
-      fontSize: 13,
-      color: colors.onMuted.danger,
-      marginTop: spacing.md,
-    },
-    save: {
-      marginTop: spacing.lg,
-    },
-  });
 }

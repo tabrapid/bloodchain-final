@@ -8,6 +8,7 @@ import {
   type TextInputProps,
   type ViewStyle,
 } from 'react-native';
+import { Eye, EyeOff } from 'lucide-react-native';
 import { useDesign } from '../useDesign';
 import { hitTarget, icon as iconScale, radius, space } from '../tokens';
 import { Text } from './Text';
@@ -130,6 +131,59 @@ export const Field = forwardRef<TextInput, FieldProps>(function Field(
         </Text>
       ) : null}
     </View>
+  );
+});
+
+export interface PasswordFieldProps extends Omit<FieldProps, 'secureTextEntry' | 'trailing'> {
+  /** Announced on the reveal control while the password is hidden. */
+  showLabel: string;
+  /** Announced on it while the password is visible. */
+  hideLabel: string;
+}
+
+/**
+ * A password field with a reveal control.
+ *
+ * Four screens built this by hand -- sign in, register, reset password and
+ * security -- each with its own `showPassword` state, its own hit area and, on
+ * two of them, an icon with no accessible label at all. The labels are props
+ * rather than fixed strings because "show password" belongs to the screen's
+ * own namespace, not to the design system's.
+ *
+ * The toggle is a 44pt target with `hitSlop` on top of it: it sits inside a
+ * field, where the visible icon has to stay small, and a 20pt icon is a 20pt
+ * target unless someone says otherwise.
+ */
+export const PasswordField = forwardRef<TextInput, PasswordFieldProps>(function PasswordField(
+  { showLabel, hideLabel, ...rest },
+  ref,
+) {
+  const { colors } = useDesign();
+  const [shown, setShown] = useState(false);
+
+  return (
+    <Field
+      ref={ref}
+      secureTextEntry={!shown}
+      autoCapitalize="none"
+      autoCorrect={false}
+      trailing={
+        <Pressable
+          onPress={() => setShown((value) => !value)}
+          hitSlop={12}
+          accessibilityRole="button"
+          accessibilityState={{ selected: shown }}
+          accessibilityLabel={shown ? hideLabel : showLabel}
+        >
+          {shown ? (
+            <EyeOff size={iconScale.md} color={colors.textTertiary} />
+          ) : (
+            <Eye size={iconScale.md} color={colors.textTertiary} />
+          )}
+        </Pressable>
+      }
+      {...rest}
+    />
   );
 });
 

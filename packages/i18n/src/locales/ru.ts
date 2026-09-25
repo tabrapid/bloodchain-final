@@ -2130,6 +2130,8 @@ export const ru: Catalog = {
     response: 'Ответ',
   },
   notificationSettings: {
+    deviceSection: 'На этом устройстве',
+    notAllowedYet: 'Телефон пока не показывает уведомления Bloodchain.',
     title: 'Настройки уведомлений',
     subtitle: 'Выберите, о чём приложение будет сообщать',
     whatYouReceive: 'Что вы получаете',
@@ -2340,6 +2342,7 @@ export const ru: Catalog = {
     disclaimer: 'Это приложение работает с информацией о здоровье. Показанное не заменяет профессиональную медицинскую консультацию, диагностику или лечение.',
   },
   security: {
+    minimumLength: 'Не менее {{count}} символов',
     signOutThisDeviceTitle: 'Выйти на этом устройстве?',
     signOutThisDeviceBody: 'Вы выходите на устройстве, которое держите в руках. Чтобы пользоваться приложением, потребуется войти заново.',
     revokeOtherSessionTitle: 'Отозвать «{{device}}»?',

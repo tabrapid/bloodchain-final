@@ -2099,6 +2099,8 @@ export const en: Catalog = {
     response: 'Response',
   },
   notificationSettings: {
+    deviceSection: 'On this device',
+    notAllowedYet: 'Your phone is not showing Bloodchain notifications yet.',
     title: 'Notification settings',
     subtitle: 'Choose what this app tells you about',
     whatYouReceive: 'What you receive',
@@ -2304,6 +2306,7 @@ export const en: Catalog = {
     disclaimer: 'This application handles health-related information. What it shows is not a substitute for professional medical advice, diagnosis, or treatment.',
   },
   security: {
+    minimumLength: 'At least {{count}} characters',
     signOutThisDeviceTitle: 'Sign out of this device?',
     signOutThisDeviceBody: 'You are signing out the device you are holding. You will need to sign in again to use the app.',
     revokeOtherSessionTitle: 'Revoke {{device}}?',
