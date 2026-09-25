@@ -4,7 +4,7 @@
 // peering on it.
 import { Tabs } from 'expo-router/js-tabs';
 import { CalendarDays, Droplet, HeartPulse, Home, UserRound, Users } from 'lucide-react-native';
-import { GlassTabBar } from '../../src/components/GlassTabBar';
+import { TabBar } from '../../src/design';
 import { useTranslation } from '../../src/i18n';
 
 export default function AppLayout() {
@@ -12,7 +12,7 @@ export default function AppLayout() {
 
   return (
     <Tabs
-      tabBar={(props) => <GlassTabBar {...props} />}
+      tabBar={(props) => <TabBar {...props} />}
       screenOptions={{
         headerShown: false,
         // Every navigator scene paints React Navigation's *own* theme
@@ -22,7 +22,7 @@ export default function AppLayout() {
         // screens are transparent, so this has to be transparent too or the
         // navigator's white covers the backdrop on every screen.
         sceneStyle: { backgroundColor: 'transparent' },
-        // The pill positions itself (see GlassTabBar): a navigator given a
+        // The bar positions itself (see TabBar): a navigator given a
         // custom `tabBar` never applies `tabBarStyle`.
       }}
     >
@@ -68,6 +68,7 @@ export default function AppLayout() {
         one per screen, on every load.
       */}
       <Tabs.Screen name="notifications" options={{ href: null }} />
+      <Tabs.Screen name="notification-settings" options={{ href: null }} />
       <Tabs.Screen name="privacy" options={{ href: null }} />
       <Tabs.Screen name="security" options={{ href: null }} />
       <Tabs.Screen name="appointment/[id]" options={{ href: null }} />

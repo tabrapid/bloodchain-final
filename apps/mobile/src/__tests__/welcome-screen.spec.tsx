@@ -4,7 +4,8 @@ import { FlatList, ScrollView } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import Welcome from '../../app/(auth)/welcome';
 import { LocaleProvider } from '../i18n';
-import { ThemeProvider, colors as darkColors } from '../theme';
+import { ThemeProvider } from '../theme';
+import { hitTarget, themes } from '../design';
 
 jest.mock('react-native/Libraries/Utilities/useColorScheme', () => ({
   __esModule: true,
@@ -35,12 +36,32 @@ function render() {
   return tree!;
 }
 
+/**
+ * The outermost node carrying that accessible label.
+ *
+ * `findAll` returns the composite component and the host view it renders, both
+ * with the accessibility props on them, so a single button matches twice. The
+ * tree is outermost-first, so the first match is the component.
+ */
 function buttonWithLabel(tree: renderer.ReactTestRenderer, label: string) {
-  return tree.root.find(
+  const matches = tree.root.findAll(
     (node) =>
-      typeof node.type === 'function' &&
-      (node.props as { accessibilityLabel?: string }).accessibilityLabel === label,
+      (node.props as { accessibilityLabel?: string }).accessibilityLabel === label &&
+      // The label is also on the Button component that forwards it; the role
+      // is only on the Pressable that actually carries the style and handler.
+      (node.props as { accessibilityRole?: string }).accessibilityRole === 'button',
   );
+  if (matches.length === 0) throw new Error(`no element labelled "${label}"`);
+  return matches[0]!;
+}
+
+/** Pressable takes `style` as a function of the press state. */
+function styleOf(node: ReturnType<typeof buttonWithLabel>): Record<string, unknown> {
+  const raw = (node.props as { style?: unknown }).style;
+  const resolved = typeof raw === 'function' ? (raw as (s: { pressed: boolean }) => unknown)({ pressed: false }) : raw;
+  return Array.isArray(resolved)
+    ? Object.assign({}, ...(resolved.flat(Infinity) as object[]).filter(Boolean))
+    : ((resolved ?? {}) as Record<string, unknown>);
 }
 
 beforeEach(() => mockPush.mockClear());
@@ -75,41 +96,31 @@ describe('Welcome', () => {
   });
 
   /**
-   * Both actions are the same width and height; the hierarchy is carried by
-   * fill and label colour alone. A secondary that keeps the variant's rose
-   * label puts the screen's two weakest contrasts on top of each other, over
-   * brand colour.
+   * The hierarchy between the two actions is carried by fill alone: one is
+   * filled in the brand rose, the other is an outline. V1 had to tune the
+   * secondary to a translucent white film because it sat on a brand-coloured
+   * band and nothing else stayed legible over colour; V2 removed the band, so
+   * both actions sit on the app's own ground and take the system's variants
+   * unmodified. The contrast of every one of those is measured in
+   * `design/tokens.spec.ts` rather than re-asserted per screen.
    */
-  it('gives the secondary action a legible label on the wave', () => {
-    const secondary = buttonWithLabel(render(), 'Sign in to Bloodchain');
+  it('makes exactly one of the two actions the filled one', () => {
+    const tree = render();
 
-    expect(secondary.props.textColor).toBe('#FFFFFF');
-    expect(secondary.props.textColor).not.toBe(darkColors.primary);
-  });
+    const primary = styleOf(buttonWithLabel(tree, 'Create Bloodchain account'));
+    const secondary = styleOf(buttonWithLabel(tree, 'Sign in to Bloodchain'));
 
-  /**
-   * The first attempt at fixing the contrast overshot into a near-black plate,
-   * which read as a disabled control cut out of the band. It has to stay a
-   * light film over the wave, with a border you can actually see.
-   */
-  it('keeps the secondary a light film, not a hole punched in the wave', () => {
-    const style = (
-      buttonWithLabel(render(), 'Sign in to Bloodchain').props as {
-        style: { backgroundColor: string; borderColor: string };
-      }
-    ).style;
-
-    expect(style.backgroundColor).toMatch(/^rgba\(255,255,255,0\.1[0-9]?\)$/);
-    expect(style.borderColor).toMatch(/^rgba\(255,255,255,0\.[23][0-9]?\)$/);
+    expect(primary.backgroundColor).toBe(themes.dark.rose.fill);
+    expect(secondary.backgroundColor).toBe('transparent');
+    expect(secondary.borderWidth).toBe(1);
   });
 
   it('keeps both actions above the 44pt touch target', () => {
     const tree = render();
 
     for (const label of ['Create Bloodchain account', 'Sign in to Bloodchain']) {
-      const height = (buttonWithLabel(tree, label).props as { style: { height: number } }).style
-        .height;
-      expect(height).toBeGreaterThanOrEqual(44);
+      const height = styleOf(buttonWithLabel(tree, label)).minHeight as number;
+      expect(height).toBeGreaterThanOrEqual(hitTarget.min);
     }
   });
 

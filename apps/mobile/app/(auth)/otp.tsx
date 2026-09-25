@@ -1,12 +1,23 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, View } from 'react-native';
-import { ArrowRight, ChevronLeft } from 'lucide-react-native';
-import { AppButton, AppText, IconButton, OTP_LENGTH, OtpInput, Screen } from '../../src/components';
+import { Pressable, View } from 'react-native';
+import { ArrowRight } from 'lucide-react-native';
+import {
+  Banner,
+  Button,
+  FormScreen,
+  OtpField,
+  ScreenHeader,
+  Stack,
+  Text,
+  space,
+} from '../../src/design';
 import { requestPhoneCode, verifyPhoneCode } from '../../src/api/auth';
 import { apiErrorCode, apiErrorDetails, apiErrorMessage } from '../../src/api/errors';
-import { spacing, useTheme } from '../../src/theme';
 import { useTranslation } from '../../src/i18n';
+
+/** Six digits, the length the API issues. */
+export const OTP_LENGTH = 6;
 
 /**
  * Step two: the code.
@@ -19,9 +30,14 @@ import { useTranslation } from '../../src/i18n';
  * is a button that looks available and answers 429, and the donor learns
  * nothing except that the app is broken. With it, the wait is visible and the
  * button is simply not offered yet.
+ *
+ * V2 replaces the six-box input with the design system's `OtpField`, which
+ * draws six boxes over ONE text input -- the arrangement platform autofill
+ * needs. On iOS the code appears above the keyboard as "From Messages"; on
+ * Android SMS Retriever fills it. Both deliver the whole code into a single
+ * field, so six separate inputs silently defeat them.
  */
 export default function OtpScreen() {
-  const { colors } = useTheme();
   const { t, locale } = useTranslation();
   const params = useLocalSearchParams<{
     phone?: string;
@@ -77,8 +93,8 @@ export default function OtpScreen() {
         setError(apiErrorMessage(err, t));
         // A spent or dead code means starting over, so clear the field rather
         // than leaving six wrong digits for the donor to delete by hand.
-        const code = apiErrorCode(err);
-        if (code === 'AUTH_OTP_EXPIRED' || code === 'AUTH_OTP_TOO_MANY_ATTEMPTS') {
+        const failure = apiErrorCode(err);
+        if (failure === 'AUTH_OTP_EXPIRED' || failure === 'AUTH_OTP_TOO_MANY_ATTEMPTS') {
           setCode('');
           setSecondsLeft(0);
         }
@@ -110,86 +126,83 @@ export default function OtpScreen() {
   };
 
   return (
-    <Screen>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
-        <IconButton
-          icon={ChevronLeft}
-          onPress={() => router.back()}
-          accessibilityRole="button"
-          accessibilityLabel={t('auth.a11y.goBack')}
-        />
-
-        <View style={{ marginTop: spacing.xl }}>
-          <AppText style={{ fontSize: 34, fontWeight: '800', letterSpacing: -1, color: colors.text }}>
+    <FormScreen header={<ScreenHeader onBack={() => router.back()} backLabel={t('auth.a11y.goBack')} />}>
+      <Stack gap="xl">
+        <View style={{ gap: space.sm, marginTop: space.md }}>
+          <Text variant="display" accessibilityRole="header">
             {t('auth.otp.title')}
-          </AppText>
-          <AppText muted style={{ fontSize: 15, marginTop: 6, marginBottom: spacing.xl }}>
+          </Text>
+          <Text variant="body" tone="secondary">
             {t('auth.otp.subtitle', { phone: sentTo })}
-          </AppText>
+          </Text>
         </View>
 
-        <OtpInput
-          label={t('auth.otp.label')}
-          accessibilityLabel={t('auth.otp.a11yField')}
-          value={code}
-          onChangeCode={(next) => {
-            setCode(next);
-            if (error) setError(null);
-          }}
-          onComplete={onSubmit}
-          editable={!isSubmitting}
-        />
+        <Stack gap="lg">
+          <View style={{ gap: space.sm }}>
+            <Text variant="label" tone="secondary">
+              {t('auth.otp.label')}
+            </Text>
+            <OtpField
+              length={OTP_LENGTH}
+              accessibilityLabel={t('auth.otp.a11yField')}
+              value={code}
+              onChange={(next) => {
+                setCode(next);
+                if (error) setError(null);
+              }}
+              onComplete={onSubmit}
+              disabled={isSubmitting}
+            />
+          </View>
 
-        {error && (
-          <AppText
-            accessibilityRole="alert"
-            style={{ fontSize: 13, color: colors.danger, marginTop: spacing.md }}
-          >
-            {error}
-          </AppText>
-        )}
+          {error ? <Banner tone="critical" title={error} /> : null}
 
-        <AppButton
-          gradient
-          trailingIcon={ArrowRight}
-          onPress={() => onSubmit(code)}
-          disabled={code.length !== OTP_LENGTH || isSubmitting}
-          loading={isSubmitting}
-          accessibilityRole="button"
-          accessibilityLabel={t('auth.otp.a11ySubmit')}
-          style={{ marginTop: spacing.xl }}
-        >
-          {t('auth.otp.submit')}
-        </AppButton>
+          <Button
+            label={t('auth.otp.submit')}
+            accessibilityLabel={t('auth.otp.a11ySubmit')}
+            onPress={() => onSubmit(code)}
+            disabled={code.length !== OTP_LENGTH || isSubmitting}
+            loading={isSubmitting}
+            icon={({ size, color }) => <ArrowRight size={size} color={color} />}
+          />
+        </Stack>
 
-        <View style={{ marginTop: spacing.xl, alignItems: 'center', gap: spacing.md }}>
+        <Stack gap="md" style={{ alignItems: 'center' }}>
           {secondsLeft > 0 ? (
             // Not a disabled button: a control that looks pressable and does
             // nothing is worse than a sentence that explains the wait.
-            <AppText muted style={{ fontSize: 13 }} accessibilityRole="text">
+            <Text variant="caption" tone="tertiary" accessibilityRole="text">
               {t('auth.otp.resendIn', { seconds: secondsLeft })}
-            </AppText>
+            </Text>
           ) : (
             <Pressable
               onPress={onResend}
               disabled={isResending}
               accessibilityRole="button"
               accessibilityLabel={t('auth.otp.a11yResend')}
-              hitSlop={8}
+              accessibilityState={{ disabled: isResending, busy: isResending }}
+              hitSlop={12}
+              style={{ minHeight: 44, justifyContent: 'center' }}
             >
-              <AppText style={{ fontSize: 14, fontWeight: '600', color: colors.primary }}>
+              <Text variant="bodyStrong" tone="clinical">
                 {isResending ? t('common.sending') : t('auth.otp.resend')}
-              </AppText>
+              </Text>
             </Pressable>
           )}
 
-          <Pressable onPress={() => router.back()} accessibilityRole="link" hitSlop={8}>
-            <AppText muted style={{ fontSize: 13 }}>
+          <Pressable
+            onPress={() => router.back()}
+            accessibilityRole="link"
+            accessibilityLabel={t('auth.otp.wrongNumber')}
+            hitSlop={12}
+            style={{ minHeight: 44, justifyContent: 'center' }}
+          >
+            <Text variant="caption" tone="tertiary">
               {t('auth.otp.wrongNumber')}
-            </AppText>
+            </Text>
           </Pressable>
-        </View>
-      </KeyboardAvoidingView>
-    </Screen>
+        </Stack>
+      </Stack>
+    </FormScreen>
   );
 }

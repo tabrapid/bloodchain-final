@@ -1,12 +1,23 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, View } from 'react-native';
-import { ArrowRight, ChevronLeft, Mail } from 'lucide-react-native';
+import { Pressable, View } from 'react-native';
+import { ArrowRight, Mail } from 'lucide-react-native';
 import { normalizePhone } from '@bloodchain/validation';
-import { AppButton, AppText, IconButton, PhoneInput, Screen } from '../../src/components';
+import {
+  Banner,
+  Button,
+  FormScreen,
+  PhoneField,
+  Row,
+  ScreenHeader,
+  Stack,
+  Text,
+  iconSize,
+  space,
+  useDesign,
+} from '../../src/design';
 import { requestPhoneCode } from '../../src/api/auth';
 import { apiErrorMessage } from '../../src/api/errors';
-import { spacing, useTheme } from '../../src/theme';
 import { useTranslation } from '../../src/i18n';
 
 /**
@@ -22,7 +33,7 @@ import { useTranslation } from '../../src/i18n';
  * the same code, and the API decides what the code is good for.
  */
 export default function PhoneEntry() {
-  const { colors } = useTheme();
+  const { colors } = useDesign();
   const { t, locale } = useTranslation();
   const params = useLocalSearchParams<{ purpose?: string }>();
   const purpose = params.purpose === 'PASSWORD_RESET' ? 'PASSWORD_RESET' : 'REGISTRATION';
@@ -57,95 +68,83 @@ export default function PhoneEntry() {
   };
 
   return (
-    <Screen>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
-      <IconButton
-        icon={ChevronLeft}
-        onPress={() => router.back()}
-        accessibilityRole="button"
-        accessibilityLabel={t('auth.a11y.goBack')}
-      />
-
-      <View style={{ marginTop: spacing.xl }}>
-        <AppText style={{ fontSize: 34, fontWeight: '800', letterSpacing: -1, color: colors.text }}>
-          {t('auth.phone.title')}
-        </AppText>
-        <AppText muted style={{ fontSize: 15, marginTop: 6, marginBottom: spacing.xl }}>
-          {t('auth.phone.subtitle')}
-        </AppText>
-      </View>
-
-      <PhoneInput
-        label={t('auth.phone.label')}
-        placeholder={t('auth.phone.placeholder')}
-        accessibilityLabel={t('auth.phone.a11yField')}
-        value={digits}
-        onChangeDigits={(next) => {
-          setDigits(next);
-          if (error) setError(null);
-        }}
-        autoFocus
-        returnKeyType="go"
-        onSubmitEditing={() => canSubmit && onSubmit()}
-        editable={!isSubmitting}
-      />
-
-      <AppText muted style={{ fontSize: 12, marginTop: spacing.xs }}>
-        {t('auth.phone.hint')}
-      </AppText>
-
-      {error && (
-        <AppText
-          accessibilityRole="alert"
-          style={{ fontSize: 13, color: colors.danger, marginTop: spacing.md }}
-        >
-          {error}
-        </AppText>
-      )}
-
-      <AppButton
-        onPress={onSubmit}
-        disabled={!canSubmit}
-        loading={isSubmitting}
-        gradient
-        trailingIcon={ArrowRight}
-        accessibilityLabel={t('auth.phone.a11ySubmit')}
-        style={{ marginTop: spacing.xl }}
-      >
-        {t('auth.phone.submit')}
-      </AppButton>
-
-      {purpose === 'REGISTRATION' && (
-        <View style={{ marginTop: spacing.xl, alignItems: 'center', gap: spacing.md }}>
-          <Pressable
-            onPress={() => router.push('/(auth)/login')}
-            accessibilityRole="link"
-            hitSlop={8}
-          >
-            <AppText muted style={{ fontSize: 14 }}>
-              {t('auth.phone.signInInstead')}{' '}
-              <AppText style={{ color: colors.primary, fontWeight: '600' }}>
-                {t('auth.phone.signIn')}
-              </AppText>
-            </AppText>
-          </Pressable>
-
-          {/* Email sign-up stays reachable. Every account made before this
-              sprint has one, and some donors would rather use it. */}
-          <Pressable
-            onPress={() => router.push('/(auth)/register')}
-            accessibilityRole="link"
-            hitSlop={8}
-            style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}
-          >
-            <Mail size={14} color={colors.textMuted} />
-            <AppText muted style={{ fontSize: 13 }}>
-              {t('auth.phone.useEmail')}
-            </AppText>
-          </Pressable>
+    <FormScreen header={<ScreenHeader onBack={() => router.back()} backLabel={t('auth.a11y.goBack')} />}>
+      <Stack gap="xl">
+        <View style={{ gap: space.sm, marginTop: space.md }}>
+          <Text variant="display" accessibilityRole="header">
+            {t('auth.phone.title')}
+          </Text>
+          <Text variant="body" tone="secondary">
+            {t('auth.phone.subtitle')}
+          </Text>
         </View>
-      )}
-      </KeyboardAvoidingView>
-    </Screen>
+
+        <Stack gap="lg">
+          <PhoneField
+            prefix="+998"
+            label={t('auth.phone.label')}
+            placeholder={t('auth.phone.placeholder')}
+            accessibilityLabel={t('auth.phone.a11yField')}
+            hint={t('auth.phone.hint')}
+            value={digits}
+            onChangeText={(next) => {
+              setDigits(next.replace(/\D/g, '').slice(0, 9));
+              if (error) setError(null);
+            }}
+            autoFocus
+            returnKeyType="go"
+            onSubmitEditing={() => canSubmit && onSubmit()}
+            editable={!isSubmitting}
+          />
+
+          {error ? <Banner tone="critical" title={error} /> : null}
+
+          <Button
+            label={t('auth.phone.submit')}
+            accessibilityLabel={t('auth.phone.a11ySubmit')}
+            onPress={onSubmit}
+            disabled={!canSubmit}
+            loading={isSubmitting}
+            icon={({ size, color }) => <ArrowRight size={size} color={color} />}
+          />
+        </Stack>
+
+        {purpose === 'REGISTRATION' ? (
+          <Stack gap="md" style={{ alignItems: 'center' }}>
+            <Pressable
+              onPress={() => router.push('/(auth)/login')}
+              accessibilityRole="link"
+              accessibilityLabel={t('auth.welcome.a11ySignIn')}
+              hitSlop={12}
+              style={{ minHeight: 44, justifyContent: 'center' }}
+            >
+              <Text variant="body" tone="secondary">
+                {t('auth.phone.signInInstead')}{' '}
+                <Text variant="bodyStrong" tone="clinical">
+                  {t('auth.phone.signIn')}
+                </Text>
+              </Text>
+            </Pressable>
+
+            {/* Email sign-up stays reachable. Every account made before this
+                sprint has one, and some donors would rather use it. */}
+            <Pressable
+              onPress={() => router.push('/(auth)/register')}
+              accessibilityRole="link"
+              accessibilityLabel={t('auth.phone.useEmail')}
+              hitSlop={12}
+              style={{ minHeight: 44, justifyContent: 'center' }}
+            >
+              <Row gap="sm">
+                <Mail size={iconSize.sm} color={colors.textTertiary} />
+                <Text variant="caption" tone="tertiary">
+                  {t('auth.phone.useEmail')}
+                </Text>
+              </Row>
+            </Pressable>
+          </Stack>
+        ) : null}
+      </Stack>
+    </FormScreen>
   );
 }

@@ -1,17 +1,27 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { KeyboardAvoidingView, Platform, Pressable, TextInput, View } from 'react-native';
+import { Pressable, TextInput, View } from 'react-native';
 import { ArrowRight, Eye, EyeOff, Lock, Mail, User } from 'lucide-react-native';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { emailSchema, nameSchema, strongPasswordSchema } from '@bloodchain/validation';
-import { AppButton, AppText, AppTextInput, Screen } from '../../src/components';
+import {
+  Banner,
+  Button,
+  Field,
+  FormScreen,
+  Row,
+  Stack,
+  Text,
+  iconSize,
+  space,
+  useDesign,
+} from '../../src/design';
 import { registerWithPhone } from '../../src/api/auth';
 import { apiErrorMessage } from '../../src/api/errors';
 import { useAuthStore } from '../../src/stores/auth.store';
 import { getPostAuthRoute } from '../../src/utils/postAuthRoute';
-import { spacing, useTheme } from '../../src/theme';
 import { useTranslation } from '../../src/i18n';
 
 /**
@@ -35,7 +45,7 @@ const formSchema = z.object({
 type FormValues = z.input<typeof formSchema>;
 
 export default function RegisterDetails() {
-  const { colors } = useTheme();
+  const { colors } = useDesign();
   const { t } = useTranslation();
   const params = useLocalSearchParams<{ verificationToken?: string; phone?: string }>();
   const setUser = useAuthStore((s) => s.setUser);
@@ -90,32 +100,33 @@ export default function RegisterDetails() {
   });
 
   return (
-    <Screen>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
-        <View style={{ marginTop: spacing.xl }}>
-          <AppText style={{ fontSize: 34, fontWeight: '800', letterSpacing: -1, color: colors.text }}>
+    <FormScreen>
+      <Stack gap="xl">
+        <View style={{ gap: space.sm, marginTop: space.xxl }}>
+          <Text variant="display" accessibilityRole="header">
             {t('auth.details.title')}
-          </AppText>
-          <AppText muted style={{ fontSize: 15, marginTop: 6, marginBottom: spacing.xl }}>
+          </Text>
+          <Text variant="body" tone="secondary">
             {t('auth.details.subtitle')}
-          </AppText>
+          </Text>
         </View>
 
-        <View style={{ flexDirection: 'row', gap: spacing.md, marginBottom: spacing.md }}>
+        <Stack gap="lg">
+        <Row gap="md" align="flex-start">
           <Controller
             control={control}
             name="firstName"
             render={({ field, fieldState }) => (
-              <AppTextInput
+              <Field
                 label={t('auth.register.firstName')}
                 placeholder={t('auth.register.firstNamePlaceholder')}
-                leading={<User size={18} color={colors.textMuted} />}
+                leading={<User size={iconSize.md} color={colors.textTertiary} />}
                 autoComplete="given-name"
                 returnKeyType="next"
-                blurOnSubmit={false}
+                submitBehavior="submit"
                 onSubmitEditing={() => lastNameRef.current?.focus()}
                 error={fieldState.error?.message ? t(fieldState.error.message) : undefined}
-                wrapperStyle={{ flex: 1 }}
+                containerStyle={{ flex: 1 }}
                 value={field.value}
                 onChangeText={field.onChange}
                 onBlur={field.onBlur}
@@ -127,16 +138,16 @@ export default function RegisterDetails() {
             control={control}
             name="lastName"
             render={({ field, fieldState }) => (
-              <AppTextInput
+              <Field
                 ref={lastNameRef}
                 label={t('auth.register.lastName')}
                 placeholder={t('auth.register.lastNamePlaceholder')}
                 autoComplete="family-name"
                 returnKeyType="next"
-                blurOnSubmit={false}
+                submitBehavior="submit"
                 onSubmitEditing={() => passwordRef.current?.focus()}
                 error={fieldState.error?.message ? t(fieldState.error.message) : undefined}
-                wrapperStyle={{ flex: 1 }}
+                containerStyle={{ flex: 1 }}
                 value={field.value}
                 onChangeText={field.onChange}
                 onBlur={field.onBlur}
@@ -144,17 +155,18 @@ export default function RegisterDetails() {
               />
             )}
           />
-        </View>
+        </Row>
 
         <Controller
           control={control}
           name="password"
           render={({ field, fieldState }) => (
-            <AppTextInput
+            <Field
               ref={passwordRef}
               label={t('auth.fields.password')}
+              hint={t('auth.fields.passwordPolicy')}
               placeholder={t('auth.fields.passwordPlaceholder')}
-              leading={<Lock size={18} color={colors.textMuted} />}
+              leading={<Lock size={iconSize.md} color={colors.textTertiary} />}
               secureTextEntry={!showPassword}
               autoComplete="new-password"
               returnKeyType="next"
@@ -166,12 +178,12 @@ export default function RegisterDetails() {
                   accessibilityLabel={
                     showPassword ? t('auth.fields.hidePassword') : t('auth.fields.showPassword')
                   }
-                  hitSlop={8}
+                  hitSlop={12}
                 >
                   {showPassword ? (
-                    <EyeOff size={18} color={colors.textMuted} />
+                    <EyeOff size={iconSize.md} color={colors.textTertiary} />
                   ) : (
-                    <Eye size={18} color={colors.textMuted} />
+                    <Eye size={iconSize.md} color={colors.textTertiary} />
                   )}
                 </Pressable>
               }
@@ -183,18 +195,15 @@ export default function RegisterDetails() {
           )}
         />
 
-        <AppText muted style={{ fontSize: 12, marginTop: spacing.xs, marginBottom: spacing.md }}>
-          {t('auth.fields.passwordPolicy')}
-        </AppText>
-
         <Controller
           control={control}
           name="email"
           render={({ field, fieldState }) => (
-            <AppTextInput
+            <Field
               label={t('auth.details.emailLabel')}
+              hint={t('auth.details.emailHint')}
               placeholder={t('auth.fields.emailPlaceholder')}
-              leading={<Mail size={18} color={colors.textMuted} />}
+              leading={<Mail size={iconSize.md} color={colors.textTertiary} />}
               keyboardType="email-address"
               autoCapitalize="none"
               autoComplete="email"
@@ -209,32 +218,18 @@ export default function RegisterDetails() {
           )}
         />
 
-        <AppText muted style={{ fontSize: 12, marginTop: spacing.xs }}>
-          {t('auth.details.emailHint')}
-        </AppText>
+        {serverError ? <Banner tone="critical" title={serverError} /> : null}
 
-        {serverError && (
-          <AppText
-            accessibilityRole="alert"
-            style={{ fontSize: 13, color: colors.danger, marginTop: spacing.md }}
-          >
-            {serverError}
-          </AppText>
-        )}
-
-        <AppButton
-          gradient
-          trailingIcon={ArrowRight}
+        <Button
+          label={t('auth.details.submit')}
+          accessibilityLabel={t('auth.details.a11ySubmit')}
           onPress={onSubmit}
           disabled={isSubmitting}
           loading={isSubmitting}
-          accessibilityRole="button"
-          accessibilityLabel={t('auth.details.a11ySubmit')}
-          style={{ marginTop: spacing.xl }}
-        >
-          {t('auth.details.submit')}
-        </AppButton>
-      </KeyboardAvoidingView>
-    </Screen>
+          icon={({ size, color }) => <ArrowRight size={size} color={color} />}
+        />
+        </Stack>
+      </Stack>
+    </FormScreen>
   );
 }

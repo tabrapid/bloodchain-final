@@ -1,16 +1,33 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { View } from 'react-native';
 import { CheckCircle, XCircle } from 'lucide-react-native';
-import { AppButton, AppText, Screen } from '../../src/components';
+import {
+  Button,
+  LoadingSection,
+  Screen,
+  Stack,
+  Text,
+  iconSize,
+  radius,
+  space,
+  useDesign,
+} from '../../src/design';
 import { useVerifyEmail, getAuthErrorMessage } from '../../src/hooks/useAuth';
 import { getPostAuthRoute } from '../../src/utils/postAuthRoute';
-import { spacing, useTheme } from '../../src/theme';
 import { useTranslation } from '../../src/i18n';
 
+/**
+ * Where the emailed confirmation link lands.
+ *
+ * Three states and nothing else: working, done, failed. The donor arrives here
+ * from their mail app with no context, so each state says what happened and
+ * what to do next -- a failure with no way back to sign-in is a dead end
+ * reached from outside the app.
+ */
 export default function VerifyEmail() {
   const { t } = useTranslation();
-  const { colors } = useTheme();
+  const { colors } = useDesign();
   const params = useLocalSearchParams<{ token?: string }>();
   const verifyEmail = useVerifyEmail();
   const [error, setError] = useState<string | null>(null);
@@ -32,54 +49,98 @@ export default function VerifyEmail() {
 
   if (!params.token) {
     return (
-      <Screen>
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.lg }}>
-          <XCircle size={64} color={colors.danger} style={{ marginBottom: spacing.lg }} />
-          <AppText variant="title" style={{ textAlign: 'center', marginBottom: spacing.sm }}>
-            {t('auth.verifyEmail.invalidTitle')}
-          </AppText>
-          <AppText muted style={{ textAlign: 'center', marginBottom: spacing.xl }}>
-            {t('auth.verifyEmail.invalidBody')}
-          </AppText>
-          <AppButton onPress={() => router.replace('/(auth)/login')}>{t('auth.checkEmail.backToSignIn')}</AppButton>
-        </View>
-      </Screen>
+      <Outcome
+        tone="critical"
+        icon={<XCircle size={iconSize.xl} color={colors.critical.base} />}
+        title={t('auth.verifyEmail.invalidTitle')}
+        body={t('auth.verifyEmail.invalidBody')}
+        actionLabel={t('auth.checkEmail.backToSignIn')}
+      />
+    );
+  }
+
+  if (error) {
+    return (
+      <Outcome
+        tone="critical"
+        icon={<XCircle size={iconSize.xl} color={colors.critical.base} />}
+        title={t('auth.verifyEmail.failedTitle')}
+        body={error}
+        actionLabel={t('auth.checkEmail.backToSignIn')}
+      />
+    );
+  }
+
+  if (verifyEmail.isSuccess) {
+    return (
+      <Outcome
+        tone="success"
+        icon={<CheckCircle size={iconSize.xl} color={colors.success.base} />}
+        title={t('auth.verifyEmail.verified')}
+      />
     );
   }
 
   return (
     <Screen>
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.lg }}>
-        {verifyEmail.isPending && (
-          <>
-            <ActivityIndicator size="large" color={colors.primary} style={{ marginBottom: spacing.lg }} />
-            <AppText variant="title" style={{ textAlign: 'center' }}>
-              {t('auth.verifyEmail.verifying')}
-            </AppText>
-          </>
-        )}
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+        <LoadingSection label={t('auth.verifyEmail.verifying')} />
+      </View>
+    </Screen>
+  );
+}
 
-        {verifyEmail.isSuccess && (
-          <>
-            <CheckCircle size={64} color={colors.success} style={{ marginBottom: spacing.lg }} />
-            <AppText variant="title" style={{ textAlign: 'center' }}>
-              {t('auth.verifyEmail.verified')}
-            </AppText>
-          </>
-        )}
+function Outcome({
+  tone,
+  icon,
+  title,
+  body,
+  actionLabel,
+}: {
+  tone: 'success' | 'critical';
+  icon: React.ReactNode;
+  title: string;
+  body?: string;
+  actionLabel?: string;
+}) {
+  const { colors } = useDesign();
 
-        {error && (
-          <>
-            <XCircle size={64} color={colors.danger} style={{ marginBottom: spacing.lg }} />
-            <AppText variant="title" style={{ textAlign: 'center', marginBottom: spacing.sm }}>
-              {t('auth.verifyEmail.failedTitle')}
-            </AppText>
-            <AppText muted style={{ textAlign: 'center', marginBottom: spacing.xl }}>
-              {error}
-            </AppText>
-            <AppButton onPress={() => router.replace('/(auth)/login')}>{t('auth.checkEmail.backToSignIn')}</AppButton>
-          </>
-        )}
+  return (
+    <Screen>
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+        <Stack gap="xl" style={{ alignSelf: 'stretch', alignItems: 'center' }}>
+          <View
+            style={{
+              width: 64,
+              height: 64,
+              borderRadius: radius.lg,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: colors[tone].soft,
+            }}
+          >
+            {icon}
+          </View>
+
+          <Stack gap="sm" style={{ alignItems: 'center' }}>
+            {/* `alert`, not `header`: the donor did not navigate here, the
+                link did, and the outcome is the thing that needs announcing. */}
+            <Text variant="h1" align="center" accessibilityRole="alert">
+              {title}
+            </Text>
+            {body ? (
+              <Text variant="body" tone="secondary" align="center">
+                {body}
+              </Text>
+            ) : null}
+          </Stack>
+
+          {actionLabel ? (
+            <View style={{ alignSelf: 'stretch', marginTop: space.sm }}>
+              <Button label={actionLabel} onPress={() => router.replace('/(auth)/login')} />
+            </View>
+          ) : null}
+        </Stack>
       </View>
     </Screen>
   );

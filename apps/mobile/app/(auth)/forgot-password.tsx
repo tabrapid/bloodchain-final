@@ -1,13 +1,25 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, View } from 'react-native';
-import { ArrowRight, ChevronLeft, Mail, MailCheck } from 'lucide-react-native';
+import { Pressable, View } from 'react-native';
+import { ArrowRight, Mail, MailCheck } from 'lucide-react-native';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { forgotPasswordSchema, type ForgotPasswordInput } from '@bloodchain/validation';
-import { AppButton, AppText, AppTextInput, IconButton, Screen } from '../../src/components';
+import {
+  Banner,
+  Button,
+  Field,
+  FormScreen,
+  Screen,
+  ScreenHeader,
+  Stack,
+  Text,
+  iconSize,
+  radius,
+  space,
+  useDesign,
+} from '../../src/design';
 import { useRequestPasswordReset, getRecoveryErrorMessage } from '../../src/hooks/useAuth';
-import { layout, spacing, useTheme } from '../../src/theme';
 import { useTranslation } from '../../src/i18n';
 
 /**
@@ -22,7 +34,7 @@ import { useTranslation } from '../../src/i18n';
  * declines to do.
  */
 export default function ForgotPassword() {
-  const { colors } = useTheme();
+  const { colors } = useDesign();
   const { t } = useTranslation();
   const request = useRequestPasswordReset();
   const [sentTo, setSentTo] = useState<string | null>(null);
@@ -48,116 +60,92 @@ export default function ForgotPassword() {
   if (sentTo) {
     return (
       <Screen>
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.lg }}>
-          <View
-            style={{
-              width: 80,
-              height: 80,
-              borderRadius: 24,
-              backgroundColor: colors.secondaryMuted,
-              borderWidth: 1,
-              borderColor: `${colors.onMuted.secondary}4D`,
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginBottom: spacing.lg,
-            }}
-          >
-            <MailCheck size={36} color={colors.onMuted.secondary} strokeWidth={1.5} />
-          </View>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <Stack gap="xl" style={{ alignSelf: 'stretch', alignItems: 'center' }}>
+            <View
+              style={{
+                width: 64,
+                height: 64,
+                borderRadius: radius.lg,
+                backgroundColor: colors.clinical.soft,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <MailCheck size={iconSize.xl} color={colors.clinical.base} strokeWidth={1.5} />
+            </View>
 
-          <AppText variant="title" style={{ textAlign: 'center', marginBottom: spacing.sm }}>
-            {t('auth.forgotPassword.sentTitle')}
-          </AppText>
+            <Stack gap="sm" style={{ alignItems: 'center' }}>
+              <Text variant="h1" align="center" accessibilityRole="header">
+                {t('auth.forgotPassword.sentTitle')}
+              </Text>
+              {/* "If an account exists" is not hedging -- it is the only true
+                  thing this screen can say, because the server does not tell
+                  it. */}
+              <Text variant="body" tone="secondary" align="center">
+                {t('auth.forgotPassword.sentBody', { email: sentTo })}
+              </Text>
+            </Stack>
 
-          {/* "If an account exists" is not hedging -- it is the only true thing
-              this screen can say, because the server does not tell it. */}
-          <AppText muted style={{ textAlign: 'center', marginBottom: spacing.xl }}>
-{t('auth.forgotPassword.sentBody', { email: sentTo })}
-          </AppText>
+            <Stack gap="md" style={{ alignSelf: 'stretch' }}>
+              <Button label={t('auth.checkEmail.backToSignIn')} onPress={() => router.replace('/(auth)/login')} />
 
-          <AppButton onPress={() => router.replace('/(auth)/login')} style={{ alignSelf: 'stretch' }}>
-            {t('auth.checkEmail.backToSignIn')}
-          </AppButton>
+              <TextAction
+                label={t('auth.forgotPassword.useDifferentEmail')}
+                accessibilityLabel={t('auth.forgotPassword.a11yUseDifferentEmail')}
+                disabled={busy}
+                tone="clinical"
+                onPress={() => {
+                  setSentTo(null);
+                  setServerError(null);
+                }}
+              />
 
-          <Pressable
-            onPress={() => {
-              setSentTo(null);
-              setServerError(null);
-            }}
-            disabled={busy}
-            accessibilityRole="button"
-            accessibilityLabel={t('auth.forgotPassword.a11yUseDifferentEmail')}
-            hitSlop={8}
-            style={({ pressed }) => ({
-              marginTop: 20,
-              minHeight: 44,
-              justifyContent: 'center',
-              opacity: pressed || busy ? 0.6 : 1,
-            })}
-          >
-            <AppText style={{ fontSize: 13, fontWeight: '500', color: colors.primary }}>
-              {t('auth.forgotPassword.useDifferentEmail')}
-            </AppText>
-          </Pressable>
-
-          {/* Reachable without leaving and coming back: someone who has the
-              link already should not have to guess where the next screen is. */}
-          <Pressable
-            onPress={() => router.push('/(auth)/reset-password')}
-            accessibilityRole="button"
-            accessibilityLabel={t('auth.forgotPassword.a11yHaveCode')}
-            hitSlop={8}
-            style={({ pressed }) => ({
-              marginTop: spacing.sm,
-              minHeight: 44,
-              justifyContent: 'center',
-              opacity: pressed ? 0.6 : 1,
-            })}
-          >
-            <AppText muted style={{ fontSize: 13 }}>
-              {t('auth.forgotPassword.haveCode')}
-            </AppText>
-          </Pressable>
+              {/* Reachable without leaving and coming back: someone who has
+                  the link already should not have to guess where the next
+                  screen is. */}
+              <TextAction
+                label={t('auth.forgotPassword.haveCode')}
+                accessibilityLabel={t('auth.forgotPassword.a11yHaveCode')}
+                tone="tertiary"
+                onPress={() => router.push('/(auth)/reset-password')}
+              />
+            </Stack>
+          </Stack>
         </View>
       </Screen>
     );
   }
 
   return (
-    <Screen>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
-        <IconButton
-          icon={ChevronLeft}
-          onPress={() => router.back()}
-          accessibilityRole="button"
-          accessibilityLabel={t('auth.a11y.goBack')}
-        />
-
-        <View style={{ marginTop: spacing.xl }}>
-          <AppText style={{ fontSize: 34, fontWeight: '800', letterSpacing: -1, color: colors.text }}>
+    <FormScreen header={<ScreenHeader onBack={() => router.back()} backLabel={t('auth.a11y.goBack')} />}>
+      <Stack gap="xl">
+        <View style={{ gap: space.sm, marginTop: space.md }}>
+          <Text variant="display" accessibilityRole="header">
             {t('auth.forgotPassword.title')}
-          </AppText>
-          <AppText muted style={{ fontSize: 15, marginTop: 6, marginBottom: spacing.xl }}>
-{t('auth.forgotPassword.subtitle')}
-          </AppText>
+          </Text>
+          <Text variant="body" tone="secondary">
+            {t('auth.forgotPassword.subtitle')}
+          </Text>
+        </View>
 
+        <Stack gap="lg">
           <Controller
             control={control}
             name="email"
             render={({ field, fieldState }) => (
-              <AppTextInput
+              <Field
                 label={t('auth.fields.email')}
                 placeholder={t('auth.fields.emailPlaceholder')}
                 autoCapitalize="none"
                 autoComplete="email"
                 keyboardType="email-address"
                 autoFocus
-                leading={<Mail size={19} color={colors.textMuted} />}
+                leading={<Mail size={iconSize.md} color={colors.textTertiary} />}
                 returnKeyType="send"
                 onSubmitEditing={onSubmit}
                 editable={!busy}
                 error={fieldState.error?.message ? t(fieldState.error.message) : undefined}
-                wrapperStyle={{ marginBottom: layout.cardGap }}
                 value={field.value}
                 onChangeText={field.onChange}
                 onBlur={field.onBlur}
@@ -165,93 +153,88 @@ export default function ForgotPassword() {
             )}
           />
 
-          {serverError && (
-            <AppText
-              accessibilityRole="alert"
-              style={{ color: colors.danger, marginBottom: spacing.md }}
-            >
-              {serverError}
-            </AppText>
-          )}
+          {serverError ? <Banner tone="critical" title={serverError} /> : null}
 
-          <AppButton
-            gradient
-            trailingIcon={ArrowRight}
-            accessibilityRole="button"
+          <Button
+            label={t('auth.forgotPassword.submit')}
             accessibilityLabel={t('auth.forgotPassword.a11ySubmit')}
-            style={{ height: 54 }}
             onPress={onSubmit}
             disabled={busy}
             loading={request.isPending}
-          >
-            {t('auth.forgotPassword.submit')}
-          </AppButton>
-        </View>
+            icon={({ size, color }) => <ArrowRight size={size} color={color} />}
+          />
+        </Stack>
 
-        <View style={{ flex: 1, minHeight: spacing.xl }} />
+        <View style={{ flex: 1, minHeight: space.xl }} />
 
-        <View>
-          <Pressable
-            onPress={() => router.push('/(auth)/reset-password')}
-            accessibilityRole="button"
+        <Stack gap="sm">
+          <TextAction
+            label={`${t('auth.forgotPassword.haveCode')} ${t('auth.forgotPassword.enterIt')}`}
             accessibilityLabel={t('auth.forgotPassword.a11yHaveCode')}
-            hitSlop={8}
-            style={({ pressed }) => ({
-              minHeight: 44,
-              alignItems: 'center',
-              justifyContent: 'center',
-              opacity: pressed ? 0.6 : 1,
-            })}
-          >
-            <AppText muted style={{ fontSize: 13 }}>
-              {t('auth.forgotPassword.haveCode')}{' '}
-              <AppText style={{ fontSize: 13, fontWeight: '500', color: colors.primary }}>
-                {t('auth.forgotPassword.enterIt')}
-              </AppText>
-            </AppText>
-          </Pressable>
+            tone="tertiary"
+            onPress={() => router.push('/(auth)/reset-password')}
+          />
 
           {/* Recovery by SMS, for the donors who have a number and no inbox.
               It reuses the same reset token the emailed link carries, so it is
               the same flow with a different first step -- not a second, weaker
               way in. */}
-          <Pressable
-            onPress={() =>
-              router.push({ pathname: '/(auth)/phone', params: { purpose: 'PASSWORD_RESET' } })
-            }
-            accessibilityRole="button"
+          <TextAction
+            label={t('auth.phone.usePhone')}
             accessibilityLabel={t('auth.phone.a11ySubmit')}
-            hitSlop={8}
-            style={({ pressed }) => ({
-              minHeight: 44,
-              alignItems: 'center',
-              justifyContent: 'center',
-              opacity: pressed ? 0.6 : 1,
-            })}
-          >
-            <AppText style={{ fontSize: 13, fontWeight: '500', color: colors.primary }}>
-              {t('auth.phone.usePhone')}
-            </AppText>
-          </Pressable>
+            tone="clinical"
+            onPress={() => router.push({ pathname: '/(auth)/phone', params: { purpose: 'PASSWORD_RESET' } })}
+          />
 
-          <Pressable
-            onPress={() => router.replace('/(auth)/login')}
-            accessibilityRole="button"
+          <TextAction
+            label={t('auth.checkEmail.backToSignIn')}
             accessibilityLabel={t('auth.checkEmail.backToSignIn')}
-            hitSlop={8}
-            style={({ pressed }) => ({
-              minHeight: 44,
-              alignItems: 'center',
-              justifyContent: 'center',
-              opacity: pressed ? 0.6 : 1,
-            })}
-          >
-            <AppText style={{ fontSize: 13, fontWeight: '500', color: colors.text }}>
-              {t('auth.checkEmail.backToSignIn')}
-            </AppText>
-          </Pressable>
-        </View>
-      </KeyboardAvoidingView>
-    </Screen>
+            tone="primary"
+            onPress={() => router.replace('/(auth)/login')}
+          />
+        </Stack>
+      </Stack>
+    </FormScreen>
+  );
+}
+
+/**
+ * A centred text button.
+ *
+ * Four of these sit at the foot of this screen, and hand-rolling each one is
+ * how they end up with four different heights and three different opacities.
+ */
+function TextAction({
+  label,
+  accessibilityLabel,
+  tone,
+  onPress,
+  disabled = false,
+}: {
+  label: string;
+  accessibilityLabel: string;
+  tone: 'primary' | 'tertiary' | 'clinical';
+  onPress: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      accessibilityState={{ disabled }}
+      hitSlop={12}
+      style={({ pressed }) => ({
+        minHeight: 44,
+        alignItems: 'center',
+        justifyContent: 'center',
+        opacity: pressed || disabled ? 0.6 : 1,
+      })}
+    >
+      <Text variant={tone === 'tertiary' ? 'caption' : 'bodyStrong'} tone={tone}>
+        {label}
+      </Text>
+    </Pressable>
   );
 }

@@ -1,4 +1,4 @@
-import { readFileSync, existsSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 const APP_DIR = join(__dirname, '..', '..', 'app', '(app)');
@@ -14,6 +14,26 @@ function declaredRouteNames(): string[] {
     names.push(match[1]!);
   }
   return names;
+}
+
+/**
+ * Every route Expo Router derives from the file tree, which is the path
+ * relative to the group folder with the extension removed -- so
+ * `community/index.tsx` registers as "community/index", not "community".
+ */
+function routeNamesOnDisk(): string[] {
+  const names: string[] = [];
+  const walk = (dir: string, prefix: string) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      if (entry.isDirectory()) {
+        walk(join(dir, entry.name), `${prefix}${entry.name}/`);
+      } else if (entry.name.endsWith('.tsx') && entry.name !== '_layout.tsx') {
+        names.push(`${prefix}${entry.name.replace(/\.tsx$/, '')}`);
+      }
+    }
+  };
+  walk(APP_DIR, '');
+  return names.sort();
 }
 
 /**
@@ -59,5 +79,21 @@ describe('the donor tab layout', () => {
       'calendar',
       'profile',
     ]);
+  });
+  /**
+   * The other direction, and the one that was missing.
+   *
+   * The existing checks catch a declaration pointing at no route. Nothing
+   * caught a route with no declaration -- and that is the commoner mistake,
+   * because adding a screen is a thing you do without opening the layout. The
+   * navigator then registers the route, finds no `href: null` for it, and logs
+   * "No route named ... exists in nested children" on every load, once per
+   * missing declaration. `notification-settings` had been in that state.
+   */
+  it('declares every route that exists on disk', () => {
+    const declared = new Set(declaredRouteNames());
+    const onDisk = routeNamesOnDisk();
+
+    expect(onDisk.filter((name) => !declared.has(name))).toEqual([]);
   });
 });

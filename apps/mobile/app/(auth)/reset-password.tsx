@@ -1,18 +1,30 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, TextInput, View } from 'react-native';
-import { CheckCircle2, ChevronLeft, Eye, EyeOff, KeyRound, Lock, LinkIcon } from 'lucide-react-native';
+import { Pressable, TextInput, View } from 'react-native';
+import { CheckCircle2, Eye, EyeOff, KeyRound, Lock, LinkIcon } from 'lucide-react-native';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { strongPasswordSchema } from '@bloodchain/validation';
-import { AppButton, AppText, AppTextInput, IconButton, Screen } from '../../src/components';
+import {
+  Banner,
+  Button,
+  Field,
+  FormScreen,
+  Screen,
+  ScreenHeader,
+  Stack,
+  Text,
+  iconSize,
+  radius,
+  space,
+  useDesign,
+} from '../../src/design';
 import {
   useResetPassword,
   getRecoveryErrorMessage,
   isRejectedResetToken,
 } from '../../src/hooks/useAuth';
-import { layout, spacing, useTheme } from '../../src/theme';
 import { useTranslation } from '../../src/i18n';
 
 /**
@@ -54,7 +66,7 @@ type FormValues = z.infer<typeof formSchema>;
  * lives.
  */
 export default function ResetPassword() {
-  const { colors } = useTheme();
+  const { colors } = useDesign();
   const { t } = useTranslation();
   const params = useLocalSearchParams<{ token?: string }>();
   const linkToken = typeof params.token === 'string' ? params.token : '';
@@ -93,185 +105,116 @@ export default function ResetPassword() {
 
   if (done) {
     return (
-      <Screen>
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.lg }}>
-          <View
-            style={{
-              width: 80,
-              height: 80,
-              borderRadius: 24,
-              backgroundColor: colors.successMuted,
-              borderWidth: 1,
-              borderColor: `${colors.onMuted.success}4D`,
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginBottom: spacing.lg,
-            }}
-          >
-            <CheckCircle2 size={36} color={colors.onMuted.success} strokeWidth={1.5} />
-          </View>
-
-          <AppText variant="title" style={{ textAlign: 'center', marginBottom: spacing.sm }}>
-            {t('auth.resetPassword.doneTitle')}
-          </AppText>
-
-          {/* Said plainly, because it is a consequence the user will otherwise
-              meet as an unexplained sign-out on their other device. */}
-          <AppText muted style={{ textAlign: 'center', marginBottom: spacing.xl }}>
-            {t('auth.resetPassword.doneBody')}
-          </AppText>
-
-          <AppButton
-            gradient
-            accessibilityRole="button"
-            accessibilityLabel={t('auth.resetPassword.a11yGoToSignIn')}
-            style={{ alignSelf: 'stretch', height: 54 }}
-            onPress={() => router.replace('/(auth)/login')}
-          >
-            {t('auth.resetPassword.goToSignIn')}
-          </AppButton>
-        </View>
-      </Screen>
+      <Outcome
+        tone="success"
+        icon={<CheckCircle2 size={iconSize.xl} color={colors.success.base} strokeWidth={1.5} />}
+        title={t('auth.resetPassword.doneTitle')}
+        // Said plainly, because it is a consequence the donor will otherwise
+        // meet as an unexplained sign-out on their other device.
+        body={t('auth.resetPassword.doneBody')}
+        primary={{
+          label: t('auth.resetPassword.goToSignIn'),
+          accessibilityLabel: t('auth.resetPassword.a11yGoToSignIn'),
+          onPress: () => router.replace('/(auth)/login'),
+        }}
+      />
     );
   }
 
   if (tokenRejected) {
     return (
-      <Screen>
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.lg }}>
-          <View
-            style={{
-              width: 80,
-              height: 80,
-              borderRadius: 24,
-              backgroundColor: colors.dangerMuted,
-              borderWidth: 1,
-              borderColor: `${colors.onMuted.danger}4D`,
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginBottom: spacing.lg,
-            }}
-          >
-            <LinkIcon size={36} color={colors.onMuted.danger} strokeWidth={1.5} />
-          </View>
-
-          <AppText variant="title" style={{ textAlign: 'center', marginBottom: spacing.sm }}>
-            {t('auth.resetPassword.rejectedTitle')}
-          </AppText>
-
-          {/* The server will not say which of the three it is, and guessing
-              would be worse than saying so: all three have the same remedy. */}
-          <AppText muted style={{ textAlign: 'center', marginBottom: spacing.xl }}>
-{t('auth.resetPassword.rejectedBody')}
-          </AppText>
-
-          <AppButton
-            gradient
-            accessibilityRole="button"
-            accessibilityLabel={t('auth.resetPassword.a11yRequestNewLink')}
-            style={{ alignSelf: 'stretch', height: 54 }}
-            onPress={() => router.replace('/(auth)/forgot-password')}
-          >
-            {t('auth.resetPassword.requestNewLink')}
-          </AppButton>
-
-          <Pressable
-            onPress={() => router.replace('/(auth)/login')}
-            accessibilityRole="button"
-            accessibilityLabel={t('auth.checkEmail.backToSignIn')}
-            hitSlop={8}
-            style={({ pressed }) => ({
-              marginTop: 20,
-              minHeight: 44,
-              justifyContent: 'center',
-              opacity: pressed ? 0.6 : 1,
-            })}
-          >
-            <AppText style={{ fontSize: 13, fontWeight: '500', color: colors.primary }}>
-              {t('auth.checkEmail.backToSignIn')}
-            </AppText>
-          </Pressable>
-        </View>
-      </Screen>
+      <Outcome
+        tone="critical"
+        icon={<LinkIcon size={iconSize.xl} color={colors.critical.base} strokeWidth={1.5} />}
+        title={t('auth.resetPassword.rejectedTitle')}
+        // The server will not say which of the three it is, and guessing would
+        // be worse than saying so: all three have the same remedy.
+        body={t('auth.resetPassword.rejectedBody')}
+        primary={{
+          label: t('auth.resetPassword.requestNewLink'),
+          accessibilityLabel: t('auth.resetPassword.a11yRequestNewLink'),
+          onPress: () => router.replace('/(auth)/forgot-password'),
+        }}
+        secondary={{
+          label: t('auth.checkEmail.backToSignIn'),
+          onPress: () => router.replace('/(auth)/login'),
+        }}
+      />
     );
   }
 
   return (
-    <Screen>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
-        <IconButton
-          icon={ChevronLeft}
-          onPress={() => router.back()}
-          accessibilityRole="button"
-          accessibilityLabel={t('auth.a11y.goBack')}
-        />
-
-        <View style={{ marginTop: spacing.xl }}>
-          <AppText style={{ fontSize: 34, fontWeight: '800', letterSpacing: -1, color: colors.text }}>
+    <FormScreen header={<ScreenHeader onBack={() => router.back()} backLabel={t('auth.a11y.goBack')} />}>
+      <Stack gap="xl">
+        <View style={{ gap: space.sm, marginTop: space.md }}>
+          <Text variant="display" accessibilityRole="header">
             {t('auth.resetPassword.title')}
-          </AppText>
-          <AppText muted style={{ fontSize: 15, marginTop: 6, marginBottom: spacing.xl }}>
-            {linkToken
-              ? t('auth.resetPassword.subtitleFromLink')
-              : t('auth.resetPassword.subtitleManual')}
-          </AppText>
+          </Text>
+          <Text variant="body" tone="secondary">
+            {linkToken ? t('auth.resetPassword.subtitleFromLink') : t('auth.resetPassword.subtitleManual')}
+          </Text>
+        </View>
 
+        <Stack gap="lg">
           {/* Hidden when the deep link supplied it: showing a 64-character
-              string the user cannot meaningfully check is noise, and an
+              string the donor cannot meaningfully check is noise, and an
               editable field invites breaking a token that already works. */}
-          {!linkToken && (
+          {!linkToken ? (
             <Controller
               control={control}
               name="token"
               render={({ field, fieldState }) => (
-                <AppTextInput
+                <Field
                   label={t('auth.resetPassword.code')}
                   placeholder={t('auth.resetPassword.codePlaceholder')}
                   autoCapitalize="none"
                   autoCorrect={false}
                   autoFocus
-                  leading={<KeyRound size={19} color={colors.textMuted} />}
+                  leading={<KeyRound size={iconSize.md} color={colors.textTertiary} />}
                   returnKeyType="next"
                   editable={!busy}
                   error={fieldState.error?.message ? t(fieldState.error.message) : undefined}
-                  wrapperStyle={{ marginBottom: layout.cardGap }}
                   value={field.value}
                   onChangeText={field.onChange}
                   onBlur={field.onBlur}
                 />
               )}
             />
-          )}
+          ) : null}
 
           <Controller
             control={control}
             name="newPassword"
             render={({ field, fieldState }) => (
-              <AppTextInput
+              <Field
                 label={t('auth.resetPassword.newPassword')}
                 placeholder={t('auth.fields.passwordPlaceholder')}
+                // The policy in advance, rather than as four separate
+                // rejections.
+                hint={t('auth.fields.passwordPolicy')}
                 secureTextEntry={!showPassword}
                 autoComplete="new-password"
                 autoCapitalize="none"
                 autoFocus={Boolean(linkToken)}
-                leading={<Lock size={19} color={colors.textMuted} />}
+                leading={<Lock size={iconSize.md} color={colors.textTertiary} />}
                 returnKeyType="next"
-                blurOnSubmit={false}
+                submitBehavior="submit"
                 onSubmitEditing={() => confirmRef.current?.focus()}
                 editable={!busy}
                 error={fieldState.error?.message ? t(fieldState.error.message) : undefined}
-                wrapperStyle={{ marginBottom: layout.cardGap }}
                 trailing={
                   <Pressable
                     onPress={() => setShowPassword((v) => !v)}
-                    hitSlop={8}
+                    hitSlop={12}
                     accessibilityRole="button"
-                    accessibilityLabel={showPassword ? t('auth.fields.hidePassword') : t('auth.fields.showPassword')}
+                    accessibilityLabel={
+                      showPassword ? t('auth.fields.hidePassword') : t('auth.fields.showPassword')
+                    }
                   >
                     {showPassword ? (
-                      <EyeOff size={20} color={colors.textMuted} />
+                      <EyeOff size={iconSize.md} color={colors.textTertiary} />
                     ) : (
-                      <Eye size={20} color={colors.textMuted} />
+                      <Eye size={iconSize.md} color={colors.textTertiary} />
                     )}
                   </Pressable>
                 }
@@ -286,19 +229,18 @@ export default function ResetPassword() {
             control={control}
             name="confirmPassword"
             render={({ field, fieldState }) => (
-              <AppTextInput
+              <Field
                 ref={confirmRef}
                 label={t('auth.resetPassword.confirmPassword')}
                 placeholder={t('auth.resetPassword.confirmPlaceholder')}
                 secureTextEntry={!showPassword}
                 autoComplete="new-password"
                 autoCapitalize="none"
-                leading={<Lock size={19} color={colors.textMuted} />}
+                leading={<Lock size={iconSize.md} color={colors.textTertiary} />}
                 returnKeyType="go"
                 onSubmitEditing={onSubmit}
                 editable={!busy}
                 error={fieldState.error?.message ? t(fieldState.error.message) : undefined}
-                wrapperStyle={{ marginBottom: spacing.md }}
                 value={field.value}
                 onChangeText={field.onChange}
                 onBlur={field.onBlur}
@@ -306,40 +248,24 @@ export default function ResetPassword() {
             )}
           />
 
-          {/* The policy in advance, rather than as four separate rejections. */}
-          <AppText muted style={{ fontSize: 12, marginBottom: spacing.lg }}>
-{t('auth.fields.passwordPolicy')}
-          </AppText>
+          {serverError ? <Banner tone="critical" title={serverError} /> : null}
 
-          {serverError && (
-            <AppText
-              accessibilityRole="alert"
-              style={{ color: colors.danger, marginBottom: spacing.md }}
-            >
-              {serverError}
-            </AppText>
-          )}
-
-          <AppButton
-            gradient
-            accessibilityRole="button"
+          <Button
+            label={t('auth.resetPassword.submit')}
             accessibilityLabel={t('auth.resetPassword.a11ySubmit')}
-            style={{ height: 54 }}
             onPress={onSubmit}
             disabled={busy}
             loading={reset.isPending}
-          >
-            {t('auth.resetPassword.submit')}
-          </AppButton>
-        </View>
+          />
+        </Stack>
 
-        <View style={{ flex: 1, minHeight: spacing.xl }} />
+        <View style={{ flex: 1, minHeight: space.xl }} />
 
         <Pressable
           onPress={() => router.replace('/(auth)/login')}
           accessibilityRole="button"
           accessibilityLabel={t('auth.checkEmail.backToSignIn')}
-          hitSlop={8}
+          hitSlop={12}
           style={({ pressed }) => ({
             minHeight: 44,
             alignItems: 'center',
@@ -347,11 +273,88 @@ export default function ResetPassword() {
             opacity: pressed ? 0.6 : 1,
           })}
         >
-          <AppText style={{ fontSize: 13, fontWeight: '500', color: colors.text }}>
-            {t('auth.checkEmail.backToSignIn')}
-          </AppText>
+          <Text variant="bodyStrong">{t('auth.checkEmail.backToSignIn')}</Text>
         </Pressable>
-      </KeyboardAvoidingView>
+      </Stack>
+    </FormScreen>
+  );
+}
+
+/**
+ * The two dead ends this screen can reach: the password was changed, or the
+ * token was refused. Neither has a form on it, both need the same shape, and
+ * writing that shape twice is how the two drift apart.
+ */
+function Outcome({
+  tone,
+  icon,
+  title,
+  body,
+  primary,
+  secondary,
+}: {
+  tone: 'success' | 'critical';
+  icon: React.ReactNode;
+  title: string;
+  body: string;
+  primary: { label: string; accessibilityLabel: string; onPress: () => void };
+  secondary?: { label: string; onPress: () => void };
+}) {
+  const { colors } = useDesign();
+
+  return (
+    <Screen>
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+        <Stack gap="xl" style={{ alignSelf: 'stretch', alignItems: 'center' }}>
+          <View
+            style={{
+              width: 64,
+              height: 64,
+              borderRadius: radius.lg,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: colors[tone].soft,
+            }}
+          >
+            {icon}
+          </View>
+
+          <Stack gap="sm" style={{ alignItems: 'center' }}>
+            <Text variant="h1" align="center" accessibilityRole="alert">
+              {title}
+            </Text>
+            <Text variant="body" tone="secondary" align="center">
+              {body}
+            </Text>
+          </Stack>
+
+          <Stack gap="md" style={{ alignSelf: 'stretch' }}>
+            <Button
+              label={primary.label}
+              accessibilityLabel={primary.accessibilityLabel}
+              onPress={primary.onPress}
+            />
+            {secondary ? (
+              <Pressable
+                onPress={secondary.onPress}
+                accessibilityRole="button"
+                accessibilityLabel={secondary.label}
+                hitSlop={12}
+                style={({ pressed }) => ({
+                  minHeight: 44,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  opacity: pressed ? 0.6 : 1,
+                })}
+              >
+                <Text variant="bodyStrong" tone="clinical">
+                  {secondary.label}
+                </Text>
+              </Pressable>
+            ) : null}
+          </Stack>
+        </Stack>
+      </View>
     </Screen>
   );
 }

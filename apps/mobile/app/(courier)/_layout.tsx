@@ -4,7 +4,7 @@
 // peering on it.
 import { Tabs } from 'expo-router/js-tabs';
 import { Clock3, Truck, UserRound } from 'lucide-react-native';
-import { GlassTabBar } from '../../src/components/GlassTabBar';
+import { TabBar } from '../../src/design';
 import { useTranslation } from '../../src/i18n';
 
 export default function CourierLayout() {
@@ -12,7 +12,7 @@ export default function CourierLayout() {
 
   return (
     <Tabs
-      tabBar={(props) => <GlassTabBar {...props} />}
+      tabBar={(props) => <TabBar {...props} />}
       screenOptions={{
         headerShown: false,
         // Every navigator scene paints React Navigation's *own* theme

@@ -2,13 +2,19 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { Mail } from 'lucide-react-native';
-import { AppButton, AppText, Screen } from '../../src/components';
+import { Banner, Button, Screen, Stack, Text, iconSize, radius, useDesign } from '../../src/design';
 import { useResendVerification, getAuthErrorMessage } from '../../src/hooks/useAuth';
-import { spacing, useTheme } from '../../src/theme';
 import { useTranslation } from '../../src/i18n';
 
+/**
+ * The pause between registering and confirming.
+ *
+ * One job: say where to look, and offer to send it again. The screen exists
+ * because an unconfirmed account is a dead end otherwise -- the donor has no
+ * way back in and no way to ask for another mail.
+ */
 export default function CheckEmail() {
-  const { colors } = useTheme();
+  const { colors } = useDesign();
   const { t } = useTranslation();
   const params = useLocalSearchParams<{ email?: string }>();
   const resend = useResendVerification();
@@ -27,72 +33,62 @@ export default function CheckEmail() {
     }
   };
 
+  const canResend = Boolean(params.email) && !resend.isPending;
+
   return (
     <Screen>
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.lg }}>
-        <View
-          style={{
-            width: 80,
-            height: 80,
-            borderRadius: 24,
-            backgroundColor: colors.secondaryMuted,
-            borderWidth: 1,
-            borderColor: `${colors.onMuted.secondary}4D`,
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginBottom: spacing.lg,
-          }}
-        >
-          <Mail size={36} color={colors.onMuted.secondary} strokeWidth={1.5} />
-        </View>
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+        <Stack gap="xl" style={{ alignSelf: 'stretch', alignItems: 'center' }}>
+          <View
+            style={{
+              width: 64,
+              height: 64,
+              borderRadius: radius.lg,
+              backgroundColor: colors.clinical.soft,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Mail size={iconSize.xl} color={colors.clinical.base} strokeWidth={1.5} />
+          </View>
 
-        <AppText variant="title" style={{ textAlign: 'center', marginBottom: spacing.sm }}>
-          {t('auth.checkEmail.title')}
-        </AppText>
+          <Stack gap="sm" style={{ alignItems: 'center' }}>
+            <Text variant="h1" align="center" accessibilityRole="header">
+              {t('auth.checkEmail.title')}
+            </Text>
+            <Text variant="body" tone="secondary" align="center">
+              {params.email
+                ? t('auth.checkEmail.bodyWithEmail', { email: params.email })
+                : t('auth.checkEmail.body')}
+            </Text>
+          </Stack>
 
-        <AppText muted style={{ textAlign: 'center', marginBottom: spacing.xl }}>
-          {params.email
-            ? t('auth.checkEmail.bodyWithEmail', { email: params.email })
-            : t('auth.checkEmail.body')}
-        </AppText>
+          {sent ? <Banner tone="success" title={t('auth.checkEmail.resent')} style={{ alignSelf: 'stretch' }} /> : null}
+          {error ? <Banner tone="critical" title={error} style={{ alignSelf: 'stretch' }} /> : null}
 
-        {sent && (
-          <AppText style={{ color: colors.success, marginBottom: spacing.md, textAlign: 'center' }}>
-            {t('auth.checkEmail.resent')}
-          </AppText>
-        )}
+          <Stack gap="md" style={{ alignSelf: 'stretch' }}>
+            <Button label={t('auth.checkEmail.backToSignIn')} onPress={() => router.replace('/(auth)/login')} />
 
-        {error && (
-          <AppText style={{ color: colors.danger, marginBottom: spacing.md, textAlign: 'center' }}>
-            {error}
-          </AppText>
-        )}
-
-        {/* The reference leads with one full-width action and puts the
-            secondary path under it as a plain link. */}
-        <AppButton
-          onPress={() => router.replace('/(auth)/login')}
-          style={{ alignSelf: 'stretch' }}
-        >
-          {t('auth.checkEmail.backToSignIn')}
-        </AppButton>
-
-        <Pressable
-          onPress={onResend}
-          disabled={resend.isPending || !params.email}
-          accessibilityRole="button"
-          hitSlop={8}
-          style={({ pressed }) => ({
-            marginTop: 20,
-            minHeight: 44,
-            justifyContent: 'center',
-            opacity: pressed || resend.isPending || !params.email ? 0.6 : 1,
-          })}
-        >
-          <AppText style={{ fontSize: 13, fontWeight: '500', color: colors.primary }}>
-            {resend.isPending ? t('common.sending') : t('auth.checkEmail.resend')}
-          </AppText>
-        </Pressable>
+            <Pressable
+              onPress={onResend}
+              disabled={!canResend}
+              accessibilityRole="button"
+              accessibilityLabel={t('auth.checkEmail.resend')}
+              accessibilityState={{ disabled: !canResend, busy: resend.isPending }}
+              hitSlop={12}
+              style={({ pressed }) => ({
+                minHeight: 44,
+                alignItems: 'center',
+                justifyContent: 'center',
+                opacity: pressed || !canResend ? 0.6 : 1,
+              })}
+            >
+              <Text variant="bodyStrong" tone="clinical">
+                {resend.isPending ? t('common.sending') : t('auth.checkEmail.resend')}
+              </Text>
+            </Pressable>
+          </Stack>
+        </Stack>
       </View>
     </Screen>
   );
