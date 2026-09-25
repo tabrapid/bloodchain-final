@@ -489,7 +489,7 @@ Accepted, with reasons:
 | expo-doctor "Validate packages against React Native Directory" | Same — `reactnative.directory`, 403. |
 | `userInterfaceStyle: "dark"` is not enforced on Android | `expo prebuild` warns that this needs `expo-system-ui`, which is not installed, so the declaration is inert on Android. It also interacts badly with the app's own `'light' \| 'dark' \| 'system'` preference: on iOS, `UIUserInterfaceStyle: Dark` makes RN's `useColorScheme()` always return `dark`, so the "system" preference cannot follow the device. Left as found — changing it changes product behaviour — and carried into Track B, where the theme is rebuilt. |
 | `RECEIVE_BOOT_COMPLETED` on Android | Contributed by expo-notifications' own manifest. The app schedules no local notifications, so it is unused. Removing it means blocking a library-contributed permission, which risks breaking scheduled notifications if they are ever added. Recorded rather than removed. |
-| Mobile lint warnings | 36, unchanged across all four hops — the same set as at the baseline. 0 errors. |
+| Mobile lint warnings | 36 through Track A, unchanged across all four hops — the same set as at the baseline. **15 after Track B**, because most of them lived in the V1 component layer that was deleted: 12 `no-explicit-any` and 3 `react-hooks/exhaustive-deps`. 0 errors throughout. |
 | TypeScript 5.9.3, not 6.0 | SDK 56's template suggests `typescript ~6.0.3`. The monorepo shares one TypeScript across eleven packages, so moving to 6.0 is a monorepo-wide change with its own risk surface and does not belong in a mobile sprint. 5.9.3 typechecks the app cleanly. |
 
 ---
@@ -583,7 +583,8 @@ is the order the sprint required.
 ### 18.1 What changed
 
 Every screen in `apps/mobile/app/` is on the V2 design system in
-`apps/mobile/src/design` (62 exports: 10 token groups, 52 components). The
+`apps/mobile/src/design` (62 exports: 10 token groups, 51 components and the
+`useDesign` hook). The
 pre-V2 component layer — 42 files in `apps/mobile/src/components` — was deleted
 rather than left beside it; three files remain (`AppBackground`, `BrandMark`,
 `map/LocationMap`) and the barrel says why each one is not a design-system

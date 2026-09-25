@@ -32,8 +32,9 @@ and the barrel says why (`AppBackground`, `BrandMark`, `map/LocationMap`).
 
 ## 2. Design system
 
-62 exports from `src/design`. Tokens: `space`, `radius`, `elevation`, `type`,
-`icon`, `hitTarget`, `motion`, `layout`, `themes`, `palette`.
+62 exports from `src/design`: ten token groups, 51 components and the
+`useDesign` hook. Tokens: `space`, `radius`, `elevation`, `typeScale`,
+`iconSize`, `hitTarget`, `motion`, `layout`, `themes`, `palette`.
 
 Components, by group:
 
