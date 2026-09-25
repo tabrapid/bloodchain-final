@@ -32,24 +32,6 @@ import Donations from '../../app/(app)/donations';
 
 const { t } = createLocalization('en');
 
-/**
- * Every tree this file mounts, so each test can take it down again.
- *
- * Leaving them mounted was harmless under React 18, where an idle root simply
- * sat there. React 19's `act()` flushes pending work for every mounted root
- * inside its scope, so the Calendar tree from the first test re-rendered
- * during the fourth -- by which point `beforeEach` had reset its hook mock and
- * `useMyAppointments()` returned undefined. The failure was reported against
- * the donation-history test, which had not mounted a Calendar at all.
- */
-const mounted: renderer.ReactTestRenderer[] = [];
-
-afterEach(() => {
-  act(() => {
-    for (const tree of mounted.splice(0)) tree.unmount();
-  });
-});
-
 function render(node: React.ReactNode) {
   let tree: renderer.ReactTestRenderer;
   act(() => {
@@ -68,7 +50,6 @@ function render(node: React.ReactNode) {
       </ThemeProvider>,
     );
   });
-  mounted.push(tree!);
   return tree!;
 }
 

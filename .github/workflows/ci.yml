@@ -370,8 +370,18 @@ jobs:
           pnpm --filter @bloodchain/mobile typecheck
           pnpm --filter @bloodchain/mobile lint
 
-      - name: Mobile test suite
-        run: pnpm --filter @bloodchain/mobile test
+      # `--runInBand` on purpose, and not for speed.
+      #
+      # With workers, jest force-kills them at the end of the run, so a leaked
+      # ref'd timer or a tree still rendering leaves nothing but a "worker
+      # process has failed to exit gracefully" warning that reads as noise. In
+      # band, the leak lands in the main process and jest refuses to exit --
+      # which is how a mutation gc timer surfaced here as a job that passed all
+      # 263 tests and then sat for another four and three quarter minutes.
+      # A two-core runner gives maxWorkers=1 anyway; saying so makes the
+      # guarantee independent of how many cores the runner happens to have.
+      - name: Mobile test suite (in band, so a leaked handle fails the job)
+        run: pnpm --filter @bloodchain/mobile exec jest --runInBand
 
       # The real proof that the app still builds: Metro resolves and bundles
       # every module and Hermes compiles it, exactly as a release build does.

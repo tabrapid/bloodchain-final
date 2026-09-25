@@ -5,7 +5,13 @@ module.exports = {
   // Runs inside the sandbox, after the test framework, so it can register an
   // afterAll hook. It disposes the React Query caches each spec creates; see
   // the file for why the suite cannot exit without it.
-  setupFilesAfterEnv: ['<rootDir>/jest.teardown-query.js'],
+  setupFilesAfterEnv: [
+    '<rootDir>/jest.teardown-query.js',
+    // Unmounts every tree a test mounts. React 19's act() drives every mounted
+    // root in scope, so a tree left behind keeps rendering into later tests and
+    // then into a torn-down environment. See the file.
+    '<rootDir>/jest.teardown-render.js',
+  ],
   // The first test to mount a screen pays a one-off cost: Babel transforming the
   // whole React Native module graph. With a warm jest cache that is milliseconds,
   // but CI starts cold every run, where it measured ~8.4s -- over the default 5s

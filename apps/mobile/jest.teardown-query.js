@@ -49,10 +49,34 @@ reactQuery.QueryClient.prototype.mount = function mount(...args) {
 
 afterAll(() => {
   for (const client of liveClients) {
-    // `unmount()` detaches the focus and online subscriptions; `clear()` empties
-    // the query and mutation caches, destroying each entry and with it the gc
-    // timer that would otherwise hold the event loop open.
+    // `unmount()` detaches the focus and online subscriptions.
     if (typeof client.unmount === 'function') client.unmount();
+
+    // Mutations have to be destroyed by hand, and this is not symmetry for its
+    // own sake.
+    //
+    // `QueryCache.clear()` removes each query, and removing a query calls
+    // `Query.destroy()`, which clears its gc timeout. `MutationCache.clear()`
+    // does not do the same thing: it emits a "removed" notification for each
+    // mutation and drops its references, and never calls `destroy()`. So a
+    // mutation that lost its last observer -- which is what unmounting a form
+    // screen does -- keeps the ref'd gc timer that `Mutation.removeObserver`
+    // armed, and `client.clear()` does not touch it.
+    //
+    // The default mutation gcTime is five minutes, which is why this surfaced
+    // as a CI job that passed all 263 tests in 121 seconds and then sat for
+    // another four and three quarter minutes before jest gave up. Measured
+    // rather than reasoned about: instrumenting the sandbox's own setTimeout
+    // named `Mutation.scheduleGc` via `Removable.scheduleGc` as the owner of
+    // the surviving handle.
+    const mutationCache = typeof client.getMutationCache === 'function' ? client.getMutationCache() : null;
+    if (mutationCache) {
+      for (const mutation of mutationCache.getAll()) {
+        if (typeof mutation.destroy === 'function') mutation.destroy();
+      }
+    }
+
+    // `clear()` then empties both caches.
     client.clear();
   }
   liveClients.clear();
