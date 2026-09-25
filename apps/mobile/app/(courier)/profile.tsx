@@ -1,9 +1,24 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ScrollView, TextInput, View } from 'react-native';
-import { AlertTriangle, Building2, LogOut, Moon, Sun } from 'lucide-react-native';
-import { AppButton, AppHeader, AppText, Badge, Card, EmptyState, LoadingState, Screen } from '../../src/components';
+import { Building2, LogOut, Moon, Sun } from 'lucide-react-native';
+import {
+  Badge,
+  Banner,
+  Button,
+  ConfirmationSheet,
+  Field,
+  FormScreen,
+  PhoneField,
+  Row,
+  ScreenHeader,
+  Skeleton,
+  Stack,
+  Surface,
+  Text,
+  iconSize,
+  useDesign,
+  type StatusTone,
+} from '../../src/design';
 import { useLogout } from '../../src/hooks/useAuth';
-import { layout, spacing, useTheme } from '../../src/theme';
 import {
   getCourierProfile,
   updateCourierProfile,
@@ -11,17 +26,24 @@ import {
   type CourierProfile,
 } from '../../src/api/courier';
 import { useTranslation } from '../../src/i18n';
+import { normalizePhone } from '@bloodchain/validation';
 
-const STATUS_VARIANT: Record<string, 'default' | 'primary' | 'secondary' | 'success' | 'warning' | 'danger'> = {
+const STATUS_TONE: Record<string, StatusTone> = {
   AVAILABLE: 'success',
   BUSY: 'warning',
-  OFFLINE: 'default',
-  SUSPENDED: 'danger',
+  OFFLINE: 'neutral',
+  SUSPENDED: 'critical',
 };
+
+/** The stored `+998901234567` as the nine digits the field shows. */
+function toLocalDigits(phone: string | undefined | null): string {
+  if (!phone) return '';
+  return phone.replace(/\D/g, '').replace(/^998/, '');
+}
 
 export default function CourierProfileScreen() {
   const { t } = useTranslation();
-  const { colors } = useTheme();
+  const { colors } = useDesign();
   const logout = useLogout();
   const [profile, setProfile] = useState<CourierProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -31,15 +53,17 @@ export default function CourierProfileScreen() {
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
   const [statusUpdating, setStatusUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmingLogout, setConfirmingLogout] = useState(false);
 
   const load = useCallback(async () => {
     try {
       const data = await getCourierProfile();
       setProfile(data);
       setDisplayName(data.displayName);
-      setPhone(data.phone || '');
-    } catch (err) {
-      console.error('Failed to load courier profile:', err);
+      setPhone(toLocalDigits(data.phone));
+      setError(null);
+    } catch {
+      setProfile(null);
     } finally {
       setIsLoading(false);
     }
@@ -54,11 +78,14 @@ export default function CourierProfileScreen() {
     setError(null);
     setSavedMessage(null);
     try {
-      await updateCourierProfile({ displayName: displayName.trim(), phone: phone.trim() || undefined });
+      await updateCourierProfile({
+        displayName: displayName.trim(),
+        phone: phone ? (normalizePhone(`+998${phone}`) ?? undefined) : undefined,
+      });
       setSavedMessage(t('courier.profileUpdated'));
       await load();
-    } catch (err: any) {
-      setError(err?.message || t('courier.profileUpdateFailed'));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('courier.profileUpdateFailed'));
     } finally {
       setSaving(false);
     }
@@ -72,122 +99,142 @@ export default function CourierProfileScreen() {
     try {
       await updateCourierStatus(nextStatus);
       await load();
-    } catch (err: any) {
-      setError(err?.message || t('courier.statusUpdateFailed'));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('courier.statusUpdateFailed'));
     } finally {
       setStatusUpdating(false);
     }
   };
 
+  const header = (
+    <ScreenHeader title={t('courier.profileTitle')} eyebrow={t('courier.profileSubtitle')} />
+  );
+
   if (isLoading) {
     return (
-      <Screen>
-        <AppHeader title={t('courier.profileTitle')} subtitle={t('courier.profileSubtitle')} />
-        <LoadingState />
-      </Screen>
+      <FormScreen header={header}>
+        <Stack gap="lg">
+          <Skeleton height={96} />
+          <Skeleton height={180} />
+        </Stack>
+      </FormScreen>
     );
   }
 
   if (!profile) {
     return (
-      <Screen>
-        <AppHeader title={t('courier.profileTitle')} subtitle={t('courier.profileSubtitle')} />
-        <EmptyState
-          icon={AlertTriangle}
-          title={t('courier.profileLoadFailed')}
-          description={t('common.offline')}
-        />
-        <AppButton variant="secondary" onPress={load} style={{ marginTop: spacing.md }}>
-          {t('common.retry')}
-        </AppButton>
-      </Screen>
+      <FormScreen header={header}>
+        <Stack gap="lg">
+          <Banner tone="critical" title={t('courier.profileLoadFailed')} description={t('common.offline')} />
+          <Button label={t('common.retry')} variant="secondary" onPress={() => void load()} />
+        </Stack>
+      </FormScreen>
     );
   }
 
   const hasActiveDelivery = !!profile.currentShipmentId;
-  const canToggle = (profile.status === 'AVAILABLE' || profile.status === 'OFFLINE') && !hasActiveDelivery;
+  const canToggle =
+    (profile.status === 'AVAILABLE' || profile.status === 'OFFLINE') && !hasActiveDelivery;
 
   return (
-    <Screen scroll={false}>
-      <AppHeader title={t('courier.profileTitle')} subtitle={t('courier.profileSubtitle')} />
-      <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
-        <Card style={{ marginBottom: layout.cardGap }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.md }}>
-            <AppText variant="heading">{t('courier.availability')}</AppText>
-            <Badge variant={STATUS_VARIANT[profile.status] || 'default'}>
-              {t(`status.courier.${profile.status}`)}
-            </Badge>
-          </View>
-          {canToggle ? (
-            <AppButton
-              variant={profile.status === 'AVAILABLE' ? 'secondary' : 'primary'}
-              onPress={toggleAvailability}
-              disabled={statusUpdating}
-            >
-              {profile.status === 'AVAILABLE' ? <Moon size={18} /> : <Sun size={18} />}
-              {t(profile.status === 'AVAILABLE' ? 'courier.goOffline' : 'courier.goAvailable')}
-            </AppButton>
-          ) : (
-            <AppText muted style={{ fontSize: 13 }}>
-              {t(hasActiveDelivery ? 'courier.lockedByDelivery' : 'courier.lockedByStatus')}
-            </AppText>
-          )}
-        </Card>
+    <FormScreen header={header}>
+      <Stack gap="xl">
+        <Surface>
+          <Stack gap="md">
+            <Row gap="md">
+              <Text variant="bodyStrong" style={{ flex: 1 }}>
+                {t('courier.availability')}
+              </Text>
+              <Badge
+                label={t(`status.courier.${profile.status}`)}
+                tone={STATUS_TONE[profile.status] ?? 'neutral'}
+              />
+            </Row>
+            {canToggle ? (
+              <Button
+                label={t(profile.status === 'AVAILABLE' ? 'courier.goOffline' : 'courier.goAvailable')}
+                variant={profile.status === 'AVAILABLE' ? 'secondary' : 'primary'}
+                loading={statusUpdating}
+                icon={({ size, color }) =>
+                  profile.status === 'AVAILABLE' ? (
+                    <Moon size={size} color={color} />
+                  ) : (
+                    <Sun size={size} color={color} />
+                  )
+                }
+                onPress={() => void toggleAvailability()}
+              />
+            ) : (
+              <Text variant="caption" tone="secondary">
+                {t(hasActiveDelivery ? 'courier.lockedByDelivery' : 'courier.lockedByStatus')}
+              </Text>
+            )}
+          </Stack>
+        </Surface>
 
-        <Card style={{ marginBottom: layout.cardGap }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md }}>
-            <Building2 size={18} color={colors.textMuted} />
-            <AppText muted>{profile.organizationName}</AppText>
-          </View>
+        <Surface>
+          <Stack gap="lg">
+            <Row gap="sm">
+              <Building2 size={iconSize.sm} color={colors.textTertiary} />
+              <Text variant="caption" tone="secondary">
+                {profile.organizationName}
+              </Text>
+            </Row>
 
-          <AppText muted style={{ fontSize: 12, marginBottom: spacing.xs }}>
-            {t('courier.displayName')}
-          </AppText>
-          <TextInput
-            value={displayName}
-            onChangeText={setDisplayName}
-            placeholderTextColor={colors.textMuted}
-            style={{
-              backgroundColor: colors.surfaceSolid,
-              borderColor: colors.border,
-              borderWidth: 1,
-              borderRadius: 10,
-              padding: 12,
-              color: colors.text,
-              marginBottom: spacing.md,
-            }}
-          />
+            <Field
+              label={t('courier.displayName')}
+              value={displayName}
+              onChangeText={setDisplayName}
+              required
+            />
+            {/* Free-typed with a phone keypad before; the prefix is drawn now
+                and the number is normalized like everywhere else in the app. */}
+            <PhoneField
+              prefix="+998"
+              label={t('table.phone')}
+              placeholder={t('auth.phone.placeholder')}
+              value={phone}
+              onChangeText={(value) => setPhone(value.replace(/\D/g, ''))}
+            />
 
-          <AppText muted style={{ fontSize: 12, marginBottom: spacing.xs }}>{t('table.phone')}</AppText>
-          <TextInput
-            value={phone}
-            onChangeText={setPhone}
-            keyboardType="phone-pad"
-            placeholderTextColor={colors.textMuted}
-            style={{
-              backgroundColor: colors.surfaceSolid,
-              borderColor: colors.border,
-              borderWidth: 1,
-              borderRadius: 10,
-              padding: 12,
-              color: colors.text,
-              marginBottom: spacing.md,
-            }}
-          />
+            {error ? <Banner tone="critical" title={error} /> : null}
+            {savedMessage ? <Banner tone="success" title={savedMessage} /> : null}
 
-          {error && <AppText style={{ color: colors.danger, marginBottom: spacing.md }}>{error}</AppText>}
-          {savedMessage && <AppText style={{ color: colors.success, marginBottom: spacing.md }}>{savedMessage}</AppText>}
+            <Button
+              label={saving ? t('common.saving') : t('actions.saveChanges')}
+              loading={saving}
+              disabled={!displayName.trim()}
+              onPress={() => void handleSave()}
+            />
+          </Stack>
+        </Surface>
 
-          <AppButton onPress={handleSave} disabled={saving || !displayName.trim()}>
-            {t(saving ? 'common.saving' : 'actions.saveChanges')}
-          </AppButton>
-        </Card>
+        <Button
+          label={t('courier.logOut')}
+          variant="secondary"
+          accent="critical"
+          style={{ borderColor: colors.critical.base }}
+          icon={({ size }) => <LogOut size={size} color={colors.critical.text} />}
+          onPress={() => setConfirmingLogout(true)}
+        />
+      </Stack>
 
-        <AppButton variant="ghost" onPress={() => logout.mutate()} disabled={logout.isPending}>
-          <LogOut size={18} color={colors.danger} />
-          <AppText style={{ color: colors.danger }}>{t('courier.logOut')}</AppText>
-        </AppButton>
-      </ScrollView>
-    </Screen>
+      {/* A courier signing out mid-shift stops receiving assignments, so the
+          one question is worth asking. */}
+      <ConfirmationSheet
+        visible={confirmingLogout}
+        onCancel={() => setConfirmingLogout(false)}
+        onConfirm={() => {
+          setConfirmingLogout(false);
+          logout.mutate();
+        }}
+        title={t('courier.logOut')}
+        description={t('profile.signOutBody')}
+        confirmLabel={t('courier.logOut')}
+        cancelLabel={t('common.cancel')}
+        busy={logout.isPending}
+        destructive
+      />
+    </FormScreen>
   );
 }

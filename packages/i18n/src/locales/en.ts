@@ -2596,6 +2596,14 @@ export const en: Catalog = {
     saveFailed: 'Something went wrong saving your profile. Please try again.',
   },
   courier: {
+    locationExplainerTitle: 'Share your location while delivering?',
+    locationExplainerBody:
+      'The hospital waiting for these units can see where the delivery has reached. Your location is shared only while a delivery is in transit.',
+    locationAssuranceInTransitOnly: 'Only while a delivery is in transit — never before, never after',
+    locationAssuranceHospitalOnly: 'Seen by the hospital and the blood centre handling this shipment',
+    locationAssuranceStops: 'Stops the moment you arrive or the delivery ends',
+    locationAllow: 'Share my location',
+    locationDeclined: 'Location sharing is off. You can still complete the delivery — the hospital just will not see where you are.',
     tabActive: 'Active',
     tabHistory: 'History',
     tabProfile: 'Profile',

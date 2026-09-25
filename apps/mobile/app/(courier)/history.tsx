@@ -1,27 +1,45 @@
 import { useCallback, useEffect, useState } from 'react';
-import { RefreshControl, ScrollView, View } from 'react-native';
-import { AlertTriangle, CheckCircle, Clock3, Droplet, Package, XCircle } from 'lucide-react-native';
-import { AppButton, AppHeader, AppText, Badge, Card, EmptyState, LoadingState, Screen, StatCard } from '../../src/components';
-import { layout, spacing, useTheme } from '../../src/theme';
-import { getCourierShipments, getCourierStats, type CourierStats, type Shipment } from '../../src/api/courier';
+import { CheckCircle, Clock3, Droplet, Package, XCircle } from 'lucide-react-native';
+import {
+  Badge,
+  EmptyState,
+  ErrorState,
+  ListGroup,
+  ListRow,
+  ScreenHeader,
+  ScrollScreen,
+  Skeleton,
+  Stack,
+  Stat,
+  StatRow,
+  iconSize,
+  useDesign,
+  type StatusTone,
+} from '../../src/design';
+import {
+  getCourierShipments,
+  getCourierStats,
+  type CourierStats,
+  type Shipment,
+} from '../../src/api/courier';
 import { useTranslation } from '../../src/i18n';
 
-const STATUS_VARIANT: Record<string, 'default' | 'primary' | 'secondary' | 'success' | 'warning' | 'danger'> = {
-  COURIER_ASSIGNED: 'secondary',
-  COURIER_ACCEPTED: 'secondary',
-  COURIER_DECLINED: 'danger',
+const STATUS_TONE: Record<string, StatusTone> = {
+  COURIER_ASSIGNED: 'clinical',
+  COURIER_ACCEPTED: 'clinical',
+  COURIER_DECLINED: 'critical',
   PICKUP_STARTED: 'warning',
   PICKED_UP: 'warning',
-  IN_TRANSIT: 'primary',
+  IN_TRANSIT: 'clinical',
   ARRIVED_AT_HOSPITAL: 'warning',
   DELIVERED: 'success',
-  FAILED: 'danger',
-  CANCELLED: 'danger',
+  FAILED: 'critical',
+  CANCELLED: 'critical',
 };
 
 export default function CourierHistory() {
   const { t, formatDateTime } = useTranslation();
-  const { colors } = useTheme();
+  const { colors } = useDesign();
   const [shipments, setShipments] = useState<Shipment[]>([]);
   const [stats, setStats] = useState<CourierStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -37,8 +55,7 @@ export default function CourierHistory() {
       setShipments(shipmentsRes.data);
       setStats(statsRes);
       setLoadError(false);
-    } catch (err) {
-      console.error('Failed to load courier history:', err);
+    } catch {
       setLoadError(true);
     } finally {
       setIsLoading(false);
@@ -50,94 +67,98 @@ export default function CourierHistory() {
     load();
   }, [load]);
 
+  const header = (
+    <ScreenHeader title={t('courier.historyTitle')} eyebrow={t('courier.historySubtitle')} />
+  );
+
   if (isLoading) {
     return (
-      <Screen>
-        <AppHeader title={t('courier.historyTitle')} subtitle={t('courier.historySubtitle')} />
-        <LoadingState />
-      </Screen>
+      <ScrollScreen header={header}>
+        <Stack gap="lg">
+          <Skeleton height={96} />
+          <Skeleton height={140} />
+        </Stack>
+      </ScrollScreen>
     );
   }
 
   return (
-    <Screen scroll={false}>
-      <AppHeader title={t('courier.historyTitle')} subtitle={t('courier.historySubtitle')} />
-      <ScrollView
-        style={{ flex: 1 }}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={() => {
-              setIsRefreshing(true);
-              load();
-            }}
-            tintColor={colors.primary}
-          />
-        }
-      >
-        {stats && (
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md, marginBottom: spacing.lg }}>
-            <StatCard label={t('courier.statCompleted')} value={String(stats.completed)} icon={CheckCircle} variant="success" style={{ flex: 1, minWidth: 140 }} />
-            <StatCard label={t('courier.statFailed')} value={String(stats.failed)} icon={XCircle} variant={stats.failed > 0 ? 'danger' : 'default'} style={{ flex: 1, minWidth: 140 }} />
-            <StatCard
+    <ScrollScreen
+      header={header}
+      refreshing={isRefreshing}
+      onRefresh={() => {
+        setIsRefreshing(true);
+        void load();
+      }}
+    >
+      <Stack gap="xl">
+        {stats ? (
+          <StatRow>
+            <Stat
+              label={t('courier.statCompleted')}
+              value={String(stats.completed)}
+              icon={({ size, color }) => <CheckCircle size={size} color={color} />}
+              tone="success"
+            />
+            <Stat
+              label={t('courier.statFailed')}
+              value={String(stats.failed)}
+              icon={({ size, color }) => <XCircle size={size} color={color} />}
+              tone={stats.failed > 0 ? 'critical' : undefined}
+            />
+            <Stat
               label={t('courier.statAvgDeliveryTime')}
               value={
                 stats.avgDeliveryTimeMinutes != null
                   ? t('units.minutes', { count: Math.round(stats.avgDeliveryTimeMinutes) })
                   : '—'
               }
-              icon={Clock3}
-              variant="secondary"
-              style={{ flex: 1, minWidth: 140 }}
+              icon={({ size, color }) => <Clock3 size={size} color={color} />}
+              tone="clinical"
             />
-            <StatCard label={t('courier.statTotal')} value={String(stats.total)} icon={Package} style={{ flex: 1, minWidth: 140 }} />
-          </View>
-        )}
+          </StatRow>
+        ) : null}
 
         {shipments.length === 0 ? (
           loadError ? (
-            <>
-              <EmptyState
-                icon={AlertTriangle}
-                title={t('courier.historyLoadFailed')}
-                description={t('common.offline')}
-              />
-              <AppButton variant="secondary" onPress={load} style={{ marginTop: spacing.md }}>
-                {t('common.retry')}
-              </AppButton>
-            </>
+            <ErrorState
+              title={t('courier.historyLoadFailed')}
+              description={t('common.offline')}
+              retryLabel={t('common.retry')}
+              onRetry={() => void load()}
+            />
           ) : (
             <EmptyState
-              icon={Package}
               title={t('courier.historyEmpty')}
               description={t('courier.historyEmptyHint')}
+              icon={({ size, color }) => <Package size={size} color={color} />}
             />
           )
         ) : (
-          shipments.map((shipment) => (
-            <Card key={shipment.id} style={{ marginBottom: layout.cardGap }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.xs }}>
-                <AppText variant="heading">{shipment.shipmentReference}</AppText>
-                <Badge variant={STATUS_VARIANT[shipment.status] || 'default'}>
-                  {t(`status.shipment.${shipment.status}`)}
-                </Badge>
-              </View>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginBottom: spacing.xs }}>
-                <Droplet size={14} color={colors.textMuted} />
-                <AppText muted style={{ fontSize: 13 }}>
-                  {t('units.bloodUnits', { count: shipment.units?.length ?? 0 })}
-                  {shipment.sourceOrganization && ` · ${shipment.sourceOrganization.name}`}
-                  {shipment.destinationOrganization && ` → ${shipment.destinationOrganization.name}`}
-                </AppText>
-              </View>
-              <AppText muted style={{ fontSize: 12 }}>
-                {formatDateTime(shipment.createdAt)}
-              </AppText>
-            </Card>
-          ))
+          <ListGroup
+            rows={shipments.map((shipment) => (
+              <ListRow
+                key={shipment.id}
+                leading={<Droplet size={iconSize.lg} color={colors.rose.base} />}
+                title={shipment.shipmentReference}
+                subtitle={`${t('units.bloodUnits', { count: shipment.units?.length ?? 0 })}${
+                  shipment.sourceOrganization ? ` · ${shipment.sourceOrganization.name}` : ''
+                }${
+                  shipment.destinationOrganization
+                    ? ` → ${shipment.destinationOrganization.name}`
+                    : ''
+                } · ${formatDateTime(shipment.createdAt)}`}
+                trailing={
+                  <Badge
+                    label={t(`status.shipment.${shipment.status}`)}
+                    tone={STATUS_TONE[shipment.status] ?? 'neutral'}
+                  />
+                }
+              />
+            ))}
+          />
         )}
-      </ScrollView>
-    </Screen>
+      </Stack>
+    </ScrollScreen>
   );
 }

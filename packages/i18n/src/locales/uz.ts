@@ -2531,6 +2531,14 @@ export const uz: Catalog = {
     saveFailed: 'Profilingizni saqlashda xatolik yuz berdi. Qayta urinib ko‘ring.',
   },
   courier: {
+    locationExplainerTitle: 'Yetkazish davomida joylashuv ulashilsinmi?',
+    locationExplainerBody:
+      'Ushbu komponentlarni kutayotgan shifoxona yetkazish qayerga yetganini ko‘radi. Joylashuv faqat yetkazish yo‘lda bo‘lganda ulashiladi.',
+    locationAssuranceInTransitOnly: 'Faqat yetkazish yo‘lda bo‘lganda — undan oldin ham, keyin ham emas',
+    locationAssuranceHospitalOnly: 'Ushbu jo‘natmani yurituvchi shifoxona va qon markazi ko‘radi',
+    locationAssuranceStops: 'Yetib borganingizda yoki yetkazish tugaganda darhol to‘xtaydi',
+    locationAllow: 'Joylashuvni ulashish',
+    locationDeclined: 'Joylashuv ulashish o‘chirilgan. Yetkazishni baribir yakunlash mumkin — shifoxona qayerdaligingizni ko‘rmaydi, xolos.',
     tabActive: 'Faol',
     tabHistory: 'Tarix',
     tabProfile: 'Profil',
