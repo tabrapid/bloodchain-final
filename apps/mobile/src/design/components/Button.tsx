@@ -132,6 +132,53 @@ export function Button({
   );
 }
 
+export interface LinkButtonProps extends Omit<PressableProps, 'children' | 'style'> {
+  label: string;
+  onPress: () => void;
+  /** Defaults to the clinical blue every link in the app uses. */
+  tone?: AccentName;
+  style?: ViewStyle;
+}
+
+/**
+ * A word you can press: "View all", "See trends", "Resend".
+ *
+ * It exists because the alternative -- a bare `Text` inside a `Pressable` --
+ * is what every screen reaches for, and every screen then picks its own
+ * colour, its own hit area and its own pressed feedback. Three V1 screens had
+ * one of these with no `hitSlop` at all, which on a 13pt label is a target
+ * under half the size a finger needs.
+ *
+ * Deliberately not a `ghost` Button: a ghost Button is rose and button-sized,
+ * and a row of section headers with rose buttons in them competes with the
+ * primary action of the screen.
+ */
+export function LinkButton({ label, onPress, tone = 'clinical', disabled, style, ...rest }: LinkButtonProps) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled: Boolean(disabled) }}
+      disabled={disabled}
+      onPress={onPress}
+      hitSlop={8}
+      style={({ pressed }) => [
+        {
+          minHeight: hitTarget.min,
+          justifyContent: 'center',
+          opacity: pressed || disabled ? 0.6 : 1,
+        },
+        style,
+      ]}
+      {...rest}
+    >
+      <Text variant="label" tone={tone} numberOfLines={1}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
 export interface IconButtonProps extends Omit<PressableProps, 'children' | 'style'> {
   /** Required. An icon with no label is invisible to a screen reader. */
   accessibilityLabel: string;

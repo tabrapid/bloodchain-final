@@ -16,6 +16,7 @@ import {
   Badge,
   Button,
   ErrorState,
+  LinkButton,
   ListGroup,
   ListRow,
   Progress,
@@ -265,13 +266,7 @@ export default function Donate() {
           <SectionHeader
             title={t('donate.donationTypes')}
             action={
-              <Button
-                label={t('donate.learnAboutTypes')}
-                variant="ghost"
-                size="md"
-                block={false}
-                onPress={() => router.push('/education')}
-              />
+              <LinkButton label={t('donate.learnAboutTypes')} onPress={() => router.push('/education')} />
             }
           />
           <ListGroup
@@ -304,13 +299,7 @@ export default function Donate() {
           <SectionHeader
             title={t('donate.journey')}
             action={
-              <Button
-                label={t('donate.viewImpact')}
-                variant="ghost"
-                size="md"
-                block={false}
-                onPress={() => router.push('/(app)/gamification')}
-              />
+              <LinkButton label={t('donate.viewImpact')} onPress={() => router.push('/(app)/gamification')} />
             }
           />
           <StatRow>
@@ -355,13 +344,7 @@ export default function Donate() {
             <SectionHeader
               title={t('donate.activeCampaigns')}
               action={
-                <Button
-                  label={t('common.viewAll')}
-                  variant="ghost"
-                  size="md"
-                  block={false}
-                  onPress={() => router.push('/campaigns')}
-                />
+                <LinkButton label={t('common.viewAll')} onPress={() => router.push('/campaigns')} />
               }
             />
             <ListGroup
@@ -391,13 +374,7 @@ export default function Donate() {
             <SectionHeader
               title={t('donate.challenges')}
               action={
-                <Button
-                  label={t('common.viewAll')}
-                  variant="ghost"
-                  size="md"
-                  block={false}
-                  onPress={() => router.push('/challenges')}
-                />
+                <LinkButton label={t('common.viewAll')} onPress={() => router.push('/challenges')} />
               }
             />
             <Surface onPress={() => router.push('/challenges')} accessibilityLabel={featuredChallenge.title}>

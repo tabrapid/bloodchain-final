@@ -31,8 +31,8 @@ export type { TextProps, TextTone } from './components/Text';
 export { Surface, Well } from './components/Surface';
 export type { SurfaceProps } from './components/Surface';
 
-export { Button, IconButton, ButtonRow } from './components/Button';
-export type { ButtonProps, ButtonVariant, ButtonSize, IconButtonProps } from './components/Button';
+export { Button, IconButton, LinkButton, ButtonRow } from './components/Button';
+export type { ButtonProps, ButtonVariant, ButtonSize, IconButtonProps, LinkButtonProps } from './components/Button';
 
 export { Screen, ScrollScreen, FormScreen, Stack, Row } from './components/Screen';
 export type { ScreenProps, ScrollScreenProps } from './components/Screen';

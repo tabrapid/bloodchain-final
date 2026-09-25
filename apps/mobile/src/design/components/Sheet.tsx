@@ -15,8 +15,8 @@ export interface SheetProps {
   children?: ReactNode;
   /** Buttons pinned to the bottom, above the safe area. */
   footer?: ReactNode;
-  /** Label for the close control; required for anything a screen reader meets. */
-  closeLabel?: string;
+  /** Label for the close control. Required: the control is an icon. */
+  closeLabel: string;
   style?: ViewStyle;
 }
 
@@ -39,7 +39,7 @@ export function BottomSheet({
   description,
   children,
   footer,
-  closeLabel = 'Close',
+  closeLabel,
   style,
 }: SheetProps) {
   const { colors } = useDesign();

@@ -410,6 +410,9 @@ export const uz: Catalog = {
   },
 
   community: {
+    ofDonors: { other: '{{count}} donordan' },
+    rankOf: 'Bu oyda {{count}} donordan {{rank}}-o‘rin',
+    a11yShare: 'Ushbu postni ulashish: {{title}}',
     report: 'Shikoyat',
     a11yReport: 'Ushbu post haqida shikoyat qilish: {{title}}',
     reportTitle: 'Post haqida shikoyat',

@@ -479,6 +479,14 @@ export const ru: Catalog = {
   },
 
   community: {
+    ofDonors: {
+      one: 'из {{count}} донора',
+      few: 'из {{count}} доноров',
+      many: 'из {{count}} доноров',
+      other: 'из {{count}} доноров',
+    },
+    rankOf: '{{rank}} место из {{count}} в этом месяце',
+    a11yShare: 'Поделиться публикацией: {{title}}',
     report: 'Пожаловаться',
     a11yReport: 'Пожаловаться на публикацию: {{title}}',
     reportTitle: 'Жалоба на публикацию',

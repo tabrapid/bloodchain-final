@@ -5,6 +5,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { LocaleProvider } from '../i18n';
 import { colors, ThemeProvider } from '../theme';
+import { themes } from '../design';
 
 /**
  * P3-9 regression tests.
@@ -306,19 +307,22 @@ describe('P3-9: the four screens that used className render with real styles', (
   it.each(screens)('%s applies the app theme rather than rendering unstyled', async (_name, Screen) => {
     const fingerprint = styleFingerprint(allNodes(await renderTree(Screen)));
 
-    // The app's real text color and surface border must be present — these
-    // come from src/theme.tsx, so a screen rendering unstyled (or reverting
-    // to light-mode Tailwind strings) fails here. (The screen background
-    // itself now paints via a LinearGradient `colors` prop, which React
-    // Native serializes to processed native color ints rather than the
+    // A real text colour and a real surface edge must be present, so a screen
+    // rendering unstyled (or reverting to light-mode Tailwind strings) fails
+    // here. Either palette counts: S11 moved Community to the V2 design
+    // system, and the other three screens on this list have not been rebuilt
+    // yet, so the check is "themed", not "themed by one particular module".
+    // (The V1 background paints via a LinearGradient `colors` prop, which
+    // React Native serializes to processed native colour ints rather than the
     // original hex string, so it isn't substring-matchable here.)
-    expect(fingerprint).toContain(colors.text);
-    // GlassCard borders come from `colors.border` (base cards) or
-    // `colors.glassBorder` (elevated cards) -- either is proof the screen is
-    // themed rather than unstyled; which one appears depends on whether this
-    // particular screen's mocked data renders an elevated card.
+    const dark = themes.dark;
     expect(
-      fingerprint.includes(colors.border) || fingerprint.includes(colors.glassBorder),
+      fingerprint.includes(colors.text) || fingerprint.includes(dark.textPrimary),
+    ).toBe(true);
+    expect(
+      fingerprint.includes(colors.border) ||
+        fingerprint.includes(colors.glassBorder) ||
+        fingerprint.includes(dark.divider),
     ).toBe(true);
   });
 

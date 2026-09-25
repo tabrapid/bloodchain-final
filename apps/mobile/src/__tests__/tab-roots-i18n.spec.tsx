@@ -122,10 +122,28 @@ jest.mock('../hooks/useLaboratory', () => ({
 }));
 jest.mock('../api/campaigns', () => ({ getCampaigns: async () => ({ items: [] }) }));
 jest.mock('../api/challenges', () => ({ getActiveChallenges: async () => [] }));
+jest.mock('../api/community', () => ({
+  getFeed: async () => ({
+    items: [
+      {
+        id: 'p1',
+        type: 'CAMPAIGN',
+        title: 'Yangi aksiya',
+        body: 'Shahar markazida qon topshirish kuni.',
+        publishedAt: '2026-09-20T00:00:00.000Z',
+        author: { firstName: 'Dilnoza', lastName: 'Yusupova' },
+      },
+    ],
+  }),
+  getImpactStats: async () => ({ donations: 4, campaignParticipations: 2, challengeCompletions: 1 }),
+  reportContent: async () => undefined,
+}));
+jest.mock('../api/gamification', () => ({ getUserRank: async () => ({ rank: 12, total: 480 }) }));
 
 import Home from '../../app/(app)/home';
 import Health from '../../app/(app)/health';
 import Donate from '../../app/(app)/donate';
+import Community from '../../app/(app)/community/index';
 
 const LANGUAGES: Locale[] = ['uz', 'ru', 'en'];
 
@@ -185,6 +203,7 @@ describe.each([
   ['Home', () => <Home />, 'home.quickActions'],
   ['Health', () => <Health />, 'health.labMarkers'],
   ['Donate', () => <Donate />, 'donate.donationTypes'],
+  ['Community', () => <Community />, 'community.feed'],
 ])('%s renders in every language', (_name, element, headingKey) => {
   it.each(LANGUAGES)('reads in %s, with no raw key left on the screen', async (locale) => {
     const tree = await renderInLanguage(element(), locale);

@@ -432,6 +432,9 @@ export const en: Catalog = {
   },
 
   community: {
+    ofDonors: { one: 'of {{count}} donor', other: 'of {{count}} donors' },
+    rankOf: 'Ranked {{rank}} of {{count}} this month',
+    a11yShare: 'Share this post: {{title}}',
     report: 'Report',
     a11yReport: 'Report this post: {{title}}',
     reportTitle: 'Report this post',

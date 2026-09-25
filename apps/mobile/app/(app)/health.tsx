@@ -16,6 +16,7 @@ import {
   Badge,
   ErrorState,
   EmptyState,
+  LinkButton,
   ListGroup,
   ListRow,
   Row,
@@ -328,16 +329,10 @@ export default function Health() {
             <SectionHeader
               title={t('health.labMarkers')}
               action={
-                <Pressable
+                <LinkButton
+                  label={t('health.viewTrends')}
                   onPress={() => router.push('/health-trends')}
-                  accessibilityRole="button"
-                  accessibilityLabel={t('health.viewTrends')}
-                  hitSlop={8}
-                >
-                  <Text variant="label" tone="clinical">
-                    {t('health.viewTrends')}
-                  </Text>
-                </Pressable>
+                />
               }
             />
             <ListGroup
@@ -437,18 +432,7 @@ export default function Health() {
           <Stack gap="md">
             <SectionHeader
               title={t('health.labResults')}
-              action={
-                <Pressable
-                  onPress={() => router.push('/laboratory')}
-                  accessibilityRole="button"
-                  accessibilityLabel={t('common.viewAll')}
-                  hitSlop={8}
-                >
-                  <Text variant="label" tone="clinical">
-                    {t('common.viewAll')}
-                  </Text>
-                </Pressable>
-              }
+              action={<LinkButton label={t('common.viewAll')} onPress={() => router.push('/laboratory')} />}
             />
             <ListGroup
               rows={publishedResults.slice(0, 3).map((result) => {
