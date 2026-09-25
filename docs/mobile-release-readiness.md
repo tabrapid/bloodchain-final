@@ -752,3 +752,39 @@ and no Android SDK — `dl.google.com` is refused by this environment's egress
 policy (403 on CONNECT), while Gradle itself, `maven.google.com`,
 `plugins.gradle.org` and Maven Central are all reachable. The blockers are one
 per row in `docs/mobile-release-blockers.md`.
+
+### 19.7 CI could not run on the last four commits
+
+The last CI run that executed is **#153** on `fe2cb23b`
+(https://github.com/tabrapid/bloodchain-final/actions/runs/36171148293) —
+green: lint and typecheck, unit tests, API e2e, the verification scripts,
+migration rehearsal, e2e isolation, both production bundles, prebuild and the
+manifest check.
+
+Every run after it — #156, #157 (three attempts) and #158 (two) — failed
+**without a runner ever being assigned**: each job is created, sits at
+`runner_id: 0`, and is marked failed two or three seconds later with no steps
+and no log to download. That is not this repository's code failing. It began at
+18:41 UTC on 2026‑09‑25, it hits every job including ones that had just passed
+on the same tree, and the only change to `.github/` since #153 is a job's
+display name and a comment. **Someone with access to the account's billing page
+should check the Actions spending limit and included minutes**, which is what
+produces exactly this signature.
+
+So the commits after `fe2cb23b` — the artifacts, this documentation, the QA
+harness changes, one screen's header and the SOS section header — were verified
+locally instead, on the final tree, and this is what was run:
+
+| | Result |
+| --- | --- |
+| `pnpm typecheck` | clean, 11 packages |
+| `pnpm lint` | 0 errors (678 pre-existing warnings) |
+| `pnpm test` | mobile 38 suites / 381, API 84 / 1 484, i18n 79, ui 100, validation 83, utils 18, admin 37, blood centre 62, hospital 70 |
+| `pnpm --filter @bloodchain/api test:e2e` | 25 suites / 274 tests |
+| `verify:safety`, `demo:verify`, `verify:geography`, `verify:booleans` | all pass against a freshly seeded database |
+| `verify:e2e-isolation`, `verify:migrations`, `verify:single-react`, `verify:android-release` | all pass |
+| `expo export --platform android` / `--platform ios` | both bundle: 7.3 MB and 7.0 MB of Hermes bytecode |
+
+The one thing that cannot be reproduced here is expo-doctor's two network
+checks (`api.expo.dev` is refused by this environment). Those ran green in #153,
+on the same `package.json`.
