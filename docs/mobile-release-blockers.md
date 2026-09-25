@@ -28,3 +28,47 @@ Detail lives in `docs/mobile-release-readiness.md` (§13 Play, §14 App Store,
 | --- | --- |
 | `PO-1 Hermes V1 memory regression` | SDK 57.0.25 / React Native 0.86.3 carries the fixed Hermes. expo-doctor's own check passes now and still runs (`--verbose` shows it in the list), so this is a pass rather than a check that stopped applying. |
 | `APP_IDENTIFIERS_UNDECIDED` | `uz.bloodchain.donor` on both platforms, accepted by the Product Owner in S11.1. `scheme = donor` is unchanged. `pnpm verify:android-release` fails the build if either regresses. |
+
+## What closes the three native rows
+
+`NATIVE_BUILD_NOT_COMPILED`, `NATIVE_VISUAL_QA_NOT_PERFORMED` and
+`PHYSICAL_DEVICE_NOT_VERIFIED` need no decision — only a machine this
+environment does not have. These are the commands, so that closing them is an
+afternoon rather than an investigation.
+
+**Android**, on any machine with the SDK (platform 36, build-tools) and an AVD:
+
+```bash
+pnpm install
+emulator -avd <your-avd> &                     # or attach a phone over USB
+cd apps/mobile
+./qa/visual/run-native-capture.sh android      # prebuild, compile, install, launch, capture
+```
+
+**iOS**, on macOS with Xcode:
+
+```bash
+pnpm install
+xcrun simctl boot 'iPhone 16'
+cd apps/mobile
+./qa/visual/run-native-capture.sh ios          # prebuild, compile, install, launch, capture
+```
+
+Both need the seeded API answering on `:3001` first (§1 of the QA README, and
+the script prints the commands if it is not). It also needs Maestro:
+`curl -Ls https://get.maestro.mobile.dev | bash`.
+
+The script checks its prerequisites first, then runs `expo prebuild` and
+`expo run:android --variant release` / `expo run:ios --configuration Release` —
+which is the compilation — installs the binary, drives the Maestro flows, and
+files the screenshots into the same
+`artifacts/mobile-v2-visual-qa/<device>/<screen>/<state>.png` layout the browser
+capture used, so the two sit side by side in the report.
+
+For the compile on its own, without a device: `expo prebuild --platform android`
+and then `./gradlew :app:assembleRelease` in `apps/mobile/android`. That alone
+closes `NATIVE_BUILD_NOT_COMPILED`; a binary that launches and is driven through
+the flows closes the other two.
+
+Prerequisites, flags and what each Maestro flow can and cannot reach are in
+`apps/mobile/qa/visual/README.md`.
