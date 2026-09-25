@@ -21,6 +21,7 @@ import {
   ListRow,
   OtpField,
   Progress,
+  Screen,
   ScrollScreen,
   SegmentedControl,
   Stat,
@@ -359,6 +360,29 @@ describe('ScrollScreen content sizing', () => {
     const style = flatten(scroller.props.contentContainerStyle);
 
     expect(style.paddingBottom).toBeGreaterThanOrEqual(layout.tabBarClearance);
+  });
+});
+
+describe('a screen is a column, not a canvas', () => {
+  it('stops growing past a readable width and centres what is left', () => {
+    const tree = render(
+      <SafeAreaProvider
+        initialMetrics={{
+          // A tablet, or an unfolded foldable. A phone layout stretched this
+          // wide is a 700pt line of body text.
+          frame: { x: 0, y: 0, width: 834, height: 1194 },
+          insets: { top: 24, left: 0, right: 0, bottom: 20 },
+        }}
+      >
+        <Screen>
+          <Text>content</Text>
+        </Screen>
+      </SafeAreaProvider>,
+    );
+
+    const frame = flatten(tree.root.findAllByType(View)[0]!.props.style);
+    expect(frame.maxWidth).toBe(layout.maxContentWidth);
+    expect(frame.alignSelf).toBe('center');
   });
 });
 

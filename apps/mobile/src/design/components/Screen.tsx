@@ -51,6 +51,12 @@ export function Screen({ children, gutter = true, topPadding = true, style, test
           backgroundColor: colors.background,
           paddingTop: topPadding ? insets.top : 0,
           paddingHorizontal: gutter ? layout.gutter : 0,
+          // A phone layout stretched across a tablet or an unfolded foldable
+          // is a 700pt line of body text, which nobody can read. The column
+          // stops growing and centres instead.
+          width: '100%',
+          maxWidth: layout.maxContentWidth,
+          alignSelf: 'center',
         },
         style,
       ]}
@@ -103,7 +109,20 @@ export function ScrollScreen({
   const bottomClearance = (tabBarHeight ?? layout.tabBarClearance) + space.xl;
 
   return (
-    <View style={[{ flex: 1, backgroundColor: colors.background, paddingTop: topPadding ? insets.top : 0 }, style]}>
+    <View
+      style={[
+        {
+          flex: 1,
+          backgroundColor: colors.background,
+          paddingTop: topPadding ? insets.top : 0,
+          // See `Screen`: the column stops growing past a readable width.
+          width: '100%',
+          maxWidth: layout.maxContentWidth,
+          alignSelf: 'center',
+        },
+        style,
+      ]}
+    >
       {header}
       <ScrollView
         style={{ flex: 1 }}

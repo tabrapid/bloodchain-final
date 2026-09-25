@@ -1,9 +1,14 @@
 # Mobile release readiness
 
-**Status: Sprint 11, Track A.** The donor/courier app is on Expo SDK 56 and every
-check that can be run without a store account passes. It is **not** releasable
-yet, and the reasons are all external: four things are missing that only the
-Product Owner can supply. They are listed in §11.
+**Status: Sprint 11, Tracks A and B.** The donor/courier app is on Expo SDK 56,
+its interface has been rebuilt on the V2 design system, and every check that can
+be run without a store account passes. It is **not** releasable yet, and the
+reasons are all external: four things are missing that only the Product Owner
+can supply. They are listed in §11.
+
+Track A (the SDK upgrade and release configuration) is §§1–17 below. Track B
+(the interface rebuild) is §18, and its visual and interaction record is
+`docs/mobile-v2-ui-qa.md`.
 
 This document is the record of what was changed, what was proved, and what is
 still in the way. It is written to be checked rather than believed — every
@@ -561,3 +566,78 @@ pnpm --filter @bloodchain/mobile exec expo prebuild --platform all --no-install 
 
 All of these run in CI as the **Mobile release readiness (SDK 56)** job, with no
 secrets and no store credentials.
+
+---
+
+## 18. Track B — the V2 interface rebuild
+
+The upgrade in §§1–17 was finished and stable before any of this began, which
+is the order the sprint required.
+
+### 18.1 What changed
+
+Every screen in `apps/mobile/app/` is on the V2 design system in
+`apps/mobile/src/design` (62 exports: 10 token groups, 52 components). The
+pre-V2 component layer — 42 files in `apps/mobile/src/components` — was deleted
+rather than left beside it; three files remain (`AppBackground`, `BrandMark`,
+`map/LocationMap`) and the barrel says why each one is not a design-system
+component.
+
+`docs/mobile-v2-ui-qa.md` lists every screen, the states each one supports, the
+permission journeys, and what was and was not verified.
+
+### 18.2 Defects found and fixed while rebuilding
+
+These were shipped behaviour, not cosmetics:
+
+| Defect | Where |
+| --- | --- |
+| OS notification permission requested seconds after sign-in, on whatever screen was open, with no explanation — on iOS the prompt never returns | `usePushNotifications` → `registerForPushNotificationsAsync` |
+| OS location permission requested on a toggle tap, explained afterwards only on refusal | onboarding, booking's nearby filter, courier in-transit |
+| A dashed line through pickup → courier → hospital, read as a route; nothing computes one | `LocationMap.showRoute`, now removed from the component |
+| "Tap points for details" under a chart with no tap handler | health trends |
+| Database enums rendered to donors: `CANCELLED`, `WHOLE BLOOD`, `DONOR CANCELLED`, `HEMATOLOGY`, `ARTICLE`, `BEGINNER`, `DONATION_MILESTONE`, `basic_identity`, `BLOOD_CENTER` | donation detail, calendar, health trends, education, challenges, profile |
+| ~40 hardcoded English strings on screens that ship in three languages, including the SOS deadline (`${n}m left`, "Overdue") | across the app; now guarded by a template-literal check in the i18n coverage spec |
+| `toLocaleDateString()` / `toLocaleTimeString()` / `toLocaleString()` with no locale — device locale, not app locale | campaigns, leaderboard, consoles (reported, not fixed) |
+| Two lists fetched together, one error flag, failure shown only if both were empty — so a failed request read as "you have none" | laboratory hub, health trends |
+| A slot taken while the donor decided, presented as a retryable error | booking review, laboratory review |
+| Version stamp read 1.0.0 on one screen and 0.2.0 on another while `app.json` said 0.1.0 | privacy, profile |
+| `+1 234 567 8900` offered as the phone placeholder on a product that only accepts +998 | profile edit |
+| Sign-out on the first tap, with no confirmation | profile |
+| Password change signed the donor out from under an alert that the navigation then dismissed | security |
+| "Reason required" shown as a system dialog covering the field it was about | courier |
+| `formatMonth` already carries the year; two screens appended it again ("September 2026 2026") | both booking date steps |
+
+### 18.3 Product rules the interface holds to
+
+Each of these is enforced by a test, by a type, or by the absence of the
+capability — not by convention:
+
+- **No fake route or ETA.** `LocationMap` has no `showRoute` prop to pass.
+- **Donor progression ends at ARRIVED.** Asserted in `sos-state-machine.spec`.
+- **No AI output without its disclaimer.** Asserted in `health-screen.spec`.
+- **Nothing asked of the OS before an explanation.** Asserted in
+  `onboarding-permissions.spec` and `push-registration.spec`.
+- **No privacy action the backend cannot perform.** The rows are disabled and
+  say what to do instead.
+- **Status is never colour alone; icons always carry labels.** Asserted in
+  `design-system.spec`; three label props became required at the type level.
+
+### 18.4 Test counts after Track B
+
+| Suite | Before S11 | After |
+| --- | --- | --- |
+| Mobile | 34 suites / 263 tests | 37 suites / 362 tests |
+| i18n | 77 tests | 79 tests |
+
+Six V1 component specs (34 tests) were deleted with the components they
+covered; what they proved that still applies was ported to the V2 equivalents
+(tab bar behaviour, scroll-content sizing, the Android shadow rule).
+
+### 18.5 Still unverified
+
+`PHYSICAL_DEVICE_NOT_VERIFIED` remains true for Track B as it does for Track A.
+No screen in this rebuild has been seen on a physical device, in an emulator, or
+in a simulator. Contrast is computed, layout is asserted against a rendered
+tree, and accessibility is checked by role and label — none of that is the same
+as looking at it.

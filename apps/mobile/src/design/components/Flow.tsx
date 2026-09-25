@@ -77,7 +77,17 @@ export function FlowStep({
       style={{ flex: 1, backgroundColor: colors.background }}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <View style={{ flex: 1, paddingTop: insets.top }}>
+      <View
+        style={{
+          flex: 1,
+          paddingTop: insets.top,
+          // See `Screen`: a wizard is a column, and it stops growing past a
+          // readable width rather than spreading across a tablet.
+          width: '100%',
+          maxWidth: layout.maxContentWidth,
+          alignSelf: 'center',
+        }}
+      >
         <View
           style={{
             flexDirection: 'row',
