@@ -637,6 +637,35 @@ export default function SosScreen() {
               </Stack>
             </Surface>
 
+            {/*
+              Declining is not a decision a donor is held to.
+
+              The explainer opens once, and the only banner offering a way back
+              was gated on 'blocked' -- the state where the operating system
+              refused. A donor who pressed "Not now" saw nothing afterwards and
+              had no way to change their mind for the rest of the journey. Now
+              both states say what is happening and offer the route back: the
+              app's own sheet when the app is what said no, the operating
+              system's settings when it was.
+            */}
+            {status === 'en_route' && locationConsent === 'declined' ? (
+              <Banner
+                tone="warning"
+                title={t('sos.locationDeclinedTitle')}
+                description={t('sos.locationDeclinedBody')}
+                icon={({ size, color }) => <MapPin size={size} color={color} />}
+                action={
+                  <Button
+                    label={t('sos.locationAllow')}
+                    variant="secondary"
+                    size="md"
+                    block={false}
+                    onPress={() => setExplainerVisible(true)}
+                  />
+                }
+              />
+            ) : null}
+
             {status === 'en_route' && locationConsent === 'blocked' ? (
               <Banner
                 tone="warning"

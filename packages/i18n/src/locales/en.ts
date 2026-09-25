@@ -2230,6 +2230,8 @@ export const en: Catalog = {
     locationAssuranceStopAnytime: 'Cancel your response at any time and it stops',
     locationAllow: 'Share my location',
     locationNotNow: 'Not now',
+    locationDeclinedTitle: 'Location sharing is off',
+    locationDeclinedBody: 'The hospital cannot see that you are on the way. You can turn it on at any point during the journey.',
     locationDeniedTitle: 'Location is off for this journey',
     locationDeniedBody:
       'You can still travel and check in at reception. The hospital will not see you approaching, so tell the desk you are the emergency donor.',

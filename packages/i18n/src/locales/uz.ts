@@ -2156,6 +2156,9 @@ export const uz: Catalog = {
     locationAssuranceStopAnytime: 'Istalgan vaqtda javobingizni bekor qiling — u to\'xtaydi',
     locationAllow: 'Joylashuvni ulashish',
     locationNotNow: 'Hozir emas',
+    locationDeclinedTitle: 'Joylashuv ulashish o‘chiq',
+    locationDeclinedBody:
+      'Shifoxona sizning yo‘lda ekaningizni ko‘rmaydi. Buni yo‘l davomida istalgan payt yoqishingiz mumkin.',
     locationDeniedTitle: 'Bu safar uchun joylashuv o\'chirilgan',
     locationDeniedBody:
       'Siz baribir borib, qabulxonada ro\'yxatdan o\'tishingiz mumkin. Shifoxona sizning yaqinlashayotganingizni ko\'rmaydi, shuning uchun qabulxonaga favqulodda donor ekanligingizni ayting.',

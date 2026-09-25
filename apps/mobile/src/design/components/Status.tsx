@@ -141,10 +141,12 @@ export function EmergencyBanner({ title, description, icon, action, style }: Omi
   const { colors } = useDesign();
 
   return (
+    // `accessible` on the outer view collapses everything inside it into one
+    // element -- including the action -- so VoiceOver and TalkBack could read
+    // the emergency but never reach the button that answers it. The text is
+    // grouped and announced as an alert; the action stays its own element,
+    // which on this banner is the whole point of the banner.
     <View
-      accessible
-      accessibilityRole="alert"
-      accessibilityLabel={description ? `${title}. ${description}` : title}
       style={[
         {
           flexDirection: 'row',
@@ -158,14 +160,21 @@ export function EmergencyBanner({ title, description, icon, action, style }: Omi
     >
       {icon ? <View style={{ paddingTop: 2 }}>{icon({ size: iconScale.md, color: colors.textOnAccent })}</View> : null}
       <View style={{ flex: 1, gap: space.xs }}>
-        <Text variant="bodyStrong" tone="onAccent">
-          {title}
-        </Text>
-        {description ? (
-          <Text variant="caption" style={{ color: colors.textOnAccent, opacity: 0.9 }}>
-            {description}
+        <View
+          accessible
+          accessibilityRole="alert"
+          accessibilityLabel={description ? `${title}. ${description}` : title}
+          style={{ gap: space.xs }}
+        >
+          <Text variant="bodyStrong" tone="onAccent">
+            {title}
           </Text>
-        ) : null}
+          {description ? (
+            <Text variant="caption" style={{ color: colors.textOnAccent, opacity: 0.9 }}>
+              {description}
+            </Text>
+          ) : null}
+        </View>
         {action ? <View style={{ marginTop: space.sm }}>{action}</View> : null}
       </View>
     </View>

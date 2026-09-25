@@ -395,7 +395,13 @@ export default function Health() {
         {/* When AI is switched off in this deployment the section is not shown
             at all. A disabled-looking tile that still navigates to a screen
             full of dead buttons is worse than the section not being there. */}
-        {aiEnabled.data !== false ? (
+        {/*
+          `undefined !== false`, so while the availability request was in flight
+          the AI card was drawn and then withdrawn a moment later on any
+          deployment with AI switched off -- a feature offered and taken away
+          in the same second. Wait for the answer.
+        */}
+        {aiEnabled.data === true ? (
           <Stack gap="md">
             <SectionHeader title={t('health.aiInsights')} />
             <Pressable

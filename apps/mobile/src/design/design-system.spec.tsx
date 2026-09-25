@@ -27,6 +27,7 @@ import {
   Stat,
   Surface,
   OptionGrid,
+  EmergencyBanner,
   Toggle,
   hitTarget,
   layout,
@@ -473,5 +474,35 @@ describe('OptionGrid rows', () => {
       expect(style.width).toBe('25%');
       expect(style.marginRight).toBeCloseTo(-6, 5);
     }
+  });
+});
+
+describe('EmergencyBanner', () => {
+  /**
+   * The action has to be reachable.
+   *
+   * `accessible` on the banner's outer view collapsed everything inside it
+   * into a single element, so a screen reader announced the emergency and then
+   * had nothing to press: the button that answers it was not focusable. On the
+   * one screen where that matters most.
+   */
+  it('announces the alert and still exposes its action as a button', () => {
+    const tree = render(
+      <EmergencyBanner
+        title="2 requests match your blood type"
+        description="A hospital near you needs O+."
+        action={<Button label="View requests" onPress={() => undefined} />}
+      />,
+    );
+
+    const alert = tree.root.find(
+      (node) => typeof node.type === 'string' && node.props?.accessibilityRole === 'alert',
+    );
+    expect(alert.props.accessibilityLabel).toContain('2 requests match your blood type');
+
+    const button = tree.root.find(
+      (node) => typeof node.type === 'string' && node.props?.accessibilityRole === 'button',
+    );
+    expect(button.props.accessibilityLabel).toBe('View requests');
   });
 });
