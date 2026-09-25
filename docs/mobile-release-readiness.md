@@ -761,13 +761,13 @@ green: lint and typecheck, unit tests, API e2e, the verification scripts,
 migration rehearsal, e2e isolation, both production bundles, prebuild and the
 manifest check.
 
-Every run after it — #156, #157 (three attempts) and #158 (two) — failed
-**without a runner ever being assigned**: each job is created, sits at
-`runner_id: 0`, and is marked failed two or three seconds later with no steps
-and no log to download. That is not this repository's code failing. It began at
-18:41 UTC on 2026‑09‑25, it hits every job including ones that had just passed
-on the same tree, and the only change to `.github/` since #153 is a job's
-display name and a comment. **Someone with access to the account's billing page
+Every run after it — #156 through #159, seven attempts across four commits,
+spread over half an hour — failed **without a runner ever being assigned**: each
+job is created, sits at `runner_id: 0`, and is marked failed two to four seconds
+later with no steps and no log to download. That is not this repository's code
+failing. It began at 18:41 UTC on 2026‑09‑25, it hits every job including ones
+that had just passed on the same tree, and the only change to `.github/` since
+#153 is a job's display name and a comment. **Someone with access to the account's billing page
 should check the Actions spending limit and included minutes**, which is what
 produces exactly this signature.
 
