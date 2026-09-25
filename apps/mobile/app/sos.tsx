@@ -1,28 +1,41 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ScrollView, View, Alert, Pressable, TouchableOpacity } from 'react-native';
+import { Linking, Pressable, View } from 'react-native';
 import * as Location from 'expo-location';
-import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import {
   AlertTriangle,
-  ArrowLeft,
   CheckCircle,
   Clock,
   MapPin,
   Navigation,
+  ShieldCheck,
   XCircle,
 } from 'lucide-react-native';
 import {
-  AppButton,
-  AppText,
   Badge,
-  Card,
-  LoadingState,
-  Screen,
+  Banner,
+  Button,
+  ConfirmationSheet,
+  EmergencyBanner,
+  EmptyState,
+  ErrorState,
+  LoadingSection,
+  PermissionExplainer,
+  Row,
   ScreenHeader,
-} from '../src/components';
+  ScrollScreen,
+  SectionHeader,
+  Stack,
+  Surface,
+  Text,
+  ValueText,
+  iconSize,
+  motion,
+  radius,
+  space,
+  useDesign,
+} from '../src/design';
 import { LocationMap, type MapMarkerPoint } from '../src/components/map/LocationMap';
-import { layout, spacing, useTheme } from '../src/theme';
 import { useTranslation } from '../src/i18n';
 import {
   acceptEmergency,
@@ -45,6 +58,15 @@ const LOCATION_UPDATE_DISTANCE_M = 50;
 type EmergencyStatus = 'idle' | 'loading' | 'viewing' | 'responding' | 'en_route' | 'arrived' | 'error';
 
 /**
+ * Whether the donor has been asked about sharing their position on this
+ * journey, and what they said.
+ *
+ * `unasked` matters as its own value: it is what triggers the explanation, and
+ * it is different from having said no.
+ */
+type LocationConsent = 'unasked' | 'granted' | 'declined' | 'blocked';
+
+/**
  * How long until the hospital needs the units. `requiredBefore` is optional on
  * an emergency, and an expired one shows as "Overdue" rather than a negative
  * count -- the request is still live and still worth answering.
@@ -60,15 +82,49 @@ function timeLeftLabel(requiredBefore?: string): string | null {
   return `${Math.round(hours / 24)}d left`;
 }
 
+/**
+ * Emergency SOS, rebuilt for V2.
+ *
+ * The most consequential screen in the app: a donor deciding, under time
+ * pressure, whether to travel to a hospital for a life-critical request. Three
+ * rules shape it, and none of them is a style preference.
+ *
+ * THE DONOR CAN NEVER COMPLETE A DONATION. The response advances
+ * ACCEPTED -> EN_ROUTE -> ARRIVED from here, and DONATION_STARTED ->
+ * COMPLETED only from staff-side systems. Arrival is the end of the donor's
+ * authority; a "mark as donated" control anywhere on this screen would let
+ * someone credit themselves with a donation that never happened.
+ *
+ * THE MAP SHOWS POSITIONS AND NOTHING ELSE. No route line, no distance, no
+ * estimated arrival. The app has two coordinates and no routing engine, so any
+ * line between them would be a straight one drawn over buildings, and any ETA
+ * would be invented. A donor who trusts an invented ETA arrives late to an
+ * emergency. `LocationMap` can draw a connecting line; it is deliberately not
+ * asked to, and the map carries a caption saying what it is.
+ *
+ * LOCATION IS ASKED FOR IN WORDS FIRST. The operating system's prompt is one
+ * line, and on iOS it is one chance -- deny it and it never appears again. So
+ * the reason is explained in the app, where there is room to say what is sent,
+ * to whom, and when it stops, and where "Not now" costs the donor nothing. It
+ * is asked AFTER the journey has started, never as a gate on starting it: a
+ * donor who will not share their position is still travelling to a hospital,
+ * and blocking the commitment on a permission dialog would be both a dark
+ * pattern and a worse outcome for the patient.
+ */
 export default function SosScreen() {
   const { t } = useTranslation();
-  const { colors } = useTheme();
+  const { colors } = useDesign();
   const [status, setStatus] = useState<EmergencyStatus>('idle');
   const [emergencies, setEmergencies] = useState<EmergencyRequest[]>([]);
   const [myResponses, setMyResponses] = useState<EmergencyRequest[]>([]);
   const [selectedEmergency, setSelectedEmergency] = useState<EmergencyRequest | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [tracking, setTracking] = useState<DonorTrackingResponse | null>(null);
+  const [locationConsent, setLocationConsent] = useState<LocationConsent>('unasked');
+  const [explainerVisible, setExplainerVisible] = useState(false);
+  const [cancelVisible, setCancelVisible] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
 
   const loadEmergencies = useCallback(async () => {
     setStatus('loading');
@@ -89,16 +145,23 @@ export default function SosScreen() {
 
   const locationSubscription = useRef<Location.LocationSubscription | null>(null);
 
+  /**
+   * Ask, once, when the journey begins.
+   *
+   * Gated on `unasked` so that leaving and returning to the screen does not
+   * re-open the sheet on someone who already said no -- being asked twice is
+   * how a polite request becomes nagging.
+   */
+  useEffect(() => {
+    if (status === 'en_route' && locationConsent === 'unasked') {
+      setExplainerVisible(true);
+    }
+  }, [status, locationConsent]);
+
   useEffect(() => {
     const responseId = selectedEmergency?.responseId;
 
     async function startTracking() {
-      const { status: permissionStatus } = await Location.requestForegroundPermissionsAsync();
-      if (permissionStatus !== 'granted') {
-        Alert.alert(t('sos.locationPermissionTitle'), t('sos.locationPermissionBody'));
-        return;
-      }
-
       locationSubscription.current = await Location.watchPositionAsync(
         {
           accuracy: Location.Accuracy.Balanced,
@@ -115,13 +178,13 @@ export default function SosScreen() {
             // expo-location reports speed in meters/second; stored server-side as km/h.
             speed: position.coords.speed != null ? position.coords.speed * 3.6 : undefined,
           }).catch(() => {
-            // Best-effort: a single missed location update shouldn't interrupt the journey.
+            // Best-effort: a single missed update shouldn't interrupt the journey.
           });
         },
       );
     }
 
-    if (status === 'en_route' && responseId) {
+    if (status === 'en_route' && responseId && locationConsent === 'granted') {
       startTracking();
     }
 
@@ -129,7 +192,7 @@ export default function SosScreen() {
       locationSubscription.current?.remove();
       locationSubscription.current = null;
     };
-  }, [status, selectedEmergency?.responseId]);
+  }, [status, selectedEmergency?.responseId, locationConsent]);
 
   useEffect(() => {
     const responseId = selectedEmergency?.responseId;
@@ -160,8 +223,7 @@ export default function SosScreen() {
   // `emergencyRequest` are always present, but the type describes the
   // contract, not what the socket actually delivers -- and an unguarded
   // property access here crashes the whole screen at the worst possible
-  // moment, with a donor already en route to a hospital and no error boundary
-  // above to catch it.
+  // moment, with a donor already en route and no error boundary above it.
   const donorPing = tracking?.locations?.[0];
   const trackedHospital = tracking?.emergencyRequest?.hospital;
   const trackingMarkers: MapMarkerPoint[] = tracking
@@ -192,26 +254,34 @@ export default function SosScreen() {
       ]
     : [];
 
+  const onAllowLocation = async () => {
+    setExplainerVisible(false);
+    const { status: permission } = await Location.requestForegroundPermissionsAsync();
+    setLocationConsent(permission === 'granted' ? 'granted' : 'blocked');
+  };
+
   const handleViewMatch = async (emergency: EmergencyRequest) => {
     if (!emergency.matchId) return;
+    setActionError(null);
     try {
       await viewEmergencyMatch(emergency.matchId);
       setSelectedEmergency(emergency);
       setStatus('viewing');
     } catch (err: any) {
-      Alert.alert(t('common.error'), err.message || t('sos.viewFailed'));
+      setActionError(err.message || t('sos.viewFailed'));
     }
   };
 
   const handleAcceptEmergency = async (emergency: EmergencyRequest) => {
     if (!emergency.matchId) return;
+    setActionError(null);
     try {
       const response = await acceptEmergency(emergency.matchId);
       await loadEmergencies();
       // Carry the donor straight into their accepted response rather than
       // dropping them back on the list to hunt for it again. They have just
       // committed to travelling to a hospital under time pressure; the next
-      // thing they need is "Start Journey", not a list.
+      // thing they need is "Start journey", not a list.
       setSelectedEmergency({
         ...emergency,
         responseId: response.id,
@@ -219,85 +289,69 @@ export default function SosScreen() {
       });
       setStatus('responding');
     } catch (err: any) {
-      Alert.alert(t('common.error'), err.message || t('sos.acceptFailed'));
+      setActionError(err.message || t('sos.acceptFailed'));
     }
   };
 
   const handleDeclineEmergency = async (emergency: EmergencyRequest) => {
     if (!emergency.matchId) return;
+    setActionError(null);
     try {
       await declineEmergency(emergency.matchId);
       await loadEmergencies();
       setStatus('idle');
       setSelectedEmergency(null);
     } catch (err: any) {
-      Alert.alert(t('common.error'), err.message || t('sos.declineFailed'));
+      setActionError(err.message || t('sos.declineFailed'));
     }
   };
 
   const handleStartJourney = async (emergency: EmergencyRequest) => {
     if (!emergency.responseId) return;
+    setActionError(null);
     try {
       await startJourney(emergency.responseId);
       await loadEmergencies();
       setSelectedEmergency({ ...emergency, responseStatus: 'EN_ROUTE' });
       setStatus('en_route');
     } catch (err: any) {
-      Alert.alert(t('common.error'), err.message || t('sos.startJourneyFailed'));
+      setActionError(err.message || t('sos.startJourneyFailed'));
     }
   };
 
   const handleArrived = async (emergency: EmergencyRequest) => {
     if (!emergency.responseId) return;
+    setActionError(null);
     try {
       await arriveAtHospital(emergency.responseId);
       await loadEmergencies();
       setSelectedEmergency({ ...emergency, responseStatus: 'ARRIVED' });
       setStatus('arrived');
     } catch (err: any) {
-      Alert.alert(t('common.error'), err.message || t('sos.arriveFailed'));
+      setActionError(err.message || t('sos.arriveFailed'));
     }
   };
 
-  const handleCancelResponse = async (emergency: EmergencyRequest) => {
-    if (!emergency.responseId) return;
-    Alert.alert(
-      t('sos.cancelResponseTitle'),
-      t('sos.cancelResponseBody'),
-      [
-        { text: t('appointment.cancelKeep'), style: 'cancel' },
-        {
-          text: t('appointment.cancelConfirm'),
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await cancelResponse(emergency.responseId!);
-              await loadEmergencies();
-              setStatus('idle');
-              setSelectedEmergency(null);
-            } catch (err: any) {
-              Alert.alert(t('common.error'), err.message || t('sos.cancelResponseFailed'));
-            }
-          },
-        },
-      ]
-    );
-  };
-
-  const getUrgencyColor = (level: string) => {
-    switch (level) {
-      case 'CRITICAL':
-        return { border: colors.danger, bg: colors.dangerMuted, text: colors.onMuted.danger };
-      case 'HIGH':
-        return { border: colors.warning, bg: colors.warningMuted, text: colors.onMuted.warning };
-      case 'MEDIUM':
-        return { border: colors.secondary, bg: colors.secondaryMuted, text: colors.onMuted.secondary };
-      default:
-        return { border: colors.textMuted, bg: colors.surfaceElevated, text: colors.textMuted };
+  const confirmCancelResponse = async () => {
+    const responseId = selectedEmergency?.responseId;
+    if (!responseId) return;
+    setCancelling(true);
+    try {
+      await cancelResponse(responseId);
+      await loadEmergencies();
+      setCancelVisible(false);
+      setStatus('idle');
+      setSelectedEmergency(null);
+      setLocationConsent('unasked');
+    } catch (err: any) {
+      setCancelVisible(false);
+      setActionError(err.message || t('sos.cancelResponseFailed'));
+    } finally {
+      setCancelling(false);
     }
   };
 
-  const getStatusLabel = (emergency: EmergencyRequest) => {
+  const statusLabel = (emergency: EmergencyRequest) => {
     if (emergency.responseStatus) {
       if (emergency.responseStatus === 'ACCEPTED') return t('sos.responseReadyToGo');
       return t(`status.response.${emergency.responseStatus}`);
@@ -317,502 +371,450 @@ export default function SosScreen() {
     return t(`status.emergency.${emergency.status}`);
   };
 
-  const renderEmergencyCard = (emergency: EmergencyRequest) => {
-    // The reference distinguishes urgency by tier, not by a left rule: a
-    // critical request is a danger-tinted card, anything else an elevated one.
+  /**
+   * One request in the list.
+   *
+   * Critical requests get the accent; everything else is an ordinary surface.
+   * That is the restraint the brief asks for -- if every card is red then red
+   * has stopped meaning urgent, which is exactly what V1's single rose for both
+   * the brand and danger had already done to the whole app.
+   */
+  const renderEmergencyCard = (emergency: EmergencyRequest, onPress: () => void) => {
     const isCritical = emergency.urgencyLevel?.toUpperCase() === 'CRITICAL';
-    const rh =
-      emergency.rhFactor === 'POSITIVE' ? '+' : emergency.rhFactor === 'NEGATIVE' ? '-' : '';
+    const rh = emergency.rhFactor === 'POSITIVE' ? '+' : emergency.rhFactor === 'NEGATIVE' ? '-' : '';
+    const deadline = timeLeftLabel(emergency.requiredBefore);
 
     return (
-      <Card key={emergency.id} tier={isCritical ? 'danger' : 'elevated'}>
-        {/* The reference splits the card: what is needed on the left, how
-            pressed you are on the right. */}
-        <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md }}>
-          <View style={{ flex: 1 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: 6 }}>
-              <AppText style={{ fontSize: 28, fontWeight: '800', color: colors.danger, letterSpacing: -0.84 }}>
-                {emergency.bloodType}
-                {rh}
-              </AppText>
-              <Badge variant={isCritical ? 'danger' : 'warning'}>{emergency.urgencyLevel}</Badge>
-            </View>
-            <AppText style={{ fontSize: 14, fontWeight: '600', color: colors.text }}>
-              {emergency.hospital.name}
-            </AppText>
-            <AppText style={{ fontSize: 12, color: colors.textMuted, marginTop: 2 }}>
-              {emergency.description ?? emergency.emergencyReference}
-            </AppText>
-          </View>
-
-          <View style={{ alignItems: 'flex-end' }}>
-            {timeLeftLabel(emergency.requiredBefore) && (
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-                <Clock size={11} color={colors.danger} />
-                <AppText style={{ fontSize: 12, fontWeight: '600', color: colors.danger }}>
-                  {timeLeftLabel(emergency.requiredBefore)}
-                </AppText>
-              </View>
-            )}
-            <AppText style={{ fontSize: 11, color: colors.textMuted, marginTop: 3 }}>
-              {emergency.unitsRequired} unit{emergency.unitsRequired !== 1 ? 's' : ''} needed
-            </AppText>
-            {emergency.donationLocation && (
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 3 }}>
-                <MapPin size={11} color={colors.textMuted} />
-                <AppText style={{ fontSize: 11, color: colors.textMuted }}>
-                  {emergency.donationLocation}
-                </AppText>
-              </View>
-            )}
-          </View>
-        </View>
-
-        <View
-          style={{
-            marginTop: spacing.md,
-            paddingTop: spacing.sm,
-            borderTopWidth: 1,
-            borderTopColor: colors.borderSubtle,
-          }}
+      <Pressable
+        key={emergency.id}
+        onPress={onPress}
+        accessibilityRole="button"
+        accessibilityLabel={`${emergency.emergencyReference}. ${emergency.bloodType}${rh}. ${emergency.hospital.name}. ${statusLabel(emergency)}`}
+        style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1, transform: [{ scale: pressed ? motion.pressScale : 1 }] })}
+      >
+        <Surface
+          level="raised"
+          style={
+            isCritical
+              ? { borderWidth: 1, borderColor: colors.critical.base, backgroundColor: colors.critical.soft }
+              : undefined
+          }
         >
-          <AppText style={{ fontSize: 12, fontWeight: '600', color: colors.primary }}>
-            {getStatusLabel(emergency)}
-          </AppText>
-        </View>
-      </Card>
+          <Stack gap="md">
+            <Row align="flex-start" gap="lg">
+              <View style={{ flex: 1, gap: space.sm }}>
+                <Row gap="sm">
+                  <ValueText variant="h1" style={{ color: isCritical ? colors.critical.text : colors.rose.text }}>
+                    {emergency.bloodType}
+                    {rh}
+                  </ValueText>
+                  <Badge
+                    label={emergency.urgencyLevel}
+                    tone={isCritical ? 'critical' : 'warning'}
+                    icon={({ size, color }) => <AlertTriangle size={size} color={color} />}
+                  />
+                </Row>
+                <View style={{ gap: 2 }}>
+                  <Text variant="bodyStrong" numberOfLines={1}>
+                    {emergency.hospital.name}
+                  </Text>
+                  <Text variant="caption" tone="tertiary" numberOfLines={2}>
+                    {emergency.description ?? emergency.emergencyReference}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={{ alignItems: 'flex-end', gap: space.xs }}>
+                {deadline ? (
+                  <Row gap="xs">
+                    <Clock size={iconSize.sm} color={colors.critical.text} />
+                    <Text variant="label" style={{ color: colors.critical.text }}>
+                      {deadline}
+                    </Text>
+                  </Row>
+                ) : null}
+                <Text variant="caption" tone="tertiary">
+                  {t('units.unitsNeeded', { count: emergency.unitsRequired })}
+                </Text>
+                {emergency.donationLocation ? (
+                  <Row gap="xs">
+                    <MapPin size={iconSize.sm} color={colors.textTertiary} />
+                    <Text variant="caption" tone="tertiary" numberOfLines={1}>
+                      {emergency.donationLocation}
+                    </Text>
+                  </Row>
+                ) : null}
+              </View>
+            </Row>
+
+            <View style={{ height: 1, backgroundColor: colors.divider }} />
+            <Text variant="label" tone={isCritical ? 'critical' : 'clinical'}>
+              {statusLabel(emergency)}
+            </Text>
+          </Stack>
+        </Surface>
+      </Pressable>
     );
   };
 
+  /* ------------------------------------------------------------- loading */
+
   if (status === 'loading') {
     return (
-      <Screen>
-        <ScreenHeader title={t('sos.title')} />
-        <LoadingState />
-      </Screen>
+      <ScrollScreen header={<ScreenHeader title={t('sos.title')} onBack={() => router.back()} />}>
+        <LoadingSection label={t('sos.title')} />
+      </ScrollScreen>
     );
   }
+
+  /* --------------------------------------------------------------- error */
 
   if (status === 'error') {
     return (
-      <Screen>
-        <ScreenHeader title={t('sos.title')} />
-        <View style={{ flex: 1, justifyContent: 'center', padding: spacing.lg }}>
-          <Card style={{ alignItems: 'center' }}>
-            <XCircle size={48} color={colors.danger} />
-            <AppText variant="heading" style={{ marginTop: spacing.md, textAlign: 'center' }}>
-              {t('sos.loadFailedTitle')}
-            </AppText>
-            <AppText variant="body" style={{ color: colors.textMuted, marginTop: spacing.sm, textAlign: 'center' }}>
-              {error}
-            </AppText>
-            <AppButton variant="primary" onPress={loadEmergencies} style={{ marginTop: spacing.lg }}>
-              {t('common.retry')}
-            </AppButton>
-          </Card>
-        </View>
-      </Screen>
+      <ScrollScreen header={<ScreenHeader title={t('sos.title')} onBack={() => router.back()} />}>
+        <ErrorState
+          title={t('sos.loadFailedTitle')}
+          description={error ?? undefined}
+          onRetry={loadEmergencies}
+          retryLabel={t('common.retry')}
+        />
+      </ScrollScreen>
     );
   }
+
+  /* ------------------------------------------------------------- viewing */
 
   if (status === 'viewing' && selectedEmergency) {
+    const rh = selectedEmergency.rhFactor === 'POSITIVE' ? '+' : '-';
+
     return (
-      <Screen>
-        <ScreenHeader title={t('sos.details')} onBack={() => setStatus('idle')} />
-        <ScrollView style={{ flex: 1, padding: spacing.lg }}>
-          <Card style={{ marginBottom: layout.cardGap }}>
-            <View style={{ alignItems: 'center', marginBottom: spacing.lg }}>
-              <View
-                style={{
-                  width: 64,
-                  height: 64,
-                  borderRadius: 32,
-                  backgroundColor: getUrgencyColor(selectedEmergency.urgencyLevel).bg,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <AlertTriangle size={32} color={getUrgencyColor(selectedEmergency.urgencyLevel).text} />
-              </View>
-              <AppText variant="heading" style={{ marginTop: spacing.md, textAlign: 'center' }}>
-                {selectedEmergency.emergencyReference}
-              </AppText>
-              <View
-                style={{
-                  backgroundColor: getUrgencyColor(selectedEmergency.urgencyLevel).bg,
-                  paddingHorizontal: spacing.md,
-                  paddingVertical: spacing.xs,
-                  borderRadius: 8,
-                  marginTop: spacing.sm,
-                }}
-              >
-                <AppText
-                  style={{
-                    color: getUrgencyColor(selectedEmergency.urgencyLevel).text,
-                    fontWeight: '700',
-                  }}
-                >
-                  {selectedEmergency.urgencyLevel} PRIORITY
-                </AppText>
-              </View>
-            </View>
+      <ScrollScreen header={<ScreenHeader title={t('sos.details')} onBack={() => setStatus('idle')} />}>
+        <Stack gap="xl">
+          <EmergencyBanner
+            title={selectedEmergency.emergencyReference}
+            description={t('sos.compatible', { bloodType: `${selectedEmergency.bloodType}${rh}` })}
+            icon={({ size, color }) => <AlertTriangle size={size} color={color} />}
+          />
 
-            <View style={{ borderTopWidth: 1, borderTopColor: colors.border, paddingTop: spacing.lg }}>
-              <View style={{ gap: spacing.md }}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                  <AppText variant="body" style={{ color: colors.textMuted }}>{t('sos.bloodTypeNeeded')}</AppText>
-                  <AppText variant="heading" style={{ color: colors.text }}>
-                    {selectedEmergency.bloodType}-{selectedEmergency.rhFactor}
-                  </AppText>
+          <Surface>
+            <Stack gap="md">
+              <DetailRow label={t('sos.bloodTypeNeeded')} value={`${selectedEmergency.bloodType}${rh}`} />
+              <DetailRow label={t('sos.unitsRequired')} value={String(selectedEmergency.unitsRequired)} />
+              <DetailRow label={t('table.hospital')} value={selectedEmergency.hospital.name} />
+              {selectedEmergency.donationLocation ? (
+                <DetailRow label={t('table.location')} value={selectedEmergency.donationLocation} />
+              ) : null}
+              {selectedEmergency.description ? (
+                <View style={{ gap: space.xs }}>
+                  <Text variant="label" tone="tertiary">
+                    {t('sos.description')}
+                  </Text>
+                  <Text variant="body">{selectedEmergency.description}</Text>
                 </View>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                  <AppText variant="body" style={{ color: colors.textMuted }}>{t('sos.unitsRequired')}</AppText>
-                  <AppText variant="heading" style={{ color: colors.text }}>
-                    {selectedEmergency.unitsRequired}
-                  </AppText>
-                </View>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                  <AppText variant="body" style={{ color: colors.textMuted }}>{t('table.hospital')}</AppText>
-                  <AppText variant="heading" style={{ color: colors.text, textAlign: 'right', maxWidth: '60%' }}>
-                    {selectedEmergency.hospital.name}
-                  </AppText>
-                </View>
-                {selectedEmergency.donationLocation && (
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                    <AppText variant="body" style={{ color: colors.textMuted }}>{t('table.location')}</AppText>
-                    <AppText variant="heading" style={{ color: colors.text, textAlign: 'right', maxWidth: '60%' }}>
-                      {selectedEmergency.donationLocation}
-                    </AppText>
-                  </View>
-                )}
-                {selectedEmergency.description && (
-                  <View>
-                    <AppText variant="body" style={{ color: colors.textMuted, marginBottom: spacing.xs }}>{t('sos.description')}</AppText>
-                    <AppText variant="body" style={{ color: colors.text }}>
-                      {selectedEmergency.description}
-                    </AppText>
-                  </View>
-                )}
-              </View>
-            </View>
-          </Card>
+              ) : null}
+            </Stack>
+          </Surface>
 
-          <Card style={{ marginBottom: layout.cardGap }}>
-            <AppText variant="heading" style={{ marginBottom: spacing.md }}>
+          {actionError ? <Banner tone="critical" title={actionError} /> : null}
+
+          <Stack gap="md">
+            <Text variant="h2" accessibilityRole="header">
               {t('sos.canYouHelp')}
-            </AppText>
-            <AppText variant="body" style={{ color: colors.textMuted, marginBottom: spacing.lg }}>
-              {t('sos.compatible', {
-                bloodType: `${selectedEmergency.bloodType}${
-                  selectedEmergency.rhFactor === 'POSITIVE' ? '+' : '-'
-                }`,
-              })}
-            </AppText>
-            <View style={{ gap: spacing.sm }}>
-              <AppButton
-                variant="primary"
-                onPress={() => handleAcceptEmergency(selectedEmergency)}
-                style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm }}
-              >
-                <CheckCircle size={20} />
-                {t('sos.yesICanHelp')}
-              </AppButton>
-              <AppButton
-                variant="danger"
-                onPress={() => handleDeclineEmergency(selectedEmergency)}
-                style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm }}
-              >
-                <XCircle size={20} />
-                {t('sos.declineRequest')}
-              </AppButton>
-            </View>
-          </Card>
-        </ScrollView>
-      </Screen>
+            </Text>
+            <Button
+              label={t('sos.yesICanHelp')}
+              onPress={() => handleAcceptEmergency(selectedEmergency)}
+              icon={({ size, color }) => <CheckCircle size={size} color={color} />}
+            />
+            {/* Secondary, not a second red button. Declining is an ordinary,
+                blameless choice; drawing it as destructive tells the donor
+                they are doing something wrong by being unable to help. */}
+            <Button
+              label={t('sos.declineRequest')}
+              variant="secondary"
+              onPress={() => handleDeclineEmergency(selectedEmergency)}
+              icon={({ size, color }) => <XCircle size={size} color={color} />}
+            />
+          </Stack>
+
+          <Text variant="caption" tone="tertiary">
+            {t('sos.commitmentNotice')}
+          </Text>
+        </Stack>
+      </ScrollScreen>
     );
   }
+
+  /* ------------------------------------------------ responding / en route */
 
   if (['responding', 'en_route', 'arrived'].includes(status) && selectedEmergency) {
     return (
-      <Screen>
-        <ScreenHeader
-          title={t('sos.yourResponse')}
-          onBack={() => {
-            if (status === 'en_route' || status === 'arrived') {
-              Alert.alert(
-                t('sos.leaveTitle'),
-                t('sos.leaveBody'),
-                [
-                  { text: t('sos.stay'), style: 'cancel' },
-                  { text: t('sos.leave'), style: 'destructive', onPress: () => setStatus('idle') },
-                ]
-              );
-            } else {
-              setStatus('idle');
-            }
-          }}
-        />
-        <ScrollView style={{ flex: 1, padding: spacing.lg }}>
-          <Card style={{ marginBottom: layout.cardGap }}>
-            <View style={{ alignItems: 'center', marginBottom: spacing.lg }}>
-              <View
-                style={{
-                  width: 80,
-                  height: 80,
-                  borderRadius: 40,
-                  backgroundColor: colors.successMuted,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <CheckCircle size={40} color={colors.onMuted.success} />
-              </View>
-              <AppText variant="heading" style={{ marginTop: spacing.md, textAlign: 'center' }}>
-                {t('sos.responseAccepted')}
-              </AppText>
-              <AppText variant="body" style={{ color: colors.textMuted, marginTop: spacing.sm, textAlign: 'center' }}>
-                {t('sos.responseAcceptedBody')}
-              </AppText>
-            </View>
+      // A View rather than a fragment: the sheets below are siblings of the
+      // page, and a fragment at a screen root leaves the tree with no single
+      // element -- which is a real thing for anything walking the rendered
+      // output, tests included.
+      <View style={{ flex: 1 }}>
+        <ScrollScreen header={<ScreenHeader title={t('sos.yourResponse')} onBack={() => setStatus('idle')} />}>
+          <Stack gap="xl">
+            <JourneyProgress status={status} />
 
-            <View style={{ borderTopWidth: 1, borderTopColor: colors.border, paddingTop: spacing.lg }}>
-              <View style={{ gap: spacing.md }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-                  <MapPin size={16} color={colors.primary} />
-                  <AppText variant="heading">{selectedEmergency.hospital.name}</AppText>
-                </View>
-                {selectedEmergency.donationLocation && (
-                  <AppText variant="body" style={{ color: colors.textMuted, paddingLeft: spacing.xl + spacing.xs }}>
-                    {selectedEmergency.donationLocation}
-                  </AppText>
-                )}
-              </View>
-            </View>
-          </Card>
-
-          {trackingMarkers.length > 0 && (
-            <Card style={{ marginBottom: layout.cardGap, padding: 0, overflow: 'hidden' }}>
-              <LocationMap markers={trackingMarkers} height={200} />
-            </Card>
-          )}
-
-          <Card style={{ marginBottom: layout.cardGap }}>
-            <AppText variant="heading" style={{ marginBottom: spacing.md }}>
-              {t('sos.whatToDoNext')}
-            </AppText>
-            <View style={{ gap: spacing.md }}>
-              {status === 'responding' && (
-                <AppButton
-                  variant="primary"
-                  onPress={() => handleStartJourney(selectedEmergency)}
-                  style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm }}
-                >
-                  <Navigation size={20} />
-                  {t('sos.startJourney')}
-                </AppButton>
-              )}
-              {status === 'en_route' && (
-                <>
-                  <View
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      gap: spacing.sm,
-                      padding: spacing.md,
-                      backgroundColor: colors.primaryMuted,
-                      borderRadius: 8,
-                    }}
-                  >
-                    <Navigation size={20} color={colors.onMuted.primary} />
-                    <AppText variant="body" style={{ color: colors.onMuted.primary, flex: 1 }}>
-                      {t('sos.onYourWay')}
-                    </AppText>
+            <Surface>
+              <Stack gap="md">
+                <Row gap="md">
+                  <CheckCircle size={iconSize.lg} color={colors.success.base} />
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <Text variant="bodyStrong">{t('sos.responseAccepted')}</Text>
+                    <Text variant="caption" tone="secondary">
+                      {t('sos.responseAcceptedBody')}
+                    </Text>
                   </View>
-                  <AppButton
-                    variant="primary"
+                </Row>
+                <View style={{ height: 1, backgroundColor: colors.divider }} />
+                <Row gap="md" align="flex-start">
+                  <MapPin size={iconSize.md} color={colors.rose.base} />
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <Text variant="bodyStrong">{selectedEmergency.hospital.name}</Text>
+                    {selectedEmergency.donationLocation ? (
+                      <Text variant="caption" tone="secondary">
+                        {selectedEmergency.donationLocation}
+                      </Text>
+                    ) : null}
+                  </View>
+                </Row>
+              </Stack>
+            </Surface>
+
+            {status === 'en_route' && locationConsent === 'blocked' ? (
+              <Banner
+                tone="warning"
+                title={t('sos.locationDeniedTitle')}
+                description={t('sos.locationDeniedBody')}
+                icon={({ size, color }) => <MapPin size={size} color={color} />}
+                action={
+                  <Button
+                    label={t('sos.locationDeniedOpenSettings')}
+                    variant="secondary"
+                    size="md"
+                    block={false}
+                    onPress={() => Linking.openSettings()}
+                  />
+                }
+              />
+            ) : null}
+
+            {trackingMarkers.length > 0 ? (
+              <Stack gap="sm">
+                <Surface padded={false} style={{ overflow: 'hidden' }}>
+                  {/* `showRoute` is deliberately not passed. See the note at
+                      the top of this file: a line between two points is not a
+                      route, and drawing one would be a claim the app cannot
+                      support. */}
+                  <LocationMap markers={trackingMarkers} height={200} />
+                </Surface>
+                <Text variant="caption" tone="tertiary">
+                  {t('sos.noRouteShown')}
+                </Text>
+              </Stack>
+            ) : null}
+
+            {actionError ? <Banner tone="critical" title={actionError} /> : null}
+
+            <Stack gap="md">
+              <Text variant="h2" accessibilityRole="header">
+                {t('sos.whatToDoNext')}
+              </Text>
+
+              {status === 'responding' ? (
+                <Button
+                  label={t('sos.startJourney')}
+                  onPress={() => handleStartJourney(selectedEmergency)}
+                  icon={({ size, color }) => <Navigation size={size} color={color} />}
+                />
+              ) : null}
+
+              {status === 'en_route' ? (
+                <>
+                  <Banner
+                    tone="clinical"
+                    title={t('sos.onYourWay')}
+                    icon={({ size, color }) => <Navigation size={size} color={color} />}
+                  />
+                  <Button
+                    label={t('sos.iHaveArrived')}
                     onPress={() => handleArrived(selectedEmergency)}
-                    style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm }}
-                  >
-                    <CheckCircle size={20} />
-                    {t('sos.iHaveArrived')}
-                  </AppButton>
+                    icon={({ size, color }) => <CheckCircle size={size} color={color} />}
+                  />
                 </>
-              )}
-              {status === 'arrived' && (
-                <View
-                  style={{
-                    alignItems: 'center',
-                    padding: spacing.lg,
-                    backgroundColor: colors.successMuted,
-                    borderRadius: 8,
-                  }}
-                >
-                  <CheckCircle size={40} color={colors.onMuted.success} />
-                  <AppText variant="heading" style={{ marginTop: spacing.md }}>
-                    {t('sos.checkInAtReception')}
-                  </AppText>
-                  <AppText variant="body" style={{ color: colors.textMuted, marginTop: spacing.xs, textAlign: 'center' }}>
-                    {t('sos.staffNotified')}
-                  </AppText>
-                </View>
-              )}
-              {(status === 'responding' || status === 'en_route' || status === 'arrived') && (
-                <AppButton
-                  variant="ghost"
-                  onPress={() => handleCancelResponse(selectedEmergency)}
-                  style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm }}
-                >
-                  <XCircle size={20} />
-                  {t('sos.cancelMyResponse')}
-                </AppButton>
-              )}
-            </View>
-          </Card>
-        </ScrollView>
-      </Screen>
+              ) : null}
+
+              {status === 'arrived' ? (
+                <Banner
+                  tone="success"
+                  title={t('sos.checkInAtReception')}
+                  description={t('sos.staffNotified')}
+                  icon={({ size, color }) => <CheckCircle size={size} color={color} />}
+                />
+              ) : null}
+
+              <Button
+                label={t('sos.cancelMyResponse')}
+                variant="ghost"
+                onPress={() => setCancelVisible(true)}
+                icon={({ size, color }) => <XCircle size={size} color={color} />}
+              />
+            </Stack>
+          </Stack>
+        </ScrollScreen>
+
+        <PermissionExplainer
+          visible={explainerVisible}
+          title={t('sos.locationExplainerTitle')}
+          description={t('sos.locationExplainerBody')}
+          assurances={[
+            t('sos.locationAssuranceOnlyEnRoute'),
+            t('sos.locationAssuranceHospitalOnly'),
+            t('sos.locationAssuranceStopAnytime'),
+          ]}
+          allowLabel={t('sos.locationAllow')}
+          denyLabel={t('sos.locationNotNow')}
+          onAllow={onAllowLocation}
+          onDeny={() => {
+            setExplainerVisible(false);
+            setLocationConsent('declined');
+          }}
+          icon={({ size, color }) => <ShieldCheck size={size} color={color} />}
+        />
+
+        <ConfirmationSheet
+          visible={cancelVisible}
+          title={t('sos.cancelResponseTitle')}
+          description={t('sos.cancelResponseBody')}
+          confirmLabel={t('appointment.cancelConfirm')}
+          cancelLabel={t('appointment.cancelKeep')}
+          destructive
+          busy={cancelling}
+          onCancel={() => setCancelVisible(false)}
+          onConfirm={confirmCancelResponse}
+        />
+      </View>
     );
   }
 
+  /* ---------------------------------------------------------------- list */
+
   return (
-    <Screen scroll={false}>
-      <LinearGradient
-        colors={[colors.dangerMuted, 'transparent']}
-        style={{ paddingHorizontal: spacing.md, paddingTop: spacing.sm, paddingBottom: spacing.lg }}
-      >
-        <Pressable
-          onPress={() => router.back()}
-          accessibilityRole="button"
-          accessibilityLabel={t('auth.a11y.goBack')}
-          style={({ pressed }) => ({
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 6,
-            minHeight: 44,
-            alignSelf: 'flex-start',
-            paddingRight: spacing.sm,
-            opacity: pressed ? 0.6 : 1,
-          })}
-        >
-          <ArrowLeft size={16} color={colors.primary} strokeWidth={2.5} />
-          <AppText style={{ fontSize: 14, fontWeight: '600', color: colors.primary }}>{t('actions.back')}</AppText>
-        </Pressable>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: spacing.md }}>
-          <View>
-            {/* The reference rings the mark, so it reads as live rather than
-                as one more icon in a header. */}
-            <View
-              style={{
-                position: 'absolute',
-                top: -8,
-                left: -8,
-                right: -8,
-                bottom: -8,
-                borderRadius: 34,
-                borderWidth: 2,
-                borderColor: 'rgba(216, 83, 96, 0.4)',
-              }}
-              pointerEvents="none"
-            />
-            <View
-              style={{
-                width: 52,
-                height: 52,
-                borderRadius: 26,
-                backgroundColor: colors.danger,
-                alignItems: 'center',
-                justifyContent: 'center',
-                shadowColor: colors.danger,
-                shadowOpacity: 0.5,
-                shadowRadius: 16,
-                shadowOffset: { width: 0, height: 6 },
-                elevation: 6,
-              }}
-            >
-              <AlertTriangle size={26} color="#FFFFFF" />
-            </View>
-          </View>
-          <View style={{ flex: 1 }}>
-            <AppText style={{ fontSize: 24, fontWeight: '800', letterSpacing: -0.48, color: colors.text }}>
-              {t('sos.title')}
-            </AppText>
-            <AppText muted style={{ fontSize: 13, marginTop: 2 }}>
-              {emergencies.length > 0
-                ? t('units.activeRequestsNearYou', { count: emergencies.length })
-                : t('sos.noActiveRequests')}
-            </AppText>
-          </View>
-        </View>
-      </LinearGradient>
-      <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={{ paddingHorizontal: spacing.md, paddingBottom: spacing.xl, gap: 12 }}
-        showsVerticalScrollIndicator={false}
-      >
+    <ScrollScreen
+      header={
+        <ScreenHeader
+          title={t('sos.title')}
+          eyebrow={
+            emergencies.length > 0
+              ? t('units.activeRequestsNearYou', { count: emergencies.length })
+              : t('sos.noActiveRequests')
+          }
+          onBack={() => router.back()}
+        />
+      }
+      refreshing={false}
+      onRefresh={loadEmergencies}
+    >
+      <Stack gap="xl">
+        {actionError ? <Banner tone="critical" title={actionError} /> : null}
+
         {emergencies.length > 0 ? (
-          <>
-            <AppText variant="caption" style={{ color: colors.textMuted, marginBottom: spacing.sm }}>
-              {t('sos.activeNearYou')}
-            </AppText>
-            {emergencies.map((emergency) => (
-              <TouchableOpacity
-                key={emergency.id}
-                activeOpacity={0.8}
-                onPress={() => handleViewMatch(emergency)}
-              >
-                {renderEmergencyCard(emergency)}
-              </TouchableOpacity>
-            ))}
-          </>
+          <Stack gap="md">
+            <SectionHeader title={t('sos.activeNearYou')} />
+            {emergencies.map((emergency) =>
+              renderEmergencyCard(emergency, () => handleViewMatch(emergency)),
+            )}
+          </Stack>
         ) : (
-          <Card style={{ alignItems: 'center', paddingVertical: spacing.xl }}>
-            <AlertTriangle size={48} color={colors.textMuted} />
-            <AppText variant="heading" style={{ marginTop: spacing.md }}>
-              {t('sos.noActiveEmergencies')}
-            </AppText>
-            <AppText variant="body" style={{ color: colors.textMuted, marginTop: spacing.xs, textAlign: 'center' }}>
-              {t('sos.noActiveEmergenciesHint')}
-            </AppText>
-          </Card>
+          <EmptyState
+            title={t('sos.noActiveEmergencies')}
+            description={t('sos.noActiveEmergenciesHint')}
+            icon={({ size, color }) => <AlertTriangle size={size} color={color} />}
+          />
         )}
 
-        {myResponses.length > 0 && (
-          <>
-            <AppText variant="caption" style={{ color: colors.textMuted, marginBottom: spacing.sm, marginTop: spacing.lg }}>
-              {t('sos.yourActiveResponses')}
-            </AppText>
-            {myResponses.map((emergency) => (
-              <TouchableOpacity
-                key={emergency.id}
-                activeOpacity={0.8}
-                onPress={() => {
-                  setSelectedEmergency(emergency);
-                  if (emergency.responseStatus === 'EN_ROUTE') {
-                    setStatus('en_route');
-                  } else if (emergency.responseStatus === 'ARRIVED') {
-                    setStatus('arrived');
-                  } else {
-                    setStatus('responding');
-                  }
-                }}
-              >
-                {renderEmergencyCard(emergency)}
-              </TouchableOpacity>
-            ))}
-          </>
-        )}
+        {myResponses.length > 0 ? (
+          <Stack gap="md">
+            <SectionHeader title={t('sos.yourActiveResponses')} />
+            {myResponses.map((emergency) =>
+              renderEmergencyCard(emergency, () => {
+                setSelectedEmergency(emergency);
+                if (emergency.responseStatus === 'EN_ROUTE') setStatus('en_route');
+                else if (emergency.responseStatus === 'ARRIVED') setStatus('arrived');
+                else setStatus('responding');
+              }),
+            )}
+          </Stack>
+        ) : null}
 
-        <AppButton variant="secondary" onPress={loadEmergencies} style={{ marginTop: spacing.sm }}>
-          {t('actions.refresh')}
-        </AppButton>
+        <Text variant="caption" tone="tertiary" align="center">
+          {t('sos.commitmentNotice')}
+        </Text>
+      </Stack>
+    </ScrollScreen>
+  );
+}
 
-        <Card style={{ paddingVertical: 12, paddingHorizontal: 14 }}>
-          <AppText
-            style={{ fontSize: 12, lineHeight: 19, color: colors.textMuted, textAlign: 'center' }}
-          >
-            {t('sos.commitmentNotice')}
-          </AppText>
-        </Card>
-      </ScrollView>
-    </Screen>
+/** A label and its value on one line, for the request's facts. */
+function DetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <Row gap="lg" align="flex-start" style={{ justifyContent: 'space-between' }}>
+      <Text variant="body" tone="secondary" style={{ flex: 1 }}>
+        {label}
+      </Text>
+      <Text variant="bodyStrong" align="right" style={{ flex: 1 }}>
+        {value}
+      </Text>
+    </Row>
+  );
+}
+
+/**
+ * Where the donor is in the three steps they own.
+ *
+ * It stops at "Arrived" on purpose, and the steps after it are not drawn as
+ * greyed-out future states: showing "Donated" as a dimmed step would say the
+ * donor gets there by continuing to press things on this screen, and they do
+ * not. What happens after arrival belongs to the hospital.
+ */
+function JourneyProgress({ status }: { status: EmergencyStatus }) {
+  const { colors } = useDesign();
+  const { t } = useTranslation();
+
+  const steps: { key: EmergencyStatus; label: string }[] = [
+    { key: 'responding', label: t('sos.responseReadyToGo') },
+    { key: 'en_route', label: t('status.response.EN_ROUTE') },
+    { key: 'arrived', label: t('status.response.ARRIVED') },
+  ];
+  const activeIndex = steps.findIndex((step) => step.key === status);
+
+  return (
+    <Row gap="sm" accessibilityRole="progressbar" accessibilityLabel={steps[Math.max(activeIndex, 0)]?.label}>
+      {steps.map((step, index) => {
+        const reached = index <= activeIndex;
+        return (
+          <View key={step.key} style={{ flex: 1, gap: space.xs }}>
+            <View
+              style={{
+                height: 4,
+                borderRadius: radius.full,
+                backgroundColor: reached ? colors.rose.base : colors.track,
+              }}
+            />
+            <Text
+              variant="caption"
+              tone={reached ? 'primary' : 'tertiary'}
+              numberOfLines={1}
+              style={{ fontSize: 11 }}
+            >
+              {step.label}
+            </Text>
+          </View>
+        );
+      })}
+    </Row>
   );
 }

@@ -2072,6 +2072,19 @@ export const uz: Catalog = {
     matchNotified: 'Bildirishnoma yuborildi',
     matchViewed: 'Ko‘rildi — qabul qiling yoki rad eting',
     responseReadyToGo: 'Qabul qilindi — yo‘lga tayyor',
+    locationExplainerTitle: 'Yo\'lda joylashuvingizni ulashasizmi?',
+    locationExplainerBody:
+      'Siz yo\'ldaligingizda Bloodchain joylashuvingizni shifoxonaga yuboradi, shunda ular sizni kutishlarini biladi va tayyorlanadi. Yetib borganingizda yoki bekor qilganingizda darhol to\'xtaydi.',
+    locationAssuranceOnlyEnRoute: 'Faqat yo\'ldaligingizda — undan oldin ham, keyin ham emas',
+    locationAssuranceHospitalOnly: 'Faqat shu so\'rovni yuborgan shifoxona ko\'radi',
+    locationAssuranceStopAnytime: 'Istalgan vaqtda javobingizni bekor qiling — u to\'xtaydi',
+    locationAllow: 'Joylashuvni ulashish',
+    locationNotNow: 'Hozir emas',
+    locationDeniedTitle: 'Bu safar uchun joylashuv o\'chirilgan',
+    locationDeniedBody:
+      'Siz baribir borib, qabulxonada ro\'yxatdan o\'tishingiz mumkin. Shifoxona sizning yaqinlashayotganingizni ko\'rmaydi, shuning uchun qabulxonaga favqulodda donor ekanligingizni ayting.',
+    locationDeniedOpenSettings: 'Sozlamalarni ochish',
+    noRouteShown: 'Faqat joylashuvlar — Bloodchain marshrut yoki yetib borish vaqtini hisoblamaydi.',
   },
   campaigns: {
     title: 'Qon topshirish kampaniyalari',

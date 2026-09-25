@@ -29,8 +29,14 @@ jest.mock('react-native/Libraries/Utilities/useColorScheme', () => ({
   default: () => 'dark',
 }));
 // The map is a native module (react-native-maps) with no JS-only fallback.
+// Recorded rather than nulled, so the props the screen passes it can be
+// asserted -- `showRoute` in particular.
+const mapProps: Record<string, unknown>[] = [];
 jest.mock('../components/map/LocationMap', () => ({
-  LocationMap: () => null,
+  LocationMap: (props: Record<string, unknown>) => {
+    mapProps.push(props);
+    return null;
+  },
 }));
 jest.mock('expo-location', () => ({
   requestForegroundPermissionsAsync: jest.fn().mockResolvedValue({ status: 'granted' }),
@@ -49,6 +55,7 @@ jest.mock('../api/emergency', () => ({
   updateLocation: jest.fn(),
 }));
 
+import * as Location from 'expo-location';
 import {
   getDonorEmergencies,
   viewEmergencyMatch,
@@ -89,6 +96,7 @@ const emergency = {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mapProps.length = 0;
   jest.mocked(getDonorEmergencies).mockResolvedValue({
     active: [emergency],
     myResponses: [],
@@ -283,5 +291,94 @@ describe('Emergency SOS: the donor-side state machine', () => {
     const text = renderedText(tree);
     expect(text).toContain(t('sos.loadFailedTitle'));
     expect(text).toContain('Network unreachable');
+  });
+  /**
+   * The operating system's location prompt is one line, and on iOS it is one
+   * chance: deny it and it never appears again. So the reason is given in the
+   * app first, with room to say what is sent, to whom, and when it stops.
+   */
+  it('explains why it wants a location before the OS is allowed to ask', async () => {
+    const tree = await render();
+    await press(tree, emergency.emergencyReference);
+    await press(tree, t('sos.yesICanHelp'));
+
+    // Nothing asked yet: the donor has committed, not started moving.
+    expect(Location.requestForegroundPermissionsAsync).not.toHaveBeenCalled();
+
+    await press(tree, t('sos.startJourney'));
+
+    // The journey started, and the explanation is on screen -- but the OS has
+    // still not been asked.
+    expect(startJourney).toHaveBeenCalledWith('response-1');
+    expect(renderedText(tree)).toContain(t('sos.locationExplainerTitle'));
+    expect(Location.requestForegroundPermissionsAsync).not.toHaveBeenCalled();
+
+    await press(tree, t('sos.locationAllow'));
+    expect(Location.requestForegroundPermissionsAsync).toHaveBeenCalled();
+  });
+
+  /**
+   * "Not now" has to be a real answer, not a way of deferring the same
+   * question. It costs the donor nothing: the journey continues, the OS is
+   * never asked, and the screen says what the hospital will and will not see.
+   */
+  it('lets the donor travel without sharing a location, and says what that means', async () => {
+    const tree = await render();
+    await press(tree, emergency.emergencyReference);
+    await press(tree, t('sos.yesICanHelp'));
+    await press(tree, t('sos.startJourney'));
+    await press(tree, t('sos.locationNotNow'));
+
+    expect(Location.requestForegroundPermissionsAsync).not.toHaveBeenCalled();
+    expect(Location.watchPositionAsync).not.toHaveBeenCalled();
+
+    // Still en route, and the arrival action is still there.
+    expect(renderedText(tree)).toContain(t('sos.iHaveArrived'));
+    // Asked once, not on every render.
+    expect(renderedText(tree)).not.toContain(t('sos.locationExplainerTitle'));
+  });
+
+  it('says the location is off when the OS refuses, rather than failing silently', async () => {
+    jest
+      .mocked(Location.requestForegroundPermissionsAsync)
+      .mockResolvedValueOnce({ status: 'denied' } as never);
+
+    const tree = await render();
+    await press(tree, emergency.emergencyReference);
+    await press(tree, t('sos.yesICanHelp'));
+    await press(tree, t('sos.startJourney'));
+    await press(tree, t('sos.locationAllow'));
+
+    const text = renderedText(tree);
+    expect(text).toContain(t('sos.locationDeniedTitle'));
+    // And it still does not block the journey.
+    expect(text).toContain(t('sos.iHaveArrived'));
+    expect(Location.watchPositionAsync).not.toHaveBeenCalled();
+  });
+
+  /**
+   * The app has two coordinates and no routing engine. A line between them is
+   * a straight line over buildings, and an arrival time derived from it is
+   * invented -- which a donor would act on.
+   */
+  it('never draws a route between the donor and the hospital', async () => {
+    jest.mocked(getDonorTracking).mockResolvedValue({
+      locations: [{ latitude: '41.3', longitude: '69.2' }],
+      emergencyRequest: {
+        hospital: { name: 'Central Hospital', address: '1 Main St', latitude: '41.31', longitude: '69.25' },
+      },
+    } as never);
+
+    const tree = await render();
+    await press(tree, emergency.emergencyReference);
+    await press(tree, t('sos.yesICanHelp'));
+
+    expect(mapProps.length).toBeGreaterThan(0);
+    for (const props of mapProps) {
+      expect(props.showRoute).toBeFalsy();
+    }
+    // And the caption says so in words, because the absence of a line is not
+    // self-explanatory.
+    expect(renderedText(tree)).toContain(t('sos.noRouteShown'));
   });
 });

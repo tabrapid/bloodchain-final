@@ -2132,6 +2132,19 @@ export const en: Catalog = {
     matchNotified: 'Notification sent',
     matchViewed: 'Viewed — accept or decline',
     responseReadyToGo: 'Accepted — ready to go',
+    locationExplainerTitle: 'Share your location while you travel?',
+    locationExplainerBody:
+      'While you are on your way, Bloodchain sends your position to the hospital so they know to expect you and can prepare. It stops the moment you arrive or cancel.',
+    locationAssuranceOnlyEnRoute: 'Only while you are en route — never before, never after',
+    locationAssuranceHospitalOnly: 'Seen only by the hospital handling this request',
+    locationAssuranceStopAnytime: 'Cancel your response at any time and it stops',
+    locationAllow: 'Share my location',
+    locationNotNow: 'Not now',
+    locationDeniedTitle: 'Location is off for this journey',
+    locationDeniedBody:
+      'You can still travel and check in at reception. The hospital will not see you approaching, so tell the desk you are the emergency donor.',
+    locationDeniedOpenSettings: 'Open settings',
+    noRouteShown: 'Positions only — Bloodchain does not calculate a route or an arrival time.',
   },
   campaigns: {
     title: 'Blood donation campaigns',

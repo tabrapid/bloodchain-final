@@ -6,6 +6,7 @@ import {
   ScrollView,
   View,
   type ScrollViewProps,
+  type ViewProps,
   type ViewStyle,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -165,12 +166,13 @@ export function Stack({
   gap = 'xl',
   children,
   style,
-}: {
-  gap?: keyof typeof space;
-  children: ReactNode;
-  style?: ViewStyle;
-}) {
-  return <View style={[{ gap: space[gap] }, style]}>{children}</View>;
+  ...rest
+}: ViewProps & { gap?: keyof typeof space; children: ReactNode; style?: ViewStyle }) {
+  return (
+    <View style={[{ gap: space[gap] }, style]} {...rest}>
+      {children}
+    </View>
+  );
 }
 
 /** A horizontal group: an icon and a label, a value and its unit, two buttons. */
@@ -179,11 +181,16 @@ export function Row({
   align = 'center',
   children,
   style,
-}: {
+  ...rest
+}: ViewProps & {
   gap?: keyof typeof space;
   align?: ViewStyle['alignItems'];
   children: ReactNode;
   style?: ViewStyle;
 }) {
-  return <View style={[{ flexDirection: 'row', alignItems: align, gap: space[gap] }, style]}>{children}</View>;
+  return (
+    <View style={[{ flexDirection: 'row', alignItems: align, gap: space[gap] }, style]} {...rest}>
+      {children}
+    </View>
+  );
 }
