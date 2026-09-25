@@ -29,6 +29,7 @@ import {
   Toggle,
   hitTarget,
   layout,
+  themes,
 } from './index';
 
 /** A style prop -- array, nested array or object -- as one object. */
@@ -408,5 +409,17 @@ describe('Surface', () => {
 
     const button = roleOf(tree, 'button');
     expect(button.props.accessibilityLabel).toBe('Open donor profile');
+  });
+});
+
+describe('a control on an accent fill', () => {
+  it('draws its label in the one colour checked against every fill', () => {
+    const tree = render(<Button label="View requests" onAccent onPress={() => undefined} />);
+    const label = tree.root
+      .findAll((node) => node.props?.children === 'View requests')
+      .map((node) => flatten(node.props.style))
+      .find((style) => style.color !== undefined);
+
+    expect(label?.color).toBe(themes.dark.textOnAccent);
   });
 });

@@ -229,8 +229,10 @@ export default function Home() {
                 variant="secondary"
                 size="md"
                 block={false}
+                // It sits on the emergency fill, where `textPrimary` is
+                // near-black in light mode and about 3.5:1 on that red.
+                onAccent
                 onPress={() => router.push('/sos')}
-                style={{ borderColor: colors.textOnAccent }}
               />
             }
           />

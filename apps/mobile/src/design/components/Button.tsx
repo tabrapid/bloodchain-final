@@ -26,6 +26,16 @@ export interface ButtonProps extends Omit<PressableProps, 'children' | 'style'> 
   block?: boolean;
   /** Overrides the accent. Use sparingly — the variant should usually decide. */
   accent?: AccentName;
+  /**
+   * The button sits on a filled accent surface (the emergency banner).
+   *
+   * Without it a `secondary` button there draws its label in `textPrimary`,
+   * which is near-white in dark and near-black in light -- and near-black on a
+   * saturated red is about 3.5:1, under the 4.5:1 this app holds itself to.
+   * The label and the border both become `textOnAccent`, which is the one
+   * colour checked against every accent fill.
+   */
+  onAccent?: boolean;
   style?: ViewStyle;
 }
 
@@ -52,6 +62,7 @@ export function Button({
   loading = false,
   block = true,
   accent,
+  onAccent = false,
   disabled,
   onPressIn,
   onPressOut,
@@ -74,7 +85,9 @@ export function Button({
     secondary: { background: 'transparent', border: colors.border, label: colors.textPrimary },
     ghost: { background: 'transparent', border: 'transparent', label: tone.text },
   };
-  const paint = fills[variant];
+  const paint = onAccent
+    ? { background: 'transparent', border: colors.textOnAccent, label: colors.textOnAccent }
+    : fills[variant];
 
   const animate = (to: number) =>
     Animated.timing(scale, { toValue: to, duration: motion.instant, useNativeDriver: true }).start();
@@ -107,7 +120,7 @@ export function Button({
             paddingVertical: space.md,
             borderRadius: radius.sm,
             backgroundColor: paint.background,
-            borderWidth: variant === 'secondary' ? 1 : 0,
+            borderWidth: variant === 'secondary' || onAccent ? 1 : 0,
             borderColor: paint.border,
             opacity: isDisabled ? 0.45 : 1,
             // Secondary and ghost have no fill to darken, so they take a tint.

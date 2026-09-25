@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { FlatList, View } from 'react-native';
+import { FlatList, Pressable, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
   AlertCircle,
@@ -217,15 +217,21 @@ function NotificationRow({
   const when = formatTimeAgo(new Date(notification.createdAt), t, formatDate);
 
   return (
-    <Surface
-      level="flat"
-      bordered={false}
-      padded={false}
+    // A Pressable rather than a Surface: a notification row sits on the page
+    // rather than on a card, and a Surface forced transparent would paint its
+    // pressed state underneath that override and show no feedback at all.
+    <Pressable
       onPress={onPress}
+      accessibilityRole="button"
       accessibilityLabel={`${unread ? `${t('notifications.unread')}. ` : ''}${notification.title}. ${
         notification.body
       }. ${when}`}
-      style={{ backgroundColor: 'transparent' }}
+      style={({ pressed }) => ({
+        backgroundColor: pressed ? colors.surfacePressed : 'transparent',
+        marginHorizontal: -space.md,
+        paddingHorizontal: space.md,
+        borderRadius: radius.xs,
+      })}
     >
       <View style={{ flexDirection: 'row', gap: space.md, paddingVertical: space.md }}>
         <View
@@ -271,7 +277,7 @@ function NotificationRow({
           </View>
         </View>
       </View>
-    </Surface>
+    </Pressable>
   );
 }
 
