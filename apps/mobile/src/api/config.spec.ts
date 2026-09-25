@@ -16,6 +16,15 @@ function load(opts: {
   envApiUrl?: string;
 }) {
   let mod: typeof import('./config');
+  // Reset immediately before re-mocking, not only in `afterEach`.
+  //
+  // Under jest-expo 56 the `react-native` instance that a previous `load()`
+  // put in the registry survives into the next `jest.isolateModules` sandbox,
+  // so the second call in a file kept the first call's `Platform.OS` and the
+  // Android cases were silently checked against iOS. `afterEach`'s reset is
+  // too late: it runs between tests, and this helper is called more than once
+  // inside one. Resetting here makes every case evaluate its own mocks.
+  jest.resetModules();
   jest.isolateModules(() => {
     jest.doMock('expo-constants', () => ({
       __esModule: true,

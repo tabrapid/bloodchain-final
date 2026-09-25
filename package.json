@@ -355,6 +355,16 @@
             "optional": true
           }
         }
+      },
+      "standard-navigation": {
+        "peerDependencies": {
+          "react": "*"
+        },
+        "peerDependenciesMeta": {
+          "react": {
+            "optional": true
+          }
+        }
       }
     }
   }

@@ -1,6 +1,6 @@
 import { PropsWithChildren, useContext } from 'react';
 import { ScrollView, ScrollViewProps, View } from 'react-native';
-import { BottomTabBarHeightContext } from '@react-navigation/bottom-tabs';
+import { BottomTabBarHeightContext } from 'expo-router/js-tabs';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { spacing } from '../theme';
 

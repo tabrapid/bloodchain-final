@@ -115,7 +115,7 @@ export function AppButton({
           colors={gradientColors ?? colors.ctaGradient}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
-          style={[StyleSheet.absoluteFillObject, { borderRadius: radius.pill }]}
+          style={[StyleSheet.absoluteFill, { borderRadius: radius.pill }]}
           pointerEvents="none"
         />
       )}

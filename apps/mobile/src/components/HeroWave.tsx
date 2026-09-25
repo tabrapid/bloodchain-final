@@ -43,7 +43,7 @@ export function HeroWave({ height }: HeroWaveProps) {
 
   return (
     <Svg
-      style={[StyleSheet.absoluteFillObject, { top: undefined, height }]}
+      style={[StyleSheet.absoluteFill, { top: undefined, height }]}
       width="100%"
       height={height}
       viewBox="0 0 390 520"

@@ -93,7 +93,7 @@ export function LocationMap({ markers, showRoute = false, height = 220 }: Locati
       <MapView
         ref={mapRef}
         provider={PROVIDER_DEFAULT}
-        style={StyleSheet.absoluteFillObject}
+        style={StyleSheet.absoluteFill}
         initialRegion={regionFor(markers)}
       >
         {showRoute && markers.length > 1 && (

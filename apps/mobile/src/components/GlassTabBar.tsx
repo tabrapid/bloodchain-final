@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   BottomTabBarHeightCallbackContext,
   type BottomTabBarProps,
-} from '@react-navigation/bottom-tabs';
+} from 'expo-router/js-tabs';
 import { radius, spacing, translucentElevation, useTheme } from '../theme';
 import { AppText } from './AppText';
 

@@ -1,4 +1,8 @@
-import { Tabs } from 'expo-router';
+// `Tabs` from the package root is deprecated at SDK 56 in favour of this
+// subpath, which is also where the bottom-tab types and the tab-bar height
+// contexts now live: expo-router 56 vendors React Navigation instead of
+// peering on it.
+import { Tabs } from 'expo-router/js-tabs';
 import { CalendarDays, Droplet, HeartPulse, Home, UserRound, Users } from 'lucide-react-native';
 import { GlassTabBar } from '../../src/components/GlassTabBar';
 import { useTranslation } from '../../src/i18n';

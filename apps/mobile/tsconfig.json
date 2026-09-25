@@ -4,21 +4,6 @@
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "moduleResolution": "Bundler",
-    // Expo's base still says "react-native", which is the *legacy* JSX mode:
-    // it resolves JSX against the ambient global `JSX` namespace. @types/react
-    // 19 no longer declares one -- it moved to `React.JSX` and the per-runtime
-    // namespaces in react/jsx-runtime -- so under the legacy mode every
-    // element in the app is checked against whatever stale global JSX happens
-    // to be in the program, which in this monorepo is React 18's (the Next.js
-    // consoles are still on 18). That produced "'View' cannot be used as a JSX
-    // component" on every tag in every file.
-    //
-    // "react-jsx" is the modern automatic runtime and takes its namespace from
-    // the React the app actually imports. Expo adopts exactly this in their
-    // own tsconfig.base at SDK 56; this line is that change, applied at the
-    // hop where React 19 arrives, and it can be dropped once the base carries
-    // it.
-    "jsx": "react-jsx",
     "typeRoots": ["./node_modules/@types", "../../node_modules/@types"],
     "paths": {
       "@/*": ["./*"]
