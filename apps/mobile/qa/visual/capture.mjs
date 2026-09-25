@@ -128,7 +128,32 @@ async function settle(page, ms = 1200) {
 /** Everything a screenshot needs to be understood later, recorded as we go. */
 const manifest = [];
 
-async function capture(browser, device, screen, state, session) {
+/**
+ * A session that is still valid when the shot is taken.
+ *
+ * Access tokens last fifteen minutes and a full run takes longer than that, so
+ * signing in once meant every capture after the fifteenth minute photographed
+ * the login screen -- 151 of them, on a run that reported no failures. The
+ * refresh token cannot save it either: refresh rotates, and each capture gets a
+ * fresh browser context carrying the same seeded token, so the first context to
+ * refresh invalidates it for all the others.
+ *
+ * Re-signing in on a timer costs one request every ten minutes per account,
+ * which is inside AUTH_THROTTLE_LIMIT with room to spare.
+ */
+const SESSION_TTL_MS = 10 * 60 * 1000;
+const sessions = new Map();
+
+async function sessionFor(role) {
+  const held = sessions.get(role);
+  if (held && Date.now() - held.at < SESSION_TTL_MS) return held.tokens;
+
+  const tokens = await signIn(API, ACCOUNTS[role]);
+  sessions.set(role, { tokens, at: Date.now() });
+  return tokens;
+}
+
+async function capture(browser, device, screen, state) {
   const context = await browser.newContext({
     viewport: { width: device.width, height: device.height },
     deviceScaleFactor: device.scale,
@@ -141,7 +166,7 @@ async function capture(browser, device, screen, state, session) {
   });
 
   const consoleErrors = [];
-  const account = screen.auth === false ? null : session[screen.auth ?? 'donor'];
+  const account = screen.auth === false ? null : await sessionFor(screen.auth ?? 'donor');
   await context.addInitScript(
     ([tokens, locale, theme]) => {
       if (tokens) {
@@ -205,6 +230,14 @@ async function capture(browser, device, screen, state, session) {
     })
     .catch(() => []);
 
+  // A screen that needs a session and photographed the login screen is not a
+  // screenshot of that screen. Say so rather than filing it.
+  const signedOut =
+    screen.auth !== false && /Welcome back|Sign in to your Bloodchain/i.test(text) && !screen.id.startsWith('auth/');
+  if (signedOut && !failure) {
+    failure = 'rendered the login screen: the session was not valid when the shot was taken';
+  }
+
   manifest.push({
     screenshot: path.relative(path.dirname(OUT_DIR), file),
     screen: screen.id,
@@ -243,16 +276,16 @@ async function main() {
   }
 
   const server = await serveExport(EXPORT_DIR, PORT);
-  const session = { donor: await signIn(API, ACCOUNTS.donor) };
+  const donor = await sessionFor('donor');
   try {
-    session.courier = await signIn(API, ACCOUNTS.courier);
+    await sessionFor('courier');
   } catch {
-    console.warn('! courier@donor.local did not sign in - courier screens will be captured signed out');
+    console.warn('! courier@donor.local did not sign in - courier screens will fail rather than be filed signed out');
   }
 
-  const ids = await discoverIds(API, session.donor.accessToken);
-  const slot = await discoverSlot(API, session.donor.accessToken, ids.organizationId);
-  const labSlot = await discoverLabSlot(API, session.donor.accessToken, ids.laboratoryId, ids.testTypeId);
+  const ids = await discoverIds(API, donor.accessToken);
+  const slot = await discoverSlot(API, donor.accessToken, ids.organizationId);
+  const labSlot = await discoverLabSlot(API, donor.accessToken, ids.laboratoryId, ids.testTypeId);
 
   const catalogue = buildCatalogue({ ...ids, ...slot, lab: labSlot }).filter(
     (screen) => !only || only.some((prefix) => screen.id.startsWith(prefix)),
@@ -273,7 +306,7 @@ async function main() {
     for (const screen of catalogue) {
       for (const state of screen.states) {
         if (state.devices && !state.devices.includes(deviceKey)) continue;
-        const { failure, blank } = await capture(browser, device, screen, state, session);
+        const { failure, blank } = await capture(browser, device, screen, state);
         count += 1;
         const flag = failure ? ' FAILED' : blank ? ' BLANK' : '';
         process.stdout.write(`${String(count).padStart(3)} ${device.label} ${screen.id}/${state.id}${flag}\n`);

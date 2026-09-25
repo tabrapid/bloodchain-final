@@ -46,7 +46,7 @@ function emergency(overrides = {}) {
     updatedAt: iso(-4),
     hospital: HOSPITAL,
     matchId: 'qa-match-1',
-    matchStatus: 'PENDING',
+    matchStatus: 'MATCHED',
     canAccept: true,
     ...overrides,
   };
@@ -60,7 +60,7 @@ function emergency(overrides = {}) {
  * here that would let the screen pretend otherwise.
  */
 export const SOS = {
-  list: { active: [emergency(), emergency({ id: 'qa-emergency-2', emergencyReference: 'SOS-2026-502366', bloodType: 'A', urgencyLevel: 'HIGH', unitsRequired: 2, unitsCollected: 0, matchId: 'qa-match-2', requiredBefore: iso(220) })], myResponses: [] },
+  list: { active: [emergency(), emergency({ id: 'qa-emergency-2', emergencyReference: 'SOS-2026-502366', bloodType: 'A', urgencyLevel: 'HIGH', unitsRequired: 2, unitsCollected: 0, matchId: 'qa-match-2', matchStatus: 'NOTIFIED', requiredBefore: iso(220) })], myResponses: [] },
   empty: { active: [], myResponses: [] },
   viewing: { active: [emergency({ matchStatus: 'VIEWED' })], myResponses: [] },
   accepted: {

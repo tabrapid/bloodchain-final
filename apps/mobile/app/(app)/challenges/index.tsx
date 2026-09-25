@@ -22,10 +22,12 @@ import {
   layout,
   space,
   useDesign,
+  useTabBarClearance,
 } from '../../../src/design';
 import { useTranslation } from '../../../src/i18n';
 
 export default function ChallengesScreen() {
+  const tabBarClearance = useTabBarClearance();
   const { t } = useTranslation();
   const [joinError, setJoinError] = useState<string | null>(null);
   const queryClient = useQueryClient();
@@ -35,8 +37,13 @@ export default function ChallengesScreen() {
     queryFn: getActiveChallenges,
   });
 
+  // Which challenge is being joined, not merely that one is: a single pending
+  // flag handed to every card put a spinner on all of them at once.
+  const [joiningId, setJoiningId] = useState<string | null>(null);
+
   const joinMutation = useMutation({
     mutationFn: joinChallenge,
+    onSettled: () => setJoiningId(null),
     onSuccess: () => {
       setJoinError(null);
       void queryClient.invalidateQueries({ queryKey: ['active-challenges'] });
@@ -93,7 +100,7 @@ export default function ChallengesScreen() {
         keyExtractor={(challenge) => challenge.id}
         contentContainerStyle={{
           paddingHorizontal: layout.gutter,
-          paddingBottom: layout.tabBarClearance,
+          paddingBottom: tabBarClearance,
           gap: space.md,
         }}
         showsVerticalScrollIndicator={false}
@@ -102,8 +109,11 @@ export default function ChallengesScreen() {
         renderItem={({ item: challenge }) => (
           <ChallengeCard
             challenge={challenge}
-            onJoin={() => joinMutation.mutate(challenge.id)}
-            isJoining={joinMutation.isPending}
+            onJoin={() => {
+              setJoiningId(challenge.id);
+              joinMutation.mutate(challenge.id);
+            }}
+            isJoining={joiningId === challenge.id}
           />
         )}
         ListHeaderComponent={

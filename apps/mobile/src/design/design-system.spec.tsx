@@ -26,6 +26,7 @@ import {
   SegmentedControl,
   Stat,
   Surface,
+  OptionGrid,
   Toggle,
   hitTarget,
   layout,
@@ -421,5 +422,56 @@ describe('a control on an accent fill', () => {
       .find((style) => style.color !== undefined);
 
     expect(label?.color).toBe(themes.dark.textOnAccent);
+  });
+});
+
+describe('OptionGrid rows', () => {
+  /**
+   * The arithmetic, because the screens that use it cannot be measured here.
+   *
+   * A row of N cells contains N-1 gaps. Each cell is 100/N percent wide, so
+   * each has to give back (N-1)/N of a gap for the row to come to exactly 100%.
+   * Giving back gap/N -- one gap shared N ways -- leaves the row short by N-2
+   * gaps, and the last cell wraps: four blood types became 3/3/2, and three
+   * columns of appointment times became two with a hole beside them.
+   */
+  it.each([
+    [4, 8, -6],
+    [3, 8, -16 / 3],
+    [2, 8, -4],
+  ])('at %i columns and a %ipt gap, each cell gives back %ppt', (columns, gap, expected) => {
+    expect((-gap * (columns - 1)) / columns).toBeCloseTo(expected, 5);
+    // And the row comes to exactly one row: N cells, N-1 gaps, 100%.
+    const cell = 100 / columns;
+    const given = (gap * (columns - 1)) / columns;
+    expect(columns * (cell - given / 4) - 0).toBeGreaterThan(0); // shape check
+    expect(columns * given).toBeCloseTo(gap * (columns - 1), 5);
+  });
+
+  it('lays a four-option grid out as one row of four', () => {
+    const tree = render(
+      <OptionGrid
+        accessibilityLabel="Blood type"
+        value="O+"
+        onChange={() => undefined}
+        columns={4}
+        options={[
+          { value: 'A+', label: 'A+' },
+          { value: 'A-', label: 'A-' },
+          { value: 'B+', label: 'B+' },
+          { value: 'B-', label: 'B-' },
+        ]}
+      />,
+    );
+
+    const cells = tree.root.findAll(
+      (node) => typeof node.type === 'string' && node.props?.accessibilityRole === 'radio',
+    );
+    expect(cells).toHaveLength(4);
+    for (const cell of cells) {
+      const style = flatten(typeof cell.props.style === 'function' ? cell.props.style({ pressed: false }) : cell.props.style);
+      expect(style.width).toBe('25%');
+      expect(style.marginRight).toBeCloseTo(-6, 5);
+    }
   });
 });

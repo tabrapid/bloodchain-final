@@ -740,6 +740,12 @@ export const ru: Catalog = {
       DELIVERED: 'Доставлена',
       PARTIALLY_DELIVERED: 'Частично доставлена',
     },
+    urgency: {
+      CRITICAL: 'Критический',
+      HIGH: 'Высокий',
+      MEDIUM: 'Средний',
+      LOW: 'Низкий',
+    },
     priority: {
       ROUTINE: 'Обычный',
       URGENT: 'Срочный',
@@ -786,6 +792,16 @@ export const ru: Catalog = {
       CANCELLED: 'Отменён',
       EXPIRED: 'Истёк',
       FAILED: 'Не выполнен',
+    },
+    match: {
+      MATCHED: 'Новый запрос',
+      NOTIFIED: 'Вам отправлено уведомление',
+      VIEWED: 'Открыт',
+      ACCEPTED: 'Вы согласились',
+      DECLINED: 'Вы отказались',
+      EXPIRED: 'Истёк',
+      CANCELLED: 'Отменён больницей',
+      NO_RESPONSE: 'Ответа не было',
     },
     response: {
       ACCEPTED: 'Принят',
@@ -2267,6 +2283,7 @@ export const ru: Catalog = {
     empty: 'Нет активных кампаний',
     emptyHint: 'Загляните позже — появятся новые кампании',
     joinCampaign: 'Присоединиться к кампании',
+    joined: 'Вы участвуете',
     joinFailed: 'Не удалось присоединиться к кампании. Попробуйте снова.',
     bloodTypesNeeded: 'Нужные группы крови: {{types}}',
     targetSuffix: ' / цель {{count}}',

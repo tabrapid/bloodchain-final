@@ -36,6 +36,8 @@ import {
   space,
   useDesign,
   type AccentName,
+  Skeleton,
+  SkeletonRow,
 } from '../../src/design';
 import { LucideIcon } from '../../src/types/icons';
 import { useUserProfile } from '../../src/hooks/useUsers';
@@ -84,7 +86,7 @@ export default function Home() {
   const { t, formatDayHeading, formatDate, formatTime } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const { data: userProfile } = useUserProfile();
-  const { data: donorProfile } = useDonorProfile();
+  const { data: donorProfile, isPending: donorPending } = useDonorProfile();
   const { data: completionData } = useProfileCompletion();
   const { data: nextAppointment } = useNextAppointment();
   const { data: donationStats } = useDonationStatistics();
@@ -184,7 +186,11 @@ export default function Home() {
         <Pressable
           onPress={() => router.push('/(app)/profile/donor')}
           accessibilityRole="button"
-          accessibilityLabel={`${t('home.bloodTypeLabel')} ${bloodTypeDisplay}. ${verification.note}. ${t('home.verificationOpenProfile')}`}
+          accessibilityLabel={
+            donorPending
+              ? t('common.loading')
+              : `${t('home.bloodTypeLabel')} ${bloodTypeDisplay}. ${verification.note}. ${t('home.verificationOpenProfile')}`
+          }
           style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
         >
           <Surface>
@@ -194,19 +200,38 @@ export default function Home() {
                   surface rather than white on a full-bleed gradient. */}
               <View style={{ alignItems: 'center', gap: 2 }}>
                 <ValueText variant="hero" style={{ color: colors.rose.text }}>
-                  {bloodTypeDisplay}
+                  {donorPending ? '' : bloodTypeDisplay}
                 </ValueText>
                 <Text variant="overline" tone="tertiary" caps>
                   {t('home.bloodTypeLabel')}
                 </Text>
               </View>
 
+              {/*
+                While the profile is loading, say nothing rather than the
+                opposite of the truth.
+
+                `getVerification` falls back to UNVERIFIED and the blood type
+                falls back to an em dash, so every cold start told a verified
+                donor, at 48pt, that their blood type was unknown and their
+                verification missing -- for the length of the first round trip,
+                and for as long as the request kept failing.
+              */}
               <View style={{ flex: 1, gap: space.sm }}>
-                <Badge label={verification.badge} tone={verification.tone} />
-                <Text variant="caption" tone="secondary">
-                  {verification.note}
-                </Text>
-                {location ? (
+                {donorPending ? (
+                  <>
+                    <SkeletonRow />
+                    <Skeleton height={14} />
+                  </>
+                ) : (
+                  <>
+                    <Badge label={verification.badge} tone={verification.tone} />
+                    <Text variant="caption" tone="secondary">
+                      {verification.note}
+                    </Text>
+                  </>
+                )}
+                {location && !donorPending ? (
                   <Text variant="caption" tone="tertiary" numberOfLines={1}>
                     {location}
                   </Text>

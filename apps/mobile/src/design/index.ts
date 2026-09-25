@@ -34,7 +34,7 @@ export type { SurfaceProps } from './components/Surface';
 export { Button, IconButton, LinkButton, ButtonRow } from './components/Button';
 export type { ButtonProps, ButtonVariant, ButtonSize, IconButtonProps, LinkButtonProps } from './components/Button';
 
-export { Screen, ScrollScreen, FormScreen, Stack, Row } from './components/Screen';
+export { Screen, ScrollScreen, FormScreen, Stack, Row, useTabBarClearance } from './components/Screen';
 export type { ScreenProps, ScrollScreenProps } from './components/Screen';
 
 export { Badge, StatusDot, Banner, EmergencyBanner } from './components/Status';

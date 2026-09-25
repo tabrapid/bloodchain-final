@@ -112,6 +112,21 @@ function timeLeftLabel(requiredBefore: string | undefined, t: TranslateFn): stri
  * and blocking the commitment on a permission dialog would be both a dark
  * pattern and a worse outcome for the patient.
  */
+/**
+ * The sign to print after a blood group, and nothing when the factor is not
+ * one of the two.
+ *
+ * The list card asked for three cases and the detail screen asked for two, so
+ * a request whose rhFactor was neither POSITIVE nor NEGATIVE read "AB" on the
+ * card and "AB-" one tap later -- a different blood type, on the screen where
+ * that matters most.
+ */
+function rhSign(rhFactor: string | undefined): string {
+  if (rhFactor === 'POSITIVE') return '+';
+  if (rhFactor === 'NEGATIVE') return '-';
+  return '';
+}
+
 export default function SosScreen() {
   const { t } = useTranslation();
   const { colors } = useDesign();
@@ -357,6 +372,10 @@ export default function SosScreen() {
       if (emergency.responseStatus === 'ACCEPTED') return t('sos.responseReadyToGo');
       return t(`status.response.${emergency.responseStatus}`);
     }
+    // Three of the eight EmergencyMatchStatus members used to be translated and
+    // the rest fell through to `return emergency.matchStatus`, which put
+    // DECLINED, EXPIRED, CANCELLED or NO_RESPONSE on the glass in the
+    // database's own words. The catalogue carries all eight now.
     if (emergency.matchStatus) {
       switch (emergency.matchStatus) {
         case 'MATCHED':
@@ -366,7 +385,7 @@ export default function SosScreen() {
         case 'VIEWED':
           return t('sos.matchViewed');
         default:
-          return emergency.matchStatus;
+          return t(`status.match.${emergency.matchStatus}`);
       }
     }
     return t(`status.emergency.${emergency.status}`);
@@ -382,7 +401,7 @@ export default function SosScreen() {
    */
   const renderEmergencyCard = (emergency: EmergencyRequest, onPress: () => void) => {
     const isCritical = emergency.urgencyLevel?.toUpperCase() === 'CRITICAL';
-    const rh = emergency.rhFactor === 'POSITIVE' ? '+' : emergency.rhFactor === 'NEGATIVE' ? '-' : '';
+    const rh = rhSign(emergency.rhFactor);
     const deadline = timeLeftLabel(emergency.requiredBefore, t);
 
     return (
@@ -410,13 +429,13 @@ export default function SosScreen() {
                     {rh}
                   </ValueText>
                   <Badge
-                    label={emergency.urgencyLevel}
+                    label={t(`status.urgency.${emergency.urgencyLevel?.toUpperCase()}`)}
                     tone={isCritical ? 'critical' : 'warning'}
                     icon={({ size, color }) => <AlertTriangle size={size} color={color} />}
                   />
                 </Row>
                 <View style={{ gap: 2 }}>
-                  <Text variant="bodyStrong" numberOfLines={1}>
+                  <Text variant="bodyStrong" numberOfLines={2}>
                     {emergency.hospital.name}
                   </Text>
                   <Text variant="caption" tone="tertiary" numberOfLines={2}>
@@ -425,7 +444,17 @@ export default function SosScreen() {
                 </View>
               </View>
 
-              <View style={{ alignItems: 'flex-end', gap: space.xs }}>
+              {/*
+                Shrinkable, and capped.
+
+                This column has no flex, so it sized itself to its longest
+                child -- and its longest child is the donation location
+                ("Emergency entrance, ground floor"), which took more than half
+                the card and truncated the hospital's name to "Jizzakh City …".
+                Between a ward entrance and which hospital it is, the hospital
+                is the one a donor needs to read.
+              */}
+              <View style={{ alignItems: 'flex-end', gap: space.xs, flexShrink: 1, maxWidth: '45%' }}>
                 {deadline ? (
                   <Row gap="xs">
                     <Clock size={iconSize.sm} color={colors.critical.text} />
@@ -440,7 +469,12 @@ export default function SosScreen() {
                 {emergency.donationLocation ? (
                   <Row gap="xs">
                     <MapPin size={iconSize.sm} color={colors.textTertiary} />
-                    <Text variant="caption" tone="tertiary" numberOfLines={1}>
+                    <Text
+                      variant="caption"
+                      tone="tertiary"
+                      numberOfLines={2}
+                      style={{ flexShrink: 1, textAlign: 'right' }}
+                    >
                       {emergency.donationLocation}
                     </Text>
                   </Row>
@@ -486,7 +520,7 @@ export default function SosScreen() {
   /* ------------------------------------------------------------- viewing */
 
   if (status === 'viewing' && selectedEmergency) {
-    const rh = selectedEmergency.rhFactor === 'POSITIVE' ? '+' : '-';
+    const rh = rhSign(selectedEmergency.rhFactor);
 
     return (
       <ScrollScreen header={<ScreenHeader title={t('sos.details')} onBack={() => setStatus('idle')} backLabel={t('common.a11yGoBack')} />}>

@@ -719,6 +719,17 @@ export const en: Catalog = {
       DELIVERED: 'Delivered',
       PARTIALLY_DELIVERED: 'Partially delivered',
     },
+    /**
+     * Emergency urgency, which the API sends as CRITICAL / HIGH / MEDIUM / LOW.
+     * The badge used to print whichever of those came back, in English block
+     * capitals, on a screen otherwise fully translated.
+     */
+    urgency: {
+      CRITICAL: 'Critical',
+      HIGH: 'High',
+      MEDIUM: 'Medium',
+      LOW: 'Low',
+    },
     priority: {
       ROUTINE: 'Routine',
       URGENT: 'Urgent',
@@ -765,6 +776,22 @@ export const en: Catalog = {
       CANCELLED: 'Cancelled',
       EXPIRED: 'Expired',
       FAILED: 'Failed',
+    },
+    /**
+     * Every member of EmergencyMatchStatus, because the screen used to map
+     * three of them and print the database's own word for the other five --
+     * DECLINED, EXPIRED, CANCELLED and NO_RESPONSE are all states a donor can
+     * actually be in.
+     */
+    match: {
+      MATCHED: 'New request',
+      NOTIFIED: 'You were notified',
+      VIEWED: 'Opened',
+      ACCEPTED: 'You accepted',
+      DECLINED: 'You declined',
+      EXPIRED: 'Expired',
+      CANCELLED: 'Cancelled by the hospital',
+      NO_RESPONSE: 'No response recorded',
     },
     response: {
       ACCEPTED: 'Accepted',
@@ -2216,6 +2243,7 @@ export const en: Catalog = {
     empty: 'No active campaigns',
     emptyHint: 'Check back later for new blood donation campaigns',
     joinCampaign: 'Join campaign',
+    joined: 'Joined',
     joinFailed: 'Failed to join campaign. Please try again.',
     bloodTypesNeeded: 'Blood types needed: {{types}}',
     targetSuffix: ' / {{count}} target',

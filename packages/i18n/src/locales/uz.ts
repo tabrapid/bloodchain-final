@@ -656,6 +656,12 @@ export const uz: Catalog = {
       DELIVERED: 'Yetkazilgan',
       PARTIALLY_DELIVERED: 'Qisman yetkazilgan',
     },
+    urgency: {
+      CRITICAL: 'Juda shoshilinch',
+      HIGH: 'Yuqori',
+      MEDIUM: 'O‘rta',
+      LOW: 'Past',
+    },
     priority: {
       ROUTINE: 'Oddiy',
       URGENT: 'Shoshilinch',
@@ -702,6 +708,16 @@ export const uz: Catalog = {
       CANCELLED: 'Bekor qilingan',
       EXPIRED: 'Muddati tugagan',
       FAILED: 'Muvaffaqiyatsiz',
+    },
+    match: {
+      MATCHED: 'Yangi so‘rov',
+      NOTIFIED: 'Sizga xabar yuborildi',
+      VIEWED: 'Ochilgan',
+      ACCEPTED: 'Siz rozilik bildirdingiz',
+      DECLINED: 'Siz rad etdingiz',
+      EXPIRED: 'Muddati tugagan',
+      CANCELLED: 'Shifoxona bekor qildi',
+      NO_RESPONSE: 'Javob qayd etilmagan',
     },
     response: {
       ACCEPTED: 'Qabul qilingan',
@@ -2153,6 +2169,7 @@ export const uz: Catalog = {
     empty: 'Faol kampaniyalar yo‘q',
     emptyHint: 'Yangi kampaniyalar uchun keyinroq qaytib keling',
     joinCampaign: 'Kampaniyaga qo‘shilish',
+    joined: 'Siz qatnashyapsiz',
     joinFailed: 'Kampaniyaga qo‘shilib bo‘lmadi. Qayta urinib ko‘ring.',
     bloodTypesNeeded: 'Kerakli qon guruhlari: {{types}}',
     targetSuffix: ' / maqsad {{count}}',

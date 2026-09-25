@@ -21,6 +21,7 @@ import {
   layout,
   space,
   useDesign,
+  useTabBarClearance,
 } from '../../../src/design';
 import { useTranslation } from '../../../src/i18n';
 
@@ -28,6 +29,7 @@ import { useTranslation } from '../../../src/i18n';
 const CLOSING_SOON_DAYS = 7;
 
 export default function CampaignsScreen() {
+  const tabBarClearance = useTabBarClearance();
   const { t } = useTranslation();
   const [joinError, setJoinError] = useState<string | null>(null);
   const queryClient = useQueryClient();
@@ -37,8 +39,15 @@ export default function CampaignsScreen() {
     queryFn: () => getCampaigns({ page: 1, limit: 50, status: 'ACTIVE' }),
   });
 
+  // Which campaign is being joined, not merely that one is.
+  //
+  // `joinMutation.isPending` was handed to every card, so tapping Join on one
+  // campaign put a spinner on all of them and disabled the lot.
+  const [joiningId, setJoiningId] = useState<string | null>(null);
+
   const joinMutation = useMutation({
     mutationFn: joinCampaign,
+    onSettled: () => setJoiningId(null),
     onSuccess: () => {
       setJoinError(null);
       void queryClient.invalidateQueries({ queryKey: ['campaigns'] });
@@ -97,7 +106,7 @@ export default function CampaignsScreen() {
         keyExtractor={(campaign) => campaign.id}
         contentContainerStyle={{
           paddingHorizontal: layout.gutter,
-          paddingBottom: layout.tabBarClearance,
+          paddingBottom: tabBarClearance,
           gap: space.md,
         }}
         showsVerticalScrollIndicator={false}
@@ -106,8 +115,11 @@ export default function CampaignsScreen() {
         renderItem={({ item: campaign }) => (
           <CampaignCard
             campaign={campaign}
-            onJoin={() => joinMutation.mutate(campaign.id)}
-            isJoining={joinMutation.isPending}
+            onJoin={() => {
+              setJoiningId(campaign.id);
+              joinMutation.mutate(campaign.id);
+            }}
+            isJoining={joiningId === campaign.id}
           />
         )}
         ListHeaderComponent={
@@ -204,7 +216,16 @@ function CampaignCard({
           ) : null}
         </Stack>
 
-        <Button label={t('campaigns.joinCampaign')} loading={isJoining} onPress={onJoin} />
+        {/*
+          A joined campaign said nothing about being joined: the card kept its
+          "Join campaign" button, and a successful join changed nothing on
+          screen, so the only way to tell was to tap it again.
+        */}
+        {campaign.joinedAt ? (
+          <Badge label={t('campaigns.joined')} tone="success" />
+        ) : (
+          <Button label={t('campaigns.joinCampaign')} loading={isJoining} onPress={onJoin} />
+        )}
       </Stack>
     </Surface>
   );

@@ -157,3 +157,37 @@ describe.each([
     act(() => tree.unmount());
   });
 });
+
+/**
+ * S11.1: the emergency match statuses.
+ *
+ * `sos.tsx` mapped three of EmergencyMatchStatus's eight members and returned
+ * the raw value for the rest -- so a donor who declined a request, or whose
+ * match expired, read "DECLINED" and "EXPIRED" on the most important screen in
+ * the app. This checks the catalogue rather than the screen, because the
+ * screen's `default:` branch now resolves through it and a missing key is the
+ * only way the raw word can come back.
+ */
+describe('every emergency match status has words', () => {
+  const MEMBERS = [
+    'MATCHED',
+    'NOTIFIED',
+    'VIEWED',
+    'ACCEPTED',
+    'DECLINED',
+    'EXPIRED',
+    'CANCELLED',
+    'NO_RESPONSE',
+  ];
+
+  it.each(['uz', 'ru', 'en'] as Locale[])('in %s', (locale) => {
+    const { createLocalization } = require('@bloodchain/i18n');
+    const { t } = createLocalization(locale);
+
+    for (const member of MEMBERS) {
+      const translated = t(`status.match.${member}`);
+      expect(translated).not.toBe(`status.match.${member}`);
+      expect(translated).not.toBe(member);
+    }
+  });
+});

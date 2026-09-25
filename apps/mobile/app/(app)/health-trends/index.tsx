@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useLocalSearchParams } from 'expo-router';
 import { View } from 'react-native';
 import { Activity, Minus, TrendingDown, TrendingUp } from 'lucide-react-native';
 import { LineChart } from 'react-native-chart-kit';
@@ -62,7 +63,11 @@ export default function HealthTrendsScreen() {
   const { t, formatDate } = useTranslation();
   const { colors } = useDesign();
 
-  const [selectedParam, setSelectedParam] = useState<string | null>(null);
+  // Health's marker rows pass the marker they name. Without this the screen
+  // always opened on whichever parameter came back first, so four of the five
+  // rows opened something other than the one that was tapped.
+  const { code: requestedCode } = useLocalSearchParams<{ code?: string }>();
+  const [selectedParam, setSelectedParam] = useState<string | null>(requestedCode ?? null);
   const [range, setRange] = useState<TimeRange>('1Y');
   const [picking, setPicking] = useState(false);
   // The chart is a fixed-pixel canvas, so it has to be told how wide its

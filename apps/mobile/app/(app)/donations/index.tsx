@@ -22,6 +22,7 @@ import {
   space,
   useDesign,
   type StatusTone,
+  useTabBarClearance,
 } from '../../../src/design';
 import { useMyDonations, useDonationStatistics } from '../../../src/hooks/useDonations';
 import { type Donation } from '../../../src/api/donations';
@@ -66,6 +67,7 @@ function statusBadge(
 }
 
 export default function DonationsScreen() {
+  const tabBarClearance = useTabBarClearance();
   const { t, formatDate } = useTranslation();
   const { colors } = useDesign();
   const [filter, setFilter] = useState<Filter>('all');
@@ -113,7 +115,7 @@ export default function DonationsScreen() {
         keyExtractor={(donation) => donation.id}
         contentContainerStyle={{
           paddingHorizontal: layout.gutter,
-          paddingBottom: layout.tabBarClearance,
+          paddingBottom: tabBarClearance,
         }}
         // A list of rows with hairlines between them, not a column of cards:
         // twenty donations are one history, not twenty separate objects.

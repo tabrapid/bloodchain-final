@@ -33,6 +33,7 @@ import {
   space,
   useDesign,
   type AccentName,
+  useTabBarClearance,
 } from '../../src/design';
 import { LucideIcon } from '../../src/types/icons';
 import {
@@ -91,6 +92,7 @@ const FILTERS = [
 type Filter = (typeof FILTERS)[number]['value'];
 
 export default function NotificationsCenter() {
+  const tabBarClearance = useTabBarClearance();
   const { t } = useTranslation();
   const router = useRouter();
   const [filter, setFilter] = useState<Filter>('all');
@@ -153,7 +155,7 @@ export default function NotificationsCenter() {
         style={{ flex: 1 }}
         contentContainerStyle={{
           paddingHorizontal: layout.gutter,
-          paddingBottom: layout.tabBarClearance,
+          paddingBottom: tabBarClearance,
         }}
         ItemSeparatorComponent={() => <Divider inset />}
         showsVerticalScrollIndicator={false}

@@ -42,6 +42,8 @@ import {
   space,
   useDesign,
   type AccentName,
+  useTabBarClearance,
+  Choice,
 } from '../../../src/design';
 import {
   getFeed,
@@ -123,9 +125,14 @@ function formatWhen(
  *   way back; the outcome is a sheet and a banner now.
  */
 export default function CommunityScreen() {
+  const tabBarClearance = useTabBarClearance();
   const { colors } = useDesign();
   const { t } = useTranslation();
   const [reporting, setReporting] = useState<CommunityPost | null>(null);
+  // Accusing another donor is a two-step action: pick a reason, then confirm.
+  // It used to commit on a single tap of a list row carrying a chevron, which
+  // everywhere else in this app means "opens something".
+  const [reportReason, setReportReason] = useState<ReportReason | null>(null);
   const [outcome, setOutcome] = useState<'sent' | 'failed' | null>(null);
 
   const feed = useQuery({
@@ -147,10 +154,12 @@ export default function CommunityScreen() {
     void impact.refetch();
   };
 
-  const submitReport = (reason: ReportReason) => {
+  const submitReport = () => {
     const post = reporting;
+    const reason = reportReason;
+    if (!post || !reason) return;
     setReporting(null);
-    if (!post) return;
+    setReportReason(null);
     reportContent(post.id, reason)
       .then(() => setOutcome('sent'))
       .catch(() => setOutcome('failed'));
@@ -176,23 +185,6 @@ export default function CommunityScreen() {
   const listHeader = (
     <Stack gap="xl" style={{ paddingBottom: space.lg }}>
       {header}
-
-      {outcome ? (
-        <Banner
-          tone={outcome === 'sent' ? 'success' : 'critical'}
-          title={outcome === 'sent' ? t('community.reportThanks') : t('community.reportFailed')}
-          description={outcome === 'sent' ? t('community.reportThanksBody') : undefined}
-          action={
-            <Button
-              label={t('common.close')}
-              variant="secondary"
-              size="md"
-              block={false}
-              onPress={() => setOutcome(null)}
-            />
-          }
-        />
-      ) : null}
 
       {/* ------------------------------------------------- where you stand */}
       {userRank.data ? (
@@ -249,6 +241,40 @@ export default function CommunityScreen() {
 
   return (
     <Screen gutter={false} topPadding>
+      {/*
+        Over the list, not inside its header.
+
+        Reporting a post from halfway down the feed closed the sheet and put
+        the confirmation at the very top of the list, where the donor could not
+        see it: the report either worked or failed in silence.
+      */}
+      {outcome ? (
+        <View
+          style={{
+            position: 'absolute',
+            top: space.md,
+            left: layout.gutter,
+            right: layout.gutter,
+            zIndex: 10,
+          }}
+        >
+          <Banner
+            tone={outcome === 'sent' ? 'success' : 'critical'}
+            title={outcome === 'sent' ? t('community.reportThanks') : t('community.reportFailed')}
+            description={outcome === 'sent' ? t('community.reportThanksBody') : undefined}
+            action={
+              <Button
+                label={t('common.close')}
+                variant="secondary"
+                size="md"
+                block={false}
+                onPress={() => setOutcome(null)}
+              />
+            }
+          />
+        </View>
+      ) : null}
+
       <FlatList
         style={{ flex: 1 }}
         data={feed.data?.items ?? []}
@@ -284,7 +310,7 @@ export default function CommunityScreen() {
         }
         contentContainerStyle={{
           paddingHorizontal: layout.gutter,
-          paddingBottom: layout.tabBarClearance + space.xl,
+          paddingBottom: tabBarClearance,
           gap: space.md,
         }}
       />
@@ -298,21 +324,32 @@ export default function CommunityScreen() {
       */}
       <BottomSheet
         visible={reporting !== null}
-        onClose={() => setReporting(null)}
+        onClose={() => {
+          setReporting(null);
+          setReportReason(null);
+        }}
         title={t('community.reportTitle')}
         description={t('community.reportBody')}
         closeLabel={t('common.close')}
       >
-        <ListGroup
-          rows={REPORT_REASONS.map((reason) => (
-            <ListRow
-              key={reason}
-              title={t(`community.reportReasons.${reason}`)}
-              trailing={<ChevronRight size={iconSize.md} color={colors.textTertiary} />}
-              onPress={() => submitReport(reason)}
-            />
-          ))}
-        />
+        <Stack gap="md">
+          <Stack gap="sm">
+            {REPORT_REASONS.map((reason) => (
+              <Choice
+                key={reason}
+                label={t(`community.reportReasons.${reason}`)}
+                selected={reportReason === reason}
+                onPress={() => setReportReason(reason)}
+              />
+            ))}
+          </Stack>
+          <Button
+            label={t('community.report')}
+            accent="critical"
+            disabled={reportReason === null}
+            onPress={submitReport}
+          />
+        </Stack>
       </BottomSheet>
     </Screen>
   );

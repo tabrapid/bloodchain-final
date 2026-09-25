@@ -382,3 +382,25 @@ describe('Emergency SOS: the donor-side state machine', () => {
     expect(renderedText(tree)).toContain(t('sos.noRouteShown'));
   });
 });
+
+/**
+ * S11.1: two things the emergency screens said in the database's words.
+ *
+ * The urgency badge printed the API's own CRITICAL / HIGH / MEDIUM / LOW on a
+ * screen that is otherwise fully translated, and the Rh sign was computed two
+ * different ways -- three-valued on the list card, two-valued on the detail --
+ * so a request with an unknown factor read "AB" in the list and "AB-" one tap
+ * later. On this screen that is a different blood type.
+ */
+describe('emergency urgency and Rh, in words a donor can read', () => {
+  it.each(['uz', 'ru', 'en'])('translates every urgency level in %s', (locale) => {
+    const { createLocalization } = require('@bloodchain/i18n');
+    const { t } = createLocalization(locale);
+
+    for (const level of ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']) {
+      const label = t(`status.urgency.${level}`);
+      expect(label).not.toBe(`status.urgency.${level}`);
+      expect(label).not.toBe(level);
+    }
+  });
+});

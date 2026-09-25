@@ -365,7 +365,11 @@ export default function Health() {
                       ) : undefined
                     }
                     accessibilityLabel={`${param.name}: ${param.latestValue ?? '—'} ${param.unit ?? ''}. ${t('health.viewTrends')}`}
-                    onPress={() => router.push('/health-trends')}
+                    // With the marker, not just to the screen: all five rows
+                    // used to open Health trends on whichever parameter it
+                    // happened to default to, so four of five opened something
+                    // other than the row that was tapped.
+                    onPress={() => router.push({ pathname: '/health-trends', params: { code: param.code } })}
                   />
                 );
               })}

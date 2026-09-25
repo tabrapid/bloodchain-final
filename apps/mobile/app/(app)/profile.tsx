@@ -35,6 +35,7 @@ import {
   space,
   useDesign,
   type AccentName,
+  Skeleton,
 } from '../../src/design';
 import { useLogout } from '../../src/hooks/useAuth';
 import { percentAsFraction } from '../../src/utils/progress';
@@ -89,7 +90,7 @@ export default function Profile() {
   const [confirmingSignOut, setConfirmingSignOut] = useState(false);
 
   const { data: user } = useUserProfile();
-  const { data: donor } = useDonorProfile();
+  const { data: donor, isPending: donorPending } = useDonorProfile();
   const { data: completionData } = useProfileCompletion();
   const { data: gamificationProfile } = useGamificationProfile();
   const { data: levelProgress } = useLevelProgress();
@@ -153,11 +154,23 @@ export default function Profile() {
               </View>
             </Row>
 
+            {/*
+              An absent profile is not an unverified one.
+
+              `verificationStatus` falls back to UNVERIFIED whenever `donor` is
+              undefined -- every cold start, and every failed request -- so a
+              verified donor was told otherwise, in a badge, until the first
+              response arrived.
+            */}
             <Row gap="sm">
-              <Badge
-                label={t(`status.verification.${verificationStatus}`)}
-                tone={verificationTone}
-              />
+              {donorPending ? (
+                <Skeleton width={96} height={22} />
+              ) : (
+                <Badge
+                  label={t(`status.verification.${verificationStatus}`)}
+                  tone={verificationTone}
+                />
+              )}
               {/* Where the group came from is part of what "verified" means.
                   V1 printed the enum. */}
               {donor?.bloodTypeSource ? (

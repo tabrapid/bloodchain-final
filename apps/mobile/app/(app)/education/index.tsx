@@ -31,6 +31,7 @@ import {
   layout,
   space,
   useDesign,
+  useTabBarClearance,
 } from '../../../src/design';
 import { useTranslation } from '../../../src/i18n';
 import type { TranslateFn } from '@bloodchain/i18n';
@@ -47,6 +48,7 @@ function difficultyLabel(value: string, t: TranslateFn): string {
 }
 
 export default function EducationScreen() {
+  const tabBarClearance = useTabBarClearance();
   const { t } = useTranslation();
   const [actionError, setActionError] = useState<string | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
@@ -141,7 +143,7 @@ export default function EducationScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={{
           paddingHorizontal: layout.gutter,
-          paddingBottom: layout.tabBarClearance,
+          paddingBottom: tabBarClearance,
           gap: space.md,
         }}
         showsVerticalScrollIndicator={false}

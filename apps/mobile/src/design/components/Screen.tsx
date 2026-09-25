@@ -91,6 +91,24 @@ export interface ScrollScreenProps extends Omit<ScrollViewProps, 'style' | 'cont
  * documented clearance when there is not -- so content always scrolls clear of
  * the floating bar instead of ending underneath it.
  */
+/**
+ * How much room the floating tab bar needs at the foot of a scrolling surface.
+ *
+ * The bar draws over the content, and its height depends on the device -- a
+ * home indicator adds to it. `ScrollScreen` has always measured it; the six
+ * FlatList screens each hard-coded `layout.tabBarClearance` instead, which is
+ * the fallback for screens that are not inside the tab navigator at all. On a
+ * phone with a home indicator that constant is about 10pt short, so the last
+ * card in every one of those lists sat under the bar, and none of them left
+ * the `space.xl` of breathing room the scrolling screens do.
+ *
+ * Exported so a list cannot get this wrong by copying a number.
+ */
+export function useTabBarClearance(): number {
+  const tabBarHeight = useContext(BottomTabBarHeightContext);
+  return (tabBarHeight ?? layout.tabBarClearance) + space.xl;
+}
+
 export function ScrollScreen({
   children,
   gutter = true,
@@ -104,9 +122,7 @@ export function ScrollScreen({
 }: ScrollScreenProps) {
   const { colors } = useDesign();
   const insets = useSafeAreaInsets();
-  const tabBarHeight = useContext(BottomTabBarHeightContext);
-
-  const bottomClearance = (tabBarHeight ?? layout.tabBarClearance) + space.xl;
+  const bottomClearance = useTabBarClearance();
 
   return (
     <View

@@ -301,14 +301,21 @@ export function OptionGrid<T extends string>({
             accessibilityState={{ selected, disabled: Boolean(option.disabled) }}
             accessibilityLabel={option.accessibilityLabel ?? option.label}
             style={({ pressed }) => ({
-              // The gap is shared between the cells in a row, so each cell
-              // gives up its share of it rather than overflowing the row.
+              // A row of `columns` cells has `columns - 1` gaps in it, and each
+              // cell has to give up its share of all of them -- not of one.
+              // Giving up `gap / columns` returned a single gap's width to a
+              // row that needed three, so four 25% cells plus three 8pt gaps
+              // came to more than the row and the fourth wrapped: the blood
+              // type grid rendered 3/3/2, and the two time pickers rendered two
+              // slots per row with a third of the row empty beside them.
+              //
+              //   columns x (100/columns% - gap(columns-1)/columns) + (columns-1) x gap = 100%
               width: `${100 / columns}%`,
               flexBasis: `${100 / columns}%`,
               flexGrow: 0,
               flexShrink: 1,
               maxWidth: `${100 / columns}%`,
-              marginRight: -gap / columns,
+              marginRight: (-gap * (columns - 1)) / columns,
               minHeight: hitTarget.comfortable,
               alignItems: 'center',
               justifyContent: 'center',

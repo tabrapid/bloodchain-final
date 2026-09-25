@@ -261,7 +261,17 @@ export default function Donate() {
           </Stack>
         </Surface>
 
-        {/* -------------------------------------------------- what you give */}
+        {/*
+          What you give -- a record, not a menu.
+
+          These four rows used to be pressable and all four called the same
+          handler, which books a BLOOD_DONATION appointment regardless: tapping
+          "Plasma" and tapping "Platelets" did exactly the same thing, and the
+          row announced "Book a donation" while doing it. Appointment types are
+          BLOOD_DONATION / BLOOD_TEST / CONSULTATION; the donation type is a
+          property of the donation, decided at the centre. So the rows say what
+          this donor has given, and the one button above books the appointment.
+        */}
         <Stack gap="md">
           <SectionHeader
             title={t('donate.donationTypes')}
@@ -286,8 +296,7 @@ export default function Donate() {
                   value={count ? t('units.donations', { count }) : t('donate.notYetDonated')}
                   accessibilityLabel={`${t(type.labelKey)}. ${
                     count ? t('units.donations', { count }) : t('donate.notYetDonated')
-                  }. ${t('donate.bookDonation')}`}
-                  onPress={goToBooking}
+                  }`}
                 />
               );
             })}
