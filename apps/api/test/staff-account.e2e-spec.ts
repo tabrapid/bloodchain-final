@@ -2,7 +2,7 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 
 import { PrismaService } from '../src/database/prisma.service';
-import { API, SEEDED, createTestApp, tokenFor } from './utils/e2e';
+import { API, SEEDED, createTestApp, tokenFor, waitFor } from './utils/e2e';
 
 /**
  * S4-10: staff can change their own password from the console.
@@ -97,10 +97,22 @@ describe('staff can change their own password', () => {
     // The router's idempotency key used to be `SECURITY:<event>:<user>` with no
     // occurrence in it, so a second password change matched the first and was
     // silently dropped. The key now carries the audit row's id.
-    const notifications = await db.notification.findMany({
-      where: { recipientId: staffId, type: 'SECURITY' },
-      orderBy: { createdAt: 'desc' },
-    });
+    //
+    // Waited for rather than read once. The notification is written by an
+    // `@nestjs/event-emitter` handler that the password-change request does not
+    // await, so reading the table immediately is a race that passes on a fast
+    // machine and fails on a loaded CI runner -- which is exactly what it did,
+    // twice, while the half of this test below had been polling all along.
+    const notifications = await waitFor(
+      async () => {
+        const rows = await db.notification.findMany({
+          where: { recipientId: staffId, type: 'SECURITY' },
+          orderBy: { createdAt: 'desc' },
+        });
+        return rows.length > 0 ? rows : null;
+      },
+      { what: 'the password-change notification to reach the account holder' },
+    );
 
     expect(notifications.length).toBeGreaterThanOrEqual(1);
     expect(notifications[0]!.body).toContain('password');
