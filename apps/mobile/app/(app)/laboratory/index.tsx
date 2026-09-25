@@ -1,290 +1,222 @@
-import { useCallback, useEffect, useState } from 'react';
-import { ScrollView, View, RefreshControl, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
-import { Activity, Beaker, Calendar, ChevronRight, Clock, FlaskConical, TestTube2 } from 'lucide-react-native';
-import { AppText, Card, GlassCard, LoadingState, Screen, ScreenHeader, SectionHeader, StatCard } from '../../../src/components';
-import { layout, spacing, useTheme } from '../../../src/theme';
-import { useTranslation } from '../../../src/i18n';
 import {
-  getDonorAppointments,
-  getDonorResults,
-  LaboratoryAppointment,
-  LaboratoryResult,
-} from '../../../src/api/laboratory';
+  Beaker,
+  ChevronRight,
+  FlaskConical,
+  TestTube2,
+  Calendar as CalendarIcon,
+} from 'lucide-react-native';
+import {
+  Badge,
+  EmptyState,
+  ErrorState,
+  ListGroup,
+  ListRow,
+  ScreenHeader,
+  ScrollScreen,
+  SectionHeader,
+  Skeleton,
+  Stack,
+  Stat,
+  StatRow,
+  Surface,
+  Text,
+  iconSize,
+  useDesign,
+  type StatusTone,
+} from '../../../src/design';
+import {
+  useDonorLaboratoryAppointments,
+  useDonorLaboratoryResults,
+} from '../../../src/hooks/useLaboratory';
+import { useTranslation } from '../../../src/i18n';
 
+/** Statuses that mean the appointment is behind the donor, not ahead of them. */
+const FINISHED = ['COMPLETED', 'CANCELLED', 'NO_SHOW', 'RESULT_PUBLISHED'];
+
+function appointmentTone(status: string): StatusTone {
+  switch (status) {
+    case 'RESULT_PUBLISHED':
+    case 'COMPLETED':
+      return 'success';
+    case 'CHECKED_IN':
+    case 'IN_PROGRESS':
+    case 'RESULT_PENDING':
+      return 'warning';
+    case 'CANCELLED':
+    case 'NO_SHOW':
+      return 'critical';
+    default:
+      return 'clinical';
+  }
+}
+
+/**
+ * The laboratory hub, rebuilt for V2.
+ *
+ * Two lists and a way to book. V1 fetched both with a `Promise.all` in a
+ * `useEffect` and set a single `loadError` flag, which it then only showed if
+ * *both* lists happened to be empty -- so a donor whose results failed to load
+ * but who had one upcoming appointment saw a screen that quietly claimed they
+ * had no results at all. The two requests are separate queries now and each
+ * says for itself whether it failed.
+ */
 export default function LaboratoryScreen() {
   const { t, formatDate, formatTime } = useTranslation();
-  const { colors } = useTheme();
-  const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [loadError, setLoadError] = useState(false);
-  const [appointments, setAppointments] = useState<LaboratoryAppointment[]>([]);
-  const [results, setResults] = useState<LaboratoryResult[]>([]);
+  const { colors } = useDesign();
 
-  const loadData = useCallback(async () => {
-    try {
-      const [appts, res] = await Promise.all([
-        getDonorAppointments(),
-        getDonorResults(),
-      ]);
-      setAppointments(appts);
-      setResults(res);
-      setLoadError(false);
-    } catch (err) {
-      console.error('Failed to load laboratory data:', err);
-      setLoadError(true);
-    } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
-    }
-  }, []);
+  const appointments = useDonorLaboratoryAppointments();
+  const results = useDonorLaboratoryResults();
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  const upcoming = (appointments.data ?? []).filter((a) => !FINISHED.includes(a.status));
+  const published = (results.data ?? []).filter((r) => r.status === 'PUBLISHED');
 
-  const onRefresh = useCallback(() => {
-    setIsRefreshing(true);
-    loadData();
-  }, [loadData]);
+  const isPending = appointments.isPending || results.isPending;
+  const bothFailed = appointments.isError && results.isError;
 
-  const upcomingAppointments = appointments.filter(
-    (a) => !['COMPLETED', 'CANCELLED', 'NO_SHOW', 'RESULT_PUBLISHED'].includes(a.status)
-  );
+  const header = <ScreenHeader title={t('laboratory.title')} />;
 
-  const publishedResults = results.filter((r) => r.status === 'PUBLISHED');
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'PENDING':
-      case 'CONFIRMED':
-        return { bg: colors.secondaryMuted, text: colors.onMuted.secondary };
-      case 'CHECKED_IN':
-      case 'IN_PROGRESS':
-        return { bg: colors.warningMuted, text: colors.onMuted.warning };
-      case 'RESULT_PENDING':
-        return { bg: colors.warningMuted, text: colors.onMuted.warning };
-      case 'RESULT_PUBLISHED':
-        return { bg: colors.successMuted, text: colors.onMuted.success };
-      default:
-        return { bg: colors.surfaceElevated, text: colors.textMuted };
-    }
-  };
-
-  if (isLoading) {
+  if (isPending) {
     return (
-      <Screen>
-        <ScreenHeader title={t('laboratory.title')} />
-        <LoadingState />
-      </Screen>
+      <ScrollScreen header={header}>
+        <Stack gap="lg">
+          <Skeleton height={72} />
+          <Skeleton height={64} />
+          <Skeleton height={64} />
+        </Stack>
+      </ScrollScreen>
     );
   }
 
+  if (bothFailed) {
+    return (
+      <ScrollScreen header={header}>
+        <ErrorState
+          title={t('laboratory.loadFailed')}
+          description={t('laboratory.loadFailedHint')}
+          retryLabel={t('common.retry')}
+          onRetry={() => {
+            void appointments.refetch();
+            void results.refetch();
+          }}
+        />
+      </ScrollScreen>
+    );
+  }
+
+  const nothingYet = upcoming.length === 0 && published.length === 0;
+
   return (
-    <Screen>
-      <ScreenHeader title={t('laboratory.title')} />
-      <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={{ paddingBottom: spacing.xl }}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={onRefresh}
-            tintColor={colors.primary}
-          />
-        }
-      >
-        <View style={{ flexDirection: 'row', gap: spacing.md, marginBottom: spacing.lg }}>
-          <StatCard
+    <ScrollScreen
+      header={header}
+      refreshing={appointments.isRefetching || results.isRefetching}
+      onRefresh={() => {
+        void appointments.refetch();
+        void results.refetch();
+      }}
+    >
+      <Stack gap="xl">
+        <StatRow>
+          <Stat
             label={t('laboratory.upcoming')}
-            value={upcomingAppointments.length.toString()}
-            icon={Calendar}
-            variant={upcomingAppointments.length > 0 ? 'secondary' : 'default'}
-            style={{ flex: 1 }}
+            value={String(upcoming.length)}
+            icon={({ size, color }) => <CalendarIcon size={size} color={color} />}
+            tone={upcoming.length > 0 ? 'clinical' : undefined}
           />
-          <StatCard
+          <Stat
             label={t('laboratory.results')}
-            value={publishedResults.length.toString()}
-            icon={TestTube2}
-            variant={publishedResults.length > 0 ? 'success' : 'default'}
-            style={{ flex: 1 }}
+            value={String(published.length)}
+            icon={({ size, color }) => <TestTube2 size={size} color={color} />}
+            tone={published.length > 0 ? 'success' : undefined}
           />
-        </View>
+        </StatRow>
 
-        <SectionHeader>{t('laboratory.bookATest')}</SectionHeader>
-        <TouchableOpacity
+        <Surface
           onPress={() => router.push('/(lab-booking)/test-type')}
-          activeOpacity={0.8}
+          accessibilityLabel={`${t('laboratory.bookBloodTest')}. ${t('laboratory.bookHint')}`}
         >
-          <Card style={{ marginBottom: layout.cardGap }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
-              <View
-                style={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: 12,
-                  backgroundColor: colors.secondaryMuted,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <FlaskConical size={24} color={colors.onMuted.secondary} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <AppText variant="heading">{t('laboratory.bookBloodTest')}</AppText>
-                <AppText muted style={{ fontSize: 13 }}>
-                  {t('laboratory.bookHint')}
-                </AppText>
-              </View>
-              <ChevronRight size={20} color={colors.textMuted} />
-            </View>
-          </Card>
-        </TouchableOpacity>
+          <Stack gap="xs">
+            <Text variant="bodyStrong">{t('laboratory.bookBloodTest')}</Text>
+            <Text variant="caption" tone="secondary">
+              {t('laboratory.bookHint')}
+            </Text>
+          </Stack>
+        </Surface>
 
-        {upcomingAppointments.length > 0 && (
-          <>
-            <SectionHeader>{t('laboratory.upcomingAppointments')}</SectionHeader>
-            {upcomingAppointments.slice(0, 3).map((appointment) => (
-              <TouchableOpacity
-                key={appointment.id}
-                onPress={() => router.push(`/appointment/${appointment.id}`)}
-                activeOpacity={0.8}
-              >
-              <Card style={{ marginBottom: layout.cardGap }}>
-                <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md }}>
-                  <View
-                    style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 10,
-                      backgroundColor: getStatusColor(appointment.status).bg,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <Activity size={20} color={getStatusColor(appointment.status).text} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-                      <AppText variant="heading">
-                        {appointment.testType?.name ?? appointment.organization.name}
-                      </AppText>
-                    </View>
-                    {appointment.testType ? (
-                      <AppText muted style={{ fontSize: 13 }}>
-                        {appointment.organization.name}
-                      </AppText>
-                    ) : null}
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginTop: spacing.xs }}>
-                      <Clock size={12} color={colors.textMuted} />
-                      <AppText muted style={{ fontSize: 13 }}>
-                        {formatDate(appointment.scheduledStart, 'medium')} ·{' '}
-                        {formatTime(appointment.scheduledStart)}
-                      </AppText>
-                    </View>
-                    <View
-                      style={{
-                        marginTop: spacing.sm,
-                        paddingHorizontal: spacing.sm,
-                        paddingVertical: 2,
-                        borderRadius: 4,
-                        backgroundColor: getStatusColor(appointment.status).bg,
-                        alignSelf: 'flex-start',
-                      }}
-                    >
-                      <AppText
-                        style={{
-                          fontSize: 11,
-                          fontWeight: '600',
-                          color: getStatusColor(appointment.status).text,
-                        }}
-                      >
-                        {t(`status.appointment.${appointment.status}`)}
-                      </AppText>
-                    </View>
-                  </View>
-                </View>
-              </Card>
-              </TouchableOpacity>
-            ))}
-          </>
-        )}
+        {appointments.isError ? (
+          <ErrorState
+            title={t('laboratory.loadFailed')}
+            description={t('laboratory.loadFailedHint')}
+            retryLabel={t('common.retry')}
+            onRetry={() => void appointments.refetch()}
+          />
+        ) : upcoming.length > 0 ? (
+          <Stack gap="md">
+            <SectionHeader title={t('laboratory.upcomingAppointments')} />
+            <ListGroup
+              rows={upcoming.slice(0, 3).map((appointment) => (
+                <ListRow
+                  key={appointment.id}
+                  leading={<FlaskConical size={iconSize.lg} color={colors.clinical.base} />}
+                  title={appointment.testType?.name ?? appointment.organization.name}
+                  subtitle={`${formatDate(appointment.scheduledStart, 'medium')} · ${formatTime(
+                    appointment.scheduledStart,
+                  )}${appointment.testType ? ` · ${appointment.organization.name}` : ''}`}
+                  trailing={
+                    <Badge
+                      label={t(`status.appointment.${appointment.status}`)}
+                      tone={appointmentTone(appointment.status)}
+                    />
+                  }
+                  onPress={() => router.push(`/appointment/${appointment.id}`)}
+                />
+              ))}
+            />
+          </Stack>
+        ) : null}
 
-        {publishedResults.length > 0 && (
-          <>
-            <SectionHeader>{t('laboratory.recentResults')}</SectionHeader>
-            {publishedResults.slice(0, 3).map((result) => (
-              <Card key={result.id} style={{ marginBottom: layout.cardGap }}>
-                <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md }}>
-                  <View
-                    style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 10,
-                      backgroundColor: colors.successMuted,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <Beaker size={20} color={colors.onMuted.success} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <AppText variant="heading">{result.testType.name}</AppText>
-                    <AppText muted style={{ fontSize: 13 }}>
-                      {result.laboratory.name}
-                    </AppText>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginTop: spacing.xs }}>
-                      <Calendar size={12} color={colors.textMuted} />
-                      <AppText muted style={{ fontSize: 12 }}>
-                        {result.publishedAt
-                          ? formatDate(result.publishedAt)
-                          : t('laboratory.dateUnknown')}
-                      </AppText>
-                    </View>
-                    <View style={{ marginTop: spacing.sm }}>
-                      <AppText muted style={{ fontSize: 12 }}>
-                        {t('units.parametersTested', { count: result.items.length })}
-                      </AppText>
-                    </View>
-                  </View>
-                  <ChevronRight size={20} color={colors.textMuted} />
-                </View>
-              </Card>
-            ))}
-          </>
-        )}
+        {results.isError ? (
+          <ErrorState
+            title={t('laboratory.loadFailed')}
+            description={t('laboratory.loadFailedHint')}
+            retryLabel={t('common.retry')}
+            onRetry={() => void results.refetch()}
+          />
+        ) : published.length > 0 ? (
+          <Stack gap="md">
+            <SectionHeader title={t('laboratory.recentResults')} />
+            <ListGroup
+              rows={published.slice(0, 3).map((result) => (
+                <ListRow
+                  key={result.id}
+                  leading={<Beaker size={iconSize.lg} color={colors.success.base} />}
+                  title={result.testType.name}
+                  subtitle={`${result.laboratory.name} · ${
+                    result.publishedAt
+                      ? formatDate(result.publishedAt, 'medium')
+                      : t('laboratory.dateUnknown')
+                  }`}
+                  value={t('units.parametersTested', { count: result.items.length })}
+                  trailing={<ChevronRight size={iconSize.md} color={colors.textTertiary} />}
+                  onPress={() => router.push('/health-trends')}
+                />
+              ))}
+            />
+          </Stack>
+        ) : null}
 
-        {loadError && upcomingAppointments.length === 0 && publishedResults.length === 0 ? (
-          <GlassCard>
-            <View style={{ alignItems: 'center', padding: spacing.lg }}>
-              <AppText variant="heading" style={{ textAlign: 'center' }}>
-                {t('laboratory.loadFailed')}
-              </AppText>
-              <AppText muted style={{ marginTop: spacing.sm, textAlign: 'center' }}>
-                {t('laboratory.loadFailedHint')}
-              </AppText>
-            </View>
-          </GlassCard>
-        ) : (
-          upcomingAppointments.length === 0 &&
-          publishedResults.length === 0 && (
-            <>
-              <SectionHeader>{t('laboratory.getStarted')}</SectionHeader>
-              <GlassCard>
-                <View style={{ alignItems: 'center', padding: spacing.lg }}>
-                  <FlaskConical size={48} color={colors.secondary} />
-                  <AppText variant="heading" style={{ marginTop: spacing.md, textAlign: 'center' }}>
-                    {t('laboratory.empty')}
-                  </AppText>
-                  <AppText muted style={{ marginTop: spacing.sm, textAlign: 'center' }}>
-                    {t('laboratory.emptyHint')}
-                  </AppText>
-                </View>
-              </GlassCard>
-            </>
-          )
-        )}
-      </ScrollView>
-    </Screen>
+        {nothingYet && !appointments.isError && !results.isError ? (
+          <EmptyState
+            title={t('laboratory.empty')}
+            description={t('laboratory.emptyHint')}
+            icon={({ size, color }) => <FlaskConical size={size} color={color} />}
+            action={{
+              label: t('laboratory.bookATest'),
+              onPress: () => router.push('/(lab-booking)/test-type'),
+            }}
+          />
+        ) : null}
+      </Stack>
+    </ScrollScreen>
   );
 }

@@ -2045,6 +2045,8 @@ export const en: Catalog = {
     dateUnknown: 'Date unknown',
   },
   healthTrends: {
+    previousValue: 'Previous: {{value}}',
+    chartSummary: '{{parameter}}: {{count}} measurements, {{direction}}',
     title: 'Health trends',
     timeRange: 'Time range',
     trendChart: 'Trend chart',

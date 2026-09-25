@@ -1,6 +1,15 @@
 import { useQuery } from '@tanstack/react-query';
 
-import { getTrendSummary, type TrendSummary } from '../api/health-trends';
+import {
+  getAvailableParameters,
+  getParameterHistory,
+  getParameterTrend,
+  getTrendSummary,
+  type AvailableParameter,
+  type TrendData,
+  type TrendHistoryResponse,
+  type TrendSummary,
+} from '../api/health-trends';
 import { getAiAvailability, getInsightHistory, type AiInsight } from '../api/ai-health';
 
 /**
@@ -53,5 +62,38 @@ export function useAiEnabled() {
       getAiAvailability()
         .then((availability) => availability.enabled)
         .catch(() => false),
+  });
+}
+
+/**
+ * Every parameter the donor has a measurement for.
+ *
+ * The trends screen used to fetch this and the summary together in a
+ * `Promise.all` whose rejection set one flag for both, so a partial failure
+ * showed the empty state -- "no health trends yet" -- to a donor who has
+ * years of them.
+ */
+export function useAvailableParameters() {
+  return useQuery<AvailableParameter[]>({
+    queryKey: ['health-parameters'],
+    queryFn: getAvailableParameters,
+  });
+}
+
+/** One parameter's series over a range. Disabled until a parameter is chosen. */
+export function useParameterTrend(code: string | null, range: string) {
+  return useQuery<TrendData | null>({
+    queryKey: ['health-parameter-trend', code, range],
+    queryFn: () => getParameterTrend(code!, { range }),
+    enabled: Boolean(code),
+  });
+}
+
+/** The measurements behind the series, newest first. */
+export function useParameterHistory(code: string | null, limit = 10) {
+  return useQuery<TrendHistoryResponse | null>({
+    queryKey: ['health-parameter-history', code, limit],
+    queryFn: () => getParameterHistory(code!, limit, 0),
+    enabled: Boolean(code),
   });
 }

@@ -1982,6 +1982,8 @@ export const uz: Catalog = {
     dateUnknown: 'Sana noma’lum',
   },
   healthTrends: {
+    previousValue: 'Oldingi: {{value}}',
+    chartSummary: '{{parameter}}: {{count}} ta o‘lchov, {{direction}}',
     title: 'Salomatlik dinamikasi',
     timeRange: 'Vaqt oralig‘i',
     trendChart: 'Dinamika grafigi',

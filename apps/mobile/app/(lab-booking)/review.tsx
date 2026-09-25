@@ -1,16 +1,20 @@
-import { useMemo, useState } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
-import { AlertCircle, Building2, Calendar, FlaskConical } from 'lucide-react-native';
-import type { ReactNode } from 'react';
+import { Building2, Calendar, FlaskConical } from 'lucide-react-native';
 import {
-  AppButton,
-  AppText,
-  AppTextInput,
-  BookingStep,
-  GlassCard,
-  Screen,
-} from '../../src/components';
+  Banner,
+  Button,
+  ErrorState,
+  Field,
+  FlowStep,
+  ListGroup,
+  ListRow,
+  Skeleton,
+  Stack,
+  Text,
+  iconSize,
+  useDesign,
+} from '../../src/design';
 import {
   laboratoriesOfferingTestType,
   useBookLaboratoryAppointment,
@@ -19,8 +23,8 @@ import {
   useTestTypes,
 } from '../../src/hooks/useLaboratory';
 import { ApiRequestError } from '../../src/api/client';
-import { layout, radius, spacing, useTheme, ThemeColors } from '../../src/theme';
 import { useTranslation } from '../../src/i18n';
+import { LAB_BOOKING_STEP_COUNT } from './test-type';
 
 /**
  * Step 5: what the donor is about to book, then `POST /laboratory-appointments`.
@@ -32,8 +36,7 @@ import { useTranslation } from '../../src/i18n';
  */
 export default function ReviewLabBooking() {
   const { t, formatDate, formatTime } = useTranslation();
-  const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const { colors } = useDesign();
   const params = useLocalSearchParams<{
     testTypeId: string;
     laboratoryId: string;
@@ -89,229 +92,104 @@ export default function ReviewLabBooking() {
         params: { appointmentId: appointment.id },
       });
     } catch (err) {
-      setError(
-        err instanceof ApiRequestError ? err.error.message : t('labBooking.bookFailed'),
-      );
+      setError(err instanceof ApiRequestError ? err.error.message : t('labBooking.bookFailed'));
     }
   };
 
+  const chrome = {
+    step: 5,
+    total: LAB_BOOKING_STEP_COUNT,
+    counterLabel: t('booking.stepOf', { current: 5, total: LAB_BOOKING_STEP_COUNT }),
+    onBack: () => router.back(),
+    backLabel: t('common.a11yGoBack'),
+    onClose: () => router.replace('/(app)/laboratory'),
+    closeLabel: t('common.a11yCloseBooking'),
+  } as const;
+
   if (isLoading) {
     return (
-      <BookingStep
-        step={5}
-        title={t('booking.review')}
-        subtitle={t('booking.loadingDetails')}
-        onClose={() => router.replace('/(app)/laboratory')}
-      >
-        <View />
-      </BookingStep>
+      <FlowStep {...chrome} title={t('booking.review')} subtitle={t('booking.loadingDetails')}>
+        <Stack gap="md">
+          <Skeleton height={56} />
+          <Skeleton height={56} />
+          <Skeleton height={56} />
+        </Stack>
+      </FlowStep>
     );
   }
 
   if (hasLoadError || notFound || !testType || !laboratory || !slot) {
     return (
-      <Screen>
-        <GlassCard danger style={styles.blockingError}>
-          <AlertCircle size={20} color={colors.onMuted.danger} />
-          <AppText style={styles.blockingErrorText}>
-            {hasLoadError ? t('booking.detailsFailed') : t('booking.slotTaken')}
-          </AppText>
-        </GlassCard>
-        <View style={styles.blockingActions}>
-          {hasLoadError && (
-            <AppButton
-              onPress={() => {
-                refetchTestTypes();
-                refetchLabs();
-                refetchSlots();
-              }}
-            >
-              {t('common.retry')}
-            </AppButton>
-          )}
-          <AppButton variant="secondary" onPress={() => router.back()}>
-            {t('common.back')}
-          </AppButton>
-        </View>
-      </Screen>
+      <FlowStep {...chrome} title={t('booking.review')}>
+        <ErrorState
+          title={hasLoadError ? t('booking.detailsFailed') : t('booking.slotTaken')}
+          description={hasLoadError ? t('common.offline') : t('booking.slotTakenHint')}
+          {...(hasLoadError
+            ? {
+                retryLabel: t('common.retry'),
+                onRetry: () => {
+                  void refetchTestTypes();
+                  void refetchLabs();
+                  void refetchSlots();
+                },
+              }
+            : {})}
+        />
+        <Button label={t('common.back')} variant="secondary" onPress={() => router.back()} />
+      </FlowStep>
     );
   }
 
   return (
-    <BookingStep
-      step={5}
+    <FlowStep
+      {...chrome}
       title={t('booking.review')}
       subtitle={t('booking.confirmDetails')}
-      nextLabel={t('labBooking.confirmBooking')}
-      onNext={handleConfirm}
-      onClose={() => router.replace('/(app)/laboratory')}
-      nextDisabled={bookMutation.isPending}
-      nextLoading={bookMutation.isPending}
+      primaryLabel={t('labBooking.confirmBooking')}
+      primaryDisabled={bookMutation.isPending}
+      primaryLoading={bookMutation.isPending}
+      onPrimary={() => void handleConfirm()}
+      footer={
+        <Text variant="caption" tone="tertiary">
+          {t('labBooking.fastingHint')}
+        </Text>
+      }
     >
-      <GlassCard tier="elevated">
-        <View style={styles.detailStack}>
-          <DetailRow
-            icon={<FlaskConical size={18} color={colors.onMuted.secondary} />}
-            tint={colors.secondaryMuted}
-            label={t('labBooking.testType')}
+      <ListGroup
+        rows={[
+          <ListRow
+            key="test"
+            leading={<FlaskConical size={iconSize.lg} color={colors.clinical.base} />}
+            title={t('labBooking.testType')}
+            subtitle={t('units.parametersTested', { count: testType.parameters.length })}
             value={testType.name}
-            meta={t('units.parametersTested', { count: testType.parameters.length })}
-          />
-          <View style={styles.divider} />
-          <DetailRow
-            icon={<Building2 size={18} color={colors.onMuted.primary} />}
-            tint={colors.primaryMuted}
-            label={t('table.location')}
+          />,
+          <ListRow
+            key="where"
+            leading={<Building2 size={iconSize.lg} color={colors.rose.base} />}
+            title={t('table.location')}
+            subtitle={laboratory.address ?? undefined}
             value={laboratory.name}
-            meta={laboratory.address ?? undefined}
-          />
-          <View style={styles.divider} />
-          <DetailRow
-            icon={<Calendar size={18} color={colors.onMuted.success} />}
-            tint={colors.successMuted}
-            label={t('booking.dateAndTime')}
+          />,
+          <ListRow
+            key="when"
+            leading={<Calendar size={iconSize.lg} color={colors.success.base} />}
+            title={t('booking.dateAndTime')}
+            subtitle={t('booking.endsAround', { time: formatTime(slot.endAt) })}
             value={`${formatDate(slot.startAt, 'medium')} · ${formatTime(slot.startAt)}`}
-            meta={t('booking.endsAround', { time: formatTime(slot.endAt) })}
-          />
-        </View>
-      </GlassCard>
+          />,
+        ]}
+      />
 
-      <GlassCard style={styles.notesCard}>
-        <AppTextInput
-          label={t('booking.notesOptional')}
-          placeholder={t('booking.notesHint')}
-          value={notes}
-          onChangeText={setNotes}
-          multiline
-          style={styles.notesInput}
-        />
-      </GlassCard>
+      <Field
+        label={t('booking.notesOptional')}
+        placeholder={t('booking.notesHint')}
+        value={notes}
+        onChangeText={setNotes}
+        multiline
+      />
 
-      {error && (
-        <GlassCard danger style={styles.errorCard}>
-          <View style={styles.errorRow}>
-            <AlertCircle size={16} color={colors.onMuted.danger} />
-            <AppText style={styles.errorText}>{error}</AppText>
-          </View>
-        </GlassCard>
-      )}
-
-      <AppText style={styles.terms}>{t('labBooking.fastingHint')}</AppText>
-    </BookingStep>
+      {error ? <Banner tone="critical" title={error} /> : null}
+    </FlowStep>
   );
-}
-
-function DetailRow({
-  icon,
-  tint,
-  label,
-  value,
-  meta,
-}: {
-  icon: ReactNode;
-  tint: string;
-  label: string;
-  value: string;
-  meta?: string;
-}) {
-  const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
-  return (
-    <View style={styles.detailRow}>
-      <View style={[styles.detailIcon, { backgroundColor: tint }]}>{icon}</View>
-      <View style={styles.detailBody}>
-        <AppText style={styles.detailLabel}>{label}</AppText>
-        <AppText style={styles.detailValue}>{value}</AppText>
-        {meta ? <AppText style={styles.detailMeta}>{meta}</AppText> : null}
-      </View>
-    </View>
-  );
-}
-
-function createStyles(colors: ThemeColors) {
-  return StyleSheet.create({
-    blockingError: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.sm,
-      marginTop: spacing.xl,
-    },
-    blockingErrorText: {
-      flex: 1,
-      fontSize: 13,
-      color: colors.onMuted.danger,
-    },
-    blockingActions: {
-      gap: spacing.sm,
-      marginTop: spacing.lg,
-    },
-    detailStack: {
-      gap: spacing.md,
-    },
-    detailRow: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      gap: spacing.md,
-    },
-    detailIcon: {
-      width: 38,
-      height: 38,
-      borderRadius: radius.sm,
-      alignItems: 'center',
-      justifyContent: 'center',
-      flexShrink: 0,
-    },
-    detailBody: {
-      flex: 1,
-    },
-    detailLabel: {
-      fontSize: 11,
-      fontWeight: '600',
-      letterSpacing: 0.5,
-      textTransform: 'uppercase',
-      color: colors.textMuted,
-    },
-    detailValue: {
-      fontSize: 15,
-      fontWeight: '600',
-      color: colors.text,
-      marginTop: 2,
-    },
-    detailMeta: {
-      fontSize: 12,
-      color: colors.textMuted,
-      marginTop: 1,
-    },
-    divider: {
-      height: 1,
-      backgroundColor: colors.border,
-    },
-    notesCard: {
-      marginTop: layout.cardGap,
-    },
-    notesInput: {
-      minHeight: 88,
-      textAlignVertical: 'top',
-    },
-    errorCard: {
-      marginTop: layout.cardGap,
-    },
-    errorRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.sm,
-    },
-    errorText: {
-      flex: 1,
-      fontSize: 13,
-      color: colors.onMuted.danger,
-    },
-    terms: {
-      fontSize: 12,
-      lineHeight: 17,
-      color: colors.textMuted,
-      textAlign: 'center',
-      marginTop: spacing.lg,
-    },
-  });
 }

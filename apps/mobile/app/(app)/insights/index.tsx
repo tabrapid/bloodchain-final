@@ -1,55 +1,62 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ScrollView, View, StyleSheet, Pressable, RefreshControl } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { View } from 'react-native';
 import { router } from 'expo-router';
 import {
-  ArrowLeft,
+  Activity,
+  AlertTriangle,
   Brain,
-  ChevronRight,
+  HelpCircle,
   Lightbulb,
   MessageSquare,
   Shield,
-  TrendingUp,
-  AlertTriangle,
-  ThumbsUp,
   ThumbsDown,
-  HelpCircle,
-  Activity,
-  type LucideIcon,
+  ThumbsUp,
+  TrendingUp,
 } from 'lucide-react-native';
 import {
-  AppButton,
-  AppText,
-  AppTextInput,
   Badge,
-  GlassCard,
-  Screen,
+  Banner,
+  Button,
+  Field,
+  ListGroup,
+  ListRow,
+  Row,
+  ScreenHeader,
+  ScrollScreen,
   SectionHeader,
-  SkeletonCard,
-} from '../../../src/components';
-import { layout, spacing, radius, useTheme, type ThemeColors } from '../../../src/theme';
+  Skeleton,
+  Stack,
+  Surface,
+  Text,
+  Well,
+  iconSize,
+  radius,
+  space,
+  useDesign,
+  type StatusTone,
+} from '../../../src/design';
+import { LucideIcon } from '../../../src/types/icons';
 import {
-  generateInsight,
   analyzeTrend,
-  sendChatMessage,
-  submitFeedback,
+  generateInsight,
+  getAiAvailability,
   getInsightHistory,
   InsightType,
   SafetyLevel,
+  sendChatMessage,
+  submitFeedback,
+  FeedbackType,
+  type AiAvailability,
   type AiInsight,
   type ChatResponse,
-  FeedbackType,
-  getAiAvailability,
-  type AiAvailability,
 } from '../../../src/api/ai-health';
 import { getAvailableParameters, type AvailableParameter } from '../../../src/api/health-trends';
-import type { BadgeProps } from '../../../src/components/Badge';
 import { useTranslation } from '../../../src/i18n';
 
 /**
- * Each insight kind gets the reference's icon square, keyed to what it is.
- * Only the icon lives here: the wording is a catalogue key resolved at render,
- * because a label built at module load has no locale to be built in.
+ * Each insight kind gets an icon keyed to what it is. Only the icon lives
+ * here: the wording is a catalogue key resolved at render, because a label
+ * built at module load has no locale to be built in.
  */
 const TYPE_ICON: Record<InsightType, LucideIcon> = {
   [InsightType.TREND_SUMMARY]: TrendingUp,
@@ -68,7 +75,7 @@ const TYPE_ICON: Record<InsightType, LucideIcon> = {
  * ends with the insight's real `safetyLevel` instead, which is the field that
  * actually tells a donor how far to trust what they just read.
  */
-function safetyVariant(level: SafetyLevel): BadgeProps['variant'] {
+function safetyTone(level: SafetyLevel): StatusTone {
   switch (level) {
     case SafetyLevel.SAFE_INFORMATIONAL:
       return 'success';
@@ -76,16 +83,15 @@ function safetyVariant(level: SafetyLevel): BadgeProps['variant'] {
     case SafetyLevel.PROFESSIONAL_REVIEW_SUGGESTED:
       return 'warning';
     case SafetyLevel.EMERGENCY_REDIRECT:
-      return 'danger';
+      return 'critical';
     default:
-      return 'default';
+      return 'neutral';
   }
 }
 
 export default function InsightsScreen() {
   const { t } = useTranslation();
-  const { colors, isDark } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const { colors } = useDesign();
 
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -120,12 +126,16 @@ export default function InsightsScreen() {
       setAiAvailability(availability);
       setAvailableParams(params);
       setHistory(historyResult.insights);
+      setError(null);
     } catch {
       setError(t('insights.unavailable'));
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
     }
+    // `t` is stable per locale and re-running this on a language change would
+    // refetch the whole screen for a word.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -154,6 +164,7 @@ export default function InsightsScreen() {
     } finally {
       setIsGenerating(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleFeedback = useCallback(async (insightId: string, type: FeedbackType) => {
@@ -163,6 +174,7 @@ export default function InsightsScreen() {
     } catch {
       setError(t('insights.feedbackFailed'));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleChat = useCallback(async () => {
@@ -180,6 +192,7 @@ export default function InsightsScreen() {
     } finally {
       setIsGenerating(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chatMessage]);
 
   // Unknown is not "off": while the answer is still in flight the buttons
@@ -228,610 +241,299 @@ export default function InsightsScreen() {
   );
 
   return (
-    <Screen scroll={false} style={styles.screen}>
-      <LinearGradient
-        colors={[
-          isDark ? 'rgba(142, 130, 223, 0.20)' : 'rgba(142, 130, 223, 0.14)',
-          'transparent',
-        ]}
-        style={styles.headerBlock}
-      >
-        <Pressable
-          onPress={() => router.back()}
-          accessibilityRole="button"
-          accessibilityLabel={t('common.back')}
-          style={({ pressed }) => [styles.backLink, { opacity: pressed ? 0.6 : 1 }]}
-        >
-          <ArrowLeft size={16} color={colors.ai} strokeWidth={2.5} />
-          <AppText style={styles.backLabel}>{t('common.back')}</AppText>
-        </Pressable>
+    <ScrollScreen
+      header={
+        <ScreenHeader
+          title={t('insights.title')}
+          onBack={() => router.back()}
+          backLabel={t('common.a11yGoBack')}
+          actions={<Badge label={t('insights.poweredByAi')} tone="insight" />}
+        />
+      }
+      refreshing={isRefreshing}
+      onRefresh={onRefresh}
+    >
+      <Stack gap="xl">
+        <Text variant="body" tone="secondary">
+          {t('insights.subtitle')}
+        </Text>
 
-        <View style={styles.headerRow}>
-          <View style={styles.headerIcon}>
-            <Brain size={22} color={colors.onMuted.ai} />
-          </View>
-          <View style={styles.headerText}>
-            <View style={styles.headerTitleLine}>
-              <AppText style={styles.headerTitle}>{t('insights.title')}</AppText>
-              <Badge variant="ai">{t('insights.poweredByAi')}</Badge>
-            </View>
-            <AppText style={styles.headerSubtitle}>{t('insights.subtitle')}</AppText>
-          </View>
-        </View>
-      </LinearGradient>
+        {/* The standing disclaimer, above everything this screen can produce:
+            informational, drawn from the donor's own recorded data, not a
+            diagnosis. */}
+        <Banner
+          tone="neutral"
+          title={t('medical.aiSafety.disclaimer')}
+          icon={({ size, color }) => <Shield size={size} color={color} />}
+        />
 
-      <ScrollView
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor={colors.ai} />
-        }
-      >
-        <GlassCard style={styles.disclaimer}>
-          <View style={styles.disclaimerRow}>
-            <Shield size={16} color={colors.onMuted.secondary} />
-            <AppText style={styles.disclaimerText}>{t('medical.aiSafety.disclaimer')}</AppText>
-          </View>
-        </GlassCard>
+        {error ? <Banner tone="critical" title={error} /> : null}
 
-        {error && (
-          <GlassCard danger>
-            <View style={styles.disclaimerRow}>
-              <AlertTriangle size={16} color={colors.onMuted.danger} />
-              <AppText style={styles.errorText}>{error}</AppText>
-            </View>
-          </GlassCard>
-        )}
-
-        {aiOff && (
+        {aiOff ? (
           // Said once, plainly, above controls that are also disabled. A
           // deliberately switched-off feature is not "temporarily
           // unavailable", and presenting it that way invites people to keep
           // trying something that will never work.
-          <GlassCard style={styles.disclaimer}>
-            <View style={styles.disclaimerRow}>
-              <AlertTriangle size={16} color={colors.onMuted.warning} />
-              <AppText style={styles.disclaimerText}>
-                {aiAvailability?.reason === 'PLATFORM'
-                  ? t('insights.disabledByAdmin')
-                  : t('insights.disabledInDeployment')}
-              </AppText>
-            </View>
-          </GlassCard>
-        )}
-
-        <SectionHeader>{t('insights.generate')}</SectionHeader>
-        {actions.map((action) => (
-          <ActionRow
-            key={action.key}
-            icon={action.icon}
-            title={action.title}
-            subtitle={action.subtitle}
-            disabled={action.disabled || isGenerating}
-            onPress={action.onPress}
+          <Banner
+            tone="warning"
+            title={
+              aiAvailability?.reason === 'PLATFORM'
+                ? t('insights.disabledByAdmin')
+                : t('insights.disabledInDeployment')
+            }
+            icon={({ size, color }) => <AlertTriangle size={size} color={color} />}
           />
-        ))}
+        ) : null}
 
-        {isGenerating && <SkeletonCard />}
+        <Stack gap="md">
+          <SectionHeader title={t('insights.generate')} />
+          <ListGroup
+            rows={actions.map((action) => {
+              const Icon = action.icon;
+              const disabled = action.disabled || isGenerating;
+              return (
+                <ListRow
+                  key={action.key}
+                  leading={
+                    <Icon
+                      size={iconSize.lg}
+                      color={disabled ? colors.textTertiary : colors.insight.base}
+                    />
+                  }
+                  title={action.title}
+                  subtitle={action.subtitle}
+                  disabled={disabled}
+                  onPress={() => void action.onPress()}
+                />
+              );
+            })}
+          />
+          {isGenerating ? <Skeleton height={96} /> : null}
+        </Stack>
 
-        {latestInsight && (
-          <>
-            <SectionHeader>{t('insights.latest')}</SectionHeader>
+        {latestInsight ? (
+          <Stack gap="md">
+            <SectionHeader title={t('insights.latest')} />
             <InsightCard insight={latestInsight} expanded>
               {feedbackGiven === latestInsight.id ? (
-                <View style={styles.feedbackBlock}>
-                  <AppText style={styles.feedbackThanks}>{t('insights.feedbackThanks')}</AppText>
-                </View>
+                <Text variant="caption" tone="success">
+                  {t('insights.feedbackThanks')}
+                </Text>
               ) : (
-                <View style={styles.feedbackBlock}>
-                  <AppText style={styles.feedbackPrompt}>{t('insights.helpfulPrompt')}</AppText>
-                  <View style={styles.feedbackRow}>
-                    <Pressable
-                      onPress={() => handleFeedback(latestInsight.id, FeedbackType.HELPFUL)}
-                      style={({ pressed }) => [styles.feedbackButton, { opacity: pressed ? 0.6 : 1 }]}
-                      accessibilityRole="button"
-                    >
-                      <ThumbsUp size={16} color={colors.onMuted.success} />
-                      <AppText style={[styles.feedbackLabel, { color: colors.onMuted.success }]}>
-                        {t('insights.helpful')}
-                      </AppText>
-                    </Pressable>
-                    <Pressable
-                      onPress={() => handleFeedback(latestInsight.id, FeedbackType.NOT_HELPFUL)}
-                      style={({ pressed }) => [styles.feedbackButton, { opacity: pressed ? 0.6 : 1 }]}
-                      accessibilityRole="button"
-                    >
-                      <ThumbsDown size={16} color={colors.textMuted} />
-                      <AppText style={[styles.feedbackLabel, { color: colors.textMuted }]}>
-                        {t('insights.notHelpful')}
-                      </AppText>
-                    </Pressable>
-                  </View>
-                </View>
+                <Stack gap="sm">
+                  <Text variant="caption" tone="tertiary">
+                    {t('insights.helpfulPrompt')}
+                  </Text>
+                  <Row gap="sm">
+                    <Button
+                      label={t('insights.helpful')}
+                      variant="secondary"
+                      size="md"
+                      block={false}
+                      icon={({ size, color }) => <ThumbsUp size={size} color={color} />}
+                      onPress={() => void handleFeedback(latestInsight.id, FeedbackType.HELPFUL)}
+                    />
+                    <Button
+                      label={t('insights.notHelpful')}
+                      variant="secondary"
+                      size="md"
+                      block={false}
+                      icon={({ size, color }) => <ThumbsDown size={size} color={color} />}
+                      onPress={() => void handleFeedback(latestInsight.id, FeedbackType.NOT_HELPFUL)}
+                    />
+                  </Row>
+                </Stack>
               )}
             </InsightCard>
-          </>
-        )}
+          </Stack>
+        ) : null}
 
-        <SectionHeader>{t('insights.yours')}</SectionHeader>
-        {isLoading ? (
-          <>
-            <SkeletonCard />
-            <SkeletonCard />
-          </>
-        ) : history.length === 0 ? (
-          <GlassCard>
-            <AppText style={styles.emptyTitle}>{t('insights.empty')}</AppText>
-            <AppText style={styles.emptyBody}>
-              {availableParams.length === 0
-                ? t('insights.emptyNoData')
-                : t('insights.emptyHasData')}
-            </AppText>
-          </GlassCard>
-        ) : (
-          history
-            .filter((insight) => insight.id !== latestInsight?.id)
-            .map((insight) => (
-              <Pressable
-                key={insight.id}
-                onPress={() => setLatestInsight(insight)}
-                style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
-                accessibilityRole="button"
-              >
-                <InsightCard insight={insight} />
-              </Pressable>
-            ))
-        )}
-
-        <SectionHeader>{t('insights.askAbout')}</SectionHeader>
-        <GlassCard>
-          <AppTextInput
-            placeholder={t('insights.askPlaceholder')}
-            value={chatMessage}
-            onChangeText={setChatMessage}
-            editable={!aiOff}
-            multiline
-          />
-          <AppButton
-            onPress={handleChat}
-            disabled={aiOff || isGenerating || !chatMessage.trim()}
-            style={styles.sendButton}
-          >
-            {isGenerating ? t('common.sending') : t('insights.send')}
-          </AppButton>
-
-          {chatResponse && (
-            <View style={styles.chatResponse}>
-              <AppText style={styles.chatLabel}>{t('insights.response')}</AppText>
-              <AppText style={styles.chatText}>{chatResponse.message.content}</AppText>
-            </View>
+        <Stack gap="md">
+          <SectionHeader title={t('insights.yours')} />
+          {isLoading ? (
+            <Stack gap="md">
+              <Skeleton height={96} />
+              <Skeleton height={96} />
+            </Stack>
+          ) : history.filter((insight) => insight.id !== latestInsight?.id).length === 0 ? (
+            <Surface>
+              <Stack gap="xs">
+                <Text variant="bodyStrong">{t('insights.empty')}</Text>
+                <Text variant="caption" tone="secondary">
+                  {availableParams.length === 0
+                    ? t('insights.emptyNoData')
+                    : t('insights.emptyHasData')}
+                </Text>
+              </Stack>
+            </Surface>
+          ) : (
+            <Stack gap="md">
+              {history
+                .filter((insight) => insight.id !== latestInsight?.id)
+                .map((insight) => (
+                  <InsightCard
+                    key={insight.id}
+                    insight={insight}
+                    onPress={() => setLatestInsight(insight)}
+                  />
+                ))}
+            </Stack>
           )}
-        </GlassCard>
-      </ScrollView>
-    </Screen>
-  );
-}
+        </Stack>
 
-function ActionRow({
-  icon: Icon,
-  title,
-  subtitle,
-  disabled,
-  onPress,
-}: {
-  icon: LucideIcon;
-  title: string;
-  subtitle: string;
-  disabled: boolean;
-  onPress: () => void;
-}) {
-  const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
-
-  return (
-    <Pressable
-      onPress={onPress}
-      disabled={disabled}
-      accessibilityRole="button"
-      accessibilityState={{ disabled }}
-      style={({ pressed }) => ({ opacity: disabled ? 0.45 : pressed ? 0.7 : 1 })}
-    >
-      <GlassCard style={styles.actionCard}>
-        <View style={styles.actionRow}>
-          <View style={styles.aiIcon}>
-            <Icon size={18} color={colors.onMuted.ai} />
-          </View>
-          <View style={styles.actionBody}>
-            <AppText style={styles.actionTitle}>{title}</AppText>
-            <AppText style={styles.actionSubtitle}>{subtitle}</AppText>
-          </View>
-          <ChevronRight size={16} color={colors.textSubtle} />
-        </View>
-      </GlassCard>
-    </Pressable>
+        <Stack gap="md">
+          <SectionHeader title={t('insights.askAbout')} />
+          <Surface>
+            <Stack gap="md">
+              <Field
+                label={t('insights.askAbout')}
+                placeholder={t('insights.askPlaceholder')}
+                value={chatMessage}
+                onChangeText={setChatMessage}
+                editable={!aiOff}
+                multiline
+              />
+              <Button
+                label={isGenerating ? t('common.sending') : t('insights.send')}
+                loading={isGenerating}
+                disabled={aiOff || !chatMessage.trim()}
+                onPress={() => void handleChat()}
+              />
+              {chatResponse ? (
+                <Well>
+                  <Stack gap="xs">
+                    <Text variant="overline" tone="tertiary" caps>
+                      {t('insights.response')}
+                    </Text>
+                    <Text variant="body">{chatResponse.message.content}</Text>
+                    {/* An answer is still AI-written, and it is read furthest
+                        from the banner at the top of the screen. */}
+                    <Text variant="caption" tone="tertiary">
+                      {t('medical.advice.notMedicalAdvice')}
+                    </Text>
+                  </Stack>
+                </Well>
+              ) : null}
+            </Stack>
+          </Surface>
+        </Stack>
+      </Stack>
+    </ScrollScreen>
   );
 }
 
 function InsightCard({
   insight,
   expanded = false,
+  onPress,
   children,
 }: {
   insight: AiInsight;
   expanded?: boolean;
+  onPress?: () => void;
   children?: React.ReactNode;
 }) {
   const { t, formatDate } = useTranslation();
-  const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const { colors } = useDesign();
   const type = TYPE_ICON[insight.type] ? insight.type : InsightType.GENERAL_HEALTH_INFORMATION;
   const Icon = TYPE_ICON[type];
 
   return (
-    <GlassCard style={styles.insightCard}>
-      <View style={styles.insightHead}>
-        <View style={styles.aiIcon}>
-          <Icon size={18} color={colors.onMuted.ai} />
-        </View>
-        <View style={styles.insightHeadBody}>
-          <AppText style={styles.insightTitle}>{insight.title}</AppText>
-          <View style={styles.insightBadges}>
-            <Badge variant="ai">{t(`medical.aiInsightTypes.${type}`)}</Badge>
-            <Badge variant={safetyVariant(insight.safetyLevel)}>
-              {t(`medical.aiSafety.${insight.safetyLevel}`)}
-            </Badge>
+    <Surface
+      {...(onPress ? { onPress, accessibilityLabel: insight.title } : {})}
+    >
+      <Stack gap="md">
+        <Row gap="md" align="flex-start">
+          <View
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: radius.sm,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: colors.insight.soft,
+            }}
+          >
+            <Icon size={iconSize.md} color={colors.insight.base} />
           </View>
-        </View>
-      </View>
+          <View style={{ flex: 1, gap: space.xs }}>
+            <Text variant="bodyStrong">{insight.title}</Text>
+            <Row gap="xs" style={{ flexWrap: 'wrap' }}>
+              <Badge label={t(`medical.aiInsightTypes.${type}`)} tone="insight" />
+              <Badge
+                label={t(`medical.aiSafety.${insight.safetyLevel}`)}
+                tone={safetyTone(insight.safetyLevel)}
+              />
+            </Row>
+          </View>
+        </Row>
 
-      <AppText style={styles.insightBody}>{insight.summary}</AppText>
+        <Text variant="body" tone="secondary">
+          {insight.summary}
+        </Text>
 
-      {expanded && insight.observations.length > 0 && (
-        <View style={styles.bulletList}>
-          {insight.observations.map((observation) => (
-            <View key={observation} style={styles.bulletRow}>
-              <View style={styles.bulletDot} />
-              <AppText style={styles.bulletText}>{observation}</AppText>
-            </View>
-          ))}
-        </View>
-      )}
-
-      {expanded && insight.dataPoints && insight.dataPoints.length > 0 && (
-        <View style={styles.dataBlock}>
-          <AppText style={styles.dataLabel}>{t('insights.referencedData')}</AppText>
-          {insight.dataPoints.map((point) => (
-            <View key={`${point.label}-${point.value}`} style={styles.dataRow}>
-              <AppText style={styles.dataRowLabel}>{point.label}</AppText>
-              <AppText style={styles.dataRowValue}>
-                {point.value}
-                {point.unit ? ` ${point.unit}` : ''}
-              </AppText>
-            </View>
-          ))}
-        </View>
-      )}
-
-      {expanded &&
-        insight.questionsForProfessional &&
-        insight.questionsForProfessional.length > 0 && (
-          <View style={styles.section}>
-            <AppText style={styles.sectionTitle}>{t('medical.advice.askYourProvider')}</AppText>
-            {insight.questionsForProfessional.map((question) => (
-              <View key={question} style={styles.bulletRow}>
-                <View style={styles.bulletDot} />
-                <AppText style={styles.bulletText}>{question}</AppText>
-              </View>
+        {expanded && insight.observations.length > 0 ? (
+          <Stack gap="xs">
+            {insight.observations.map((observation) => (
+              <Text key={observation} variant="caption" tone="secondary">
+                {`• ${observation}`}
+              </Text>
             ))}
-          </View>
-        )}
+          </Stack>
+        ) : null}
 
-      {expanded && insight.caveats.length > 0 && (
-        <View style={styles.section}>
-          {insight.caveats.map((caveat) => (
-            <AppText key={caveat} style={styles.caveat}>
-              {caveat}
-            </AppText>
-          ))}
-        </View>
-      )}
+        {expanded && insight.dataPoints && insight.dataPoints.length > 0 ? (
+          <Well>
+            <Stack gap="xs">
+              <Text variant="overline" tone="tertiary" caps>
+                {t('insights.referencedData')}
+              </Text>
+              {insight.dataPoints.map((point) => (
+                <Row key={`${point.label}-${point.value}`} gap="md">
+                  <Text variant="caption" tone="secondary" style={{ flex: 1 }}>
+                    {point.label}
+                  </Text>
+                  <Text variant="caption">
+                    {point.value}
+                    {point.unit ? ` ${point.unit}` : ''}
+                  </Text>
+                </Row>
+              ))}
+            </Stack>
+          </Well>
+        ) : null}
 
-      <AppText style={styles.insightDate}>
-        {formatDate(insight.generatedAt, 'medium')}
-      </AppText>
+        {expanded &&
+        insight.questionsForProfessional &&
+        insight.questionsForProfessional.length > 0 ? (
+          <Stack gap="xs">
+            <Text variant="label" tone="secondary">
+              {t('medical.advice.askYourProvider')}
+            </Text>
+            {insight.questionsForProfessional.map((question) => (
+              <Text key={question} variant="caption" tone="secondary">
+                {`• ${question}`}
+              </Text>
+            ))}
+          </Stack>
+        ) : null}
 
-      {children}
-    </GlassCard>
+        {expanded && insight.caveats.length > 0 ? (
+          <Stack gap="xs">
+            {insight.caveats.map((caveat) => (
+              <Text key={caveat} variant="caption" tone="warning">
+                {caveat}
+              </Text>
+            ))}
+          </Stack>
+        ) : null}
+
+        <Text variant="caption" tone="tertiary">
+          {formatDate(insight.generatedAt, 'medium')}
+        </Text>
+
+        {children}
+      </Stack>
+    </Surface>
   );
-}
-
-function createStyles(colors: ThemeColors) {
-  return StyleSheet.create({
-    screen: {
-      padding: 0,
-    },
-    headerBlock: {
-      paddingHorizontal: spacing.md,
-      paddingTop: spacing.md,
-      paddingBottom: spacing.lg,
-    },
-    backLink: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 6,
-      minHeight: 44,
-      alignSelf: 'flex-start',
-      paddingRight: spacing.sm,
-    },
-    backLabel: {
-      fontSize: 14,
-      fontWeight: '600',
-      color: colors.ai,
-    },
-    headerRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 12,
-      marginTop: spacing.sm,
-    },
-    headerIcon: {
-      width: 44,
-      height: 44,
-      borderRadius: 14,
-      backgroundColor: colors.aiMuted,
-      borderWidth: 1,
-      borderColor: `${colors.onMuted.ai}4D`,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    headerText: {
-      flex: 1,
-    },
-    headerTitleLine: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.sm,
-      flexWrap: 'wrap',
-    },
-    headerTitle: {
-      fontSize: 24,
-      fontWeight: '700',
-      letterSpacing: -0.48,
-      color: colors.text,
-    },
-    headerSubtitle: {
-      fontSize: 12,
-      color: colors.textMuted,
-      marginTop: 2,
-    },
-
-    content: {
-      paddingHorizontal: spacing.md,
-      paddingBottom: spacing.xl,
-      gap: layout.cardGap,
-    },
-
-    disclaimer: {},
-    disclaimerRow: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      gap: spacing.sm,
-    },
-    disclaimerText: {
-      flex: 1,
-      fontSize: 12,
-      lineHeight: 18,
-      color: colors.textMuted,
-    },
-    errorText: {
-      flex: 1,
-      fontSize: 13,
-      color: colors.onMuted.danger,
-    },
-
-    aiIcon: {
-      width: 40,
-      height: 40,
-      borderRadius: radius.sm,
-      backgroundColor: colors.aiMuted,
-      alignItems: 'center',
-      justifyContent: 'center',
-      flexShrink: 0,
-    },
-
-    actionCard: {
-      padding: 14,
-    },
-    actionRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 12,
-    },
-    actionBody: {
-      flex: 1,
-    },
-    actionTitle: {
-      fontSize: 14,
-      fontWeight: '600',
-      color: colors.text,
-    },
-    actionSubtitle: {
-      fontSize: 12,
-      color: colors.textMuted,
-      marginTop: 2,
-    },
-
-    insightCard: {
-      borderColor: `${colors.onMuted.ai}33`,
-    },
-    insightHead: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      gap: 12,
-      marginBottom: layout.cardGap,
-    },
-    insightHeadBody: {
-      flex: 1,
-    },
-    insightTitle: {
-      fontSize: 14,
-      fontWeight: '600',
-      color: colors.text,
-      marginBottom: 6,
-    },
-    insightBadges: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 6,
-      flexWrap: 'wrap',
-    },
-    insightBody: {
-      fontSize: 13,
-      lineHeight: 21,
-      color: colors.text,
-    },
-    insightDate: {
-      fontSize: 11,
-      color: colors.textSubtle,
-      marginTop: layout.cardGap,
-    },
-
-    bulletList: {
-      marginTop: layout.cardGap,
-    },
-    bulletRow: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      gap: 10,
-      marginBottom: 8,
-    },
-    bulletDot: {
-      width: 6,
-      height: 6,
-      borderRadius: 3,
-      backgroundColor: colors.onMuted.ai,
-      marginTop: 6,
-      flexShrink: 0,
-    },
-    bulletText: {
-      flex: 1,
-      fontSize: 13,
-      lineHeight: 20,
-      color: colors.textMuted,
-    },
-
-    dataBlock: {
-      marginTop: layout.cardGap,
-      backgroundColor: colors.surfaceElevated,
-      borderRadius: radius.sm,
-      padding: spacing.md,
-    },
-    dataLabel: {
-      fontSize: 11,
-      fontWeight: '700',
-      letterSpacing: 1.5,
-      color: colors.textMuted,
-      marginBottom: spacing.sm,
-    },
-    dataRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      gap: spacing.sm,
-      marginBottom: spacing.xs,
-    },
-    dataRowLabel: {
-      fontSize: 13,
-      color: colors.textMuted,
-    },
-    dataRowValue: {
-      fontSize: 13,
-      fontWeight: '600',
-      color: colors.text,
-    },
-
-    section: {
-      marginTop: layout.cardGap,
-      paddingTop: 12,
-      borderTopWidth: 1,
-      borderTopColor: colors.borderSubtle,
-    },
-    sectionTitle: {
-      fontSize: 13,
-      fontWeight: '600',
-      color: colors.text,
-      marginBottom: spacing.sm,
-    },
-    caveat: {
-      fontSize: 11,
-      fontStyle: 'italic',
-      lineHeight: 17,
-      color: colors.textMuted,
-      marginBottom: spacing.xs,
-    },
-
-    feedbackBlock: {
-      marginTop: layout.cardGap,
-      paddingTop: 12,
-      borderTopWidth: 1,
-      borderTopColor: colors.borderSubtle,
-    },
-    feedbackPrompt: {
-      fontSize: 12,
-      color: colors.textMuted,
-      marginBottom: spacing.sm,
-    },
-    feedbackRow: {
-      flexDirection: 'row',
-      gap: spacing.lg,
-    },
-    feedbackButton: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 6,
-      minHeight: 36,
-    },
-    feedbackLabel: {
-      fontSize: 13,
-      fontWeight: '600',
-    },
-    feedbackThanks: {
-      fontSize: 12,
-      fontWeight: '600',
-      color: colors.onMuted.success,
-    },
-
-    emptyTitle: {
-      fontSize: 14,
-      fontWeight: '600',
-      color: colors.text,
-    },
-    emptyBody: {
-      fontSize: 13,
-      lineHeight: 20,
-      color: colors.textMuted,
-      marginTop: 4,
-    },
-
-    sendButton: {
-      marginTop: spacing.sm,
-    },
-    chatResponse: {
-      marginTop: layout.cardGap,
-      paddingTop: 12,
-      borderTopWidth: 1,
-      borderTopColor: colors.borderSubtle,
-    },
-    chatLabel: {
-      fontSize: 11,
-      fontWeight: '700',
-      letterSpacing: 1.5,
-      color: colors.textMuted,
-      marginBottom: spacing.xs,
-    },
-    chatText: {
-      fontSize: 13,
-      lineHeight: 21,
-      color: colors.text,
-    },
-  });
 }

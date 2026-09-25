@@ -4,10 +4,10 @@ import { View } from 'react-native';
 import {
   EmptyState,
   FlowStep,
+  LoadingSection,
   MonthGrid,
   Row,
   SectionError,
-  Skeleton,
   Stack,
   Surface,
   Text,
@@ -129,7 +129,7 @@ export default function SelectDate() {
             selectedDay={selectedDay}
             onSelectDay={setSelectedDay}
             isDisabled={(day) => !isBookable(day)}
-            monthLabel={`${formatMonth(new Date(year, month, 1), 'long')} ${year}`}
+            monthLabel={formatMonth(new Date(year, month, 1), 'long')}
             formatWeekday={(day) => formatWeekday(day, 'narrow')}
             onPrevious={() => changeMonth(-1)}
             onNext={() => changeMonth(1)}
@@ -157,9 +157,7 @@ export default function SelectDate() {
         </Surface>
 
         {isLoading ? (
-          <Stack gap="sm">
-            <Skeleton height={12} width="45%" />
-          </Stack>
+          <LoadingSection label={t('booking.loadingAvailability')} />
         ) : monthIsEmpty ? (
           <EmptyState
             title={t('booking.noOpenDates')}

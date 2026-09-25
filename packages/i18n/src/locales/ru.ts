@@ -2076,6 +2076,8 @@ export const ru: Catalog = {
     dateUnknown: 'Дата неизвестна',
   },
   healthTrends: {
+    previousValue: 'Предыдущее: {{value}}',
+    chartSummary: '{{parameter}}: {{count}} измерений, {{direction}}',
     title: 'Динамика здоровья',
     timeRange: 'Период',
     trendChart: 'График динамики',
