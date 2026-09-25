@@ -102,7 +102,7 @@ by what they had in common; the commit column is the fix.
 | The **wizard's action landed at a different height on each of six steps**, and below the fold on the two that ask for typing | onboarding | `53248395` |
 | An **unearned badge's name was unreadable** at roughly 2.1:1 — under the 3:1 floor for anything at all | badges | `52d4c416` |
 | The **level name and the achievement name were each printed twice** in the same row or card | recognition, profile, achievements | `873ed279` |
-| The **SOS list said the same sentence twice**: the header's eyebrow counts the requests ("2 active requests near you") and a section header directly beneath it read "Active emergency requests near you" — two stacked lines of capitals above the first card, whenever the donor had no responses of their own, which is the ordinary case | sos | `pending` |
+| The **SOS list said the same sentence twice**: the header's eyebrow counts the requests ("2 active requests near you") and a section header directly beneath it read "Active emergency requests near you" — two stacked lines of capitals above the first card, whenever the donor had no responses of their own, which is the ordinary case | sos | `6f2caeaf` |
 | The **keyboard covered the field and the buttons** on two screens and in every sheet with a field in it | appointment detail, insights, courier sheets | `52d4c416`, `54491bdc` |
 | The **emergency screen blanked itself** to a centred spinner on every action, including "I have arrived" | sos | `54491bdc` |
 | The **emergency banner's button could not be focused** by a screen reader, because the banner announced itself as one element | home | `c5293298` |
