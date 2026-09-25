@@ -77,6 +77,7 @@ export default function AppLayout() {
       <Tabs.Screen name="donations/index" options={{ href: null }} />
       <Tabs.Screen name="donations/[id]" options={{ href: null }} />
       <Tabs.Screen name="education/index" options={{ href: null }} />
+      <Tabs.Screen name="education/[id]" options={{ href: null }} />
       <Tabs.Screen name="gamification/index" options={{ href: null }} />
       <Tabs.Screen name="gamification/achievements/index" options={{ href: null }} />
       <Tabs.Screen name="gamification/badges/index" options={{ href: null }} />

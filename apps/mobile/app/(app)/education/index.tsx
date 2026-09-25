@@ -1,12 +1,10 @@
 import { useState } from 'react';
 import { FlatList } from 'react-native';
 import { router } from 'expo-router';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Award, BookOpen, CheckCircle, Clock, PlayCircle } from 'lucide-react-native';
+import { useQuery } from '@tanstack/react-query';
+import { Award, BookOpen, Clock, PlayCircle } from 'lucide-react-native';
 import {
   getEducationalContent,
-  startContent,
-  completeContent,
   getMyEducationProgress,
   getMyEducationStats,
   type EducationalContent,
@@ -32,6 +30,7 @@ import {
   space,
   useDesign,
   useTabBarClearance,
+  LinkButton,
 } from '../../../src/design';
 import { useTranslation } from '../../../src/i18n';
 import type { TranslateFn } from '@bloodchain/i18n';
@@ -50,9 +49,7 @@ function difficultyLabel(value: string, t: TranslateFn): string {
 export default function EducationScreen() {
   const tabBarClearance = useTabBarClearance();
   const { t } = useTranslation();
-  const [actionError, setActionError] = useState<string | null>(null);
-  const [pendingId, setPendingId] = useState<string | null>(null);
-  const queryClient = useQueryClient();
+  const [actionError] = useState<string | null>(null);
 
   const { data: content, isPending, isError, refetch, isRefetching } = useQuery({
     queryKey: ['educational-content'],
@@ -75,27 +72,6 @@ export default function EducationScreen() {
   const statusByContentId = new Map(
     (progress?.items ?? []).map((entry) => [entry.contentId, entry.status] as const),
   );
-
-  const startMutation = useMutation({
-    mutationFn: startContent,
-    onSuccess: () => {
-      setActionError(null);
-      void queryClient.invalidateQueries({ queryKey: ['education-progress'] });
-      void queryClient.invalidateQueries({ queryKey: ['education-stats'] });
-    },
-    onError: (err: Error) => setActionError(err.message || t('education.startFailed')),
-  });
-
-  const completeMutation = useMutation({
-    mutationFn: completeContent,
-    onSuccess: () => {
-      setActionError(null);
-      void queryClient.invalidateQueries({ queryKey: ['educational-content'] });
-      void queryClient.invalidateQueries({ queryKey: ['education-progress'] });
-      void queryClient.invalidateQueries({ queryKey: ['education-stats'] });
-    },
-    onError: (err: Error) => setActionError(err.message || t('education.completeFailed')),
-  });
 
   const header = (
     <ScreenHeader
@@ -153,16 +129,7 @@ export default function EducationScreen() {
           <EducationCard
             content={item}
             status={statusByContentId.get(item.id)}
-            onStart={() => {
-              setPendingId(item.id);
-              startMutation.mutate(item.id);
-            }}
-            onComplete={() => {
-              setPendingId(item.id);
-              completeMutation.mutate(item.id);
-            }}
-            isStarting={startMutation.isPending && pendingId === item.id}
-            isCompleting={completeMutation.isPending && pendingId === item.id}
+            onOpen={() => router.push({ pathname: '/(app)/education/[id]', params: { id: item.id } })}
           />
         )}
         ListHeaderComponent={
@@ -206,18 +173,12 @@ export default function EducationScreen() {
 function EducationCard({
   content,
   status,
-  onStart,
-  onComplete,
-  isStarting,
-  isCompleting,
+  onOpen,
 }: {
   content: EducationalContent;
   /** This donor's progress on this item; undefined means not started. */
   status?: 'STARTED' | 'COMPLETED';
-  onStart: () => void;
-  onComplete: () => void;
-  isStarting: boolean;
-  isCompleting: boolean;
+  onOpen: () => void;
 }) {
   const { t } = useTranslation();
   const { colors } = useDesign();
@@ -259,24 +220,25 @@ function EducationCard({
           ) : null}
         </Row>
 
+        {/*
+          Every one of these opens the article.
+
+          "Start" used to call the start endpoint and open nothing: the card
+          flipped to "in progress" and then offered "Complete" for an article
+          the app had never shown. The body has been in the payload all along.
+        */}
         {status === 'COMPLETED' ? (
-          <Badge label={t('education.completed')} tone="success" />
-        ) : status === 'STARTED' ? (
-          <Button
-            label={t('education.complete')}
-            size="md"
-            loading={isCompleting}
-            icon={({ size, color }) => <CheckCircle size={size} color={color} />}
-            onPress={onComplete}
-          />
+          <Row gap="sm" style={{ alignItems: 'center' }}>
+            <Badge label={t('education.completed')} tone="success" />
+            <LinkButton label={t('education.readAgain')} onPress={onOpen} />
+          </Row>
         ) : (
           <Button
-            label={t('education.start')}
-            variant="secondary"
+            label={status === 'STARTED' ? t('common.continue') : t('education.start')}
+            variant={status === 'STARTED' ? 'primary' : 'secondary'}
             size="md"
-            loading={isStarting}
             icon={({ size, color }) => <PlayCircle size={size} color={color} />}
-            onPress={onStart}
+            onPress={onOpen}
           />
         )}
       </Stack>

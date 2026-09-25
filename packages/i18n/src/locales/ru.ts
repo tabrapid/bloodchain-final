@@ -2324,6 +2324,7 @@ export const ru: Catalog = {
     availableContent: 'Доступные материалы',
     startFailed: 'Не удалось начать материал. Попробуйте снова.',
     completeFailed: 'Не удалось завершить материал. Попробуйте снова.',
+    readAgain: 'Прочитать снова',
     minutes: '{{count}} мин',
   },
   gamification: {

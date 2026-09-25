@@ -2284,6 +2284,7 @@ export const en: Catalog = {
     availableContent: 'Available content',
     startFailed: 'Failed to start content. Please try again.',
     completeFailed: 'Failed to complete content. Please try again.',
+    readAgain: 'Read again',
     minutes: '{{count}} min',
   },
   gamification: {

@@ -2210,6 +2210,7 @@ export const uz: Catalog = {
     availableContent: 'Mavjud materiallar',
     startFailed: 'Materialni boshlab bo‘lmadi. Qayta urinib ko‘ring.',
     completeFailed: 'Materialni yakunlab bo‘lmadi. Qayta urinib ko‘ring.',
+    readAgain: 'Qayta o‘qish',
     minutes: '{{count}} daq',
   },
   gamification: {

@@ -445,8 +445,38 @@ describe('P3-10: the education card offers the control the backend will accept',
 
     const text = await cardText();
 
-    expect(text).toContain('Complete');
+    // S11.1: the card used to offer "Complete" for an article the app had no
+    // screen for -- `Start` called the start endpoint and opened nothing, and
+    // the body has been in the payload since the module shipped. Completion
+    // now lives at the end of the article, where the donor has actually been
+    // through the thing they are claiming to have read; the card continues it.
+    expect(text).toContain('Continue');
     expect(text).not.toContain('Start');
+  });
+
+  it('opens the article rather than completing it from the list', async () => {
+    const { router } = require('expo-router');
+    jest.mocked(getMyEducationProgress).mockResolvedValue({
+      items: [],
+      total: 0,
+      page: 1,
+      limit: 100,
+    } as never);
+
+    const tree = await renderScreen(EducationScreen);
+    // The Button element carrying the Start label, whose onPress is the card's.
+    const startButton = tree.root.find(
+      (node) => node.props?.label === t('education.start') && typeof node.props?.onPress === 'function',
+    );
+
+    await act(async () => {
+      startButton.props.onPress();
+    });
+
+    expect(router.push).toHaveBeenCalledWith(
+      expect.objectContaining({ pathname: '/(app)/education/[id]' }),
+    );
+    tree.unmount();
   });
 
   it('offers no action once the content is completed', async () => {
