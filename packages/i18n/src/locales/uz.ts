@@ -1839,6 +1839,9 @@ export const uz: Catalog = {
     },
   },
   booking: {
+    stepOf: '{{total}} qadamdan {{current}}-qadam',
+    spotsLeft: { other: '{{count}} ta joy qoldi' },
+    slotTakenHint: 'Siz tanlab turganingizda bu vaqtni band qilishdi. Orqaga qaytib, boshqa vaqtni tanlang.',
     noOpenDatesHint: 'Keyingi oyni ko‘ring yoki orqaga qaytib boshqa joyni tanlang.',
     unavailableDay: 'band emas',
     noOpenDates: 'Bu oyda bo‘sh kun yo‘q',
@@ -2576,6 +2579,13 @@ export const uz: Catalog = {
   },
 
   directory: {
+    nearbyExplainerTitle: 'Ro‘yxat masofa bo‘yicha saralansinmi?',
+    nearbyExplainerBody:
+      'Bloodchain joylashuvingizni bir marta o‘qib, eng yaqin qon topshirish markazlarini ro‘yxat boshiga qo‘yishi mumkin.',
+    nearbyAssuranceSorting: 'Faqat shu ro‘yxatni saralash uchun ishlatiladi',
+    nearbyAssuranceNotStored: 'Siz so‘raganingizda o‘qiladi — ilova sizni kuzatmaydi',
+    nearbyAssuranceOptional: 'Ixtiyoriy: markazni viloyat bo‘yicha ham tanlash mumkin',
+    nearbyAllow: 'Masofa bo‘yicha saralash',
     coordinatesInvalid: 'Kenglik va uzunlik son bo‘lishi yoki bo‘sh qoldirilishi kerak.',
     title: 'Tashkilotlar',
     filters: 'Filtrlar',

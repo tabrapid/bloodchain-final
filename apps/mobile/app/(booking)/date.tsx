@@ -1,25 +1,23 @@
 import { useState, useMemo } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
-import { View, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
-import { ChevronLeft, ChevronRight } from 'lucide-react-native';
-import { AppButton, AppText, BookingStep, GlassCard } from '../../src/components';
+import { View } from 'react-native';
+import {
+  EmptyState,
+  FlowStep,
+  MonthGrid,
+  Row,
+  SectionError,
+  Skeleton,
+  Stack,
+  Surface,
+  Text,
+  radius,
+  space,
+  useDesign,
+} from '../../src/design';
 import { useAvailability } from '../../src/hooks/useAppointments';
-import { layout, spacing, useTheme, ThemeColors } from '../../src/theme';
 import { useTranslation } from '../../src/i18n';
-
-/** Monday-first, matching the reference and the app's own Calendar screen. */
-const WEEKDAY_OFFSETS = [0, 1, 2, 3, 4, 5, 6];
-/** A Monday, so the weekday header can be formatted in the donor's locale. */
-const WEEKDAY_REFERENCE = new Date(2024, 0, 1);
-
-function getDaysInMonth(year: number, month: number): number {
-  return new Date(year, month + 1, 0).getDate();
-}
-
-/** Weekday index of the 1st, shifted so Monday is 0. */
-function getFirstWeekdayIndex(year: number, month: number): number {
-  return (new Date(year, month, 1).getDay() + 6) % 7;
-}
+import { BOOKING_STEP_COUNT } from './select-type';
 
 function toDateParam(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(
@@ -28,9 +26,8 @@ function toDateParam(date: Date): string {
 }
 
 export default function SelectDate() {
-  const { t, formatMonth, formatWeekday } = useTranslation();
-  const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const { t, formatMonth, formatWeekday, formatDate } = useTranslation();
+  const { colors } = useDesign();
   const params = useLocalSearchParams<{
     organizationId: string;
     type: string;
@@ -47,7 +44,6 @@ export default function SelectDate() {
     isLoading,
     isError,
     refetch,
-    isRefetching,
   } = useAvailability({
     organizationId: params.organizationId,
     appointmentType: params.type,
@@ -59,13 +55,6 @@ export default function SelectDate() {
     () => new Set(availableSlots.map((slot) => new Date(slot.startAt).toDateString())),
     [availableSlots],
   );
-
-  const calendarDays = useMemo(() => {
-    const leading = getFirstWeekdayIndex(year, month);
-    const days: (number | null)[] = Array.from({ length: leading }, () => null);
-    for (let day = 1; day <= getDaysInMonth(year, month); day++) days.push(day);
-    return days;
-  }, [year, month]);
 
   const today = useMemo(() => {
     const date = new Date();
@@ -87,20 +76,29 @@ export default function SelectDate() {
     availableDates.has(new Date(year, month, day).toDateString()) &&
     new Date(year, month, day) >= today;
 
+  const daysInThisMonth = new Date(year, month + 1, 0).getDate();
+
   // "Nothing open this month" and "still loading" look identical on a grid of
   // grey cells, so the one that is true is said out loud.
   const monthIsEmpty =
     !isLoading &&
     !isError &&
-    !calendarDays.some((day) => day !== null && isBookable(day));
+    !Array.from({ length: daysInThisMonth }, (_, index) => index + 1).some(isBookable);
 
   return (
-    <BookingStep
+    <FlowStep
       step={3}
+      total={BOOKING_STEP_COUNT}
+      counterLabel={t('booking.stepOf', { current: 3, total: BOOKING_STEP_COUNT })}
       title={params.rescheduleAppointmentId ? t('booking.pickNewDate') : t('booking.selectDate')}
       subtitle={t('booking.openSlotsOnly')}
-      nextDisabled={selectedDay === null}
-      onNext={() =>
+      onBack={() => router.back()}
+      backLabel={t('common.a11yGoBack')}
+      onClose={() => router.replace('/(app)/donate')}
+      closeLabel={t('common.a11yCloseBooking')}
+      primaryLabel={t('common.continue')}
+      primaryDisabled={selectedDay === null}
+      onPrimary={() =>
         router.push({
           pathname: '/(booking)/time',
           params: {
@@ -114,224 +112,77 @@ export default function SelectDate() {
         })
       }
     >
-      {isError && (
-        <GlassCard danger style={styles.errorCard}>
-          <AppText style={styles.errorText}>
-            {t('booking.availabilityFailed')}
-          </AppText>
-          <AppButton
-            variant="secondary"
-            onPress={() => refetch()}
-            disabled={isRefetching}
-            loading={isRefetching}
-            style={styles.retry}
-          >
-            {t('common.retry')}
-          </AppButton>
-        </GlassCard>
-      )}
+      <Stack gap="lg">
+        {isError ? (
+          <SectionError
+            message={t('booking.availabilityFailed')}
+            retryLabel={t('common.retry')}
+            onRetry={() => void refetch()}
+          />
+        ) : null}
 
-      <GlassCard tier="elevated">
-        <View style={styles.monthNav}>
-          <Pressable
-            onPress={() => changeMonth(-1)}
-            disabled={!canGoBack}
-            hitSlop={8}
-            accessibilityRole="button"
-            accessibilityState={{ disabled: !canGoBack }}
-            accessibilityLabel={t('booking.previousMonth')}
-            style={styles.navButton}
-          >
-            <ChevronLeft size={20} color={canGoBack ? colors.text : colors.textSubtle} />
-          </Pressable>
-          <AppText style={styles.monthLabel}>
-            {formatMonth(new Date(year, month, 1), 'long')} {year}
-          </AppText>
-          <Pressable
-            onPress={() => changeMonth(1)}
-            hitSlop={8}
-            accessibilityRole="button"
-            accessibilityLabel={t('booking.nextMonth')}
-            style={styles.navButton}
-          >
-            <ChevronRight size={20} color={colors.text} />
-          </Pressable>
-        </View>
+        <Surface>
+          <MonthGrid
+            year={year}
+            month={month}
+            today={today}
+            selectedDay={selectedDay}
+            onSelectDay={setSelectedDay}
+            isDisabled={(day) => !isBookable(day)}
+            monthLabel={`${formatMonth(new Date(year, month, 1), 'long')} ${year}`}
+            formatWeekday={(day) => formatWeekday(day, 'narrow')}
+            onPrevious={() => changeMonth(-1)}
+            onNext={() => changeMonth(1)}
+            previousLabel={t('booking.previousMonth')}
+            nextLabel={t('booking.nextMonth')}
+            previousDisabled={!canGoBack}
+            dayAccessibilityLabel={(day) =>
+              `${formatDate(new Date(year, month, day), 'long')}${
+                isBookable(day) ? '' : `, ${t('booking.unavailableDay')}`
+              }`
+            }
+            renderMarkers={(day) =>
+              isBookable(day) ? (
+                <View
+                  style={{
+                    width: 4,
+                    height: 4,
+                    borderRadius: 2,
+                    backgroundColor: colors.success.base,
+                  }}
+                />
+              ) : null
+            }
+          />
+        </Surface>
 
-        <View style={styles.weekdayRow}>
-          {WEEKDAY_OFFSETS.map((offset) => {
-            const day = new Date(WEEKDAY_REFERENCE);
-            day.setDate(WEEKDAY_REFERENCE.getDate() + offset);
-            return (
-              <View key={offset} style={styles.cell}>
-                <AppText style={styles.weekdayText}>{formatWeekday(day, 'narrow')}</AppText>
-              </View>
-            );
-          })}
-        </View>
-
-        <View style={styles.grid}>
-          {calendarDays.map((day, index) => {
-            if (day === null) return <View key={`pad-${index}`} style={styles.cell} />;
-            const bookable = isBookable(day);
-            const selected = selectedDay === day;
-            return (
-              <View key={day} style={styles.cell}>
-                <Pressable
-                  onPress={() => setSelectedDay(day)}
-                  disabled={!bookable}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected, disabled: !bookable }}
-                  accessibilityLabel={`${formatMonth(new Date(year, month, day), 'long')} ${day}${
-                    bookable ? '' : `, ${t('booking.unavailableDay')}`
-                  }`}
-                  style={[
-                    styles.day,
-                    bookable && styles.dayAvailable,
-                    selected && styles.daySelected,
-                  ]}
-                >
-                  <AppText
-                    style={[
-                      styles.dayText,
-                      !bookable && styles.dayTextMuted,
-                      selected && styles.dayTextSelected,
-                    ]}
-                  >
-                    {day}
-                  </AppText>
-                </Pressable>
-              </View>
-            );
-          })}
-        </View>
-      </GlassCard>
-
-      {isLoading ? (
-        <View style={styles.legend}>
-          <ActivityIndicator size="small" color={colors.textMuted} />
-          <AppText style={styles.legendText}>{t('booking.loadingAvailability')}</AppText>
-        </View>
-      ) : monthIsEmpty ? (
-        <GlassCard style={styles.emptyCard}>
-          <AppText style={styles.emptyTitle}>{t('booking.noOpenDates')}</AppText>
-          <AppText style={styles.emptyHint}>{t('booking.noOpenDatesHint')}</AppText>
-        </GlassCard>
-      ) : (
-        <View style={styles.legend}>
-          <View style={styles.legendSwatch} />
-          <AppText style={styles.legendText}>{t('booking.datesWithSlots')}</AppText>
-        </View>
-      )}
-    </BookingStep>
+        {isLoading ? (
+          <Stack gap="sm">
+            <Skeleton height={12} width="45%" />
+          </Stack>
+        ) : monthIsEmpty ? (
+          <EmptyState
+            title={t('booking.noOpenDates')}
+            description={t('booking.noOpenDatesHint')}
+            action={{ label: t('booking.nextMonth'), onPress: () => changeMonth(1) }}
+          />
+        ) : (
+          <Row gap="sm">
+            <View
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: radius.full,
+                backgroundColor: colors.success.base,
+                marginLeft: space.xs,
+              }}
+            />
+            <Text variant="caption" tone="tertiary">
+              {t('booking.datesWithSlots')}
+            </Text>
+          </Row>
+        )}
+      </Stack>
+    </FlowStep>
   );
-}
-
-function createStyles(colors: ThemeColors) {
-  return StyleSheet.create({
-    errorCard: {
-      marginBottom: layout.cardGap,
-    },
-    errorText: {
-      fontSize: 13,
-      color: colors.onMuted.danger,
-    },
-    retry: {
-      marginTop: spacing.md,
-      alignSelf: 'center',
-    },
-
-    monthNav: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      marginBottom: 14,
-    },
-    navButton: {
-      minWidth: 44,
-      minHeight: 44,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    monthLabel: {
-      fontSize: 15,
-      fontWeight: '700',
-      color: colors.text,
-    },
-    weekdayRow: {
-      flexDirection: 'row',
-      marginBottom: spacing.sm,
-    },
-    weekdayText: {
-      fontSize: 10,
-      fontWeight: '600',
-      color: colors.textMuted,
-    },
-    grid: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-    },
-    cell: {
-      width: `${100 / 7}%`,
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingVertical: 2,
-    },
-    day: {
-      width: '100%',
-      aspectRatio: 1,
-      borderRadius: 8,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    dayAvailable: {
-      backgroundColor: colors.successMuted,
-    },
-    daySelected: {
-      backgroundColor: colors.primary,
-    },
-    dayText: {
-      fontSize: 12,
-      color: colors.text,
-    },
-    dayTextMuted: {
-      color: colors.textSubtle,
-    },
-    dayTextSelected: {
-      fontWeight: '700',
-      color: colors.white,
-    },
-
-    legend: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: spacing.sm,
-      marginTop: spacing.md,
-    },
-    legendSwatch: {
-      width: 12,
-      height: 12,
-      borderRadius: 4,
-      backgroundColor: colors.successMuted,
-    },
-    legendText: {
-      fontSize: 12,
-      color: colors.textMuted,
-    },
-    emptyCard: {
-      marginTop: layout.cardGap,
-    },
-    emptyTitle: {
-      fontSize: 14,
-      fontWeight: '700',
-      color: colors.text,
-    },
-    emptyHint: {
-      fontSize: 13,
-      lineHeight: 19,
-      marginTop: spacing.xs,
-      color: colors.textMuted,
-    },
-  });
 }

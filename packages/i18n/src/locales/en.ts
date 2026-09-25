@@ -1902,6 +1902,9 @@ export const en: Catalog = {
     },
   },
   booking: {
+    stepOf: 'Step {{current}} of {{total}}',
+    spotsLeft: { one: '{{count}} spot left', other: '{{count}} spots left' },
+    slotTakenHint: 'Someone booked it while you were deciding. Go back and pick another time.',
     noOpenDatesHint: 'Try the next month, or go back and pick another location.',
     unavailableDay: 'unavailable',
     noOpenDates: 'No open dates this month',
@@ -2641,6 +2644,13 @@ export const en: Catalog = {
   },
 
   directory: {
+    nearbyExplainerTitle: 'Sort this list by distance?',
+    nearbyExplainerBody:
+      'Bloodchain can read your location once, to put the donation centres nearest to you at the top of this list.',
+    nearbyAssuranceSorting: 'Used to sort this list, nothing else',
+    nearbyAssuranceNotStored: 'Read when you ask for it — the app does not follow you',
+    nearbyAssuranceOptional: 'Optional: you can pick a centre by region instead',
+    nearbyAllow: 'Sort by distance',
     coordinatesInvalid: 'Latitude and longitude must be numbers, or left empty.',
     title: 'Organizations',
     filters: 'Filters',

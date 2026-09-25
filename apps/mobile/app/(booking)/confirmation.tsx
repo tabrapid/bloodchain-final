@@ -1,199 +1,138 @@
-import { useMemo } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
-import { View, StyleSheet } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { View } from 'react-native';
 import { Check } from 'lucide-react-native';
-import { AppButton, AppText, Badge, GlassCard, Screen } from '../../src/components';
+import {
+  Badge,
+  Banner,
+  Button,
+  ListGroup,
+  ListRow,
+  ScrollScreen,
+  Skeleton,
+  Stack,
+  Text,
+  ValueText,
+  iconSize,
+  radius,
+  space,
+  useDesign,
+} from '../../src/design';
 import { useAppointment } from '../../src/hooks/useAppointments';
-import { layout, spacing, translucentElevation, useTheme, ThemeColors } from '../../src/theme';
 import { useTranslation } from '../../src/i18n';
 
+/**
+ * The end of the wizard.
+ *
+ * Dates and times used to be formatted with `toLocaleDateString('en-US')` and
+ * a 12-hour clock, regardless of the donor's language -- and against the
+ * product's own rule that Uzbekistan reads a 24-hour clock in all three.
+ *
+ * The one thing on this screen the donor may need at the door is the reference
+ * number, so it is the largest thing on it and it is selectable.
+ */
 export default function BookingConfirmation() {
   const { t, formatDate, formatTime } = useTranslation();
-  const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const { colors } = useDesign();
   const params = useLocalSearchParams<{ appointmentId: string; rescheduled?: string }>();
-  const { data: appointment, isLoading } = useAppointment(params.appointmentId);
+  const { data: appointment, isPending } = useAppointment(params.appointmentId);
   const isRescheduled = params.rescheduled === '1';
 
-  // Dates and times used to be formatted with `toLocaleDateString('en-US')` and
-  // a 12-hour clock, regardless of the donor's language -- and against the
-  // product's own rule that Uzbekistan reads a 24-hour clock in all three.
   return (
-    <Screen>
-      <View style={styles.content}>
-        <View style={styles.successIcon}>
-          <LinearGradient
-            colors={['#63C29B', '#3EA87E']}
-            style={styles.successBadge}
+    <ScrollScreen>
+      <Stack gap="xl">
+        <Stack gap="lg" style={{ alignItems: 'center', paddingTop: space.xxl }}>
+          <View
+            style={{
+              width: 64,
+              height: 64,
+              borderRadius: radius.full,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: colors.success.soft,
+            }}
           >
-            <Check size={38} color="#FFFFFF" strokeWidth={3} />
-          </LinearGradient>
-        </View>
+            <Check size={iconSize.xl} color={colors.success.base} strokeWidth={2.5} />
+          </View>
 
-        <AppText style={styles.title}>
-          {isRescheduled ? t('booking.rescheduledTitle') : t('booking.confirmedTitle')}
-        </AppText>
-        <AppText muted style={styles.subtitle}>
-          {isRescheduled
-            ? t('booking.rescheduledBody')
-            : t('booking.confirmedBody')}
-        </AppText>
+          <Stack gap="sm" style={{ alignItems: 'center' }}>
+            <Text variant="h1" align="center" accessibilityRole="alert">
+              {isRescheduled ? t('booking.rescheduledTitle') : t('booking.confirmedTitle')}
+            </Text>
+            <Text variant="body" tone="secondary" align="center">
+              {isRescheduled ? t('booking.rescheduledBody') : t('booking.confirmedBody')}
+            </Text>
+          </Stack>
+        </Stack>
 
-        {isLoading ? (
-          <AppText muted>{t('common.loading')}</AppText>
+        {isPending ? (
+          <Stack gap="md">
+            <Skeleton height={64} />
+            <Skeleton height={56} />
+          </Stack>
         ) : appointment ? (
-          <GlassCard tier="elevated" style={styles.detailsCard}>
-            <View style={styles.refRow}>
-              <AppText muted>{t('booking.referenceNumber')}</AppText>
-              <AppText variant="heading" style={styles.refNumber}>
+          <Stack gap="md">
+            <Stack gap="xs" style={{ alignItems: 'center' }}>
+              <Text variant="overline" tone="tertiary" caps>
+                {t('booking.referenceNumber')}
+              </Text>
+              <ValueText variant="h1" selectable>
                 {appointment.referenceNumber}
-              </AppText>
-            </View>
+              </ValueText>
+            </Stack>
 
-            <View style={styles.divider} />
-
-            <View style={styles.detailRow}>
-              <AppText muted style={styles.detailLabel}>
-                {t('table.type')}
-              </AppText>
-              <AppText>{t(`appointmentTypes.${appointment.appointmentType}`)}</AppText>
-            </View>
-
-            <View style={styles.detailRow}>
-              <AppText muted style={styles.detailLabel}>
-                {t('table.organization')}
-              </AppText>
-              <AppText>{appointment.organization.name}</AppText>
-            </View>
-
-            <View style={styles.detailRow}>
-              <AppText muted style={styles.detailLabel}>
-                {t('table.date')}
-              </AppText>
-              <AppText>{formatDate(appointment.scheduledStart)}</AppText>
-            </View>
-
-            <View style={styles.detailRow}>
-              <AppText muted style={styles.detailLabel}>
-                {t('table.time')}
-              </AppText>
-              <AppText>
-                {formatTime(appointment.scheduledStart)} -{' '}
-                {formatTime(appointment.scheduledEnd)}
-              </AppText>
-            </View>
-
-            <View style={styles.detailRow}>
-              <AppText muted style={styles.detailLabel}>
-                {t('table.status')}
-              </AppText>
-              <Badge variant={appointment.status === 'CONFIRMED' ? 'success' : 'warning'}>
-                {t(`status.appointment.${appointment.status}`)}
-              </Badge>
-            </View>
-          </GlassCard>
+            <ListGroup
+              rows={[
+                <ListRow
+                  key="type"
+                  title={t('table.type')}
+                  value={t(`appointmentTypes.${appointment.appointmentType}`)}
+                />,
+                <ListRow
+                  key="org"
+                  title={t('table.organization')}
+                  value={appointment.organization.name}
+                />,
+                <ListRow
+                  key="date"
+                  title={t('table.date')}
+                  value={formatDate(appointment.scheduledStart, 'medium')}
+                />,
+                <ListRow
+                  key="time"
+                  title={t('table.time')}
+                  value={`${formatTime(appointment.scheduledStart)} – ${formatTime(
+                    appointment.scheduledEnd,
+                  )}`}
+                />,
+                <ListRow
+                  key="status"
+                  title={t('table.status')}
+                  trailing={
+                    <Badge
+                      label={t(`status.appointment.${appointment.status}`)}
+                      tone={appointment.status === 'CONFIRMED' ? 'success' : 'warning'}
+                    />
+                  }
+                />,
+              ]}
+            />
+          </Stack>
         ) : null}
 
-        <GlassCard style={styles.reminderCard}>
-          <AppText muted style={styles.reminderText}>
-            {t('booking.arriveEarly')}
-          </AppText>
-        </GlassCard>
-      </View>
+        <Banner tone="clinical" title={t('booking.arriveEarly')} />
 
-      <View style={styles.footer}>
-        <AppButton onPress={() => router.replace('/(app)/calendar')}>
-          {t('booking.viewCalendar')}
-        </AppButton>
-        <AppButton
-          variant="secondary"
-          onPress={() => router.replace('/home' as const)}
-          style={styles.homeButton}
-        >
-          {t('booking.backToApp')}
-        </AppButton>
-      </View>
-    </Screen>
+        <Stack gap="md">
+          <Button
+            label={t('booking.viewCalendar')}
+            onPress={() => router.replace('/(app)/calendar')}
+          />
+          <Button
+            label={t('booking.backToApp')}
+            variant="secondary"
+            onPress={() => router.replace('/(app)/home')}
+          />
+        </Stack>
+      </Stack>
+    </ScrollScreen>
   );
-}
-
-function createStyles(colors: ThemeColors) {
-  return StyleSheet.create({
-    content: {
-      flex: 1,
-    },
-    successIcon: {
-      alignItems: 'center',
-      marginBottom: spacing.xl,
-      marginTop: spacing.xl,
-    },
-    successBadge: {
-      width: 80,
-      height: 80,
-      borderRadius: 40,
-      alignItems: 'center',
-      justifyContent: 'center',
-      shadowColor: '#63C29B',
-      shadowOpacity: 0.4,
-      shadowRadius: 20,
-      shadowOffset: { width: 0, height: 8 },
-      elevation: translucentElevation(8),
-    },
-    title: {
-      fontSize: 27,
-      fontWeight: '800',
-      letterSpacing: -0.81,
-      color: colors.text,
-      textAlign: 'center',
-      marginBottom: spacing.sm,
-    },
-    subtitle: {
-      textAlign: 'center',
-      marginBottom: spacing.xl,
-    },
-    detailsCard: {
-      padding: spacing.lg,
-      marginBottom: layout.cardGap,
-    },
-    refRow: {
-      alignItems: 'center',
-      marginBottom: spacing.lg,
-    },
-    refNumber: {
-      fontSize: 20,
-      letterSpacing: 1,
-      marginTop: spacing.xs,
-    },
-    divider: {
-      height: 1,
-      backgroundColor: colors.border,
-      marginBottom: spacing.lg,
-    },
-    detailRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: spacing.md,
-    },
-    detailLabel: {
-      fontSize: 13,
-      textTransform: 'uppercase',
-      letterSpacing: 0.5,
-    },
-    reminderCard: {
-      padding: spacing.md,
-    },
-    reminderText: {
-      fontSize: 13,
-      textAlign: 'center',
-      lineHeight: 18,
-    },
-    footer: {
-      paddingTop: spacing.lg,
-    },
-    homeButton: {
-      marginTop: spacing.md,
-    },
-  });
 }

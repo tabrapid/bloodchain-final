@@ -334,3 +334,69 @@ export function OptionGrid<T extends string>({
     </View>
   );
 }
+
+export interface FilterChipProps {
+  /**
+   * Which filter this is -- "Region", "Service".
+   *
+   * It is what makes the chip readable out of context: the visible label is
+   * the chosen value ("Tashkent City"), which on its own says nothing about
+   * which filter it belongs to -- to a screen reader, or to anyone scanning a
+   * row of five chips for the one they want to change.
+   */
+  field: string;
+  /** The current value, shown on the chip. */
+  label: string;
+  active?: boolean;
+  disabled?: boolean;
+  onPress: () => void;
+  icon?: (props: { size: number; color: string }) => ReactNode;
+  /** Draws the disclosure caret. Off for a chip that toggles rather than opens. */
+  opens?: boolean;
+}
+
+/** A compact, tappable filter value. */
+export function FilterChip({
+  field,
+  label,
+  active = false,
+  disabled = false,
+  onPress,
+  icon,
+  opens = true,
+}: FilterChipProps) {
+  const { colors } = useDesign();
+  const foreground = active ? colors.textOnAccent : colors.textPrimary;
+
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      accessibilityRole="button"
+      accessibilityLabel={`${field}: ${label}`}
+      accessibilityState={{ selected: active, disabled }}
+      style={({ pressed }) => ({
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: space.xs,
+        minHeight: hitTarget.min,
+        paddingHorizontal: space.md,
+        borderRadius: radius.full,
+        borderWidth: 1,
+        backgroundColor: active ? colors.rose.fill : pressed ? colors.surfacePressed : colors.surface,
+        borderColor: active ? colors.rose.fill : colors.border,
+        opacity: disabled ? 0.45 : 1,
+      })}
+    >
+      {icon?.({ size: iconScale.sm, color: foreground })}
+      <Text variant="label" numberOfLines={1} style={{ color: foreground }}>
+        {label}
+      </Text>
+      {opens ? (
+        <Text variant="caption" style={{ color: foreground }}>
+          ▾
+        </Text>
+      ) : null}
+    </Pressable>
+  );
+}

@@ -58,13 +58,14 @@ export type { FieldProps, PhoneFieldProps, SearchFieldProps } from './components
 export { OtpField } from './components/OtpField';
 export type { OtpFieldProps } from './components/OtpField';
 
-export { Toggle, SegmentedControl, Choice, OptionGrid } from './components/Controls';
+export { Toggle, SegmentedControl, Choice, OptionGrid, FilterChip } from './components/Controls';
 export type {
   ToggleProps,
   SegmentedControlProps,
   ChoiceProps,
   OptionGridProps,
   OptionGridOption,
+  FilterChipProps,
 } from './components/Controls';
 
 export { SectionHeader, ListRow, Divider, ListGroup } from './components/List';
@@ -78,6 +79,12 @@ export type { StatProps, ProgressProps, AvatarProps } from './components/Stat';
 
 export { BottomSheet, ConfirmationSheet, PermissionExplainer } from './components/Sheet';
 export type { SheetProps, ConfirmationSheetProps, PermissionExplainerProps } from './components/Sheet';
+
+export { MonthGrid } from './components/MonthGrid';
+export type { MonthGridProps } from './components/MonthGrid';
+
+export { FlowStep } from './components/Flow';
+export type { FlowStepProps } from './components/Flow';
 
 export { ScreenHeader, TabBar } from './components/Chrome';
 export type { ScreenHeaderProps } from './components/Chrome';

@@ -1923,6 +1923,14 @@ export const ru: Catalog = {
     },
   },
   booking: {
+    stepOf: 'Шаг {{current}} из {{total}}',
+    spotsLeft: {
+      one: 'осталось {{count}} место',
+      few: 'осталось {{count}} места',
+      many: 'осталось {{count}} мест',
+      other: 'осталось {{count}} мест',
+    },
+    slotTakenHint: 'Пока вы выбирали, это время заняли. Вернитесь и выберите другое.',
     noOpenDatesHint: 'Посмотрите следующий месяц или вернитесь и выберите другое место.',
     unavailableDay: 'недоступно',
     noOpenDates: 'В этом месяце нет свободных дней',
@@ -2670,6 +2678,13 @@ export const ru: Catalog = {
   },
 
   directory: {
+    nearbyExplainerTitle: 'Отсортировать список по расстоянию?',
+    nearbyExplainerBody:
+      'Bloodchain может один раз считать вашу геопозицию, чтобы поставить ближайшие центры донорства в начало списка.',
+    nearbyAssuranceSorting: 'Используется только для сортировки этого списка',
+    nearbyAssuranceNotStored: 'Считывается по вашему запросу — приложение не следит за вами',
+    nearbyAssuranceOptional: 'Необязательно: центр можно выбрать по региону',
+    nearbyAllow: 'Сортировать по расстоянию',
     coordinatesInvalid: 'Широта и долгота должны быть числами или оставаться пустыми.',
     title: 'Организации',
     filters: 'Фильтры',

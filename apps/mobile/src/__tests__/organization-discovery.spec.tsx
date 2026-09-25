@@ -268,8 +268,18 @@ describe('Location step: what the filters ask for', () => {
   });
 });
 
+/**
+ * S11 B3/B5: the nearby filter explains itself before it asks the operating
+ * system.
+ *
+ * These used to press the chip and expect the system prompt. The chip now
+ * opens an explanation first -- what the position is used for here, that it is
+ * read when asked rather than followed, and a "Not now" the same size as
+ * "Allow" -- and only the explainer's Allow reaches the OS. A donor who has
+ * already granted is not made to read it again.
+ */
 describe('Location step: nearby search and location permission', () => {
-  it('sends a position only once the donor has granted permission', async () => {
+  it('explains itself before asking, and sends a position only once granted', async () => {
     jest.mocked(Location.getForegroundPermissionsAsync).mockResolvedValue({
       status: 'undetermined',
     } as never);
@@ -285,9 +295,31 @@ describe('Location step: nearby search and location permission', () => {
     expect(lastQuery()?.latitude).toBeUndefined();
 
     await pressChip(tree, t('directory.nearby'));
+    // The chip alone asks the OS nothing.
+    expect(Location.requestForegroundPermissionsAsync).not.toHaveBeenCalled();
+    expect(screenText(tree)).toContain(t('directory.nearbyExplainerTitle'));
+
+    await press(tree, t('directory.nearbyAllow'));
+    expect(Location.requestForegroundPermissionsAsync).toHaveBeenCalledTimes(1);
     expect(lastQuery()).toEqual(
       expect.objectContaining({ latitude: 41.3, longitude: 69.25, radiusKm: 25 }),
     );
+  });
+
+  it('costs nothing to decline the explanation', async () => {
+    jest.mocked(Location.getForegroundPermissionsAsync).mockResolvedValue({
+      status: 'undetermined',
+    } as never);
+
+    const tree = await render();
+    await press(tree, t('directory.filters'));
+    await pressChip(tree, t('directory.nearby'));
+    await press(tree, t('sos.locationNotNow'));
+
+    expect(Location.requestForegroundPermissionsAsync).not.toHaveBeenCalled();
+    expect(lastQuery()?.latitude).toBeUndefined();
+    // And the rest of the filters are untouched.
+    expect(screenText(tree)).toContain(t('directory.anyRegion'));
   });
 
   it('does not ask again when permission was already granted', async () => {
@@ -317,6 +349,7 @@ describe('Location step: nearby search and location permission', () => {
     const tree = await render();
     await press(tree, t('directory.filters'));
     await pressChip(tree, t('directory.nearby'));
+    await press(tree, t('directory.nearbyAllow'));
 
     expect(screenText(tree)).toContain(t('directory.nearbyDenied'));
     expect(lastQuery()?.latitude).toBeUndefined();

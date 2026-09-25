@@ -1,26 +1,29 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
-import { View, StyleSheet, Pressable, ScrollView } from 'react-native';
+import { View } from 'react-native';
 import * as Location from 'expo-location';
+import { Building2, MapPin, Navigation, ShieldCheck, SlidersHorizontal } from 'lucide-react-native';
 import {
-  Building2,
-  Check,
-  ChevronDown,
-  MapPin,
-  Navigation,
-  ShieldCheck,
-  SlidersHorizontal,
-} from 'lucide-react-native';
-import {
-  AppButton,
-  AppText,
   Badge,
-  BookingStep,
+  BottomSheet,
+  Button,
+  Choice,
   EmptyState,
-  GlassCard,
-  Modal,
-  SkeletonCard,
-} from '../../src/components';
+  ErrorState,
+  FilterChip,
+  FlowStep,
+  LinkButton,
+  ListGroup,
+  ListRow,
+  PermissionExplainer,
+  Row,
+  SkeletonRow,
+  Stack,
+  Surface,
+  Text,
+  space,
+  useDesign,
+} from '../../src/design';
 import { useDiscoverOrganizations } from '../../src/hooks/useOrganizations';
 import { useDistricts, useGeographyCoverage, useRegions } from '../../src/hooks/useGeography';
 import { geoName } from '../../src/api/geography';
@@ -29,8 +32,8 @@ import {
   type DirectoryOrganization,
   type OrganizationServiceType,
 } from '../../src/api/organizations';
-import { radius, spacing, useTheme, ThemeColors } from '../../src/theme';
 import { useTranslation } from '../../src/i18n';
+import { BOOKING_STEP_COUNT } from './select-type';
 
 /** The organization types a donor can be sent to. SYSTEM is internal. */
 const ORGANIZATION_TYPES = ['HOSPITAL', 'BLOOD_CENTER'] as const;
@@ -57,8 +60,6 @@ interface Coordinates {
 
 export default function SelectOrganization() {
   const { t, locale } = useTranslation();
-  const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
   const params = useLocalSearchParams<{ type: string }>();
   const [selected, setSelected] = useState<string | null>(null);
 
@@ -70,6 +71,7 @@ export default function SelectOrganization() {
   const [coordinates, setCoordinates] = useState<Coordinates | null>(null);
   const [radiusKm, setRadiusKm] = useState(DEFAULT_RADIUS_KM);
   const [locationError, setLocationError] = useState<string | null>(null);
+  const [explainingLocation, setExplainingLocation] = useState(false);
   const [picker, setPicker] = useState<'region' | 'district' | 'type' | 'service' | null>(null);
 
   const { data: regions = [] } = useRegions();
@@ -97,17 +99,14 @@ export default function SelectOrganization() {
     [params.type, regionId, districtId, orgType, service, coordinates, radiusKm],
   );
 
-  const {
-    data,
-    isLoading,
-    isError,
-    refetch,
-    isRefetching,
-  } = useDiscoverOrganizations(query);
+  const { data, isLoading, isError, refetch } = useDiscoverOrganizations(query);
   const organizations = data?.organizations ?? [];
 
   const activeFilters =
-    (regionId ? 1 : 0) + (districtId ? 1 : 0) + (orgType ? 1 : 0) + (service ? 1 : 0) +
+    (regionId ? 1 : 0) +
+    (districtId ? 1 : 0) +
+    (orgType ? 1 : 0) +
+    (service ? 1 : 0) +
     (coordinates ? 1 : 0);
 
   const clearFilters = useCallback(() => {
@@ -119,30 +118,9 @@ export default function SelectOrganization() {
     setLocationError(null);
   }, []);
 
-  /**
-   * Nearby search is off until the donor asks for it and the platform agrees.
-   *
-   * Permission is requested on the tap that needs it rather than on mount, and
-   * a refusal turns the filter off with a line saying why -- the one thing a
-   * toggle that silently does nothing cannot do.
-   */
-  const toggleNearby = useCallback(async () => {
-    if (coordinates) {
-      setCoordinates(null);
-      setLocationError(null);
-      return;
-    }
-    setLocationError(null);
+  /** Reads the position. Only reached once permission is in hand. */
+  const readPosition = useCallback(async () => {
     try {
-      const existing = await Location.getForegroundPermissionsAsync();
-      const granted =
-        existing.status === 'granted'
-          ? existing
-          : await Location.requestForegroundPermissionsAsync();
-      if (granted.status !== 'granted') {
-        setLocationError(t('directory.nearbyDenied'));
-        return;
-      }
       const position = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,
       });
@@ -153,7 +131,42 @@ export default function SelectOrganization() {
     } catch {
       setLocationError(t('directory.nearbyFailed'));
     }
-  }, [coordinates, t]);
+  }, [t]);
+
+  /**
+   * Nearby search, without asking the operating system before the donor knows
+   * what for.
+   *
+   * A donor who has already granted location gets what they asked for on the
+   * tap. A donor who has not sees the explanation first: what it is used for
+   * here (sorting this list by distance), what it is not, and a "Not now" that
+   * costs them nothing. The system prompt only ever follows their Allow.
+   */
+  const toggleNearby = useCallback(async () => {
+    if (coordinates) {
+      setCoordinates(null);
+      setLocationError(null);
+      return;
+    }
+    setLocationError(null);
+    const existing = await Location.getForegroundPermissionsAsync();
+    if (existing.status === 'granted') {
+      await readPosition();
+      return;
+    }
+    setExplainingLocation(true);
+  }, [coordinates, readPosition]);
+
+  /** Only ever reached from the explainer's Allow button. */
+  const askOperatingSystemForLocation = useCallback(async () => {
+    setExplainingLocation(false);
+    const granted = await Location.requestForegroundPermissionsAsync();
+    if (granted.status !== 'granted') {
+      setLocationError(t('directory.nearbyDenied'));
+      return;
+    }
+    await readPosition();
+  }, [readPosition, t]);
 
   const pickerOptions = useMemo(() => {
     switch (picker) {
@@ -207,530 +220,286 @@ export default function SelectOrganization() {
   }, [picker, regions, districts, regionId, districtId, orgType, service, locale, t]);
 
   return (
-    <BookingStep
+    <FlowStep
       step={2}
+      total={BOOKING_STEP_COUNT}
+      counterLabel={t('booking.stepOf', { current: 2, total: BOOKING_STEP_COUNT })}
       title={t('booking.selectLocation')}
       subtitle={
         params.type === 'BLOOD_DONATION'
           ? t('booking.selectLocationHintDonation')
           : t('booking.selectLocationHintTest')
       }
-      nextDisabled={!selected}
-      onNext={() =>
+      onBack={() => router.back()}
+      backLabel={t('common.a11yGoBack')}
+      onClose={() => router.replace('/(app)/donate')}
+      closeLabel={t('common.a11yCloseBooking')}
+      primaryLabel={t('common.continue')}
+      primaryDisabled={!selected}
+      onPrimary={() =>
         router.push({
           pathname: '/(booking)/date',
           params: { organizationId: selected!, type: params.type },
         })
       }
     >
-      <View style={styles.toolbar}>
-        <Pressable
-          onPress={() => setShowFilters((open) => !open)}
-          accessibilityRole="button"
-          accessibilityLabel={showFilters ? t('directory.hideFilters') : t('directory.showFilters')}
-          style={styles.toolbarButton}
-        >
-          <SlidersHorizontal size={14} color={colors.text} />
-          <AppText style={styles.toolbarLabel}>{t('directory.filters')}</AppText>
-          {activeFilters > 0 && (
-            <View style={styles.filterCount}>
-              <AppText style={styles.filterCountText}>{activeFilters}</AppText>
-            </View>
-          )}
-        </Pressable>
-        {!isLoading && !isError && (
-          <AppText style={styles.resultCount}>
-            {t('directory.resultsCount', { count: data?.total ?? organizations.length })}
-          </AppText>
-        )}
-      </View>
-
-      {showFilters && (
-        <GlassCard style={styles.filterCard}>
-          <View style={styles.chipRow}>
-            <FilterChip
-              colors={colors}
-              field={t('directory.region')}
-              label={region ? geoName(region, locale) : t('directory.anyRegion')}
-              active={Boolean(regionId)}
-              onPress={() => setPicker('region')}
-            />
-            <FilterChip
-              colors={colors}
-              field={t('directory.district')}
-              label={district ? geoName(district, locale) : t('directory.anyDistrict')}
-              active={Boolean(districtId)}
-              disabled={!regionId}
-              onPress={() => setPicker('district')}
-            />
-            <FilterChip
-              colors={colors}
-              field={t('directory.organizationType')}
-              label={orgType ? t(`directory.organizationTypes.${orgType}`) : t('directory.anyType')}
-              active={Boolean(orgType)}
-              onPress={() => setPicker('type')}
-            />
-            <FilterChip
-              colors={colors}
-              field={t('directory.service')}
-              label={service ? t(`medical.services.${service}`) : t('directory.anyService')}
-              active={Boolean(service)}
-              onPress={() => setPicker('service')}
-            />
-            <FilterChip
-              colors={colors}
-              field={t('directory.nearby')}
-              label={coordinates ? t('directory.nearbyRadius', { km: radiusKm }) : t('directory.nearby')}
-              active={Boolean(coordinates)}
-              icon={<Navigation size={12} color={coordinates ? '#FFFFFF' : colors.textMuted} />}
-              onPress={toggleNearby}
-            />
-          </View>
-
-          {!regionId && (
-            <AppText style={styles.hint}>{t('directory.chooseRegionFirst')}</AppText>
-          )}
-          {coverage?.districtsAuthoritative === false && (
-            <AppText style={styles.hint}>{t('directory.demoDistricts')}</AppText>
-          )}
-          {locationError && <AppText style={styles.error}>{locationError}</AppText>}
-
-          {coordinates && (
-            <View style={styles.chipRow}>
-              {RADIUS_OPTIONS.map((km) => (
-                <FilterChip
-                  key={km}
-                  colors={colors}
-                  field={t('directory.nearby')}
-                  label={t('directory.nearbyRadius', { km })}
-                  active={radiusKm === km}
-                  onPress={() => setRadiusKm(km)}
-                />
-              ))}
-            </View>
-          )}
-
-          {activeFilters > 0 && (
-            <AppButton variant="ghost" onPress={clearFilters} style={styles.clear}>
-              {t('directory.clearFilters')}
-            </AppButton>
-          )}
-        </GlassCard>
-      )}
-
-      {isLoading ? (
-        <View style={styles.list}>
-          {[0, 1, 2].map((i) => (
-            <SkeletonCard key={i} />
-          ))}
-        </View>
-      ) : isError ? (
-        <GlassCard style={styles.stateCard}>
-          <EmptyState title={t('booking.locationsFailed')} description={t('common.offline')} />
-          <AppButton
+      <Stack gap="lg">
+        <Row gap="md">
+          <Button
+            label={
+              activeFilters > 0
+                ? `${t('directory.filters')} · ${activeFilters}`
+                : t('directory.filters')
+            }
+            accessibilityLabel={showFilters ? t('directory.hideFilters') : t('directory.showFilters')}
             variant="secondary"
-            onPress={() => refetch()}
-            disabled={isRefetching}
-            loading={isRefetching}
-            style={styles.retry}
-          >
-            {t('common.retry')}
-          </AppButton>
-        </GlassCard>
-      ) : organizations.length === 0 ? (
-        <GlassCard style={styles.stateCard}>
+            size="md"
+            block={false}
+            icon={({ size, color }) => <SlidersHorizontal size={size} color={color} />}
+            onPress={() => setShowFilters((open) => !open)}
+          />
+          <View style={{ flex: 1 }} />
+          {!isLoading && !isError ? (
+            <Text variant="caption" tone="tertiary">
+              {t('directory.resultsCount', { count: data?.total ?? organizations.length })}
+            </Text>
+          ) : null}
+        </Row>
+
+        {showFilters ? (
+          <Surface>
+            <Stack gap="md">
+              <Row gap="sm" style={{ flexWrap: 'wrap' }}>
+                <FilterChip
+                  field={t('directory.region')}
+                  label={region ? geoName(region, locale) : t('directory.anyRegion')}
+                  active={Boolean(regionId)}
+                  onPress={() => setPicker('region')}
+                />
+                <FilterChip
+                  field={t('directory.district')}
+                  label={district ? geoName(district, locale) : t('directory.anyDistrict')}
+                  active={Boolean(districtId)}
+                  disabled={!regionId}
+                  onPress={() => setPicker('district')}
+                />
+                <FilterChip
+                  field={t('directory.organizationType')}
+                  label={orgType ? t(`directory.organizationTypes.${orgType}`) : t('directory.anyType')}
+                  active={Boolean(orgType)}
+                  onPress={() => setPicker('type')}
+                />
+                <FilterChip
+                  field={t('directory.service')}
+                  label={service ? t(`medical.services.${service}`) : t('directory.anyService')}
+                  active={Boolean(service)}
+                  onPress={() => setPicker('service')}
+                />
+                <FilterChip
+                  field={t('directory.nearby')}
+                  label={
+                    coordinates ? t('directory.nearbyRadius', { km: radiusKm }) : t('directory.nearby')
+                  }
+                  active={Boolean(coordinates)}
+                  opens={false}
+                  icon={({ size, color }) => <Navigation size={size} color={color} />}
+                  onPress={() => void toggleNearby()}
+                />
+              </Row>
+
+              {!regionId ? (
+                <Text variant="caption" tone="tertiary">
+                  {t('directory.chooseRegionFirst')}
+                </Text>
+              ) : null}
+              {coverage?.districtsAuthoritative === false ? (
+                <Text variant="caption" tone="tertiary">
+                  {t('directory.demoDistricts')}
+                </Text>
+              ) : null}
+              {locationError ? (
+                <Text variant="caption" tone="warning">
+                  {locationError}
+                </Text>
+              ) : null}
+
+              {coordinates ? (
+                <Row gap="sm" style={{ flexWrap: 'wrap' }}>
+                  {RADIUS_OPTIONS.map((km) => (
+                    <FilterChip
+                      key={km}
+                      field={t('directory.nearby')}
+                      label={t('directory.nearbyRadius', { km })}
+                      active={radiusKm === km}
+                      opens={false}
+                      onPress={() => setRadiusKm(km)}
+                    />
+                  ))}
+                </Row>
+              ) : null}
+
+              {activeFilters > 0 ? (
+                <LinkButton label={t('directory.clearFilters')} onPress={clearFilters} />
+              ) : null}
+            </Stack>
+          </Surface>
+        ) : null}
+
+        {isLoading ? (
+          <Surface>
+            <SkeletonRow />
+            <SkeletonRow />
+            <SkeletonRow />
+          </Surface>
+        ) : isError ? (
+          <ErrorState
+            title={t('booking.locationsFailed')}
+            description={t('common.offline')}
+            retryLabel={t('common.retry')}
+            onRetry={() => void refetch()}
+          />
+        ) : organizations.length === 0 ? (
           <EmptyState
             title={activeFilters > 0 ? t('directory.noResults') : t('booking.noLocations')}
             description={
               activeFilters > 0 ? t('directory.noResultsHint') : t('booking.noLocationsHint')
             }
+            {...(activeFilters > 0
+              ? { action: { label: t('directory.clearFilters'), onPress: clearFilters } }
+              : {})}
           />
-          {activeFilters > 0 && (
-            <AppButton variant="secondary" onPress={clearFilters} style={styles.retry}>
-              {t('directory.clearFilters')}
-            </AppButton>
-          )}
-        </GlassCard>
-      ) : (
-        <View style={styles.list}>
-          {organizations.map((org) => (
-            <OrganizationCard
-              key={org.id}
-              organization={org}
-              selected={selected === org.id}
-              onPress={() => setSelected(org.id)}
-              colors={colors}
-              styles={styles}
-              locale={locale}
-              t={t}
-            />
-          ))}
-        </View>
-      )}
+        ) : (
+          <Stack gap="md">
+            {organizations.map((org) => (
+              <OrganizationOption
+                key={org.id}
+                organization={org}
+                selected={selected === org.id}
+                onPress={() => setSelected(org.id)}
+              />
+            ))}
+          </Stack>
+        )}
+      </Stack>
 
-      <Modal
+      <BottomSheet
         visible={picker !== null}
         onClose={() => setPicker(null)}
-        title={pickerOptions?.title}
+        title={pickerOptions?.title ?? ''}
+        closeLabel={t('common.close')}
       >
-        <ScrollView style={styles.pickerScroll}>
-          <PickerRow
-            label={pickerOptions?.empty ?? ''}
-            selected={!pickerOptions?.selectedId}
-            onPress={() => {
-              pickerOptions?.onSelect(undefined);
-              setPicker(null);
-            }}
-            colors={colors}
-            styles={styles}
-          />
-          {pickerOptions?.options.map((option) => (
-            <PickerRow
-              key={option.id}
-              label={option.label}
-              selected={pickerOptions.selectedId === option.id}
+        <ListGroup
+          rows={[
+            <ListRow
+              key="any"
+              title={pickerOptions?.empty ?? ''}
+              trailing={
+                !pickerOptions?.selectedId ? (
+                  <Badge label={t('common.done')} tone="rose" />
+                ) : undefined
+              }
               onPress={() => {
-                pickerOptions.onSelect(option.id);
+                pickerOptions?.onSelect(undefined);
                 setPicker(null);
               }}
-              colors={colors}
-              styles={styles}
-            />
-          ))}
-        </ScrollView>
-      </Modal>
-    </BookingStep>
+            />,
+            ...(pickerOptions?.options ?? []).map((option) => (
+              <ListRow
+                key={option.id}
+                title={option.label}
+                trailing={
+                  pickerOptions?.selectedId === option.id ? (
+                    <Badge label={t('common.done')} tone="rose" />
+                  ) : undefined
+                }
+                onPress={() => {
+                  pickerOptions?.onSelect(option.id);
+                  setPicker(null);
+                }}
+              />
+            )),
+          ]}
+        />
+      </BottomSheet>
+
+      <PermissionExplainer
+        visible={explainingLocation}
+        title={t('directory.nearbyExplainerTitle')}
+        description={t('directory.nearbyExplainerBody')}
+        assurances={[
+          t('directory.nearbyAssuranceSorting'),
+          t('directory.nearbyAssuranceNotStored'),
+          t('directory.nearbyAssuranceOptional'),
+        ]}
+        allowLabel={t('directory.nearbyAllow')}
+        denyLabel={t('sos.locationNotNow')}
+        onAllow={() => void askOperatingSystemForLocation()}
+        onDeny={() => setExplainingLocation(false)}
+        icon={({ size, color }) => <Navigation size={size} color={color} />}
+      />
+    </FlowStep>
   );
 }
 
-/**
- * `field` is what makes the chip readable out of context: the visible label is
- * the chosen value ("Tashkent City"), which on its own says nothing about which
- * filter it belongs to -- to a screen reader, or to a test looking for the
- * region control rather than the word.
- */
-function FilterChip({
-  colors,
-  field,
-  label,
-  active,
-  disabled,
-  icon,
-  onPress,
-}: {
-  colors: ThemeColors;
-  field: string;
-  label: string;
-  active?: boolean;
-  disabled?: boolean;
-  icon?: React.ReactNode;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      disabled={disabled}
-      accessibilityRole="button"
-      accessibilityLabel={`${field}: ${label}`}
-      accessibilityState={{ selected: active, disabled }}
-      style={({ pressed }) => [
-        {
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: 5,
-          paddingVertical: 7,
-          paddingHorizontal: 12,
-          borderRadius: radius.pill,
-          borderWidth: 1,
-          backgroundColor: active ? colors.primary : colors.surfaceElevated,
-          borderColor: active ? colors.primary : colors.border,
-          opacity: disabled ? 0.45 : pressed ? 0.7 : 1,
-        },
-      ]}
-    >
-      {icon}
-      <AppText
-        style={{ fontSize: 12, fontWeight: '600', color: active ? '#FFFFFF' : colors.text }}
-        numberOfLines={1}
-      >
-        {label}
-      </AppText>
-      {!icon && <ChevronDown size={12} color={active ? '#FFFFFF' : colors.textMuted} />}
-    </Pressable>
-  );
-}
-
-function PickerRow({
-  label,
-  selected,
-  onPress,
-  colors,
-  styles,
-}: {
-  label: string;
-  selected: boolean;
-  onPress: () => void;
-  colors: ThemeColors;
-  styles: ReturnType<typeof createStyles>;
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="radio"
-      accessibilityState={{ selected }}
-      style={({ pressed }) => [styles.pickerRow, { opacity: pressed ? 0.7 : 1 }]}
-    >
-      <AppText style={styles.pickerLabel}>{label}</AppText>
-      {selected && <Check size={16} color={colors.primary} strokeWidth={3} />}
-    </Pressable>
-  );
-}
-
-function OrganizationCard({
+function OrganizationOption({
   organization,
   selected,
   onPress,
-  colors,
-  styles,
-  locale,
-  t,
 }: {
   organization: DirectoryOrganization;
   selected: boolean;
   onPress: () => void;
-  colors: ThemeColors;
-  styles: ReturnType<typeof createStyles>;
-  locale: string;
-  t: (key: string, vars?: Record<string, string | number>) => string;
 }) {
-  const isHospital = organization.type === 'HOSPITAL';
+  const { t, locale } = useTranslation();
+  const { colors } = useDesign();
+
   const place = [organization.district, organization.region]
     .filter((entry): entry is NonNullable<typeof entry> => entry !== null)
     .map((entry) => geoName(entry, locale))
     .join(', ');
+  const where = organization.address
+    ? place
+      ? `${organization.address} · ${place}`
+      : organization.address
+    : place;
 
   return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="radio"
-      accessibilityState={{ selected }}
-      style={({ pressed }) => ({ opacity: pressed && !selected ? 0.7 : 1 })}
-    >
-      <GlassCard
-        tier={selected ? 'elevated' : 'standard'}
-        style={selected ? styles.cardSelected : undefined}
-      >
-        <View style={styles.row}>
-          <View
-            style={[
-              styles.icon,
-              { backgroundColor: isHospital ? colors.primaryMuted : colors.secondaryMuted },
-            ]}
-          >
-            <Building2
-              size={18}
-              color={isHospital ? colors.onMuted.primary : colors.onMuted.secondary}
+    <View style={{ gap: space.sm }}>
+      <Choice
+        label={organization.name}
+        description={where || undefined}
+        selected={selected}
+        onPress={onPress}
+        icon={({ size }) => (
+          <Building2
+            size={size}
+            color={organization.type === 'HOSPITAL' ? colors.rose.base : colors.clinical.base}
+          />
+        )}
+      />
+      {/* Distance, verification and demo status sit under the option rather
+          than inside it: they are facts about the place, not part of the
+          choice, and cramming them into the row is what made V1's cards
+          three lines tall with the name truncated at the top. */}
+      {organization.distanceKm !== null || organization.isVerified || organization.isDemo ? (
+        <Row gap="sm" style={{ flexWrap: 'wrap', paddingLeft: space.xl }}>
+          {organization.distanceKm !== null ? (
+            <Badge
+              label={t('directory.distanceAway', { km: organization.distanceKm })}
+              tone="clinical"
+              icon={({ size, color }) => <MapPin size={size} color={color} />}
             />
-          </View>
-          <View style={styles.body}>
-            <AppText style={styles.name}>{organization.name}</AppText>
-            {place.length > 0 && (
-              <View style={styles.addressRow}>
-                <MapPin size={11} color={colors.textMuted} />
-                <AppText style={styles.address} numberOfLines={2}>
-                  {organization.address ? `${organization.address} · ${place}` : place}
-                </AppText>
-              </View>
-            )}
-            {!place && organization.address && (
-              <View style={styles.addressRow}>
-                <MapPin size={11} color={colors.textMuted} />
-                <AppText style={styles.address} numberOfLines={2}>
-                  {organization.address}
-                </AppText>
-              </View>
-            )}
-            <View style={styles.badgeRow}>
-              {organization.distanceKm !== null && (
-                <Badge variant="secondary">
-                  {t('directory.distanceAway', { km: organization.distanceKm })}
-                </Badge>
-              )}
-              {organization.isVerified && (
-                <View style={styles.verified}>
-                  <ShieldCheck size={11} color={colors.onMuted.success} />
-                  <AppText style={styles.verifiedText}>{t('directory.verified')}</AppText>
-                </View>
-              )}
-              {organization.isDemo && <Badge variant="warning">{t('directory.demo')}</Badge>}
-            </View>
-          </View>
-          {selected && (
-            <View style={styles.check}>
-              <Check size={13} color="#FFFFFF" strokeWidth={3} />
-            </View>
-          )}
-        </View>
-      </GlassCard>
-    </Pressable>
+          ) : null}
+          {organization.isVerified ? (
+            <Badge
+              label={t('directory.verified')}
+              tone="success"
+              icon={({ size, color }) => <ShieldCheck size={size} color={color} />}
+            />
+          ) : null}
+          {organization.isDemo ? <Badge label={t('directory.demo')} tone="warning" /> : null}
+        </Row>
+      ) : null}
+    </View>
   );
-}
-
-function createStyles(colors: ThemeColors) {
-  return StyleSheet.create({
-    toolbar: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      marginBottom: spacing.sm,
-    },
-    toolbarButton: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 6,
-      paddingVertical: 6,
-      paddingHorizontal: 10,
-      borderRadius: radius.pill,
-      borderWidth: 1,
-      borderColor: colors.border,
-      backgroundColor: colors.surfaceElevated,
-    },
-    toolbarLabel: {
-      fontSize: 12,
-      fontWeight: '600',
-      color: colors.text,
-    },
-    filterCount: {
-      minWidth: 16,
-      height: 16,
-      paddingHorizontal: 4,
-      borderRadius: 8,
-      backgroundColor: colors.primary,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    filterCountText: {
-      fontSize: 10,
-      fontWeight: '700',
-      color: '#FFFFFF',
-    },
-    resultCount: {
-      fontSize: 12,
-      color: colors.textMuted,
-    },
-    filterCard: {
-      marginBottom: spacing.sm,
-      gap: spacing.sm,
-    },
-    chipRow: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: 8,
-    },
-    hint: {
-      fontSize: 11,
-      color: colors.textMuted,
-    },
-    error: {
-      fontSize: 11,
-      color: colors.danger,
-    },
-    clear: {
-      alignSelf: 'flex-start',
-    },
-    pickerScroll: {
-      maxHeight: 360,
-    },
-    pickerRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingVertical: 12,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: colors.border,
-      gap: 12,
-    },
-    pickerLabel: {
-      flex: 1,
-      fontSize: 14,
-      color: colors.text,
-    },
-    list: {
-      gap: 10,
-    },
-    stateCard: {
-      paddingVertical: spacing.lg,
-    },
-    retry: {
-      marginTop: spacing.md,
-      alignSelf: 'center',
-    },
-    cardSelected: {
-      borderColor: 'rgba(216, 83, 96, 0.45)',
-    },
-    row: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      gap: 12,
-    },
-    icon: {
-      width: 40,
-      height: 40,
-      borderRadius: radius.sm,
-      alignItems: 'center',
-      justifyContent: 'center',
-      flexShrink: 0,
-    },
-    body: {
-      flex: 1,
-    },
-    name: {
-      fontSize: 14,
-      fontWeight: '600',
-      color: colors.text,
-    },
-    addressRow: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      gap: 4,
-      marginTop: 2,
-    },
-    address: {
-      flex: 1,
-      fontSize: 12,
-      color: colors.textMuted,
-    },
-    badgeRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      flexWrap: 'wrap',
-      gap: 6,
-      marginTop: 6,
-    },
-    verified: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 4,
-      paddingVertical: spacing.xs,
-      paddingHorizontal: spacing.sm,
-      borderRadius: radius.pill,
-      borderWidth: 1,
-      backgroundColor: colors.successMuted,
-      borderColor: colors.successMuted,
-    },
-    verifiedText: {
-      fontSize: 11,
-      fontWeight: '600',
-      color: colors.onMuted.success,
-    },
-    check: {
-      width: 22,
-      height: 22,
-      borderRadius: 11,
-      backgroundColor: colors.primary,
-      alignItems: 'center',
-      justifyContent: 'center',
-      flexShrink: 0,
-    },
-  });
 }
