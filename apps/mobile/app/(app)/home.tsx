@@ -43,6 +43,7 @@ import { useDonorProfile, useProfileCompletion } from '../../src/hooks/useDonors
 import { useNextAppointment } from '../../src/hooks/useAppointments';
 import { useDonationStatistics } from '../../src/hooks/useDonations';
 import { useGamificationProfile, useLevelProgress } from '../../src/hooks/useGamification';
+import { percentAsFraction } from '../../src/utils/progress';
 import { useUnreadCount } from '../../src/hooks/useNotifications';
 import { useDonorEmergencies } from '../../src/hooks/useEmergency';
 import { useAuthStore } from '../../src/stores/auth.store';
@@ -96,7 +97,7 @@ export default function Home() {
     ? [userProfile.firstName, userProfile.lastName].filter(Boolean).join(' ')
     : undefined;
   const activeEmergencyCount = emergencies?.active.length ?? 0;
-  const completionPercentage = completionData?.data?.percentage ?? 0;
+  const completionPercentage = completionData?.percentage ?? 0;
 
   const firstName = userProfile?.firstName || user?.firstName || 'there';
   const greeting = getGreeting(t, firstName);
@@ -334,8 +335,16 @@ export default function Home() {
             <Surface>
               <Progress
                 label={`${t('home.levelAndXp')} ${levelProgress.currentLevel}`}
-                caption={`${levelProgress.currentXp} / ${levelProgress.xpForNextLevel} XP`}
-                value={levelProgress.progress ?? 0}
+                // The bar and the caption have to measure the same thing. The
+                // API's `progress` is how far through *this level* the donor
+                // is; `currentXp / xpForNextLevel` is a different fraction, and
+                // showing the two side by side read as a bug. The remaining XP
+                // is the API's own number and agrees with the bar.
+                caption={t('gamification.xpToNext', {
+                  count: levelProgress.xpToNextLevel,
+                  level: levelProgress.nextLevelName,
+                })}
+                value={percentAsFraction(levelProgress.progress)}
                 tone="insight"
               />
             </Surface>

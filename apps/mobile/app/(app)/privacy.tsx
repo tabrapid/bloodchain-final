@@ -19,6 +19,10 @@ import {
   useDesign,
 } from '../../src/design';
 import { useDonorProfile, useUpdateDonorProfile } from '../../src/hooks/useDonors';
+import {
+  useGamificationProfile,
+  useUpdateLeaderboardVisibility,
+} from '../../src/hooks/useGamification';
 import { useTranslation } from '../../src/i18n';
 
 /**
@@ -30,11 +34,18 @@ const LAST_UPDATED = new Date(2026, 8, 1);
 /**
  * Privacy, rebuilt for V2 — and still refusing to pretend.
  *
- * The reference shows five toggles. Four of them (public profile, donation
- * history visibility, leaderboard opt-out, anonymised analytics) have no field
- * behind them anywhere in this system, and a privacy switch that silently does
- * nothing is worse than one that is absent. Only the consent this app actually
- * stores and honours is offered.
+ * The reference shows five toggles. Three of them (public profile, donation
+ * history visibility, anonymised analytics) have no field behind them anywhere
+ * in this system, and a privacy switch that silently does nothing is worse than
+ * one that is absent. Only the consent this app actually stores and honours is
+ * offered.
+ *
+ * The fourth, leaderboard opt-out, turned out to be real: the column exists,
+ * the leaderboard query has always honoured it, and the setter has always been
+ * there -- but the profile endpoint did not return it, so the switch could not
+ * be drawn in the position the donor left it, and an earlier reading of this
+ * screen concluded there was nothing behind it. The endpoint returns it now
+ * (S11.1), and a donor can take their name off a public ranking here.
  *
  * The same rule applies to the rows below it. There is no data-export endpoint
  * and no self-service account deletion in this backend, so those rows say what
@@ -47,10 +58,14 @@ export default function Privacy() {
   const { colors } = useDesign();
   const { data: donorProfile } = useDonorProfile();
   const updateDonorProfile = useUpdateDonorProfile();
+  const { data: gamificationProfile } = useGamificationProfile();
+  const updateLeaderboardVisibility = useUpdateLeaderboardVisibility();
   const [pendingConsent, setPendingConsent] = useState<boolean | null>(null);
+  const [pendingLeaderboard, setPendingLeaderboard] = useState<boolean | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const consentLocation = pendingConsent ?? donorProfile?.consentLocation ?? false;
+  const onLeaderboard = pendingLeaderboard ?? gamificationProfile?.leaderboardVisibility ?? true;
 
   const handleToggleLocation = (value: boolean) => {
     setError(null);
@@ -67,6 +82,18 @@ export default function Privacy() {
         onSuccess: () => setPendingConsent(null),
       },
     );
+  };
+
+  const handleToggleLeaderboard = (value: boolean) => {
+    setError(null);
+    setPendingLeaderboard(value);
+    updateLeaderboardVisibility.mutate(value, {
+      onError: () => {
+        setPendingLeaderboard(null);
+        setError(t('privacy.leaderboardUpdateFailed'));
+      },
+      onSuccess: () => setPendingLeaderboard(null),
+    });
   };
 
   const version = Constants.expoConfig?.version ?? '—';
@@ -95,6 +122,13 @@ export default function Privacy() {
                 value={consentLocation}
                 onValueChange={handleToggleLocation}
                 busy={updateDonorProfile.isPending}
+              />
+              <Toggle
+                label={t('privacy.leaderboardVisible')}
+                description={t('privacy.leaderboardVisibleHint')}
+                value={onLeaderboard}
+                onValueChange={handleToggleLeaderboard}
+                busy={updateLeaderboardVisibility.isPending}
               />
             </View>
           </Surface>

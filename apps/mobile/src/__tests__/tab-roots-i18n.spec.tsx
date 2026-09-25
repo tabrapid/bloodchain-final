@@ -61,8 +61,11 @@ jest.mock('../hooks/useDonors', () => ({
       city: 'Tashkent',
       bloodTypeSource: 'BLOOD_CENTER',
     }),
+  // The real shape: apiRequest unwraps the envelope, so this is the completion
+  // itself and not `{ data: completion }`. Mocking the envelope is how a bar
+  // that read 0% for every donor passed its tests.
   useProfileCompletion: () =>
-    query({ data: { percentage: 60, completed: ['basic_identity'], missing: ['date_of_birth', 'location'] } }),
+    query({ percentage: 60, completed: ['basic_identity'], missing: ['date_of_birth', 'location'] }),
 }));
 jest.mock('../hooks/useAppointments', () => ({
   useNextAppointment: () => query(undefined),
@@ -96,13 +99,18 @@ jest.mock('../hooks/useDonations', () => ({
   useMyDonations: () => query({ data: [{ status: 'COMPLETED', donationType: 'WHOLE_BLOOD' }] }),
 }));
 jest.mock('../hooks/useGamification', () => ({
-  useGamificationProfile: () => query({ emergencyResponseCount: 2, donationCount: 4, totalXp: 320 }),
+  useGamificationProfile: () =>
+    query({ emergencyResponseCount: 2, donationCount: 4, totalXp: 320, xpToNextLevel: 80, progress: 60 }),
   useLevelProgress: () =>
     query({
       currentLevel: 3,
       currentXp: 120,
       xpForNextLevel: 200,
-      progress: 0.6,
+      xpToNextLevel: 80,
+      // A percentage, which is what the API sends. It used to be mocked as
+      // 0.6 -- so the screens' own tests agreed with the bug that drew a full
+      // bar for a donor 60% of the way.
+      progress: 60,
       isMaxLevel: false,
       currentLevelName: 'Bronze',
       nextLevelName: 'Silver',
@@ -254,5 +262,71 @@ describe.each([
     expect(text).toContain(createLocalization(locale).t(headingKey));
 
     act(() => tree.unmount());
+  });
+});
+
+/**
+ * S11.1: the two numbers these screens were drawing wrong.
+ *
+ * Both were found by photographing the running app rather than by reading it —
+ * a full XP bar next to "340 / 500 XP", and a profile-completion bar sitting at
+ * zero for a donor who was 80% done. Both had passing tests, because the mocks
+ * above encoded the same two misunderstandings the screens did: an envelope
+ * that `apiRequest` had already unwrapped, and a percentage treated as a
+ * fraction.
+ *
+ * `Progress` reports its own value through `accessibilityValue.now`, as a
+ * percentage — which is what a screen reader announces, so asserting on it
+ * tests the bar and the announcement at once.
+ */
+/**
+ * Let the bars finish moving before the test ends.
+ *
+ * `Progress` animates its width over `motion.quick`, and a width animation
+ * cannot use the native driver -- so it runs on timers that the React Native
+ * jest preset backs with real ones. A test that unmounts while one is pending
+ * leaves it to fire against a torn-down environment, which passes every
+ * assertion and still exits 1.
+ */
+async function settleAnimations() {
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 300));
+  });
+}
+
+function progressValues(tree: renderer.ReactTestRenderer): number[] {
+  return tree.root
+    .findAll((node) => node.props?.accessibilityRole === 'progressbar')
+    .map((node) => node.props.accessibilityValue?.now)
+    .filter((value): value is number => typeof value === 'number');
+}
+
+describe('the bars on Home and Profile say what the data says', () => {
+  it('draws profile completion at the percentage the API reported', async () => {
+    const tree = await renderInLanguage(<Home />, 'en');
+
+    // 60 from the mocked completion, not 0 from an envelope that is not there.
+    expect(progressValues(tree)).toContain(60);
+    await settleAnimations();
+    tree.unmount();
+  });
+
+  it('draws level progress as a fraction of the level, not a clamped percentage', async () => {
+    const tree = await renderInLanguage(<Home />, 'en');
+
+    // progress: 60 (percent) must reach the bar as 60%, not as a value of 60
+    // that clamps to a full bar.
+    expect(progressValues(tree)).toContain(60);
+    expect(progressValues(tree)).not.toContain(100);
+    await settleAnimations();
+    tree.unmount();
+  });
+
+  it('renders the completion card on Profile, which an unwrapped envelope hid entirely', async () => {
+    const tree = await renderInLanguage(<Profile />, 'en');
+
+    expect(progressValues(tree)).toContain(60);
+    await settleAnimations();
+    tree.unmount();
   });
 });

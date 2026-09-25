@@ -73,6 +73,9 @@ export class GamificationService {
       bloodTestCount: donationStats.bloodTestsCompleted,
       rank: userRank?.rank,
       nextEligibleDonationDate: nextEligibleDate,
+      // Default true, matching the column's own default: a donor with no
+      // profile row yet is visible, which is what the leaderboard query does.
+      leaderboardVisibility: profile?.leaderboardVisibility ?? true,
     };
   }
 

@@ -1,7 +1,7 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import { Animated, View, type ViewStyle } from 'react-native';
 import { useDesign } from '../useDesign';
-import { icon as iconScale, motion, radius, space, type AccentName } from '../tokens';
+import { icon as iconScale, motion, radius, space, type as typeScale, type AccentName } from '../tokens';
 import { Text, ValueText } from './Text';
 
 export interface StatProps {
@@ -37,9 +37,25 @@ export function Stat({ label, value, unit, icon, tone, style }: StatProps) {
       accessibilityLabel={unit ? `${label}: ${value} ${unit}` : `${label}: ${value}`}
       style={[{ gap: space.xs, flex: 1 }, style]}
     >
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.xs }}>
+      {/*
+        Two lines, and room reserved for both.
+
+        A row of three stats at 393pt gives each label about 100pt, and
+        "Emergency responses" is longer than that in English before Russian and
+        Uzbek make it longer still -- so a single clipped line read "Emergency
+        r…". Wrapping fixes the clipping; reserving the height keeps the three
+        numbers on one baseline whether the labels wrap or not.
+      */}
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'flex-start',
+          gap: space.xs,
+          minHeight: typeScale.caption.lineHeight * 2,
+        }}
+      >
         {icon?.({ size: iconScale.sm, color: accent?.base ?? colors.textTertiary })}
-        <Text variant="caption" tone="tertiary" numberOfLines={1}>
+        <Text variant="caption" tone="tertiary" numberOfLines={2} style={{ flex: 1 }}>
           {label}
         </Text>
       </View>

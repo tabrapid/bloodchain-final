@@ -37,6 +37,7 @@ import {
   type AccentName,
 } from '../../src/design';
 import { useLogout } from '../../src/hooks/useAuth';
+import { percentAsFraction } from '../../src/utils/progress';
 import { useUserProfile } from '../../src/hooks/useUsers';
 import { useDonorProfile, useProfileCompletion } from '../../src/hooks/useDonors';
 import { useGamificationProfile, useLevelProgress, useAchievements } from '../../src/hooks/useGamification';
@@ -94,7 +95,7 @@ export default function Profile() {
   const { data: levelProgress } = useLevelProgress();
   const { data: achievements } = useAchievements();
 
-  const completion = completionData?.data;
+  const completion = completionData;
   const unlockedCount = achievements?.unlocked.length ?? 0;
   const inProgressCount = achievements?.inProgress.length ?? 0;
 
@@ -217,8 +218,11 @@ export default function Profile() {
               <Surface>
                 <Progress
                   label={`${levelProgress.currentLevelName} → ${levelProgress.nextLevelName}`}
-                  caption={`${levelProgress.currentXp} / ${levelProgress.xpForNextLevel} ${t('profile.xp')}`}
-                  value={levelProgress.progress}
+                  caption={t('gamification.xpToNext', {
+                    count: levelProgress.xpToNextLevel,
+                    level: levelProgress.nextLevelName,
+                  })}
+                  value={percentAsFraction(levelProgress.progress)}
                   tone="insight"
                 />
               </Surface>

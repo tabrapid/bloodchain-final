@@ -27,6 +27,7 @@ import {
   useDesign,
 } from '../../../src/design';
 import { BadgeTile } from '../../../src/components/gamification/BadgeTile';
+import { percentAsFraction } from '../../../src/utils/progress';
 import { AchievementRow } from '../../../src/components/gamification/AchievementRow';
 import type { Badge } from '../../../src/api/gamification';
 import { useTranslation } from '../../../src/i18n';
@@ -126,10 +127,11 @@ export default function GamificationScreen() {
               label={t('gamification.progressToLevel', {
                 level: levelProgress?.nextLevelName ?? t('gamification.nextLevel'),
               })}
-              caption={`${profile?.totalXp ?? 0} / ${
-                (profile?.totalXp ?? 0) + (profile?.xpToNextLevel ?? 0)
-              }`}
-              value={profile?.progress ?? 0}
+              caption={t('gamification.xpToNext', {
+                count: profile?.xpToNextLevel ?? 0,
+                level: levelProgress?.nextLevelName ?? t('gamification.nextLevel'),
+              })}
+              value={percentAsFraction(profile?.progress)}
               tone="insight"
             />
           </Stack>
