@@ -311,7 +311,7 @@ export default function OnboardingWelcome() {
         )
       }
     >
-      <Stack gap="xl">
+      <Stack gap="xl" style={{ flex: 1 }}>
         <Progress
           label={t(step.titleKey)}
           caption={t('onboarding.stepOf', { current: currentStep + 1, total: STEPS.length })}
@@ -581,6 +581,17 @@ export default function OnboardingWelcome() {
         ) : null}
 
         {finishError ? <Banner tone="critical" title={finishError} /> : null}
+
+        {/*
+          The action sits at the foot of the screen, not under the content.
+
+          Inside the scroller it landed at a different height on every one of
+          the six steps -- mid-screen on the short ones, with a third of the
+          page empty beneath it, and below the fold on the two that ask for
+          typing. A spacer that can grow puts it in the same place each time,
+          and the six steps stop feeling like six different screens.
+        */}
+        <View style={{ flex: 1, minHeight: space.lg }} />
 
         <Button
           label={t(isLastStep ? 'onboarding.completeSetup' : 'onboarding.continue')}
