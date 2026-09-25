@@ -63,7 +63,7 @@ async function settle() {
   }
 }
 
-async function renderInLanguage(element: React.ReactElement, locale: Locale) {
+async function renderInLanguage(element: React.ReactNode, locale: Locale) {
   mockStored.set(LOCALE_KEY, locale);
 
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });

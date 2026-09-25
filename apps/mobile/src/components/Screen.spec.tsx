@@ -1,5 +1,5 @@
 import React from 'react';
-import renderer, { type ReactTestRendererJSON } from 'react-test-renderer';
+import renderer, { act, type ReactTestRendererJSON } from 'react-test-renderer';
 import { StyleSheet, Text, type ViewStyle } from 'react-native';
 import { Screen } from './Screen';
 import { ThemeProvider } from '../theme';
@@ -17,14 +17,23 @@ jest.mock('react-native/Libraries/Utilities/useColorScheme', () => ({
  * the last card cut in half. It has to be `flexGrow`, which still fills the
  * viewport when content is short but lets it grow past when it is not.
  */
+/**
+ * React 19 no longer renders synchronously from `renderer.create`: the work is
+ * scheduled, so `toJSON()` on the next line returns null unless the render is
+ * flushed. `act()` is what flushes it. Under React 18 this helper happened to
+ * work without one.
+ */
 function contentStyle(scroll: boolean): ViewStyle {
-  const tree = renderer.create(
-    <ThemeProvider>
-      <Screen scroll={scroll}>
-        <Text>content</Text>
-      </Screen>
-    </ThemeProvider>,
-  );
+  let tree!: renderer.ReactTestRenderer;
+  act(() => {
+    tree = renderer.create(
+      <ThemeProvider>
+        <Screen scroll={scroll}>
+          <Text>content</Text>
+        </Screen>
+      </ThemeProvider>,
+    );
+  });
 
   // SafeAreaView > (ScrollView >) content wrapper
   let node = tree.toJSON() as ReactTestRendererJSON;

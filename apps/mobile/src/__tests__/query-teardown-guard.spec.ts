@@ -21,7 +21,6 @@
  */
 import { QueryClient } from '@tanstack/react-query';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 const { liveClients } = require('../../jest.teardown-query');
 
 /** The value `useGeography` uses, and the one that actually hung the suite. */

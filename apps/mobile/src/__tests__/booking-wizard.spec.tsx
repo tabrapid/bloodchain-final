@@ -138,7 +138,7 @@ afterEach(() => {
   });
 });
 
-async function render(element: React.ReactElement) {
+async function render(element: React.ReactNode) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 } },
   });

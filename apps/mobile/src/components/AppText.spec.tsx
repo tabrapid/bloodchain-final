@@ -1,5 +1,5 @@
 import React from 'react';
-import renderer from 'react-test-renderer';
+import renderer, { act } from 'react-test-renderer';
 import { StyleSheet, type TextStyle } from 'react-native';
 import { AppText } from './AppText';
 import { ThemeProvider } from '../theme';
@@ -18,8 +18,17 @@ jest.mock('react-native/Libraries/Utilities/useColorScheme', () => ({
  * as "U" and "5.0" lost its top half. Thirteen places in the app set a larger
  * size this way.
  */
+/**
+ * React 19 no longer renders synchronously from `renderer.create`: the work is
+ * scheduled, so `toJSON()` on the next line returns null unless the render is
+ * flushed. `act()` is what flushes it. Under React 18 this helper happened to
+ * work without one.
+ */
 function styleOf(element: React.ReactElement): TextStyle {
-  const tree = renderer.create(<ThemeProvider>{element}</ThemeProvider>);
+  let tree!: renderer.ReactTestRenderer;
+  act(() => {
+    tree = renderer.create(<ThemeProvider>{element}</ThemeProvider>);
+  });
   const json = tree.toJSON() as unknown as { props: { style: unknown } };
   return StyleSheet.flatten(json.props.style) as TextStyle;
 }

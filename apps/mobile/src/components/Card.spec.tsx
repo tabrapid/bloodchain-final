@@ -1,5 +1,5 @@
 import React from 'react';
-import renderer, { type ReactTestRendererJSON } from 'react-test-renderer';
+import renderer, { act, type ReactTestRendererJSON } from 'react-test-renderer';
 import { Platform, StyleSheet, Text, type ViewStyle } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Card } from './Card';
@@ -24,8 +24,18 @@ jest.mock('react-native/Libraries/Utilities/useColorScheme', () => ({
  * is behind `glassBlurOnCards`. The look survives because it never rested on
  * the blur: it rests on these values.
  */
+/**
+ * React 19 no longer renders synchronously from `renderer.create`: the work is
+ * scheduled, so `toJSON()` on the next line returns null unless the render is
+ * flushed. `act()` is what flushes it. Under React 18 this helper happened to
+ * work without one.
+ */
 function render(element: React.ReactElement) {
-  return renderer.create(<ThemeProvider>{element}</ThemeProvider>);
+  let tree!: renderer.ReactTestRenderer;
+  act(() => {
+    tree = renderer.create(<ThemeProvider>{element}</ThemeProvider>);
+  });
+  return tree;
 }
 
 /** [shadow wrapper, surface] -- the two views a card is built from. */

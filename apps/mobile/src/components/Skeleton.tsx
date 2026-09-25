@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { DimensionValue, View, ViewStyle } from 'react-native';
+import { DimensionValue, StyleSheet, View, ViewStyle } from 'react-native';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -9,8 +9,6 @@ import Animated, {
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { radius, spacing, useTheme } from '../theme';
-
-const AnimatedGradient = Animated.createAnimatedComponent(LinearGradient);
 
 export interface SkeletonProps {
   width?: DimensionValue;
@@ -54,12 +52,23 @@ export function Skeleton({
       ]}
       pointerEvents="none"
     >
-      <AnimatedGradient
-        colors={['transparent', shimmer, 'transparent']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={[{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0 }, sweepStyle]}
-      />
+      {/*
+        The band moves, the gradient does not, so only the wrapper needs to be
+        animated. This used to be an `Animated.createAnimatedComponent(
+        LinearGradient)`, which reanimated 3.17 no longer types: LinearGradient
+        matches none of its overloads, so the call fell through to the FlatList
+        one and returned a component with no props at all -- `colors` included.
+        Animating the parent is both typed and cheaper: Animated.View is a
+        first-class animated component rather than a wrapped one.
+      */}
+      <Animated.View style={[StyleSheet.absoluteFill, sweepStyle]}>
+        <LinearGradient
+          colors={['transparent', shimmer, 'transparent'] as const}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={StyleSheet.absoluteFill}
+        />
+      </Animated.View>
     </View>
   );
 }

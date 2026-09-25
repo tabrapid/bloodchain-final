@@ -37,6 +37,7 @@
     "verify:e2e-isolation": "node scripts/verify-e2e-isolation.mjs",
     "verify:backup": "node scripts/verify-backup.mjs",
     "verify:migrations": "node scripts/verify-migration-upgrade.mjs",
+    "verify:single-react": "node scripts/verify-single-react.mjs",
     "clinical:review": "node scripts/clinical-review.mjs"
   },
   "devDependencies": {
@@ -50,5 +51,301 @@
     "prettier": "^3.4.2",
     "turbo": "^2.3.3",
     "typescript": "^5.7.2"
+  },
+  "pnpm": {
+    "packageExtensions": {
+      "@expo/metro-runtime": {
+        "peerDependencies": {
+          "react": "*"
+        },
+        "peerDependenciesMeta": {
+          "react": {
+            "optional": true
+          }
+        }
+      },
+      "@expo/vector-icons": {
+        "peerDependencies": {
+          "react": "*"
+        },
+        "peerDependenciesMeta": {
+          "react": {
+            "optional": true
+          }
+        }
+      },
+      "@hookform/resolvers": {
+        "peerDependencies": {
+          "react": "*"
+        },
+        "peerDependenciesMeta": {
+          "react": {
+            "optional": true
+          }
+        }
+      },
+      "@radix-ui/react-slot": {
+        "peerDependencies": {
+          "react": "*"
+        },
+        "peerDependenciesMeta": {
+          "react": {
+            "optional": true
+          }
+        }
+      },
+      "@react-native/virtualized-lists": {
+        "peerDependencies": {
+          "react": "*"
+        },
+        "peerDependenciesMeta": {
+          "react": {
+            "optional": true
+          }
+        }
+      },
+      "@react-navigation/bottom-tabs": {
+        "peerDependencies": {
+          "react": "*",
+          "@types/react": "*"
+        },
+        "peerDependenciesMeta": {
+          "react": {
+            "optional": true
+          },
+          "@types/react": {
+            "optional": true
+          }
+        }
+      },
+      "@react-navigation/native": {
+        "peerDependencies": {
+          "react": "*"
+        },
+        "peerDependenciesMeta": {
+          "react": {
+            "optional": true
+          }
+        }
+      },
+      "@react-navigation/native-stack": {
+        "peerDependencies": {
+          "react": "*"
+        },
+        "peerDependenciesMeta": {
+          "react": {
+            "optional": true
+          }
+        }
+      },
+      "@tanstack/react-query": {
+        "peerDependencies": {
+          "react": "*",
+          "@types/react": "*"
+        },
+        "peerDependenciesMeta": {
+          "react": {
+            "optional": true
+          },
+          "@types/react": {
+            "optional": true
+          }
+        }
+      },
+      "babel-preset-expo": {
+        "peerDependencies": {
+          "react": "*"
+        },
+        "peerDependenciesMeta": {
+          "react": {
+            "optional": true
+          }
+        }
+      },
+      "eslint-plugin-react": {
+        "peerDependencies": {
+          "react": "*"
+        },
+        "peerDependenciesMeta": {
+          "react": {
+            "optional": true
+          }
+        }
+      },
+      "expo": {
+        "peerDependencies": {
+          "@types/react": "*"
+        },
+        "peerDependenciesMeta": {
+          "@types/react": {
+            "optional": true
+          }
+        }
+      },
+      "expo-blur": {
+        "peerDependencies": {
+          "@types/react": "*"
+        },
+        "peerDependenciesMeta": {
+          "@types/react": {
+            "optional": true
+          }
+        }
+      },
+      "expo-linear-gradient": {
+        "peerDependencies": {
+          "@types/react": "*"
+        },
+        "peerDependenciesMeta": {
+          "@types/react": {
+            "optional": true
+          }
+        }
+      },
+      "expo-modules-core": {
+        "peerDependencies": {
+          "react": "*"
+        },
+        "peerDependenciesMeta": {
+          "react": {
+            "optional": true
+          }
+        }
+      },
+      "expo-notifications": {
+        "peerDependencies": {
+          "@types/react": "*"
+        },
+        "peerDependenciesMeta": {
+          "@types/react": {
+            "optional": true
+          }
+        }
+      },
+      "expo-router": {
+        "peerDependencies": {
+          "react": "*",
+          "@types/react": "*"
+        },
+        "peerDependenciesMeta": {
+          "react": {
+            "optional": true
+          },
+          "@types/react": {
+            "optional": true
+          }
+        }
+      },
+      "expo-status-bar": {
+        "peerDependencies": {
+          "@types/react": "*"
+        },
+        "peerDependenciesMeta": {
+          "@types/react": {
+            "optional": true
+          }
+        }
+      },
+      "jest-expo": {
+        "peerDependencies": {
+          "react": "*"
+        },
+        "peerDependenciesMeta": {
+          "react": {
+            "optional": true
+          }
+        }
+      },
+      "lucide-react-native": {
+        "peerDependencies": {
+          "@types/react": "*"
+        },
+        "peerDependenciesMeta": {
+          "@types/react": {
+            "optional": true
+          }
+        }
+      },
+      "react-hook-form": {
+        "peerDependencies": {
+          "@types/react": "*"
+        },
+        "peerDependenciesMeta": {
+          "@types/react": {
+            "optional": true
+          }
+        }
+      },
+      "react-native": {
+        "peerDependencies": {
+          "@types/react": "*"
+        },
+        "peerDependenciesMeta": {
+          "@types/react": {
+            "optional": true
+          }
+        }
+      },
+      "react-native-chart-kit": {
+        "peerDependencies": {
+          "@types/react": "*"
+        },
+        "peerDependenciesMeta": {
+          "@types/react": {
+            "optional": true
+          }
+        }
+      },
+      "react-native-gesture-handler": {
+        "peerDependencies": {
+          "@types/react": "*"
+        },
+        "peerDependenciesMeta": {
+          "@types/react": {
+            "optional": true
+          }
+        }
+      },
+      "react-native-maps": {
+        "peerDependencies": {
+          "@types/react": "*"
+        },
+        "peerDependenciesMeta": {
+          "@types/react": {
+            "optional": true
+          }
+        }
+      },
+      "react-native-reanimated": {
+        "peerDependencies": {
+          "@types/react": "*"
+        },
+        "peerDependenciesMeta": {
+          "@types/react": {
+            "optional": true
+          }
+        }
+      },
+      "react-native-safe-area-context": {
+        "peerDependencies": {
+          "@types/react": "*"
+        },
+        "peerDependenciesMeta": {
+          "@types/react": {
+            "optional": true
+          }
+        }
+      },
+      "react-native-svg": {
+        "peerDependencies": {
+          "@types/react": "*"
+        },
+        "peerDependenciesMeta": {
+          "@types/react": {
+            "optional": true
+          }
+        }
+      }
+    }
   }
 }
