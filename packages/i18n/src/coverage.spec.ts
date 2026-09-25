@@ -262,7 +262,7 @@ describe('no covered screen still carries its own English', () => {
         j++;
       }
       i = closed ? j : text.length;
-      if (!closed || !literal.includes('\${')) continue;
+      if (!closed || !literal.includes('${')) continue;
       // `t(\`ns.${value}\`)` is a key being built, not a sentence.
       const before = text.slice(Math.max(0, i - literal.length - 6), i - literal.length - 1);
       if (/\bt\(\s*$/.test(before)) continue;
