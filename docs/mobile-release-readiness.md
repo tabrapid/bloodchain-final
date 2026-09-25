@@ -252,14 +252,16 @@ Every native module is at the version SDK 56's own `bundledNativeModules.json`
 pins. Two checks back this up:
 
 - expo-doctor's **"Check that packages match versions required by installed
-  Expo SDK"** — passes.
+  Expo SDK"** — passes. It reported one mismatch, `typescript ~6.0.3` against
+  5.9.3, which is the deliberate monorepo-wide deviation in §12 and is now
+  declared as one in `expo.install.exclude`. No native module is mismatched.
 - expo-doctor's **"Check that native modules do not use incompatible support
   packages"** — passes.
 
-Latest full run: **19 of 22 checks pass**. The three that do not are the two
-network checks and the Hermes V1 regression, all in §12. `expo-doctor` is a
-devDependency of the mobile app, so that run is reproducible by anyone who
-clones the repository (§12 says why it has to be).
+`expo-doctor` is a devDependency of the mobile app, so a full run is
+reproducible by anyone who clones the repository (§12 says why it has to be).
+The one check that fails on a runner with open egress is the Hermes V1
+regression, which is PO-1.
 
 `react-native-chart-kit@7.0.2` is the one dependency outside Expo's manifest.
 Its peer range (`react >=19.1`, `react-native >=0.81`, `react-native-svg >=15.12.1`)
@@ -485,8 +487,8 @@ Accepted, with reasons:
 |---|---|
 | **Hermes V1 memory regression** | **Real, unresolved, and a Product Owner decision.** expo-doctor reports that SDK 56 ships Hermes V1 `250829098.0.10` and that the regression is fixed in `250829098.0.16`, which first appears in React Native 0.86.2 / Expo SDK 57. There is no fix inside SDK 56, and SDK 57 is out of scope by Product Owner decision. Raised in §13. |
 | **CI's expo-doctor step was vacuous** | **Found and fixed at the end of S11.** `expo-doctor` was not a dependency of the mobile app, so `pnpm --filter @bloodchain/mobile exec expo-doctor` printed `Command "expo-doctor" not found` and exited 1 on every run — and `continue-on-error: true` rendered that as a green tick. The step reported on a tool it never ran, for every run of Track A. `expo-doctor@^1.20.4` is now a devDependency, and the step is split so that a missing binary fails the job while the checks themselves stay `continue-on-error`. |
-| expo-doctor "Check Expo config schema" | Fails on the network only (`api.expo.dev`, 403 in the sprint environment). Expected to pass on a runner with open egress; CI runs the step with `continue-on-error` and prints the result. |
-| expo-doctor "Validate packages against React Native Directory" | Same — `reactnative.directory`, 403. |
+| expo-doctor "Check Expo config schema" | **Was failing for a real reason as well.** In the sprint environment this check cannot run at all (`api.expo.dev`, 403), so its result was assumed. The first CI run that actually executed expo-doctor said `app.json` "should NOT have additional property `newArchEnabled`" — the key left the schema in SDK 56, where the new architecture is the only one. It is removed, and `expo prebuild` still writes `newArchEnabled=true` into `android/gradle.properties`, checked before and after. |
+| expo-doctor "Validate packages against React Native Directory" | Cannot run in the sprint environment — `reactnative.directory`, 403. Passes on a runner with open egress. |
 | `userInterfaceStyle: "dark"` is not enforced on Android | `expo prebuild` warns that this needs `expo-system-ui`, which is not installed, so the declaration is inert on Android. It also interacts badly with the app's own `'light' \| 'dark' \| 'system'` preference: on iOS, `UIUserInterfaceStyle: Dark` makes RN's `useColorScheme()` always return `dark`, so the "system" preference cannot follow the device. Left as found — changing it changes product behaviour — and carried into Track B, where the theme is rebuilt. |
 | `RECEIVE_BOOT_COMPLETED` on Android | Contributed by expo-notifications' own manifest. The app schedules no local notifications, so it is unused. Removing it means blocking a library-contributed permission, which risks breaking scheduled notifications if they are ever added. Recorded rather than removed. |
 | Mobile lint warnings | 36 through Track A, unchanged across all four hops — the same set as at the baseline. **15 after Track B**, because most of them lived in the V1 component layer that was deleted: 12 `no-explicit-any` and 3 `react-hooks/exhaustive-deps`. 0 errors throughout. |

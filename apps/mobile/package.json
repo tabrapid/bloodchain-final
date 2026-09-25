@@ -3,6 +3,12 @@
   "private": true,
   "version": "0.1.0",
   "main": "expo-router/entry",
+  "expo": {
+    "install": {
+      "//": "SDK 56's template wants typescript ~6.0.3. This monorepo shares one TypeScript across eleven packages, so that move is a monorepo-wide change with its own risk surface and is not a mobile sprint's to make (docs/mobile-release-readiness.md section 12). Declared here so expo-doctor reports a deliberate deviation as one, rather than reporting a failing check nobody is going to act on.",
+      "exclude": ["typescript"]
+    }
+  },
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
