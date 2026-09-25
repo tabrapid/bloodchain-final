@@ -8,16 +8,22 @@ import { elevation, hitTarget, icon as iconScale, radius, space } from '../token
 import { Text } from './Text';
 import { IconButton } from './Button';
 
-export interface ScreenHeaderProps {
+/**
+ * `backLabel` is required whenever `onBack` is, and impossible without it.
+ *
+ * The back control is an icon, so the label IS the control for anyone using a
+ * screen reader. A default in English would be invisible in review and would
+ * ship untranslated to a Uzbek donor, so the type refuses the header rather
+ * than filling the gap in.
+ */
+export type ScreenHeaderProps = {
   title?: string;
   /** Smaller line above the title: a breadcrumb, a step count, a date. */
   eyebrow?: string;
-  onBack?: () => void;
-  backLabel?: string;
   /** Controls at the trailing edge. */
   actions?: ReactNode;
   style?: ViewStyle;
-}
+} & ({ onBack: () => void; backLabel: string } | { onBack?: never; backLabel?: never });
 
 /**
  * The bar at the top of a pushed screen.
@@ -30,7 +36,7 @@ export interface ScreenHeaderProps {
  * `title` is a `header` for assistive technology, so the screen announces what
  * it is on arrival.
  */
-export function ScreenHeader({ title, eyebrow, onBack, backLabel = 'Go back', actions, style }: ScreenHeaderProps) {
+export function ScreenHeader({ title, eyebrow, onBack, backLabel, actions, style }: ScreenHeaderProps) {
   return (
     <View
       style={[
@@ -47,7 +53,7 @@ export function ScreenHeader({ title, eyebrow, onBack, backLabel = 'Go back', ac
     >
       {onBack ? (
         <IconButton
-          accessibilityLabel={backLabel}
+          accessibilityLabel={backLabel!}
           onPress={onBack}
           style={{ marginLeft: -space.md }}
           icon={({ size, color }) => (

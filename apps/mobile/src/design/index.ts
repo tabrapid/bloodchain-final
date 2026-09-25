@@ -45,6 +45,7 @@ export {
   SkeletonRow,
   EmptyState,
   ErrorState,
+  SectionError,
   InlineError,
   LoadingOverlay,
   LoadingSection,

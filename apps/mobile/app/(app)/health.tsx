@@ -21,6 +21,7 @@ import {
   Row,
   ScrollScreen,
   SectionHeader,
+  SectionError,
   Skeleton,
   SkeletonRow,
   Sparkline,
@@ -39,7 +40,6 @@ import { useTrendSummary, useLatestInsight, useAiEnabled } from '../../src/hooks
 import { useDonorLaboratoryResults } from '../../src/hooks/useLaboratory';
 import { formatUpdated, isWithinReferenceRange } from '../../src/utils/health';
 import { useTranslation } from '../../src/i18n';
-import type { TranslateFn } from '@bloodchain/i18n';
 
 // Keyed by the real lab-parameter code (see apps/api/prisma/seed.ts's
 // TestParameter records) so each marker gets the icon that actually matches
@@ -481,26 +481,22 @@ export default function Health() {
 
         {/* A section that failed is said once, where it would have been --
             not as a screen-wide error that hides the parts that loaded. */}
-        {summary.isError ? <SectionError t={t} onRetry={() => summary.refetch()} /> : null}
-        {results.isError ? <SectionError t={t} onRetry={() => results.refetch()} /> : null}
+        {summary.isError ? (
+          <SectionError
+            message={t('common.errorBody')}
+            retryLabel={t('common.retry')}
+            onRetry={() => void summary.refetch()}
+          />
+        ) : null}
+        {results.isError ? (
+          <SectionError
+            message={t('common.errorBody')}
+            retryLabel={t('common.retry')}
+            onRetry={() => void results.refetch()}
+          />
+        ) : null}
       </Stack>
     </ScrollScreen>
   );
 }
 
-function SectionError({ t, onRetry }: { t: TranslateFn; onRetry: () => void }) {
-  return (
-    <Surface>
-      <Stack gap="md">
-        <Text variant="body" tone="secondary">
-          {t('common.errorBody')}
-        </Text>
-        <Pressable onPress={onRetry} accessibilityRole="button" accessibilityLabel={t('common.retry')} hitSlop={8}>
-          <Text variant="bodyStrong" tone="clinical">
-            {t('common.retry')}
-          </Text>
-        </Pressable>
-      </Stack>
-    </Surface>
-  );
-}

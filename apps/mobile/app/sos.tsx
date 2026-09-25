@@ -461,7 +461,7 @@ export default function SosScreen() {
 
   if (status === 'loading') {
     return (
-      <ScrollScreen header={<ScreenHeader title={t('sos.title')} onBack={() => router.back()} />}>
+      <ScrollScreen header={<ScreenHeader title={t('sos.title')} onBack={() => router.back()} backLabel={t('common.a11yGoBack')} />}>
         <LoadingSection label={t('sos.title')} />
       </ScrollScreen>
     );
@@ -471,7 +471,7 @@ export default function SosScreen() {
 
   if (status === 'error') {
     return (
-      <ScrollScreen header={<ScreenHeader title={t('sos.title')} onBack={() => router.back()} />}>
+      <ScrollScreen header={<ScreenHeader title={t('sos.title')} onBack={() => router.back()} backLabel={t('common.a11yGoBack')} />}>
         <ErrorState
           title={t('sos.loadFailedTitle')}
           description={error ?? undefined}
@@ -488,7 +488,7 @@ export default function SosScreen() {
     const rh = selectedEmergency.rhFactor === 'POSITIVE' ? '+' : '-';
 
     return (
-      <ScrollScreen header={<ScreenHeader title={t('sos.details')} onBack={() => setStatus('idle')} />}>
+      <ScrollScreen header={<ScreenHeader title={t('sos.details')} onBack={() => setStatus('idle')} backLabel={t('common.a11yGoBack')} />}>
         <Stack gap="xl">
           <EmergencyBanner
             title={selectedEmergency.emergencyReference}
@@ -554,7 +554,7 @@ export default function SosScreen() {
       // element -- which is a real thing for anything walking the rendered
       // output, tests included.
       <View style={{ flex: 1 }}>
-        <ScrollScreen header={<ScreenHeader title={t('sos.yourResponse')} onBack={() => setStatus('idle')} />}>
+        <ScrollScreen header={<ScreenHeader title={t('sos.yourResponse')} onBack={() => setStatus('idle')} backLabel={t('common.a11yGoBack')} />}>
           <Stack gap="xl">
             <JourneyProgress status={status} />
 
@@ -713,6 +713,7 @@ export default function SosScreen() {
               : t('sos.noActiveRequests')
           }
           onBack={() => router.back()}
+          backLabel={t('common.a11yGoBack')}
         />
       }
       refreshing={false}

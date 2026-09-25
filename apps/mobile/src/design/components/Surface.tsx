@@ -1,4 +1,4 @@
-import { Platform, View, type ViewProps, type ViewStyle } from 'react-native';
+import { Platform, Pressable, View, type ViewProps, type ViewStyle } from 'react-native';
 import { type ReactNode } from 'react';
 import { useDesign } from '../useDesign';
 import { elevation as elevationScale, radius as radiusScale, space, type ElevationName } from '../tokens';
@@ -11,6 +11,15 @@ export interface SurfaceProps extends ViewProps {
   padded?: boolean | keyof typeof space;
   /** A hairline edge. On by default for `flat`, off for anything with a shadow. */
   bordered?: boolean;
+  /**
+   * Makes the whole card the tap target.
+   *
+   * With it, `accessibilityLabel` is required: a card wraps several pieces of
+   * text and a screen reader would otherwise announce the pile of them and no
+   * indication that any of it is a button.
+   */
+  onPress?: () => void;
+  disabled?: boolean;
   children?: ReactNode;
 }
 
@@ -38,6 +47,8 @@ export function Surface({
   corner = 'md',
   padded = true,
   bordered,
+  onPress,
+  disabled = false,
   style,
   children,
   ...rest
@@ -50,30 +61,46 @@ export function Surface({
 
   const padding = padded === false ? 0 : padded === true ? space.lg : space[padding_(padded)];
 
+  const frame: ViewStyle = {
+    backgroundColor: colors.surface,
+    borderRadius: radiusScale[corner],
+    padding,
+    borderWidth: showBorder ? 1 : 0,
+    borderColor: colors.divider,
+    opacity: disabled ? 0.5 : 1,
+    ...(Platform.OS === 'ios' && e.shadowOpacity > 0
+      ? {
+          shadowColor: '#000',
+          shadowOpacity: e.shadowOpacity,
+          shadowRadius: e.shadowRadius,
+          shadowOffset: { width: 0, height: e.shadowOffsetY },
+        }
+      : null),
+  };
+
+  if (!onPress) {
+    return (
+      <View style={[frame, style as ViewStyle]} {...rest}>
+        {children}
+      </View>
+    );
+  }
+
   return (
-    <View
-      style={[
-        {
-          backgroundColor: level === 'flat' ? colors.surface : colors.surface,
-          borderRadius: radiusScale[corner],
-          padding,
-          borderWidth: showBorder ? 1 : 0,
-          borderColor: colors.divider,
-          ...(Platform.OS === 'ios' && e.shadowOpacity > 0
-            ? {
-                shadowColor: '#000',
-                shadowOpacity: e.shadowOpacity,
-                shadowRadius: e.shadowRadius,
-                shadowOffset: { width: 0, height: e.shadowOffsetY },
-              }
-            : null),
-        },
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ disabled }}
+      disabled={disabled}
+      onPress={onPress}
+      style={({ pressed }) => [
+        frame,
+        pressed ? { backgroundColor: colors.surfacePressed } : null,
         style as ViewStyle,
       ]}
       {...rest}
     >
       {children}
-    </View>
+    </Pressable>
   );
 }
 

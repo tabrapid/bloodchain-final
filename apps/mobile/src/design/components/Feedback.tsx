@@ -120,6 +120,7 @@ export interface ErrorStateProps {
   title: string;
   description?: string;
   onRetry?: () => void;
+  /** Required with `onRetry`: a default in English ships untranslated. */
   retryLabel?: string;
   style?: ViewStyle;
 }
@@ -131,7 +132,7 @@ export interface ErrorStateProps {
  * only sensible thing to offer here, and making it the shape of the component
  * means a screen cannot ship an error with no way forward.
  */
-export function ErrorState({ title, description, onRetry, retryLabel = 'Try again', style }: ErrorStateProps) {
+export function ErrorState({ title, description, onRetry, retryLabel, style }: ErrorStateProps) {
   const { colors } = useDesign();
 
   return (
@@ -163,7 +164,52 @@ export function ErrorState({ title, description, onRetry, retryLabel = 'Try agai
           {description}
         </Text>
       ) : null}
-      {onRetry ? <Button label={retryLabel} variant="secondary" size="md" block={false} onPress={onRetry} /> : null}
+      {onRetry && retryLabel ? (
+        <Button label={retryLabel} variant="secondary" size="md" block={false} onPress={onRetry} />
+      ) : null}
+    </View>
+  );
+}
+
+/**
+ * One section of a screen could not be loaded, said where that section would
+ * have been.
+ *
+ * The distinction from `ErrorState` is the whole point: a screen whose main
+ * request failed has nothing to show and says so once, full height. A screen
+ * where one of five sections failed still has four true sections on it, and
+ * replacing all of them with a single apology loses more than it explains.
+ */
+export function SectionError({
+  message,
+  onRetry,
+  retryLabel,
+}: {
+  message: string;
+  onRetry: () => void;
+  retryLabel: string;
+}) {
+  const { colors } = useDesign();
+  return (
+    <View
+      accessible
+      accessibilityRole="alert"
+      accessibilityLabel={message}
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: space.md,
+        padding: space.lg,
+        borderRadius: radius.md,
+        backgroundColor: colors.surface,
+        borderWidth: 1,
+        borderColor: colors.divider,
+      }}
+    >
+      <Text variant="caption" tone="secondary" style={{ flex: 1 }}>
+        {message}
+      </Text>
+      <Button label={retryLabel} variant="ghost" size="md" block={false} onPress={onRetry} />
     </View>
   );
 }
