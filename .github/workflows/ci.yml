@@ -354,14 +354,28 @@ jobs:
       - name: Android release configuration
         run: pnpm verify:android-release
 
+      # This step is split in two on purpose.
+      #
+      # `expo-doctor` was not a dependency of the mobile app, so for every run
+      # of this workflow the command below printed `Command "expo-doctor" not
+      # found` and exited 1 -- and `continue-on-error` turned that into a green
+      # tick. The step reported on a tool it never ran. It is a devDependency
+      # now, and this first half asserts the binary exists with no
+      # continue-on-error, so the same hole cannot reopen silently.
+      - name: Expo doctor is installed
+        run: pnpm --filter @bloodchain/mobile exec expo-doctor --version
+
       - name: Expo doctor
-        # Three of its checks need api.expo.dev or reactnative.directory. Both
-        # are reachable from GitHub's runners but not from every environment
-        # this repository is worked on in, so a failure here is reported and
-        # read rather than taken as a build break. The checks that matter for
-        # an upgrade -- package versions against the SDK, duplicate
-        # dependencies, React Navigation alongside expo-router -- are offline
-        # and are covered by the steps above and below.
+        # The checks themselves are reported and read rather than taken as a
+        # build break. Two of them need api.expo.dev or reactnative.directory,
+        # which are reachable from GitHub's runners but not from every
+        # environment this repository is worked on in, and one -- the Hermes V1
+        # memory regression -- has no fix inside SDK 56 and is open with the
+        # Product Owner (readiness doc PO-1), so it fails on every runner until
+        # SDK 57 is authorised. The checks that matter for an upgrade --
+        # package versions against the SDK, duplicate dependencies, React
+        # Navigation alongside expo-router -- are offline and are covered by
+        # the steps above and below.
         continue-on-error: true
         run: pnpm --filter @bloodchain/mobile exec expo-doctor
 

@@ -256,6 +256,11 @@ pins. Two checks back this up:
 - expo-doctor's **"Check that native modules do not use incompatible support
   packages"** — passes.
 
+Latest full run: **19 of 22 checks pass**. The three that do not are the two
+network checks and the Hermes V1 regression, all in §12. `expo-doctor` is a
+devDependency of the mobile app, so that run is reproducible by anyone who
+clones the repository (§12 says why it has to be).
+
 `react-native-chart-kit@7.0.2` is the one dependency outside Expo's manifest.
 Its peer range (`react >=19.1`, `react-native >=0.81`, `react-native-svg >=15.12.1`)
 was **unsatisfied at the SDK 52 baseline** and is satisfied from SDK 54 onward.
@@ -479,6 +484,7 @@ Accepted, with reasons:
 | Item | Status |
 |---|---|
 | **Hermes V1 memory regression** | **Real, unresolved, and a Product Owner decision.** expo-doctor reports that SDK 56 ships Hermes V1 `250829098.0.10` and that the regression is fixed in `250829098.0.16`, which first appears in React Native 0.86.2 / Expo SDK 57. There is no fix inside SDK 56, and SDK 57 is out of scope by Product Owner decision. Raised in §13. |
+| **CI's expo-doctor step was vacuous** | **Found and fixed at the end of S11.** `expo-doctor` was not a dependency of the mobile app, so `pnpm --filter @bloodchain/mobile exec expo-doctor` printed `Command "expo-doctor" not found` and exited 1 on every run — and `continue-on-error: true` rendered that as a green tick. The step reported on a tool it never ran, for every run of Track A. `expo-doctor@^1.20.4` is now a devDependency, and the step is split so that a missing binary fails the job while the checks themselves stay `continue-on-error`. |
 | expo-doctor "Check Expo config schema" | Fails on the network only (`api.expo.dev`, 403 in the sprint environment). Expected to pass on a runner with open egress; CI runs the step with `continue-on-error` and prints the result. |
 | expo-doctor "Validate packages against React Native Directory" | Same — `reactnative.directory`, 403. |
 | `userInterfaceStyle: "dark"` is not enforced on Android | `expo prebuild` warns that this needs `expo-system-ui`, which is not installed, so the declaration is inert on Android. It also interacts badly with the app's own `'light' \| 'dark' \| 'system'` preference: on iOS, `UIUserInterfaceStyle: Dark` makes RN's `useColorScheme()` always return `dark`, so the "system" preference cannot follow the device. Left as found — changing it changes product behaviour — and carried into Track B, where the theme is rebuilt. |
