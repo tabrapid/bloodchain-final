@@ -48,7 +48,7 @@ lines.push(
     `${withErrors.length} captures logged a console error.`,
 );
 lines.push('');
-lines.push('Every path below is relative to `artifacts/`.');
+lines.push('Every link below is relative to `docs/`, so it opens from this file.');
 lines.push('');
 
 for (const [screen, shots] of [...byScreen.entries()].sort()) {
@@ -65,7 +65,7 @@ for (const [screen, shots] of [...byScreen.entries()].sort()) {
     const console_ = shot.consoleErrors?.length ? `**${shot.consoleErrors.length}**` : '—';
     const result = shot.failure ? `**failed** — ${shot.failure.slice(0, 60)}` : 'captured';
     lines.push(
-      `| \`${shot.state}\` | ${shot.intent || '—'} | [png](../${shot.screenshot}) | ${shot.dimensions} | ${shot.locale} | ${shot.data} | ${clipping} | ${console_} | ${result} |`,
+      `| \`${shot.state}\` | ${shot.intent || '—'} | [png](../artifacts/${shot.screenshot}) | ${shot.dimensions} | ${shot.locale} | ${shot.data} | ${clipping} | ${console_} | ${result} |`,
     );
   }
   lines.push('');

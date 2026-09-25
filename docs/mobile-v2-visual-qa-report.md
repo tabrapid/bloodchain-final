@@ -195,761 +195,761 @@ Android and absent on the web: it says nothing about the device build.
 
 **490 screenshots**, 53 screens, 2 device sizes (android-412x915, iphone-393x852), 3 locales (en, ru, uz). 0 captures failed. 0 captures measured content past the right edge. 124 captures logged a console error.
 
-Every path below is relative to `artifacts/`.
+Every link below is relative to `docs/`, so it opens from this file.
 
 ### `account/notification-settings` — Notification settings
 
 | State | Intent | Screenshot | Device | Locale | Data | Clipping | Console | Result |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `default` | — | [png](../mobile-v2-visual-qa/android-412x915/account/notification-settings/default.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `error` | — | [png](../mobile-v2-visual-qa/android-412x915/account/notification-settings/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
-| `locale-ru` | — | [png](../mobile-v2-visual-qa/android-412x915/account/notification-settings/locale-ru.png) | 412x915 @2x | ru | seeded database | none measured | — | captured |
-| `long-content` | — | [png](../mobile-v2-visual-qa/android-412x915/account/notification-settings/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `permission-explainer` | explained before the OS is asked | [png](../mobile-v2-visual-qa/android-412x915/account/notification-settings/permission-explainer.png) | 412x915 @2x | en | seeded database | none measured | **1** | captured |
-| `default` | — | [png](../mobile-v2-visual-qa/iphone-393x852/account/notification-settings/default.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
-| `error` | — | [png](../mobile-v2-visual-qa/iphone-393x852/account/notification-settings/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
-| `locale-ru` | — | [png](../mobile-v2-visual-qa/iphone-393x852/account/notification-settings/locale-ru.png) | 393x852 @2x | ru | seeded database | none measured | — | captured |
-| `long-content` | — | [png](../mobile-v2-visual-qa/iphone-393x852/account/notification-settings/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
-| `permission-explainer` | explained before the OS is asked | [png](../mobile-v2-visual-qa/iphone-393x852/account/notification-settings/permission-explainer.png) | 393x852 @2x | en | seeded database | none measured | **1** | captured |
+| `default` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/account/notification-settings/default.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/account/notification-settings/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
+| `locale-ru` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/account/notification-settings/locale-ru.png) | 412x915 @2x | ru | seeded database | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/account/notification-settings/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `permission-explainer` | explained before the OS is asked | [png](../artifacts/mobile-v2-visual-qa/android-412x915/account/notification-settings/permission-explainer.png) | 412x915 @2x | en | seeded database | none measured | **1** | captured |
+| `default` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/account/notification-settings/default.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/account/notification-settings/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `locale-ru` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/account/notification-settings/locale-ru.png) | 393x852 @2x | ru | seeded database | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/account/notification-settings/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `permission-explainer` | explained before the OS is asked | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/account/notification-settings/permission-explainer.png) | 393x852 @2x | en | seeded database | none measured | **1** | captured |
 
 ### `account/notifications` — Notifications
 
 | State | Intent | Screenshot | Device | Locale | Data | Clipping | Console | Result |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `empty` | — | [png](../mobile-v2-visual-qa/android-412x915/account/notifications/empty.png) | 412x915 @2x | en | overridden | none measured | — | captured |
-| `error` | — | [png](../mobile-v2-visual-qa/android-412x915/account/notifications/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
-| `loading` | — | [png](../mobile-v2-visual-qa/android-412x915/account/notifications/loading.png) | 412x915 @2x | en | overridden | none measured | — | captured |
-| `long-content` | — | [png](../mobile-v2-visual-qa/android-412x915/account/notifications/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `populated` | — | [png](../mobile-v2-visual-qa/android-412x915/account/notifications/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `empty` | — | [png](../mobile-v2-visual-qa/iphone-393x852/account/notifications/empty.png) | 393x852 @2x | en | overridden | none measured | — | captured |
-| `error` | — | [png](../mobile-v2-visual-qa/iphone-393x852/account/notifications/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
-| `loading` | — | [png](../mobile-v2-visual-qa/iphone-393x852/account/notifications/loading.png) | 393x852 @2x | en | overridden | none measured | — | captured |
-| `long-content` | — | [png](../mobile-v2-visual-qa/iphone-393x852/account/notifications/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
-| `populated` | — | [png](../mobile-v2-visual-qa/iphone-393x852/account/notifications/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/account/notifications/empty.png) | 412x915 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/account/notifications/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
+| `loading` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/account/notifications/loading.png) | 412x915 @2x | en | overridden | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/account/notifications/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/account/notifications/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/account/notifications/empty.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/account/notifications/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `loading` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/account/notifications/loading.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/account/notifications/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/account/notifications/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
 
 ### `account/privacy` — Privacy
 
 | State | Intent | Screenshot | Device | Locale | Data | Clipping | Console | Result |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `default` | what the backend can actually do, and what it cannot | [png](../mobile-v2-visual-qa/android-412x915/account/privacy/default.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `delete-account` | the deletion route as it stands today | [png](../mobile-v2-visual-qa/android-412x915/account/privacy/delete-account.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `locale-ru` | — | [png](../mobile-v2-visual-qa/android-412x915/account/privacy/locale-ru.png) | 412x915 @2x | ru | seeded database | none measured | — | captured |
-| `long-content` | — | [png](../mobile-v2-visual-qa/android-412x915/account/privacy/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `default` | what the backend can actually do, and what it cannot | [png](../mobile-v2-visual-qa/iphone-393x852/account/privacy/default.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
-| `delete-account` | the deletion route as it stands today | [png](../mobile-v2-visual-qa/iphone-393x852/account/privacy/delete-account.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
-| `locale-ru` | — | [png](../mobile-v2-visual-qa/iphone-393x852/account/privacy/locale-ru.png) | 393x852 @2x | ru | seeded database | none measured | — | captured |
-| `long-content` | — | [png](../mobile-v2-visual-qa/iphone-393x852/account/privacy/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `default` | what the backend can actually do, and what it cannot | [png](../artifacts/mobile-v2-visual-qa/android-412x915/account/privacy/default.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `delete-account` | the deletion route as it stands today | [png](../artifacts/mobile-v2-visual-qa/android-412x915/account/privacy/delete-account.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `locale-ru` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/account/privacy/locale-ru.png) | 412x915 @2x | ru | seeded database | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/account/privacy/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `default` | what the backend can actually do, and what it cannot | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/account/privacy/default.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `delete-account` | the deletion route as it stands today | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/account/privacy/delete-account.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `locale-ru` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/account/privacy/locale-ru.png) | 393x852 @2x | ru | seeded database | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/account/privacy/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
 
 ### `account/profile-donor` — Donor profile
 
 | State | Intent | Screenshot | Device | Locale | Data | Clipping | Console | Result |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `error` | — | [png](../mobile-v2-visual-qa/android-412x915/account/profile-donor/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
-| `locale-ru` | — | [png](../mobile-v2-visual-qa/android-412x915/account/profile-donor/locale-ru.png) | 412x915 @2x | ru | seeded database | none measured | — | captured |
-| `long-content` | — | [png](../mobile-v2-visual-qa/android-412x915/account/profile-donor/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `populated` | — | [png](../mobile-v2-visual-qa/android-412x915/account/profile-donor/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `error` | — | [png](../mobile-v2-visual-qa/iphone-393x852/account/profile-donor/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
-| `locale-ru` | — | [png](../mobile-v2-visual-qa/iphone-393x852/account/profile-donor/locale-ru.png) | 393x852 @2x | ru | seeded database | none measured | — | captured |
-| `long-content` | — | [png](../mobile-v2-visual-qa/iphone-393x852/account/profile-donor/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
-| `populated` | — | [png](../mobile-v2-visual-qa/iphone-393x852/account/profile-donor/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/account/profile-donor/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
+| `locale-ru` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/account/profile-donor/locale-ru.png) | 412x915 @2x | ru | seeded database | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/account/profile-donor/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/account/profile-donor/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/account/profile-donor/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `locale-ru` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/account/profile-donor/locale-ru.png) | 393x852 @2x | ru | seeded database | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/account/profile-donor/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/account/profile-donor/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
 
 ### `account/profile-edit` — Edit profile
 
 | State | Intent | Screenshot | Device | Locale | Data | Clipping | Console | Result |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `long-content` | — | [png](../mobile-v2-visual-qa/android-412x915/account/profile-edit/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `populated` | — | [png](../mobile-v2-visual-qa/android-412x915/account/profile-edit/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `server-error` | — | [png](../mobile-v2-visual-qa/android-412x915/account/profile-edit/server-error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
-| `validation-errors` | — | [png](../mobile-v2-visual-qa/android-412x915/account/profile-edit/validation-errors.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `long-content` | — | [png](../mobile-v2-visual-qa/iphone-393x852/account/profile-edit/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
-| `populated` | — | [png](../mobile-v2-visual-qa/iphone-393x852/account/profile-edit/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
-| `server-error` | — | [png](../mobile-v2-visual-qa/iphone-393x852/account/profile-edit/server-error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
-| `validation-errors` | — | [png](../mobile-v2-visual-qa/iphone-393x852/account/profile-edit/validation-errors.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/account/profile-edit/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/account/profile-edit/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `server-error` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/account/profile-edit/server-error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
+| `validation-errors` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/account/profile-edit/validation-errors.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/account/profile-edit/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/account/profile-edit/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `server-error` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/account/profile-edit/server-error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `validation-errors` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/account/profile-edit/validation-errors.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
 
 ### `account/security` — Security
 
 | State | Intent | Screenshot | Device | Locale | Data | Clipping | Console | Result |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `change-password` | — | [png](../mobile-v2-visual-qa/android-412x915/account/security/change-password.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `default` | — | [png](../mobile-v2-visual-qa/android-412x915/account/security/default.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `long-content` | — | [png](../mobile-v2-visual-qa/android-412x915/account/security/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `sessions-error` | — | [png](../mobile-v2-visual-qa/android-412x915/account/security/sessions-error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
-| `validation-errors` | — | [png](../mobile-v2-visual-qa/android-412x915/account/security/validation-errors.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `change-password` | — | [png](../mobile-v2-visual-qa/iphone-393x852/account/security/change-password.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
-| `default` | — | [png](../mobile-v2-visual-qa/iphone-393x852/account/security/default.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
-| `long-content` | — | [png](../mobile-v2-visual-qa/iphone-393x852/account/security/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
-| `sessions-error` | — | [png](../mobile-v2-visual-qa/iphone-393x852/account/security/sessions-error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
-| `validation-errors` | — | [png](../mobile-v2-visual-qa/iphone-393x852/account/security/validation-errors.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `change-password` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/account/security/change-password.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `default` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/account/security/default.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/account/security/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `sessions-error` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/account/security/sessions-error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
+| `validation-errors` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/account/security/validation-errors.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `change-password` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/account/security/change-password.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `default` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/account/security/default.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/account/security/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `sessions-error` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/account/security/sessions-error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `validation-errors` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/account/security/validation-errors.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
 
 ### `auth/check-email` — Check your email
 
 | State | Intent | Screenshot | Device | Locale | Data | Clipping | Console | Result |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `default` | — | [png](../mobile-v2-visual-qa/android-412x915/auth/check-email/default.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `locale-ru` | — | [png](../mobile-v2-visual-qa/android-412x915/auth/check-email/locale-ru.png) | 412x915 @2x | ru | seeded database | none measured | — | captured |
-| `default` | — | [png](../mobile-v2-visual-qa/iphone-393x852/auth/check-email/default.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
-| `locale-ru` | — | [png](../mobile-v2-visual-qa/iphone-393x852/auth/check-email/locale-ru.png) | 393x852 @2x | ru | seeded database | none measured | — | captured |
+| `default` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/auth/check-email/default.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `locale-ru` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/auth/check-email/locale-ru.png) | 412x915 @2x | ru | seeded database | none measured | — | captured |
+| `default` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/auth/check-email/default.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `locale-ru` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/auth/check-email/locale-ru.png) | 393x852 @2x | ru | seeded database | none measured | — | captured |
 
 ### `auth/forgot-password` — Forgot password
 
 | State | Intent | Screenshot | Device | Locale | Data | Clipping | Console | Result |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `empty` | — | [png](../mobile-v2-visual-qa/android-412x915/auth/forgot-password/empty.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `server-error` | — | [png](../mobile-v2-visual-qa/android-412x915/auth/forgot-password/server-error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
-| `validation-errors` | — | [png](../mobile-v2-visual-qa/android-412x915/auth/forgot-password/validation-errors.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `empty` | — | [png](../mobile-v2-visual-qa/iphone-393x852/auth/forgot-password/empty.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
-| `server-error` | — | [png](../mobile-v2-visual-qa/iphone-393x852/auth/forgot-password/server-error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
-| `validation-errors` | — | [png](../mobile-v2-visual-qa/iphone-393x852/auth/forgot-password/validation-errors.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/auth/forgot-password/empty.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `server-error` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/auth/forgot-password/server-error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
+| `validation-errors` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/auth/forgot-password/validation-errors.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/auth/forgot-password/empty.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `server-error` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/auth/forgot-password/server-error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `validation-errors` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/auth/forgot-password/validation-errors.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
 
 ### `auth/login` — Sign in
 
 | State | Intent | Screenshot | Device | Locale | Data | Clipping | Console | Result |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `email-mode` | switched from phone to email | [png](../mobile-v2-visual-qa/android-412x915/auth/login/email-mode.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `empty` | nothing entered yet | [png](../mobile-v2-visual-qa/android-412x915/auth/login/empty.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `loading` | request in flight, button in its pending state | [png](../mobile-v2-visual-qa/android-412x915/auth/login/loading.png) | 412x915 @2x | en | overridden | none measured | — | captured |
-| `locale-ru` | Russian labels and helper text | [png](../mobile-v2-visual-qa/android-412x915/auth/login/locale-ru.png) | 412x915 @2x | ru | seeded database | none measured | — | captured |
-| `locale-uz` | Uzbek labels and helper text | [png](../mobile-v2-visual-qa/android-412x915/auth/login/locale-uz.png) | 412x915 @2x | uz | seeded database | none measured | — | captured |
-| `server-error` | the API answered 500 | [png](../mobile-v2-visual-qa/android-412x915/auth/login/server-error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
-| `validation-errors` | submitted empty, so every rule fires at once | [png](../mobile-v2-visual-qa/android-412x915/auth/login/validation-errors.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `email-mode` | switched from phone to email | [png](../mobile-v2-visual-qa/iphone-393x852/auth/login/email-mode.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
-| `empty` | nothing entered yet | [png](../mobile-v2-visual-qa/iphone-393x852/auth/login/empty.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
-| `loading` | request in flight, button in its pending state | [png](../mobile-v2-visual-qa/iphone-393x852/auth/login/loading.png) | 393x852 @2x | en | overridden | none measured | — | captured |
-| `locale-ru` | Russian labels and helper text | [png](../mobile-v2-visual-qa/iphone-393x852/auth/login/locale-ru.png) | 393x852 @2x | ru | seeded database | none measured | — | captured |
-| `locale-uz` | Uzbek labels and helper text | [png](../mobile-v2-visual-qa/iphone-393x852/auth/login/locale-uz.png) | 393x852 @2x | uz | seeded database | none measured | — | captured |
-| `server-error` | the API answered 500 | [png](../mobile-v2-visual-qa/iphone-393x852/auth/login/server-error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
-| `validation-errors` | submitted empty, so every rule fires at once | [png](../mobile-v2-visual-qa/iphone-393x852/auth/login/validation-errors.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `email-mode` | switched from phone to email | [png](../artifacts/mobile-v2-visual-qa/android-412x915/auth/login/email-mode.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `empty` | nothing entered yet | [png](../artifacts/mobile-v2-visual-qa/android-412x915/auth/login/empty.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `loading` | request in flight, button in its pending state | [png](../artifacts/mobile-v2-visual-qa/android-412x915/auth/login/loading.png) | 412x915 @2x | en | overridden | none measured | — | captured |
+| `locale-ru` | Russian labels and helper text | [png](../artifacts/mobile-v2-visual-qa/android-412x915/auth/login/locale-ru.png) | 412x915 @2x | ru | seeded database | none measured | — | captured |
+| `locale-uz` | Uzbek labels and helper text | [png](../artifacts/mobile-v2-visual-qa/android-412x915/auth/login/locale-uz.png) | 412x915 @2x | uz | seeded database | none measured | — | captured |
+| `server-error` | the API answered 500 | [png](../artifacts/mobile-v2-visual-qa/android-412x915/auth/login/server-error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
+| `validation-errors` | submitted empty, so every rule fires at once | [png](../artifacts/mobile-v2-visual-qa/android-412x915/auth/login/validation-errors.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `email-mode` | switched from phone to email | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/auth/login/email-mode.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `empty` | nothing entered yet | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/auth/login/empty.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `loading` | request in flight, button in its pending state | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/auth/login/loading.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `locale-ru` | Russian labels and helper text | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/auth/login/locale-ru.png) | 393x852 @2x | ru | seeded database | none measured | — | captured |
+| `locale-uz` | Uzbek labels and helper text | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/auth/login/locale-uz.png) | 393x852 @2x | uz | seeded database | none measured | — | captured |
+| `server-error` | the API answered 500 | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/auth/login/server-error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `validation-errors` | submitted empty, so every rule fires at once | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/auth/login/validation-errors.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
 
 ### `auth/otp` — One-time code
 
 | State | Intent | Screenshot | Device | Locale | Data | Clipping | Console | Result |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `empty` | code not entered | [png](../mobile-v2-visual-qa/android-412x915/auth/otp/empty.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `entered` | six digits in | [png](../mobile-v2-visual-qa/android-412x915/auth/otp/entered.png) | 412x915 @2x | en | seeded database | none measured | **1** | captured |
-| `server-error` | wrong or expired code | [png](../mobile-v2-visual-qa/android-412x915/auth/otp/server-error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
-| `empty` | code not entered | [png](../mobile-v2-visual-qa/iphone-393x852/auth/otp/empty.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
-| `entered` | six digits in | [png](../mobile-v2-visual-qa/iphone-393x852/auth/otp/entered.png) | 393x852 @2x | en | seeded database | none measured | **1** | captured |
-| `server-error` | wrong or expired code | [png](../mobile-v2-visual-qa/iphone-393x852/auth/otp/server-error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `empty` | code not entered | [png](../artifacts/mobile-v2-visual-qa/android-412x915/auth/otp/empty.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `entered` | six digits in | [png](../artifacts/mobile-v2-visual-qa/android-412x915/auth/otp/entered.png) | 412x915 @2x | en | seeded database | none measured | **1** | captured |
+| `server-error` | wrong or expired code | [png](../artifacts/mobile-v2-visual-qa/android-412x915/auth/otp/server-error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
+| `empty` | code not entered | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/auth/otp/empty.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `entered` | six digits in | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/auth/otp/entered.png) | 393x852 @2x | en | seeded database | none measured | **1** | captured |
+| `server-error` | wrong or expired code | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/auth/otp/server-error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
 
 ### `auth/phone` — Phone sign-in
 
 | State | Intent | Screenshot | Device | Locale | Data | Clipping | Console | Result |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `empty` | — | [png](../mobile-v2-visual-qa/android-412x915/auth/phone/empty.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `server-error` | — | [png](../mobile-v2-visual-qa/android-412x915/auth/phone/server-error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
-| `validation-errors` | — | [png](../mobile-v2-visual-qa/android-412x915/auth/phone/validation-errors.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `empty` | — | [png](../mobile-v2-visual-qa/iphone-393x852/auth/phone/empty.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
-| `server-error` | — | [png](../mobile-v2-visual-qa/iphone-393x852/auth/phone/server-error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
-| `validation-errors` | — | [png](../mobile-v2-visual-qa/iphone-393x852/auth/phone/validation-errors.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/auth/phone/empty.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `server-error` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/auth/phone/server-error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
+| `validation-errors` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/auth/phone/validation-errors.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/auth/phone/empty.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `server-error` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/auth/phone/server-error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `validation-errors` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/auth/phone/validation-errors.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
 
 ### `auth/register` — Create account
 
 | State | Intent | Screenshot | Device | Locale | Data | Clipping | Console | Result |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `empty` | — | [png](../mobile-v2-visual-qa/android-412x915/auth/register/empty.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `locale-ru` | — | [png](../mobile-v2-visual-qa/android-412x915/auth/register/locale-ru.png) | 412x915 @2x | ru | seeded database | none measured | — | captured |
-| `validation-errors` | submitted empty | [png](../mobile-v2-visual-qa/android-412x915/auth/register/validation-errors.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `empty` | — | [png](../mobile-v2-visual-qa/iphone-393x852/auth/register/empty.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
-| `locale-ru` | — | [png](../mobile-v2-visual-qa/iphone-393x852/auth/register/locale-ru.png) | 393x852 @2x | ru | seeded database | none measured | — | captured |
-| `validation-errors` | submitted empty | [png](../mobile-v2-visual-qa/iphone-393x852/auth/register/validation-errors.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/auth/register/empty.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `locale-ru` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/auth/register/locale-ru.png) | 412x915 @2x | ru | seeded database | none measured | — | captured |
+| `validation-errors` | submitted empty | [png](../artifacts/mobile-v2-visual-qa/android-412x915/auth/register/validation-errors.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/auth/register/empty.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `locale-ru` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/auth/register/locale-ru.png) | 393x852 @2x | ru | seeded database | none measured | — | captured |
+| `validation-errors` | submitted empty | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/auth/register/validation-errors.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
 
 ### `auth/register-details` — Your details
 
 | State | Intent | Screenshot | Device | Locale | Data | Clipping | Console | Result |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `empty` | — | [png](../mobile-v2-visual-qa/android-412x915/auth/register-details/empty.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `locale-uz` | — | [png](../mobile-v2-visual-qa/android-412x915/auth/register-details/locale-uz.png) | 412x915 @2x | uz | seeded database | none measured | — | captured |
-| `validation-errors` | — | [png](../mobile-v2-visual-qa/android-412x915/auth/register-details/validation-errors.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `empty` | — | [png](../mobile-v2-visual-qa/iphone-393x852/auth/register-details/empty.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
-| `locale-uz` | — | [png](../mobile-v2-visual-qa/iphone-393x852/auth/register-details/locale-uz.png) | 393x852 @2x | uz | seeded database | none measured | — | captured |
-| `validation-errors` | — | [png](../mobile-v2-visual-qa/iphone-393x852/auth/register-details/validation-errors.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/auth/register-details/empty.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `locale-uz` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/auth/register-details/locale-uz.png) | 412x915 @2x | uz | seeded database | none measured | — | captured |
+| `validation-errors` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/auth/register-details/validation-errors.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/auth/register-details/empty.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `locale-uz` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/auth/register-details/locale-uz.png) | 393x852 @2x | uz | seeded database | none measured | — | captured |
+| `validation-errors` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/auth/register-details/validation-errors.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
 
 ### `auth/reset-password` — Reset password
 
 | State | Intent | Screenshot | Device | Locale | Data | Clipping | Console | Result |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `empty` | — | [png](../mobile-v2-visual-qa/android-412x915/auth/reset-password/empty.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `validation-errors` | — | [png](../mobile-v2-visual-qa/android-412x915/auth/reset-password/validation-errors.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `empty` | — | [png](../mobile-v2-visual-qa/iphone-393x852/auth/reset-password/empty.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
-| `validation-errors` | — | [png](../mobile-v2-visual-qa/iphone-393x852/auth/reset-password/validation-errors.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/auth/reset-password/empty.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `validation-errors` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/auth/reset-password/validation-errors.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/auth/reset-password/empty.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `validation-errors` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/auth/reset-password/validation-errors.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
 
 ### `auth/verify-email` — Verify email
 
 | State | Intent | Screenshot | Device | Locale | Data | Clipping | Console | Result |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `loading` | while the token is being checked | [png](../mobile-v2-visual-qa/android-412x915/auth/verify-email/loading.png) | 412x915 @2x | en | overridden | none measured | — | captured |
-| `server-error` | expired link | [png](../mobile-v2-visual-qa/android-412x915/auth/verify-email/server-error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
-| `loading` | while the token is being checked | [png](../mobile-v2-visual-qa/iphone-393x852/auth/verify-email/loading.png) | 393x852 @2x | en | overridden | none measured | — | captured |
-| `server-error` | expired link | [png](../mobile-v2-visual-qa/iphone-393x852/auth/verify-email/server-error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `loading` | while the token is being checked | [png](../artifacts/mobile-v2-visual-qa/android-412x915/auth/verify-email/loading.png) | 412x915 @2x | en | overridden | none measured | — | captured |
+| `server-error` | expired link | [png](../artifacts/mobile-v2-visual-qa/android-412x915/auth/verify-email/server-error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
+| `loading` | while the token is being checked | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/auth/verify-email/loading.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `server-error` | expired link | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/auth/verify-email/server-error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
 
 ### `auth/welcome` — Welcome
 
 | State | Intent | Screenshot | Device | Locale | Data | Clipping | Console | Result |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `default` | first screen a new donor sees | [png](../mobile-v2-visual-qa/android-412x915/auth/welcome/default.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `light` | light appearance | [png](../mobile-v2-visual-qa/android-412x915/auth/welcome/light.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `locale-ru` | Russian copy at the same widths | [png](../mobile-v2-visual-qa/android-412x915/auth/welcome/locale-ru.png) | 412x915 @2x | ru | seeded database | none measured | — | captured |
-| `locale-uz` | Uzbek copy at the same widths | [png](../mobile-v2-visual-qa/android-412x915/auth/welcome/locale-uz.png) | 412x915 @2x | uz | seeded database | none measured | — | captured |
-| `default` | first screen a new donor sees | [png](../mobile-v2-visual-qa/iphone-393x852/auth/welcome/default.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
-| `light` | light appearance | [png](../mobile-v2-visual-qa/iphone-393x852/auth/welcome/light.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
-| `locale-ru` | Russian copy at the same widths | [png](../mobile-v2-visual-qa/iphone-393x852/auth/welcome/locale-ru.png) | 393x852 @2x | ru | seeded database | none measured | — | captured |
-| `locale-uz` | Uzbek copy at the same widths | [png](../mobile-v2-visual-qa/iphone-393x852/auth/welcome/locale-uz.png) | 393x852 @2x | uz | seeded database | none measured | — | captured |
+| `default` | first screen a new donor sees | [png](../artifacts/mobile-v2-visual-qa/android-412x915/auth/welcome/default.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `light` | light appearance | [png](../artifacts/mobile-v2-visual-qa/android-412x915/auth/welcome/light.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `locale-ru` | Russian copy at the same widths | [png](../artifacts/mobile-v2-visual-qa/android-412x915/auth/welcome/locale-ru.png) | 412x915 @2x | ru | seeded database | none measured | — | captured |
+| `locale-uz` | Uzbek copy at the same widths | [png](../artifacts/mobile-v2-visual-qa/android-412x915/auth/welcome/locale-uz.png) | 412x915 @2x | uz | seeded database | none measured | — | captured |
+| `default` | first screen a new donor sees | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/auth/welcome/default.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `light` | light appearance | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/auth/welcome/light.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `locale-ru` | Russian copy at the same widths | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/auth/welcome/locale-ru.png) | 393x852 @2x | ru | seeded database | none measured | — | captured |
+| `locale-uz` | Uzbek copy at the same widths | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/auth/welcome/locale-uz.png) | 393x852 @2x | uz | seeded database | none measured | — | captured |
 
 ### `booking/1-select-type` — Booking — type
 
 | State | Intent | Screenshot | Device | Locale | Data | Clipping | Console | Result |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `default` | — | [png](../mobile-v2-visual-qa/android-412x915/booking/1-select-type/default.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `locale-ru` | — | [png](../mobile-v2-visual-qa/android-412x915/booking/1-select-type/locale-ru.png) | 412x915 @2x | ru | seeded database | none measured | — | captured |
-| `selected` | — | [png](../mobile-v2-visual-qa/android-412x915/booking/1-select-type/selected.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `default` | — | [png](../mobile-v2-visual-qa/iphone-393x852/booking/1-select-type/default.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
-| `locale-ru` | — | [png](../mobile-v2-visual-qa/iphone-393x852/booking/1-select-type/locale-ru.png) | 393x852 @2x | ru | seeded database | none measured | — | captured |
-| `selected` | — | [png](../mobile-v2-visual-qa/iphone-393x852/booking/1-select-type/selected.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `default` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/booking/1-select-type/default.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `locale-ru` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/booking/1-select-type/locale-ru.png) | 412x915 @2x | ru | seeded database | none measured | — | captured |
+| `selected` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/booking/1-select-type/selected.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `default` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/booking/1-select-type/default.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `locale-ru` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/booking/1-select-type/locale-ru.png) | 393x852 @2x | ru | seeded database | none measured | — | captured |
+| `selected` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/booking/1-select-type/selected.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
 
 ### `booking/2-organizations` — Booking — centre
 
 | State | Intent | Screenshot | Device | Locale | Data | Clipping | Console | Result |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `empty` | — | [png](../mobile-v2-visual-qa/android-412x915/booking/2-organizations/empty.png) | 412x915 @2x | en | overridden | none measured | — | captured |
-| `error` | — | [png](../mobile-v2-visual-qa/android-412x915/booking/2-organizations/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
-| `filters-open` | — | [png](../mobile-v2-visual-qa/android-412x915/booking/2-organizations/filters-open.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `loading` | — | [png](../mobile-v2-visual-qa/android-412x915/booking/2-organizations/loading.png) | 412x915 @2x | en | overridden | none measured | — | captured |
-| `locale-ru` | — | [png](../mobile-v2-visual-qa/android-412x915/booking/2-organizations/locale-ru.png) | 412x915 @2x | ru | seeded database | none measured | — | captured |
-| `permission-location-explainer` | nearby asks before the OS does | [png](../mobile-v2-visual-qa/android-412x915/booking/2-organizations/permission-location-explainer.png) | 412x915 @2x | en | seeded database | none measured | **1** | captured |
-| `populated` | — | [png](../mobile-v2-visual-qa/android-412x915/booking/2-organizations/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `empty` | — | [png](../mobile-v2-visual-qa/iphone-393x852/booking/2-organizations/empty.png) | 393x852 @2x | en | overridden | none measured | — | captured |
-| `error` | — | [png](../mobile-v2-visual-qa/iphone-393x852/booking/2-organizations/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
-| `filters-open` | — | [png](../mobile-v2-visual-qa/iphone-393x852/booking/2-organizations/filters-open.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
-| `loading` | — | [png](../mobile-v2-visual-qa/iphone-393x852/booking/2-organizations/loading.png) | 393x852 @2x | en | overridden | none measured | — | captured |
-| `locale-ru` | — | [png](../mobile-v2-visual-qa/iphone-393x852/booking/2-organizations/locale-ru.png) | 393x852 @2x | ru | seeded database | none measured | — | captured |
-| `permission-location-explainer` | nearby asks before the OS does | [png](../mobile-v2-visual-qa/iphone-393x852/booking/2-organizations/permission-location-explainer.png) | 393x852 @2x | en | seeded database | none measured | **1** | captured |
-| `populated` | — | [png](../mobile-v2-visual-qa/iphone-393x852/booking/2-organizations/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/booking/2-organizations/empty.png) | 412x915 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/booking/2-organizations/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
+| `filters-open` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/booking/2-organizations/filters-open.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `loading` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/booking/2-organizations/loading.png) | 412x915 @2x | en | overridden | none measured | — | captured |
+| `locale-ru` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/booking/2-organizations/locale-ru.png) | 412x915 @2x | ru | seeded database | none measured | — | captured |
+| `permission-location-explainer` | nearby asks before the OS does | [png](../artifacts/mobile-v2-visual-qa/android-412x915/booking/2-organizations/permission-location-explainer.png) | 412x915 @2x | en | seeded database | none measured | **1** | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/booking/2-organizations/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/booking/2-organizations/empty.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/booking/2-organizations/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `filters-open` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/booking/2-organizations/filters-open.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `loading` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/booking/2-organizations/loading.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `locale-ru` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/booking/2-organizations/locale-ru.png) | 393x852 @2x | ru | seeded database | none measured | — | captured |
+| `permission-location-explainer` | nearby asks before the OS does | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/booking/2-organizations/permission-location-explainer.png) | 393x852 @2x | en | seeded database | none measured | **1** | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/booking/2-organizations/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
 
 ### `booking/3-date` — Booking — date
 
 | State | Intent | Screenshot | Device | Locale | Data | Clipping | Console | Result |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `error` | — | [png](../mobile-v2-visual-qa/android-412x915/booking/3-date/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
-| `loading` | — | [png](../mobile-v2-visual-qa/android-412x915/booking/3-date/loading.png) | 412x915 @2x | en | overridden | none measured | — | captured |
-| `locale-ru` | — | [png](../mobile-v2-visual-qa/android-412x915/booking/3-date/locale-ru.png) | 412x915 @2x | ru | seeded database | none measured | — | captured |
-| `locale-uz` | — | [png](../mobile-v2-visual-qa/android-412x915/booking/3-date/locale-uz.png) | 412x915 @2x | uz | seeded database | none measured | — | captured |
-| `no-open-dates` | the month has nothing open | [png](../mobile-v2-visual-qa/android-412x915/booking/3-date/no-open-dates.png) | 412x915 @2x | en | overridden | none measured | — | captured |
-| `populated` | — | [png](../mobile-v2-visual-qa/android-412x915/booking/3-date/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `error` | — | [png](../mobile-v2-visual-qa/iphone-393x852/booking/3-date/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
-| `loading` | — | [png](../mobile-v2-visual-qa/iphone-393x852/booking/3-date/loading.png) | 393x852 @2x | en | overridden | none measured | — | captured |
-| `locale-ru` | — | [png](../mobile-v2-visual-qa/iphone-393x852/booking/3-date/locale-ru.png) | 393x852 @2x | ru | seeded database | none measured | — | captured |
-| `locale-uz` | — | [png](../mobile-v2-visual-qa/iphone-393x852/booking/3-date/locale-uz.png) | 393x852 @2x | uz | seeded database | none measured | — | captured |
-| `no-open-dates` | the month has nothing open | [png](../mobile-v2-visual-qa/iphone-393x852/booking/3-date/no-open-dates.png) | 393x852 @2x | en | overridden | none measured | — | captured |
-| `populated` | — | [png](../mobile-v2-visual-qa/iphone-393x852/booking/3-date/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/booking/3-date/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
+| `loading` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/booking/3-date/loading.png) | 412x915 @2x | en | overridden | none measured | — | captured |
+| `locale-ru` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/booking/3-date/locale-ru.png) | 412x915 @2x | ru | seeded database | none measured | — | captured |
+| `locale-uz` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/booking/3-date/locale-uz.png) | 412x915 @2x | uz | seeded database | none measured | — | captured |
+| `no-open-dates` | the month has nothing open | [png](../artifacts/mobile-v2-visual-qa/android-412x915/booking/3-date/no-open-dates.png) | 412x915 @2x | en | overridden | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/booking/3-date/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/booking/3-date/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `loading` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/booking/3-date/loading.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `locale-ru` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/booking/3-date/locale-ru.png) | 393x852 @2x | ru | seeded database | none measured | — | captured |
+| `locale-uz` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/booking/3-date/locale-uz.png) | 393x852 @2x | uz | seeded database | none measured | — | captured |
+| `no-open-dates` | the month has nothing open | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/booking/3-date/no-open-dates.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/booking/3-date/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
 
 ### `booking/4-time` — Booking — time
 
 | State | Intent | Screenshot | Device | Locale | Data | Clipping | Console | Result |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `error` | — | [png](../mobile-v2-visual-qa/android-412x915/booking/4-time/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
-| `loading` | — | [png](../mobile-v2-visual-qa/android-412x915/booking/4-time/loading.png) | 412x915 @2x | en | overridden | none measured | — | captured |
-| `no-times` | — | [png](../mobile-v2-visual-qa/android-412x915/booking/4-time/no-times.png) | 412x915 @2x | en | overridden | none measured | — | captured |
-| `populated` | — | [png](../mobile-v2-visual-qa/android-412x915/booking/4-time/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `error` | — | [png](../mobile-v2-visual-qa/iphone-393x852/booking/4-time/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
-| `loading` | — | [png](../mobile-v2-visual-qa/iphone-393x852/booking/4-time/loading.png) | 393x852 @2x | en | overridden | none measured | — | captured |
-| `no-times` | — | [png](../mobile-v2-visual-qa/iphone-393x852/booking/4-time/no-times.png) | 393x852 @2x | en | overridden | none measured | — | captured |
-| `populated` | — | [png](../mobile-v2-visual-qa/iphone-393x852/booking/4-time/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/booking/4-time/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
+| `loading` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/booking/4-time/loading.png) | 412x915 @2x | en | overridden | none measured | — | captured |
+| `no-times` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/booking/4-time/no-times.png) | 412x915 @2x | en | overridden | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/booking/4-time/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/booking/4-time/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `loading` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/booking/4-time/loading.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `no-times` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/booking/4-time/no-times.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/booking/4-time/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
 
 ### `booking/5-review` — Booking — review
 
 | State | Intent | Screenshot | Device | Locale | Data | Clipping | Console | Result |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `populated` | — | [png](../mobile-v2-visual-qa/android-412x915/booking/5-review/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `server-error` | — | [png](../mobile-v2-visual-qa/android-412x915/booking/5-review/server-error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
-| `slot-taken` | someone else took it while this donor decided | [png](../mobile-v2-visual-qa/android-412x915/booking/5-review/slot-taken.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
-| `submitting` | — | [png](../mobile-v2-visual-qa/android-412x915/booking/5-review/submitting.png) | 412x915 @2x | en | overridden | none measured | — | captured |
-| `populated` | — | [png](../mobile-v2-visual-qa/iphone-393x852/booking/5-review/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
-| `server-error` | — | [png](../mobile-v2-visual-qa/iphone-393x852/booking/5-review/server-error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
-| `slot-taken` | someone else took it while this donor decided | [png](../mobile-v2-visual-qa/iphone-393x852/booking/5-review/slot-taken.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
-| `submitting` | — | [png](../mobile-v2-visual-qa/iphone-393x852/booking/5-review/submitting.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/booking/5-review/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `server-error` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/booking/5-review/server-error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
+| `slot-taken` | someone else took it while this donor decided | [png](../artifacts/mobile-v2-visual-qa/android-412x915/booking/5-review/slot-taken.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
+| `submitting` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/booking/5-review/submitting.png) | 412x915 @2x | en | overridden | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/booking/5-review/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `server-error` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/booking/5-review/server-error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `slot-taken` | someone else took it while this donor decided | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/booking/5-review/slot-taken.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `submitting` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/booking/5-review/submitting.png) | 393x852 @2x | en | overridden | none measured | — | captured |
 
 ### `booking/6-confirmation` — Booking — confirmed
 
 | State | Intent | Screenshot | Device | Locale | Data | Clipping | Console | Result |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `loading` | — | [png](../mobile-v2-visual-qa/android-412x915/booking/6-confirmation/loading.png) | 412x915 @2x | en | overridden | none measured | — | captured |
-| `locale-ru` | — | [png](../mobile-v2-visual-qa/android-412x915/booking/6-confirmation/locale-ru.png) | 412x915 @2x | ru | seeded database | none measured | — | captured |
-| `populated` | — | [png](../mobile-v2-visual-qa/android-412x915/booking/6-confirmation/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `loading` | — | [png](../mobile-v2-visual-qa/iphone-393x852/booking/6-confirmation/loading.png) | 393x852 @2x | en | overridden | none measured | — | captured |
-| `locale-ru` | — | [png](../mobile-v2-visual-qa/iphone-393x852/booking/6-confirmation/locale-ru.png) | 393x852 @2x | ru | seeded database | none measured | — | captured |
-| `populated` | — | [png](../mobile-v2-visual-qa/iphone-393x852/booking/6-confirmation/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `loading` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/booking/6-confirmation/loading.png) | 412x915 @2x | en | overridden | none measured | — | captured |
+| `locale-ru` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/booking/6-confirmation/locale-ru.png) | 412x915 @2x | ru | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/booking/6-confirmation/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `loading` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/booking/6-confirmation/loading.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `locale-ru` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/booking/6-confirmation/locale-ru.png) | 393x852 @2x | ru | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/booking/6-confirmation/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
 
 ### `community/achievements` — Achievements
 
 | State | Intent | Screenshot | Device | Locale | Data | Clipping | Console | Result |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `empty` | — | [png](../mobile-v2-visual-qa/android-412x915/community/achievements/empty.png) | 412x915 @2x | en | overridden | none measured | — | captured |
-| `error` | — | [png](../mobile-v2-visual-qa/android-412x915/community/achievements/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
-| `long-content` | — | [png](../mobile-v2-visual-qa/android-412x915/community/achievements/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `populated` | — | [png](../mobile-v2-visual-qa/android-412x915/community/achievements/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `empty` | — | [png](../mobile-v2-visual-qa/iphone-393x852/community/achievements/empty.png) | 393x852 @2x | en | overridden | none measured | — | captured |
-| `error` | — | [png](../mobile-v2-visual-qa/iphone-393x852/community/achievements/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
-| `long-content` | — | [png](../mobile-v2-visual-qa/iphone-393x852/community/achievements/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
-| `populated` | — | [png](../mobile-v2-visual-qa/iphone-393x852/community/achievements/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/community/achievements/empty.png) | 412x915 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/community/achievements/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
+| `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/community/achievements/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/community/achievements/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/community/achievements/empty.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/community/achievements/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/community/achievements/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/community/achievements/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
 
 ### `community/badges` — Badges
 
 | State | Intent | Screenshot | Device | Locale | Data | Clipping | Console | Result |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `empty` | — | [png](../mobile-v2-visual-qa/android-412x915/community/badges/empty.png) | 412x915 @2x | en | overridden | none measured | — | captured |
-| `error` | — | [png](../mobile-v2-visual-qa/android-412x915/community/badges/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
-| `long-content` | — | [png](../mobile-v2-visual-qa/android-412x915/community/badges/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `populated` | — | [png](../mobile-v2-visual-qa/android-412x915/community/badges/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `empty` | — | [png](../mobile-v2-visual-qa/iphone-393x852/community/badges/empty.png) | 393x852 @2x | en | overridden | none measured | — | captured |
-| `error` | — | [png](../mobile-v2-visual-qa/iphone-393x852/community/badges/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
-| `long-content` | — | [png](../mobile-v2-visual-qa/iphone-393x852/community/badges/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
-| `populated` | — | [png](../mobile-v2-visual-qa/iphone-393x852/community/badges/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/community/badges/empty.png) | 412x915 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/community/badges/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
+| `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/community/badges/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/community/badges/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/community/badges/empty.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/community/badges/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/community/badges/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/community/badges/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
 
 ### `community/campaigns` — Campaigns
 
 | State | Intent | Screenshot | Device | Locale | Data | Clipping | Console | Result |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `empty` | — | [png](../mobile-v2-visual-qa/android-412x915/community/campaigns/empty.png) | 412x915 @2x | en | overridden | none measured | — | captured |
-| `error` | — | [png](../mobile-v2-visual-qa/android-412x915/community/campaigns/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
-| `long-content` | — | [png](../mobile-v2-visual-qa/android-412x915/community/campaigns/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `populated` | — | [png](../mobile-v2-visual-qa/android-412x915/community/campaigns/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `empty` | — | [png](../mobile-v2-visual-qa/iphone-393x852/community/campaigns/empty.png) | 393x852 @2x | en | overridden | none measured | — | captured |
-| `error` | — | [png](../mobile-v2-visual-qa/iphone-393x852/community/campaigns/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
-| `long-content` | — | [png](../mobile-v2-visual-qa/iphone-393x852/community/campaigns/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
-| `populated` | — | [png](../mobile-v2-visual-qa/iphone-393x852/community/campaigns/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/community/campaigns/empty.png) | 412x915 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/community/campaigns/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
+| `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/community/campaigns/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/community/campaigns/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/community/campaigns/empty.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/community/campaigns/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/community/campaigns/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/community/campaigns/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
 
 ### `community/challenges` — Challenges
 
 | State | Intent | Screenshot | Device | Locale | Data | Clipping | Console | Result |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `empty` | — | [png](../mobile-v2-visual-qa/android-412x915/community/challenges/empty.png) | 412x915 @2x | en | overridden | none measured | — | captured |
-| `error` | — | [png](../mobile-v2-visual-qa/android-412x915/community/challenges/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
-| `long-content` | — | [png](../mobile-v2-visual-qa/android-412x915/community/challenges/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `populated` | — | [png](../mobile-v2-visual-qa/android-412x915/community/challenges/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `empty` | — | [png](../mobile-v2-visual-qa/iphone-393x852/community/challenges/empty.png) | 393x852 @2x | en | overridden | none measured | — | captured |
-| `error` | — | [png](../mobile-v2-visual-qa/iphone-393x852/community/challenges/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
-| `long-content` | — | [png](../mobile-v2-visual-qa/iphone-393x852/community/challenges/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
-| `populated` | — | [png](../mobile-v2-visual-qa/iphone-393x852/community/challenges/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/community/challenges/empty.png) | 412x915 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/community/challenges/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
+| `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/community/challenges/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/community/challenges/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/community/challenges/empty.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/community/challenges/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/community/challenges/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/community/challenges/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
 
 ### `community/education` — Education
 
 | State | Intent | Screenshot | Device | Locale | Data | Clipping | Console | Result |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `empty` | — | [png](../mobile-v2-visual-qa/android-412x915/community/education/empty.png) | 412x915 @2x | en | overridden | none measured | — | captured |
-| `error` | — | [png](../mobile-v2-visual-qa/android-412x915/community/education/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
-| `locale-uz` | — | [png](../mobile-v2-visual-qa/android-412x915/community/education/locale-uz.png) | 412x915 @2x | uz | seeded database | none measured | — | captured |
-| `long-content` | — | [png](../mobile-v2-visual-qa/android-412x915/community/education/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `populated` | — | [png](../mobile-v2-visual-qa/android-412x915/community/education/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `empty` | — | [png](../mobile-v2-visual-qa/iphone-393x852/community/education/empty.png) | 393x852 @2x | en | overridden | none measured | — | captured |
-| `error` | — | [png](../mobile-v2-visual-qa/iphone-393x852/community/education/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
-| `locale-uz` | — | [png](../mobile-v2-visual-qa/iphone-393x852/community/education/locale-uz.png) | 393x852 @2x | uz | seeded database | none measured | — | captured |
-| `long-content` | — | [png](../mobile-v2-visual-qa/iphone-393x852/community/education/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
-| `populated` | — | [png](../mobile-v2-visual-qa/iphone-393x852/community/education/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/community/education/empty.png) | 412x915 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/community/education/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
+| `locale-uz` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/community/education/locale-uz.png) | 412x915 @2x | uz | seeded database | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/community/education/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/community/education/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/community/education/empty.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/community/education/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `locale-uz` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/community/education/locale-uz.png) | 393x852 @2x | uz | seeded database | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/community/education/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/community/education/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
 
 ### `community/education-article` — Education — the article
 
 | State | Intent | Screenshot | Device | Locale | Data | Clipping | Console | Result |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `error` | — | [png](../mobile-v2-visual-qa/android-412x915/community/education-article/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
-| `loading` | — | [png](../mobile-v2-visual-qa/android-412x915/community/education-article/loading.png) | 412x915 @2x | en | overridden | none measured | — | captured |
-| `locale-ru` | — | [png](../mobile-v2-visual-qa/android-412x915/community/education-article/locale-ru.png) | 412x915 @2x | ru | seeded database | none measured | — | captured |
-| `long-content` | — | [png](../mobile-v2-visual-qa/android-412x915/community/education-article/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `populated` | the body the module has always carried and never showed | [png](../mobile-v2-visual-qa/android-412x915/community/education-article/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `error` | — | [png](../mobile-v2-visual-qa/iphone-393x852/community/education-article/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
-| `loading` | — | [png](../mobile-v2-visual-qa/iphone-393x852/community/education-article/loading.png) | 393x852 @2x | en | overridden | none measured | — | captured |
-| `locale-ru` | — | [png](../mobile-v2-visual-qa/iphone-393x852/community/education-article/locale-ru.png) | 393x852 @2x | ru | seeded database | none measured | — | captured |
-| `long-content` | — | [png](../mobile-v2-visual-qa/iphone-393x852/community/education-article/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
-| `populated` | the body the module has always carried and never showed | [png](../mobile-v2-visual-qa/iphone-393x852/community/education-article/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/community/education-article/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
+| `loading` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/community/education-article/loading.png) | 412x915 @2x | en | overridden | none measured | — | captured |
+| `locale-ru` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/community/education-article/locale-ru.png) | 412x915 @2x | ru | seeded database | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/community/education-article/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `populated` | the body the module has always carried and never showed | [png](../artifacts/mobile-v2-visual-qa/android-412x915/community/education-article/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/community/education-article/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `loading` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/community/education-article/loading.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `locale-ru` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/community/education-article/locale-ru.png) | 393x852 @2x | ru | seeded database | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/community/education-article/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `populated` | the body the module has always carried and never showed | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/community/education-article/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
 
 ### `community/gamification` — Recognition
 
 | State | Intent | Screenshot | Device | Locale | Data | Clipping | Console | Result |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `error` | — | [png](../mobile-v2-visual-qa/android-412x915/community/gamification/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
-| `loading` | — | [png](../mobile-v2-visual-qa/android-412x915/community/gamification/loading.png) | 412x915 @2x | en | overridden | none measured | — | captured |
-| `long-content` | — | [png](../mobile-v2-visual-qa/android-412x915/community/gamification/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `populated` | — | [png](../mobile-v2-visual-qa/android-412x915/community/gamification/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `error` | — | [png](../mobile-v2-visual-qa/iphone-393x852/community/gamification/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
-| `loading` | — | [png](../mobile-v2-visual-qa/iphone-393x852/community/gamification/loading.png) | 393x852 @2x | en | overridden | none measured | — | captured |
-| `long-content` | — | [png](../mobile-v2-visual-qa/iphone-393x852/community/gamification/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
-| `populated` | — | [png](../mobile-v2-visual-qa/iphone-393x852/community/gamification/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/community/gamification/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
+| `loading` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/community/gamification/loading.png) | 412x915 @2x | en | overridden | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/community/gamification/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/community/gamification/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/community/gamification/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `loading` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/community/gamification/loading.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/community/gamification/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/community/gamification/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
 
 ### `community/leaderboard` — Leaderboard
 
 | State | Intent | Screenshot | Device | Locale | Data | Clipping | Console | Result |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `empty` | — | [png](../mobile-v2-visual-qa/android-412x915/community/leaderboard/empty.png) | 412x915 @2x | en | overridden | none measured | — | captured |
-| `error` | — | [png](../mobile-v2-visual-qa/android-412x915/community/leaderboard/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
-| `long-content` | — | [png](../mobile-v2-visual-qa/android-412x915/community/leaderboard/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `populated` | — | [png](../mobile-v2-visual-qa/android-412x915/community/leaderboard/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `empty` | — | [png](../mobile-v2-visual-qa/iphone-393x852/community/leaderboard/empty.png) | 393x852 @2x | en | overridden | none measured | — | captured |
-| `error` | — | [png](../mobile-v2-visual-qa/iphone-393x852/community/leaderboard/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
-| `long-content` | — | [png](../mobile-v2-visual-qa/iphone-393x852/community/leaderboard/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
-| `populated` | — | [png](../mobile-v2-visual-qa/iphone-393x852/community/leaderboard/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/community/leaderboard/empty.png) | 412x915 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/community/leaderboard/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
+| `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/community/leaderboard/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/community/leaderboard/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/community/leaderboard/empty.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/community/leaderboard/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/community/leaderboard/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/community/leaderboard/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
 
 ### `courier/active` — Courier — active delivery
 
 | State | Intent | Screenshot | Device | Locale | Data | Clipping | Console | Result |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `empty` | — | [png](../mobile-v2-visual-qa/android-412x915/courier/active/empty.png) | 412x915 @2x | en | overridden | none measured | — | captured |
-| `error` | — | [png](../mobile-v2-visual-qa/android-412x915/courier/active/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
-| `loading` | — | [png](../mobile-v2-visual-qa/android-412x915/courier/active/loading.png) | 412x915 @2x | en | overridden | none measured | — | captured |
-| `long-content` | — | [png](../mobile-v2-visual-qa/android-412x915/courier/active/long-content.png) | 412x915 @2x | en | overridden | none measured | **2** | captured |
-| `permission-location-explainer` | — | [png](../mobile-v2-visual-qa/android-412x915/courier/active/permission-location-explainer.png) | 412x915 @2x | en | overridden | none measured | **2** | captured |
-| `populated` | — | [png](../mobile-v2-visual-qa/android-412x915/courier/active/populated.png) | 412x915 @2x | en | overridden | none measured | **2** | captured |
-| `empty` | — | [png](../mobile-v2-visual-qa/iphone-393x852/courier/active/empty.png) | 393x852 @2x | en | overridden | none measured | — | captured |
-| `error` | — | [png](../mobile-v2-visual-qa/iphone-393x852/courier/active/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
-| `loading` | — | [png](../mobile-v2-visual-qa/iphone-393x852/courier/active/loading.png) | 393x852 @2x | en | overridden | none measured | — | captured |
-| `long-content` | — | [png](../mobile-v2-visual-qa/iphone-393x852/courier/active/long-content.png) | 393x852 @2x | en | overridden | none measured | **2** | captured |
-| `permission-location-explainer` | — | [png](../mobile-v2-visual-qa/iphone-393x852/courier/active/permission-location-explainer.png) | 393x852 @2x | en | overridden | none measured | **2** | captured |
-| `populated` | — | [png](../mobile-v2-visual-qa/iphone-393x852/courier/active/populated.png) | 393x852 @2x | en | overridden | none measured | **2** | captured |
+| `empty` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/courier/active/empty.png) | 412x915 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/courier/active/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
+| `loading` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/courier/active/loading.png) | 412x915 @2x | en | overridden | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/courier/active/long-content.png) | 412x915 @2x | en | overridden | none measured | **2** | captured |
+| `permission-location-explainer` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/courier/active/permission-location-explainer.png) | 412x915 @2x | en | overridden | none measured | **2** | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/courier/active/populated.png) | 412x915 @2x | en | overridden | none measured | **2** | captured |
+| `empty` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/courier/active/empty.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/courier/active/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `loading` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/courier/active/loading.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/courier/active/long-content.png) | 393x852 @2x | en | overridden | none measured | **2** | captured |
+| `permission-location-explainer` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/courier/active/permission-location-explainer.png) | 393x852 @2x | en | overridden | none measured | **2** | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/courier/active/populated.png) | 393x852 @2x | en | overridden | none measured | **2** | captured |
 
 ### `courier/history` — Courier — history
 
 | State | Intent | Screenshot | Device | Locale | Data | Clipping | Console | Result |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `empty` | — | [png](../mobile-v2-visual-qa/android-412x915/courier/history/empty.png) | 412x915 @2x | en | overridden | none measured | — | captured |
-| `error` | — | [png](../mobile-v2-visual-qa/android-412x915/courier/history/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
-| `long-content` | — | [png](../mobile-v2-visual-qa/android-412x915/courier/history/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `populated` | — | [png](../mobile-v2-visual-qa/android-412x915/courier/history/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `empty` | — | [png](../mobile-v2-visual-qa/iphone-393x852/courier/history/empty.png) | 393x852 @2x | en | overridden | none measured | — | captured |
-| `error` | — | [png](../mobile-v2-visual-qa/iphone-393x852/courier/history/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
-| `long-content` | — | [png](../mobile-v2-visual-qa/iphone-393x852/courier/history/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
-| `populated` | — | [png](../mobile-v2-visual-qa/iphone-393x852/courier/history/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/courier/history/empty.png) | 412x915 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/courier/history/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
+| `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/courier/history/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/courier/history/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/courier/history/empty.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/courier/history/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/courier/history/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/courier/history/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
 
 ### `courier/profile` — Courier — profile
 
 | State | Intent | Screenshot | Device | Locale | Data | Clipping | Console | Result |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `error` | — | [png](../mobile-v2-visual-qa/android-412x915/courier/profile/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
-| `long-content` | — | [png](../mobile-v2-visual-qa/android-412x915/courier/profile/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `populated` | — | [png](../mobile-v2-visual-qa/android-412x915/courier/profile/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `sign-out-confirmation` | — | [png](../mobile-v2-visual-qa/android-412x915/courier/profile/sign-out-confirmation.png) | 412x915 @2x | en | seeded database | none measured | **1** | captured |
-| `error` | — | [png](../mobile-v2-visual-qa/iphone-393x852/courier/profile/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
-| `long-content` | — | [png](../mobile-v2-visual-qa/iphone-393x852/courier/profile/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
-| `populated` | — | [png](../mobile-v2-visual-qa/iphone-393x852/courier/profile/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
-| `sign-out-confirmation` | — | [png](../mobile-v2-visual-qa/iphone-393x852/courier/profile/sign-out-confirmation.png) | 393x852 @2x | en | seeded database | none measured | **1** | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/courier/profile/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
+| `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/courier/profile/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/courier/profile/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `sign-out-confirmation` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/courier/profile/sign-out-confirmation.png) | 412x915 @2x | en | seeded database | none measured | **1** | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/courier/profile/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/courier/profile/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/courier/profile/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `sign-out-confirmation` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/courier/profile/sign-out-confirmation.png) | 393x852 @2x | en | seeded database | none measured | **1** | captured |
 
 ### `health/insights` — AI insights
 
 | State | Intent | Screenshot | Device | Locale | Data | Clipping | Console | Result |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `ai-disabled` | — | [png](../mobile-v2-visual-qa/android-412x915/health/insights/ai-disabled.png) | 412x915 @2x | en | overridden | none measured | — | captured |
-| `error` | — | [png](../mobile-v2-visual-qa/android-412x915/health/insights/error.png) | 412x915 @2x | en | overridden | none measured | — | captured |
-| `loading` | — | [png](../mobile-v2-visual-qa/android-412x915/health/insights/loading.png) | 412x915 @2x | en | overridden | none measured | — | captured |
-| `long-content` | — | [png](../mobile-v2-visual-qa/android-412x915/health/insights/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `populated` | — | [png](../mobile-v2-visual-qa/android-412x915/health/insights/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `ai-disabled` | — | [png](../mobile-v2-visual-qa/iphone-393x852/health/insights/ai-disabled.png) | 393x852 @2x | en | overridden | none measured | — | captured |
-| `error` | — | [png](../mobile-v2-visual-qa/iphone-393x852/health/insights/error.png) | 393x852 @2x | en | overridden | none measured | — | captured |
-| `loading` | — | [png](../mobile-v2-visual-qa/iphone-393x852/health/insights/loading.png) | 393x852 @2x | en | overridden | none measured | — | captured |
-| `long-content` | — | [png](../mobile-v2-visual-qa/iphone-393x852/health/insights/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
-| `populated` | — | [png](../mobile-v2-visual-qa/iphone-393x852/health/insights/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `ai-disabled` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/health/insights/ai-disabled.png) | 412x915 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/health/insights/error.png) | 412x915 @2x | en | overridden | none measured | — | captured |
+| `loading` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/health/insights/loading.png) | 412x915 @2x | en | overridden | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/health/insights/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/health/insights/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `ai-disabled` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/health/insights/ai-disabled.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/health/insights/error.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `loading` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/health/insights/loading.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/health/insights/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/health/insights/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
 
 ### `health/laboratory` — Blood tests
 
 | State | Intent | Screenshot | Device | Locale | Data | Clipping | Console | Result |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `empty` | — | [png](../mobile-v2-visual-qa/android-412x915/health/laboratory/empty.png) | 412x915 @2x | en | overridden | none measured | — | captured |
-| `error` | — | [png](../mobile-v2-visual-qa/android-412x915/health/laboratory/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
-| `loading` | — | [png](../mobile-v2-visual-qa/android-412x915/health/laboratory/loading.png) | 412x915 @2x | en | overridden | none measured | — | captured |
-| `long-content` | — | [png](../mobile-v2-visual-qa/android-412x915/health/laboratory/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `partial-failure` | one list failed; the other must not read as "you have none" | [png](../mobile-v2-visual-qa/android-412x915/health/laboratory/partial-failure.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
-| `populated` | — | [png](../mobile-v2-visual-qa/android-412x915/health/laboratory/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `empty` | — | [png](../mobile-v2-visual-qa/iphone-393x852/health/laboratory/empty.png) | 393x852 @2x | en | overridden | none measured | — | captured |
-| `error` | — | [png](../mobile-v2-visual-qa/iphone-393x852/health/laboratory/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
-| `loading` | — | [png](../mobile-v2-visual-qa/iphone-393x852/health/laboratory/loading.png) | 393x852 @2x | en | overridden | none measured | — | captured |
-| `long-content` | — | [png](../mobile-v2-visual-qa/iphone-393x852/health/laboratory/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
-| `partial-failure` | one list failed; the other must not read as "you have none" | [png](../mobile-v2-visual-qa/iphone-393x852/health/laboratory/partial-failure.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
-| `populated` | — | [png](../mobile-v2-visual-qa/iphone-393x852/health/laboratory/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/health/laboratory/empty.png) | 412x915 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/health/laboratory/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
+| `loading` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/health/laboratory/loading.png) | 412x915 @2x | en | overridden | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/health/laboratory/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `partial-failure` | one list failed; the other must not read as "you have none" | [png](../artifacts/mobile-v2-visual-qa/android-412x915/health/laboratory/partial-failure.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/health/laboratory/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/health/laboratory/empty.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/health/laboratory/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `loading` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/health/laboratory/loading.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/health/laboratory/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `partial-failure` | one list failed; the other must not read as "you have none" | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/health/laboratory/partial-failure.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/health/laboratory/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
 
 ### `health/trends` — Health trends
 
 | State | Intent | Screenshot | Device | Locale | Data | Clipping | Console | Result |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `empty` | — | [png](../mobile-v2-visual-qa/android-412x915/health/trends/empty.png) | 412x915 @2x | en | overridden | none measured | — | captured |
-| `error` | — | [png](../mobile-v2-visual-qa/android-412x915/health/trends/error.png) | 412x915 @2x | en | overridden | none measured | — | captured |
-| `loading` | — | [png](../mobile-v2-visual-qa/android-412x915/health/trends/loading.png) | 412x915 @2x | en | overridden | none measured | — | captured |
-| `long-content` | — | [png](../mobile-v2-visual-qa/android-412x915/health/trends/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `populated` | — | [png](../mobile-v2-visual-qa/android-412x915/health/trends/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `empty` | — | [png](../mobile-v2-visual-qa/iphone-393x852/health/trends/empty.png) | 393x852 @2x | en | overridden | none measured | — | captured |
-| `error` | — | [png](../mobile-v2-visual-qa/iphone-393x852/health/trends/error.png) | 393x852 @2x | en | overridden | none measured | — | captured |
-| `loading` | — | [png](../mobile-v2-visual-qa/iphone-393x852/health/trends/loading.png) | 393x852 @2x | en | overridden | none measured | — | captured |
-| `long-content` | — | [png](../mobile-v2-visual-qa/iphone-393x852/health/trends/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
-| `populated` | — | [png](../mobile-v2-visual-qa/iphone-393x852/health/trends/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/health/trends/empty.png) | 412x915 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/health/trends/error.png) | 412x915 @2x | en | overridden | none measured | — | captured |
+| `loading` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/health/trends/loading.png) | 412x915 @2x | en | overridden | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/health/trends/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/health/trends/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/health/trends/empty.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/health/trends/error.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `loading` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/health/trends/loading.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/health/trends/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/health/trends/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
 
 ### `history/appointment-detail` — Appointment detail
 
 | State | Intent | Screenshot | Device | Locale | Data | Clipping | Console | Result |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `cancel-confirmation` | cancelling asks first | [png](../mobile-v2-visual-qa/android-412x915/history/appointment-detail/cancel-confirmation.png) | 412x915 @2x | en | seeded database | none measured | **1** | captured |
-| `error` | — | [png](../mobile-v2-visual-qa/android-412x915/history/appointment-detail/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
-| `long-content` | — | [png](../mobile-v2-visual-qa/android-412x915/history/appointment-detail/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `populated` | — | [png](../mobile-v2-visual-qa/android-412x915/history/appointment-detail/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `cancel-confirmation` | cancelling asks first | [png](../mobile-v2-visual-qa/iphone-393x852/history/appointment-detail/cancel-confirmation.png) | 393x852 @2x | en | seeded database | none measured | **1** | captured |
-| `error` | — | [png](../mobile-v2-visual-qa/iphone-393x852/history/appointment-detail/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
-| `long-content` | — | [png](../mobile-v2-visual-qa/iphone-393x852/history/appointment-detail/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
-| `populated` | — | [png](../mobile-v2-visual-qa/iphone-393x852/history/appointment-detail/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `cancel-confirmation` | cancelling asks first | [png](../artifacts/mobile-v2-visual-qa/android-412x915/history/appointment-detail/cancel-confirmation.png) | 412x915 @2x | en | seeded database | none measured | **1** | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/history/appointment-detail/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
+| `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/history/appointment-detail/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/history/appointment-detail/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `cancel-confirmation` | cancelling asks first | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/history/appointment-detail/cancel-confirmation.png) | 393x852 @2x | en | seeded database | none measured | **1** | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/history/appointment-detail/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/history/appointment-detail/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/history/appointment-detail/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
 
 ### `history/donation-detail` — Donation detail
 
 | State | Intent | Screenshot | Device | Locale | Data | Clipping | Console | Result |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `error` | — | [png](../mobile-v2-visual-qa/android-412x915/history/donation-detail/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
-| `loading` | — | [png](../mobile-v2-visual-qa/android-412x915/history/donation-detail/loading.png) | 412x915 @2x | en | overridden | none measured | — | captured |
-| `locale-ru` | — | [png](../mobile-v2-visual-qa/android-412x915/history/donation-detail/locale-ru.png) | 412x915 @2x | ru | seeded database | none measured | — | captured |
-| `long-content` | — | [png](../mobile-v2-visual-qa/android-412x915/history/donation-detail/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `populated` | — | [png](../mobile-v2-visual-qa/android-412x915/history/donation-detail/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `error` | — | [png](../mobile-v2-visual-qa/iphone-393x852/history/donation-detail/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
-| `loading` | — | [png](../mobile-v2-visual-qa/iphone-393x852/history/donation-detail/loading.png) | 393x852 @2x | en | overridden | none measured | — | captured |
-| `locale-ru` | — | [png](../mobile-v2-visual-qa/iphone-393x852/history/donation-detail/locale-ru.png) | 393x852 @2x | ru | seeded database | none measured | — | captured |
-| `long-content` | — | [png](../mobile-v2-visual-qa/iphone-393x852/history/donation-detail/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
-| `populated` | — | [png](../mobile-v2-visual-qa/iphone-393x852/history/donation-detail/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/history/donation-detail/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
+| `loading` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/history/donation-detail/loading.png) | 412x915 @2x | en | overridden | none measured | — | captured |
+| `locale-ru` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/history/donation-detail/locale-ru.png) | 412x915 @2x | ru | seeded database | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/history/donation-detail/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/history/donation-detail/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/history/donation-detail/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `loading` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/history/donation-detail/loading.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `locale-ru` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/history/donation-detail/locale-ru.png) | 393x852 @2x | ru | seeded database | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/history/donation-detail/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/history/donation-detail/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
 
 ### `history/donations` — Donation history
 
 | State | Intent | Screenshot | Device | Locale | Data | Clipping | Console | Result |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `empty` | — | [png](../mobile-v2-visual-qa/android-412x915/history/donations/empty.png) | 412x915 @2x | en | overridden | none measured | — | captured |
-| `error` | — | [png](../mobile-v2-visual-qa/android-412x915/history/donations/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
-| `filtered-empty` | a filter with no matches is not the same as having none | [png](../mobile-v2-visual-qa/android-412x915/history/donations/filtered-empty.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `loading` | — | [png](../mobile-v2-visual-qa/android-412x915/history/donations/loading.png) | 412x915 @2x | en | overridden | none measured | — | captured |
-| `long-content` | — | [png](../mobile-v2-visual-qa/android-412x915/history/donations/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `populated` | — | [png](../mobile-v2-visual-qa/android-412x915/history/donations/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `empty` | — | [png](../mobile-v2-visual-qa/iphone-393x852/history/donations/empty.png) | 393x852 @2x | en | overridden | none measured | — | captured |
-| `error` | — | [png](../mobile-v2-visual-qa/iphone-393x852/history/donations/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
-| `filtered-empty` | a filter with no matches is not the same as having none | [png](../mobile-v2-visual-qa/iphone-393x852/history/donations/filtered-empty.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
-| `loading` | — | [png](../mobile-v2-visual-qa/iphone-393x852/history/donations/loading.png) | 393x852 @2x | en | overridden | none measured | — | captured |
-| `long-content` | — | [png](../mobile-v2-visual-qa/iphone-393x852/history/donations/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
-| `populated` | — | [png](../mobile-v2-visual-qa/iphone-393x852/history/donations/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/history/donations/empty.png) | 412x915 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/history/donations/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
+| `filtered-empty` | a filter with no matches is not the same as having none | [png](../artifacts/mobile-v2-visual-qa/android-412x915/history/donations/filtered-empty.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `loading` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/history/donations/loading.png) | 412x915 @2x | en | overridden | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/history/donations/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/history/donations/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/history/donations/empty.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/history/donations/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `filtered-empty` | a filter with no matches is not the same as having none | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/history/donations/filtered-empty.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `loading` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/history/donations/loading.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/history/donations/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/history/donations/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
 
 ### `lab-booking/1-test-type` — Lab — test
 
 | State | Intent | Screenshot | Device | Locale | Data | Clipping | Console | Result |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `empty` | — | [png](../mobile-v2-visual-qa/android-412x915/lab-booking/1-test-type/empty.png) | 412x915 @2x | en | overridden | none measured | — | captured |
-| `error` | — | [png](../mobile-v2-visual-qa/android-412x915/lab-booking/1-test-type/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
-| `loading` | — | [png](../mobile-v2-visual-qa/android-412x915/lab-booking/1-test-type/loading.png) | 412x915 @2x | en | overridden | none measured | — | captured |
-| `populated` | — | [png](../mobile-v2-visual-qa/android-412x915/lab-booking/1-test-type/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `empty` | — | [png](../mobile-v2-visual-qa/iphone-393x852/lab-booking/1-test-type/empty.png) | 393x852 @2x | en | overridden | none measured | — | captured |
-| `error` | — | [png](../mobile-v2-visual-qa/iphone-393x852/lab-booking/1-test-type/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
-| `loading` | — | [png](../mobile-v2-visual-qa/iphone-393x852/lab-booking/1-test-type/loading.png) | 393x852 @2x | en | overridden | none measured | — | captured |
-| `populated` | — | [png](../mobile-v2-visual-qa/iphone-393x852/lab-booking/1-test-type/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/lab-booking/1-test-type/empty.png) | 412x915 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/lab-booking/1-test-type/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
+| `loading` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/lab-booking/1-test-type/loading.png) | 412x915 @2x | en | overridden | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/lab-booking/1-test-type/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/lab-booking/1-test-type/empty.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/lab-booking/1-test-type/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `loading` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/lab-booking/1-test-type/loading.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/lab-booking/1-test-type/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
 
 ### `lab-booking/2-laboratory` — Lab — laboratory
 
 | State | Intent | Screenshot | Device | Locale | Data | Clipping | Console | Result |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `empty` | — | [png](../mobile-v2-visual-qa/android-412x915/lab-booking/2-laboratory/empty.png) | 412x915 @2x | en | overridden | none measured | — | captured |
-| `error` | — | [png](../mobile-v2-visual-qa/android-412x915/lab-booking/2-laboratory/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
-| `populated` | — | [png](../mobile-v2-visual-qa/android-412x915/lab-booking/2-laboratory/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `empty` | — | [png](../mobile-v2-visual-qa/iphone-393x852/lab-booking/2-laboratory/empty.png) | 393x852 @2x | en | overridden | none measured | — | captured |
-| `error` | — | [png](../mobile-v2-visual-qa/iphone-393x852/lab-booking/2-laboratory/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
-| `populated` | — | [png](../mobile-v2-visual-qa/iphone-393x852/lab-booking/2-laboratory/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/lab-booking/2-laboratory/empty.png) | 412x915 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/lab-booking/2-laboratory/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/lab-booking/2-laboratory/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/lab-booking/2-laboratory/empty.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/lab-booking/2-laboratory/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/lab-booking/2-laboratory/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
 
 ### `lab-booking/3-date` — Lab — date
 
 | State | Intent | Screenshot | Device | Locale | Data | Clipping | Console | Result |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `error` | — | [png](../mobile-v2-visual-qa/android-412x915/lab-booking/3-date/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
-| `loading` | — | [png](../mobile-v2-visual-qa/android-412x915/lab-booking/3-date/loading.png) | 412x915 @2x | en | overridden | none measured | — | captured |
-| `locale-uz` | — | [png](../mobile-v2-visual-qa/android-412x915/lab-booking/3-date/locale-uz.png) | 412x915 @2x | uz | seeded database | none measured | — | captured |
-| `no-open-dates` | — | [png](../mobile-v2-visual-qa/android-412x915/lab-booking/3-date/no-open-dates.png) | 412x915 @2x | en | overridden | none measured | — | captured |
-| `populated` | — | [png](../mobile-v2-visual-qa/android-412x915/lab-booking/3-date/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `error` | — | [png](../mobile-v2-visual-qa/iphone-393x852/lab-booking/3-date/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
-| `loading` | — | [png](../mobile-v2-visual-qa/iphone-393x852/lab-booking/3-date/loading.png) | 393x852 @2x | en | overridden | none measured | — | captured |
-| `locale-uz` | — | [png](../mobile-v2-visual-qa/iphone-393x852/lab-booking/3-date/locale-uz.png) | 393x852 @2x | uz | seeded database | none measured | — | captured |
-| `no-open-dates` | — | [png](../mobile-v2-visual-qa/iphone-393x852/lab-booking/3-date/no-open-dates.png) | 393x852 @2x | en | overridden | none measured | — | captured |
-| `populated` | — | [png](../mobile-v2-visual-qa/iphone-393x852/lab-booking/3-date/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/lab-booking/3-date/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
+| `loading` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/lab-booking/3-date/loading.png) | 412x915 @2x | en | overridden | none measured | — | captured |
+| `locale-uz` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/lab-booking/3-date/locale-uz.png) | 412x915 @2x | uz | seeded database | none measured | — | captured |
+| `no-open-dates` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/lab-booking/3-date/no-open-dates.png) | 412x915 @2x | en | overridden | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/lab-booking/3-date/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/lab-booking/3-date/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `loading` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/lab-booking/3-date/loading.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `locale-uz` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/lab-booking/3-date/locale-uz.png) | 393x852 @2x | uz | seeded database | none measured | — | captured |
+| `no-open-dates` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/lab-booking/3-date/no-open-dates.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/lab-booking/3-date/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
 
 ### `lab-booking/4-slot` — Lab — slot
 
 | State | Intent | Screenshot | Device | Locale | Data | Clipping | Console | Result |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `error` | — | [png](../mobile-v2-visual-qa/android-412x915/lab-booking/4-slot/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
-| `no-times` | — | [png](../mobile-v2-visual-qa/android-412x915/lab-booking/4-slot/no-times.png) | 412x915 @2x | en | overridden | none measured | — | captured |
-| `populated` | — | [png](../mobile-v2-visual-qa/android-412x915/lab-booking/4-slot/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `error` | — | [png](../mobile-v2-visual-qa/iphone-393x852/lab-booking/4-slot/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
-| `no-times` | — | [png](../mobile-v2-visual-qa/iphone-393x852/lab-booking/4-slot/no-times.png) | 393x852 @2x | en | overridden | none measured | — | captured |
-| `populated` | — | [png](../mobile-v2-visual-qa/iphone-393x852/lab-booking/4-slot/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/lab-booking/4-slot/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
+| `no-times` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/lab-booking/4-slot/no-times.png) | 412x915 @2x | en | overridden | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/lab-booking/4-slot/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/lab-booking/4-slot/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `no-times` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/lab-booking/4-slot/no-times.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/lab-booking/4-slot/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
 
 ### `lab-booking/5-review` — Lab — review
 
 | State | Intent | Screenshot | Device | Locale | Data | Clipping | Console | Result |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `populated` | — | [png](../mobile-v2-visual-qa/android-412x915/lab-booking/5-review/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `server-error` | — | [png](../mobile-v2-visual-qa/android-412x915/lab-booking/5-review/server-error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
-| `slot-taken` | — | [png](../mobile-v2-visual-qa/android-412x915/lab-booking/5-review/slot-taken.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
-| `populated` | — | [png](../mobile-v2-visual-qa/iphone-393x852/lab-booking/5-review/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
-| `server-error` | — | [png](../mobile-v2-visual-qa/iphone-393x852/lab-booking/5-review/server-error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
-| `slot-taken` | — | [png](../mobile-v2-visual-qa/iphone-393x852/lab-booking/5-review/slot-taken.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/lab-booking/5-review/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `server-error` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/lab-booking/5-review/server-error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
+| `slot-taken` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/lab-booking/5-review/slot-taken.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/lab-booking/5-review/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `server-error` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/lab-booking/5-review/server-error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `slot-taken` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/lab-booking/5-review/slot-taken.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
 
 ### `lab-booking/6-confirmation` — Lab — confirmed
 
 | State | Intent | Screenshot | Device | Locale | Data | Clipping | Console | Result |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `loading` | — | [png](../mobile-v2-visual-qa/android-412x915/lab-booking/6-confirmation/loading.png) | 412x915 @2x | en | overridden | none measured | — | captured |
-| `populated` | — | [png](../mobile-v2-visual-qa/android-412x915/lab-booking/6-confirmation/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `loading` | — | [png](../mobile-v2-visual-qa/iphone-393x852/lab-booking/6-confirmation/loading.png) | 393x852 @2x | en | overridden | none measured | — | captured |
-| `populated` | — | [png](../mobile-v2-visual-qa/iphone-393x852/lab-booking/6-confirmation/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `loading` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/lab-booking/6-confirmation/loading.png) | 412x915 @2x | en | overridden | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/lab-booking/6-confirmation/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `loading` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/lab-booking/6-confirmation/loading.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/lab-booking/6-confirmation/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
 
 ### `onboarding/complete-profile` — Complete your profile
 
 | State | Intent | Screenshot | Device | Locale | Data | Clipping | Console | Result |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `locale-ru` | — | [png](../mobile-v2-visual-qa/android-412x915/onboarding/complete-profile/locale-ru.png) | 412x915 @2x | ru | seeded database | none measured | **1** | captured |
-| `locale-uz` | — | [png](../mobile-v2-visual-qa/android-412x915/onboarding/complete-profile/locale-uz.png) | 412x915 @2x | uz | seeded database | none measured | **1** | captured |
-| `permission-location-explainer` | the explainer the app shows BEFORE the OS is asked | [png](../mobile-v2-visual-qa/android-412x915/onboarding/complete-profile/permission-location-explainer.png) | 412x915 @2x | en | seeded database | none measured | **1** | captured |
-| `permission-notifications-explainer` | — | [png](../mobile-v2-visual-qa/android-412x915/onboarding/complete-profile/permission-notifications-explainer.png) | 412x915 @2x | en | seeded database | none measured | **1** | captured |
-| `step-1-blood-type` | first step as it opens | [png](../mobile-v2-visual-qa/android-412x915/onboarding/complete-profile/step-1-blood-type.png) | 412x915 @2x | en | seeded database | none measured | **1** | captured |
-| `step-2-your-name` | — | [png](../mobile-v2-visual-qa/android-412x915/onboarding/complete-profile/step-2-your-name.png) | 412x915 @2x | en | seeded database | none measured | **1** | captured |
-| `locale-ru` | — | [png](../mobile-v2-visual-qa/iphone-393x852/onboarding/complete-profile/locale-ru.png) | 393x852 @2x | ru | seeded database | none measured | **1** | captured |
-| `locale-uz` | — | [png](../mobile-v2-visual-qa/iphone-393x852/onboarding/complete-profile/locale-uz.png) | 393x852 @2x | uz | seeded database | none measured | **1** | captured |
-| `permission-location-explainer` | the explainer the app shows BEFORE the OS is asked | [png](../mobile-v2-visual-qa/iphone-393x852/onboarding/complete-profile/permission-location-explainer.png) | 393x852 @2x | en | seeded database | none measured | **1** | captured |
-| `permission-notifications-explainer` | — | [png](../mobile-v2-visual-qa/iphone-393x852/onboarding/complete-profile/permission-notifications-explainer.png) | 393x852 @2x | en | seeded database | none measured | **1** | captured |
-| `step-1-blood-type` | first step as it opens | [png](../mobile-v2-visual-qa/iphone-393x852/onboarding/complete-profile/step-1-blood-type.png) | 393x852 @2x | en | seeded database | none measured | **1** | captured |
-| `step-2-your-name` | — | [png](../mobile-v2-visual-qa/iphone-393x852/onboarding/complete-profile/step-2-your-name.png) | 393x852 @2x | en | seeded database | none measured | **1** | captured |
+| `locale-ru` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/onboarding/complete-profile/locale-ru.png) | 412x915 @2x | ru | seeded database | none measured | **1** | captured |
+| `locale-uz` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/onboarding/complete-profile/locale-uz.png) | 412x915 @2x | uz | seeded database | none measured | **1** | captured |
+| `permission-location-explainer` | the explainer the app shows BEFORE the OS is asked | [png](../artifacts/mobile-v2-visual-qa/android-412x915/onboarding/complete-profile/permission-location-explainer.png) | 412x915 @2x | en | seeded database | none measured | **1** | captured |
+| `permission-notifications-explainer` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/onboarding/complete-profile/permission-notifications-explainer.png) | 412x915 @2x | en | seeded database | none measured | **1** | captured |
+| `step-1-blood-type` | first step as it opens | [png](../artifacts/mobile-v2-visual-qa/android-412x915/onboarding/complete-profile/step-1-blood-type.png) | 412x915 @2x | en | seeded database | none measured | **1** | captured |
+| `step-2-your-name` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/onboarding/complete-profile/step-2-your-name.png) | 412x915 @2x | en | seeded database | none measured | **1** | captured |
+| `locale-ru` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/onboarding/complete-profile/locale-ru.png) | 393x852 @2x | ru | seeded database | none measured | **1** | captured |
+| `locale-uz` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/onboarding/complete-profile/locale-uz.png) | 393x852 @2x | uz | seeded database | none measured | **1** | captured |
+| `permission-location-explainer` | the explainer the app shows BEFORE the OS is asked | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/onboarding/complete-profile/permission-location-explainer.png) | 393x852 @2x | en | seeded database | none measured | **1** | captured |
+| `permission-notifications-explainer` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/onboarding/complete-profile/permission-notifications-explainer.png) | 393x852 @2x | en | seeded database | none measured | **1** | captured |
+| `step-1-blood-type` | first step as it opens | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/onboarding/complete-profile/step-1-blood-type.png) | 393x852 @2x | en | seeded database | none measured | **1** | captured |
+| `step-2-your-name` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/onboarding/complete-profile/step-2-your-name.png) | 393x852 @2x | en | seeded database | none measured | **1** | captured |
 
 ### `sos/emergency` — Emergency SOS
 
 | State | Intent | Screenshot | Device | Locale | Data | Clipping | Console | Result |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `accepted` | — | [png](../mobile-v2-visual-qa/android-412x915/sos/emergency/accepted.png) | 412x915 @2x | en | overridden | none measured | — | captured |
-| `arrived` | the last state a donor owns | [png](../mobile-v2-visual-qa/android-412x915/sos/emergency/arrived.png) | 412x915 @2x | en | overridden | none measured | — | captured |
-| `empty` | — | [png](../mobile-v2-visual-qa/android-412x915/sos/emergency/empty.png) | 412x915 @2x | en | overridden | none measured | — | captured |
-| `en-route` | journey started; map shows positions and says so | [png](../mobile-v2-visual-qa/android-412x915/sos/emergency/en-route.png) | 412x915 @2x | en | overridden | none measured | — | captured |
-| `light` | — | [png](../mobile-v2-visual-qa/android-412x915/sos/emergency/light.png) | 412x915 @2x | en | overridden | none measured | — | captured |
-| `list` | requests this donor can answer | [png](../mobile-v2-visual-qa/android-412x915/sos/emergency/list.png) | 412x915 @2x | en | overridden | none measured | — | captured |
-| `loading` | — | [png](../mobile-v2-visual-qa/android-412x915/sos/emergency/loading.png) | 412x915 @2x | en | overridden | none measured | — | captured |
-| `locale-ru` | — | [png](../mobile-v2-visual-qa/android-412x915/sos/emergency/locale-ru.png) | 412x915 @2x | ru | overridden | none measured | — | captured |
-| `locale-uz` | — | [png](../mobile-v2-visual-qa/android-412x915/sos/emergency/locale-uz.png) | 412x915 @2x | uz | overridden | none measured | — | captured |
-| `network-failure` | — | [png](../mobile-v2-visual-qa/android-412x915/sos/emergency/network-failure.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
-| `server-error` | — | [png](../mobile-v2-visual-qa/android-412x915/sos/emergency/server-error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
-| `viewing` | opened, not yet answered | [png](../mobile-v2-visual-qa/android-412x915/sos/emergency/viewing.png) | 412x915 @2x | en | overridden | none measured | — | captured |
-| `accepted` | — | [png](../mobile-v2-visual-qa/iphone-393x852/sos/emergency/accepted.png) | 393x852 @2x | en | overridden | none measured | — | captured |
-| `arrived` | the last state a donor owns | [png](../mobile-v2-visual-qa/iphone-393x852/sos/emergency/arrived.png) | 393x852 @2x | en | overridden | none measured | — | captured |
-| `empty` | — | [png](../mobile-v2-visual-qa/iphone-393x852/sos/emergency/empty.png) | 393x852 @2x | en | overridden | none measured | — | captured |
-| `en-route` | journey started; map shows positions and says so | [png](../mobile-v2-visual-qa/iphone-393x852/sos/emergency/en-route.png) | 393x852 @2x | en | overridden | none measured | — | captured |
-| `light` | — | [png](../mobile-v2-visual-qa/iphone-393x852/sos/emergency/light.png) | 393x852 @2x | en | overridden | none measured | — | captured |
-| `list` | requests this donor can answer | [png](../mobile-v2-visual-qa/iphone-393x852/sos/emergency/list.png) | 393x852 @2x | en | overridden | none measured | — | captured |
-| `loading` | — | [png](../mobile-v2-visual-qa/iphone-393x852/sos/emergency/loading.png) | 393x852 @2x | en | overridden | none measured | — | captured |
-| `locale-ru` | — | [png](../mobile-v2-visual-qa/iphone-393x852/sos/emergency/locale-ru.png) | 393x852 @2x | ru | overridden | none measured | — | captured |
-| `locale-uz` | — | [png](../mobile-v2-visual-qa/iphone-393x852/sos/emergency/locale-uz.png) | 393x852 @2x | uz | overridden | none measured | — | captured |
-| `network-failure` | — | [png](../mobile-v2-visual-qa/iphone-393x852/sos/emergency/network-failure.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
-| `server-error` | — | [png](../mobile-v2-visual-qa/iphone-393x852/sos/emergency/server-error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
-| `viewing` | opened, not yet answered | [png](../mobile-v2-visual-qa/iphone-393x852/sos/emergency/viewing.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `accepted` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/sos/emergency/accepted.png) | 412x915 @2x | en | overridden | none measured | — | captured |
+| `arrived` | the last state a donor owns | [png](../artifacts/mobile-v2-visual-qa/android-412x915/sos/emergency/arrived.png) | 412x915 @2x | en | overridden | none measured | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/sos/emergency/empty.png) | 412x915 @2x | en | overridden | none measured | — | captured |
+| `en-route` | journey started; map shows positions and says so | [png](../artifacts/mobile-v2-visual-qa/android-412x915/sos/emergency/en-route.png) | 412x915 @2x | en | overridden | none measured | — | captured |
+| `light` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/sos/emergency/light.png) | 412x915 @2x | en | overridden | none measured | — | captured |
+| `list` | requests this donor can answer | [png](../artifacts/mobile-v2-visual-qa/android-412x915/sos/emergency/list.png) | 412x915 @2x | en | overridden | none measured | — | captured |
+| `loading` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/sos/emergency/loading.png) | 412x915 @2x | en | overridden | none measured | — | captured |
+| `locale-ru` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/sos/emergency/locale-ru.png) | 412x915 @2x | ru | overridden | none measured | — | captured |
+| `locale-uz` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/sos/emergency/locale-uz.png) | 412x915 @2x | uz | overridden | none measured | — | captured |
+| `network-failure` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/sos/emergency/network-failure.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
+| `server-error` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/sos/emergency/server-error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
+| `viewing` | opened, not yet answered | [png](../artifacts/mobile-v2-visual-qa/android-412x915/sos/emergency/viewing.png) | 412x915 @2x | en | overridden | none measured | — | captured |
+| `accepted` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/sos/emergency/accepted.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `arrived` | the last state a donor owns | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/sos/emergency/arrived.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/sos/emergency/empty.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `en-route` | journey started; map shows positions and says so | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/sos/emergency/en-route.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `light` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/sos/emergency/light.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `list` | requests this donor can answer | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/sos/emergency/list.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `loading` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/sos/emergency/loading.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `locale-ru` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/sos/emergency/locale-ru.png) | 393x852 @2x | ru | overridden | none measured | — | captured |
+| `locale-uz` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/sos/emergency/locale-uz.png) | 393x852 @2x | uz | overridden | none measured | — | captured |
+| `network-failure` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/sos/emergency/network-failure.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `server-error` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/sos/emergency/server-error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `viewing` | opened, not yet answered | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/sos/emergency/viewing.png) | 393x852 @2x | en | overridden | none measured | — | captured |
 
 ### `tabs/calendar` — Calendar
 
 | State | Intent | Screenshot | Device | Locale | Data | Clipping | Console | Result |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `empty` | — | [png](../mobile-v2-visual-qa/android-412x915/tabs/calendar/empty.png) | 412x915 @2x | en | overridden | none measured | — | captured |
-| `error` | — | [png](../mobile-v2-visual-qa/android-412x915/tabs/calendar/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
-| `locale-ru` | — | [png](../mobile-v2-visual-qa/android-412x915/tabs/calendar/locale-ru.png) | 412x915 @2x | ru | seeded database | none measured | — | captured |
-| `locale-uz` | Uzbek weekday and month names | [png](../mobile-v2-visual-qa/android-412x915/tabs/calendar/locale-uz.png) | 412x915 @2x | uz | seeded database | none measured | — | captured |
-| `long-content` | — | [png](../mobile-v2-visual-qa/android-412x915/tabs/calendar/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `populated` | — | [png](../mobile-v2-visual-qa/android-412x915/tabs/calendar/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `empty` | — | [png](../mobile-v2-visual-qa/iphone-393x852/tabs/calendar/empty.png) | 393x852 @2x | en | overridden | none measured | — | captured |
-| `error` | — | [png](../mobile-v2-visual-qa/iphone-393x852/tabs/calendar/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
-| `locale-ru` | — | [png](../mobile-v2-visual-qa/iphone-393x852/tabs/calendar/locale-ru.png) | 393x852 @2x | ru | seeded database | none measured | — | captured |
-| `locale-uz` | Uzbek weekday and month names | [png](../mobile-v2-visual-qa/iphone-393x852/tabs/calendar/locale-uz.png) | 393x852 @2x | uz | seeded database | none measured | — | captured |
-| `long-content` | — | [png](../mobile-v2-visual-qa/iphone-393x852/tabs/calendar/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
-| `populated` | — | [png](../mobile-v2-visual-qa/iphone-393x852/tabs/calendar/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/tabs/calendar/empty.png) | 412x915 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/tabs/calendar/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
+| `locale-ru` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/tabs/calendar/locale-ru.png) | 412x915 @2x | ru | seeded database | none measured | — | captured |
+| `locale-uz` | Uzbek weekday and month names | [png](../artifacts/mobile-v2-visual-qa/android-412x915/tabs/calendar/locale-uz.png) | 412x915 @2x | uz | seeded database | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/tabs/calendar/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/tabs/calendar/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/tabs/calendar/empty.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/tabs/calendar/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `locale-ru` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/tabs/calendar/locale-ru.png) | 393x852 @2x | ru | seeded database | none measured | — | captured |
+| `locale-uz` | Uzbek weekday and month names | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/tabs/calendar/locale-uz.png) | 393x852 @2x | uz | seeded database | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/tabs/calendar/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/tabs/calendar/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
 
 ### `tabs/community` — Community
 
 | State | Intent | Screenshot | Device | Locale | Data | Clipping | Console | Result |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `empty` | — | [png](../mobile-v2-visual-qa/android-412x915/tabs/community/empty.png) | 412x915 @2x | en | overridden | none measured | — | captured |
-| `error` | — | [png](../mobile-v2-visual-qa/android-412x915/tabs/community/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
-| `loading` | — | [png](../mobile-v2-visual-qa/android-412x915/tabs/community/loading.png) | 412x915 @2x | en | overridden | none measured | — | captured |
-| `locale-ru` | — | [png](../mobile-v2-visual-qa/android-412x915/tabs/community/locale-ru.png) | 412x915 @2x | ru | seeded database | none measured | — | captured |
-| `long-content` | — | [png](../mobile-v2-visual-qa/android-412x915/tabs/community/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `populated` | — | [png](../mobile-v2-visual-qa/android-412x915/tabs/community/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `empty` | — | [png](../mobile-v2-visual-qa/iphone-393x852/tabs/community/empty.png) | 393x852 @2x | en | overridden | none measured | — | captured |
-| `error` | — | [png](../mobile-v2-visual-qa/iphone-393x852/tabs/community/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
-| `loading` | — | [png](../mobile-v2-visual-qa/iphone-393x852/tabs/community/loading.png) | 393x852 @2x | en | overridden | none measured | — | captured |
-| `locale-ru` | — | [png](../mobile-v2-visual-qa/iphone-393x852/tabs/community/locale-ru.png) | 393x852 @2x | ru | seeded database | none measured | — | captured |
-| `long-content` | — | [png](../mobile-v2-visual-qa/iphone-393x852/tabs/community/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
-| `populated` | — | [png](../mobile-v2-visual-qa/iphone-393x852/tabs/community/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/tabs/community/empty.png) | 412x915 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/tabs/community/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
+| `loading` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/tabs/community/loading.png) | 412x915 @2x | en | overridden | none measured | — | captured |
+| `locale-ru` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/tabs/community/locale-ru.png) | 412x915 @2x | ru | seeded database | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/tabs/community/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/tabs/community/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/tabs/community/empty.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/tabs/community/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `loading` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/tabs/community/loading.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `locale-ru` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/tabs/community/locale-ru.png) | 393x852 @2x | ru | seeded database | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/tabs/community/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/tabs/community/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
 
 ### `tabs/donate` — Donate
 
 | State | Intent | Screenshot | Device | Locale | Data | Clipping | Console | Result |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `empty` | — | [png](../mobile-v2-visual-qa/android-412x915/tabs/donate/empty.png) | 412x915 @2x | en | overridden | none measured | — | captured |
-| `error` | — | [png](../mobile-v2-visual-qa/android-412x915/tabs/donate/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
-| `loading` | — | [png](../mobile-v2-visual-qa/android-412x915/tabs/donate/loading.png) | 412x915 @2x | en | overridden | none measured | — | captured |
-| `locale-ru` | — | [png](../mobile-v2-visual-qa/android-412x915/tabs/donate/locale-ru.png) | 412x915 @2x | ru | seeded database | none measured | — | captured |
-| `locale-uz` | — | [png](../mobile-v2-visual-qa/android-412x915/tabs/donate/locale-uz.png) | 412x915 @2x | uz | seeded database | none measured | — | captured |
-| `long-content` | — | [png](../mobile-v2-visual-qa/android-412x915/tabs/donate/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `populated` | — | [png](../mobile-v2-visual-qa/android-412x915/tabs/donate/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `empty` | — | [png](../mobile-v2-visual-qa/iphone-393x852/tabs/donate/empty.png) | 393x852 @2x | en | overridden | none measured | — | captured |
-| `error` | — | [png](../mobile-v2-visual-qa/iphone-393x852/tabs/donate/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
-| `loading` | — | [png](../mobile-v2-visual-qa/iphone-393x852/tabs/donate/loading.png) | 393x852 @2x | en | overridden | none measured | — | captured |
-| `locale-ru` | — | [png](../mobile-v2-visual-qa/iphone-393x852/tabs/donate/locale-ru.png) | 393x852 @2x | ru | seeded database | none measured | — | captured |
-| `locale-uz` | — | [png](../mobile-v2-visual-qa/iphone-393x852/tabs/donate/locale-uz.png) | 393x852 @2x | uz | seeded database | none measured | — | captured |
-| `long-content` | — | [png](../mobile-v2-visual-qa/iphone-393x852/tabs/donate/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
-| `populated` | — | [png](../mobile-v2-visual-qa/iphone-393x852/tabs/donate/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/tabs/donate/empty.png) | 412x915 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/tabs/donate/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
+| `loading` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/tabs/donate/loading.png) | 412x915 @2x | en | overridden | none measured | — | captured |
+| `locale-ru` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/tabs/donate/locale-ru.png) | 412x915 @2x | ru | seeded database | none measured | — | captured |
+| `locale-uz` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/tabs/donate/locale-uz.png) | 412x915 @2x | uz | seeded database | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/tabs/donate/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/tabs/donate/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/tabs/donate/empty.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/tabs/donate/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `loading` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/tabs/donate/loading.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `locale-ru` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/tabs/donate/locale-ru.png) | 393x852 @2x | ru | seeded database | none measured | — | captured |
+| `locale-uz` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/tabs/donate/locale-uz.png) | 393x852 @2x | uz | seeded database | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/tabs/donate/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/tabs/donate/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
 
 ### `tabs/health` — Health
 
 | State | Intent | Screenshot | Device | Locale | Data | Clipping | Console | Result |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `ai-unavailable` | — | [png](../mobile-v2-visual-qa/android-412x915/tabs/health/ai-unavailable.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
-| `empty` | — | [png](../mobile-v2-visual-qa/android-412x915/tabs/health/empty.png) | 412x915 @2x | en | overridden | none measured | — | captured |
-| `error` | — | [png](../mobile-v2-visual-qa/android-412x915/tabs/health/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
-| `loading` | — | [png](../mobile-v2-visual-qa/android-412x915/tabs/health/loading.png) | 412x915 @2x | en | overridden | none measured | — | captured |
-| `locale-ru` | — | [png](../mobile-v2-visual-qa/android-412x915/tabs/health/locale-ru.png) | 412x915 @2x | ru | seeded database | none measured | — | captured |
-| `long-content` | — | [png](../mobile-v2-visual-qa/android-412x915/tabs/health/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `partial-failure` | results loaded, appointments did not | [png](../mobile-v2-visual-qa/android-412x915/tabs/health/partial-failure.png) | 412x915 @2x | en | overridden | none measured | — | captured |
-| `populated` | — | [png](../mobile-v2-visual-qa/android-412x915/tabs/health/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `ai-unavailable` | — | [png](../mobile-v2-visual-qa/iphone-393x852/tabs/health/ai-unavailable.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
-| `empty` | — | [png](../mobile-v2-visual-qa/iphone-393x852/tabs/health/empty.png) | 393x852 @2x | en | overridden | none measured | — | captured |
-| `error` | — | [png](../mobile-v2-visual-qa/iphone-393x852/tabs/health/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
-| `loading` | — | [png](../mobile-v2-visual-qa/iphone-393x852/tabs/health/loading.png) | 393x852 @2x | en | overridden | none measured | — | captured |
-| `locale-ru` | — | [png](../mobile-v2-visual-qa/iphone-393x852/tabs/health/locale-ru.png) | 393x852 @2x | ru | seeded database | none measured | — | captured |
-| `long-content` | — | [png](../mobile-v2-visual-qa/iphone-393x852/tabs/health/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
-| `partial-failure` | results loaded, appointments did not | [png](../mobile-v2-visual-qa/iphone-393x852/tabs/health/partial-failure.png) | 393x852 @2x | en | overridden | none measured | — | captured |
-| `populated` | — | [png](../mobile-v2-visual-qa/iphone-393x852/tabs/health/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `ai-unavailable` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/tabs/health/ai-unavailable.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
+| `empty` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/tabs/health/empty.png) | 412x915 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/tabs/health/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
+| `loading` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/tabs/health/loading.png) | 412x915 @2x | en | overridden | none measured | — | captured |
+| `locale-ru` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/tabs/health/locale-ru.png) | 412x915 @2x | ru | seeded database | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/tabs/health/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `partial-failure` | results loaded, appointments did not | [png](../artifacts/mobile-v2-visual-qa/android-412x915/tabs/health/partial-failure.png) | 412x915 @2x | en | overridden | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/tabs/health/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `ai-unavailable` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/tabs/health/ai-unavailable.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `empty` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/tabs/health/empty.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/tabs/health/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `loading` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/tabs/health/loading.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `locale-ru` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/tabs/health/locale-ru.png) | 393x852 @2x | ru | seeded database | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/tabs/health/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `partial-failure` | results loaded, appointments did not | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/tabs/health/partial-failure.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/tabs/health/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
 
 ### `tabs/home` — Home
 
 | State | Intent | Screenshot | Device | Locale | Data | Clipping | Console | Result |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `emergency-banner` | an active emergency matching this donor | [png](../mobile-v2-visual-qa/android-412x915/tabs/home/emergency-banner.png) | 412x915 @2x | en | overridden | none measured | — | captured |
-| `empty` | nothing scheduled, no emergencies, no campaigns | [png](../mobile-v2-visual-qa/android-412x915/tabs/home/empty.png) | 412x915 @2x | en | overridden | none measured | — | captured |
-| `error` | every section failed | [png](../mobile-v2-visual-qa/android-412x915/tabs/home/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
-| `light` | — | [png](../mobile-v2-visual-qa/android-412x915/tabs/home/light.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `loading` | — | [png](../mobile-v2-visual-qa/android-412x915/tabs/home/loading.png) | 412x915 @2x | en | overridden | none measured | — | captured |
-| `locale-ru` | — | [png](../mobile-v2-visual-qa/android-412x915/tabs/home/locale-ru.png) | 412x915 @2x | ru | seeded database | none measured | — | captured |
-| `locale-uz` | — | [png](../mobile-v2-visual-qa/android-412x915/tabs/home/locale-uz.png) | 412x915 @2x | uz | seeded database | none measured | — | captured |
-| `long-content` | whole page, to see it end to end | [png](../mobile-v2-visual-qa/android-412x915/tabs/home/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `offline` | the data requests never reach the server | [png](../mobile-v2-visual-qa/android-412x915/tabs/home/offline.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
-| `populated` | seeded donor: verified blood type, history, next appointment | [png](../mobile-v2-visual-qa/android-412x915/tabs/home/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `emergency-banner` | an active emergency matching this donor | [png](../mobile-v2-visual-qa/iphone-393x852/tabs/home/emergency-banner.png) | 393x852 @2x | en | overridden | none measured | — | captured |
-| `empty` | nothing scheduled, no emergencies, no campaigns | [png](../mobile-v2-visual-qa/iphone-393x852/tabs/home/empty.png) | 393x852 @2x | en | overridden | none measured | — | captured |
-| `error` | every section failed | [png](../mobile-v2-visual-qa/iphone-393x852/tabs/home/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
-| `light` | — | [png](../mobile-v2-visual-qa/iphone-393x852/tabs/home/light.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
-| `loading` | — | [png](../mobile-v2-visual-qa/iphone-393x852/tabs/home/loading.png) | 393x852 @2x | en | overridden | none measured | — | captured |
-| `locale-ru` | — | [png](../mobile-v2-visual-qa/iphone-393x852/tabs/home/locale-ru.png) | 393x852 @2x | ru | seeded database | none measured | — | captured |
-| `locale-uz` | — | [png](../mobile-v2-visual-qa/iphone-393x852/tabs/home/locale-uz.png) | 393x852 @2x | uz | seeded database | none measured | — | captured |
-| `long-content` | whole page, to see it end to end | [png](../mobile-v2-visual-qa/iphone-393x852/tabs/home/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
-| `offline` | the data requests never reach the server | [png](../mobile-v2-visual-qa/iphone-393x852/tabs/home/offline.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
-| `populated` | seeded donor: verified blood type, history, next appointment | [png](../mobile-v2-visual-qa/iphone-393x852/tabs/home/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `emergency-banner` | an active emergency matching this donor | [png](../artifacts/mobile-v2-visual-qa/android-412x915/tabs/home/emergency-banner.png) | 412x915 @2x | en | overridden | none measured | — | captured |
+| `empty` | nothing scheduled, no emergencies, no campaigns | [png](../artifacts/mobile-v2-visual-qa/android-412x915/tabs/home/empty.png) | 412x915 @2x | en | overridden | none measured | — | captured |
+| `error` | every section failed | [png](../artifacts/mobile-v2-visual-qa/android-412x915/tabs/home/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
+| `light` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/tabs/home/light.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `loading` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/tabs/home/loading.png) | 412x915 @2x | en | overridden | none measured | — | captured |
+| `locale-ru` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/tabs/home/locale-ru.png) | 412x915 @2x | ru | seeded database | none measured | — | captured |
+| `locale-uz` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/tabs/home/locale-uz.png) | 412x915 @2x | uz | seeded database | none measured | — | captured |
+| `long-content` | whole page, to see it end to end | [png](../artifacts/mobile-v2-visual-qa/android-412x915/tabs/home/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `offline` | the data requests never reach the server | [png](../artifacts/mobile-v2-visual-qa/android-412x915/tabs/home/offline.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
+| `populated` | seeded donor: verified blood type, history, next appointment | [png](../artifacts/mobile-v2-visual-qa/android-412x915/tabs/home/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `emergency-banner` | an active emergency matching this donor | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/tabs/home/emergency-banner.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `empty` | nothing scheduled, no emergencies, no campaigns | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/tabs/home/empty.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `error` | every section failed | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/tabs/home/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `light` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/tabs/home/light.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `loading` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/tabs/home/loading.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `locale-ru` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/tabs/home/locale-ru.png) | 393x852 @2x | ru | seeded database | none measured | — | captured |
+| `locale-uz` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/tabs/home/locale-uz.png) | 393x852 @2x | uz | seeded database | none measured | — | captured |
+| `long-content` | whole page, to see it end to end | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/tabs/home/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `offline` | the data requests never reach the server | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/tabs/home/offline.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `populated` | seeded donor: verified blood type, history, next appointment | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/tabs/home/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
 
 ### `tabs/profile` — Profile
 
 | State | Intent | Screenshot | Device | Locale | Data | Clipping | Console | Result |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `error` | — | [png](../mobile-v2-visual-qa/android-412x915/tabs/profile/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
-| `locale-ru` | — | [png](../mobile-v2-visual-qa/android-412x915/tabs/profile/locale-ru.png) | 412x915 @2x | ru | seeded database | none measured | — | captured |
-| `long-content` | — | [png](../mobile-v2-visual-qa/android-412x915/tabs/profile/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `populated` | — | [png](../mobile-v2-visual-qa/android-412x915/tabs/profile/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `sign-out-confirmation` | the destructive action asks first | [png](../mobile-v2-visual-qa/android-412x915/tabs/profile/sign-out-confirmation.png) | 412x915 @2x | en | seeded database | none measured | **1** | captured |
-| `error` | — | [png](../mobile-v2-visual-qa/iphone-393x852/tabs/profile/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
-| `locale-ru` | — | [png](../mobile-v2-visual-qa/iphone-393x852/tabs/profile/locale-ru.png) | 393x852 @2x | ru | seeded database | none measured | — | captured |
-| `long-content` | — | [png](../mobile-v2-visual-qa/iphone-393x852/tabs/profile/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
-| `populated` | — | [png](../mobile-v2-visual-qa/iphone-393x852/tabs/profile/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
-| `sign-out-confirmation` | the destructive action asks first | [png](../mobile-v2-visual-qa/iphone-393x852/tabs/profile/sign-out-confirmation.png) | 393x852 @2x | en | seeded database | none measured | **1** | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/tabs/profile/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
+| `locale-ru` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/tabs/profile/locale-ru.png) | 412x915 @2x | ru | seeded database | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/tabs/profile/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/android-412x915/tabs/profile/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
+| `sign-out-confirmation` | the destructive action asks first | [png](../artifacts/mobile-v2-visual-qa/android-412x915/tabs/profile/sign-out-confirmation.png) | 412x915 @2x | en | seeded database | none measured | **1** | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/tabs/profile/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `locale-ru` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/tabs/profile/locale-ru.png) | 393x852 @2x | ru | seeded database | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/tabs/profile/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/tabs/profile/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `sign-out-confirmation` | the destructive action asks first | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/tabs/profile/sign-out-confirmation.png) | 393x852 @2x | en | seeded database | none measured | **1** | captured |
 
 <!-- generated:inventory:end -->
