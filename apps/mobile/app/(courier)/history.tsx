@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { CheckCircle, Clock3, Droplet, Package, XCircle } from 'lucide-react-native';
 import {
-  Badge,
   EmptyState,
   ErrorState,
   ListGroup,
@@ -15,6 +14,7 @@ import {
   iconSize,
   useDesign,
   type StatusTone,
+  StatusDot,
 } from '../../src/design';
 import {
   getCourierShipments,
@@ -141,19 +141,24 @@ export default function CourierHistory() {
                 key={shipment.id}
                 leading={<Droplet size={iconSize.lg} color={colors.rose.base} />}
                 title={shipment.shipmentReference}
+                // The date was last in a four-fact subtitle clamped to two
+                // lines, so on a delivery record -- a screen whose entire
+                // purpose is what happened and when -- the "when" was always
+                // the part that got cut, and cut first in Russian. It has its
+                // own column now, and the subtitle carries what the courier
+                // cannot infer: how much, and where to.
                 subtitle={`${t('units.bloodUnits', { count: shipment.units?.length ?? 0 })}${
-                  shipment.sourceOrganization ? ` · ${shipment.sourceOrganization.name}` : ''
-                }${
                   shipment.destinationOrganization
                     ? ` → ${shipment.destinationOrganization.name}`
                     : ''
-                } · ${formatDateTime(shipment.createdAt)}`}
-                trailing={
-                  <Badge
+                }`}
+                subtitleTrailing={
+                  <StatusDot
                     label={t(`status.shipment.${shipment.status}`)}
                     tone={STATUS_TONE[shipment.status] ?? 'neutral'}
                   />
                 }
+                value={formatDateTime(shipment.createdAt)}
               />
             ))}
           />

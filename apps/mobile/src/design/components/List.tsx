@@ -38,6 +38,15 @@ export function SectionHeader({ title, action, style }: SectionHeaderProps) {
 export interface ListRowProps {
   title: string;
   subtitle?: string;
+  /**
+   * A small element on the subtitle line: a status dot, a count.
+   *
+   * `trailing` sits on the row's right edge and is measured at its full width
+   * before the title column gets any, so a badge there eats the title -- which
+   * on an appointment row is the one thing that identifies the appointment.
+   * This sits under the title instead, where it competes with nothing.
+   */
+  subtitleTrailing?: ReactNode;
   /** Right-aligned secondary text: a date, a value, a count. */
   value?: string;
   leading?: ReactNode;
@@ -62,6 +71,7 @@ export interface ListRowProps {
 export function ListRow({
   title,
   subtitle,
+  subtitleTrailing,
   value,
   leading,
   trailing,
@@ -79,10 +89,15 @@ export function ListRow({
         <Text variant="body" numberOfLines={1}>
           {title}
         </Text>
-        {subtitle ? (
-          <Text variant="caption" tone="tertiary" numberOfLines={2}>
-            {subtitle}
-          </Text>
+        {subtitle || subtitleTrailing ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, flexWrap: 'wrap' }}>
+            {subtitle ? (
+              <Text variant="caption" tone="tertiary" numberOfLines={2} style={{ flexShrink: 1 }}>
+                {subtitle}
+              </Text>
+            ) : null}
+            {subtitleTrailing}
+          </View>
         ) : null}
       </View>
       {value ? (

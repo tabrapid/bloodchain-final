@@ -3,7 +3,6 @@ import { View, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import { CalendarDays, Droplet, FlaskConical, Plus, Stethoscope } from 'lucide-react-native';
 import {
-  Badge,
   Button,
   EmptyState,
   ErrorState,
@@ -23,6 +22,7 @@ import {
   useDesign,
   type AccentName,
   type StatusTone,
+  StatusDot,
 } from '../../src/design';
 import { LucideIcon } from '../../src/types/icons';
 import { useMyAppointments } from '../../src/hooks/useAppointments';
@@ -279,9 +279,17 @@ export default function Calendar() {
                     key={apt.id}
                     leading={<Icon size={iconSize.lg} color={typeColor(apt.appointmentType)} />}
                     title={`${formatTime(apt.scheduledStart)} · ${apt.organization.name}`}
+                    // The status used to be a trailing Badge, which takes its
+                    // full width before the title column gets any -- so the
+                    // organisation name, the only thing that identifies the
+                    // appointment, was the part that got cut, and cut sooner in
+                    // Russian and Uzbek where both strings are longer. A
+                    // StatusDot on the subtitle line says the same thing
+                    // without competing for the same row; Status.tsx documents
+                    // it as existing for exactly this.
                     subtitle={typeLabel}
-                    trailing={
-                      <Badge
+                    subtitleTrailing={
+                      <StatusDot
                         label={t(`status.appointment.${apt.status}`)}
                         tone={statusTone(apt.status)}
                       />

@@ -1,3 +1,4 @@
+import { View } from 'react-native';
 import {
   Badge as Chip,
   Progress,
@@ -41,12 +42,28 @@ export function AchievementRow({ achievement }: { achievement: Achievement }) {
             tone={complete ? 'success' : 'neutral'}
           />
         </Row>
-        <Progress
-          label={achievement.name}
-          caption={`${Math.round(ratio * 100)}%`}
-          value={ratio}
-          tone={complete ? 'success' : 'rose'}
-        />
+        {/*
+          The bar carries no label of its own.
+
+          It used to repeat `achievement.name` 40pt under the card's own title,
+          so every card on the screen printed its name twice and the repeated
+          line -- the one the eye reads as the bar's meaning -- said nothing the
+          card had not already said. `bare` drops the label row; the progress is
+          announced through the progressbar's own accessibility value.
+        */}
+        <Row gap="md" align="center">
+          <View style={{ flex: 1 }}>
+            <Progress
+              label={achievement.name}
+              value={ratio}
+              tone={complete ? 'success' : 'rose'}
+              bare
+            />
+          </View>
+          <Text variant="label" tone="tertiary">
+            {`${achievement.progress} / ${achievement.target}`}
+          </Text>
+        </Row>
       </Stack>
     </Surface>
   );

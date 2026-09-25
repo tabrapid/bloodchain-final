@@ -153,10 +153,11 @@ export default function GamificationScreen() {
               label={t('gamification.progressToLevel', {
                 level: levelProgress?.nextLevelName ?? t('gamification.nextLevel'),
               })}
-              caption={t('gamification.xpToNext', {
-                count: profile?.xpToNextLevel ?? 0,
-                level: levelProgress?.nextLevelName ?? t('gamification.nextLevel'),
-              })}
+              // The label already names the level being worked towards; the
+              // caption used to name it again, in the same 329pt row, in a
+              // server-supplied English string that is longer in Russian than
+              // the row is wide. The number is enough here.
+              caption={t('gamification.xpValue', { xp: profile?.xpToNextLevel ?? 0 })}
               value={percentAsFraction(profile?.progress)}
               tone="insight"
             />

@@ -144,13 +144,20 @@ export default function Profile() {
                   </Text>
                 ) : null}
               </View>
-              <View style={{ alignItems: 'flex-end', gap: 2 }}>
+              {/*
+                The value, not the label, decides this column's width.
+
+                "ГРУППА КРОВИ" at 11pt with letter-spacing is about 95pt wide
+                while "AB+" needs about 45, and the column was sized by the
+                longer of the two -- so the donor's own name and email, in the
+                flexible column beside it, paid for a caption. The label is
+                announced rather than drawn; the badge row below already says
+                what the number is.
+              */}
+              <View style={{ alignItems: 'flex-end' }} accessible accessibilityLabel={`${t('home.bloodTypeLabel')} ${bloodTypeDisplay}`}>
                 <ValueText variant="h1" style={{ color: colors.rose.text }}>
                   {bloodTypeDisplay}
                 </ValueText>
-                <Text variant="overline" tone="tertiary" caps>
-                  {t('home.bloodTypeLabel')}
-                </Text>
               </View>
             </Row>
 
@@ -231,10 +238,9 @@ export default function Profile() {
               <Surface>
                 <Progress
                   label={`${levelProgress.currentLevelName} → ${levelProgress.nextLevelName}`}
-                  caption={t('gamification.xpToNext', {
-                    count: levelProgress.xpToNextLevel,
-                    level: levelProgress.nextLevelName,
-                  })}
+                  // The label is "<current> → <next>", so the caption saying
+                  // the next level's name again put it twice in one row.
+                  caption={t('gamification.xpValue', { xp: levelProgress.xpToNextLevel })}
                   value={percentAsFraction(levelProgress.progress)}
                   tone="insight"
                 />
