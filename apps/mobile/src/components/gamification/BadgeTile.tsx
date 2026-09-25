@@ -42,8 +42,17 @@ export function BadgeTile({ badge, width }: { badge: Badge; width?: number | `${
       accessibilityLabel={`${badge.name}. ${
         earned ? t('gamification.earned') : t('gamification.locked')
       }`}
-      style={{ width, alignItems: 'center', gap: space.sm, opacity: earned ? 1 : 0.45 }}
+      style={{ width, alignItems: 'center', gap: space.sm }}
     >
+      {/*
+        The dimming is on the disc, not on the tile.
+
+        Dimming the whole tile to 45% took the name down with it -- and the name
+        of an unearned badge was already `tertiary`, so it landed at roughly
+        2.1:1 on this surface: below the 4.5:1 this app holds itself to, and
+        below the 3:1 floor for anything at all. The state is announced and the
+        disc is visibly empty; the words stay readable.
+      */}
       <View
         style={{
           width: 56,
@@ -54,6 +63,7 @@ export function BadgeTile({ badge, width }: { badge: Badge; width?: number | `${
           backgroundColor: earned && accent ? accent.soft : colors.surfaceRaised,
           borderWidth: 1,
           borderColor: earned && accent ? accent.base : colors.divider,
+          opacity: earned ? 1 : 0.5,
         }}
       >
         <Icon
@@ -61,7 +71,7 @@ export function BadgeTile({ badge, width }: { badge: Badge; width?: number | `${
           color={earned ? (accent?.base ?? colors.textSecondary) : colors.textTertiary}
         />
       </View>
-      <Text variant="caption" tone={earned ? 'primary' : 'tertiary'} align="center" numberOfLines={2}>
+      <Text variant="caption" tone={earned ? 'primary' : 'secondary'} align="center" numberOfLines={2}>
         {badge.name}
       </Text>
     </View>

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { View } from 'react-native';
 import { router } from 'expo-router';
 import { Trophy } from 'lucide-react-native';
@@ -22,6 +22,7 @@ import {
   radius,
   space,
   useDesign,
+  ErrorState,
 } from '../../../../src/design';
 import type { LeaderboardEntry } from '../../../../src/api/gamification';
 import { useTranslation } from '../../../../src/i18n';
@@ -67,7 +68,7 @@ export default function LeaderboardScreen() {
     [t],
   );
 
-  const { data: leaderboard, isPending, refetch, isRefetching } = useLeaderboard(
+  const { data: leaderboard, isPending, isError, refetch, isRefetching } = useLeaderboard(
     timeRange,
     currentPage,
     PAGE_SIZE,
@@ -77,9 +78,33 @@ export default function LeaderboardScreen() {
   const handleTimeRangeChange = useCallback((range: TimeRange) => {
     setTimeRange(range);
     setCurrentPage(1);
+    setPages({});
   }, []);
 
-  const entries = leaderboard?.entries ?? [];
+  /**
+   * Every page fetched so far, in rank order.
+   *
+   * "Load more" incremented the page and the query returned that page alone,
+   * so the button *replaced* the ten donors on screen with the next ten:
+   * ranks 1-10 vanished, and a donor looking for their own position watched
+   * the list they were reading disappear. Keeping the pages and concatenating
+   * them makes the button do what it says.
+   */
+  const [pages, setPages] = useState<Record<number, LeaderboardEntry[]>>({});
+
+  useEffect(() => {
+    if (!leaderboard?.entries) return;
+    setPages((held) => ({ ...held, [currentPage]: leaderboard.entries }));
+  }, [leaderboard, currentPage]);
+
+  const entries = useMemo(
+    () =>
+      Object.keys(pages)
+        .map(Number)
+        .sort((a, b) => a - b)
+        .flatMap((page) => pages[page] ?? []),
+    [pages],
+  );
 
   const subtitle = (() => {
     const now = new Date();
@@ -143,6 +168,16 @@ export default function LeaderboardScreen() {
             <Skeleton height={64} />
             <Skeleton height={64} />
           </Stack>
+        ) : isError ? (
+          // "No leaderboard data available yet" was shown for a failed request
+          // too, with no retry: the donor was told a fact about the world when
+          // what had happened was a network error.
+          <ErrorState
+            title={t('common.errorTitle')}
+            description={t('common.errorBody')}
+            retryLabel={t('common.retry')}
+            onRetry={() => void refetch()}
+          />
         ) : entries.length === 0 ? (
           <EmptyState
             title={t('gamification.leaderboardEmpty')}

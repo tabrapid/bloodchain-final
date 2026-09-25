@@ -2032,7 +2032,7 @@ export const uz: Catalog = {
     latest: 'Oxirgi tahlil',
     yours: 'Sizning tahlillaringiz',
     empty: 'Hali tahlillar yo‘q',
-    helpful: 'Bu tahlil foydali bo‘ldimi?',
+    helpful: 'Foydali',
     thanks: 'Fikringiz uchun rahmat',
     askPlaceholder: 'Salomatlik ma’lumotlaringiz haqida savol bering…',
     askAboutResults: 'Natijalarim haqida so‘rash',

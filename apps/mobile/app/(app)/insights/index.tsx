@@ -22,7 +22,6 @@ import {
   ListRow,
   Row,
   ScreenHeader,
-  ScrollScreen,
   SectionHeader,
   Skeleton,
   Stack,
@@ -34,6 +33,7 @@ import {
   space,
   useDesign,
   type StatusTone,
+  FormScreen,
 } from '../../../src/design';
 import { LucideIcon } from '../../../src/types/icons';
 import {
@@ -241,7 +241,10 @@ export default function InsightsScreen() {
   );
 
   return (
-    <ScrollScreen
+    // FormScreen rather than ScrollScreen: the chat field is the last block of a
+    // long page, and an open keyboard covered the field, the send button and the
+    // disclaimer under it.
+    <FormScreen
       header={
         <ScreenHeader
           title={t('insights.title')}
@@ -418,7 +421,7 @@ export default function InsightsScreen() {
           </Surface>
         </Stack>
       </Stack>
-    </ScrollScreen>
+    </FormScreen>
   );
 }
 

@@ -2106,7 +2106,7 @@ export const en: Catalog = {
     latest: 'Latest insight',
     yours: 'Your insights',
     empty: 'No insights yet',
-    helpful: 'Was this insight helpful?',
+    helpful: 'Helpful',
     thanks: 'Thank you for your feedback',
     askPlaceholder: 'Ask a question about your health data…',
     askAboutResults: 'Ask about my results',

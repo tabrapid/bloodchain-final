@@ -25,6 +25,7 @@ import {
   iconSize,
   space,
   useDesign,
+  ErrorState,
 } from '../../../src/design';
 import { BadgeTile } from '../../../src/components/gamification/BadgeTile';
 import { percentAsFraction } from '../../../src/utils/progress';
@@ -49,7 +50,12 @@ export default function GamificationScreen() {
   const { colors } = useDesign();
   const router = useRouter();
 
-  const { data: profile, isPending: profilePending, refetch: refetchProfile } = useGamificationProfile();
+  const {
+    data: profile,
+    isPending: profilePending,
+    isError: profileError,
+    refetch: refetchProfile,
+  } = useGamificationProfile();
   const { data: levelProgress, isPending: progressPending, refetch: refetchProgress } = useLevelProgress();
   const { data: achievements, refetch: refetchAchievements, isRefetching } = useAchievements();
   const { data: badges, refetch: refetchBadges } = useBadges();
@@ -75,6 +81,26 @@ export default function GamificationScreen() {
       backLabel={t('common.a11yGoBack')}
     />
   );
+
+  // A failed request used to fall through to the zeros: a donor with forty
+  // donations was shown Level 1, 0 XP, rank "—" and "No badges yet -- your
+  // first donation earns one", which is not a loading state, it is a lie about
+  // their record.
+  if (profileError && !profile) {
+    return (
+      <ScrollScreen header={header}>
+        <ErrorState
+          title={t('common.errorTitle')}
+          description={t('common.errorBody')}
+          retryLabel={t('common.retry')}
+          onRetry={() => {
+            void refetchProfile();
+            void refetchProgress();
+          }}
+        />
+      </ScrollScreen>
+    );
+  }
 
   if (isPending && !profile) {
     return (

@@ -30,6 +30,8 @@ import {
   iconSize,
   useDesign,
   type StatusTone,
+  ErrorState,
+  FormScreen,
 } from '../../../src/design';
 import { useAppointment, useCancelAppointment } from '../../../src/hooks/useAppointments';
 import { useTranslation } from '../../../src/i18n';
@@ -80,7 +82,7 @@ export default function AppointmentDetail() {
   const { t, formatDate, formatTime } = useTranslation();
   const { colors } = useDesign();
   const params = useLocalSearchParams<{ id: string }>();
-  const { data: appointment, isPending } = useAppointment(params.id);
+  const { data: appointment, isPending, isError, refetch } = useAppointment(params.id);
 
   const [cancelReason, setCancelReason] = useState('');
   const [confirmingCancel, setConfirmingCancel] = useState(false);
@@ -120,6 +122,22 @@ export default function AppointmentDetail() {
     );
   }
 
+  // A request that failed is not an appointment that does not exist. Telling a
+  // donor their booked appointment was "not found" because the network dropped
+  // is the worst reading of the two, and it offered no way to try again.
+  if (isError) {
+    return (
+      <ScrollScreen header={header}>
+        <ErrorState
+          title={t('common.errorTitle')}
+          description={t('common.errorBody')}
+          retryLabel={t('common.retry')}
+          onRetry={() => void refetch()}
+        />
+      </ScrollScreen>
+    );
+  }
+
   if (!appointment) {
     return (
       <ScrollScreen header={header}>
@@ -151,7 +169,10 @@ export default function AppointmentDetail() {
   };
 
   return (
-    <ScrollScreen header={header}>
+    // FormScreen rather than ScrollScreen: the cancellation-reason field is the
+    // second-to-last block on this screen and Reschedule and Cancel sit directly
+    // under it, so an open keyboard covered both buttons and the field itself.
+    <FormScreen header={header}>
       <Stack gap="xl">
         <ListGroup
           rows={[
@@ -308,6 +329,6 @@ export default function AppointmentDetail() {
         busy={cancelMutation.isPending}
         destructive
       />
-    </ScrollScreen>
+    </FormScreen>
   );
 }
