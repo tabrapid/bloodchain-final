@@ -2522,6 +2522,32 @@ export const ru: Catalog = {
     },
   },
   onboarding: {
+    stopSharingLocation: 'Не передавать геопозицию',
+    explainLocation: 'Настроить передачу геопозиции',
+    locationExplainerTitle: 'Передавать вашу геопозицию?',
+    locationExplainerBody:
+      'Bloodchain использует геопозицию, чтобы показать ближайшие к вам центры донорства и поставить ближайшие экстренные запросы первыми.',
+    locationAssuranceNearest: 'Используется, чтобы сортировать центры и запросы по расстоянию',
+    locationAssuranceNotTracked: 'Не используется для слежения — приложение считывает её, когда вы об этом просите',
+    locationAssuranceOptional: 'Необязательно: сдавать кровь, записываться и отвечать можно и без неё',
+    locationAllow: 'Передавать геопозицию',
+    locationBlockedTitle: 'Геопозиция отключена для Bloodchain',
+    locationBlockedBody:
+      'Телефон больше не спросит. Включить можно в настройках — или продолжайте без неё: города достаточно, чтобы найти ближайшие центры.',
+    notificationsPermissionNote:
+      'Выбор тем ещё не разрешает телефону их показывать. Это отдельное разрешение, и телефон спросит один раз.',
+    explainNotifications: 'Настроить уведомления',
+    notificationsExplainerTitle: 'Разрешить уведомления Bloodchain?',
+    notificationsExplainerBody:
+      'Экстренный запрос по вашей группе крови бесполезен, если вы не увидите его вовремя. Уведомления — это то, как он до вас доходит.',
+    notificationsAssuranceCategories: 'Только те виды, которые вы выбрали выше',
+    notificationsAssuranceNoMarketing: 'Никакой рекламы и ничего о других донорах',
+    notificationsAssuranceChangeLater: 'Изменить или отключить можно в любой момент в профиле',
+    notificationsAllow: 'Включить уведомления',
+    notificationsAllowed: 'Уведомления включены',
+    notificationsBlockedTitle: 'Уведомления отключены для Bloodchain',
+    notificationsBlockedBody:
+      'Телефон больше не спросит. Экстренные запросы останутся в приложении — их нужно будет открыть, чтобы увидеть.',
     stepOf: 'Шаг {{current}} из {{total}}',
     previousStep: 'Предыдущий шаг',
     continue: 'Продолжить',

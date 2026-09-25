@@ -58,8 +58,14 @@ export type { FieldProps, PhoneFieldProps, SearchFieldProps } from './components
 export { OtpField } from './components/OtpField';
 export type { OtpFieldProps } from './components/OtpField';
 
-export { Toggle, SegmentedControl, Choice } from './components/Controls';
-export type { ToggleProps, SegmentedControlProps, ChoiceProps } from './components/Controls';
+export { Toggle, SegmentedControl, Choice, OptionGrid } from './components/Controls';
+export type {
+  ToggleProps,
+  SegmentedControlProps,
+  ChoiceProps,
+  OptionGridProps,
+  OptionGridOption,
+} from './components/Controls';
 
 export { SectionHeader, ListRow, Divider, ListGroup } from './components/List';
 export type { SectionHeaderProps, ListRowProps } from './components/List';

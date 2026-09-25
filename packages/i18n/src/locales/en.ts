@@ -2493,6 +2493,32 @@ export const en: Catalog = {
     },
   },
   onboarding: {
+    stopSharingLocation: 'Stop sharing my location',
+    explainLocation: 'Set up location sharing',
+    locationExplainerTitle: 'Share your location?',
+    locationExplainerBody:
+      'Bloodchain uses your location to show the donation centres nearest to you, and to put the emergency requests closest to you first.',
+    locationAssuranceNearest: 'Used to sort centres and requests by distance',
+    locationAssuranceNotTracked: 'Not used to follow you around — the app reads it when you ask it to',
+    locationAssuranceOptional: 'Optional: you can donate, book and respond without it',
+    locationAllow: 'Share my location',
+    locationBlockedTitle: 'Location is turned off for Bloodchain',
+    locationBlockedBody:
+      'Your phone will not ask again. You can turn it on in Settings, or carry on without it — your city alone is enough to find nearby centres.',
+    notificationsPermissionNote:
+      'Choosing what to be told about does not let your phone show it yet. That is a separate permission, and your phone will ask once.',
+    explainNotifications: 'Set up notifications',
+    notificationsExplainerTitle: 'Let Bloodchain notify you?',
+    notificationsExplainerBody:
+      'An emergency request that matches your blood type is worth nothing if you do not see it in time. Notifications are how it reaches you.',
+    notificationsAssuranceCategories: 'Only the kinds you chose above',
+    notificationsAssuranceNoMarketing: 'No marketing, and nothing about other donors',
+    notificationsAssuranceChangeLater: 'Change or switch them off at any time in your profile',
+    notificationsAllow: 'Turn on notifications',
+    notificationsAllowed: 'Notifications are on',
+    notificationsBlockedTitle: 'Notifications are turned off for Bloodchain',
+    notificationsBlockedBody:
+      'Your phone will not ask again. Emergency requests will still appear in the app — you will just have to open it to see them.',
     stepOf: 'Step {{current}} of {{total}}',
     previousStep: 'Previous step',
     continue: 'Continue',

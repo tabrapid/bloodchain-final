@@ -243,3 +243,94 @@ export function Choice({
     </Animated.View>
   );
 }
+
+export interface OptionGridOption<T extends string> {
+  value: T;
+  label: string;
+  /** Announced instead of the label, for a label that reads badly alone ("A+"). */
+  accessibilityLabel?: string;
+  disabled?: boolean;
+}
+
+export interface OptionGridProps<T extends string> {
+  options: OptionGridOption<T>[];
+  value: T | null;
+  onChange: (value: T) => void;
+  /** What is being chosen, e.g. "Blood type". Announced on the group. */
+  accessibilityLabel: string;
+  /** Items per row. Four fits a two-character label; three fits a time. */
+  columns?: number;
+}
+
+/**
+ * A grid of short, mutually exclusive options: a blood type, a time slot.
+ *
+ * Between SegmentedControl (up to four words in a row) and Choice (a card per
+ * option). Eight blood types are too many for one and too small for the other,
+ * and V1 built the grid by hand on two screens with two different sizes.
+ *
+ * Every cell is a `radio`, so a screen reader says "A plus, radio button, 3 of
+ * 8, selected" instead of reading eight buttons with no relationship. The
+ * selected cell is a filled border AND a tinted ground: a tint alone is
+ * invisible in daylight, and a border alone disappears at a glance.
+ */
+export function OptionGrid<T extends string>({
+  options,
+  value,
+  onChange,
+  accessibilityLabel,
+  columns = 4,
+}: OptionGridProps<T>) {
+  const { colors } = useDesign();
+  const gap = space.sm;
+
+  return (
+    <View
+      accessibilityRole="radiogroup"
+      accessibilityLabel={accessibilityLabel}
+      style={{ flexDirection: 'row', flexWrap: 'wrap', gap }}
+    >
+      {options.map((option) => {
+        const selected = option.value === value;
+        return (
+          <Pressable
+            key={option.value}
+            onPress={() => onChange(option.value)}
+            disabled={option.disabled}
+            accessibilityRole="radio"
+            accessibilityState={{ selected, disabled: Boolean(option.disabled) }}
+            accessibilityLabel={option.accessibilityLabel ?? option.label}
+            style={({ pressed }) => ({
+              // The gap is shared between the cells in a row, so each cell
+              // gives up its share of it rather than overflowing the row.
+              width: `${100 / columns}%`,
+              flexBasis: `${100 / columns}%`,
+              flexGrow: 0,
+              flexShrink: 1,
+              maxWidth: `${100 / columns}%`,
+              marginRight: -gap / columns,
+              minHeight: hitTarget.comfortable,
+              alignItems: 'center',
+              justifyContent: 'center',
+              paddingHorizontal: space.sm,
+              borderRadius: radius.sm,
+              borderWidth: 1,
+              borderColor: selected ? colors.rose.base : colors.border,
+              backgroundColor: selected
+                ? colors.rose.soft
+                : pressed
+                  ? colors.surfacePressed
+                  : colors.surface,
+              opacity: option.disabled ? 0.45 : 1,
+              transform: [{ scale: pressed && !option.disabled ? motion.pressScale : 1 }],
+            })}
+          >
+            <Text variant="bodyStrong" tone={selected ? 'rose' : 'primary'} numberOfLines={1}>
+              {option.label}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}

@@ -1,13 +1,12 @@
-import { useMemo, useState } from 'react';
-import { Alert, Pressable, View, StyleSheet } from 'react-native';
+import { useState } from 'react';
+import { Linking, View } from 'react-native';
 import { router } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import * as Location from 'expo-location';
+import * as Notifications from 'expo-notifications';
 import {
-  ArrowRight,
   Bell,
   CheckCircle2,
-  ChevronLeft,
   Droplet,
   HeartHandshake,
   Info,
@@ -15,63 +14,53 @@ import {
   UserRound,
 } from 'lucide-react-native';
 import {
-  AppButton,
-  AppText,
-  AppTextInput,
-  GlassCard,
-  IconButton,
-  Screen,
-  StepRail,
-} from '../../src/components';
+  Badge,
+  Banner,
+  Button,
+  Field,
+  FormScreen,
+  ListGroup,
+  ListRow,
+  OptionGrid,
+  PermissionExplainer,
+  PhoneField,
+  Progress,
+  Row,
+  ScreenHeader,
+  Stack,
+  Surface,
+  Text,
+  Toggle,
+  Well,
+  iconSize,
+  space,
+  useDesign,
+} from '../../src/design';
 import { LucideIcon } from '../../src/types/icons';
-import { layout, spacing, radius, useTheme, ThemeColors } from '../../src/theme';
 import { useUpdateDonorProfile } from '../../src/hooks/useDonors';
 import { useUpdateUserProfile } from '../../src/hooks/useUsers';
 import { useUpdateNotificationPreferences } from '../../src/hooks/useNotifications';
+import { registerForPushNotificationsAsync } from '../../src/notifications/push';
 import { useAuthStore } from '../../src/stores/auth.store';
 import { ApiRequestError } from '../../src/api/client';
+import { normalizePhone } from '@bloodchain/validation';
 import { useTranslation } from '../../src/i18n';
 
 /**
  * Each step's icon and its two catalogue keys live here rather than inside the
- * six branches of `renderStep`, so the header renders them once and every step
- * is guaranteed the same anatomy: badge, headline, explanation, controls. The
- * branches are left with only the controls that differ.
+ * six branches of the switch, so the header renders them once and every step
+ * is guaranteed the same anatomy: badge, headline, explanation, controls.
  *
  * Keys, not words: this list is built at module load, where there is no locale
  * yet, so the headline is resolved in the component below.
  */
 const STEPS: { icon: LucideIcon; titleKey: string; subtitleKey: string }[] = [
-  {
-    icon: HeartHandshake,
-    titleKey: 'onboarding.welcomeTitle',
-    subtitleKey: 'onboarding.welcomeSubtitle',
-  },
-  {
-    icon: UserRound,
-    titleKey: 'onboarding.nameTitle',
-    subtitleKey: 'onboarding.nameSubtitle',
-  },
-  {
-    icon: Droplet,
-    titleKey: 'onboarding.bloodTypeTitle',
-    subtitleKey: 'onboarding.bloodTypeSubtitle',
-  },
-  {
-    icon: MapPin,
-    titleKey: 'onboarding.locationTitle',
-    subtitleKey: 'onboarding.locationSubtitle',
-  },
-  {
-    icon: Bell,
-    titleKey: 'onboarding.notificationsTitle',
-    subtitleKey: 'onboarding.notificationsSubtitle',
-  },
-  {
-    icon: CheckCircle2,
-    titleKey: 'onboarding.reviewTitle',
-    subtitleKey: 'onboarding.reviewSubtitle',
-  },
+  { icon: HeartHandshake, titleKey: 'onboarding.welcomeTitle', subtitleKey: 'onboarding.welcomeSubtitle' },
+  { icon: UserRound, titleKey: 'onboarding.nameTitle', subtitleKey: 'onboarding.nameSubtitle' },
+  { icon: Droplet, titleKey: 'onboarding.bloodTypeTitle', subtitleKey: 'onboarding.bloodTypeSubtitle' },
+  { icon: MapPin, titleKey: 'onboarding.locationTitle', subtitleKey: 'onboarding.locationSubtitle' },
+  { icon: Bell, titleKey: 'onboarding.notificationsTitle', subtitleKey: 'onboarding.notificationsSubtitle' },
+  { icon: CheckCircle2, titleKey: 'onboarding.reviewTitle', subtitleKey: 'onboarding.reviewSubtitle' },
 ];
 
 /**
@@ -91,17 +80,47 @@ const BLOOD_TYPES: { label: string; type: string; rh: string }[] = [
   { label: 'AB-', type: 'AB', rh: 'NEGATIVE' },
 ];
 
+/** What the donor has decided about an operating-system permission. */
+type Consent = 'unasked' | 'granted' | 'declined' | 'blocked';
+
+/**
+ * Onboarding, rebuilt for V2 — and the one screen in the app where the shape
+ * of the interface is a promise about permissions.
+ *
+ * V1 asked the operating system for location the instant the donor tapped a
+ * toggle labelled "Share precise location / OFF", and explained itself only
+ * afterwards, in an `Alert` that appeared when the request was refused. On iOS
+ * that is the only chance the app ever gets: the prompt does not come back.
+ *
+ * V2 explains first, every time, in a sheet where there is room to say what is
+ * collected, who sees it and what the app will not do -- and where "Not now"
+ * is the same size as "Allow" and costs the donor nothing. Nothing is asked of
+ * the operating system until the donor has read that and chosen.
+ *
+ * The same rule now covers notifications, which V1 asked for on a completely
+ * different screen: `usePushNotifications` fired
+ * `Notifications.requestPermissionsAsync()` the moment authentication
+ * succeeded, before the donor had seen a single word about what would be sent.
+ * Registration no longer requests -- it only registers a device that has
+ * already granted -- and the asking happens here, after the donor has chosen
+ * which four kinds of message they want.
+ */
 export default function OnboardingWelcome() {
   const { t } = useTranslation();
-  const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
-  const [currentStep, setCurrentStep] = useState(0);
+  const { colors } = useDesign();
   const queryClient = useQueryClient();
   const updateDonorProfile = useUpdateDonorProfile();
   const updateUserProfile = useUpdateUserProfile();
   const updateNotificationPreferences = useUpdateNotificationPreferences();
   const setNeedsOnboarding = useAuthStore((s) => s.setNeedsOnboarding);
+
+  const [currentStep, setCurrentStep] = useState(0);
   const [finishError, setFinishError] = useState<string | null>(null);
+  const [locationConsent, setLocationConsent] = useState<Consent>('unasked');
+  const [explaining, setExplaining] = useState<'location' | 'notifications' | null>(null);
+  const [isLocating, setIsLocating] = useState(false);
+  const [locationFailed, setLocationFailed] = useState(false);
+  const [notificationConsent, setNotificationConsent] = useState<Consent>('unasked');
 
   const [formData, setFormData] = useState({
     firstName: '',
@@ -119,52 +138,60 @@ export default function OnboardingWelcome() {
     donationReminders: true,
     system: true,
   });
-  const [isLocating, setIsLocating] = useState(false);
 
   const updateField = (field: string, value: string | boolean | number | undefined) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleShareLocation = async () => {
-    if (formData.consentLocation) {
-      updateField('consentLocation', false);
-      updateField('latitude', undefined);
-      updateField('longitude', undefined);
-      return;
-    }
+  /** Turning it off is the donor's own decision and needs nothing explained. */
+  const stopSharingLocation = () => {
+    updateField('consentLocation', false);
+    updateField('latitude', undefined);
+    updateField('longitude', undefined);
+    setLocationConsent('declined');
+  };
 
+  /** Only ever reached from the explainer's Allow button. */
+  const askOperatingSystemForLocation = async () => {
+    setExplaining(null);
+    setLocationFailed(false);
     setIsLocating(true);
     try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
+      const { status, canAskAgain } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert(
-          t('onboarding.locationPermissionTitle'),
-          t('onboarding.locationPermissionBody'),
-        );
+        setLocationConsent(canAskAgain ? 'declined' : 'blocked');
         return;
       }
-
-      const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-      updateField('consentLocation', true);
-      updateField('latitude', position.coords.latitude);
-      updateField('longitude', position.coords.longitude);
+      const position = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+      setLocationConsent('granted');
+      setFormData((prev) => ({
+        ...prev,
+        consentLocation: true,
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+      }));
     } catch {
-      Alert.alert(t('onboarding.locationFailedTitle'), t('onboarding.locationFailedBody'));
+      // Granted, but the fix failed -- a different fact from refusing, and the
+      // donor can try again without another trip through the OS.
+      setLocationFailed(true);
     } finally {
       setIsLocating(false);
     }
   };
 
-  const handleNext = () => {
-    if (currentStep < STEPS.length - 1) {
-      setCurrentStep(currentStep + 1);
+  /** Only ever reached from the explainer's Allow button. */
+  const askOperatingSystemForNotifications = async () => {
+    setExplaining(null);
+    const { status, canAskAgain } = await Notifications.requestPermissionsAsync();
+    if (status === 'granted') {
+      setNotificationConsent('granted');
+      // The device can only be registered once the OS has said yes.
+      void registerForPushNotificationsAsync();
+      return;
     }
-  };
-
-  const handleBack = () => {
-    if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
-    }
+    setNotificationConsent(canAskAgain ? 'declined' : 'blocked');
   };
 
   const handleFinish = async () => {
@@ -173,12 +200,12 @@ export default function OnboardingWelcome() {
       await updateUserProfile.mutateAsync({
         firstName: formData.firstName,
         lastName: formData.lastName,
-        phone: formData.phone || undefined,
+        phone: formData.phone ? normalizePhone(`+998${formData.phone}`) ?? undefined : undefined,
       });
 
       await updateDonorProfile.mutateAsync({
-        bloodType: formData.bloodType as any || undefined,
-        rhFactor: formData.rhFactor as any || undefined,
+        bloodType: (formData.bloodType as never) || undefined,
+        rhFactor: (formData.rhFactor as never) || undefined,
         city: formData.city || undefined,
         district: formData.district || undefined,
         consentLocation: formData.consentLocation,
@@ -202,478 +229,361 @@ export default function OnboardingWelcome() {
       router.replace('/(app)/home');
     } catch (error) {
       setFinishError(
-        error instanceof ApiRequestError
-          ? error.error.message
-          : t('onboarding.saveFailed'),
+        error instanceof ApiRequestError ? error.error.message : t('onboarding.saveFailed'),
       );
     }
   };
 
-  const renderStep = () => {
-    switch (currentStep) {
-      case 0:
-        return (
-          <View style={styles.stepContent}>
-            <View style={styles.featureList}>
-              <FeatureItem text={t('onboarding.featureHistory')} />
-              <FeatureItem text={t('onboarding.featureEmergencies')} />
-              <FeatureItem text={t('onboarding.featureBooking')} />
-              <FeatureItem text={t('onboarding.featureRecords')} />
-            </View>
-          </View>
-        );
+  const canProceed = () => {
+    if (currentStep === 1) return Boolean(formData.firstName.trim() && formData.lastName.trim());
+    return true;
+  };
 
-      case 1:
-        return (
-          <View style={styles.stepContent}>
-            <AppTextInput
+  const isLastStep = currentStep === STEPS.length - 1;
+  const isSaving =
+    updateUserProfile.isPending ||
+    updateDonorProfile.isPending ||
+    updateNotificationPreferences.isPending;
+
+  const step = STEPS[currentStep]!;
+  const StepIcon = step.icon;
+
+  const selectedBloodType =
+    BLOOD_TYPES.find((entry) => entry.type === formData.bloodType && entry.rh === formData.rhFactor)
+      ?.label ?? null;
+
+  return (
+    <FormScreen
+      header={
+        currentStep > 0 ? (
+          <ScreenHeader
+            eyebrow={t('onboarding.stepOf', { current: currentStep + 1, total: STEPS.length })}
+            onBack={() => setCurrentStep(currentStep - 1)}
+            backLabel={t('onboarding.previousStep')}
+          />
+        ) : (
+          <ScreenHeader
+            eyebrow={t('onboarding.stepOf', { current: currentStep + 1, total: STEPS.length })}
+          />
+        )
+      }
+    >
+      <Stack gap="xl">
+        <Progress
+          label={t(step.titleKey)}
+          caption={t('onboarding.stepOf', { current: currentStep + 1, total: STEPS.length })}
+          value={(currentStep + 1) / STEPS.length}
+          bare
+        />
+
+        <Row gap="md" align="flex-start">
+          <StepIcon size={iconSize.lg} color={colors.rose.base} />
+          <View style={{ flex: 1, gap: space.xs }}>
+            <Text variant="h1" accessibilityRole="header">
+              {t(step.titleKey)}
+            </Text>
+            <Text variant="body" tone="secondary">
+              {t(step.subtitleKey)}
+            </Text>
+          </View>
+        </Row>
+
+        {/* ------------------------------------------------ what each step asks */}
+        {currentStep === 0 ? (
+          <ListGroup
+            rows={[
+              <ListRow key="history" title={t('onboarding.featureHistory')} />,
+              <ListRow key="emergencies" title={t('onboarding.featureEmergencies')} />,
+              <ListRow key="booking" title={t('onboarding.featureBooking')} />,
+              <ListRow key="records" title={t('onboarding.featureRecords')} />,
+            ]}
+          />
+        ) : null}
+
+        {currentStep === 1 ? (
+          <Stack gap="lg">
+            <Field
               label={t('onboarding.firstName')}
               placeholder={t('auth.register.firstNamePlaceholder')}
-              wrapperStyle={styles.inputWrapper}
               value={formData.firstName}
               onChangeText={(v) => updateField('firstName', v)}
+              autoComplete="given-name"
+              textContentType="givenName"
             />
-            <AppTextInput
+            <Field
               label={t('onboarding.lastName')}
               placeholder={t('auth.register.lastNamePlaceholder')}
-              wrapperStyle={styles.inputWrapper}
               value={formData.lastName}
               onChangeText={(v) => updateField('lastName', v)}
+              autoComplete="family-name"
+              textContentType="familyName"
             />
-            <AppTextInput
+            {/* Digits only, with the prefix drawn rather than typed: a donor
+                who has to type +998 is a donor who can type it wrong, and who
+                then sees their own number rejected without being told which
+                part was the problem. */}
+            <PhoneField
+              prefix="+998"
               label={t('onboarding.phoneOptional')}
-              placeholder="+998 90 000 00 00"
-              keyboardType="phone-pad"
+              placeholder={t('auth.phone.placeholder')}
               value={formData.phone}
-              onChangeText={(v) => updateField('phone', v)}
+              onChangeText={(v) => updateField('phone', v.replace(/\D/g, ''))}
             />
-          </View>
-        );
+          </Stack>
+        ) : null}
 
-      case 2:
-        return (
-          <View style={styles.stepContent}>
-            {/* Two rows of four rather than one wrapping row: the pairs read
-                as A / B / O / AB with their sign, which is how the grid is
-                scanned, and no row can end up with a single orphan chip. */}
-            {[BLOOD_TYPES.slice(0, 4), BLOOD_TYPES.slice(4)].map((row, index) => (
-              <View key={index} style={styles.bloodTypeRow}>
-                {row.map((entry) => (
-                  <BloodTypeChip
-                    key={entry.label}
-                    label={entry.label}
-                    selected={formData.bloodType === entry.type && formData.rhFactor === entry.rh}
-                    onPress={() => {
-                      updateField('bloodType', entry.type);
-                      updateField('rhFactor', entry.rh);
-                    }}
-                  />
-                ))}
-              </View>
-            ))}
-            <GlassCard style={styles.infoCard}>
-              <View style={styles.infoRow}>
-                <Info size={18} color={colors.onMuted.secondary} />
-                <AppText muted style={styles.infoText}>
+        {currentStep === 2 ? (
+          <Stack gap="lg">
+            <OptionGrid
+              accessibilityLabel={t('medical.bloodGroup')}
+              columns={4}
+              value={selectedBloodType}
+              onChange={(label) => {
+                const entry = BLOOD_TYPES.find((candidate) => candidate.label === label)!;
+                updateField('bloodType', entry.type);
+                updateField('rhFactor', entry.rh);
+              }}
+              options={BLOOD_TYPES.map((entry) => ({
+                value: entry.label,
+                label: entry.label,
+                accessibilityLabel: t('onboarding.a11yBloodType', { type: entry.label }),
+              }))}
+            />
+            <Well>
+              <Row gap="sm" align="flex-start">
+                <Info size={iconSize.sm} color={colors.clinical.base} />
+                <Text variant="caption" tone="secondary" style={{ flex: 1 }}>
                   {t('medical.verification.notSureSkip')}
-                </AppText>
-              </View>
-            </GlassCard>
-          </View>
-        );
+                </Text>
+              </Row>
+            </Well>
+          </Stack>
+        ) : null}
 
-      case 3:
-        return (
-          <View style={styles.stepContent}>
-            <AppTextInput
+        {currentStep === 3 ? (
+          <Stack gap="lg">
+            <Field
               label={t('onboarding.city')}
               placeholder={t('onboarding.cityPlaceholder')}
-              wrapperStyle={styles.inputWrapper}
               value={formData.city}
               onChangeText={(v) => updateField('city', v)}
             />
-            <AppTextInput
+            <Field
               label={t('onboarding.district')}
               placeholder={t('onboarding.districtPlaceholder')}
               value={formData.district}
               onChangeText={(v) => updateField('district', v)}
             />
-            <View style={styles.notificationItem}>
-              <View style={styles.notificationText}>
-                <AppText variant="heading">{t('onboarding.sharePreciseLocation')}</AppText>
-                <AppText muted style={styles.notificationDesc}>
-                  {t('onboarding.sharePreciseLocationHint')}
-                </AppText>
+
+            <Surface>
+              <Stack gap="md">
+                <Row gap="md" align="flex-start">
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <Text variant="bodyStrong">{t('onboarding.sharePreciseLocation')}</Text>
+                    <Text variant="caption" tone="secondary">
+                      {t('onboarding.sharePreciseLocationHint')}
+                    </Text>
+                  </View>
+                  {formData.consentLocation ? <Badge label={t('onboarding.on')} tone="success" /> : null}
+                </Row>
+
+                {/* The button says what pressing it does. V1's said "OFF",
+                    which is a state, and pressing it went straight to the
+                    operating system. */}
+                {formData.consentLocation ? (
+                  <Button
+                    label={t('onboarding.stopSharingLocation')}
+                    variant="secondary"
+                    size="md"
+                    onPress={stopSharingLocation}
+                  />
+                ) : (
+                  <Button
+                    label={t('onboarding.explainLocation')}
+                    variant="secondary"
+                    size="md"
+                    loading={isLocating}
+                    onPress={() => setExplaining('location')}
+                  />
+                )}
+
+                {locationConsent === 'blocked' ? (
+                  <Banner
+                    tone="warning"
+                    title={t('onboarding.locationBlockedTitle')}
+                    description={t('onboarding.locationBlockedBody')}
+                    action={
+                      <Button
+                        label={t('sos.locationDeniedOpenSettings')}
+                        variant="secondary"
+                        size="md"
+                        block={false}
+                        onPress={() => void Linking.openSettings()}
+                      />
+                    }
+                  />
+                ) : null}
+
+                {locationFailed ? (
+                  <Banner
+                    tone="warning"
+                    title={t('onboarding.locationFailedTitle')}
+                    description={t('onboarding.locationFailedBody')}
+                  />
+                ) : null}
+              </Stack>
+            </Surface>
+          </Stack>
+        ) : null}
+
+        {currentStep === 4 ? (
+          <Stack gap="lg">
+            <Surface padded={false}>
+              <View style={{ paddingHorizontal: space.lg }}>
+                <Toggle
+                  label={t('onboarding.notifyEmergencies')}
+                  description={t('onboarding.notifyEmergenciesHint')}
+                  value={formData.emergencyRequests}
+                  onValueChange={(v) => updateField('emergencyRequests', v)}
+                />
+                <Toggle
+                  label={t('onboarding.notifyAppointments')}
+                  description={t('onboarding.notifyAppointmentsHint')}
+                  value={formData.appointments}
+                  onValueChange={(v) => updateField('appointments', v)}
+                />
+                <Toggle
+                  label={t('onboarding.notifyDonations')}
+                  description={t('onboarding.notifyDonationsHint')}
+                  value={formData.donationReminders}
+                  onValueChange={(v) => updateField('donationReminders', v)}
+                />
+                <Toggle
+                  label={t('onboarding.notifySystem')}
+                  description={t('onboarding.notifySystemHint')}
+                  value={formData.system}
+                  onValueChange={(v) => updateField('system', v)}
+                />
               </View>
-              <AppButton
-                variant={formData.consentLocation ? 'primary' : 'secondary'}
-                size="small"
-                onPress={handleShareLocation}
-                disabled={isLocating}
-              >
-                {isLocating ? '…' : t(formData.consentLocation ? 'onboarding.on' : 'onboarding.off')}
-              </AppButton>
-            </View>
-          </View>
-        );
+            </Surface>
 
-      case 4:
-        return (
-          <View style={styles.stepContent}>
-            <NotificationToggle
-              label={t('onboarding.notifyEmergencies')}
-              description={t('onboarding.notifyEmergenciesHint')}
-              value={formData.emergencyRequests}
-              onValueChange={(v) => updateField('emergencyRequests', v)}
-            />
-            <NotificationToggle
-              label={t('onboarding.notifyAppointments')}
-              description={t('onboarding.notifyAppointmentsHint')}
-              value={formData.appointments}
-              onValueChange={(v) => updateField('appointments', v)}
-            />
-            <NotificationToggle
-              label={t('onboarding.notifyDonations')}
-              description={t('onboarding.notifyDonationsHint')}
-              value={formData.donationReminders}
-              onValueChange={(v) => updateField('donationReminders', v)}
-            />
-            <NotificationToggle
-              label={t('onboarding.notifySystem')}
-              description={t('onboarding.notifySystemHint')}
-              value={formData.system}
-              onValueChange={(v) => updateField('system', v)}
-            />
-          </View>
-        );
-
-      case 5:
-        return (
-          <View style={styles.stepContent}>
-            <View style={styles.reviewCard}>
-              <ReviewItem
-                label={t('onboarding.reviewName')}
-                value={`${formData.firstName} ${formData.lastName}`}
-              />
-              <ReviewItem
-                label={t('onboarding.reviewPhone')}
-                value={formData.phone || t('onboarding.notProvided')}
-              />
-              <ReviewItem
-                label={t('medical.bloodGroup')}
-                value={
-                  formData.bloodType && formData.rhFactor
-                    ? `${formData.bloodType}${formData.rhFactor === 'POSITIVE' ? '+' : '-'}`
-                    : t('onboarding.notProvided')
+            {/* The categories above are the app's own preferences and are saved
+                either way. This is the separate question of whether the phone
+                will show any of them at all. */}
+            {notificationConsent === 'granted' ? (
+              <Banner tone="success" title={t('onboarding.notificationsAllowed')} />
+            ) : notificationConsent === 'blocked' ? (
+              <Banner
+                tone="warning"
+                title={t('onboarding.notificationsBlockedTitle')}
+                description={t('onboarding.notificationsBlockedBody')}
+                action={
+                  <Button
+                    label={t('sos.locationDeniedOpenSettings')}
+                    variant="secondary"
+                    size="md"
+                    block={false}
+                    onPress={() => void Linking.openSettings()}
+                  />
                 }
               />
-              <ReviewItem
-                label={t('onboarding.reviewLocation')}
+            ) : (
+              <Surface>
+                <Stack gap="md">
+                  <Text variant="caption" tone="secondary">
+                    {t('onboarding.notificationsPermissionNote')}
+                  </Text>
+                  <Button
+                    label={t('onboarding.explainNotifications')}
+                    variant="secondary"
+                    size="md"
+                    onPress={() => setExplaining('notifications')}
+                  />
+                </Stack>
+              </Surface>
+            )}
+          </Stack>
+        ) : null}
+
+        {currentStep === 5 ? (
+          <ListGroup
+            rows={[
+              <ListRow
+                key="name"
+                title={t('onboarding.reviewName')}
+                value={`${formData.firstName} ${formData.lastName}`.trim() || t('onboarding.notProvided')}
+              />,
+              <ListRow
+                key="phone"
+                title={t('onboarding.reviewPhone')}
+                value={formData.phone ? `+998 ${formData.phone}` : t('onboarding.notProvided')}
+              />,
+              <ListRow
+                key="blood"
+                title={t('medical.bloodGroup')}
+                value={selectedBloodType ?? t('onboarding.notProvided')}
+              />,
+              <ListRow
+                key="location"
+                title={t('onboarding.reviewLocation')}
                 value={formData.city || t('onboarding.notProvided')}
-              />
-              <ReviewItem
-                label={t('onboarding.reviewPreciseLocation')}
+              />,
+              <ListRow
+                key="precise"
+                title={t('onboarding.reviewPreciseLocation')}
                 value={t(formData.consentLocation ? 'onboarding.on' : 'onboarding.off')}
-              />
-            </View>
-          </View>
-        );
-
-      default:
-        return null;
-    }
-  };
-
-  const canProceed = () => {
-    switch (currentStep) {
-      case 0:
-        return true;
-      case 1:
-        return formData.firstName.trim() && formData.lastName.trim();
-      case 2:
-        return true;
-      case 3:
-        return true;
-      case 4:
-        return true;
-      case 5:
-        return true;
-      default:
-        return false;
-    }
-  };
-
-  const isLastStep = currentStep === STEPS.length - 1;
-  const isLoading =
-    updateUserProfile.isPending || updateDonorProfile.isPending || updateNotificationPreferences.isPending;
-
-  const step = STEPS[currentStep]!;
-  const StepIcon = step.icon;
-
-  return (
-    <Screen>
-      <View style={styles.headerRow}>
-        {/* Back is one control in the header, not a second button in the
-            footer competing with Continue. On step one it keeps its slot so
-            the rail beside it does not jump left when you advance. */}
-        {currentStep > 0 ? (
-          <IconButton
-            icon={ChevronLeft}
-            onPress={handleBack}
-            accessibilityRole="button"
-            accessibilityLabel={t('onboarding.previousStep')}
+              />,
+            ]}
           />
-        ) : (
-          <View style={styles.backSpacer} />
-        )}
-        <AppText muted style={styles.stepLabel}>
-          {t('onboarding.stepOf', { current: currentStep + 1, total: STEPS.length })}
-        </AppText>
-      </View>
-      <View style={styles.rail}>
-        <StepRail steps={STEPS.length} current={currentStep} />
-      </View>
+        ) : null}
 
-      <View style={styles.stepBadge}>
-        <StepIcon size={26} color={colors.primary} />
-      </View>
-      <AppText style={styles.title}>{t(step.titleKey)}</AppText>
-      <AppText muted style={styles.subtitle}>
-        {t(step.subtitleKey)}
-      </AppText>
+        {finishError ? <Banner tone="critical" title={finishError} /> : null}
 
-      <View style={styles.content}>{renderStep()}</View>
+        <Button
+          label={t(isLastStep ? 'onboarding.completeSetup' : 'onboarding.continue')}
+          disabled={!canProceed()}
+          loading={isSaving}
+          onPress={() => (isLastStep ? void handleFinish() : setCurrentStep(currentStep + 1))}
+        />
+      </Stack>
 
-      {finishError && (
-        <AppText style={{ color: colors.danger, marginBottom: spacing.md }}>{finishError}</AppText>
-      )}
-
-      <View style={styles.footer}>
-        <AppButton
-          gradient
-          trailingIcon={ArrowRight}
-          onPress={isLastStep ? handleFinish : handleNext}
-          disabled={!canProceed() || isLoading}
-          loading={isLoading}
-        >
-          {t(isLastStep ? 'onboarding.completeSetup' : 'onboarding.continue')}
-        </AppButton>
-      </View>
-    </Screen>
-  );
-}
-
-function FeatureItem({ text }: { text: string }) {
-  const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
-  return (
-    <View style={styles.featureItem}>
-      <View style={styles.featureDot} />
-      <AppText muted>{text}</AppText>
-    </View>
-  );
-}
-
-function BloodTypeChip({
-  label,
-  selected,
-  onPress,
-}: {
-  label: string;
-  selected: boolean;
-  onPress: () => void;
-}) {
-  const { t } = useTranslation();
-  const { colors } = useTheme();
-  return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityState={{ selected }}
-      accessibilityLabel={t('onboarding.a11yBloodType', { type: label })}
-      style={({ pressed }) => ({
-        flex: 1,
-        height: 62,
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderRadius: radius.md,
-        borderWidth: 1,
-        // Selection is a tinted fill plus a rose border, not a solid rose
-        // block: eight solid blocks would read as eight primary actions, and
-        // the chosen one has to stand out from seven neighbours, not from the
-        // background.
-        borderColor: selected ? colors.primary : colors.border,
-        backgroundColor: selected ? colors.primaryMuted : colors.surfaceElevated,
-        opacity: pressed ? 0.85 : 1,
-        transform: [{ scale: pressed ? 0.97 : 1 }],
-      })}
-    >
-      <AppText
-        style={{
-          fontSize: 18,
-          fontWeight: '700',
-          color: selected ? colors.onMuted.primary : colors.text,
+      <PermissionExplainer
+        visible={explaining === 'location'}
+        title={t('onboarding.locationExplainerTitle')}
+        description={t('onboarding.locationExplainerBody')}
+        assurances={[
+          t('onboarding.locationAssuranceNearest'),
+          t('onboarding.locationAssuranceNotTracked'),
+          t('onboarding.locationAssuranceOptional'),
+        ]}
+        allowLabel={t('onboarding.locationAllow')}
+        denyLabel={t('sos.locationNotNow')}
+        onAllow={() => void askOperatingSystemForLocation()}
+        onDeny={() => {
+          setExplaining(null);
+          setLocationConsent('declined');
         }}
-      >
-        {label}
-      </AppText>
-    </Pressable>
-  );
-}
+        icon={({ size, color }) => <MapPin size={size} color={color} />}
+      />
 
-function NotificationToggle({
-  label,
-  description,
-  value,
-  onValueChange,
-}: {
-  label: string;
-  description: string;
-  value: boolean;
-  onValueChange: (value: boolean) => void;
-}) {
-  const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
-  return (
-    <View style={styles.notificationItem}>
-      <View style={styles.notificationText}>
-        <AppText variant="heading">{label}</AppText>
-        <AppText muted style={styles.notificationDesc}>
-          {description}
-        </AppText>
-      </View>
-      <AppButton
-        variant={value ? 'primary' : 'secondary'}
-        size="small"
-        onPress={() => onValueChange(!value)}
-      >
-        {value ? 'ON' : 'OFF'}
-      </AppButton>
-    </View>
+      <PermissionExplainer
+        visible={explaining === 'notifications'}
+        title={t('onboarding.notificationsExplainerTitle')}
+        description={t('onboarding.notificationsExplainerBody')}
+        assurances={[
+          t('onboarding.notificationsAssuranceCategories'),
+          t('onboarding.notificationsAssuranceNoMarketing'),
+          t('onboarding.notificationsAssuranceChangeLater'),
+        ]}
+        allowLabel={t('onboarding.notificationsAllow')}
+        denyLabel={t('sos.locationNotNow')}
+        onAllow={() => void askOperatingSystemForNotifications()}
+        onDeny={() => {
+          setExplaining(null);
+          setNotificationConsent('declined');
+        }}
+        icon={({ size, color }) => <Bell size={size} color={color} />}
+      />
+    </FormScreen>
   );
-}
-
-function ReviewItem({ label, value }: { label: string; value: string }) {
-  return (
-    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-      <AppText muted>{label}</AppText>
-      <AppText variant="heading">{value}</AppText>
-    </View>
-  );
-}
-
-function createStyles(colors: ThemeColors) {
-  return StyleSheet.create({
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  // Matches IconButton's 40x40, so the rail below keeps the same left edge on
-  // every step whether or not there is a back button above it.
-  backSpacer: {
-    width: 40,
-    height: 40,
-  },
-  stepLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  rail: {
-    flexDirection: 'row',
-    marginTop: spacing.md,
-    marginBottom: spacing.xl,
-  },
-  stepBadge: {
-    width: 56,
-    height: 56,
-    borderRadius: radius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.primaryMuted,
-    borderWidth: 1,
-    borderColor: colors.border,
-    marginBottom: spacing.md,
-  },
-  content: {
-    flex: 1,
-  },
-  stepContent: {
-    flex: 1,
-  },
-  title: {
-    fontSize: 30,
-    lineHeight: 36,
-    fontWeight: '800',
-    letterSpacing: -0.9,
-    color: colors.text,
-  },
-  subtitle: {
-    fontSize: 15,
-    lineHeight: 22,
-    marginTop: spacing.sm,
-    marginBottom: spacing.xl,
-  },
-  featureList: {
-    marginTop: spacing.lg,
-    gap: spacing.md,
-  },
-  featureItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  featureDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: colors.primary,
-  },
-  inputWrapper: {
-    marginBottom: layout.cardGap,
-  },
-  bloodTypeRow: {
-    flexDirection: 'row',
-    gap: layout.cardGap,
-    marginBottom: layout.cardGap,
-  },
-  infoCard: {
-    marginTop: spacing.sm,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.sm,
-  },
-  infoText: {
-    flex: 1,
-    fontSize: 13,
-    lineHeight: 19,
-  },
-  notificationItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderSubtle,
-  },
-  notificationText: {
-    flex: 1,
-    marginRight: spacing.md,
-  },
-  notificationDesc: {
-    fontSize: 13,
-    marginTop: 2,
-  },
-  reviewCard: {
-    backgroundColor: colors.surfaceSolid,
-    borderRadius: radius.md,
-    padding: spacing.lg,
-    gap: spacing.md,
-  },
-  footer: {
-    marginTop: spacing.xl,
-  },
-  });
 }

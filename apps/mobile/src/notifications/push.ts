@@ -15,11 +15,23 @@ Notifications.setNotificationHandler({
 });
 
 /**
- * Requests notification permission and registers this device's Expo push
- * token with the backend. Safe to call multiple times (e.g. on every login)
- * — the backend upserts by token. Never throws: a denied permission, a
- * missing EAS project ID, or a transient network failure just means this
- * device won't receive push notifications, not a broken app.
+ * Registers this device's Expo push token with the backend, if -- and only if
+ * -- the operating system has already granted permission.
+ *
+ * It used to call `requestPermissionsAsync()` itself, which meant the system
+ * prompt appeared the instant authentication succeeded, on whatever screen the
+ * donor happened to be looking at, before a word had been said about what
+ * would be sent. On iOS that prompt never comes back: one reflexive "Don't
+ * Allow" and emergency alerts are off for good.
+ *
+ * Asking is now the job of a screen that can explain itself first -- the
+ * onboarding notifications step -- and it calls this afterwards. This function
+ * only ever registers a device that has already said yes, so calling it on
+ * every login is silent for a donor who has not been asked yet.
+ *
+ * Safe to call multiple times: the backend upserts by token. Never throws: a
+ * denied permission, a missing EAS project ID or a transient network failure
+ * just means this device will not receive push notifications, not a broken app.
  */
 export async function registerForPushNotificationsAsync(): Promise<void> {
   try {
@@ -30,14 +42,7 @@ export async function registerForPushNotificationsAsync(): Promise<void> {
       });
     }
 
-    const existing = await Notifications.getPermissionsAsync();
-    let status = existing.status;
-
-    if (status !== 'granted') {
-      const requested = await Notifications.requestPermissionsAsync();
-      status = requested.status;
-    }
-
+    const { status } = await Notifications.getPermissionsAsync();
     if (status !== 'granted') {
       return;
     }

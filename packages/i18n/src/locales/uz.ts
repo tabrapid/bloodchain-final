@@ -2428,6 +2428,32 @@ export const uz: Catalog = {
     },
   },
   onboarding: {
+    stopSharingLocation: 'Joylashuvni ulashishni to‘xtatish',
+    explainLocation: 'Joylashuvni ulashishni sozlash',
+    locationExplainerTitle: 'Joylashuvingiz ulashilsinmi?',
+    locationExplainerBody:
+      'Bloodchain joylashuvingizdan eng yaqin qon topshirish markazlarini ko‘rsatish va eng yaqin shoshilinch so‘rovlarni birinchi qo‘yish uchun foydalanadi.',
+    locationAssuranceNearest: 'Markazlar va so‘rovlarni masofa bo‘yicha saralash uchun ishlatiladi',
+    locationAssuranceNotTracked: 'Sizni kuzatish uchun emas — ilova buni siz so‘raganingizda o‘qiydi',
+    locationAssuranceOptional: 'Ixtiyoriy: usiz ham topshirish, yozilish va javob berish mumkin',
+    locationAllow: 'Joylashuvni ulashish',
+    locationBlockedTitle: 'Bloodchain uchun joylashuv o‘chirilgan',
+    locationBlockedBody:
+      'Telefon boshqa so‘ramaydi. Sozlamalardan yoqishingiz mumkin yoki usiz davom eting — yaqin markazlarni topish uchun shahar yetarli.',
+    notificationsPermissionNote:
+      'Mavzularni tanlash hali telefoningizga ularni ko‘rsatishga ruxsat bermaydi. Bu alohida ruxsat va telefon bir marta so‘raydi.',
+    explainNotifications: 'Bildirishnomalarni sozlash',
+    notificationsExplainerTitle: 'Bloodchain bildirishnoma yuborsinmi?',
+    notificationsExplainerBody:
+      'Qon guruhingizga mos shoshilinch so‘rovni o‘z vaqtida ko‘rmasangiz, undan foyda yo‘q. Bildirishnomalar — bu so‘rov sizga yetib boradigan yo‘l.',
+    notificationsAssuranceCategories: 'Faqat yuqorida tanlagan turlaringiz',
+    notificationsAssuranceNoMarketing: 'Reklama yo‘q va boshqa donorlar haqida hech narsa yo‘q',
+    notificationsAssuranceChangeLater: 'Profilda istalgan vaqtda o‘zgartirish yoki o‘chirish mumkin',
+    notificationsAllow: 'Bildirishnomalarni yoqish',
+    notificationsAllowed: 'Bildirishnomalar yoqilgan',
+    notificationsBlockedTitle: 'Bloodchain uchun bildirishnomalar o‘chirilgan',
+    notificationsBlockedBody:
+      'Telefon boshqa so‘ramaydi. Shoshilinch so‘rovlar ilovada qoladi — ularni ko‘rish uchun ilovani ochishingiz kerak bo‘ladi.',
     stepOf: '{{total}} dan {{current}}-qadam',
     previousStep: 'Oldingi qadam',
     continue: 'Davom etish',
