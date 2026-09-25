@@ -5,3 +5,19 @@
 expo-env.d.ts
 .expo/
 # @end expo-cli
+
+# Native projects are GENERATED, not maintained.
+#
+# This app uses Continuous Native Generation: `android/` and `ios/` are
+# produced from app.json by `npx expo prebuild` and are safe to delete at any
+# time. Committing them would make app.json advisory rather than the source of
+# truth -- an edit there would stop reaching the build, and the two would drift
+# apart silently. Anything that has to survive a regeneration belongs in
+# app.json or in a config plugin.
+android/
+ios/
+
+# Output of `expo export`, used to validate that a production bundle builds.
+.expo-export-check/
+.expo-export-ci/
+.expo-export-ci-ios/

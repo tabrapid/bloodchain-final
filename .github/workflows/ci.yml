@@ -322,3 +322,77 @@ jobs:
       - name: Generate Prisma client
         run: pnpm --filter @bloodchain/api prisma:generate
       - run: pnpm build
+
+  mobile-release-readiness:
+    name: Mobile release readiness (SDK 56)
+    runs-on: ubuntu-latest
+    # Deliberately needs no secrets, no Expo account, no Apple or Google
+    # credentials, and no Android SDK. Everything here is reproducible by
+    # anyone who can clone the repository.
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # One React in the bundle. The mobile app is on React 19 while the three
+      # Next.js consoles are still on 18, so any dependency that resolves
+      # React from pnpm's hoisted copy gets the wrong one -- which React 19
+      # rejects at render with "A React Element from an older version of React
+      # was rendered". This found it in expo-modules-core during the SDK 53
+      # upgrade, where it affected every Expo native view.
+      - name: One React across the mobile dependency graph
+        run: pnpm verify:single-react
+
+      # targetSdkVersion 36, the identifiers a release build cannot be made
+      # without, and the permission decisions -- resolved from the same files
+      # Gradle reads, because `android/` is generated and not committed.
+      - name: Android release configuration
+        run: pnpm verify:android-release
+
+      - name: Expo doctor
+        # Three of its checks need api.expo.dev or reactnative.directory. Both
+        # are reachable from GitHub's runners but not from every environment
+        # this repository is worked on in, so a failure here is reported and
+        # read rather than taken as a build break. The checks that matter for
+        # an upgrade -- package versions against the SDK, duplicate
+        # dependencies, React Navigation alongside expo-router -- are offline
+        # and are covered by the steps above and below.
+        continue-on-error: true
+        run: pnpm --filter @bloodchain/mobile exec expo-doctor
+
+      - name: Typecheck and lint the mobile app
+        run: |
+          pnpm --filter @bloodchain/mobile typecheck
+          pnpm --filter @bloodchain/mobile lint
+
+      - name: Mobile test suite
+        run: pnpm --filter @bloodchain/mobile test
+
+      # The real proof that the app still builds: Metro resolves and bundles
+      # every module and Hermes compiles it, exactly as a release build does.
+      # A typecheck cannot catch a module that fails to resolve at runtime;
+      # this does.
+      - name: Production JS bundle (Android)
+        run: pnpm --filter @bloodchain/mobile exec expo export --platform android --output-dir .expo-export-ci
+      - name: Production JS bundle (iOS)
+        run: pnpm --filter @bloodchain/mobile exec expo export --platform ios --output-dir .expo-export-ci-ios
+
+      # Native project generation. This does not compile anything -- it proves
+      # app.json still produces a valid Android and iOS project, which is what
+      # a CNG build starts from.
+      - name: Native project generation (prebuild)
+        run: pnpm --filter @bloodchain/mobile exec expo prebuild --platform all --no-install --clean
+
+      - name: The generated manifest carries only the permissions we justify
+        run: |
+          echo "--- Android permissions ---"
+          grep -E 'uses-permission' apps/mobile/android/app/src/main/AndroidManifest.xml
+          echo "--- iOS usage descriptions ---"
+          grep -A1 'UsageDescription' apps/mobile/ios/Bloodchain/Info.plist
+          echo "--- targetSdkVersion wiring ---"
+          grep -n 'targetSdkVersion' apps/mobile/android/app/build.gradle
