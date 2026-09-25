@@ -22,7 +22,7 @@ is.** Yoga, the platform text engines, the platform fonts, `expo-blur`,
 `react-native-maps` and the operating systems' own dialogs are absent or
 approximated. What a browser capture settles is layout, hierarchy, spacing,
 state handling and text length in three languages — which is most of what a
-visual review is for, and was enough to find twenty-nine defects the code
+visual review is for, and was enough to find thirty-eight defects the code
 review had missed, each with a file, a line and a fix.
 
 What it cannot settle is how the app looks on a phone.
@@ -43,7 +43,7 @@ fifty minutes and writes `artifacts/mobile-v2-visual-qa/` plus
 
 ## 2. What the pictures found
 
-Twenty-nine defects, none of which came from reading the code. They are grouped
+Thirty-eight defects, none of which came from reading the code. They are grouped
 by what they had in common; the commit column is the fix.
 
 ### Things the app said that were not true

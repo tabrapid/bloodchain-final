@@ -7,8 +7,8 @@ checked and how, and what could not be checked in this environment.
 > **Sprint 11.1 update.** Everything below still describes the app, with the
 > corrections in `docs/mobile-v2-visual-qa-report.md` applied — and that report
 > is now the stronger document, because the app was rendered and photographed
-> rather than only reasoned about: 480 screenshots, 53 screens, two phone
-> sizes, three languages, in `artifacts/mobile-v2-visual-qa/`. Twenty-nine
+> rather than only reasoned about: 490 screenshots, 53 screens, two phone
+> sizes, three languages, in `artifacts/mobile-v2-visual-qa/`. Thirty-eight
 > defects came out of looking at them. The device matrix here is still unfilled
 > and still says why.
 

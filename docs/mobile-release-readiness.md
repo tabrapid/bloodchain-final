@@ -690,7 +690,8 @@ the point:
   Chromium, against the real API with the seeded development data, and
   photographs every screen in every state a catalogue names — populated, empty,
   failed, loading, offline, mid-flow, and each of uz/ru/en. It runs here. It
-  produced **490 screenshots** and found **29 defects**.
+  produced **490 screenshots** and found **38 defects**, every one of them
+  fixed.
 - **`run-native-capture.sh`** plus the Maestro flows drive the real app on a
   simulator or emulator, which is the capture that actually settles how the app
   looks. It needs macOS with Xcode or an Android SDK. **It has not been run**
@@ -706,7 +707,7 @@ The full record, including every defect and every measurement, is
 
 ### 19.3 What photographing it found
 
-Twenty-nine defects, in four groups, none of which came from reading the code:
+Thirty-eight defects, in four groups, none of which came from reading the code:
 things the app **said that were not true** (an XP bar always full, a completion
 bar always zero, a verified donor shown unverified on every cold start, four
 screens reporting a failed request as a fact about the donor); **controls that
