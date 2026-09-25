@@ -260,8 +260,10 @@ pins. Two checks back this up:
 
 `expo-doctor` is a devDependency of the mobile app, so a full run is
 reproducible by anyone who clones the repository (§12 says why it has to be).
-The one check that fails on a runner with open egress is the Hermes V1
-regression, which is PO-1.
+On a runner with open egress it reports **21 of 22 checks passed**, and the one
+failure is the Hermes V1 regression, which is PO-1
+([CI run 149](https://github.com/tabrapid/bloodchain-final/actions/runs/36152318614)).
+In the sprint environment two more cannot run at all; §12 lists them.
 
 `react-native-chart-kit@7.0.2` is the one dependency outside Expo's manifest.
 Its peer range (`react >=19.1`, `react-native >=0.81`, `react-native-svg >=15.12.1`)
