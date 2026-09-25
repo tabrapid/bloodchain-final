@@ -37,6 +37,7 @@ import {
 } from '../src/design';
 import { LocationMap, type MapMarkerPoint } from '../src/components/map/LocationMap';
 import { useTranslation } from '../src/i18n';
+import type { TranslateFn } from '@bloodchain/i18n';
 import {
   acceptEmergency,
   arriveAtHospital,
@@ -71,15 +72,15 @@ type LocationConsent = 'unasked' | 'granted' | 'declined' | 'blocked';
  * an emergency, and an expired one shows as "Overdue" rather than a negative
  * count -- the request is still live and still worth answering.
  */
-function timeLeftLabel(requiredBefore?: string): string | null {
+function timeLeftLabel(requiredBefore: string | undefined, t: TranslateFn): string | null {
   if (!requiredBefore) return null;
   const minutes = Math.round((new Date(requiredBefore).getTime() - Date.now()) / 60000);
   if (Number.isNaN(minutes)) return null;
-  if (minutes <= 0) return 'Overdue';
-  if (minutes < 60) return `${minutes}m left`;
+  if (minutes <= 0) return t('sos.overdue');
+  if (minutes < 60) return t('sos.timeLeftMinutes', { count: minutes });
   const hours = Math.round(minutes / 60);
-  if (hours < 48) return `${hours}h left`;
-  return `${Math.round(hours / 24)}d left`;
+  if (hours < 48) return t('sos.timeLeftHours', { count: hours });
+  return t('sos.timeLeftDays', { count: Math.round(hours / 24) });
 }
 
 /**
@@ -382,7 +383,7 @@ export default function SosScreen() {
   const renderEmergencyCard = (emergency: EmergencyRequest, onPress: () => void) => {
     const isCritical = emergency.urgencyLevel?.toUpperCase() === 'CRITICAL';
     const rh = emergency.rhFactor === 'POSITIVE' ? '+' : emergency.rhFactor === 'NEGATIVE' ? '-' : '';
-    const deadline = timeLeftLabel(emergency.requiredBefore);
+    const deadline = timeLeftLabel(emergency.requiredBefore, t);
 
     return (
       <Pressable

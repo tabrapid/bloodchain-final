@@ -484,6 +484,7 @@ export const uz: Catalog = {
   },
 
   portal: {
+    greetingWithName: '{{greeting}}, {{name}}.',
     openMenu: 'Menyuni ochish',
     account: {
       title: 'Mening hisobim',
@@ -1114,6 +1115,7 @@ export const uz: Catalog = {
       removeBody: 'Bu doiradagi zaxira uchun keyingi umumiyroq chegara qoʻllanadi yoki umuman qoʻllanmaydi.',
     },
     common: {
+      updatedAt: '{{time}} da yangilandi',
       refreshing: 'Yangilanmoqda…',
       creating: 'Yaratilmoqda…',
       submitting: 'Yuborilmoqda…',
@@ -1319,6 +1321,7 @@ export const uz: Catalog = {
       vitalsPlaceholder: 'masalan: Hb 14,2 g/dL, AB 120/78',
     },
     inventory: {
+      openUnitLabel: '{{reference}} birligini ochish',
       discardTitle: 'Bu birlik yo‘q qilinsinmi?',
       discardBody: 'Birlik zaxiradan butunlay chiqadi va hech qachon bemorga berilmaydi.',
       discardReason: 'Nima uchun yo‘q qilinmoqda?',
@@ -1463,6 +1466,7 @@ export const uz: Catalog = {
       noneFound: 'Qon so‘rovlari topilmadi',
     },
     shipments: {
+      etaHoursMinutes: '{{hours}} soat {{minutes}} daqiqa',
       discrepancyRequired: 'Yetkazishni tasdiqlashdan oldin farq sababini ko‘rsating.',
       cancelTitle: 'Bu yetkazma bekor qilinsinmi?',
       cancelBody: 'Kuryer to‘xtatiladi va birliklar yuboruvchi markaz zaxirasiga qaytadi.',
@@ -1517,6 +1521,7 @@ export const uz: Catalog = {
       noneFound: 'Jo‘natmalar topilmadi',
     },
     emergency: {
+      patientLabel: 'Bemor: {{reference}}',
       cancelTitle: 'Bu favqulodda so‘rov bekor qilinsinmi?',
       cancelBody: 'Moslashtirish to‘xtaydi va xabardor qilingan har bir donorga endi kerak emasligi bildiriladi.',
       createEmergency: 'Favqulodda holat yaratish',
@@ -1586,6 +1591,8 @@ export const uz: Catalog = {
       noneFound: 'Kuryerlar topilmadi',
     },
     analytics: {
+      vsPreviousPeriod: 'oldingi davrga nisbatan {{change}}',
+      acceptanceShare: '{{value}}% qabul qilingan',
       title: 'Tahlil paneli',
       intelligence: 'Operatsion tahlil',
       section: 'Tahlil bo‘limi',
@@ -2075,6 +2082,10 @@ export const uz: Catalog = {
     allCaughtUp: 'Hammasi o‘qilgan!',
   },
   sos: {
+    overdue: 'Muddati o‘tgan',
+    timeLeftMinutes: { other: '{{count}} daqiqa qoldi' },
+    timeLeftHours: { other: '{{count}} soat qoldi' },
+    timeLeftDays: { other: '{{count}} kun qoldi' },
     title: 'Shoshilinch SOS',
     details: 'Shoshilinch holat tafsilotlari',
     yourResponse: 'Sizning javobingiz',

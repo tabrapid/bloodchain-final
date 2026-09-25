@@ -568,6 +568,7 @@ export const ru: Catalog = {
   },
 
   portal: {
+    greetingWithName: '{{greeting}}, {{name}}.',
     openMenu: 'Открыть меню',
     account: {
       title: 'Мой аккаунт',
@@ -1198,6 +1199,7 @@ export const ru: Catalog = {
       removeBody: 'Для этой области будет применяться следующий более общий порог или ни одного.',
     },
     common: {
+      updatedAt: 'Обновлено {{time}}',
       refreshing: 'Обновление…',
       creating: 'Создание…',
       submitting: 'Отправка…',
@@ -1403,6 +1405,7 @@ export const ru: Catalog = {
       vitalsPlaceholder: 'например: Hb 14,2 г/дл, АД 120/78',
     },
     inventory: {
+      openUnitLabel: 'Открыть единицу {{reference}}',
       discardTitle: 'Списать эту единицу?',
       discardBody: 'Единица навсегда покидает запас и больше не может быть выдана пациенту.',
       discardReason: 'Причина списания',
@@ -1547,6 +1550,7 @@ export const ru: Catalog = {
       noneFound: 'Запросы на кровь не найдены',
     },
     shipments: {
+      etaHoursMinutes: '{{hours}} ч {{minutes}} мин',
       discrepancyRequired: 'Укажите причину расхождения перед подтверждением доставки.',
       cancelTitle: 'Отменить доставку?',
       cancelBody: 'Курьер отзывается, а единицы возвращаются в запас отправляющего центра.',
@@ -1601,6 +1605,7 @@ export const ru: Catalog = {
       noneFound: 'Отправления не найдены',
     },
     emergency: {
+      patientLabel: 'Пациент: {{reference}}',
       cancelTitle: 'Отменить экстренный запрос?',
       cancelBody: 'Подбор прекращается, и всем оповещённым донорам сообщат, что помощь больше не нужна.',
       createEmergency: 'Создать экстренный запрос',
@@ -1670,6 +1675,8 @@ export const ru: Catalog = {
       noneFound: 'Курьеры не найдены',
     },
     analytics: {
+      vsPreviousPeriod: '{{change}} к предыдущему периоду',
+      acceptanceShare: '{{value}}% принятия',
       title: 'Панель аналитики',
       intelligence: 'Операционная аналитика',
       section: 'Раздел аналитики',
@@ -2174,6 +2181,25 @@ export const ru: Catalog = {
     allCaughtUp: 'Всё прочитано!',
   },
   sos: {
+    overdue: 'Просрочено',
+    timeLeftMinutes: {
+      one: 'осталась {{count}} мин',
+      few: 'осталось {{count}} мин',
+      many: 'осталось {{count}} мин',
+      other: 'осталось {{count}} мин',
+    },
+    timeLeftHours: {
+      one: 'остался {{count}} час',
+      few: 'осталось {{count}} часа',
+      many: 'осталось {{count}} часов',
+      other: 'осталось {{count}} часов',
+    },
+    timeLeftDays: {
+      one: 'остался {{count}} день',
+      few: 'осталось {{count}} дня',
+      many: 'осталось {{count}} дней',
+      other: 'осталось {{count}} дней',
+    },
     title: 'Экстренный вызов',
     details: 'Детали экстренного случая',
     yourResponse: 'Ваш отклик',

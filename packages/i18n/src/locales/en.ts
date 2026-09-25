@@ -506,6 +506,7 @@ export const en: Catalog = {
   },
 
   portal: {
+    greetingWithName: '{{greeting}}, {{name}}.',
     openMenu: 'Open menu',
     account: {
       title: 'My account',
@@ -1177,6 +1178,7 @@ export const en: Catalog = {
       removeBody: 'Stock in this scope falls back to the next most general threshold, or to none at all.',
     },
     common: {
+      updatedAt: 'Updated {{time}}',
       refreshing: 'Refreshing…',
       creating: 'Creating…',
       submitting: 'Submitting…',
@@ -1382,6 +1384,7 @@ export const en: Catalog = {
       vitalsPlaceholder: 'e.g. Hb 14.2 g/dL, BP 120/78',
     },
     inventory: {
+      openUnitLabel: 'Open unit {{reference}}',
       discardTitle: 'Discard this unit?',
       discardBody: 'The unit leaves stock permanently and can never be issued to a patient.',
       discardReason: 'Why is it being discarded?',
@@ -1526,6 +1529,7 @@ export const en: Catalog = {
       noneFound: 'No blood requests found',
     },
     shipments: {
+      etaHoursMinutes: '{{hours}} h {{minutes}} min',
       discrepancyRequired: 'Give a reason for the discrepancy before confirming delivery.',
       cancelTitle: 'Cancel this shipment?',
       cancelBody: 'The courier is stood down and the units go back to the sending centre’s stock.',
@@ -1580,6 +1584,7 @@ export const en: Catalog = {
       noneFound: 'No shipments found',
     },
     emergency: {
+      patientLabel: 'Patient: {{reference}}',
       cancelTitle: 'Cancel this emergency request?',
       cancelBody: 'Matching stops and every donor already alerted is told it is no longer needed.',
       createEmergency: 'Create emergency',
@@ -1649,6 +1654,8 @@ export const en: Catalog = {
       noneFound: 'No couriers found',
     },
     analytics: {
+      vsPreviousPeriod: '{{change}} vs previous period',
+      acceptanceShare: '{{value}}% acceptance',
       title: 'Analytics dashboard',
       intelligence: 'Operations intelligence',
       section: 'Analytics section',
@@ -2138,6 +2145,10 @@ export const en: Catalog = {
     allCaughtUp: 'You\'re all caught up!',
   },
   sos: {
+    overdue: 'Overdue',
+    timeLeftMinutes: { one: '{{count}} min left', other: '{{count}} min left' },
+    timeLeftHours: { one: '{{count}} hour left', other: '{{count}} hours left' },
+    timeLeftDays: { one: '{{count}} day left', other: '{{count}} days left' },
     title: 'Emergency SOS',
     details: 'Emergency details',
     yourResponse: 'Your response',
