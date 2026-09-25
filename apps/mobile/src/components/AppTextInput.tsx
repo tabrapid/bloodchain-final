@@ -1,13 +1,13 @@
 import { ForwardedRef, forwardRef, MutableRefObject, ReactNode, useRef, useState } from 'react';
 import {
-  NativeSyntheticEvent,
   Pressable,
   StyleSheet,
   TextInput,
-  TextInputFocusEventData,
   TextInputProps,
   View,
   ViewStyle,
+  type BlurEvent,
+  type FocusEvent,
 } from 'react-native';
 import { spacing, useTheme } from '../theme';
 import { AppText } from './AppText';
@@ -79,7 +79,11 @@ export const AppTextInput = forwardRef(function AppTextInput(
     }
   };
 
-  const handleFocus = (event: NativeSyntheticEvent<TextInputFocusEventData>) => {
+  // React Native 0.81 retyped TextInput's focus and blur handlers to its own
+  // `FocusEvent`/`BlurEvent` and deprecated `TextInputFocusEventData`; the old
+  // payload type is wider than what the handler is now given, so it no longer
+  // matches the prop.
+  const handleFocus = (event: FocusEvent) => {
     setFocused(true);
     onFocus?.(event);
   };
@@ -87,7 +91,7 @@ export const AppTextInput = forwardRef(function AppTextInput(
   // Chained, never replaced: react-hook-form registers its touched/validation
   // handler through `onBlur`, so swallowing it here would stop per-field
   // errors from ever appearing.
-  const handleBlur = (event: NativeSyntheticEvent<TextInputFocusEventData>) => {
+  const handleBlur = (event: BlurEvent) => {
     setFocused(false);
     onBlur?.(event);
   };

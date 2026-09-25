@@ -1,6 +1,6 @@
 import React from 'react';
 import renderer, { act } from 'react-test-renderer';
-import { Pressable, Text } from 'react-native';
+import { Text } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GlassTabBar } from './GlassTabBar';
 import { ThemeProvider } from '../theme';
@@ -69,25 +69,45 @@ function renderBar(props: ReturnType<typeof buildProps>['props']) {
   return tree!;
 }
 
+/**
+ * The bar's tab buttons.
+ *
+ * This used to be `findAll((node) => node.type === Pressable)`. React Native
+ * 0.81 wraps Pressable in `React.memo`, and React unwraps a memo into a
+ * SimpleMemoComponent whose fiber `type` is the inner function -- so comparing
+ * against the exported memo object matches nothing and every count came back
+ * zero. Matching on what the component declares instead of on how React
+ * happens to represent it is both durable and closer to what the test is
+ * about: one pressable thing, announced as a button, per visible route. The
+ * `onPress` guard excludes the view Pressable renders underneath itself,
+ * which inherits the role but not the handler.
+ */
+function tabButtons(tree: renderer.ReactTestRenderer) {
+  return tree.root.findAll(
+    (node) =>
+      node.props?.accessibilityRole === 'button' && typeof node.props?.onPress === 'function',
+  );
+}
+
 describe('GlassTabBar', () => {
   it('renders exactly one button per route it is given, never more', () => {
     const { props } = buildProps(['home', 'health', 'donate', 'community', 'calendar', 'profile'], 0);
     const tree = renderBar(props);
-    const buttons = tree.root.findAll((node) => node.type === Pressable);
+    const buttons = tabButtons(tree);
     expect(buttons).toHaveLength(6);
   });
 
   it('renders exactly one button for a 3-route navigator (courier tabs)', () => {
     const { props } = buildProps(['active', 'history', 'profile'], 0);
     const tree = renderBar(props);
-    const buttons = tree.root.findAll((node) => node.type === Pressable);
+    const buttons = tabButtons(tree);
     expect(buttons).toHaveLength(3);
   });
 
   it('navigates to an unfocused tab on press', () => {
     const { props, navigate, emit } = buildProps(['home', 'health'], 0);
     const tree = renderBar(props);
-    const buttons = tree.root.findAll((node) => node.type === Pressable);
+    const buttons = tabButtons(tree);
     act(() => {
       buttons[1]!.props.onPress();
     });
@@ -98,7 +118,7 @@ describe('GlassTabBar', () => {
   it('does not navigate when pressing the already-focused tab', () => {
     const { props, navigate } = buildProps(['home', 'health'], 0);
     const tree = renderBar(props);
-    const buttons = tree.root.findAll((node) => node.type === Pressable);
+    const buttons = tabButtons(tree);
     act(() => {
       buttons[0]!.props.onPress();
     });
@@ -121,7 +141,7 @@ describe('GlassTabBar', () => {
       ['notifications', 'privacy', 'security'],
     );
     const tree = renderBar(props);
-    const buttons = tree.root.findAll((node) => node.type === Pressable);
+    const buttons = tabButtons(tree);
     expect(buttons).toHaveLength(6);
   });
 
@@ -135,7 +155,7 @@ describe('GlassTabBar', () => {
       ['hidden-a'],
     );
     const tree = renderBar(props);
-    const buttons = tree.root.findAll((node) => node.type === Pressable);
+    const buttons = tabButtons(tree);
     expect(buttons).toHaveLength(3);
     expect(buttons[2]!.props.accessibilityState).toEqual({ selected: true });
     expect(buttons[0]!.props.accessibilityState).toEqual({});
@@ -148,7 +168,7 @@ describe('GlassTabBar', () => {
       ['hidden-a'],
     );
     const tree = renderBar(props);
-    const buttons = tree.root.findAll((node) => node.type === Pressable);
+    const buttons = tabButtons(tree);
     act(() => {
       buttons[1]!.props.onPress();
     });
