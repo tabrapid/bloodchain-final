@@ -9,6 +9,8 @@
  * by looking at the screen.
  */
 import renderer, { act, type ReactTestInstance } from 'react-test-renderer';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ThemeProvider } from '../theme';
 import {
   Badge,
@@ -19,11 +21,19 @@ import {
   ListRow,
   OtpField,
   Progress,
+  ScrollScreen,
   SegmentedControl,
   Stat,
+  Surface,
   Toggle,
   hitTarget,
+  layout,
 } from './index';
+
+/** A style prop -- array, nested array or object -- as one object. */
+function flatten(style: unknown): Record<string, number | undefined> {
+  return (StyleSheet.flatten(style as never) ?? {}) as Record<string, number | undefined>;
+}
 
 function render(element: React.ReactNode) {
   let tree!: renderer.ReactTestRenderer;
@@ -298,5 +308,81 @@ describe('ListRow', () => {
   it('is at least a finger tall', () => {
     const tree = render(<ListRow title="Privacy" onPress={() => {}} />);
     expect(minHeightOf(roleOf(tree, 'button'))).toBeGreaterThanOrEqual(hitTarget.min);
+  });
+});
+
+/**
+ * Two rules inherited from the components V2 replaced, kept as tests because
+ * both were shipped defects before they were rules.
+ */
+describe('ScrollScreen content sizing', () => {
+  it('lets scrolling content grow past the viewport', () => {
+    const tree = render(
+      <SafeAreaProvider
+        initialMetrics={{
+          frame: { x: 0, y: 0, width: 390, height: 844 },
+          insets: { top: 47, left: 0, right: 0, bottom: 34 },
+        }}
+      >
+        <ScrollScreen>
+          <Text>content</Text>
+        </ScrollScreen>
+      </SafeAreaProvider>,
+    );
+
+    const scroller = tree.root.findAllByType(ScrollView)[0]!;
+    const style = flatten(scroller.props.contentContainerStyle);
+
+    // `flex: 1` sets `flexBasis: 0`, which inside a scroll container resolves
+    // the child's height against the viewport instead of its content -- so a
+    // screen longer than one viewport was clamped to one, scrolling stopped
+    // early, and the last card was cut in half.
+    expect(style.flexGrow).toBe(1);
+    expect(style.flex).toBeUndefined();
+  });
+
+  it('leaves room for the floating tab bar', () => {
+    const tree = render(
+      <SafeAreaProvider
+        initialMetrics={{
+          frame: { x: 0, y: 0, width: 390, height: 844 },
+          insets: { top: 47, left: 0, right: 0, bottom: 34 },
+        }}
+      >
+        <ScrollScreen>
+          <Text>content</Text>
+        </ScrollScreen>
+      </SafeAreaProvider>,
+    );
+
+    const scroller = tree.root.findAllByType(ScrollView)[0]!;
+    const style = flatten(scroller.props.contentContainerStyle);
+
+    expect(style.paddingBottom).toBeGreaterThanOrEqual(layout.tabBarClearance);
+  });
+});
+
+describe('Surface', () => {
+  it('draws a border rather than a shadow where the shadow cannot work', () => {
+    // Android derives a shadow from the view's outline, and on a surface whose
+    // fill lives in a child that degrades into a hard grey rectangle drawn
+    // inside the card. It was reported four times across separate V1 builds.
+    const tree = render(<Surface level="flat">{null}</Surface>);
+    const view = tree.root.findAllByType(View)[0]!;
+    const style = flatten(view.props.style);
+
+    expect(style.borderWidth).toBe(1);
+    expect(style.shadowOpacity).toBeUndefined();
+  });
+
+  it('is announced as one button when the whole card is the target', () => {
+    const tree = render(
+      <Surface onPress={() => undefined} accessibilityLabel="Open donor profile">
+        <Text>anything</Text>
+      </Surface>,
+    );
+
+    const button = roleOf(tree, 'button');
+    expect(button.props.accessibilityLabel).toBe('Open donor profile');
   });
 });
