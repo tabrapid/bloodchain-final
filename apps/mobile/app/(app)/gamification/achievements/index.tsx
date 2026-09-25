@@ -1,34 +1,45 @@
-import React from 'react';
-import { View, ScrollView, StyleSheet, RefreshControl } from 'react-native';
+import { router } from 'expo-router';
+import { Award } from 'lucide-react-native';
+import {
+  EmptyState,
+  ErrorState,
+  ScreenHeader,
+  ScrollScreen,
+  SectionHeader,
+  Skeleton,
+  Stack,
+} from '../../../../src/design';
+import { AchievementRow } from '../../../../src/components/gamification/AchievementRow';
 import { useAchievements } from '../../../../src/hooks/useGamification';
-import { Screen } from '../../../../src/components/Screen';
-import { ErrorState, ScreenHeader } from '../../../../src/components';
-import { AppText } from '../../../../src/components/AppText';
-import { AchievementCard } from '../../../../src/components/gamification/AchievementCard';
-import { layout, spacing, radius, useTheme, ThemeColors } from '../../../../src/theme';
 import { useTranslation } from '../../../../src/i18n';
 
 export default function AchievementsScreen() {
   const { t } = useTranslation();
-  const { colors } = useTheme();
-  const styles = React.useMemo(() => createStyles(colors), [colors]);
-  const { data: achievements, isLoading, isError, refetch } = useAchievements();
-  const [refreshing, setRefreshing] = React.useState(false);
+  const { data: achievements, isPending, isError, refetch, isRefetching } = useAchievements();
 
-  const onRefresh = React.useCallback(async () => {
-    setRefreshing(true);
-    await refetch();
-    setRefreshing(false);
-  }, [refetch]);
+  const unlocked = achievements?.unlocked ?? [];
+  const inProgress = achievements?.inProgress ?? [];
+  const locked = achievements?.locked ?? [];
+  const total = unlocked.length + inProgress.length + locked.length;
 
-  if (isLoading && !achievements) {
+  const header = (
+    <ScreenHeader
+      title={t('gamification.achievements')}
+      // `${n} of ${m} unlocked` was an English literal here.
+      eyebrow={t('gamification.unlockedOf', { unlocked: unlocked.length, total })}
+      onBack={() => router.back()}
+      backLabel={t('common.a11yGoBack')}
+    />
+  );
+
+  if (isPending && !achievements) {
     return (
-      <Screen>
-        <ScreenHeader title={t('gamification.achievements')} />
-        <View style={styles.loadingContainer}>
-          <AppText variant="body" muted>{t('common.loading')}</AppText>
-        </View>
-      </Screen>
+      <ScrollScreen header={header}>
+        <Stack gap="md">
+          <Skeleton height={120} />
+          <Skeleton height={120} />
+        </Stack>
+      </ScrollScreen>
     );
   }
 
@@ -36,127 +47,58 @@ export default function AchievementsScreen() {
   // "you have none" -- a different and wrong answer.
   if (isError && !achievements) {
     return (
-      <Screen>
-        <ScreenHeader title={t('gamification.achievements')} />
-        <ErrorState onRetry={() => void refetch()} />
-      </Screen>
+      <ScrollScreen header={header}>
+        <ErrorState
+          title={t('common.errorTitle')}
+          description={t('common.errorBody')}
+          retryLabel={t('common.retry')}
+          onRetry={() => void refetch()}
+        />
+      </ScrollScreen>
     );
   }
 
-  const unlockedCount = achievements?.unlocked.length || 0;
-  const inProgressCount = achievements?.inProgress.length || 0;
-  const lockedCount = achievements?.locked.length || 0;
+  if (total === 0) {
+    return (
+      <ScrollScreen header={header}>
+        <EmptyState
+          title={t('gamification.noAchievements')}
+          icon={({ size, color }) => <Award size={size} color={color} />}
+        />
+      </ScrollScreen>
+    );
+  }
 
   return (
-    <Screen scroll={false}>
-      <ScreenHeader
-        title={t('gamification.achievements')}
-        subtitle={`${unlockedCount} of ${unlockedCount + inProgressCount + lockedCount} unlocked`}
-      />
-      <ScrollView
-        style={styles.container}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
-        }
-        showsVerticalScrollIndicator={false}
-      >
-
-        {achievements && achievements.unlocked.length > 0 && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <AppText variant="heading" style={{ color: colors.success }}>
-                {t('gamification.unlocked')}
-              </AppText>
-              <View style={styles.countBadge}>
-                <AppText variant="caption" style={{ color: colors.onMuted.success }}>
-                  {unlockedCount}
-                </AppText>
-              </View>
-            </View>
-
-            {achievements.unlocked.map((achievement) => (
-              <AchievementCard key={achievement.id} achievement={achievement} showProgress={false} />
+    <ScrollScreen header={header} refreshing={isRefetching} onRefresh={() => void refetch()}>
+      <Stack gap="xl">
+        {unlocked.length > 0 ? (
+          <Stack gap="md">
+            <SectionHeader title={`${t('gamification.unlocked')} · ${unlocked.length}`} />
+            {unlocked.map((achievement) => (
+              <AchievementRow key={achievement.id} achievement={achievement} />
             ))}
-          </View>
-        )}
+          </Stack>
+        ) : null}
 
-        {achievements && achievements.inProgress.length > 0 && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <AppText variant="heading" style={{ color: colors.warning }}>
-                {t('gamification.inProgress')}
-              </AppText>
-              <View style={[styles.countBadge, styles.inProgressBadge]}>
-                <AppText variant="caption" style={{ color: colors.onMuted.warning }}>
-                  {inProgressCount}
-                </AppText>
-              </View>
-            </View>
-
-            {achievements.inProgress.map((achievement) => (
-              <AchievementCard key={achievement.id} achievement={achievement} showProgress={true} />
+        {inProgress.length > 0 ? (
+          <Stack gap="md">
+            <SectionHeader title={`${t('gamification.inProgress')} · ${inProgress.length}`} />
+            {inProgress.map((achievement) => (
+              <AchievementRow key={achievement.id} achievement={achievement} />
             ))}
-          </View>
-        )}
+          </Stack>
+        ) : null}
 
-        {achievements && achievements.locked.length > 0 && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <AppText variant="heading" muted>
-                {t('gamification.locked')}
-              </AppText>
-              <View style={[styles.countBadge, styles.lockedBadge]}>
-                <AppText variant="caption" muted>
-                  {lockedCount}
-                </AppText>
-              </View>
-            </View>
-
-            {achievements.locked.map((achievement) => (
-              <AchievementCard key={achievement.id} achievement={achievement} showProgress={false} />
+        {locked.length > 0 ? (
+          <Stack gap="md">
+            <SectionHeader title={`${t('gamification.locked')} · ${locked.length}`} />
+            {locked.map((achievement) => (
+              <AchievementRow key={achievement.id} achievement={achievement} />
             ))}
-          </View>
-        )}
-
-        <View style={styles.bottomPadding} />
-      </ScrollView>
-    </Screen>
+          </Stack>
+        ) : null}
+      </Stack>
+    </ScrollScreen>
   );
-}
-
-function createStyles(colors: ThemeColors) {
-  return StyleSheet.create({
-    container: {
-      flex: 1,
-    },
-    loadingContainer: {
-      flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    section: {
-      marginBottom: layout.cardGap,
-    },
-    sectionHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      marginBottom: spacing.md,
-    },
-    countBadge: {
-      backgroundColor: colors.successMuted,
-      paddingHorizontal: spacing.sm,
-      paddingVertical: 2,
-      borderRadius: radius.sm,
-      marginLeft: spacing.sm,
-    },
-    inProgressBadge: {
-      backgroundColor: colors.warningMuted,
-    },
-    lockedBadge: {
-      backgroundColor: colors.surfaceHighlight,
-    },
-    bottomPadding: {
-      height: spacing.xl,
-    },
-  });
 }

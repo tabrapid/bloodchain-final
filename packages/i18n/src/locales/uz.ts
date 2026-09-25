@@ -2145,6 +2145,14 @@ export const uz: Catalog = {
     targetSuffix: ' / maqsad {{count}}',
   },
   challenges: {
+    types: {
+      DONATION_MILESTONE: 'Topshirish bosqichi',
+      CAMPAIGN_PARTICIPATION: 'Aksiya',
+      EDUCATION: 'Ta’lim',
+      COMMUNITY: 'Hamjamiyat',
+      APPOINTMENT_COMPLETION: 'Yozilishlar',
+      CONSISTENCY: 'Muntazamlik',
+    },
     title: 'Vazifalar',
     subtitle: 'XP va nishonlar olish uchun vazifalarni bajaring',
     loading: 'Vazifalar yuklanmoqda…',
@@ -2156,6 +2164,8 @@ export const uz: Catalog = {
     endsOn: '{{date}} da tugaydi',
   },
   education: {
+    types: { ARTICLE: 'Maqola', QUIZ: 'Test', VIDEO: 'Video' },
+    difficulties: { BEGINNER: 'Boshlang‘ich', INTERMEDIATE: 'O‘rta', ADVANCED: 'Yuqori' },
     title: 'Ta’lim markazi',
     subtitle: 'Qon topshirish haqida o‘rganing va XP oling',
     loading: 'Kontent yuklanmoqda…',
@@ -2173,6 +2183,11 @@ export const uz: Catalog = {
     minutes: '{{count}} daq',
   },
   gamification: {
+    rankOf: '{{total}} tadan #{{rank}}',
+    levelShort: '{{level}}-daraja',
+    xpValue: '{{xp}} XP',
+    earnedOf: '{{total}} tadan {{earned}} tasi olingan',
+    unlockedOf: '{{total}} tadan {{unlocked}} tasi ochilgan',
     xpPoints: 'XP ballari',
     activeChallenges: 'Faol vazifalar',
     leaderboard: 'Reyting',

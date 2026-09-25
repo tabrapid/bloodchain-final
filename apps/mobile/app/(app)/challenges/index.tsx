@@ -1,33 +1,36 @@
-import { useMemo, useState } from 'react';
-import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
+import { useState } from 'react';
+import { FlatList } from 'react-native';
+import { router } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Trophy, Clock, Award } from 'lucide-react-native';
+import { Award, Clock, Trophy } from 'lucide-react-native';
 import { getActiveChallenges, joinChallenge, type Challenge } from '../../../src/api/challenges';
 import {
-  AppButton,
-  AppText,
   Badge,
-  Card,
+  Banner,
+  Button,
   EmptyState,
   ErrorState,
-  GlassCard,
-  LoadingState,
-  ProgressBar,
+  Progress,
+  Row,
   Screen,
   ScreenHeader,
-} from '../../../src/components';
-import { layout, spacing, radius, useTheme, ThemeColors } from '../../../src/theme';
+  SkeletonRow,
+  Stack,
+  Surface,
+  Text,
+  iconSize,
+  layout,
+  space,
+  useDesign,
+} from '../../../src/design';
 import { useTranslation } from '../../../src/i18n';
 
 export default function ChallengesScreen() {
   const { t } = useTranslation();
-  const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
-  const [refreshing, setRefreshing] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
-  const { data: challenges, isLoading, isError, refetch } = useQuery({
+  const { data: challenges, isPending, isError, refetch, isRefetching } = useQuery({
     queryKey: ['active-challenges'],
     queryFn: getActiveChallenges,
   });
@@ -36,25 +39,31 @@ export default function ChallengesScreen() {
     mutationFn: joinChallenge,
     onSuccess: () => {
       setJoinError(null);
-      queryClient.invalidateQueries({ queryKey: ['active-challenges'] });
-      queryClient.invalidateQueries({ queryKey: ['my-challenges'] });
+      void queryClient.invalidateQueries({ queryKey: ['active-challenges'] });
+      void queryClient.invalidateQueries({ queryKey: ['my-challenges'] });
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       setJoinError(err.message || t('challenges.joinFailed'));
     },
   });
 
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await refetch();
-    setRefreshing(false);
-  };
+  const header = (
+    <ScreenHeader
+      title={t('challenges.title')}
+      eyebrow={t('challenges.subtitle')}
+      onBack={() => router.back()}
+      backLabel={t('common.a11yGoBack')}
+    />
+  );
 
-  if (isLoading) {
+  if (isPending) {
     return (
       <Screen>
-        <ScreenHeader title={t('challenges.title')} />
-        <LoadingState message={t('challenges.loading')} />
+        {header}
+        <Surface>
+          <SkeletonRow />
+          <SkeletonRow />
+        </Surface>
       </Screen>
     );
   }
@@ -64,23 +73,32 @@ export default function ChallengesScreen() {
   if (isError) {
     return (
       <Screen>
-        <ScreenHeader title={t('challenges.title')} />
-        <ErrorState onRetry={() => void refetch()} />
+        {header}
+        <ErrorState
+          title={t('common.errorTitle')}
+          description={t('common.errorBody')}
+          retryLabel={t('common.retry')}
+          onRetry={() => void refetch()}
+        />
       </Screen>
     );
   }
 
   return (
-    <Screen scroll={false}>
-      <ScreenHeader
-        title={t('challenges.title')}
-        subtitle={t('challenges.subtitle')}
-      />
+    <Screen gutter={false}>
+      {header}
       <FlatList
         style={{ flex: 1 }}
         data={challenges ?? []}
         keyExtractor={(challenge) => challenge.id}
-        contentContainerStyle={styles.list}
+        contentContainerStyle={{
+          paddingHorizontal: layout.gutter,
+          paddingBottom: layout.tabBarClearance,
+          gap: space.md,
+        }}
+        showsVerticalScrollIndicator={false}
+        refreshing={isRefetching}
+        onRefresh={() => void refetch()}
         renderItem={({ item: challenge }) => (
           <ChallengeCard
             challenge={challenge}
@@ -88,28 +106,17 @@ export default function ChallengesScreen() {
             isJoining={joinMutation.isPending}
           />
         )}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={colors.primary}
-          />
-        }
         ListHeaderComponent={
           joinError ? (
-            <Card style={styles.errorCard}>
-              <AppText style={{ color: colors.onMuted.danger }}>{joinError}</AppText>
-            </Card>
+            <Banner tone="critical" title={joinError} style={{ marginBottom: space.md }} />
           ) : null
         }
         ListEmptyComponent={
-          <Card>
-            <EmptyState
-              icon={Trophy}
-              title={t('challenges.empty')}
-              description={t('challenges.emptyHint')}
-            />
-          </Card>
+          <EmptyState
+            title={t('challenges.empty')}
+            description={t('challenges.emptyHint')}
+            icon={({ size, color }) => <Trophy size={size} color={color} />}
+          />
         }
       />
     </Screen>
@@ -126,137 +133,68 @@ function ChallengeCard({
   isJoining: boolean;
 }) {
   const { t, formatDate } = useTranslation();
-  const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const { colors } = useDesign();
   const current = challenge.userProgress || 0;
-  const progress = current / challenge.goal;
+  const progress = challenge.goal > 0 ? current / challenge.goal : 0;
   const hasJoined = challenge.userProgress !== undefined;
 
   return (
-    <GlassCard>
-      <View style={styles.badgeRow}>
-        <Badge variant="primary">{challenge.type}</Badge>
-      </View>
-      <AppText variant="heading">{challenge.title}</AppText>
+    <Surface>
+      <Stack gap="md">
+        <Row gap="md" align="flex-start">
+          <Stack gap="xs" style={{ flex: 1 }}>
+            {/* The type used to render as its enum -- "DONATION_MILESTONE" --
+                in a rose badge beside the title. */}
+            <Badge label={t(`challenges.types.${challenge.type}`)} tone="insight" />
+            <Text variant="h3">{challenge.title}</Text>
+          </Stack>
+        </Row>
 
-      <AppText variant="bodySmall" style={styles.description} numberOfLines={3}>
-        {challenge.description}
-      </AppText>
+        <Text variant="body" tone="secondary" numberOfLines={3}>
+          {challenge.description}
+        </Text>
 
-      {challenge.endDate && (
-        <View style={styles.detailRow}>
-          <Clock size={16} color={colors.textMuted} />
-          <AppText muted variant="bodySmall">
-            {t('challenges.endsOn', { date: formatDate(challenge.endDate, 'medium') })}
-          </AppText>
-        </View>
-      )}
+        {challenge.endDate ? (
+          <Row gap="sm">
+            <Clock size={iconSize.sm} color={colors.textTertiary} />
+            <Text variant="caption" tone="secondary">
+              {t('challenges.endsOn', { date: formatDate(challenge.endDate, 'medium') })}
+            </Text>
+          </Row>
+        ) : null}
 
-      <View style={styles.progressSection}>
-        <View style={styles.progressLabels}>
-          <AppText muted variant="bodySmall">
-            {t('table.progress')}
-          </AppText>
-          <AppText variant="bodySmall" style={styles.progressValue}>
-            {current} / {challenge.goal}
-          </AppText>
-        </View>
-        <ProgressBar progress={progress * 100} height={8} />
-      </View>
+        <Progress
+          label={t('table.progress')}
+          caption={`${current} / ${challenge.goal}`}
+          value={progress}
+          tone="warning"
+        />
 
-      <View style={styles.rewards}>
-        {challenge.xpReward > 0 && (
-          <View style={styles.detailRow}>
-            <Trophy size={18} color={colors.primary} />
-            <AppText variant="bodySmall" style={styles.xpReward}>
-              +{challenge.xpReward} XP
-            </AppText>
-          </View>
-        )}
+        <Row gap="lg" style={{ flexWrap: 'wrap' }}>
+          {challenge.xpReward > 0 ? (
+            <Row gap="xs">
+              <Trophy size={iconSize.sm} color={colors.warning.base} />
+              <Text variant="caption" tone="secondary">
+                {`+${challenge.xpReward} ${t('profile.xp')}`}
+              </Text>
+            </Row>
+          ) : null}
+          {challenge.badge ? (
+            <Row gap="xs">
+              <Award size={iconSize.sm} color={colors.warning.base} />
+              <Text variant="caption" tone="secondary">
+                {challenge.badge.name}
+              </Text>
+            </Row>
+          ) : null}
+        </Row>
 
-        {challenge.badge && (
-          <View style={styles.detailRow}>
-            <Award size={18} color={colors.primary} />
-            <AppText variant="bodySmall">{challenge.badge.name}</AppText>
-          </View>
-        )}
-      </View>
-
-      {!hasJoined && (
-        <AppButton onPress={onJoin} loading={isJoining} style={styles.action}>
-          {t('challenges.joinChallenge')}
-        </AppButton>
-      )}
-
-      {hasJoined && progress >= 1 && (
-        <View style={styles.completed}>
-          <AppText style={styles.completedText}>{t('challenges.completed')}</AppText>
-        </View>
-      )}
-    </GlassCard>
+        {!hasJoined ? (
+          <Button label={t('challenges.joinChallenge')} loading={isJoining} onPress={onJoin} />
+        ) : progress >= 1 ? (
+          <Badge label={t('challenges.completed')} tone="success" />
+        ) : null}
+      </Stack>
+    </Surface>
   );
-}
-
-function createStyles(colors: ThemeColors) {
-  return StyleSheet.create({
-    errorCard: {
-      padding: spacing.md,
-      marginBottom: layout.cardGap,
-      backgroundColor: colors.dangerMuted,
-    },
-    list: {
-      gap: layout.cardGap,
-      paddingBottom: spacing.xl,
-    },
-    badgeRow: {
-      flexDirection: 'row',
-      marginBottom: spacing.sm,
-    },
-    description: {
-      marginTop: spacing.sm,
-      marginBottom: spacing.md,
-    },
-    detailRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.xs,
-    },
-    progressSection: {
-      marginTop: spacing.md,
-      marginBottom: spacing.md,
-    },
-    progressLabels: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      marginBottom: spacing.xs,
-    },
-    progressValue: {
-      fontWeight: '600',
-    },
-    rewards: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: spacing.sm,
-    },
-    xpReward: {
-      fontWeight: '700',
-      color: colors.primary,
-    },
-    action: {
-      marginTop: spacing.md,
-    },
-    completed: {
-      marginTop: spacing.md,
-      paddingVertical: spacing.md,
-      paddingHorizontal: spacing.lg,
-      borderRadius: radius.sm,
-      alignItems: 'center',
-      backgroundColor: colors.successMuted,
-    },
-    completedText: {
-      fontWeight: '700',
-      color: colors.onMuted.success,
-    },
-  });
 }

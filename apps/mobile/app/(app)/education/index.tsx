@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react';
-import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
+import { useState } from 'react';
+import { FlatList } from 'react-native';
+import { router } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { BookOpen, Clock, Award, CheckCircle, PlayCircle } from 'lucide-react-native';
+import { Award, BookOpen, CheckCircle, Clock, PlayCircle } from 'lucide-react-native';
 import {
   getEducationalContent,
   startContent,
@@ -11,29 +12,47 @@ import {
   type EducationalContent,
 } from '../../../src/api/education';
 import {
-  AppButton,
-  AppText,
   Badge,
-  Card,
+  Banner,
+  Button,
   EmptyState,
   ErrorState,
-  GlassCard,
-  LoadingState,
+  Row,
   Screen,
   ScreenHeader,
-} from '../../../src/components';
-import { layout, spacing, useTheme, ThemeColors } from '../../../src/theme';
+  SectionHeader,
+  SkeletonRow,
+  Stack,
+  Stat,
+  StatRow,
+  Surface,
+  Text,
+  iconSize,
+  layout,
+  space,
+  useDesign,
+} from '../../../src/design';
 import { useTranslation } from '../../../src/i18n';
+import type { TranslateFn } from '@bloodchain/i18n';
+
+/** The three difficulties the content actually uses; anything else is shown as written. */
+const KNOWN_DIFFICULTIES = ['BEGINNER', 'INTERMEDIATE', 'ADVANCED'];
+
+function difficultyLabel(value: string, t: TranslateFn): string {
+  return KNOWN_DIFFICULTIES.includes(value)
+    ? t(`education.difficulties.${value}`)
+    : // Content-authored and not in the catalogue: shown as written rather
+      // than shouted, and never guessed at.
+      value.charAt(0) + value.slice(1).toLowerCase();
+}
 
 export default function EducationScreen() {
   const { t } = useTranslation();
-  const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
-  const [refreshing, setRefreshing] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [pendingId, setPendingId] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
-  const { data: content, isLoading, isError, refetch } = useQuery({
+  const { data: content, isPending, isError, refetch, isRefetching } = useQuery({
     queryKey: ['educational-content'],
     queryFn: () => getEducationalContent({ page: 1, limit: 50 }),
   });
@@ -59,40 +78,40 @@ export default function EducationScreen() {
     mutationFn: startContent,
     onSuccess: () => {
       setActionError(null);
-      queryClient.invalidateQueries({ queryKey: ['education-progress'] });
-      queryClient.invalidateQueries({ queryKey: ['education-stats'] });
+      void queryClient.invalidateQueries({ queryKey: ['education-progress'] });
+      void queryClient.invalidateQueries({ queryKey: ['education-stats'] });
     },
-    onError: (err: any) => {
-      setActionError(err.message || t('education.startFailed'));
-    },
+    onError: (err: Error) => setActionError(err.message || t('education.startFailed')),
   });
-
-  const [pendingId, setPendingId] = useState<string | null>(null);
 
   const completeMutation = useMutation({
     mutationFn: completeContent,
     onSuccess: () => {
       setActionError(null);
-      queryClient.invalidateQueries({ queryKey: ['educational-content'] });
-      queryClient.invalidateQueries({ queryKey: ['education-progress'] });
-      queryClient.invalidateQueries({ queryKey: ['education-stats'] });
+      void queryClient.invalidateQueries({ queryKey: ['educational-content'] });
+      void queryClient.invalidateQueries({ queryKey: ['education-progress'] });
+      void queryClient.invalidateQueries({ queryKey: ['education-stats'] });
     },
-    onError: (err: any) => {
-      setActionError(err.message || t('education.completeFailed'));
-    },
+    onError: (err: Error) => setActionError(err.message || t('education.completeFailed')),
   });
 
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await refetch();
-    setRefreshing(false);
-  };
+  const header = (
+    <ScreenHeader
+      title={t('education.title')}
+      eyebrow={t('education.subtitle')}
+      onBack={() => router.back()}
+      backLabel={t('common.a11yGoBack')}
+    />
+  );
 
-  if (isLoading) {
+  if (isPending) {
     return (
       <Screen>
-        <ScreenHeader title={t('education.title')} />
-        <LoadingState message={t('education.loading')} />
+        {header}
+        <Surface>
+          <SkeletonRow />
+          <SkeletonRow />
+        </Surface>
       </Screen>
     );
   }
@@ -102,23 +121,32 @@ export default function EducationScreen() {
   if (isError) {
     return (
       <Screen>
-        <ScreenHeader title={t('education.title')} />
-        <ErrorState onRetry={() => void refetch()} />
+        {header}
+        <ErrorState
+          title={t('common.errorTitle')}
+          description={t('common.errorBody')}
+          retryLabel={t('common.retry')}
+          onRetry={() => void refetch()}
+        />
       </Screen>
     );
   }
 
   return (
-    <Screen scroll={false}>
-      <ScreenHeader
-        title={t('education.title')}
-        subtitle={t('education.subtitle')}
-      />
+    <Screen gutter={false}>
+      {header}
       <FlatList
         style={{ flex: 1 }}
         data={content?.items ?? []}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.list}
+        contentContainerStyle={{
+          paddingHorizontal: layout.gutter,
+          paddingBottom: layout.tabBarClearance,
+          gap: space.md,
+        }}
+        showsVerticalScrollIndicator={false}
+        refreshing={isRefetching}
+        onRefresh={() => void refetch()}
         renderItem={({ item }) => (
           <EducationCard
             content={item}
@@ -135,63 +163,41 @@ export default function EducationScreen() {
             isCompleting={completeMutation.isPending && pendingId === item.id}
           />
         )}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={colors.primary}
-          />
-        }
         ListHeaderComponent={
-          <>
-            {stats && (
-              <GlassCard tier="elevated" style={styles.statsCard}>
-                <AppText variant="heading">{t('education.yourProgress')}</AppText>
-                <View style={styles.statsRow}>
-                  <EducationStat label={t('education.completed')} value={stats.totalCompleted} />
-                  <EducationStat label={t('education.started')} value={stats.totalStarted} />
-                  <EducationStat label={t('education.xpEarned')} value={stats.totalXpEarned} />
-                </View>
-              </GlassCard>
-            )}
+          <Stack gap="lg" style={{ paddingBottom: space.md }}>
+            {stats ? (
+              <SectionHeader title={t('education.yourProgress')} />
+            ) : null}
+            {stats ? (
+              <StatRow>
+                <Stat
+                  label={t('education.completed')}
+                  value={String(stats.totalCompleted)}
+                  tone="success"
+                />
+                <Stat label={t('education.started')} value={String(stats.totalStarted)} />
+                <Stat
+                  label={t('education.xpEarned')}
+                  value={String(stats.totalXpEarned)}
+                  tone="insight"
+                />
+              </StatRow>
+            ) : null}
 
-            <AppText variant="heading" style={styles.sectionTitle}>
-              {t('education.availableContent')}
-            </AppText>
+            <SectionHeader title={t('education.availableContent')} />
 
-            {actionError && (
-              <Card style={styles.errorCard}>
-                <AppText style={{ color: colors.onMuted.danger }}>{actionError}</AppText>
-              </Card>
-            )}
-          </>
+            {actionError ? <Banner tone="critical" title={actionError} /> : null}
+          </Stack>
         }
         ListEmptyComponent={
-          <Card>
-            <EmptyState
-              icon={BookOpen}
-              title={t('education.empty')}
-              description={t('education.emptyHint')}
-            />
-          </Card>
+          <EmptyState
+            title={t('education.empty')}
+            description={t('education.emptyHint')}
+            icon={({ size, color }) => <BookOpen size={size} color={color} />}
+          />
         }
       />
     </Screen>
-  );
-}
-
-function EducationStat({ label, value }: { label: string; value: number }) {
-  const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
-  return (
-    <View style={styles.stat}>
-      <AppText variant="numeric" style={styles.statValue}>
-        {value}
-      </AppText>
-      <AppText muted variant="bodySmall" style={styles.statLabel}>
-        {label}
-      </AppText>
-    </View>
   );
 }
 
@@ -212,124 +218,66 @@ function EducationCard({
   isCompleting: boolean;
 }) {
   const { t } = useTranslation();
-  const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const { colors } = useDesign();
+
   return (
-    <GlassCard>
-      <View style={styles.badgeRow}>
-        <Badge variant="primary">{content.type}</Badge>
-        <Badge>{content.difficulty}</Badge>
-      </View>
-      <AppText variant="heading">{content.title}</AppText>
+    <Surface>
+      <Stack gap="md">
+        {/* Type and difficulty used to render as their enums -- "ARTICLE",
+            "BEGINNER" -- in two badges above the title. */}
+        <Row gap="xs" style={{ flexWrap: 'wrap' }}>
+          <Badge label={t(`education.types.${content.type}`)} tone="clinical" />
+          <Badge label={difficultyLabel(content.difficulty, t)} />
+          {content.category ? <Badge label={content.category} /> : null}
+        </Row>
 
-      <AppText variant="bodySmall" style={styles.description} numberOfLines={3}>
-        {content.description}
-      </AppText>
+        <Stack gap="xs">
+          <Text variant="h3">{content.title}</Text>
+          <Text variant="body" tone="secondary" numberOfLines={3}>
+            {content.description}
+          </Text>
+        </Stack>
 
-      <View style={styles.meta}>
-        {content.estimatedMinutes && (
-          <View style={styles.detailRow}>
-            <Clock size={16} color={colors.textMuted} />
-            <AppText muted variant="bodySmall">
-              {t('education.minutes', { count: content.estimatedMinutes })}
-            </AppText>
-          </View>
-        )}
-
-        {content.xpReward > 0 && (
-          <View style={styles.detailRow}>
-            <Award size={16} color={colors.primary} />
-            <AppText variant="bodySmall" style={styles.xpReward}>
-              +{content.xpReward} XP
-            </AppText>
-          </View>
-        )}
-      </View>
-
-      <View style={styles.cardFooter}>
-        <Badge>{content.category}</Badge>
+        <Row gap="lg" style={{ flexWrap: 'wrap' }}>
+          {content.estimatedMinutes ? (
+            <Row gap="xs">
+              <Clock size={iconSize.sm} color={colors.textTertiary} />
+              <Text variant="caption" tone="secondary">
+                {t('education.minutes', { count: content.estimatedMinutes })}
+              </Text>
+            </Row>
+          ) : null}
+          {content.xpReward > 0 ? (
+            <Row gap="xs">
+              <Award size={iconSize.sm} color={colors.insight.base} />
+              <Text variant="caption" tone="secondary">
+                {`+${content.xpReward} ${t('profile.xp')}`}
+              </Text>
+            </Row>
+          ) : null}
+        </Row>
 
         {status === 'COMPLETED' ? (
-          <Badge variant="success">{t('education.completed')}</Badge>
+          <Badge label={t('education.completed')} tone="success" />
         ) : status === 'STARTED' ? (
-          <AppButton onPress={onComplete} loading={isCompleting} size="small">
-            <CheckCircle size={16} color={colors.white} />
-            {t('education.complete')}
-          </AppButton>
+          <Button
+            label={t('education.complete')}
+            size="md"
+            loading={isCompleting}
+            icon={({ size, color }) => <CheckCircle size={size} color={color} />}
+            onPress={onComplete}
+          />
         ) : (
-          <AppButton onPress={onStart} loading={isStarting} size="small">
-            <PlayCircle size={16} color={colors.white} />
-            {t('education.start')}
-          </AppButton>
+          <Button
+            label={t('education.start')}
+            variant="secondary"
+            size="md"
+            loading={isStarting}
+            icon={({ size, color }) => <PlayCircle size={size} color={color} />}
+            onPress={onStart}
+          />
         )}
-      </View>
-    </GlassCard>
+      </Stack>
+    </Surface>
   );
-}
-
-function createStyles(colors: ThemeColors) {
-  return StyleSheet.create({
-    statsCard: {
-      marginBottom: layout.cardGap,
-    },
-    errorCard: {
-      padding: spacing.md,
-      marginBottom: layout.cardGap,
-      backgroundColor: colors.dangerMuted,
-    },
-    statsRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      marginTop: spacing.md,
-    },
-    stat: {
-      alignItems: 'center',
-      flex: 1,
-    },
-    statValue: {
-      fontSize: 28,
-      lineHeight: 34,
-      color: colors.primary,
-    },
-    statLabel: {
-      marginTop: spacing.xs,
-    },
-    sectionTitle: {
-      marginBottom: spacing.md,
-    },
-    list: {
-      gap: layout.cardGap,
-      paddingBottom: spacing.xl,
-    },
-    badgeRow: {
-      flexDirection: 'row',
-      gap: spacing.xs,
-      marginBottom: spacing.sm,
-    },
-    description: {
-      marginTop: spacing.sm,
-      marginBottom: spacing.md,
-    },
-    meta: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.md,
-      marginBottom: spacing.md,
-    },
-    detailRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.xs,
-    },
-    xpReward: {
-      fontWeight: '600',
-      color: colors.primary,
-    },
-    cardFooter: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: spacing.sm,
-    },
-  });
 }

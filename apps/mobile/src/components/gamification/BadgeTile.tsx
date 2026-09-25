@@ -1,0 +1,69 @@
+import { Shield } from 'lucide-react-native';
+import { View } from 'react-native';
+import { Text, iconSize, radius, space, useDesign, type AccentName } from '../../design';
+import { gamificationIcons } from './icons';
+import type { Badge } from '../../api/gamification';
+import { useTranslation } from '../../i18n';
+
+/**
+ * How rare a badge is, as an accent rather than four loose hex values.
+ *
+ * V1 had `RARE: '#3B82F6'`, `EPIC: '#8B5CF6'`, `LEGENDARY: '#F59E0B'` written
+ * into the component -- three colours that exist nowhere else in the app and
+ * were never checked for contrast on either surface.
+ */
+const RARITY_TONE: Record<Badge['rarity'], AccentName | null> = {
+  COMMON: null,
+  RARE: 'clinical',
+  EPIC: 'insight',
+  LEGENDARY: 'warning',
+};
+
+/**
+ * One badge in a grid.
+ *
+ * An unearned badge is drawn, not hidden: a collection you can see the shape
+ * of is the point. It is dimmed and its state is announced, so "locked" is not
+ * conveyed by opacity alone.
+ */
+export function BadgeTile({ badge, width }: { badge: Badge; width?: number | `${number}%` }) {
+  const { t } = useTranslation();
+  const { colors } = useDesign();
+
+  const earned = Boolean(badge.earnedAt);
+  const tone = RARITY_TONE[badge.rarity];
+  const accent = tone ? colors[tone] : null;
+  const Icon = gamificationIcons[badge.icon] ?? Shield;
+
+  return (
+    <View
+      accessible
+      accessibilityRole="image"
+      accessibilityLabel={`${badge.name}. ${
+        earned ? t('gamification.earned') : t('gamification.locked')
+      }`}
+      style={{ width, alignItems: 'center', gap: space.sm, opacity: earned ? 1 : 0.45 }}
+    >
+      <View
+        style={{
+          width: 56,
+          height: 56,
+          borderRadius: radius.full,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: earned && accent ? accent.soft : colors.surfaceRaised,
+          borderWidth: 1,
+          borderColor: earned && accent ? accent.base : colors.divider,
+        }}
+      >
+        <Icon
+          size={iconSize.md}
+          color={earned ? (accent?.base ?? colors.textSecondary) : colors.textTertiary}
+        />
+      </View>
+      <Text variant="caption" tone={earned ? 'primary' : 'tertiary'} align="center" numberOfLines={2}>
+        {badge.name}
+      </Text>
+    </View>
+  );
+}

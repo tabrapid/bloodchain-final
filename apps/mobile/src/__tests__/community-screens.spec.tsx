@@ -367,15 +367,24 @@ describe('P3-9: the four screens that used className render with real styles', (
 
     expect(text).toContain(campaignFixture.title);
     expect(text).toContain(campaignFixture.location);
-    expect(styleFingerprint(nodes)).toContain(colors.textMuted);
+    // Either palette: S11 moved this screen to the V2 design system, and what
+    // is being checked is that the detail rows are drawn in a real secondary
+    // text colour rather than unstyled.
+    const fingerprint = styleFingerprint(nodes);
+    expect(
+      fingerprint.includes(colors.textMuted) || fingerprint.includes(themes.dark.textSecondary),
+    ).toBe(true);
   });
 
   it('challenges renders a themed progress bar for a joined challenge', async () => {
     const nodes = allNodes(await renderTree(ChallengesScreen));
     const fingerprint = styleFingerprint(nodes);
 
-    // ProgressBar fills to userProgress/goal (1 of 3) using the primary color.
-    expect(fingerprint).toContain(colors.primary);
+    // The bar fills to userProgress/goal (1 of 3) in a real accent -- rose in
+    // V1, the challenge tone in V2 -- rather than an unstyled rectangle.
+    expect(
+      fingerprint.includes(colors.primary) || fingerprint.includes(themes.dark.warning.base),
+    ).toBe(true);
     expect(fingerprint).toMatch(/33\.3\d*%/);
     expect(renderedText(nodes)).toContain(challengeFixture.title);
   });

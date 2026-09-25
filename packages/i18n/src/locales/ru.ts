@@ -2244,6 +2244,14 @@ export const ru: Catalog = {
     targetSuffix: ' / цель {{count}}',
   },
   challenges: {
+    types: {
+      DONATION_MILESTONE: 'Рубеж донорства',
+      CAMPAIGN_PARTICIPATION: 'Акция',
+      EDUCATION: 'Обучение',
+      COMMUNITY: 'Сообщество',
+      APPOINTMENT_COMPLETION: 'Записи',
+      CONSISTENCY: 'Регулярность',
+    },
     title: 'Челленджи',
     subtitle: 'Выполняйте челленджи, чтобы получать XP и значки',
     loading: 'Загрузка челленджей…',
@@ -2255,6 +2263,8 @@ export const ru: Catalog = {
     endsOn: 'Завершается {{date}}',
   },
   education: {
+    types: { ARTICLE: 'Статья', QUIZ: 'Тест', VIDEO: 'Видео' },
+    difficulties: { BEGINNER: 'Начальный', INTERMEDIATE: 'Средний', ADVANCED: 'Продвинутый' },
     title: 'Обучение',
     subtitle: 'Узнавайте о донорстве и получайте XP',
     loading: 'Загрузка материалов…',
@@ -2272,6 +2282,11 @@ export const ru: Catalog = {
     minutes: '{{count}} мин',
   },
   gamification: {
+    rankOf: '#{{rank}} из {{total}}',
+    levelShort: 'Ур.{{level}}',
+    xpValue: '{{xp}} XP',
+    earnedOf: 'получено {{earned}} из {{total}}',
+    unlockedOf: 'открыто {{unlocked}} из {{total}}',
     xpPoints: 'Очки XP',
     activeChallenges: 'Активные челленджи',
     leaderboard: 'Рейтинг',

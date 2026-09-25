@@ -2208,6 +2208,14 @@ export const en: Catalog = {
     targetSuffix: ' / {{count}} target',
   },
   challenges: {
+    types: {
+      DONATION_MILESTONE: 'Donation milestone',
+      CAMPAIGN_PARTICIPATION: 'Campaign',
+      EDUCATION: 'Learning',
+      COMMUNITY: 'Community',
+      APPOINTMENT_COMPLETION: 'Appointments',
+      CONSISTENCY: 'Consistency',
+    },
     title: 'Challenges',
     subtitle: 'Complete challenges to earn XP and badges',
     loading: 'Loading challenges…',
@@ -2219,6 +2227,8 @@ export const en: Catalog = {
     endsOn: 'Ends {{date}}',
   },
   education: {
+    types: { ARTICLE: 'Article', QUIZ: 'Quiz', VIDEO: 'Video' },
+    difficulties: { BEGINNER: 'Beginner', INTERMEDIATE: 'Intermediate', ADVANCED: 'Advanced' },
     title: 'Education hub',
     subtitle: 'Learn about blood donation and earn XP',
     loading: 'Loading content…',
@@ -2236,6 +2246,11 @@ export const en: Catalog = {
     minutes: '{{count}} min',
   },
   gamification: {
+    rankOf: '#{{rank}} of {{total}}',
+    levelShort: 'Lv.{{level}}',
+    xpValue: '{{xp}} XP',
+    earnedOf: '{{earned}} of {{total}} earned',
+    unlockedOf: '{{unlocked}} of {{total}} unlocked',
     xpPoints: 'XP points',
     activeChallenges: 'Active challenges',
     leaderboard: 'Leaderboard',
