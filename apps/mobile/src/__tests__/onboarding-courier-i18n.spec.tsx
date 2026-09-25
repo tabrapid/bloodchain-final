@@ -14,7 +14,7 @@ import { ThemeProvider } from '../theme';
  * the component, and nothing but mounting the screen proves that it is.
  */
 jest.mock('expo-router', () => ({
-  router: { push: jest.fn(), replace: jest.fn(), back: jest.fn() },
+  router: { push: jest.fn(), replace: jest.fn(), back: jest.fn(), dismissAll: jest.fn(), canGoBack: jest.fn(() => true) },
   useLocalSearchParams: () => ({}),
   Link: ({ children }: { children?: React.ReactNode }) => children ?? null,
 }));

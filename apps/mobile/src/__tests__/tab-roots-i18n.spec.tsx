@@ -19,7 +19,7 @@ import { ThemeProvider } from '../theme';
  * language (a string the catalogue has and the screen never asks for).
  */
 jest.mock('expo-router', () => ({
-  router: { push: jest.fn(), replace: jest.fn(), back: jest.fn() },
+  router: { push: jest.fn(), replace: jest.fn(), back: jest.fn(), dismissAll: jest.fn(), canGoBack: jest.fn(() => true) },
   useRouter: () => ({ push: jest.fn(), back: jest.fn() }),
   useLocalSearchParams: () => ({}),
   Link: ({ children }: { children?: React.ReactNode }) => children ?? null,

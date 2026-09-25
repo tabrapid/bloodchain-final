@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Linking, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { BackHandler, Linking, View } from 'react-native';
 import { router } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import * as Location from 'expo-location';
@@ -12,6 +12,7 @@ import {
   Info,
   MapPin,
   UserRound,
+  X,
 } from 'lucide-react-native';
 import {
   Badge,
@@ -35,6 +36,7 @@ import {
   iconSize,
   space,
   useDesign,
+  IconButton,
 } from '../../src/design';
 import { LucideIcon } from '../../src/types/icons';
 import { useUpdateDonorProfile } from '../../src/hooks/useDonors';
@@ -234,6 +236,45 @@ export default function OnboardingWelcome() {
     }
   };
 
+  /**
+   * A way out of the wizard.
+   *
+   * Step one had a header containing nothing but "STEP 1 OF 6" -- no back, no
+   * close -- and the screen is pushed from the Home and Profile completion
+   * cards, so a donor who opened it to look had no way back to what they were
+   * doing except finishing six steps or killing the app.
+   */
+  const leave = () => {
+    if (router.canGoBack()) router.back();
+    else router.replace('/(app)/home');
+  };
+
+  const closeButton = (
+    <IconButton
+      accessibilityLabel={t('onboarding.closeWizard')}
+      onPress={leave}
+      variant="plain"
+      icon={({ size, color }) => <X size={size} color={color} />}
+    />
+  );
+
+  /**
+   * Android's own back gesture, stepping rather than leaving.
+   *
+   * The six steps are component state, not routes, so the system back button
+   * popped the whole screen -- from step 6, with five steps of answers in it.
+   */
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (currentStep > 0) {
+        setCurrentStep((step) => step - 1);
+        return true;
+      }
+      return false;
+    });
+    return () => subscription.remove();
+  }, [currentStep]);
+
   const canProceed = () => {
     if (currentStep === 1) return Boolean(formData.firstName.trim() && formData.lastName.trim());
     return true;
@@ -260,10 +301,12 @@ export default function OnboardingWelcome() {
             eyebrow={t('onboarding.stepOf', { current: currentStep + 1, total: STEPS.length })}
             onBack={() => setCurrentStep(currentStep - 1)}
             backLabel={t('onboarding.previousStep')}
+            actions={closeButton}
           />
         ) : (
           <ScreenHeader
             eyebrow={t('onboarding.stepOf', { current: currentStep + 1, total: STEPS.length })}
+            actions={closeButton}
           />
         )
       }

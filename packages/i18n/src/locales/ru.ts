@@ -2632,6 +2632,7 @@ export const ru: Catalog = {
       'Телефон больше не спросит. Экстренные запросы останутся в приложении — их нужно будет открыть, чтобы увидеть.',
     stepOf: 'Шаг {{current}} из {{total}}',
     previousStep: 'Предыдущий шаг',
+    closeWizard: 'Закрыть настройку профиля',
     continue: 'Продолжить',
     completeSetup: 'Завершить настройку',
     welcomeTitle: 'Добро пожаловать в Bloodchain',

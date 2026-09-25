@@ -76,6 +76,11 @@ export default function ReviewBooking() {
             appointmentType: params.type,
             notes: notes.trim() || undefined,
           });
+      // Drop the wizard before showing the receipt. `replace` swapped only
+      // the review step, leaving select-type, organizations, date and time on
+      // the stack -- so a back swipe from "Appointment confirmed" landed on the
+      // time picker of the appointment just booked, with Continue still live.
+      router.dismissAll();
       router.replace({
         pathname: '/(booking)/confirmation',
         params: {

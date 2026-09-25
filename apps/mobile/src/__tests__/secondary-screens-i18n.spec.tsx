@@ -16,7 +16,7 @@ import { ThemeProvider } from '../theme';
  * these mount the real screens, switch language, and read the words back.
  */
 jest.mock('expo-router', () => ({
-  router: { push: jest.fn(), replace: jest.fn(), back: jest.fn() },
+  router: { push: jest.fn(), replace: jest.fn(), back: jest.fn(), dismissAll: jest.fn(), canGoBack: jest.fn(() => true) },
   useLocalSearchParams: () => ({}),
   Link: ({ children }: { children?: React.ReactNode }) => children ?? null,
 }));

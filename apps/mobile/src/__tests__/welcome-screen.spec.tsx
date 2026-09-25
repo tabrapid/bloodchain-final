@@ -13,7 +13,7 @@ jest.mock('react-native/Libraries/Utilities/useColorScheme', () => ({
 }));
 
 const mockPush = jest.fn();
-jest.mock('expo-router', () => ({ router: { push: (...args: unknown[]) => mockPush(...args) } }));
+jest.mock('expo-router', () => ({ router: { push: (...args: unknown[]) => mockPush(...args), dismissAll: jest.fn(), canGoBack: jest.fn(() => true) } }));
 
 function render() {
   let tree: renderer.ReactTestRenderer;

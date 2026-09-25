@@ -87,6 +87,10 @@ export default function ReviewLabBooking() {
         slotId: params.slotId,
         notes: notes.trim() || undefined,
       });
+      // As in the donation wizard: the four steps behind this one have to go,
+      // or back from the receipt returns to the slot picker of the appointment
+      // that was just booked.
+      router.dismissAll();
       router.replace({
         pathname: '/(lab-booking)/confirmation',
         params: { appointmentId: appointment.id },

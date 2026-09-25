@@ -2592,6 +2592,7 @@ export const en: Catalog = {
       'Your phone will not ask again. Emergency requests will still appear in the app — you will just have to open it to see them.',
     stepOf: 'Step {{current}} of {{total}}',
     previousStep: 'Previous step',
+    closeWizard: 'Close profile setup',
     continue: 'Continue',
     completeSetup: 'Complete setup',
     welcomeTitle: 'Welcome to Bloodchain',

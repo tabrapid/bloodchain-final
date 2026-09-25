@@ -119,7 +119,14 @@ export default function ForgotPassword() {
 
   return (
     <FormScreen header={<ScreenHeader onBack={() => router.back()} backLabel={t('auth.a11y.goBack')} />}>
-      <Stack gap="xl">
+      {/*
+        The spacer below can only push the alternate path to the foot of the
+        screen if something above it is allowed to grow. Without this flex, the
+        Stack sized itself to its content and the spacer collapsed to its 24pt
+        minimum -- so "Create account" sat directly under the form with the rest
+        of the page empty beneath it.
+      */}
+      <Stack gap="xl" style={{ flex: 1 }}>
         <View style={{ gap: space.sm, marginTop: space.md }}>
           <Text variant="display" accessibilityRole="header">
             {t('auth.forgotPassword.title')}

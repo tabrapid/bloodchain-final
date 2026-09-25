@@ -24,7 +24,7 @@ import { themes } from '../design';
  */
 
 jest.mock('expo-router', () => ({
-  router: { push: jest.fn() },
+  router: { push: jest.fn(), dismissAll: jest.fn(), canGoBack: jest.fn(() => true) },
 }));
 // Pin the resolved theme to dark so assertions against the static `colors`
 // export (the dark palette) stay meaningful regardless of what the test

@@ -2515,6 +2515,7 @@ export const uz: Catalog = {
       'Telefon boshqa so‘ramaydi. Shoshilinch so‘rovlar ilovada qoladi — ularni ko‘rish uchun ilovani ochishingiz kerak bo‘ladi.',
     stepOf: '{{total}} dan {{current}}-qadam',
     previousStep: 'Oldingi qadam',
+    closeWizard: 'Profil sozlashni yopish',
     continue: 'Davom etish',
     completeSetup: 'Sozlashni yakunlash',
     welcomeTitle: 'Bloodchain’ga xush kelibsiz',

@@ -17,6 +17,7 @@ import {
   iconSize,
   space,
   useDesign,
+  ScreenHeader,
 } from '../../src/design';
 import { registerWithPhone } from '../../src/api/auth';
 import { apiErrorMessage } from '../../src/api/errors';
@@ -100,9 +101,13 @@ export default function RegisterDetails() {
   });
 
   return (
-    <FormScreen>
+    // The only step of sign-up with no header at all: no back, no exit. It is
+    // reached by `router.replace` from the OTP screen, so a donor who mistyped
+    // their name had nothing to press. The header takes the place of the extra
+    // top margin the title block was carrying instead.
+    <FormScreen header={<ScreenHeader onBack={() => router.back()} backLabel={t('auth.a11y.goBack')} />}>
       <Stack gap="xl">
-        <View style={{ gap: space.sm, marginTop: space.xxl }}>
+        <View style={{ gap: space.sm, marginTop: space.md }}>
           <Text variant="display" accessibilityRole="header">
             {t('auth.details.title')}
           </Text>
