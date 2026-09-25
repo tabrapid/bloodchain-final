@@ -356,6 +356,9 @@ export const en: Catalog = {
   },
 
   health: {
+    noDataTitle: 'No laboratory data yet',
+    noDataBody: 'Once a laboratory publishes a result for you, your markers and their trends appear here.',
+    trendOfMeasurements: { one: 'Trend across {{count}} measurement', other: 'Trend across {{count}} measurements' },
     aiInsightsHint: 'Get plain-language explanations of your latest blood results.',
     updatedToday: 'Updated today',
     updatedYesterday: 'Updated yesterday',
@@ -2349,6 +2352,7 @@ export const en: Catalog = {
       rhFactorNote: 'Rh positive or negative',
     },
     resultFlags: {
+      withinRange: 'Within healthy range',
       normal: 'Normal',
       outsideRange: 'Outside healthy range',
       noReference: 'No reference range',

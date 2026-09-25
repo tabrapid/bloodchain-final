@@ -337,6 +337,9 @@ export const uz: Catalog = {
   },
 
   health: {
+    noDataTitle: 'Hozircha tahlil ma’lumotlari yo‘q',
+    noDataBody: 'Laboratoriya natijangizni e’lon qilgach, ko‘rsatkichlar va ularning o‘zgarishi shu yerda ko‘rinadi.',
+    trendOfMeasurements: { other: '{{count}} ta o‘lchov bo‘yicha dinamika' },
     aiInsightsHint: 'So‘nggi qon tahlillaringiz uchun oddiy tilda izoh oling.',
     updatedToday: 'Bugun yangilandi',
     updatedYesterday: 'Kecha yangilandi',
@@ -2287,6 +2290,7 @@ export const uz: Catalog = {
       rhFactorNote: 'Rezus musbat yoki manfiy',
     },
     resultFlags: {
+      withinRange: 'Me’yor doirasida',
       normal: 'Me’yorda',
       outsideRange: 'Me’yordan tashqarida',
       noReference: 'Me’yoriy oraliq yo‘q',

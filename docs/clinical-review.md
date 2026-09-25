@@ -3,7 +3,7 @@
 Every clinically meaningful string in the product, in all three languages, for a
 clinician to confirm before release.
 
-**109 terms — 109 pending, 0 approved.**
+**110 terms — 110 pending, 0 approved.**
 
 ## How to read this
 
@@ -86,7 +86,7 @@ recorded in this file.
 | `medical.aiSafety.OUT_OF_SCOPE` | Outside what this can answer | Bu savolga javob bera olmaydi | Вне рамок того, на что можно ответить | Donor app › app/insights | How far an AI-generated explanation may be trusted. Wrong here is a donor acting on a machine’s guess as if it were advice. | PENDING |  |
 | `medical.aiSafety.PROFESSIONAL_REVIEW_SUGGESTED` | Discuss with a healthcare professional | Shifokor bilan maslahatlashing | Обсудите с врачом | Donor app › app/insights | How far an AI-generated explanation may be trusted. Wrong here is a donor acting on a machine’s guess as if it were advice. | PENDING |  |
 | `medical.aiSafety.SAFE_INFORMATIONAL` | Informational | Ma’lumot uchun | Информационно | Donor app › app/insights | How far an AI-generated explanation may be trusted. Wrong here is a donor acting on a machine’s guess as if it were advice. | PENDING |  |
-| `medical.aiSafety.disclaimer` | AI-generated informational content, drawn from your own recorded health data. It is not a medical diagnosis — always consult your doctor. | Bu — sizning qayd etilgan sog‘liq ma’lumotlaringiz asosida AI yaratgan ma’lumot. Bu tibbiy tashxis emas — har doim shifokoringiz bilan maslahatlashing. | Это информационный текст, сгенерированный ИИ на основе ваших записанных данных о здоровье. Это не медицинский диагноз — всегда консультируйтесь с врачом. | Donor app › app/insights | How far an AI-generated explanation may be trusted. Wrong here is a donor acting on a machine’s guess as if it were advice. | PENDING |  |
+| `medical.aiSafety.disclaimer` | AI-generated informational content, drawn from your own recorded health data. It is not a medical diagnosis — always consult your doctor. | Bu — sizning qayd etilgan sog‘liq ma’lumotlaringiz asosida AI yaratgan ma’lumot. Bu tibbiy tashxis emas — har doim shifokoringiz bilan maslahatlashing. | Это информационный текст, сгенерированный ИИ на основе ваших записанных данных о здоровье. Это не медицинский диагноз — всегда консультируйтесь с врачом. | Donor app › app/health; Donor app › app/insights | How far an AI-generated explanation may be trusted. Wrong here is a donor acting on a machine’s guess as if it were advice. | PENDING |  |
 | `medical.appointmentTypes.bloodDonation` | Donation | Qon topshirish | Донация | Donor app › app/calendar | Names what the donor booked, on the reminder they act on. | PENDING |  |
 | `medical.appointmentTypes.bloodTest` | Blood test | Qon tahlili | Анализ крови | Blood centre console › appointments/page; Donor app › app/calendar; Hospital console › appointments/page | Names what the donor booked, on the reminder they act on. | PENDING |  |
 | `medical.appointmentTypes.consultation` | Consultation | Konsultatsiya | Консультация | Blood centre console › appointments/page; Donor app › app/calendar; Hospital console › appointments/page | Names what the donor booked, on the reminder they act on. | PENDING |  |
@@ -140,6 +140,7 @@ recorded in this file.
 | `medical.resultFlags.noReference` | No reference range | Me’yoriy oraliq yo‘q | Нет референсного интервала | Not currently rendered | Tells a donor whether a result of theirs is normal. Wrong here is read as reassurance or as alarm about their health. | PENDING |  |
 | `medical.resultFlags.normal` | Normal | Me’yorda | В норме | Donor app › app/health | Tells a donor whether a result of theirs is normal. Wrong here is read as reassurance or as alarm about their health. | PENDING |  |
 | `medical.resultFlags.outsideRange` | Outside healthy range | Me’yordan tashqarida | Вне нормы | Donor app › app/health | Tells a donor whether a result of theirs is normal. Wrong here is read as reassurance or as alarm about their health. | PENDING |  |
+| `medical.resultFlags.withinRange` | Within healthy range | Me’yor doirasida | В пределах нормы | Donor app › app/health | Tells a donor whether a result of theirs is normal. Wrong here is read as reassurance or as alarm about their health. | PENDING |  |
 | `medical.resultFlagsByCode.ABNORMAL` | Outside healthy range | Me’yordan tashqarida | Вне нормы | Donor app › app/health-trends | The same flags keyed by the code the API sends. Must not drift from resultFlags. | PENDING |  |
 | `medical.resultFlagsByCode.CRITICAL` | Critical | Kritik | Критическое | Admin console › requests/page; Blood centre console › page; Donor app › app/health-trends; Hospital console › page | The same flags keyed by the code the API sends. Must not drift from resultFlags. | PENDING |  |
 | `medical.resultFlagsByCode.HIGH` | Above range | Me’yordan yuqori | Выше нормы | Donor app › app/health-trends | The same flags keyed by the code the API sends. Must not drift from resultFlags. | PENDING |  |

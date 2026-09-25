@@ -63,6 +63,9 @@ export type { ToggleProps, SegmentedControlProps, ChoiceProps } from './componen
 export { SectionHeader, ListRow, Divider, ListGroup } from './components/List';
 export type { SectionHeaderProps, ListRowProps } from './components/List';
 
+export { Sparkline } from './components/Chart';
+export type { SparklineProps } from './components/Chart';
+
 export { Stat, StatRow, Progress, Avatar } from './components/Stat';
 export type { StatProps, ProgressProps, AvatarProps } from './components/Stat';
 

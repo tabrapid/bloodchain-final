@@ -391,6 +391,14 @@ export const ru: Catalog = {
   },
 
   health: {
+    noDataTitle: 'Данных анализов пока нет',
+    noDataBody: 'Как только лаборатория опубликует ваш результат, здесь появятся показатели и их динамика.',
+    trendOfMeasurements: {
+      one: 'Динамика по {{count}} измерению',
+      few: 'Динамика по {{count}} измерениям',
+      many: 'Динамика по {{count}} измерениям',
+      other: 'Динамика по {{count}} измерениям',
+    },
     aiInsightsHint: 'Получите понятные пояснения к последним анализам крови.',
     updatedToday: 'Обновлено сегодня',
     updatedYesterday: 'Обновлено вчера',
@@ -2351,6 +2359,7 @@ export const ru: Catalog = {
       rhFactorNote: 'Резус положительный или отрицательный',
     },
     resultFlags: {
+      withinRange: 'В пределах нормы',
       normal: 'В норме',
       outsideRange: 'Вне нормы',
       noReference: 'Нет референсного интервала',

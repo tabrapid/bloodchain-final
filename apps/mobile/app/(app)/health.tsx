@@ -1,53 +1,61 @@
-import { useCallback, useEffect, useState } from 'react';
 import { router } from 'expo-router';
-import type { RelativePathString } from 'expo-router';
-import { Pressable, TouchableOpacity, View, RefreshControl } from 'react-native';
+import { Pressable, View } from 'react-native';
 import {
   Activity,
   Brain,
   ChevronRight,
   Droplet,
+  FileText,
   Fingerprint,
   Gauge,
   Layers,
   Percent,
   ShieldCheck,
-  type LucideIcon,
 } from 'lucide-react-native';
 import {
-  AppText,
-  Divider,
-  GlassCard,
-  GradientCard,
-  LoadingState,
-  Screen,
+  Badge,
+  ErrorState,
+  EmptyState,
+  ListGroup,
+  ListRow,
+  Row,
+  ScrollScreen,
   SectionHeader,
+  Skeleton,
+  SkeletonRow,
   Sparkline,
-} from '../../src/components';
-import { layout, radius, spacing, useTheme } from '../../src/theme';
-import { getTrendSummary, TrendSummary } from '../../src/api/health-trends';
-import { getDonorResults, LaboratoryResult } from '../../src/api/laboratory';
-import { getAiAvailability, getInsightHistory, AiInsight } from '../../src/api/ai-health';
+  Stack,
+  Surface,
+  Text,
+  ValueText,
+  iconSize,
+  radius,
+  space,
+  useDesign,
+  type AccentName,
+} from '../../src/design';
+import { LucideIcon } from '../../src/types/icons';
+import { useTrendSummary, useLatestInsight, useAiEnabled } from '../../src/hooks/useHealth';
+import { useDonorLaboratoryResults } from '../../src/hooks/useLaboratory';
 import { formatUpdated, isWithinReferenceRange } from '../../src/utils/health';
 import { useTranslation } from '../../src/i18n';
-
-type VitalColorKey = 'primary' | 'secondary' | 'warning' | 'ai' | 'success';
+import type { TranslateFn } from '@bloodchain/i18n';
 
 // Keyed by the real lab-parameter code (see apps/api/prisma/seed.ts's
-// TestParameter records) so each vital gets the icon that actually matches
-// what it measures, instead of cycling icons by list position -- which is
-// how hemoglobin ended up with a "wind" icon and platelets a "thermometer".
-const VITAL_ICON_BY_CODE: Record<string, { icon: LucideIcon; color: VitalColorKey }> = {
-  HEMOGLOBIN: { icon: Droplet, color: 'primary' },
-  HEMATOCRIT: { icon: Percent, color: 'secondary' },
-  RBC: { icon: Activity, color: 'primary' },
-  WBC: { icon: ShieldCheck, color: 'success' },
-  PLATELETS: { icon: Layers, color: 'warning' },
-  FERRITIN: { icon: Gauge, color: 'ai' },
-  FERRITIN_LEVEL: { icon: Gauge, color: 'ai' },
-  BLOOD_GROUP: { icon: Fingerprint, color: 'secondary' },
-  ABO: { icon: Fingerprint, color: 'secondary' },
-  RH_FACTOR: { icon: Fingerprint, color: 'secondary' },
+// TestParameter records) so each marker gets the icon that actually matches
+// what it measures, instead of cycling icons by list position -- which is how
+// hemoglobin ended up with a "wind" icon and platelets a "thermometer".
+const MARKER_ICON_BY_CODE: Record<string, { icon: LucideIcon; tone: AccentName }> = {
+  HEMOGLOBIN: { icon: Droplet, tone: 'rose' },
+  HEMATOCRIT: { icon: Percent, tone: 'clinical' },
+  RBC: { icon: Activity, tone: 'rose' },
+  WBC: { icon: ShieldCheck, tone: 'success' },
+  PLATELETS: { icon: Layers, tone: 'warning' },
+  FERRITIN: { icon: Gauge, tone: 'insight' },
+  FERRITIN_LEVEL: { icon: Gauge, tone: 'insight' },
+  BLOOD_GROUP: { icon: Fingerprint, tone: 'clinical' },
+  ABO: { icon: Fingerprint, tone: 'clinical' },
+  RH_FACTOR: { icon: Fingerprint, tone: 'clinical' },
 };
 
 /**
@@ -61,7 +69,7 @@ const VITAL_ICON_BY_CODE: Record<string, { icon: LucideIcon; color: VitalColorKe
  * Every value here is clinically sensitive and lives in the medical namespace,
  * so a reviewer finds all of them in one place.
  */
-const VITAL_DESCRIPTION_KEY_BY_CODE: Record<string, string> = {
+const MARKER_DESCRIPTION_KEY_BY_CODE: Record<string, string> = {
   HEMOGLOBIN: 'medical.markers.hemoglobinNote',
   HEMATOCRIT: 'medical.markers.hematocritNote',
   RBC: 'medical.markers.redBloodCellsNote',
@@ -74,66 +82,68 @@ const VITAL_DESCRIPTION_KEY_BY_CODE: Record<string, string> = {
   RH_FACTOR: 'medical.markers.rhFactorNote',
 };
 
-const VITAL_FALLBACK_ORDER: VitalColorKey[] = ['primary', 'secondary', 'warning', 'ai', 'success'];
+const FALLBACK_TONES: AccentName[] = ['rose', 'clinical', 'warning', 'insight', 'success'];
 
-function getVitalIconAndColor(
-  code: string,
-  index: number,
-): { icon: LucideIcon; color: VitalColorKey } {
-  return VITAL_ICON_BY_CODE[code.toUpperCase()] ?? {
-    icon: Activity,
-    color: VITAL_FALLBACK_ORDER[index % VITAL_FALLBACK_ORDER.length]!,
-  };
+function markerVisual(code: string, index: number): { icon: LucideIcon; tone: AccentName } {
+  return (
+    MARKER_ICON_BY_CODE[code.toUpperCase()] ?? {
+      icon: Activity,
+      tone: FALLBACK_TONES[index % FALLBACK_TONES.length]!,
+    }
+  );
 }
 
+/**
+ * Health, rebuilt for V2.
+ *
+ * The screen answers three questions in order: what was measured last, what
+ * else is tracked, and what has been published. V1 answered the first with a
+ * full-bleed two-stop rose gradient carrying a 52pt number, a sparkline in
+ * translucent white and four lines of caption -- a card the eye reads as an
+ * advertisement rather than a measurement. It is a plain surface now, and the
+ * number is the only large thing on it.
+ *
+ * Three things this screen must not do, and did:
+ *
+ *   It finished loading into nothing when the request failed. `Promise.all`
+ *   inside a `useEffect`, a `console.error` on rejection, then a render with
+ *   no data and no explanation. Loading, loaded-and-empty and failed are three
+ *   separate states here and the last one has a retry on it.
+ *
+ *   It shipped English into a Uzbek and Russian app: 'Needs review', 'Within
+ *   healthy range' and `${n} measurement${n === 1 ? '' : 's'} tracked` were
+ *   string literals. All three are catalogue keys now, and the last is a real
+ *   plural rule rather than an English -s.
+ *
+ *   It put an AI-written sentence on a health screen with nothing saying what
+ *   it was. The insight now carries the standing disclaimer -- informational,
+ *   drawn from the donor's own recorded data, not a diagnosis -- in the card,
+ *   not on the screen behind it.
+ */
 export default function Health() {
-  const { colors } = useTheme();
+  const { colors } = useDesign();
   const { t, formatDate } = useTranslation();
-  const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [summary, setSummary] = useState<TrendSummary | null>(null);
-  const [labResults, setLabResults] = useState<LaboratoryResult[]>([]);
-  const [latestInsight, setLatestInsight] = useState<AiInsight | null>(null);
-  // Whether AI is switched on at all. Undefined while the answer is in flight.
-  const [aiEnabled, setAiEnabled] = useState<boolean | undefined>(undefined);
 
-  const loadData = useCallback(async () => {
-    try {
-      const [trendData, resultsData, insightData, availability] = await Promise.all([
-        getTrendSummary(),
-        getDonorResults().catch(() => []),
-        getInsightHistory({ limit: 1 }).catch(() => ({ insights: [], total: 0 })),
-        // A failure is treated as "off": a card that promises AI and cannot
-        // deliver it is the thing this check exists to prevent.
-        getAiAvailability()
-          .then((a) => a.enabled)
-          .catch(() => false),
-      ]);
-      setSummary(trendData);
-      setLabResults(resultsData);
-      setLatestInsight(insightData.insights[0] ?? null);
-      setAiEnabled(availability);
-    } catch (err) {
-      console.error('Failed to load health summary:', err);
-    } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
-    }
-  }, []);
+  const summary = useTrendSummary();
+  const results = useDonorLaboratoryResults();
+  const insight = useLatestInsight();
+  const aiEnabled = useAiEnabled();
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  const refreshing =
+    summary.isRefetching || results.isRefetching || insight.isRefetching || aiEnabled.isRefetching;
 
-  const onRefresh = useCallback(() => {
-    setIsRefreshing(true);
-    loadData();
-  }, [loadData]);
+  const onRefresh = () => {
+    summary.refetch();
+    results.refetch();
+    insight.refetch();
+    aiEnabled.refetch();
+  };
 
-  const publishedResults = labResults.filter((r) => r.status === 'PUBLISHED');
+  const publishedResults = (results.data ?? []).filter((r) => r.status === 'PUBLISHED');
   const anyFlagged = publishedResults.some((r) =>
     r.items.some((item) => item.flag && item.flag !== 'NORMAL'),
   );
+
   // Latest known flag per parameter code, so a marker row can carry the same
   // Normal/Review badge the reference puts there.
   const flagByParameterCode = new Map<string, string>();
@@ -146,19 +156,68 @@ export default function Health() {
     });
   });
 
-  if (isLoading) {
+  const header = (
+    <Row align="flex-start" gap="md" style={{ paddingTop: space.md }}>
+      <View style={{ flex: 1, gap: 2 }}>
+        <Text variant="h1">{t('health.title')}</Text>
+        <Text variant="body" tone="secondary">
+          {t('health.subtitle')}
+        </Text>
+      </View>
+      {publishedResults.length > 0 ? (
+        <Badge
+          label={anyFlagged ? t('health.needsReview') : t('health.allNormal')}
+          tone={anyFlagged ? 'warning' : 'success'}
+        />
+      ) : null}
+    </Row>
+  );
+
+  if (summary.isPending || results.isPending) {
     return (
-      <Screen>
-        <AppText variant="title">{t('health.title')}</AppText>
-        <LoadingState />
-      </Screen>
+      <ScrollScreen>
+        <Stack gap="xl">
+          {header}
+          <Surface>
+            <Stack gap="md">
+              <Skeleton width="45%" height={12} />
+              <Skeleton width="60%" height={40} />
+              <Skeleton height={44} corner="sm" />
+            </Stack>
+          </Surface>
+          <Surface>
+            <SkeletonRow />
+            <SkeletonRow />
+            <SkeletonRow />
+          </Surface>
+        </Stack>
+      </ScrollScreen>
     );
   }
 
-  const latestParam = summary?.availableParameters[0];
-  const trend = summary?.recentTrend;
-  const trendValues = trend?.points.map((p) => p.value) ?? [];
+  // Both sources gone means the screen has nothing at all to draw, so it says
+  // so once with one retry. One source failing is handled where that section
+  // is: the rest of the screen is still true.
+  if (summary.isError && results.isError) {
+    return (
+      <ScrollScreen>
+        <Stack gap="xl">
+          {header}
+          <ErrorState
+            title={t('common.errorTitle')}
+            description={t('common.errorBody')}
+            retryLabel={t('common.retry')}
+            onRetry={onRefresh}
+          />
+        </Stack>
+      </ScrollScreen>
+    );
+  }
 
+  const parameters = summary.data?.availableParameters ?? [];
+  const trend = summary.data?.recentTrend;
+  const latestParam = parameters[0];
+  const trendValues = trend?.points.map((p) => p.value) ?? [];
   const inRange = isWithinReferenceRange(trend);
 
   const measurementCount = trend ? trend.points.length : (latestParam?.measurementCount ?? 0);
@@ -167,324 +226,281 @@ export default function Health() {
     formatDate,
   });
 
-  return (
-    <Screen
-      refreshControl={
-        <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor={colors.primary} />
-      }
-    >
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: spacing.sm }}>
-        <View style={{ flex: 1 }}>
-          <AppText style={{ fontSize: 32, fontWeight: '800', letterSpacing: -1, color: colors.text }}>
-            {t('health.title')}
-          </AppText>
-          <AppText muted style={{ fontSize: 14, marginTop: 2 }}>
-            {t('health.subtitle')}
-          </AppText>
-        </View>
-        {publishedResults.length > 0 && (
-          <StatusPill
-            label={anyFlagged ? 'Needs review' : t('health.allNormal')}
-            tone={anyFlagged ? 'warning' : 'success'}
-          />
-        )}
-      </View>
-
-      {(trend || latestParam) && (
-        <TouchableOpacity
-          onPress={() => router.push('/health-trends' as RelativePathString)}
-          activeOpacity={0.9}
-          accessibilityRole="button"
-          accessibilityLabel={t('health.a11yLatestMarker')}
-          style={{ marginTop: spacing.md }}
-        >
-          {/* Health's hero is a two-stop rose, distinct from the app's
-              rose-to-plum brand hero -- the plum is kept for blood-type
-              moments only. */}
-          <GradientCard colors={['#D85360', '#C0356B']}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <View style={{ flex: 1 }}>
-                <AppText style={{ fontSize: 11, fontWeight: '700', letterSpacing: 1.6, color: 'rgba(255,255,255,0.8)' }}>
-                  {t('health.latestTracked')}
-                </AppText>
-                <AppText style={{ fontSize: 17, fontWeight: '600', color: '#FFFFFF', marginTop: 3 }}>
-                  {(trend?.parameterName ?? latestParam?.name)!}
-                </AppText>
-              </View>
-              <Activity size={26} color="#FFFFFF" strokeWidth={2.5} />
-            </View>
-
-            {/*
-              The figure and its shape on one line. The sparkline used to sit
-              in a band below the card with Min and Max captions under it,
-              which made the trend a second, smaller chart rather than the
-              backdrop to the number it belongs to.
-            */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginTop: 2 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 3 }}>
-                <AppText style={{ fontSize: 52, lineHeight: 60, fontWeight: '800', letterSpacing: -2.2, color: '#FFFFFF' }}>
-                  {trend?.latestValue ?? latestParam?.latestValue ?? '—'}
-                </AppText>
-                {(trend?.unit ?? latestParam?.unit) && (
-                  <AppText style={{ fontSize: 17, fontWeight: '600', color: 'rgba(255,255,255,0.75)' }}>
-                    {trend?.unit ?? latestParam?.unit}
-                  </AppText>
-                )}
-              </View>
-              {trendValues.length >= 2 && (
-                <View style={{ flex: 1, height: 56, justifyContent: 'center' }}>
-                  <Sparkline values={trendValues} color="rgba(255,255,255,0.72)" />
-                </View>
-              )}
-            </View>
-
-            {inRange !== null && (
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 4 }}>
-                <View
-                  style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: 4,
-                    backgroundColor: inRange ? colors.success : colors.warning,
-                  }}
-                />
-                <AppText style={{ fontSize: 14, fontWeight: '500', color: 'rgba(255,255,255,0.95)' }}>
-                  {inRange ? 'Within healthy range' : t('medical.resultFlags.outsideRange')}
-                </AppText>
-              </View>
-            )}
-
-            <AppText style={{ fontSize: 12, color: 'rgba(255,255,255,0.68)', marginTop: 8 }}>
-              {[updatedLabel, measurementCount ? `${measurementCount} measurement${measurementCount === 1 ? '' : 's'} tracked` : null]
-                .filter(Boolean)
-                .join(' · ')}
-            </AppText>
-          </GradientCard>
-        </TouchableOpacity>
-      )}
-
-      {summary && summary.availableParameters.length > 0 && (
-        <>
-          <SectionHeader
+  if (parameters.length === 0 && publishedResults.length === 0) {
+    return (
+      <ScrollScreen>
+        <Stack gap="xl">
+          {header}
+          <EmptyState
+            title={t('health.noDataTitle')}
+            description={t('health.noDataBody')}
+            icon={({ size, color }) => <Activity size={size} color={color} />}
             action={{
-              label: t('health.viewTrends'),
-              onPress: () => router.push('/health-trends' as RelativePathString),
+              label: t('laboratory.bookBloodTest'),
+              onPress: () => router.push('/(lab-booking)/test-type'),
             }}
+          />
+        </Stack>
+      </ScrollScreen>
+    );
+  }
+
+  const headlineName = trend?.parameterName ?? latestParam?.name;
+  const headlineValue = trend?.latestValue ?? latestParam?.latestValue;
+  const headlineUnit = trend?.unit ?? latestParam?.unit;
+  const rangeLabel =
+    inRange === null
+      ? null
+      : inRange
+        ? t('medical.resultFlags.withinRange')
+        : t('medical.resultFlags.outsideRange');
+
+  return (
+    <ScrollScreen refreshing={refreshing} onRefresh={onRefresh}>
+      <Stack gap="xl">
+        {header}
+
+        {/* ------------------------------------------ the last measurement */}
+        {headlineName ? (
+          <Pressable
+            onPress={() => router.push('/health-trends')}
+            accessibilityRole="button"
+            accessibilityLabel={`${t('health.latestTracked')}: ${headlineName}, ${headlineValue ?? '—'} ${headlineUnit ?? ''}. ${rangeLabel ?? ''} ${t('health.viewTrends')}`}
+            style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
           >
-            {t('health.labMarkers')}
-          </SectionHeader>
-          <GlassCard style={{ paddingVertical: spacing.sm }}>
-            {summary.availableParameters.slice(0, 5).map((param, index) => {
-              const code = param.code.toUpperCase();
-              const { icon: Icon, color: colorKey } = getVitalIconAndColor(param.code, index);
-              const flag = flagByParameterCode.get(code);
-              const descriptionKey = VITAL_DESCRIPTION_KEY_BY_CODE[code];
-              const description = descriptionKey ? t(descriptionKey) : undefined;
-              return (
-                <View key={param.code}>
-                  {index > 0 && <Divider style={{ marginVertical: spacing.sm }} />}
-                  <Pressable
-                    onPress={() => router.push('/health-trends' as RelativePathString)}
-                    accessibilityRole="button"
-                    accessibilityLabel={`${param.name}${param.latestValue !== undefined ? `, ${param.latestValue} ${param.unit ?? ''}` : ''}. Open trends`}
-                    style={({ pressed }) => ({
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      gap: 12,
-                      paddingVertical: 10,
-                      opacity: pressed ? 0.7 : 1,
-                    })}
-                  >
+            <Surface>
+              <Stack gap="md">
+                <Row gap="md" align="flex-start">
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <Text variant="overline" tone="tertiary" caps>
+                      {t('health.latestTracked')}
+                    </Text>
+                    <Text variant="h3">{headlineName}</Text>
+                  </View>
+                  <ChevronRight size={iconSize.md} color={colors.textTertiary} />
+                </Row>
+
+                <Row gap="lg" align="flex-end">
+                  <Row gap="xs" align="baseline">
+                    <ValueText variant="display">{headlineValue ?? '—'}</ValueText>
+                    {headlineUnit ? (
+                      <Text variant="h3" tone="secondary">
+                        {headlineUnit}
+                      </Text>
+                    ) : null}
+                  </Row>
+                  {trendValues.length >= 2 ? (
+                    <Sparkline
+                      values={trendValues}
+                      tone={inRange === false ? 'warning' : 'rose'}
+                      // The drawing is decorative on its own; what it means is
+                      // the count and the range badge beside it, so that is
+                      // what gets announced.
+                      accessibilityLabel={t('health.trendOfMeasurements', {
+                        count: measurementCount,
+                      })}
+                      style={{ flex: 1 }}
+                    />
+                  ) : null}
+                </Row>
+
+                {/* The claim and the evidence for it on the same line: what
+                    the laboratory flagged, and when it was measured. Neither
+                    is stated without the other. */}
+                <Row gap="md">
+                  {rangeLabel ? (
+                    <Badge label={rangeLabel} tone={inRange ? 'success' : 'warning'} />
+                  ) : null}
+                  <Text variant="caption" tone="tertiary" style={{ flex: 1 }} numberOfLines={2}>
+                    {[updatedLabel, measurementCount ? t('units.measurements', { count: measurementCount }) : null]
+                      .filter(Boolean)
+                      .join(' · ')}
+                  </Text>
+                </Row>
+              </Stack>
+            </Surface>
+          </Pressable>
+        ) : null}
+
+        {/* ------------------------------------------------- every marker */}
+        {parameters.length > 0 ? (
+          <Stack gap="md">
+            <SectionHeader
+              title={t('health.labMarkers')}
+              action={
+                <Pressable
+                  onPress={() => router.push('/health-trends')}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('health.viewTrends')}
+                  hitSlop={8}
+                >
+                  <Text variant="label" tone="clinical">
+                    {t('health.viewTrends')}
+                  </Text>
+                </Pressable>
+              }
+            />
+            <ListGroup
+              rows={parameters.slice(0, 5).map((param, index) => {
+                const code = param.code.toUpperCase();
+                const { icon: Icon, tone } = markerVisual(param.code, index);
+                const flag = flagByParameterCode.get(code);
+                const descriptionKey = MARKER_DESCRIPTION_KEY_BY_CODE[code];
+                return (
+                  <ListRow
+                    key={param.code}
+                    leading={<Icon size={iconSize.lg} color={colors[tone].base} />}
+                    title={param.name}
+                    subtitle={descriptionKey ? t(descriptionKey) : undefined}
+                    value={
+                      param.latestValue !== undefined
+                        ? `${param.latestValue}${param.unit ? ` ${param.unit}` : ''}`
+                        : '—'
+                    }
+                    trailing={
+                      flag ? (
+                        <Badge
+                          label={
+                            flag === 'NORMAL'
+                              ? t('medical.resultFlags.normal')
+                              : t('health.needsReview')
+                          }
+                          tone={flag === 'NORMAL' ? 'success' : 'warning'}
+                        />
+                      ) : undefined
+                    }
+                    accessibilityLabel={`${param.name}: ${param.latestValue ?? '—'} ${param.unit ?? ''}. ${t('health.viewTrends')}`}
+                    onPress={() => router.push('/health-trends')}
+                  />
+                );
+              })}
+            />
+          </Stack>
+        ) : null}
+
+        {/* ------------------------------------------------ what the AI said */}
+        {/* When AI is switched off in this deployment the section is not shown
+            at all. A disabled-looking tile that still navigates to a screen
+            full of dead buttons is worse than the section not being there. */}
+        {aiEnabled.data !== false ? (
+          <Stack gap="md">
+            <SectionHeader title={t('health.aiInsights')} />
+            <Pressable
+              onPress={() => router.push('/insights')}
+              accessibilityRole="button"
+              accessibilityLabel={`${insight.data?.title ?? t('health.aiInsights')}. ${t('medical.aiSafety.disclaimer')}`}
+              style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
+            >
+              <Surface>
+                <Stack gap="md">
+                  <Row gap="md" align="flex-start">
                     <View
                       style={{
-                        width: 42,
-                        height: 42,
-                        borderRadius: 13,
-                        backgroundColor: `${colors[colorKey]}26`,
+                        width: 40,
+                        height: 40,
+                        borderRadius: radius.sm,
+                        backgroundColor: colors.insight.soft,
                         alignItems: 'center',
                         justifyContent: 'center',
                       }}
                     >
-                      <Icon size={19} color={colors[colorKey]} />
+                      <Brain size={iconSize.md} color={colors.insight.base} />
                     </View>
-                    <View style={{ flex: 1 }}>
-                      <AppText style={{ fontSize: 15, fontWeight: '700', color: colors.text }}>
-                        {param.name}
-                      </AppText>
-                      {description && (
-                        <AppText muted style={{ fontSize: 12, marginTop: 1 }}>
-                          {description}
-                        </AppText>
-                      )}
+                    <View style={{ flex: 1, gap: 2 }}>
+                      <Text variant="bodyStrong">
+                        {insight.data?.title ?? t('health.aiInsights')}
+                      </Text>
+                      <Text variant="caption" tone="secondary" numberOfLines={3}>
+                        {insight.data?.summary ?? t('health.aiInsightsHint')}
+                      </Text>
                     </View>
-                    <View style={{ alignItems: 'flex-end', maxWidth: 96 }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 3 }}>
-                        <AppText style={{ fontSize: 17, fontWeight: '700', letterSpacing: -0.4 }}>
-                          {param.latestValue ?? '—'}
-                        </AppText>
-                        {param.unit && (
-                          <AppText muted style={{ fontSize: 11 }}>
-                            {param.unit}
-                          </AppText>
-                        )}
-                      </View>
-                    </View>
-                    {flag && (
-                      <StatusPill
-                        label={flag === 'NORMAL' ? t('medical.resultFlags.normal') : t('health.needsReview')}
-                        tone={flag === 'NORMAL' ? 'success' : 'warning'}
-                        compact
+                    <ChevronRight size={iconSize.md} color={colors.textTertiary} />
+                  </Row>
+
+                  {/* The disclaimer is inside the card, under the sentence it
+                      qualifies. On the screen behind it, it qualifies nothing:
+                      a donor reads the insight and stops. */}
+                  <Row gap="sm" align="flex-start">
+                    <ShieldCheck size={iconSize.sm} color={colors.textTertiary} />
+                    <Text variant="caption" tone="tertiary" style={{ flex: 1 }}>
+                      {t('medical.aiSafety.disclaimer')}
+                    </Text>
+                  </Row>
+                </Stack>
+              </Surface>
+            </Pressable>
+          </Stack>
+        ) : null}
+
+        {/* ------------------------------------------- published results */}
+        {publishedResults.length > 0 ? (
+          <Stack gap="md">
+            <SectionHeader
+              title={t('health.labResults')}
+              action={
+                <Pressable
+                  onPress={() => router.push('/laboratory')}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('common.viewAll')}
+                  hitSlop={8}
+                >
+                  <Text variant="label" tone="clinical">
+                    {t('common.viewAll')}
+                  </Text>
+                </Pressable>
+              }
+            />
+            <ListGroup
+              rows={publishedResults.slice(0, 3).map((result) => {
+                const flagged = result.items.some((item) => item.flag && item.flag !== 'NORMAL');
+                return (
+                  <ListRow
+                    key={result.id}
+                    leading={<FileText size={iconSize.lg} color={colors.textSecondary} />}
+                    title={result.testType.name}
+                    subtitle={
+                      result.publishedAt
+                        ? formatDate(result.publishedAt, 'medium')
+                        : t('health.dateUnknown')
+                    }
+                    trailing={
+                      <Badge
+                        label={
+                          flagged ? t('health.needsReview') : t('medical.resultFlags.normal')
+                        }
+                        tone={flagged ? 'warning' : 'success'}
                       />
-                    )}
-                    <ChevronRight size={16} color={colors.textMuted} />
-                  </Pressable>
-                </View>
-              );
-            })}
-          </GlassCard>
-        </>
-      )}
+                    }
+                    onPress={() => router.push('/laboratory')}
+                  />
+                );
+              })}
+            />
+          </Stack>
+        ) : null}
 
-      {/* When AI is switched off in this deployment the card is not shown at
-          all. A disabled-looking tile that still navigates to a screen full
-          of dead buttons is worse than the section simply not being there. */}
-      {aiEnabled !== false && (
-      <>
-      <SectionHeader>{t('health.aiInsights')}</SectionHeader>
-      <TouchableOpacity
-        onPress={() => router.push('/insights' as RelativePathString)}
-        activeOpacity={0.85}
-        accessibilityRole="button"
-        accessibilityLabel={t('health.aiInsights')}
-      >
-        <GlassCard style={{ borderColor: `${colors.ai}55`, backgroundColor: `${colors.ai}14` }}>
-          <View style={{ flexDirection: 'row', gap: spacing.md, alignItems: 'flex-start' }}>
-            <View
-              style={{
-                width: 46,
-                height: 46,
-                borderRadius: radius.md,
-                backgroundColor: `${colors.ai}2E`,
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <Brain size={22} color={colors.ai} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <AppText style={{ fontSize: 17, fontWeight: '700', color: colors.text }}>
-                {latestInsight?.title ?? t('health.aiInsights')}
-              </AppText>
-              <AppText muted style={{ fontSize: 14, lineHeight: 20, marginTop: 4 }} numberOfLines={3}>
-                {latestInsight?.summary ?? t('health.aiInsightsHint')}
-              </AppText>
-            </View>
-            <ChevronRight size={18} color={colors.textMuted} />
-          </View>
-
-          {/* The privacy line lives inside this card rather than in one of its
-              own at the foot of the screen: it is a statement about the thing
-              reading your results, and it means nothing floating on its own. */}
-          <Divider style={{ marginVertical: spacing.md }} />
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-            <ShieldCheck size={17} color={colors.onMuted.success} />
-            <AppText muted style={{ fontSize: 13 }}>
-              {t('health.privacyNote')}
-            </AppText>
-          </View>
-        </GlassCard>
-      </TouchableOpacity>
-      </>
-      )}
-
-      {publishedResults.length > 0 && (
-        <>
-          <SectionHeader
-            action={{
-              label: t('common.viewAll'),
-              onPress: () => router.push('/laboratory' as RelativePathString),
-            }}
-          >
-            {t('health.labResults')}
-          </SectionHeader>
-          {publishedResults.slice(0, 2).map((result) => {
-            const hasFlaggedItem = result.items.some((item) => item.flag && item.flag !== 'NORMAL');
-            return (
-              <TouchableOpacity
-                key={result.id}
-                onPress={() => router.push('/laboratory' as RelativePathString)}
-                activeOpacity={0.8}
-                accessibilityRole="button"
-                accessibilityLabel={`${result.testType.name} result`}
-              >
-                <GlassCard style={{ marginBottom: layout.cardGap }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-                    <View style={{ flex: 1 }}>
-                      <AppText style={{ fontSize: 15, fontWeight: '600' }}>
-                        {result.testType.name}
-                      </AppText>
-                      <AppText muted style={{ fontSize: 12, marginTop: 2 }}>
-                        {result.publishedAt
-                          ? formatDate(result.publishedAt, 'medium')
-                          : t('health.dateUnknown')}
-                      </AppText>
-                    </View>
-                    <StatusPill
-                      label={hasFlaggedItem ? t('health.needsReview') : t('medical.resultFlags.normal')}
-                      tone={hasFlaggedItem ? 'warning' : 'success'}
-                      compact
-                    />
-                    <ChevronRight size={16} color={colors.textMuted} />
-                  </View>
-                </GlassCard>
-              </TouchableOpacity>
-            );
-          })}
-        </>
-      )}
-    </Screen>
+        {/* A section that failed is said once, where it would have been --
+            not as a screen-wide error that hides the parts that loaded. */}
+        {summary.isError ? <SectionError t={t} onRetry={() => summary.refetch()} /> : null}
+        {results.isError ? <SectionError t={t} onRetry={() => results.refetch()} /> : null}
+      </Stack>
+    </ScrollScreen>
   );
 }
 
-/**
- * A dot plus a word, on a tinted pill.
- *
- * The dot is what carries the status at a glance, and the word is what carries
- * it for anyone who cannot separate the greens from the ambers -- neither one
- * alone would do.
- */
-function StatusPill({
-  label,
-  tone,
-  compact,
-}: {
-  label: string;
-  tone: 'success' | 'warning';
-  compact?: boolean;
-}) {
-  const { colors } = useTheme();
-  const fill = tone === 'success' ? colors.successMuted : colors.warningMuted;
-  const text = tone === 'success' ? colors.onMuted.success : colors.onMuted.warning;
-  const dot = tone === 'success' ? colors.success : colors.warning;
-
+function SectionError({ t, onRetry }: { t: TranslateFn; onRetry: () => void }) {
   return (
-    <View
-      style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-        minHeight: compact ? 26 : 34,
-        paddingHorizontal: compact ? 9 : 14,
-        borderRadius: radius.pill,
-        backgroundColor: fill,
-        borderWidth: 1,
-        borderColor: `${text}33`,
-      }}
-    >
-      <View style={{ width: compact ? 6 : 8, height: compact ? 6 : 8, borderRadius: 4, backgroundColor: dot }} />
-      <AppText style={{ fontSize: compact ? 11 : 14, fontWeight: '600', color: text }}>
-        {label}
-      </AppText>
-    </View>
+    <Surface>
+      <Stack gap="md">
+        <Text variant="body" tone="secondary">
+          {t('common.errorBody')}
+        </Text>
+        <Pressable onPress={onRetry} accessibilityRole="button" accessibilityLabel={t('common.retry')} hitSlop={8}>
+          <Text variant="bodyStrong" tone="clinical">
+            {t('common.retry')}
+          </Text>
+        </Pressable>
+      </Stack>
+    </Surface>
   );
 }
