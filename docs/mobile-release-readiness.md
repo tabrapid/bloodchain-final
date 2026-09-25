@@ -1,14 +1,17 @@
 # Mobile release readiness
 
-**Status: Sprint 11, Tracks A and B.** The donor/courier app is on Expo SDK 56,
-its interface has been rebuilt on the V2 design system, and every check that can
-be run without a store account passes. It is **not** releasable yet, and the
-reasons are all external: four things are missing that only the Product Owner
-can supply. They are listed in §11.
+**Status: Sprint 11.1.** The donor/courier app is on **Expo SDK 57**, its
+interface has been rebuilt on the V2 design system, and every check that can be
+run without a store account passes. It is **not** releasable yet, and the
+reasons are listed one per row in `docs/mobile-release-blockers.md` — most of
+them external, two of them (a native build, and a visual pass on real hardware)
+waiting on a machine this work has never had.
 
-Track A (the SDK upgrade and release configuration) is §§1–17 below. Track B
-(the interface rebuild) is §18, and its visual and interaction record is
-`docs/mobile-v2-ui-qa.md`.
+Track A (the SDK upgrade and release configuration) is §§1–17. Track B (the
+interface rebuild) is §18, and its record is `docs/mobile-v2-ui-qa.md`. Sprint
+11.1 — SDK 57, the visual-QA harness, and what photographing the app found — is
+§19, with the screenshots in `artifacts/mobile-v2-visual-qa/` and the per-screen
+record in `docs/mobile-v2-visual-qa-report.md`.
 
 This document is the record of what was changed, what was proved, and what is
 still in the way. It is written to be checked rather than believed — every
@@ -52,17 +55,19 @@ unaffected; only its stated reason was wrong.
 
 | | Version |
 |---|---|
-| Expo SDK | **56.0.22** |
-| React Native | **0.85.3** |
+| Expo SDK | **57.0.25** |
+| React Native | **0.86.3** |
 | React | **19.2.3** |
-| expo-router | **56.2.21** |
-| react-native-reanimated | 4.3.1 |
-| react-native-worklets | 0.8.3 |
+| expo-router | **57.0.23** |
+| react-native-reanimated | 4.5.1 |
+| react-native-worklets | 0.10.1 |
+| react-native-gesture-handler | 2.32.0 |
 | react-native-maps | 1.27.2 |
 | react-native-screens | 4.26.0 |
 | react-native-safe-area-context | 5.7.0 |
 | react-native-svg | 15.15.4 |
-| jest-expo | 56.0.5 |
+| jest-expo | 57.0.5 |
+| react-native-web (visual-QA harness only) | 0.21.x |
 | TypeScript | 5.9.3 (see §12) |
 | Node | 22.22.2 |
 | pnpm | 9.15.5 |
@@ -260,10 +265,11 @@ pins. Two checks back this up:
 
 `expo-doctor` is a devDependency of the mobile app, so a full run is
 reproducible by anyone who clones the repository (§12 says why it has to be).
-On a runner with open egress it reports **21 of 22 checks passed**, and the one
-failure is the Hermes V1 regression, which is PO-1
+On SDK 56 it reported 21 of 22, the one failure being the Hermes V1 regression
 ([CI run 149](https://github.com/tabrapid/bloodchain-final/actions/runs/36152318614)).
-In the sprint environment two more cannot run at all; §12 lists them.
+On **SDK 57 that check passes**: doctor runs 21 checks and, in this environment,
+19 pass — the two that cannot run here are the ones that need `api.expo.dev` and
+`reactnative.directory`, both 403 through the egress policy. §12 lists them.
 
 `react-native-chart-kit@7.0.2` is the one dependency outside Expo's manifest.
 Its peer range (`react >=19.1`, `react-native >=0.81`, `react-native-svg >=15.12.1`)
@@ -487,7 +493,7 @@ Accepted, with reasons:
 
 | Item | Status |
 |---|---|
-| **Hermes V1 memory regression** | **Real, unresolved, and a Product Owner decision.** expo-doctor reports that SDK 56 ships Hermes V1 `250829098.0.10` and that the regression is fixed in `250829098.0.16`, which first appears in React Native 0.86.2 / Expo SDK 57. There is no fix inside SDK 56, and SDK 57 is out of scope by Product Owner decision. Raised in §13. |
+| **Hermes V1 memory regression** | **Closed in S11.1.** It was real and had no fix inside SDK 56. The Product Owner authorised SDK 57, which carries React Native 0.86.3 and the fixed Hermes; expo-doctor's check for it passes now and still appears in its list (`--verbose`), so this is a pass rather than a check that stopped applying. |
 | **CI's expo-doctor step was vacuous** | **Found and fixed at the end of S11.** `expo-doctor` was not a dependency of the mobile app, so `pnpm --filter @bloodchain/mobile exec expo-doctor` printed `Command "expo-doctor" not found` and exited 1 on every run — and `continue-on-error: true` rendered that as a green tick. The step reported on a tool it never ran, for every run of Track A. `expo-doctor@^1.20.4` is now a devDependency, and the step is split so that a missing binary fails the job while the checks themselves stay `continue-on-error`. |
 | expo-doctor "Check Expo config schema" | **Was failing for a real reason as well.** In the sprint environment this check cannot run at all (`api.expo.dev`, 403), so its result was assumed. The first CI run that actually executed expo-doctor said `app.json` "should NOT have additional property `newArchEnabled`" — the key left the schema in SDK 56, where the new architecture is the only one. It is removed, and `expo prebuild` still writes `newArchEnabled=true` into `android/gradle.properties`, checked before and after. |
 | expo-doctor "Validate packages against React Native Directory" | Cannot run in the sprint environment — `reactnative.directory`, 403. Passes on a runner with open egress. |
@@ -536,7 +542,7 @@ Accepted, with reasons:
 
 | # | Decision |
 |---|---|
-| **PO-1** | **Hermes V1 memory regression.** SDK 56 is affected and there is no fix within SDK 56. Options: accept the regression for the pilot and schedule SDK 57 for the next sprint; or authorise SDK 57 now, which also moves React Native to 0.86.x. Recommendation: accept for the pilot and schedule SDK 57 — the regression is a memory-pressure issue, not a correctness one, and the pilot's device fleet is small. |
+| ~~**PO-1**~~ | ~~Hermes V1 memory regression.~~ **Decided in S11.1: SDK 57 authorised and taken.** The app is on 57.0.25 / React Native 0.86.3 and expo-doctor's check passes. |
 | **PO-2** | **Production API hostname** (B1), and whether the pilot runs against a public TLS endpoint or a private network. |
 | **PO-3** | **Expo account and EAS project** (B2). Needed for push notifications and for any EAS build. |
 | **PO-4** | **Android maps** (B3): fund a Google Maps API key, or change the Android provider. |
@@ -652,3 +658,94 @@ No screen in this rebuild has been seen on a physical device, in an emulator, or
 in a simulator. Contrast is computed, layout is asserted against a rendered
 tree, and accessibility is checked by role and label — none of that is the same
 as looking at it.
+
+---
+
+## 19. Sprint 11.1 — SDK 57, and photographing the app
+
+Sprint 11 was not product-accepted. The engineering was substantial and the
+visual claim was not demonstrated: nothing in that environment could render a
+screen, so "production quality" rested on tests, computation and reading. This
+sprint closed the SDK question and took the pictures.
+
+### 19.1 SDK 56 → 57
+
+The one thing SDK 56 could not fix from inside itself was the Hermes V1 memory
+regression (PO-1). SDK **57.0.25** carries React Native **0.86.3**, whose
+Hermes is past the fixed build, and expo-doctor's own check for it passes while
+still appearing in its list — a pass, not a check that stopped applying.
+
+Every version is what SDK 57's `bundledNativeModules.json` pins (§2). Nothing
+in the app needed changing for the hop: 363 mobile tests, 1 482 API tests, both
+production bundles compiling, both native projects generating with the same
+manifest and the same single iOS usage description, targetSdk 36 — now from
+0.86.3's own Gradle catalogue.
+
+### 19.2 The visual-QA harness
+
+Two harnesses, in `apps/mobile/qa/visual`, and the difference between them is
+the point:
+
+- **`capture.mjs`** renders the real screens through react-native-web in
+  Chromium, against the real API with the seeded development data, and
+  photographs every screen in every state a catalogue names — populated, empty,
+  failed, loading, offline, mid-flow, and each of uz/ru/en. It runs here. It
+  produced **480 screenshots** and found **29 defects**.
+- **`run-native-capture.sh`** plus the Maestro flows drive the real app on a
+  simulator or emulator, which is the capture that actually settles how the app
+  looks. It needs macOS with Xcode or an Android SDK. **It has not been run**
+  (`NATIVE_VISUAL_QA_NOT_PERFORMED`).
+
+Three modules with no working web implementation are substituted behind
+`BLOODCHAIN_VISUAL_QA=1` *and* a platform check, in `metro.config.js`, so no
+native build can reach them. No production code is touched by the harness.
+
+The full record, including every defect and every measurement, is
+`docs/mobile-v2-visual-qa-report.md`; the screenshots are in
+`artifacts/mobile-v2-visual-qa/`.
+
+### 19.3 What photographing it found
+
+Twenty-nine defects, in four groups, none of which came from reading the code:
+things the app **said that were not true** (an XP bar always full, a completion
+bar always zero, a verified donor shown unverified on every cold start, four
+screens reporting a failed request as a fact about the donor); **controls that
+did nothing** (an education module with articles and no reader, four donation
+types with one handler, "Load more" that replaced rather than loaded); **ways
+out that were not there** (a six-step wizard with no exit, Android's back
+button leaving it, back from a receipt returning to the picker); and **layout
+that cut the wrong thing** (a four-column grid that was never four columns, six
+lists under the tab bar, titles clipped in English before Russian made it
+worse). The report tables each one against its fix.
+
+An audit by eleven agents raised 258 findings; 46 were high severity and all of
+those are resolved or recorded. The rest are triaged and are not blockers.
+
+### 19.4 Privacy controls, classified
+
+| Control | Backing | Outcome |
+| --- | --- | --- |
+| Location consent | `DonorProfile.consentLocation`, written through `PATCH /donors/profile` | **Kept** |
+| Leaderboard visibility | Column, setter endpoint, and a leaderboard query that honours it — only the read was missing | **Added** (the endpoint returns it now) |
+| Notification preferences | `/notifications/preferences` | **Kept** |
+| Session revocation | `/auth/sessions` | **Kept** |
+| Public profile, donation-history visibility, anonymised analytics | Nothing, anywhere in this system | **Absent**, deliberately |
+| Data export | No endpoint | **Marked** — `STORE_BLOCKER_DATA_EXPORT`. The row no longer points at a support channel that does not exist |
+| Account deletion | No endpoint | **Marked** — `STORE_BLOCKER_ACCOUNT_DELETION`. The UX is designed and documented in `docs/mobile-account-deletion.md`; the retention behaviour behind it is a legal decision and has not been invented here |
+
+### 19.5 Test counts after Sprint 11.1
+
+| Suite | After S11 | After S11.1 |
+| --- | --- | --- |
+| Mobile | 37 suites / 363 tests | 38 suites / 381 tests |
+| i18n | 79 tests | 79 tests |
+| API | 84 suites / 1 482 tests | 84 suites / 1 484 tests |
+
+### 19.6 Still unverified
+
+`PHYSICAL_DEVICE_NOT_VERIFIED`, `NATIVE_VISUAL_QA_NOT_PERFORMED` and
+`NATIVE_BUILD_NOT_COMPILED` are all still open, for the same reason: no macOS,
+and no Android SDK — `dl.google.com` is refused by this environment's egress
+policy (403 on CONNECT), while Gradle itself, `maven.google.com`,
+`plugins.gradle.org` and Maven Central are all reachable. The blockers are one
+per row in `docs/mobile-release-blockers.md`.
