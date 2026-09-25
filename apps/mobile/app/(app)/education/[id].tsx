@@ -83,7 +83,10 @@ export default function EducationArticle() {
 
   const header = (
     <ScreenHeader
-      title={content?.title ?? t('education.title')}
+      // The section, not the article: the article's own title is the h1 four
+      // lines below, and printing it twice is the duplication this sprint has
+      // been removing everywhere else.
+      title={t('education.title')}
       onBack={() => router.back()}
       backLabel={t('common.a11yGoBack')}
     />

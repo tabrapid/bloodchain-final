@@ -4,7 +4,7 @@
  * `docs/mobile-v2-visual-qa-report.md`.
  *
  * The prose in that document is written by hand. The tables are not, because a
- * hand-written inventory of 480 screenshots is a document that is wrong by the
+ * hand-written inventory of 490 screenshots is a document that is wrong by the
  * second week: every row here is what the capture actually recorded, including
  * the captures that failed and the elements it measured past the right edge.
  *

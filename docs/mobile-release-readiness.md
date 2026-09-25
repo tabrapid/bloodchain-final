@@ -580,7 +580,7 @@ pnpm --filter @bloodchain/mobile exec expo export --platform ios --output-dir .e
 pnpm --filter @bloodchain/mobile exec expo prebuild --platform all --no-install --clean
 ```
 
-All of these run in CI as the **Mobile release readiness (SDK 56)** job, with no
+All of these run in CI as the **Mobile release readiness (SDK 57)** job, with no
 secrets and no store credentials.
 
 ---
@@ -690,7 +690,7 @@ the point:
   Chromium, against the real API with the seeded development data, and
   photographs every screen in every state a catalogue names — populated, empty,
   failed, loading, offline, mid-flow, and each of uz/ru/en. It runs here. It
-  produced **480 screenshots** and found **29 defects**.
+  produced **490 screenshots** and found **29 defects**.
 - **`run-native-capture.sh`** plus the Maestro flows drive the real app on a
   simulator or emulator, which is the capture that actually settles how the app
   looks. It needs macOS with Xcode or an Android SDK. **It has not been run**

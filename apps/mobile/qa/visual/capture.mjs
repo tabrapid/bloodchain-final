@@ -219,6 +219,13 @@ async function capture(browser, device, screen, state) {
     .evaluate(() => {
       const width = document.documentElement.clientWidth;
       return [...document.querySelectorAll('*')]
+        // `<input>` carries an intrinsic width on the web -- about twenty
+        // characters -- which React Native's TextInput does not have at all: on
+        // a device the field is exactly its container. Measuring it here
+        // reported every two-column name row as 34pt of clipping that does not
+        // exist on either platform, so the scan skips the element whose width
+        // is the renderer's rather than the layout's.
+        .filter((el) => el.tagName !== 'INPUT')
         .filter((el) => el.getBoundingClientRect().right > width + 1)
         .slice(0, 6)
         .map((el) => ({
@@ -318,7 +325,20 @@ async function main() {
   await browser.close();
   server.close();
 
-  fs.writeFileSync(path.join(OUT_DIR, 'screenshots.json'), JSON.stringify(manifest, null, 2));
+  // Merge rather than replace.
+  //
+  // A `--only` run used to write a manifest containing just the screens it
+  // captured, which silently threw away the record of the other 470 -- the
+  // screenshots stayed on disk and the index no longer mentioned them.
+  const manifestPath = path.join(OUT_DIR, 'screenshots.json');
+  const held = fs.existsSync(manifestPath)
+    ? JSON.parse(fs.readFileSync(manifestPath, 'utf8'))
+    : [];
+  const key = (shot) => `${shot.device}/${shot.screen}/${shot.state}`;
+  const merged = new Map(held.map((shot) => [key(shot), shot]));
+  for (const shot of manifest) merged.set(key(shot), shot);
+
+  fs.writeFileSync(manifestPath, JSON.stringify([...merged.values()], null, 2));
   console.log(`\n${count} screenshots -> ${OUT_DIR}`);
   if (problems.length) {
     console.log(`\n${problems.length} captures need looking at:`);

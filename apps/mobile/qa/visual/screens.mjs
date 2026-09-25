@@ -178,7 +178,7 @@ export function buildCatalogue(ids) {
       url: '/(onboarding)/complete-profile',
       states: [
         { id: 'step-1-blood-type', intent: 'first step as it opens' },
-        { id: 'step-2-birth-date', act: sequence(tap('O', { after: 400 }), tap('Continue', { after: 800 })) },
+        { id: 'step-2-your-name', act: tap('Continue', { after: 900 }) },
         { id: 'permission-location-explainer', intent: 'the explainer the app shows BEFORE the OS is asked', act: walkTo('Set up location sharing') },
         { id: 'permission-notifications-explainer', act: walkTo('Set up notifications') },
         { id: 'locale-ru', locale: 'ru-RU' },
@@ -423,6 +423,18 @@ export function buildCatalogue(ids) {
     { id: 'community/campaigns', title: 'Campaigns', url: '/(app)/campaigns', states: [{ id: 'populated' }, { id: 'empty', routes: { '/campaigns': { body: { items: [], total: 0 } } } }, { id: 'error', routes: { '/campaigns': FAIL } }, { id: 'long-content', fullPage: true }] },
     { id: 'community/challenges', title: 'Challenges', url: '/(app)/challenges', states: [{ id: 'populated' }, { id: 'empty', routes: { '/challenges': { body: { items: [], total: 0 } } } }, { id: 'error', routes: { '/challenges': FAIL } }, { id: 'long-content', fullPage: true }] },
     { id: 'community/education', title: 'Education', url: '/(app)/education', states: [{ id: 'populated' }, { id: 'empty', routes: { '/education': { body: { items: [], total: 0 } } } }, { id: 'error', routes: { '/education': FAIL } }, { id: 'locale-uz', locale: 'uz-UZ' }, { id: 'long-content', fullPage: true }] },
+    {
+      id: 'community/education-article',
+      title: 'Education — the article',
+      url: `/(app)/education/${ids.educationId ?? ''}`,
+      states: [
+        { id: 'populated', intent: 'the body the module has always carried and never showed' },
+        { id: 'error', routes: { '/education/': FAIL } },
+        { id: 'loading', routes: { '/education/': { hang: true } }, settle: 1500 },
+        { id: 'locale-ru', locale: 'ru-RU' },
+        { id: 'long-content', fullPage: true },
+      ],
+    },
     { id: 'community/gamification', title: 'Recognition', url: '/(app)/gamification', states: [{ id: 'populated' }, { id: 'error', routes: { '/me/gamification': FAIL } }, { id: 'loading', routes: { '/me/gamification': { hang: true } }, settle: 1500 }, { id: 'long-content', fullPage: true }] },
     { id: 'community/badges', title: 'Badges', url: '/(app)/gamification/badges', states: [{ id: 'populated' }, { id: 'empty', routes: { '/badges': { body: [] } } }, { id: 'error', routes: { '/badges': FAIL } }, { id: 'long-content', fullPage: true }] },
     { id: 'community/achievements', title: 'Achievements', url: '/(app)/gamification/achievements', states: [{ id: 'populated' }, { id: 'empty', routes: { '/achievements': { body: [] } } }, { id: 'error', routes: { '/achievements': FAIL } }, { id: 'long-content', fullPage: true }] },

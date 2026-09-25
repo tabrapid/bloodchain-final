@@ -324,7 +324,7 @@ jobs:
       - run: pnpm build
 
   mobile-release-readiness:
-    name: Mobile release readiness (SDK 56)
+    name: Mobile release readiness (SDK 57)
     runs-on: ubuntu-latest
     # Deliberately needs no secrets, no Expo account, no Apple or Google
     # credentials, and no Android SDK. Everything here is reproducible by
@@ -367,15 +367,16 @@ jobs:
 
       - name: Expo doctor
         # The checks themselves are reported and read rather than taken as a
-        # build break. Two of them need api.expo.dev or reactnative.directory,
-        # which are reachable from GitHub's runners but not from every
-        # environment this repository is worked on in, and one -- the Hermes V1
-        # memory regression -- has no fix inside SDK 56 and is open with the
-        # Product Owner (readiness doc PO-1), so it fails on every runner until
-        # SDK 57 is authorised. The checks that matter for an upgrade --
-        # package versions against the SDK, duplicate dependencies, React
-        # Navigation alongside expo-router -- are offline and are covered by
-        # the steps above and below.
+        # build break. On SDK 57 every one of them passes, the Hermes V1 memory
+        # regression included -- that was the last standing failure and the
+        # reason the upgrade was asked for. What keeps this step off the
+        # critical path is that two checks reach api.expo.dev and
+        # reactnative.directory: they are reachable from GitHub's runners but
+        # not from every environment this repository is worked on in, and their
+        # answers can change without a commit here. The checks that matter for
+        # an upgrade -- package versions against the SDK, duplicate
+        # dependencies, React Navigation alongside expo-router -- are offline
+        # and are covered by the steps above and below.
         continue-on-error: true
         run: pnpm --filter @bloodchain/mobile exec expo-doctor
 
