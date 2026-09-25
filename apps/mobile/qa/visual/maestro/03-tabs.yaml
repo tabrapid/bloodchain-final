@@ -1,0 +1,24 @@
+# The six tab roots, populated. Needs: API up, seeded database.
+appId: uz.bloodchain.donor
+name: 03 tabs
+---
+- launchApp
+- assertVisible:
+    text: 'Good'
+    timeout: 20000
+- takeScreenshot: tabs-home-populated
+- scroll
+- takeScreenshot: tabs-home-populated-scrolled
+
+- tapOn: 'Health'
+- takeScreenshot: tabs-health-populated
+- tapOn: 'Donate'
+- takeScreenshot: tabs-donate-populated
+- tapOn: 'Community'
+- takeScreenshot: tabs-community-populated
+- tapOn: 'Calendar'
+- takeScreenshot: tabs-calendar-populated
+- tapOn: 'Profile'
+- takeScreenshot: tabs-profile-populated
+- scroll
+- takeScreenshot: tabs-profile-populated-scrolled

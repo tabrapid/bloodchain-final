@@ -1,0 +1,43 @@
+# The six-step profile wizard, including the two permission explainers the app
+# shows BEFORE the operating system is asked. The OS dialog that follows is not
+# capturable and is listed as unverified.
+appId: uz.bloodchain.donor
+name: 02 onboarding
+---
+- launchApp:
+    clearState: true
+- tapOn: 'Sign In'
+- tapOn: 'Use my email address'
+- inputText: 'donor@donor.local'
+- tapOn: 'Password'
+- inputText: 'DevelopmentOnly!123'
+- tapOn: 'Sign in to your account'
+- assertVisible:
+    text: 'Good'
+    timeout: 20000
+
+- openLink: donor://(onboarding)/complete-profile
+- assertVisible: 'STEP 1 OF 6'
+- takeScreenshot: onboarding-complete-profile-step-1
+- tapOn: 'Continue'
+- takeScreenshot: onboarding-complete-profile-step-2
+- inputText: 'Sample'
+- tapOn: 'Continue'
+- takeScreenshot: onboarding-complete-profile-step-3
+- tapOn: 'Continue'
+- takeScreenshot: onboarding-complete-profile-step-4
+
+- tapOn:
+    text: 'Set up location sharing'
+    optional: true
+- takeScreenshot: onboarding-complete-profile-permission-location-explainer
+# Refuse it deliberately: the refusal state is the one that has to stay usable.
+- tapOn:
+    text: 'Not now'
+    optional: true
+- takeScreenshot: onboarding-complete-profile-permission-location-denied
+
+- tapOn:
+    text: 'Set up notifications'
+    optional: true
+- takeScreenshot: onboarding-complete-profile-permission-notifications-explainer

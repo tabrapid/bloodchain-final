@@ -1,0 +1,33 @@
+# The courier app, which is the same binary with a different role. Sign in as
+# courier@donor.local. Needs: a shipment assigned to that courier.
+appId: uz.bloodchain.donor
+name: 08 courier
+---
+- launchApp:
+    clearState: true
+- tapOn: 'Sign In'
+- tapOn: 'Use my email address'
+- inputText: 'courier@donor.local'
+- tapOn: 'Password'
+- inputText: 'DevelopmentOnly!123'
+- tapOn: 'Sign in to your account'
+- assertVisible:
+    text: '.*'
+    timeout: 20000
+- takeScreenshot: courier-active-populated
+
+- tapOn:
+    text: 'Share my location'
+    optional: true
+- takeScreenshot: courier-active-permission-location-explainer
+- tapOn:
+    text: 'Not now'
+    optional: true
+- takeScreenshot: courier-active-permission-location-denied
+
+- tapOn: 'History'
+- takeScreenshot: courier-history-populated
+- tapOn: 'Profile'
+- takeScreenshot: courier-profile-populated
+- tapOn: 'Log out'
+- takeScreenshot: courier-profile-sign-out-confirmation
