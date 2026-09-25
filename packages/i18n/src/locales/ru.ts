@@ -344,6 +344,13 @@ export const ru: Catalog = {
   },
 
   home: {
+    identity: 'Ваш донорский профиль',
+    impact: 'Ваш вклад',
+    quickActionSchedule: 'Записаться на донацию',
+    quickActionDonorProfile: 'Изменить донорский профиль',
+    quickActionPersonalInfo: 'Изменить личные данные',
+    quickActionLearn: 'Узнать о донорстве',
+    verificationOpenProfile: 'Открыть донорский профиль',
     greetingMorning: 'Доброе утро',
     greetingAfternoon: 'Добрый день',
     greetingEvening: 'Добрый вечер',

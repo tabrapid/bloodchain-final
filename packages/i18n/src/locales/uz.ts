@@ -295,6 +295,13 @@ export const uz: Catalog = {
   },
 
   home: {
+    identity: 'Sizning donorlik profilingiz',
+    impact: 'Sizning hissangiz',
+    quickActionSchedule: 'Qon topshirishga yozilish',
+    quickActionDonorProfile: 'Donor profilini tahrirlash',
+    quickActionPersonalInfo: 'Shaxsiy ma\'lumotlarni tahrirlash',
+    quickActionLearn: 'Donorlik haqida bilib oling',
+    verificationOpenProfile: 'Donor profilini ochish',
     greetingMorning: 'Xayrli tong',
     greetingAfternoon: 'Xayrli kun',
     greetingEvening: 'Xayrli kech',

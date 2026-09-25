@@ -311,6 +311,13 @@ export const en: Catalog = {
   },
 
   home: {
+    identity: 'Your donor identity',
+    impact: 'Your impact',
+    quickActionSchedule: 'Schedule a donation',
+    quickActionDonorProfile: 'Edit donor profile',
+    quickActionPersonalInfo: 'Edit personal info',
+    quickActionLearn: 'Learn about donating',
+    verificationOpenProfile: 'Open donor profile',
     greetingMorning: 'Good morning',
     greetingAfternoon: 'Good afternoon',
     greetingEvening: 'Good evening',
