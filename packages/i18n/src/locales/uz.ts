@@ -100,6 +100,7 @@ export const uz: Catalog = {
   },
 
   units: {
+    unitsNeeded: { other: '{{count}} ta birlik kerak' },
     unitsCount: { other: '{{count}} ta birlik' },
     ml: '{{count}} ml',
     points: { other: '{{count}} ball' },

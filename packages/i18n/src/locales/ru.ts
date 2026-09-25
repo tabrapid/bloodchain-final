@@ -100,6 +100,12 @@ export const ru: Catalog = {
   },
 
   units: {
+    unitsNeeded: {
+      one: 'нужна {{count}} единица',
+      few: 'нужно {{count}} единицы',
+      many: 'нужно {{count}} единиц',
+      other: 'нужно {{count}} единиц',
+    },
     unitsCount: {
       one: '{{count}} единица',
       few: '{{count}} единицы',

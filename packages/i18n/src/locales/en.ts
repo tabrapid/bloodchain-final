@@ -110,6 +110,7 @@ export const en: Catalog = {
   },
 
   units: {
+    unitsNeeded: { one: '{{count}} unit needed', other: '{{count}} units needed' },
     unitsCount: { one: '{{count}} unit', other: '{{count}} units' },
     ml: '{{count}} ml',
     points: { one: '{{count}} point', other: '{{count}} points' },
