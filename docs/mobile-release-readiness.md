@@ -627,7 +627,7 @@ capability — not by convention:
 
 | Suite | Before S11 | After |
 | --- | --- | --- |
-| Mobile | 34 suites / 263 tests | 37 suites / 362 tests |
+| Mobile | 34 suites / 263 tests | 37 suites / 363 tests |
 | i18n | 77 tests | 79 tests |
 
 Six V1 component specs (34 tests) were deleted with the components they
