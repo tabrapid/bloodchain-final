@@ -806,7 +806,16 @@ export default function SosScreen() {
 
         {emergencies.length > 0 ? (
           <Stack gap="md">
-            <SectionHeader title={t('sos.activeNearYou')} />
+            {/*
+              Only when there is a second group to tell this one apart from.
+
+              The header already says "2 active requests near you" in its
+              eyebrow; a section header underneath reading "Active emergency
+              requests near you" put the same sentence on the screen twice, in
+              two stacked lines of capitals, whenever the donor had no
+              responses of their own -- which is the ordinary case.
+            */}
+            {myResponses.length > 0 ? <SectionHeader title={t('sos.activeNearYou')} /> : null}
             {emergencies.map((emergency) =>
               renderEmergencyCard(emergency, () => handleViewMatch(emergency)),
             )}

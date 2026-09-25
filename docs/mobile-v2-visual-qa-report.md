@@ -7,10 +7,13 @@ running**, screen by screen and state by state, and what that turned up.
 
 ## 1. What was captured, and what that is worth
 
-Every screen in the app was rendered and photographed: **490 screenshots**,
+Every screen in the app was rendered and photographed: **593 screenshots**,
 53 screens, two phone sizes, three languages, and for every network screen the
 states a donor can actually be in — populated, empty, failed, loading, offline,
-mid-flow, mid-permission, and the destructive confirmations.
+mid-flow, mid-permission, and the destructive confirmations. The eighteen
+highest-risk screens were photographed a third time on a **small phone**
+(360×640), where a pinned action and a dense card stack have two hundred fewer
+points to fit into.
 
 They were rendered by **react-native-web in Chromium**, against the real API
 with the seeded development database, driven by
@@ -22,7 +25,7 @@ is.** Yoga, the platform text engines, the platform fonts, `expo-blur`,
 `react-native-maps` and the operating systems' own dialogs are absent or
 approximated. What a browser capture settles is layout, hierarchy, spacing,
 state handling and text length in three languages — which is most of what a
-visual review is for, and was enough to find thirty-eight defects the code
+visual review is for, and was enough to find thirty-nine defects the code
 review had missed, each with a file, a line and a fix.
 
 What it cannot settle is how the app looks on a phone.
@@ -43,7 +46,7 @@ fifty minutes and writes `artifacts/mobile-v2-visual-qa/` plus
 
 ## 2. What the pictures found
 
-Thirty-eight defects, none of which came from reading the code. They are grouped
+Thirty-nine defects, none of which came from reading the code. They are grouped
 by what they had in common; the commit column is the fix.
 
 ### Things the app said that were not true
@@ -99,6 +102,7 @@ by what they had in common; the commit column is the fix.
 | The **wizard's action landed at a different height on each of six steps**, and below the fold on the two that ask for typing | onboarding | `53248395` |
 | An **unearned badge's name was unreadable** at roughly 2.1:1 — under the 3:1 floor for anything at all | badges | `52d4c416` |
 | The **level name and the achievement name were each printed twice** in the same row or card | recognition, profile, achievements | `873ed279` |
+| The **SOS list said the same sentence twice**: the header's eyebrow counts the requests ("2 active requests near you") and a section header directly beneath it read "Active emergency requests near you" — two stacked lines of capitals above the first card, whenever the donor had no responses of their own, which is the ordinary case | sos | `pending` |
 | The **keyboard covered the field and the buttons** on two screens and in every sheet with a field in it | appointment detail, insights, courier sheets | `52d4c416`, `54491bdc` |
 | The **emergency screen blanked itself** to a centred spinner on every action, including "I have arrived" | sos | `54491bdc` |
 | The **emergency banner's button could not be focused** by a screen reader, because the banner announced itself as one element | home | `c5293298` |
@@ -156,6 +160,15 @@ Read from the final capture, at 393×852 and 412×915, in all three languages.
 - **Contrast** is computed in `src/design/tokens.spec.ts` (46 assertions) for
   every text token against every surface it can sit on, and is not re-judged by
   eye here.
+- **The small phone.** Eighteen screens — the auth forms, the profile wizard,
+  the four tab roots, SOS, the two booking reviews and their date and time
+  steps, the laboratory and insights screens, the appointment detail with its
+  cancel confirmation, the privacy screen with its deletion confirmation, and
+  the courier's active delivery — were captured again at 360×640 in every state
+  they have. Nothing was measured past the right edge and no capture failed;
+  the pinned actions still land on screen and the long hospital names wrap
+  rather than clip. The one thing this size did surface is in §2: two stacked
+  lines of capitals at the top of the SOS list, which are now one.
 
 ## 5. What is still unverified
 
@@ -180,20 +193,20 @@ Every screenshot, what it shows, and what was measured in it. Generated from
 `node apps/mobile/qa/visual/report.mjs` — the numbers are the capture's, not a
 transcription.
 
-**On the 124 captures that logged a console error.** Between them they logged
-130 messages, and every one is accounted for; none is an unexplained failure. 84
-are the 500s this harness *injects* to photograph a screen's error state, 4 the
-400 a wrong one-time code returns, 4 the 409 a taken slot returns, and 4 the
-refused connection behind the offline states. 6 are the courier screen polling
+**On the 156 captures that logged a console error.** Between them they logged
+165 messages, and every one is accounted for; none is an unexplained failure.
+100 are the 500s this harness *injects* to photograph a screen's error state, 5
+the 400 a wrong one-time code returns, 6 the 409 a taken slot returns, and 6 the
+refused connection behind the offline states. 9 are the courier screen polling
 `/shipments/qa-shipment-1/tracking` for a shipment that exists only in the
 fixture's stubbed response — the screen swallows it and draws from local state,
-which is what it is written to do. The remaining 28 are `BackHandler is not
+which is what it is written to do. The remaining 39 are `BackHandler is not
 supported on web`, a react-native-web warning about an API that is correct on
 Android and absent on the web: it says nothing about the device build.
 
 <!-- generated:inventory:start -->
 
-**490 screenshots**, 53 screens, 2 device sizes (android-412x915, iphone-393x852), 3 locales (en, ru, uz). 0 captures failed. 0 captures measured content past the right edge. 124 captures logged a console error.
+**593 screenshots**, 53 screens, 3 device sizes (android-412x915, iphone-393x852, small-360x640), 3 locales (en, ru, uz). 0 captures failed. 0 captures measured content past the right edge. 156 captures logged a console error.
 
 Every link below is relative to `docs/`, so it opens from this file.
 
@@ -239,6 +252,10 @@ Every link below is relative to `docs/`, so it opens from this file.
 | `delete-account` | the deletion route as it stands today | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/account/privacy/delete-account.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
 | `locale-ru` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/account/privacy/locale-ru.png) | 393x852 @2x | ru | seeded database | none measured | — | captured |
 | `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/account/privacy/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `default` | what the backend can actually do, and what it cannot | [png](../artifacts/mobile-v2-visual-qa/small-360x640/account/privacy/default.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
+| `delete-account` | the deletion route as it stands today | [png](../artifacts/mobile-v2-visual-qa/small-360x640/account/privacy/delete-account.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
+| `locale-ru` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/account/privacy/locale-ru.png) | 360x640 @2x | ru | seeded database | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/account/privacy/long-content.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
 
 ### `account/profile-donor` — Donor profile
 
@@ -319,6 +336,13 @@ Every link below is relative to `docs/`, so it opens from this file.
 | `locale-uz` | Uzbek labels and helper text | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/auth/login/locale-uz.png) | 393x852 @2x | uz | seeded database | none measured | — | captured |
 | `server-error` | the API answered 500 | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/auth/login/server-error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
 | `validation-errors` | submitted empty, so every rule fires at once | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/auth/login/validation-errors.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `email-mode` | switched from phone to email | [png](../artifacts/mobile-v2-visual-qa/small-360x640/auth/login/email-mode.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
+| `empty` | nothing entered yet | [png](../artifacts/mobile-v2-visual-qa/small-360x640/auth/login/empty.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
+| `loading` | request in flight, button in its pending state | [png](../artifacts/mobile-v2-visual-qa/small-360x640/auth/login/loading.png) | 360x640 @2x | en | overridden | none measured | — | captured |
+| `locale-ru` | Russian labels and helper text | [png](../artifacts/mobile-v2-visual-qa/small-360x640/auth/login/locale-ru.png) | 360x640 @2x | ru | seeded database | none measured | — | captured |
+| `locale-uz` | Uzbek labels and helper text | [png](../artifacts/mobile-v2-visual-qa/small-360x640/auth/login/locale-uz.png) | 360x640 @2x | uz | seeded database | none measured | — | captured |
+| `server-error` | the API answered 500 | [png](../artifacts/mobile-v2-visual-qa/small-360x640/auth/login/server-error.png) | 360x640 @2x | en | overridden | none measured | **1** | captured |
+| `validation-errors` | submitted empty, so every rule fires at once | [png](../artifacts/mobile-v2-visual-qa/small-360x640/auth/login/validation-errors.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
 
 ### `auth/otp` — One-time code
 
@@ -330,6 +354,9 @@ Every link below is relative to `docs/`, so it opens from this file.
 | `empty` | code not entered | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/auth/otp/empty.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
 | `entered` | six digits in | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/auth/otp/entered.png) | 393x852 @2x | en | seeded database | none measured | **1** | captured |
 | `server-error` | wrong or expired code | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/auth/otp/server-error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `empty` | code not entered | [png](../artifacts/mobile-v2-visual-qa/small-360x640/auth/otp/empty.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
+| `entered` | six digits in | [png](../artifacts/mobile-v2-visual-qa/small-360x640/auth/otp/entered.png) | 360x640 @2x | en | seeded database | none measured | **1** | captured |
+| `server-error` | wrong or expired code | [png](../artifacts/mobile-v2-visual-qa/small-360x640/auth/otp/server-error.png) | 360x640 @2x | en | overridden | none measured | **1** | captured |
 
 ### `auth/phone` — Phone sign-in
 
@@ -363,6 +390,9 @@ Every link below is relative to `docs/`, so it opens from this file.
 | `empty` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/auth/register-details/empty.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
 | `locale-uz` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/auth/register-details/locale-uz.png) | 393x852 @2x | uz | seeded database | none measured | — | captured |
 | `validation-errors` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/auth/register-details/validation-errors.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/auth/register-details/empty.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
+| `locale-uz` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/auth/register-details/locale-uz.png) | 360x640 @2x | uz | seeded database | none measured | — | captured |
+| `validation-errors` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/auth/register-details/validation-errors.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
 
 ### `auth/reset-password` — Reset password
 
@@ -441,6 +471,12 @@ Every link below is relative to `docs/`, so it opens from this file.
 | `locale-uz` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/booking/3-date/locale-uz.png) | 393x852 @2x | uz | seeded database | none measured | — | captured |
 | `no-open-dates` | the month has nothing open | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/booking/3-date/no-open-dates.png) | 393x852 @2x | en | overridden | none measured | — | captured |
 | `populated` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/booking/3-date/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/booking/3-date/error.png) | 360x640 @2x | en | overridden | none measured | **1** | captured |
+| `loading` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/booking/3-date/loading.png) | 360x640 @2x | en | overridden | none measured | — | captured |
+| `locale-ru` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/booking/3-date/locale-ru.png) | 360x640 @2x | ru | seeded database | none measured | — | captured |
+| `locale-uz` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/booking/3-date/locale-uz.png) | 360x640 @2x | uz | seeded database | none measured | — | captured |
+| `no-open-dates` | the month has nothing open | [png](../artifacts/mobile-v2-visual-qa/small-360x640/booking/3-date/no-open-dates.png) | 360x640 @2x | en | overridden | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/booking/3-date/populated.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
 
 ### `booking/4-time` — Booking — time
 
@@ -454,6 +490,10 @@ Every link below is relative to `docs/`, so it opens from this file.
 | `loading` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/booking/4-time/loading.png) | 393x852 @2x | en | overridden | none measured | — | captured |
 | `no-times` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/booking/4-time/no-times.png) | 393x852 @2x | en | overridden | none measured | — | captured |
 | `populated` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/booking/4-time/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/booking/4-time/error.png) | 360x640 @2x | en | overridden | none measured | **1** | captured |
+| `loading` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/booking/4-time/loading.png) | 360x640 @2x | en | overridden | none measured | — | captured |
+| `no-times` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/booking/4-time/no-times.png) | 360x640 @2x | en | overridden | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/booking/4-time/populated.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
 
 ### `booking/5-review` — Booking — review
 
@@ -467,6 +507,10 @@ Every link below is relative to `docs/`, so it opens from this file.
 | `server-error` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/booking/5-review/server-error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
 | `slot-taken` | someone else took it while this donor decided | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/booking/5-review/slot-taken.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
 | `submitting` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/booking/5-review/submitting.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/booking/5-review/populated.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
+| `server-error` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/booking/5-review/server-error.png) | 360x640 @2x | en | overridden | none measured | **1** | captured |
+| `slot-taken` | someone else took it while this donor decided | [png](../artifacts/mobile-v2-visual-qa/small-360x640/booking/5-review/slot-taken.png) | 360x640 @2x | en | overridden | none measured | **1** | captured |
+| `submitting` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/booking/5-review/submitting.png) | 360x640 @2x | en | overridden | none measured | — | captured |
 
 ### `booking/6-confirmation` — Booking — confirmed
 
@@ -603,6 +647,12 @@ Every link below is relative to `docs/`, so it opens from this file.
 | `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/courier/active/long-content.png) | 393x852 @2x | en | overridden | none measured | **2** | captured |
 | `permission-location-explainer` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/courier/active/permission-location-explainer.png) | 393x852 @2x | en | overridden | none measured | **2** | captured |
 | `populated` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/courier/active/populated.png) | 393x852 @2x | en | overridden | none measured | **2** | captured |
+| `empty` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/courier/active/empty.png) | 360x640 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/courier/active/error.png) | 360x640 @2x | en | overridden | none measured | **1** | captured |
+| `loading` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/courier/active/loading.png) | 360x640 @2x | en | overridden | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/courier/active/long-content.png) | 360x640 @2x | en | overridden | none measured | **2** | captured |
+| `permission-location-explainer` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/courier/active/permission-location-explainer.png) | 360x640 @2x | en | overridden | none measured | **2** | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/courier/active/populated.png) | 360x640 @2x | en | overridden | none measured | **2** | captured |
 
 ### `courier/history` — Courier — history
 
@@ -644,6 +694,11 @@ Every link below is relative to `docs/`, so it opens from this file.
 | `loading` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/health/insights/loading.png) | 393x852 @2x | en | overridden | none measured | — | captured |
 | `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/health/insights/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
 | `populated` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/health/insights/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `ai-disabled` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/health/insights/ai-disabled.png) | 360x640 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/health/insights/error.png) | 360x640 @2x | en | overridden | none measured | — | captured |
+| `loading` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/health/insights/loading.png) | 360x640 @2x | en | overridden | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/health/insights/long-content.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/health/insights/populated.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
 
 ### `health/laboratory` — Blood tests
 
@@ -661,6 +716,12 @@ Every link below is relative to `docs/`, so it opens from this file.
 | `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/health/laboratory/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
 | `partial-failure` | one list failed; the other must not read as "you have none" | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/health/laboratory/partial-failure.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
 | `populated` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/health/laboratory/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/health/laboratory/empty.png) | 360x640 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/health/laboratory/error.png) | 360x640 @2x | en | overridden | none measured | **1** | captured |
+| `loading` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/health/laboratory/loading.png) | 360x640 @2x | en | overridden | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/health/laboratory/long-content.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
+| `partial-failure` | one list failed; the other must not read as "you have none" | [png](../artifacts/mobile-v2-visual-qa/small-360x640/health/laboratory/partial-failure.png) | 360x640 @2x | en | overridden | none measured | **1** | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/health/laboratory/populated.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
 
 ### `health/trends` — Health trends
 
@@ -689,6 +750,10 @@ Every link below is relative to `docs/`, so it opens from this file.
 | `error` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/history/appointment-detail/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
 | `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/history/appointment-detail/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
 | `populated` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/history/appointment-detail/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `cancel-confirmation` | cancelling asks first | [png](../artifacts/mobile-v2-visual-qa/small-360x640/history/appointment-detail/cancel-confirmation.png) | 360x640 @2x | en | seeded database | none measured | **1** | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/history/appointment-detail/error.png) | 360x640 @2x | en | overridden | none measured | **1** | captured |
+| `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/history/appointment-detail/long-content.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/history/appointment-detail/populated.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
 
 ### `history/donation-detail` — Donation detail
 
@@ -782,6 +847,9 @@ Every link below is relative to `docs/`, so it opens from this file.
 | `populated` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/lab-booking/5-review/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
 | `server-error` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/lab-booking/5-review/server-error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
 | `slot-taken` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/lab-booking/5-review/slot-taken.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/lab-booking/5-review/populated.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
+| `server-error` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/lab-booking/5-review/server-error.png) | 360x640 @2x | en | overridden | none measured | **1** | captured |
+| `slot-taken` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/lab-booking/5-review/slot-taken.png) | 360x640 @2x | en | overridden | none measured | **1** | captured |
 
 ### `lab-booking/6-confirmation` — Lab — confirmed
 
@@ -808,6 +876,12 @@ Every link below is relative to `docs/`, so it opens from this file.
 | `permission-notifications-explainer` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/onboarding/complete-profile/permission-notifications-explainer.png) | 393x852 @2x | en | seeded database | none measured | **1** | captured |
 | `step-1-blood-type` | first step as it opens | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/onboarding/complete-profile/step-1-blood-type.png) | 393x852 @2x | en | seeded database | none measured | **1** | captured |
 | `step-2-your-name` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/onboarding/complete-profile/step-2-your-name.png) | 393x852 @2x | en | seeded database | none measured | **1** | captured |
+| `locale-ru` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/onboarding/complete-profile/locale-ru.png) | 360x640 @2x | ru | seeded database | none measured | **1** | captured |
+| `locale-uz` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/onboarding/complete-profile/locale-uz.png) | 360x640 @2x | uz | seeded database | none measured | **1** | captured |
+| `permission-location-explainer` | the explainer the app shows BEFORE the OS is asked | [png](../artifacts/mobile-v2-visual-qa/small-360x640/onboarding/complete-profile/permission-location-explainer.png) | 360x640 @2x | en | seeded database | none measured | **1** | captured |
+| `permission-notifications-explainer` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/onboarding/complete-profile/permission-notifications-explainer.png) | 360x640 @2x | en | seeded database | none measured | **1** | captured |
+| `step-1-blood-type` | first step as it opens | [png](../artifacts/mobile-v2-visual-qa/small-360x640/onboarding/complete-profile/step-1-blood-type.png) | 360x640 @2x | en | seeded database | none measured | **1** | captured |
+| `step-2-your-name` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/onboarding/complete-profile/step-2-your-name.png) | 360x640 @2x | en | seeded database | none measured | **1** | captured |
 
 ### `sos/emergency` — Emergency SOS
 
@@ -837,6 +911,18 @@ Every link below is relative to `docs/`, so it opens from this file.
 | `network-failure` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/sos/emergency/network-failure.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
 | `server-error` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/sos/emergency/server-error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
 | `viewing` | opened, not yet answered | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/sos/emergency/viewing.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `accepted` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/sos/emergency/accepted.png) | 360x640 @2x | en | overridden | none measured | — | captured |
+| `arrived` | the last state a donor owns | [png](../artifacts/mobile-v2-visual-qa/small-360x640/sos/emergency/arrived.png) | 360x640 @2x | en | overridden | none measured | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/sos/emergency/empty.png) | 360x640 @2x | en | overridden | none measured | — | captured |
+| `en-route` | journey started; map shows positions and says so | [png](../artifacts/mobile-v2-visual-qa/small-360x640/sos/emergency/en-route.png) | 360x640 @2x | en | overridden | none measured | — | captured |
+| `light` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/sos/emergency/light.png) | 360x640 @2x | en | overridden | none measured | — | captured |
+| `list` | requests this donor can answer | [png](../artifacts/mobile-v2-visual-qa/small-360x640/sos/emergency/list.png) | 360x640 @2x | en | overridden | none measured | — | captured |
+| `loading` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/sos/emergency/loading.png) | 360x640 @2x | en | overridden | none measured | — | captured |
+| `locale-ru` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/sos/emergency/locale-ru.png) | 360x640 @2x | ru | overridden | none measured | — | captured |
+| `locale-uz` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/sos/emergency/locale-uz.png) | 360x640 @2x | uz | overridden | none measured | — | captured |
+| `network-failure` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/sos/emergency/network-failure.png) | 360x640 @2x | en | overridden | none measured | **1** | captured |
+| `server-error` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/sos/emergency/server-error.png) | 360x640 @2x | en | overridden | none measured | **1** | captured |
+| `viewing` | opened, not yet answered | [png](../artifacts/mobile-v2-visual-qa/small-360x640/sos/emergency/viewing.png) | 360x640 @2x | en | overridden | none measured | — | captured |
 
 ### `tabs/calendar` — Calendar
 
@@ -890,6 +976,13 @@ Every link below is relative to `docs/`, so it opens from this file.
 | `locale-uz` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/tabs/donate/locale-uz.png) | 393x852 @2x | uz | seeded database | none measured | — | captured |
 | `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/tabs/donate/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
 | `populated` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/tabs/donate/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/tabs/donate/empty.png) | 360x640 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/tabs/donate/error.png) | 360x640 @2x | en | overridden | none measured | **1** | captured |
+| `loading` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/tabs/donate/loading.png) | 360x640 @2x | en | overridden | none measured | — | captured |
+| `locale-ru` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/tabs/donate/locale-ru.png) | 360x640 @2x | ru | seeded database | none measured | — | captured |
+| `locale-uz` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/tabs/donate/locale-uz.png) | 360x640 @2x | uz | seeded database | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/tabs/donate/long-content.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/tabs/donate/populated.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
 
 ### `tabs/health` — Health
 
@@ -911,6 +1004,14 @@ Every link below is relative to `docs/`, so it opens from this file.
 | `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/tabs/health/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
 | `partial-failure` | results loaded, appointments did not | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/tabs/health/partial-failure.png) | 393x852 @2x | en | overridden | none measured | — | captured |
 | `populated` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/tabs/health/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `ai-unavailable` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/tabs/health/ai-unavailable.png) | 360x640 @2x | en | overridden | none measured | **1** | captured |
+| `empty` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/tabs/health/empty.png) | 360x640 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/tabs/health/error.png) | 360x640 @2x | en | overridden | none measured | **1** | captured |
+| `loading` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/tabs/health/loading.png) | 360x640 @2x | en | overridden | none measured | — | captured |
+| `locale-ru` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/tabs/health/locale-ru.png) | 360x640 @2x | ru | seeded database | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/tabs/health/long-content.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
+| `partial-failure` | results loaded, appointments did not | [png](../artifacts/mobile-v2-visual-qa/small-360x640/tabs/health/partial-failure.png) | 360x640 @2x | en | overridden | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/tabs/health/populated.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
 
 ### `tabs/home` — Home
 
@@ -936,6 +1037,16 @@ Every link below is relative to `docs/`, so it opens from this file.
 | `long-content` | whole page, to see it end to end | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/tabs/home/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
 | `offline` | the data requests never reach the server | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/tabs/home/offline.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
 | `populated` | seeded donor: verified blood type, history, next appointment | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/tabs/home/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `emergency-banner` | an active emergency matching this donor | [png](../artifacts/mobile-v2-visual-qa/small-360x640/tabs/home/emergency-banner.png) | 360x640 @2x | en | overridden | none measured | — | captured |
+| `empty` | nothing scheduled, no emergencies, no campaigns | [png](../artifacts/mobile-v2-visual-qa/small-360x640/tabs/home/empty.png) | 360x640 @2x | en | overridden | none measured | — | captured |
+| `error` | every section failed | [png](../artifacts/mobile-v2-visual-qa/small-360x640/tabs/home/error.png) | 360x640 @2x | en | overridden | none measured | **1** | captured |
+| `light` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/tabs/home/light.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
+| `loading` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/tabs/home/loading.png) | 360x640 @2x | en | overridden | none measured | — | captured |
+| `locale-ru` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/tabs/home/locale-ru.png) | 360x640 @2x | ru | seeded database | none measured | — | captured |
+| `locale-uz` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/tabs/home/locale-uz.png) | 360x640 @2x | uz | seeded database | none measured | — | captured |
+| `long-content` | whole page, to see it end to end | [png](../artifacts/mobile-v2-visual-qa/small-360x640/tabs/home/long-content.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
+| `offline` | the data requests never reach the server | [png](../artifacts/mobile-v2-visual-qa/small-360x640/tabs/home/offline.png) | 360x640 @2x | en | overridden | none measured | **1** | captured |
+| `populated` | seeded donor: verified blood type, history, next appointment | [png](../artifacts/mobile-v2-visual-qa/small-360x640/tabs/home/populated.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
 
 ### `tabs/profile` — Profile
 
@@ -951,5 +1062,10 @@ Every link below is relative to `docs/`, so it opens from this file.
 | `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/tabs/profile/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
 | `populated` | — | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/tabs/profile/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
 | `sign-out-confirmation` | the destructive action asks first | [png](../artifacts/mobile-v2-visual-qa/iphone-393x852/tabs/profile/sign-out-confirmation.png) | 393x852 @2x | en | seeded database | none measured | **1** | captured |
+| `error` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/tabs/profile/error.png) | 360x640 @2x | en | overridden | none measured | **1** | captured |
+| `locale-ru` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/tabs/profile/locale-ru.png) | 360x640 @2x | ru | seeded database | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/tabs/profile/long-content.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v2-visual-qa/small-360x640/tabs/profile/populated.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
+| `sign-out-confirmation` | the destructive action asks first | [png](../artifacts/mobile-v2-visual-qa/small-360x640/tabs/profile/sign-out-confirmation.png) | 360x640 @2x | en | seeded database | none measured | **1** | captured |
 
 <!-- generated:inventory:end -->
