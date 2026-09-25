@@ -857,6 +857,7 @@ export const ru: Catalog = {
       OTHER: 'Другое',
     },
     cancellation: {
+      DEFERRED: 'Отвод',
       DONOR_CANCELLED: 'Отменено донором',
       ORGANIZATION_CANCELLED: 'Отменено организацией',
       NOT_COMPLETED: 'Не завершено',
@@ -1994,6 +1995,7 @@ export const ru: Catalog = {
     CONSULTATION_HINT: 'Поговорите с медицинским специалистом',
   },
   appointment: {
+    aboutDuration: 'около {{duration}}',
     title: 'Запись',
     preparation: 'Что подготовить',
     cancelTitle: 'Отменить эту запись?',

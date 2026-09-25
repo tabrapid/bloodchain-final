@@ -1,22 +1,30 @@
 import { useCallback, useMemo, useState } from 'react';
-import { View, StyleSheet, FlatList, Pressable, RefreshControl } from 'react-native';
+import { FlatList } from 'react-native';
 import { router } from 'expo-router';
-import { Droplet, MapPin, ChevronRight } from 'lucide-react-native';
+import { Droplet } from 'lucide-react-native';
 import {
-  AppText,
+  Badge,
+  Divider,
   EmptyState,
   ErrorState,
-  GlassCard,
+  ListRow,
   Screen,
   ScreenHeader,
   SectionHeader,
   SegmentedControl,
-  Badge,
-  SkeletonCard,
-} from '../../../src/components';
+  SkeletonRow,
+  Stack,
+  Stat,
+  StatRow,
+  Surface,
+  iconSize,
+  layout,
+  space,
+  useDesign,
+  type StatusTone,
+} from '../../../src/design';
 import { useMyDonations, useDonationStatistics } from '../../../src/hooks/useDonations';
 import { type Donation } from '../../../src/api/donations';
-import { spacing, radius, useTheme, ThemeColors } from '../../../src/theme';
 import { useTranslation } from '../../../src/i18n';
 
 type Filter = 'all' | 'completed' | 'cancelled';
@@ -34,11 +42,34 @@ const FILTER_PARAMS: Record<Filter, Parameters<typeof useMyDonations>[0]> = {
   cancelled: { status: 'CANCELLED', past: true },
 };
 
+/**
+ * The badge carries the volume for a donation that actually happened -- that
+ * is the number a donor looks for -- and falls back to the status for one that
+ * did not, so a cancelled or aborted record is never presented in the same
+ * shape as a completed one.
+ */
+function statusBadge(
+  donation: Donation,
+  t: (key: string) => string,
+): { label: string; tone: StatusTone } {
+  const status = t(`status.donation.${donation.status}`);
+  if (donation.status === 'COMPLETED') {
+    return donation.volumeMl
+      ? { label: `${donation.volumeMl} ml`, tone: 'success' }
+      : { label: status, tone: 'success' };
+  }
+  if (donation.status === 'IN_PROGRESS') return { label: status, tone: 'warning' };
+  if (['CANCELLED', 'ABORTED', 'REJECTED'].includes(donation.status)) {
+    return { label: status, tone: 'critical' };
+  }
+  return { label: status, tone: 'neutral' };
+}
+
 export default function DonationsScreen() {
-  const { t } = useTranslation();
-  const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const { t, formatDate } = useTranslation();
+  const { colors } = useDesign();
   const [filter, setFilter] = useState<Filter>('all');
+
   // Resolved here rather than in the module list above, because a label built
   // at module load is stuck in whatever language the app started in.
   const filterOptions = useMemo(
@@ -52,56 +83,92 @@ export default function DonationsScreen() {
   const donations: Donation[] = data?.data ?? [];
 
   const renderDonation = useCallback(
-    ({ item }: { item: Donation }) => <DonationRow donation={item} />,
-    [],
+    ({ item }: { item: Donation }) => {
+      const badge = statusBadge(item, t);
+      const date = formatDate(item.collectionCompletedAt ?? item.createdAt, 'medium');
+      return (
+        <ListRow
+          leading={<Droplet size={iconSize.lg} color={colors.rose.base} />}
+          title={t(`medical.components.${item.donationType}`)}
+          subtitle={`${date} · ${item.organization.name}`}
+          trailing={<Badge label={badge.label} tone={badge.tone} />}
+          accessibilityLabel={t('donationHistory.a11yRow', {
+            type: t(`medical.components.${item.donationType}`),
+            date,
+          })}
+          onPress={() => router.push(`/donations/${item.id}`)}
+        />
+      );
+    },
+    [colors, formatDate, t],
   );
 
   return (
-    <Screen scroll={false}>
-      <ScreenHeader title={t('donationHistory.title')} subtitle={t('donationHistory.subtitle')} />
+    <Screen gutter={false}>
+      <ScreenHeader title={t('donationHistory.title')} eyebrow={t('donationHistory.subtitle')} />
       <FlatList
-        style={styles.list}
+        style={{ flex: 1 }}
         data={donations}
         renderItem={renderDonation}
         keyExtractor={(donation) => donation.id}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={{
+          paddingHorizontal: layout.gutter,
+          paddingBottom: layout.tabBarClearance,
+        }}
+        // A list of rows with hairlines between them, not a column of cards:
+        // twenty donations are one history, not twenty separate objects.
+        ItemSeparatorComponent={() => <Divider inset />}
         showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefetching}
-            onRefresh={refetch}
-            tintColor={colors.primary}
-          />
-        }
+        refreshing={isRefetching}
+        onRefresh={() => void refetch()}
         ListHeaderComponent={
-          <View style={styles.header}>
-            {stats && (
-              <View style={styles.summaryRow}>
-                <SummaryTile value={String(stats.totalDonations)} label={t('donationHistory.totalDonations')} />
-                <SummaryTile
-                  value={`${(stats.totalVolumeMl / 1000).toFixed(1)}L`}
-                  label={t('donationHistory.volumeDonated')}
+          <Stack gap="lg" style={{ paddingBottom: space.md }}>
+            {stats ? (
+              <StatRow>
+                <Stat
+                  label={t('donationHistory.totalDonations')}
+                  value={String(stats.totalDonations)}
+                  tone="rose"
                 />
-                <SummaryTile value={String(stats.completedCount)} label={t('status.donation.COMPLETED')} />
-              </View>
-            )}
+                <Stat
+                  label={t('donationHistory.volumeDonated')}
+                  value={(stats.totalVolumeMl / 1000).toFixed(1)}
+                  unit="L"
+                />
+                <Stat
+                  label={t('status.donation.COMPLETED')}
+                  value={String(stats.completedCount)}
+                  tone="success"
+                />
+              </StatRow>
+            ) : null}
 
-            <SegmentedControl options={filterOptions} value={filter} onChange={setFilter} />
+            <SegmentedControl
+              options={filterOptions}
+              value={filter}
+              onChange={setFilter}
+              accessibilityLabel={t('filters.all')}
+            />
 
-            <SectionHeader>{t('donationHistory.title')}</SectionHeader>
-          </View>
+            <SectionHeader title={t('donationHistory.title')} />
+          </Stack>
         }
         ListEmptyComponent={
           isLoading ? (
-            <View style={styles.skeletons}>
-              {[0, 1, 2, 3].map((i) => (
-                <SkeletonCard key={i} />
-              ))}
-            </View>
+            <Surface>
+              <SkeletonRow />
+              <SkeletonRow />
+              <SkeletonRow />
+            </Surface>
           ) : isError ? (
             // An unreachable server used to render the same "no donations yet"
             // card as an account with none, which is a different fact.
-            <ErrorState onRetry={() => void refetch()} />
+            <ErrorState
+              title={t('common.errorTitle')}
+              description={t('common.errorBody')}
+              retryLabel={t('common.retry')}
+              onRetry={() => void refetch()}
+            />
           ) : (
             <EmptyState
               title={t('donationHistory.empty')}
@@ -110,179 +177,19 @@ export default function DonationsScreen() {
                   ? t('donationHistory.emptyHint')
                   : t('donationHistory.emptyFiltered')
               }
+              icon={({ size, color }) => <Droplet size={size} color={color} />}
+              {...(filter === 'all'
+                ? {
+                    action: {
+                      label: t('home.quickActionSchedule'),
+                      onPress: () => router.push('/(booking)/select-type'),
+                    },
+                  }
+                : { action: { label: t('filters.all'), onPress: () => setFilter('all') } })}
             />
           )
         }
       />
     </Screen>
   );
-}
-
-function SummaryTile({ value, label }: { value: string; label: string }) {
-  const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
-
-  return (
-    <GlassCard tier="elevated" style={styles.summaryTile}>
-      <AppText style={styles.summaryValue} numberOfLines={1} adjustsFontSizeToFit>
-        {value}
-      </AppText>
-      <AppText style={styles.summaryLabel}>{label}</AppText>
-    </GlassCard>
-  );
-}
-
-/**
- * The badge slot carries the volume for a donation that actually happened --
- * that is the number a donor looks for -- and falls back to the status for
- * one that did not, so a cancelled or aborted record is never presented in
- * the same shape as a completed one.
- */
-function statusBadge(
-  donation: Donation,
-  t: (key: string) => string,
-): { label: string; variant: 'success' | 'warning' | 'danger' | 'default' } {
-  const status = t(`status.donation.${donation.status}`);
-  if (donation.status === 'COMPLETED') {
-    return donation.volumeMl
-      ? { label: `${donation.volumeMl} ml`, variant: 'success' }
-      : { label: status, variant: 'success' };
-  }
-  if (donation.status === 'IN_PROGRESS') return { label: status, variant: 'warning' };
-  if (['CANCELLED', 'ABORTED', 'REJECTED'].includes(donation.status)) {
-    return { label: status, variant: 'danger' };
-  }
-  return { label: status, variant: 'default' };
-}
-
-function DonationRow({ donation }: { donation: Donation }) {
-  const { t, formatDate } = useTranslation();
-  const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
-  const badge = statusBadge(donation, t);
-  const date = formatDate(donation.collectionCompletedAt ?? donation.createdAt, 'medium');
-
-  return (
-    <Pressable
-      onPress={() => router.push(`/donations/${donation.id}`)}
-      style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
-      accessibilityRole="button"
-      accessibilityLabel={t('donationHistory.a11yRow', {
-        type: t(`medical.components.${donation.donationType}`),
-        date,
-      })}
-    >
-      <GlassCard style={styles.rowCard}>
-        <View style={styles.row}>
-          <View style={styles.rowIcon}>
-            <Droplet size={18} color={colors.primary} fill="rgba(216, 83, 96, 0.4)" />
-          </View>
-
-          <View style={styles.rowBody}>
-            <View style={styles.rowTitleLine}>
-              <AppText style={styles.rowTitle} numberOfLines={1}>
-                {t(`medical.components.${donation.donationType}`)}
-              </AppText>
-              <Badge variant={badge.variant}>{badge.label}</Badge>
-            </View>
-            <AppText style={styles.rowDate}>{date}</AppText>
-            <View style={styles.rowOrgLine}>
-              <MapPin size={10} color={colors.textMuted} />
-              <AppText style={styles.rowOrg} numberOfLines={1}>
-                {donation.organization.name}
-              </AppText>
-            </View>
-          </View>
-
-          <ChevronRight size={16} color={colors.textSubtle} />
-        </View>
-      </GlassCard>
-    </Pressable>
-  );
-}
-
-function createStyles(colors: ThemeColors) {
-  return StyleSheet.create({
-    list: { flex: 1 },
-    listContent: {
-      gap: spacing.sm,
-      paddingBottom: spacing.xl,
-    },
-    header: {
-      gap: spacing.md,
-    },
-    summaryRow: {
-      flexDirection: 'row',
-      gap: 10,
-    },
-    summaryTile: {
-      flex: 1,
-      padding: 14,
-      alignItems: 'center',
-    },
-    summaryValue: {
-      fontSize: 28,
-      fontWeight: '800',
-      letterSpacing: -0.84,
-      color: colors.text,
-    },
-    summaryLabel: {
-      fontSize: 11,
-      color: colors.textMuted,
-      marginTop: 2,
-      textAlign: 'center',
-    },
-    skeletons: {
-      gap: spacing.sm,
-    },
-
-    rowCard: {
-      padding: 14,
-    },
-    row: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 12,
-    },
-    rowIcon: {
-      width: 40,
-      height: 40,
-      borderRadius: radius.sm,
-      backgroundColor: 'rgba(216, 83, 96, 0.12)',
-      alignItems: 'center',
-      justifyContent: 'center',
-      flexShrink: 0,
-    },
-    rowBody: {
-      flex: 1,
-    },
-    rowTitleLine: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.sm,
-      marginBottom: 4,
-    },
-    rowTitle: {
-      flexShrink: 1,
-      fontSize: 14,
-      fontWeight: '600',
-      color: colors.text,
-      textTransform: 'capitalize',
-    },
-    rowDate: {
-      fontSize: 12,
-      color: colors.textMuted,
-    },
-    rowOrgLine: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 3,
-      marginTop: 2,
-    },
-    rowOrg: {
-      flex: 1,
-      fontSize: 11,
-      color: colors.textMuted,
-    },
-  });
 }

@@ -836,6 +836,7 @@ export const en: Catalog = {
       OTHER: 'Other',
     },
     cancellation: {
+      DEFERRED: 'Deferred',
       DONOR_CANCELLED: 'Cancelled by the donor',
       ORGANIZATION_CANCELLED: 'Cancelled by the organisation',
       NOT_COMPLETED: 'Not completed',
@@ -1968,6 +1969,7 @@ export const en: Catalog = {
     CONSULTATION_HINT: 'Speak with a healthcare professional',
   },
   appointment: {
+    aboutDuration: 'about {{duration}}',
     title: 'Appointment',
     preparation: 'Preparation checklist',
     cancelTitle: 'Cancel this appointment?',

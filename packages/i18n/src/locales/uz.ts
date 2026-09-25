@@ -773,6 +773,7 @@ export const uz: Catalog = {
       OTHER: 'Boshqa',
     },
     cancellation: {
+      DEFERRED: 'Vaqtincha chetlatilgan',
       DONOR_CANCELLED: 'Donor bekor qildi',
       ORGANIZATION_CANCELLED: 'Tashkilot bekor qildi',
       NOT_COMPLETED: 'Yakunlanmadi',
@@ -1905,6 +1906,7 @@ export const uz: Catalog = {
     CONSULTATION_HINT: 'Shifokor bilan suhbatlashing',
   },
   appointment: {
+    aboutDuration: 'taxminan {{duration}}',
     title: 'Uchrashuv',
     preparation: 'Tayyorgarlik ro‘yxati',
     cancelTitle: 'Uchrashuv bekor qilinsinmi?',

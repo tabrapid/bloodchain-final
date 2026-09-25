@@ -1,28 +1,37 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
-import { View, StyleSheet, ScrollView, Alert, Pressable } from 'react-native';
+import { View } from 'react-native';
 import {
+  AlertCircle,
   Calendar,
   Clock,
-  MapPin,
   Droplet,
-  Hash,
-  AlertCircle,
-  XCircle,
-  ArrowLeft,
   FlaskConical,
+  Hash,
+  MapPin,
+  XCircle,
 } from 'lucide-react-native';
 import {
-  AppButton,
-  AppText,
-  AppTextInput,
   Badge,
-  GlassCard,
-  Screen,
-} from '../../../src/components';
+  Banner,
+  Button,
+  ConfirmationSheet,
+  EmptyState,
+  Field,
+  ListGroup,
+  ListRow,
+  Row,
+  ScreenHeader,
+  ScrollScreen,
+  Skeleton,
+  Stack,
+  Surface,
+  Text,
+  iconSize,
+  useDesign,
+  type StatusTone,
+} from '../../../src/design';
 import { useAppointment, useCancelAppointment } from '../../../src/hooks/useAppointments';
-import { layout, spacing, radius, useTheme, ThemeColors } from '../../../src/theme';
-import type { BadgeProps } from '../../../src/components/Badge';
 import { useTranslation } from '../../../src/i18n';
 
 /**
@@ -40,86 +49,85 @@ const PREPARATION = [
   'medical.preparation.wearComfortable',
 ];
 
-const STATUS_VARIANT: Record<string, BadgeProps['variant']> = {
-  CONFIRMED: 'success',
-  PENDING: 'warning',
-  CANCELLED: 'danger',
-  NO_SHOW: 'danger',
-  COMPLETED: 'primary',
-};
+function statusTone(status: string): StatusTone {
+  switch (status) {
+    case 'CONFIRMED':
+      return 'success';
+    case 'PENDING':
+      return 'warning';
+    case 'CANCELLED':
+    case 'NO_SHOW':
+      return 'critical';
+    case 'COMPLETED':
+      return 'clinical';
+    default:
+      return 'neutral';
+  }
+}
 
+/**
+ * One appointment, and the two things a donor can still do to it.
+ *
+ * Cancelling used to run through `Alert.alert` with a destructive option, on
+ * top of an inline reason field that had already appeared -- two different
+ * confirmation surfaces for one action. It is one sheet now, which states what
+ * cancelling means before it happens.
+ *
+ * The duration read `${minutes} min` after the word "approx." in English, on a
+ * screen otherwise fully translated.
+ */
 export default function AppointmentDetail() {
   const { t, formatDate, formatTime } = useTranslation();
-  const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const { colors } = useDesign();
   const params = useLocalSearchParams<{ id: string }>();
-  const { data: appointment, isLoading } = useAppointment(params.id);
+  const { data: appointment, isPending } = useAppointment(params.id);
 
-  const [showCancelReason, setShowCancelReason] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
+  const [confirmingCancel, setConfirmingCancel] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const cancelMutation = useCancelAppointment();
-
   const isOpen = !!appointment && ['PENDING', 'CONFIRMED'].includes(appointment.status);
 
-  const handleCancel = () => {
-    if (!showCancelReason) {
-      setShowCancelReason(true);
-      return;
-    }
+  const header = (
+    <ScreenHeader
+      title={
+        appointment
+          ? t(`appointmentTypes.${appointment.appointmentType}`)
+          : t('appointment.title')
+      }
+      onBack={() => router.back()}
+      backLabel={t('common.a11yGoBack')}
+      actions={
+        appointment ? (
+          <Badge
+            label={t(`status.appointment.${appointment.status}`)}
+            tone={statusTone(appointment.status)}
+          />
+        ) : undefined
+      }
+    />
+  );
 
-    Alert.alert(t('appointment.cancelTitle'), t('appointment.cancelConfirmBody'), [
-      { text: t('appointment.cancelKeep'), style: 'cancel' },
-      {
-        text: t('appointment.cancelConfirm'),
-        style: 'destructive',
-        onPress: async () => {
-          setError(null);
-          try {
-            await cancelMutation.mutateAsync({
-              id: params.id,
-              input: { reason: cancelReason.trim() || undefined },
-            });
-            router.back();
-          } catch (err) {
-            setError(err instanceof Error ? err.message : t('appointment.cancelFailed'));
-          }
-        },
-      },
-    ]);
-  };
-
-  const handleReschedule = () => {
-    if (!appointment) return;
-    // Reschedule keeps the same organization and appointment type -- only
-    // the date/time change -- so this skips straight to date selection
-    // instead of re-running the full new-booking flow.
-    router.push({
-      pathname: '/(booking)/date' as const,
-      params: {
-        organizationId: appointment.organization.id,
-        type: appointment.appointmentType,
-        rescheduleAppointmentId: params.id,
-      },
-    });
-  };
-
-  if (isLoading || !appointment) {
+  if (isPending) {
     return (
-      <Screen>
-        <BackLink />
-        <AppText style={styles.title}>
-          {isLoading ? t('common.loading') : t('appointment.notFound')}
-        </AppText>
-        {!isLoading && (
-          <View style={styles.footer}>
-            <AppButton variant="secondary" onPress={() => router.back()}>
-              {t('common.back')}
-            </AppButton>
-          </View>
-        )}
-      </Screen>
+      <ScrollScreen header={header}>
+        <Stack gap="lg">
+          <Skeleton height={180} />
+          <Skeleton height={120} />
+        </Stack>
+      </ScrollScreen>
+    );
+  }
+
+  if (!appointment) {
+    return (
+      <ScrollScreen header={header}>
+        <EmptyState
+          title={t('appointment.notFound')}
+          action={{ label: t('common.back'), onPress: () => router.back() }}
+        />
+      </ScrollScreen>
     );
   }
 
@@ -127,358 +135,179 @@ export default function AppointmentDetail() {
   const end = new Date(appointment.scheduledEnd);
   const durationMin = Math.max(0, Math.round((end.getTime() - start.getTime()) / 60000));
 
+  const confirmCancel = async () => {
+    setError(null);
+    try {
+      await cancelMutation.mutateAsync({
+        id: params.id,
+        input: { reason: cancelReason.trim() || undefined },
+      });
+      setConfirmingCancel(false);
+      router.back();
+    } catch (err) {
+      setConfirmingCancel(false);
+      setError(err instanceof Error ? err.message : t('appointment.cancelFailed'));
+    }
+  };
+
   return (
-    <Screen scroll={false}>
-      <View style={styles.header}>
-        <BackLink />
-        <View style={styles.titleRow}>
-          <AppText style={styles.title}>
-            {t(`appointmentTypes.${appointment.appointmentType}`)}
-          </AppText>
-          <Badge variant={STATUS_VARIANT[appointment.status] ?? 'default'}>
-            {t(`status.appointment.${appointment.status}`)}
-          </Badge>
-        </View>
-      </View>
-
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <GlassCard tier="elevated">
-          <View style={styles.detailStack}>
-            <DetailRow
-              icon={<Calendar size={18} color={colors.success} />}
-              tint={`${colors.success}26`}
-              label={t('table.date')}
-              value={formatDate(start, 'full')}
-            />
-            <View style={styles.divider} />
-            <DetailRow
-              icon={<Clock size={18} color={colors.secondary} />}
-              tint={`${colors.secondary}26`}
-              label={t('table.time')}
-              value={`${formatTime(start)} — approx. ${durationMin} min`}
-            />
-            <View style={styles.divider} />
-            <DetailRow
-              icon={<MapPin size={18} color={colors.primary} />}
-              tint="rgba(216, 83, 96, 0.12)"
-              label={t('table.location')}
+    <ScrollScreen header={header}>
+      <Stack gap="xl">
+        <ListGroup
+          rows={[
+            <ListRow
+              key="date"
+              leading={<Calendar size={iconSize.lg} color={colors.success.base} />}
+              title={t('table.date')}
+              value={formatDate(start, 'medium')}
+            />,
+            <ListRow
+              key="time"
+              leading={<Clock size={iconSize.lg} color={colors.clinical.base} />}
+              title={t('table.time')}
+              subtitle={t('appointment.aboutDuration', {
+                duration: t('units.minutes', { count: durationMin }),
+              })}
+              value={formatTime(start)}
+            />,
+            <ListRow
+              key="where"
+              leading={<MapPin size={iconSize.lg} color={colors.rose.base} />}
+              title={t('table.location')}
+              subtitle={appointment.organization.address ?? undefined}
               value={appointment.organization.name}
-              meta={appointment.organization.address}
-            />
-            <View style={styles.divider} />
-            <DetailRow
-              icon={<Droplet size={18} color={colors.primary} />}
-              tint="rgba(216, 83, 96, 0.12)"
-              label={t('table.type')}
+            />,
+            <ListRow
+              key="type"
+              leading={<Droplet size={iconSize.lg} color={colors.rose.base} />}
+              title={t('table.type')}
               value={t(`appointmentTypes.${appointment.appointmentType}`)}
-            />
-            {appointment.testType ? (
-              <>
-                <View style={styles.divider} />
-                {/* The panel the donor chose in the laboratory wizard. It is
-                    the same row the laboratory's console reads, so what the
-                    donor sees here is what staff are expecting. */}
-                <DetailRow
-                  icon={<FlaskConical size={18} color={colors.secondary} />}
-                  tint={`${colors.secondary}26`}
-                  label={t('labBooking.testType')}
-                  value={appointment.testType.name}
-                />
-              </>
-            ) : null}
-          </View>
-        </GlassCard>
+            />,
+            // The panel the donor chose in the laboratory wizard. It is the
+            // same row the laboratory's console reads, so what the donor sees
+            // here is what staff are expecting.
+            ...(appointment.testType
+              ? [
+                  <ListRow
+                    key="panel"
+                    leading={<FlaskConical size={iconSize.lg} color={colors.clinical.base} />}
+                    title={t('labBooking.testType')}
+                    value={appointment.testType.name}
+                  />,
+                ]
+              : []),
+            <ListRow
+              key="reference"
+              leading={<Hash size={iconSize.lg} color={colors.textSecondary} />}
+              title={t('booking.referenceNumber')}
+              value={appointment.referenceNumber}
+            />,
+          ]}
+        />
 
-        {isOpen && (
-          <GlassCard>
-            <AppText style={styles.cardTitle}>{t('appointment.preparation')}</AppText>
-            {PREPARATION.map((tip) => (
-              <View key={tip} style={styles.tipRow}>
-                <View style={styles.tipDot} />
-                <AppText style={styles.tipText}>{t(tip)}</AppText>
-              </View>
-            ))}
-          </GlassCard>
-        )}
+        {isOpen ? (
+          <Surface>
+            <Stack gap="sm">
+              <Text variant="bodyStrong">{t('appointment.preparation')}</Text>
+              {PREPARATION.map((tip) => (
+                <Text key={tip} variant="caption" tone="secondary">
+                  {`• ${t(tip)}`}
+                </Text>
+              ))}
+            </Stack>
+          </Surface>
+        ) : null}
 
-        <GlassCard style={styles.compactCard}>
-          <View style={styles.compactRow}>
-            <View style={styles.compactIcon}>
-              <Hash size={16} color={colors.secondary} />
-            </View>
-            <View style={styles.compactBody}>
-              <AppText style={styles.compactTitle}>{t('booking.referenceNumber')}</AppText>
-              <AppText style={styles.compactMeta}>{appointment.referenceNumber}</AppText>
-            </View>
-          </View>
-        </GlassCard>
+        {appointment.notes ? (
+          <Surface>
+            <Stack gap="xs">
+              <Text variant="overline" tone="tertiary" caps>
+                {t('table.notes')}
+              </Text>
+              <Text variant="body" tone="secondary">
+                {appointment.notes}
+              </Text>
+            </Stack>
+          </Surface>
+        ) : null}
 
-        {appointment.notes && (
-          <GlassCard>
-            <AppText style={styles.cardTitle}>{t('table.notes')}</AppText>
-            <AppText style={styles.bodyText}>{appointment.notes}</AppText>
-          </GlassCard>
-        )}
+        {appointment.cancellationReason ? (
+          <Banner
+            tone="critical"
+            title={t('appointment.cancelledNotice')}
+            description={appointment.cancellationReason}
+            icon={({ size, color }) => <XCircle size={size} color={color} />}
+          />
+        ) : null}
 
-        {appointment.cancellationReason && (
-          <GlassCard danger>
-            <View style={styles.noticeHeader}>
-              <XCircle size={18} color={colors.onMuted.danger} />
-              <AppText style={styles.noticeTitle}>{t('appointment.cancelledNotice')}</AppText>
-            </View>
-            <AppText style={styles.bodyText}>{appointment.cancellationReason}</AppText>
-          </GlassCard>
-        )}
+        {error ? (
+          <Banner
+            tone="critical"
+            title={error}
+            icon={({ size, color }) => <AlertCircle size={size} color={color} />}
+          />
+        ) : null}
 
-        {error && (
-          <GlassCard danger>
-            <View style={styles.noticeHeader}>
-              <AlertCircle size={18} color={colors.onMuted.danger} />
-              <AppText style={styles.noticeTitle}>{error}</AppText>
-            </View>
-          </GlassCard>
-        )}
-
-        {showCancelReason && (
-          <GlassCard>
-            <AppTextInput
+        {isOpen ? (
+          <Stack gap="md">
+            {/* The reason is optional and is typed before confirming, not
+                inside the confirmation: a sheet is for deciding, not for
+                composing. */}
+            <Field
               label={t('appointment.cancelReason')}
               placeholder={t('appointment.cancelReasonHint')}
               value={cancelReason}
               onChangeText={setCancelReason}
               multiline
             />
-          </GlassCard>
+            <Row gap="md">
+              <View style={{ flex: 1 }}>
+                <Button
+                  label={t('appointment.reschedule')}
+                  variant="secondary"
+                  // Reschedule keeps the same organization and appointment
+                  // type -- only the date and time change -- so this skips
+                  // straight to date selection instead of re-running the full
+                  // new-booking flow.
+                  onPress={() =>
+                    router.push({
+                      pathname: '/(booking)/date' as const,
+                      params: {
+                        organizationId: appointment.organization.id,
+                        type: appointment.appointmentType,
+                        rescheduleAppointmentId: params.id,
+                      },
+                    })
+                  }
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Button
+                  label={t('actions.cancel')}
+                  variant="secondary"
+                  accent="critical"
+                  style={{ borderColor: colors.critical.base }}
+                  onPress={() => setConfirmingCancel(true)}
+                />
+              </View>
+            </Row>
+          </Stack>
+        ) : (
+          <Button label={t('common.back')} variant="secondary" onPress={() => router.back()} />
         )}
+      </Stack>
 
-        <View style={styles.actions}>
-          {isOpen ? (
-            <>
-              <AppButton variant="secondary" onPress={handleReschedule} style={styles.action}>
-                {t('appointment.reschedule')}
-              </AppButton>
-              <AppButton
-                variant="ghost"
-                onPress={handleCancel}
-                loading={cancelMutation.isPending}
-                style={styles.action}
-              >
-                {showCancelReason ? t('actions.confirm') : t('actions.cancel')}
-              </AppButton>
-            </>
-          ) : (
-            <AppButton variant="secondary" onPress={() => router.back()} style={styles.action}>
-              {t('common.back')}
-            </AppButton>
-          )}
-        </View>
-      </ScrollView>
-    </Screen>
+      <ConfirmationSheet
+        visible={confirmingCancel}
+        onCancel={() => setConfirmingCancel(false)}
+        onConfirm={() => void confirmCancel()}
+        title={t('appointment.cancelTitle')}
+        description={t('appointment.cancelConfirmBody')}
+        confirmLabel={t('appointment.cancelConfirm')}
+        cancelLabel={t('appointment.cancelKeep')}
+        busy={cancelMutation.isPending}
+        destructive
+      />
+    </ScrollScreen>
   );
-}
-
-function BackLink() {
-  const { t } = useTranslation();
-  const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
-  return (
-    <Pressable
-      onPress={() => router.back()}
-      accessibilityRole="button"
-      accessibilityLabel={t('auth.a11y.goBack')}
-      style={({ pressed }) => [styles.backLink, { opacity: pressed ? 0.6 : 1 }]}
-    >
-      <ArrowLeft size={16} color={colors.primary} strokeWidth={2.5} />
-      <AppText style={styles.backLabel}>{t('actions.back')}</AppText>
-    </Pressable>
-  );
-}
-
-interface DetailRowProps {
-  icon: React.ReactNode;
-  tint: string;
-  label: string;
-  value: string;
-  meta?: string;
-}
-
-function DetailRow({ icon, tint, label, value, meta }: DetailRowProps) {
-  const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
-  return (
-    <View style={styles.detailRow}>
-      <View style={[styles.detailIcon, { backgroundColor: tint }]}>{icon}</View>
-      <View style={styles.detailBody}>
-        <AppText style={styles.detailLabel}>{label.toUpperCase()}</AppText>
-        <AppText style={styles.detailValue}>{value}</AppText>
-        {meta && <AppText style={styles.detailMeta}>{meta}</AppText>}
-      </View>
-    </View>
-  );
-}
-
-function createStyles(colors: ThemeColors) {
-  return StyleSheet.create({
-    header: {
-      marginBottom: layout.cardGap,
-    },
-    backLink: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 6,
-      minHeight: 44,
-      alignSelf: 'flex-start',
-      paddingRight: spacing.sm,
-    },
-    backLabel: {
-      fontSize: 14,
-      fontWeight: '600',
-      color: colors.primary,
-    },
-    titleRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 10,
-      marginTop: spacing.sm,
-    },
-    title: {
-      flex: 1,
-      fontSize: 24,
-      fontWeight: '700',
-      letterSpacing: -0.48,
-      color: colors.text,
-    },
-    content: {
-      gap: layout.cardGap,
-      paddingBottom: spacing.xl,
-    },
-
-    detailStack: {
-      gap: spacing.md,
-    },
-    detailRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 12,
-    },
-    detailIcon: {
-      width: 40,
-      height: 40,
-      borderRadius: radius.sm,
-      alignItems: 'center',
-      justifyContent: 'center',
-      flexShrink: 0,
-    },
-    detailBody: {
-      flex: 1,
-    },
-    detailLabel: {
-      fontSize: 11,
-      letterSpacing: 0.66,
-      color: colors.textMuted,
-    },
-    detailValue: {
-      fontSize: 15,
-      fontWeight: '600',
-      color: colors.text,
-      marginTop: 1,
-    },
-    detailMeta: {
-      fontSize: 12,
-      color: colors.textMuted,
-      marginTop: 1,
-    },
-    divider: {
-      height: 1,
-      backgroundColor: colors.borderSubtle,
-    },
-
-    cardTitle: {
-      fontSize: 13,
-      fontWeight: '600',
-      color: colors.text,
-      marginBottom: layout.cardGap,
-    },
-    tipRow: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      gap: 10,
-      marginBottom: 10,
-    },
-    tipDot: {
-      width: 6,
-      height: 6,
-      borderRadius: 3,
-      backgroundColor: colors.success,
-      marginTop: 6,
-      flexShrink: 0,
-    },
-    tipText: {
-      flex: 1,
-      fontSize: 13,
-      lineHeight: 20,
-      color: colors.textMuted,
-    },
-    bodyText: {
-      fontSize: 13,
-      lineHeight: 20,
-      color: colors.textMuted,
-    },
-
-    compactCard: {
-      paddingVertical: 12,
-      paddingHorizontal: 14,
-    },
-    compactRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 12,
-    },
-    compactIcon: {
-      width: 36,
-      height: 36,
-      borderRadius: 10,
-      backgroundColor: `${colors.secondary}26`,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    compactBody: {
-      flex: 1,
-    },
-    compactTitle: {
-      fontSize: 13,
-      fontWeight: '500',
-      color: colors.text,
-    },
-    compactMeta: {
-      fontSize: 12,
-      color: colors.textMuted,
-      letterSpacing: 0.5,
-    },
-
-    noticeHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.sm,
-      marginBottom: spacing.sm,
-    },
-    noticeTitle: {
-      flex: 1,
-      fontSize: 14,
-      fontWeight: '600',
-      color: colors.onMuted.danger,
-    },
-
-    actions: {
-      flexDirection: 'row',
-      gap: 10,
-      marginTop: 2,
-    },
-    action: {
-      flex: 1,
-    },
-    footer: {
-      marginTop: spacing.lg,
-    },
-  });
 }
