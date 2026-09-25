@@ -54,6 +54,7 @@ const CONSEQUENCE = {
   testCategories: 'Groups tests on the donor’s own results screen.',
   donorStatus: 'The donor’s standing, including deferral. Wrong here misstates whether they may donate.',
   verification: 'Whether a donor’s blood group has been confirmed, and by whom. Wrong here misstates how far the group can be trusted.',
+  verificationSource: 'Which kind of institution confirmed the donor’s blood group. Wrong here misstates how far the group can be trusted.',
   reference: 'Explains a reference range to a donor reading their own result.',
   aiSafety: 'How far an AI-generated explanation may be trusted. Wrong here is a donor acting on a machine’s guess as if it were advice.',
   aiInsightTypes: 'Labels an AI-generated explanation by kind.',

@@ -450,6 +450,17 @@ export const uz: Catalog = {
   },
 
   profile: {
+    signOutBody: 'Yozilish, shoshilinch so‘rovga javob berish yoki natijalarni ko‘rish uchun qaytadan kirishingiz kerak bo‘ladi.',
+    stillNeeded: 'Yana kerak: {{items}}',
+    earnedCount: { other: '{{count}} ta olingan' },
+    inProgressCount: { other: '{{count}} tasi jarayonda' },
+    missingFields: {
+      basicIdentity: 'ismingiz',
+      contactVerified: 'tasdiqlangan email yoki telefon',
+      bloodType: 'qon guruhingiz',
+      dateOfBirth: 'tug‘ilgan sanangiz',
+      location: 'shahringiz',
+    },
     title: 'Profil',
     bloodTypeLabel: 'QON GURUHINGIZ',
     donorInfo: 'DONOR MA’LUMOTLARI',
@@ -2259,6 +2270,12 @@ export const uz: Catalog = {
     districtPlaceholder: 'Tumaningiz',
   },
   medical: {
+    verificationSource: {
+      BLOOD_CENTER: 'Qon markazi tasdiqlagan',
+      HOSPITAL: 'Shifoxona tasdiqlagan',
+      LABORATORY: 'Laboratoriya tasdiqlagan',
+      OTHER_AUTHORIZED_SOURCE: 'Vakolatli tibbiyot muassasasi tasdiqlagan',
+    },
     services: {
       WHOLE_BLOOD_DONATION: 'To‘liq qon topshirish',
       PLASMA_DONATION: 'Plazma topshirish',

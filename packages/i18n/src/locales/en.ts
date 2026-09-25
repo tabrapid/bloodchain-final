@@ -472,6 +472,17 @@ export const en: Catalog = {
   },
 
   profile: {
+    signOutBody: 'You will need to sign in again to book, respond to an emergency or see your results.',
+    stillNeeded: 'Still needed: {{items}}',
+    earnedCount: { one: '{{count}} earned', other: '{{count}} earned' },
+    inProgressCount: { one: '{{count}} in progress', other: '{{count}} in progress' },
+    missingFields: {
+      basicIdentity: 'your name',
+      contactVerified: 'a confirmed email or phone number',
+      bloodType: 'your blood type',
+      dateOfBirth: 'your date of birth',
+      location: 'your city',
+    },
     title: 'Profile',
     bloodTypeLabel: 'YOUR BLOOD TYPE',
     donorInfo: 'DONOR INFO',
@@ -2322,6 +2333,12 @@ export const en: Catalog = {
     districtPlaceholder: 'Your district',
   },
   medical: {
+    verificationSource: {
+      BLOOD_CENTER: 'Confirmed by a blood centre',
+      HOSPITAL: 'Confirmed by a hospital',
+      LABORATORY: 'Confirmed by a laboratory',
+      OTHER_AUTHORIZED_SOURCE: 'Confirmed by an authorized healthcare provider',
+    },
     services: {
       WHOLE_BLOOD_DONATION: 'Whole blood donation',
       PLASMA_DONATION: 'Plasma donation',

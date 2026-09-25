@@ -3,7 +3,7 @@
 Every clinically meaningful string in the product, in all three languages, for a
 clinician to confirm before release.
 
-**110 terms — 110 pending, 0 approved.**
+**114 terms — 114 pending, 0 approved.**
 
 ## How to read this
 
@@ -177,6 +177,10 @@ recorded in this file.
 | `medical.verification.VERIFIED` | Blood type verified | Qon guruhi tasdiqlangan | Группа крови подтверждена | Not currently rendered | Whether a donor’s blood group has been confirmed, and by whom. Wrong here misstates how far the group can be trusted. | PENDING |  |
 | `medical.verification.notSureSkip` | Not sure? Skip this — you can always set it later, and a blood centre confirms it at your first donation either way. | Bilmaysizmi? Bu qadamni o‘tkazib yuboring — keyinroq kiritishingiz mumkin, qon markazi birinchi qon topshirishingizda uni baribir tasdiqlaydi. | Не уверены? Пропустите этот шаг — указать можно позже, и центр крови всё равно подтвердит группу при первой сдаче. | Donor app › onboarding/complete-profile | Whether a donor’s blood group has been confirmed, and by whom. Wrong here misstates how far the group can be trusted. | PENDING |  |
 | `medical.verification.unverifiedNote` | Your blood type stays marked unverified until an authorized healthcare provider confirms it. | Qon guruhingiz vakolatli tibbiyot xodimi tasdiqlamaguncha tasdiqlanmagan deb belgilanadi. | Ваша группа крови остаётся неподтверждённой, пока её не подтвердит уполномоченный медицинский работник. | Donor app › app/profile/donor | Whether a donor’s blood group has been confirmed, and by whom. Wrong here misstates how far the group can be trusted. | PENDING |  |
+| `medical.verificationSource.BLOOD_CENTER` | Confirmed by a blood centre | Qon markazi tasdiqlagan | Подтверждено центром крови | Donor app › app/profile | Which kind of institution confirmed the donor’s blood group. Wrong here misstates how far the group can be trusted. | PENDING |  |
+| `medical.verificationSource.HOSPITAL` | Confirmed by a hospital | Shifoxona tasdiqlagan | Подтверждено больницей | Donor app › app/profile | Which kind of institution confirmed the donor’s blood group. Wrong here misstates how far the group can be trusted. | PENDING |  |
+| `medical.verificationSource.LABORATORY` | Confirmed by a laboratory | Laboratoriya tasdiqlagan | Подтверждено лабораторией | Donor app › app/profile | Which kind of institution confirmed the donor’s blood group. Wrong here misstates how far the group can be trusted. | PENDING |  |
+| `medical.verificationSource.OTHER_AUTHORIZED_SOURCE` | Confirmed by an authorized healthcare provider | Vakolatli tibbiyot muassasasi tasdiqlagan | Подтверждено уполномоченным медицинским учреждением | Donor app › app/profile | Which kind of institution confirmed the donor’s blood group. Wrong here misstates how far the group can be trusted. | PENDING |  |
 
 ---
 

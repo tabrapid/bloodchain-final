@@ -54,11 +54,33 @@ jest.mock('../hooks/useUsers', () => ({
 }));
 jest.mock('../hooks/useDonors', () => ({
   useDonorProfile: () =>
-    query({ bloodType: 'O', rhFactor: 'POSITIVE', verificationStatus: 'VERIFIED', city: 'Tashkent' }),
-  useProfileCompletion: () => query({ data: { percentage: 60 } }),
+    query({
+      bloodType: 'O',
+      rhFactor: 'POSITIVE',
+      verificationStatus: 'VERIFIED',
+      city: 'Tashkent',
+      bloodTypeSource: 'BLOOD_CENTER',
+    }),
+  useProfileCompletion: () =>
+    query({ data: { percentage: 60, completed: ['basic_identity'], missing: ['date_of_birth', 'location'] } }),
 }));
 jest.mock('../hooks/useAppointments', () => ({
   useNextAppointment: () => query(undefined),
+  useMyAppointments: () => ({
+    data: [
+      {
+        id: 'a1',
+        appointmentType: 'BLOOD_DONATION',
+        status: 'CONFIRMED',
+        scheduledStart: new Date().toISOString(),
+        organization: { name: 'Toshkent qon markazi' },
+      },
+    ],
+    isPending: false,
+    isError: false,
+    isRefetching: false,
+    refetch: jest.fn(),
+  }),
 }));
 jest.mock('../hooks/useDonations', () => ({
   useDonationStatistics: () =>
@@ -74,8 +96,21 @@ jest.mock('../hooks/useDonations', () => ({
   useMyDonations: () => query({ data: [{ status: 'COMPLETED', donationType: 'WHOLE_BLOOD' }] }),
 }));
 jest.mock('../hooks/useGamification', () => ({
-  useGamificationProfile: () => query({ emergencyResponseCount: 2 }),
-  useLevelProgress: () => query({ currentLevel: 3, currentXp: 120, xpForNextLevel: 200, progress: 0.6 }),
+  useGamificationProfile: () => query({ emergencyResponseCount: 2, donationCount: 4, totalXp: 320 }),
+  useLevelProgress: () =>
+    query({
+      currentLevel: 3,
+      currentXp: 120,
+      xpForNextLevel: 200,
+      progress: 0.6,
+      isMaxLevel: false,
+      currentLevelName: 'Bronze',
+      nextLevelName: 'Silver',
+    }),
+  useAchievements: () => query({ unlocked: [], inProgress: [] }),
+}));
+jest.mock('../hooks/useAuth', () => ({
+  useLogout: () => ({ mutate: jest.fn(), isPending: false }),
 }));
 jest.mock('../hooks/useNotifications', () => ({
   useUnreadCount: () => query({ count: 2 }),
@@ -144,6 +179,8 @@ import Home from '../../app/(app)/home';
 import Health from '../../app/(app)/health';
 import Donate from '../../app/(app)/donate';
 import Community from '../../app/(app)/community/index';
+import Calendar from '../../app/(app)/calendar';
+import Profile from '../../app/(app)/profile';
 
 const LANGUAGES: Locale[] = ['uz', 'ru', 'en'];
 
@@ -193,7 +230,7 @@ async function renderInLanguage(element: React.ReactNode, locale: Locale) {
 
 /** A dotted path where a sentence should be: what a missing key looks like. */
 const RAW_KEY =
-  /\b(?:common|auth|nav|units|validation|home|health|donate|calendar|community|profile|medical|booking|appointment|donationHistory|laboratory|healthTrends|insights|notifications|sos|campaigns|challenges|education|gamification|privacy|security|profileEdit)\.[A-Za-z][A-Za-z.]*/g;
+  /\b(?:common|auth|nav|units|validation|home|health|donate|calendar|community|profile|medical|status|actions|booking|appointment|donationHistory|laboratory|healthTrends|insights|notifications|sos|campaigns|challenges|education|gamification|privacy|security|profileEdit)\.[A-Za-z][A-Za-z.]*/g;
 
 beforeEach(() => {
   mockStored.clear();
@@ -204,6 +241,8 @@ describe.each([
   ['Health', () => <Health />, 'health.labMarkers'],
   ['Donate', () => <Donate />, 'donate.donationTypes'],
   ['Community', () => <Community />, 'community.feed'],
+  ['Calendar', () => <Calendar />, 'calendar.subtitle'],
+  ['Profile', () => <Profile />, 'profile.settings'],
 ])('%s renders in every language', (_name, element, headingKey) => {
   it.each(LANGUAGES)('reads in %s, with no raw key left on the screen', async (locale) => {
     const tree = await renderInLanguage(element(), locale);

@@ -524,6 +524,27 @@ export const ru: Catalog = {
   },
 
   profile: {
+    signOutBody: 'Чтобы записаться, ответить на экстренный запрос или посмотреть результаты, нужно будет войти снова.',
+    stillNeeded: 'Осталось добавить: {{items}}',
+    earnedCount: {
+      one: '{{count}} получено',
+      few: '{{count}} получено',
+      many: '{{count}} получено',
+      other: '{{count}} получено',
+    },
+    inProgressCount: {
+      one: '{{count}} в процессе',
+      few: '{{count}} в процессе',
+      many: '{{count}} в процессе',
+      other: '{{count}} в процессе',
+    },
+    missingFields: {
+      basicIdentity: 'ваше имя',
+      contactVerified: 'подтверждённый email или телефон',
+      bloodType: 'ваша группа крови',
+      dateOfBirth: 'ваша дата рождения',
+      location: 'ваш город',
+    },
     title: 'Профиль',
     bloodTypeLabel: 'ВАША ГРУППА КРОВИ',
     donorInfo: 'ДАННЫЕ ДОНОРА',
@@ -2343,6 +2364,12 @@ export const ru: Catalog = {
     districtPlaceholder: 'Ваш район',
   },
   medical: {
+    verificationSource: {
+      BLOOD_CENTER: 'Подтверждено центром крови',
+      HOSPITAL: 'Подтверждено больницей',
+      LABORATORY: 'Подтверждено лабораторией',
+      OTHER_AUTHORIZED_SOURCE: 'Подтверждено уполномоченным медицинским учреждением',
+    },
     services: {
       WHOLE_BLOOD_DONATION: 'Сдача цельной крови',
       PLASMA_DONATION: 'Сдача плазмы',
