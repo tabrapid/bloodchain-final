@@ -110,7 +110,7 @@ has already granted and returns silently otherwise.
 
 ## 6. Accessibility
 
-Checked by contract tests in `src/design/design-system.spec.tsx` (28),
+Checked by contract tests in `src/design/design-system.spec.tsx` (29),
 `src/design/tokens.spec.ts` (46) and `src/design/tab-bar.spec.tsx` (9).
 
 - **Contrast.** Every text token computed against every surface it can sit on:
@@ -133,7 +133,8 @@ Checked by contract tests in `src/design/design-system.spec.tsx` (28),
 
 ## 7. Localization
 
-uz, ru, en. Enforced by `packages/i18n/src/coverage.spec.ts` (79 tests):
+uz, ru, en. Enforced by `packages/i18n/src/coverage.spec.ts` (31 tests, in a
+package suite of 79):
 
 - every literal `t('...')` key in every app resolves;
 - every templated `t(\`ns.${value}\`)` prefix exists;
