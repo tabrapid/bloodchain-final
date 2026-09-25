@@ -54,6 +54,16 @@
   },
   "pnpm": {
     "packageExtensions": {
+      "@expo-google-fonts/material-symbols": {
+        "peerDependencies": {
+          "react": "*"
+        },
+        "peerDependenciesMeta": {
+          "react": {
+            "optional": true
+          }
+        }
+      },
       "@expo/metro-runtime": {
         "peerDependencies": {
           "react": "*"

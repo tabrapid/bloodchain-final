@@ -36,12 +36,59 @@ jest.mock('expo-blur', () => {
   };
 });
 
+// react-native-maps 1.27 asks the TurboModule registry for 'RNMapsAirModule'
+// at import time and throws when it is absent -- which it always is under
+// jest, there being no native binary. That takes down every suite that
+// reaches a screen importing LocationMap, map or no map on screen. Same
+// treatment as expo-blur above: the tests care that a map is placed and what
+// is placed on it, not how it draws.
+jest.mock('react-native-maps', () => {
+  const React = require('react');
+  const { View } = require('react-native');
+
+  const MapView = React.forwardRef(({ children, ...props }, ref) => {
+    React.useImperativeHandle(ref, () => ({
+      // The component calls this to frame multiple markers; it has no visible
+      // effect to assert, but it must exist or the effect throws.
+      fitToCoordinates: () => {},
+      animateToRegion: () => {},
+    }));
+    return React.createElement(View, { testID: 'map-view', ...props }, children);
+  });
+  MapView.displayName = 'MapView';
+
+  const marker = (testID) => {
+    const Component = ({ children, ...props }) =>
+      React.createElement(View, { testID, ...props }, children);
+    Component.displayName = testID;
+    return Component;
+  };
+
+  return {
+    __esModule: true,
+    default: MapView,
+    MapView,
+    Marker: marker('map-marker'),
+    Polyline: marker('map-polyline'),
+    Callout: marker('map-callout'),
+    PROVIDER_DEFAULT: undefined,
+    PROVIDER_GOOGLE: 'google',
+  };
+});
+
 // react-native-reanimated's real implementation drives animations off the UI
 // thread, so `withTiming` never resolves during a synchronous test render --
 // components using it (ProgressBar, XpProgressBar) would snapshot at their
 // initial value instead of the target. The library ships an official test
 // mock (`withTiming`/`withSpring` resolve straight to their target value)
 // for exactly this.
+// Reanimated 4 moved its worklet runtime out into react-native-worklets, and
+// `react-native-reanimated/mock` imports the real one on the way in -- which
+// throws "Native part of Worklets doesn't seem to be initialized" the moment a
+// suite touches any animated component, taking 14 of 34 suites down with it.
+// Worklets ships its own mock for exactly this; it has to be registered first
+// so reanimated's mock resolves to it rather than to the native module.
+jest.mock('react-native-worklets', () => require('react-native-worklets/lib/module/mock'));
 jest.mock('react-native-reanimated', () => require('react-native-reanimated/mock'));
 
 // Screen tests assert the English copy they were written against. The language
