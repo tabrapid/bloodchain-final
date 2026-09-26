@@ -156,19 +156,70 @@ export default function HealthTrendsScreen() {
             : ''
         }`;
 
+  /**
+   * Whether the reference range can be drawn, not merely printed.
+   *
+   * It was stated in words below the chart and left off the chart itself, so a
+   * donor could read "reference range: 13.5 - 17.5" and then look at a line
+   * with no idea which part of it was inside that. Two flat dashed series put
+   * the range where the eye already is.
+   */
+  const band =
+    data?.hasReferenceRange && data.referenceMin !== undefined && data.referenceMax !== undefined
+      ? { min: data.referenceMin, max: data.referenceMax }
+      : null;
+
   const chartData =
     points.length > 1
       ? {
-          labels: points
-            .map((p) => {
-              const date = new Date(p.date);
-              return `${date.getMonth() + 1}/${date.getDate()}`;
-            })
-            .filter(
-              (_, i, arr) =>
-                i === 0 || i === arr.length - 1 || arr.length <= 7 || i % Math.ceil(arr.length / 5) === 0,
-            ),
-          datasets: [{ data: points.map((p) => p.value), color: () => colors.rose.base, strokeWidth: 2 }],
+          /**
+           * One label per point, blanked rather than dropped.
+           *
+           * The previous version built a label for every measurement and then
+           * `filter`ed the array down to five. chart-kit spreads whatever
+           * labels it is given evenly across the full width, so five labels
+           * over twenty points do not land on the points they name -- the
+           * x-axis read "3/14" under a measurement taken in April. On a
+           * clinical chart a mislabelled date is not a cosmetic problem: it is
+           * the axis telling the donor something untrue. Keeping the array 1:1
+           * and emptying the entries we do not want shown keeps every
+           * remaining label over its own measurement.
+           */
+          labels: points.map((p, i, arr) => {
+            const show =
+              i === 0 || i === arr.length - 1 || arr.length <= 7 || i % Math.ceil(arr.length / 5) === 0;
+            if (!show) return '';
+            const date = new Date(p.date);
+            return `${date.getMonth() + 1}/${date.getDate()}`;
+          }),
+          datasets: [
+            {
+              data: points.map((p) => p.value),
+              // Clinical blue, not rose. Rose is this app's alarm colour, and a
+              // trend line drawn in it reports every value as a concern --
+              // including the ones the laboratory called normal.
+              color: () => colors.clinical.base,
+              strokeWidth: 2,
+            },
+            ...(band
+              ? [
+                  {
+                    data: points.map(() => band.min),
+                    color: () => colors.textTertiary,
+                    strokeWidth: 1,
+                    withDots: false,
+                    strokeDashArray: [4, 4],
+                  },
+                  {
+                    data: points.map(() => band.max),
+                    color: () => colors.textTertiary,
+                    strokeWidth: 1,
+                    withDots: false,
+                    strokeDashArray: [4, 4],
+                  },
+                ]
+              : []),
+          ],
         }
       : null;
 
@@ -347,17 +398,26 @@ export default function HealthTrendsScreen() {
                         backgroundGradientFrom: colors.surface,
                         backgroundGradientTo: colors.surface,
                         decimalPlaces: 1,
-                        color: () => colors.rose.base,
+                        color: () => colors.clinical.base,
                         labelColor: () => colors.textTertiary,
                         style: { borderRadius: radius.md },
-                        propsForDots: { r: '3', strokeWidth: '2', stroke: colors.rose.base },
+                        propsForDots: { r: '3', strokeWidth: '2', stroke: colors.clinical.base },
                         propsForBackgroundLines: {
                           strokeDasharray: '',
                           stroke: colors.divider,
                           strokeWidth: 0.5,
                         },
                       }}
-                      bezier
+                      /*
+                        `bezier` is gone. A smoothed curve between two
+                        measurements draws a value at every pixel between them,
+                        and a cubic through real data overshoots: two
+                        haemoglobin readings of 13.6 and 13.8 can be joined by
+                        a curve that dips to 13.2, below the reference minimum
+                        the dashed line is right there to show. Nobody measured
+                        13.2. Straight segments claim only what the laboratory
+                        reported, and the dots say where the claims are.
+                      */
                       withInnerLines
                       withOuterLines={false}
                       withVerticalLines={false}

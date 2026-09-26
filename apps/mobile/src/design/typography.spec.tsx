@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { type as typeScale } from './tokens';
 import { fonts } from './fonts';
 
@@ -83,5 +84,48 @@ describe('the scale the Product Owner specified', () => {
   it('never puts readable interface text below 11', () => {
     expect(typeScale.caption.fontSize).toBeGreaterThanOrEqual(11);
     expect(typeScale.overline.fontSize).toBeGreaterThanOrEqual(11);
+  });
+});
+
+/**
+ * The faces named in the scale are files that exist.
+ *
+ * R1 -- the root cause of "it looks flat on the phone" -- was that no font was
+ * ever loaded, so `fontFamily: 'Inter_600SemiBold'` silently fell back to
+ * Roboto at whatever weight the platform chose. A name that resolves to nothing
+ * fails exactly that way again: quietly, and only on a device.
+ *
+ * Production Android exports of this app bundle all four faces (verified by
+ * content hash against the installed package). This test is the cheap version
+ * of that check, and it runs on every commit.
+ */
+describe('the faces exist on disk', () => {
+  const { readdirSync, existsSync } = require('node:fs') as typeof import('node:fs');
+  const { dirname, join } = require('node:path') as typeof import('node:path');
+
+  const packageRoot = dirname(require.resolve('@expo-google-fonts/inter/package.json'));
+
+  function ttfNames(dir: string, found: Set<string> = new Set()): Set<string> {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const path = join(dir, entry.name);
+      if (entry.isDirectory()) ttfNames(path, found);
+      else if (entry.name.endsWith('.ttf')) found.add(entry.name.replace(/\.ttf$/, ''));
+    }
+    return found;
+  }
+
+  const shipped = existsSync(packageRoot) ? ttfNames(packageRoot) : new Set<string>();
+
+  it.each(Object.entries(fonts))('%s -> %s is a real file', (_weight, family) => {
+    expect(shipped.has(family)).toBe(true);
+  });
+
+  it('loads every face the scale asks for', () => {
+    // A family in the scale that `useAppFonts` does not load is a family that
+    // resolves to the system face at runtime and to nothing in review.
+    const loader = readFileSync(join(__dirname, 'fonts.ts'), 'utf8');
+    for (const family of Object.values(fonts)) {
+      expect(loader).toContain(family);
+    }
   });
 });

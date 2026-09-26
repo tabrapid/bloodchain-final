@@ -73,8 +73,24 @@ export { Section, Sections } from './components/Section';
 export type { SectionProps, SectionsProps, SectionGap, SectionRhythm } from './components/Section';
 export type { SectionHeaderProps, ListRowProps } from './components/List';
 
-export { Sparkline } from './components/Chart';
-export type { SparklineProps } from './components/Chart';
+/*
+  The Sparkline is gone, and the Product Owner's rule is why: if a chart cannot
+  communicate real data honestly, remove it.
+
+  It scaled each series to its own min and max, so a haemoglobin reading that
+  moved 0.1 g/dL across five months rendered as a line sweeping the full height
+  of the box -- the same drawing a genuine collapse would produce. There was no
+  axis to read it against and no reference range on it, and it defaulted to
+  rose, which in this app is the alarm colour. Its one call site was the Health
+  screen's headline card, where it sat beside a badge reading "within healthy
+  range" and contradicted it.
+
+  The trends screen draws the real chart: straight segments between measured
+  points, a y-axis, and the laboratory's reference range as two dashed lines.
+  Deleting this rather than leaving it exported is deliberate -- an unused
+  primitive in the barrel is an invitation, and the next screen that wanted "a
+  little line showing the trend" would have taken it.
+*/
 
 export { Stat, StatRow, Progress, Avatar } from './components/Stat';
 export type { StatProps, ProgressProps, AvatarProps } from './components/Stat';
