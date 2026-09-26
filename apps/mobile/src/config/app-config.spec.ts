@@ -379,3 +379,54 @@ describe('development is left alone', () => {
     expect(checkApiUrl('not a url', 'development').ok).toBe(false);
   });
 });
+
+/**
+ * A credential can arrive two ways, and the config has to agree with itself
+ * about whether it has one.
+ *
+ * The env var is the seam this sprint added; the static config is the seam
+ * Expo already had. `eas init` writes `extra.eas.projectId` into app.json, and
+ * `android.config.googleMaps.apiKey` there is Expo's own documented way to set
+ * a Maps key. Deriving the answer from the environment alone meant the build
+ * log, the runtime and the release check could each read a different one --
+ * and, for maps, that a donor mid-emergency was told the map was unavailable
+ * while it was working.
+ */
+describe('a credential that came from app.json rather than the environment', () => {
+  const productionEnv = { APP_ENV: 'production', EXPO_PUBLIC_API_URL: 'https://api.example.org' };
+
+  it('does not warn that push is unconfigured when eas init has written the id', () => {
+    const described = describeAppConfig(
+      { ...BASE, extra: { eas: { projectId: 'written-by-eas-init' } } },
+      productionEnv,
+    );
+    expect(described.warnings.join(' ')).not.toContain('EXTERNAL_BLOCKER_EAS_PROJECT_ID');
+    expect(described.config.extra?.eas).toEqual({ projectId: 'written-by-eas-init' });
+  });
+
+  it('reports the map as configured when the key is a static app.json value', () => {
+    const described = describeAppConfig(
+      { ...BASE, android: { ...BASE.android, config: { googleMaps: { apiKey: 'static-key' } } } },
+      productionEnv,
+    );
+    expect(described.config.extra?.androidMapsConfigured).toBe(true);
+    expect(described.warnings.join(' ')).not.toContain('EXTERNAL_BLOCKER_ANDROID_MAPS_KEY');
+    // ...and does not drop the key it found.
+    expect(described.config.android?.config).toEqual({ googleMaps: { apiKey: 'static-key' } });
+  });
+
+  it('still says so when the credential is genuinely absent', () => {
+    const described = describeAppConfig(BASE, productionEnv);
+    expect(described.warnings.join(' ')).toContain('EXTERNAL_BLOCKER_EAS_PROJECT_ID');
+    expect(described.warnings.join(' ')).toContain('EXTERNAL_BLOCKER_ANDROID_MAPS_KEY');
+    expect(described.config.extra?.androidMapsConfigured).toBe(false);
+  });
+
+  it('lets the environment override a static value, so a build can redirect itself', () => {
+    const described = describeAppConfig(
+      { ...BASE, extra: { eas: { projectId: 'from-app-json' } } },
+      { ...productionEnv, EXPO_PUBLIC_EAS_PROJECT_ID: 'from-the-build' },
+    );
+    expect(described.config.extra?.eas).toEqual({ projectId: 'from-the-build' });
+  });
+});

@@ -446,7 +446,19 @@ export function describeAppConfig(
 
   // --------------------------------------------------------------------- push
 
-  const projectId = env[EAS_PROJECT_ID]?.trim();
+  /*
+    "Does this build have one?", not "was this variable set?".
+
+    The env var is one way the value arrives and the static config is the
+    other: `eas init` writes `extra.eas.projectId` into app.json, and that is
+    the documented route by which EXTERNAL_BLOCKER_EAS_PROJECT_ID closes. Asking
+    only about the variable meant the build log would insist push could never
+    work, on a build where it did -- while the runtime reader and the release
+    check, which both read the merged value, disagreed. Three readers of one
+    fact, and the loudest one wrong, teaches people to ignore build warnings.
+  */
+  const staticProjectId = (base.extra?.eas as { projectId?: string } | undefined)?.projectId;
+  const projectId = env[EAS_PROJECT_ID]?.trim() || staticProjectId?.trim() || undefined;
   if (!projectId && environment !== 'development') {
     warnings.push(
       `${EAS_PROJECT_ID} is not set, so this ${environment} build cannot register for push ` +
@@ -457,7 +469,18 @@ export function describeAppConfig(
 
   // --------------------------------------------------------------------- maps
 
-  const mapsKey = env[MAPS_KEY]?.trim();
+  /*
+    The same question, and here getting it wrong reaches a donor rather than a
+    log. `android.config.googleMaps.apiKey` in app.json is Expo's own documented
+    way to set the key; it reaches the manifest and the map works. Deriving the
+    flag from the environment alone wrote `androidMapsConfigured: false` over
+    that, and `LocationMap` would then tell someone mid-emergency that the map
+    was unavailable while it was busy working.
+  */
+  const staticMapsKey = (
+    (base.android?.config as { googleMaps?: { apiKey?: string } } | undefined)?.googleMaps?.apiKey
+  );
+  const mapsKey = env[MAPS_KEY]?.trim() || staticMapsKey?.trim() || undefined;
   if (!mapsKey && environment !== 'development') {
     warnings.push(
       `${MAPS_KEY} is not set, so every map in this ${environment} build will be blank on ` +
