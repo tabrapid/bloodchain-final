@@ -26,6 +26,7 @@ import {
   IconButton,
   Row,
   Screen,
+  ScreenTitle,
   SectionHeader,
   SkeletonRow,
   Stack,
@@ -39,7 +40,7 @@ import {
   radius,
   space,
   useDesign,
-  type AccentName,
+  type StatusTone,
   useTabBarClearance,
   Choice,
 } from '../../../src/design';
@@ -68,14 +69,27 @@ type ReportReason = (typeof REPORT_REASONS)[number];
  * "COMMUNITY_UPDATE" shouted at the reader beside every author's name. A
  * shaped label and a colour carry the same fact without taking over the card.
  */
-const POST_TYPES: Record<string, { labelKey: string; icon: LucideIcon; tone: AccentName }> = {
+//
+// Seven post types had five different accents between them: two amber, two
+// violet, one green, one blue, one rose. A feed is a column of these chips, so
+// the effect was a scroll of confetti in which no colour meant anything -- and
+// four of the five were colours this app spends elsewhere on whether a lab
+// value is flagged, whether a check has cleared, and whether a model produced
+// something.
+//
+// One accent survives. A campaign is the only post type that asks the donor to
+// do something, so it is rose, the colour of the primary action everywhere
+// else; the other six are news and take the neutral chip. Each still carries
+// its own icon and its own translated label, which is what told them apart in
+// the first place.
+const POST_TYPES: Record<string, { labelKey: string; icon: LucideIcon; tone: StatusTone }> = {
   CAMPAIGN: { labelKey: 'community.postTypes.campaign', icon: Droplet, tone: 'rose' },
-  EDUCATION: { labelKey: 'community.education', icon: GraduationCap, tone: 'clinical' },
-  MILESTONE: { labelKey: 'community.postTypes.milestone', icon: Trophy, tone: 'warning' },
-  ACHIEVEMENT: { labelKey: 'community.postTypes.achievement', icon: Award, tone: 'warning' },
-  COMMUNITY_UPDATE: { labelKey: 'community.postTypes.update', icon: Users, tone: 'insight' },
-  ANNOUNCEMENT: { labelKey: 'community.postTypes.announcement', icon: Megaphone, tone: 'insight' },
-  IMPACT: { labelKey: 'community.impact', icon: Sparkles, tone: 'success' },
+  EDUCATION: { labelKey: 'community.education', icon: GraduationCap, tone: 'neutral' },
+  MILESTONE: { labelKey: 'community.postTypes.milestone', icon: Trophy, tone: 'neutral' },
+  ACHIEVEMENT: { labelKey: 'community.postTypes.achievement', icon: Award, tone: 'neutral' },
+  COMMUNITY_UPDATE: { labelKey: 'community.postTypes.update', icon: Users, tone: 'neutral' },
+  ANNOUNCEMENT: { labelKey: 'community.postTypes.announcement', icon: Megaphone, tone: 'neutral' },
+  IMPACT: { labelKey: 'community.impact', icon: Sparkles, tone: 'neutral' },
 };
 
 /**
@@ -163,21 +177,22 @@ export default function CommunityScreen() {
       .catch(() => setOutcome('failed'));
   };
 
+  // The stray `paddingBottom: space.lg` is gone: the Stack below already
+  // spaces this from what follows, and paying it twice opened Community 40pt
+  // lower than the five tabs beside it.
   const header = (
-    <Row align="flex-start" gap="md" style={{ paddingTop: space.md, paddingBottom: space.lg }}>
-      <View style={{ flex: 1, gap: 2 }}>
-        <Text variant="h1">{t('community.title')}</Text>
-        <Text variant="body" tone="secondary">
-          {t('community.subtitle')}
-        </Text>
-      </View>
-      <IconButton
-        accessibilityLabel={t('community.education')}
-        onPress={() => router.push('/education')}
-        variant="surface"
-        icon={({ size, color }) => <BookOpen size={size} color={color} />}
-      />
-    </Row>
+    <ScreenTitle
+      title={t('community.title')}
+      subtitle={t('community.subtitle')}
+      action={
+        <IconButton
+          accessibilityLabel={t('community.education')}
+          onPress={() => router.push('/education')}
+          variant="surface"
+          icon={({ size, color }) => <BookOpen size={size} color={color} />}
+        />
+      }
+    />
   );
 
   const listHeader = (
@@ -363,7 +378,7 @@ function FeedPost({ post, onReport }: { post: CommunityPost; onReport: () => voi
   const type = POST_TYPES[post.type] ?? {
     labelKey: post.type,
     icon: Megaphone,
-    tone: 'insight' as const,
+    tone: 'neutral' as const,
   };
   const TypeIcon = type.icon;
 

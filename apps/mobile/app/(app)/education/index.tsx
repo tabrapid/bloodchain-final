@@ -139,17 +139,15 @@ export default function EducationScreen() {
             ) : null}
             {stats ? (
               <StatRow>
-                <Stat
-                  label={t('education.completed')}
-                  value={String(stats.totalCompleted)}
-                  tone="success"
-                />
+                {/* Lessons finished was green and XP was violet, next to a
+                    plain "started". Green in this app means a check has
+                    cleared and violet means a model produced something;
+                    neither is true of a reading count, and a row where two of
+                    three figures are coloured for no reason is how a reader
+                    learns to stop reading the colours. */}
+                <Stat label={t('education.completed')} value={String(stats.totalCompleted)} />
                 <Stat label={t('education.started')} value={String(stats.totalStarted)} />
-                <Stat
-                  label={t('education.xpEarned')}
-                  value={String(stats.totalXpEarned)}
-                  tone="insight"
-                />
+                <Stat label={t('education.xpEarned')} value={String(stats.totalXpEarned)} />
               </StatRow>
             ) : null}
 
@@ -212,7 +210,8 @@ function EducationCard({
           ) : null}
           {content.xpReward > 0 ? (
             <Row gap="xs">
-              <Award size={iconSize.sm} color={colors.insight.base} />
+              {/* Metadata, the same rank as the reading time beside it. */}
+              <Award size={iconSize.sm} color={colors.textTertiary} />
               <Text variant="caption" tone="secondary">
                 {`+${content.xpReward} ${t('profile.xp')}`}
               </Text>

@@ -252,11 +252,12 @@ export default function Security() {
               ))}
             </Surface>
           ) : (
-            <Surface>
-              <Text variant="body" tone="secondary">
-                {t('security.noOtherSessions')}
-              </Text>
-            </Surface>
+            /* A card drawn around the sentence "no other sessions". An empty
+               list is not an object, and boxing the news that there is nothing
+               here makes the nothing look like a something. */
+            <Text variant="body" tone="secondary">
+              {t('security.noOtherSessions')}
+            </Text>
           )}
 
           <Surface

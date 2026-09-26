@@ -84,6 +84,61 @@ export function ScreenHeader({ title, eyebrow, onBack, backLabel, actions, style
   );
 }
 
+export interface ScreenTitleProps {
+  /** The name of the screen. Announced as a heading. */
+  title: string;
+  /** One line saying what the screen is for. */
+  subtitle?: string;
+  /** A control at the trailing edge: a button, an icon button, a status badge. */
+  action?: ReactNode;
+  style?: ViewStyle;
+}
+
+/**
+ * The title of a root tab screen.
+ *
+ * `ScreenHeader` covers pushed screens; this covers the six that have no back
+ * button, and it exists because all five that had a title were hand-rolling the
+ * same six lines. They had drifted, in the two ways hand-rolled chrome always
+ * drifts:
+ *
+ *   Community paid `paddingBottom: space.lg` on top of the `Stack`'s own 24,
+ *   so one tab of six opened 40pt lower than its siblings. Nothing chose that;
+ *   it accumulated.
+ *
+ *   Not one of the five carried `accessibilityRole="header"`. The auth screens
+ *   all do, so the app announced "Verify your email" as a heading and
+ *   "Health", "Donate", "Calendar", "Community" and "Profile" as ordinary text
+ *   -- which means heading navigation, the way a screen-reader user skips to
+ *   the top of a screen, worked everywhere except the six screens they are
+ *   actually in.
+ *
+ * `h1` (30) rather than the header's `h2` (22): a root screen is a place and a
+ * pushed screen is a step, and the 8pt between them is what says which.
+ */
+export function ScreenTitle({ title, subtitle, action, style }: ScreenTitleProps) {
+  return (
+    <View
+      style={[
+        { flexDirection: 'row', alignItems: 'flex-start', gap: space.md, paddingTop: space.md },
+        style,
+      ]}
+    >
+      <View style={{ flex: 1, gap: 2 }}>
+        <Text variant="h1" accessibilityRole="header">
+          {title}
+        </Text>
+        {subtitle ? (
+          <Text variant="body" tone="secondary">
+            {subtitle}
+          </Text>
+        ) : null}
+      </View>
+      {action}
+    </View>
+  );
+}
+
 /**
  * The floating bottom tab bar.
  *

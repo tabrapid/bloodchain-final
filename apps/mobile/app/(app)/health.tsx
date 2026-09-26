@@ -20,43 +20,55 @@ import {
   ListGroup,
   ListRow,
   Row,
+  ScreenTitle,
   ScrollScreen,
   SectionHeader,
   SectionError,
   Skeleton,
   SkeletonRow,
-  Sparkline,
   Stack,
   Surface,
   Text,
   ValueText,
   iconSize,
   radius,
-  space,
   useDesign,
-  type AccentName,
 } from '../../src/design';
 import { LucideIcon } from '../../src/types/icons';
 import { useTrendSummary, useLatestInsight, useAiEnabled } from '../../src/hooks/useHealth';
 import { useDonorLaboratoryResults } from '../../src/hooks/useLaboratory';
 import { formatUpdated, isWithinReferenceRange } from '../../src/utils/health';
 import { useTranslation } from '../../src/i18n';
+import { formatClinicalValue } from '../../src/utils/clinical';
 
 // Keyed by the real lab-parameter code (see apps/api/prisma/seed.ts's
 // TestParameter records) so each marker gets the icon that actually matches
 // what it measures, instead of cycling icons by list position -- which is how
 // hemoglobin ended up with a "wind" icon and platelets a "thermometer".
-const MARKER_ICON_BY_CODE: Record<string, { icon: LucideIcon; tone: AccentName }> = {
-  HEMOGLOBIN: { icon: Droplet, tone: 'rose' },
-  HEMATOCRIT: { icon: Percent, tone: 'clinical' },
-  RBC: { icon: Activity, tone: 'rose' },
-  WBC: { icon: ShieldCheck, tone: 'success' },
-  PLATELETS: { icon: Layers, tone: 'warning' },
-  FERRITIN: { icon: Gauge, tone: 'insight' },
-  FERRITIN_LEVEL: { icon: Gauge, tone: 'insight' },
-  BLOOD_GROUP: { icon: Fingerprint, tone: 'clinical' },
-  ABO: { icon: Fingerprint, tone: 'clinical' },
-  RH_FACTOR: { icon: Fingerprint, tone: 'clinical' },
+//
+// The accent that used to ride along with each icon is gone, and it is worth
+// being precise about what it was doing. It assigned haemoglobin rose, white
+// cells green, platelets amber and ferritin violet -- which are, in this app,
+// the alarm colour, the cleared-check colour, the flagged colour and the AI
+// colour. They were applied to *which test it is*, in a list whose rows also
+// carry a badge saying whether the value is in range. So an amber icon meaning
+// "platelets" sat one column from an amber badge meaning "outside the
+// reference range", and nothing told a donor which amber was which.
+//
+// V2 had already stopped reading the tone at the render site -- the icon draws
+// in `textSecondary` -- but left the data behind, which is how a fixed rule
+// quietly un-fixes itself. The field does not exist now.
+const MARKER_ICON_BY_CODE: Record<string, { icon: LucideIcon }> = {
+  HEMOGLOBIN: { icon: Droplet },
+  HEMATOCRIT: { icon: Percent },
+  RBC: { icon: Activity },
+  WBC: { icon: ShieldCheck },
+  PLATELETS: { icon: Layers },
+  FERRITIN: { icon: Gauge },
+  FERRITIN_LEVEL: { icon: Gauge },
+  BLOOD_GROUP: { icon: Fingerprint },
+  ABO: { icon: Fingerprint },
+  RH_FACTOR: { icon: Fingerprint },
 };
 
 /**
@@ -83,15 +95,8 @@ const MARKER_DESCRIPTION_KEY_BY_CODE: Record<string, string> = {
   RH_FACTOR: 'medical.markers.rhFactorNote',
 };
 
-const FALLBACK_TONES: AccentName[] = ['rose', 'clinical', 'warning', 'insight', 'success'];
-
-function markerVisual(code: string, index: number): { icon: LucideIcon; tone: AccentName } {
-  return (
-    MARKER_ICON_BY_CODE[code.toUpperCase()] ?? {
-      icon: Activity,
-      tone: FALLBACK_TONES[index % FALLBACK_TONES.length]!,
-    }
-  );
+function markerVisual(code: string): { icon: LucideIcon } {
+  return MARKER_ICON_BY_CODE[code.toUpperCase()] ?? { icon: Activity };
 }
 
 /**
@@ -158,20 +163,18 @@ export default function Health() {
   });
 
   const header = (
-    <Row align="flex-start" gap="md" style={{ paddingTop: space.md }}>
-      <View style={{ flex: 1, gap: 2 }}>
-        <Text variant="h1">{t('health.title')}</Text>
-        <Text variant="body" tone="secondary">
-          {t('health.subtitle')}
-        </Text>
-      </View>
-      {publishedResults.length > 0 ? (
-        <Badge
-          label={anyFlagged ? t('health.needsReview') : t('health.allNormal')}
-          tone={anyFlagged ? 'warning' : 'success'}
-        />
-      ) : null}
-    </Row>
+    <ScreenTitle
+      title={t('health.title')}
+      subtitle={t('health.subtitle')}
+      action={
+        publishedResults.length > 0 ? (
+          <Badge
+            label={anyFlagged ? t('health.needsReview') : t('health.allNormal')}
+            tone={anyFlagged ? 'warning' : 'success'}
+          />
+        ) : null
+      }
+    />
   );
 
   if (summary.isPending || results.isPending) {
@@ -218,7 +221,6 @@ export default function Health() {
   const parameters = summary.data?.availableParameters ?? [];
   const trend = summary.data?.recentTrend;
   const latestParam = parameters[0];
-  const trendValues = trend?.points.map((p) => p.value) ?? [];
   const inRange = isWithinReferenceRange(trend);
 
   const measurementCount = trend ? trend.points.length : (latestParam?.measurementCount ?? 0);
@@ -290,19 +292,19 @@ export default function Health() {
                       </Text>
                     ) : null}
                   </Row>
-                  {trendValues.length >= 2 ? (
-                    <Sparkline
-                      values={trendValues}
-                      tone={inRange === false ? 'warning' : 'rose'}
-                      // The drawing is decorative on its own; what it means is
-                      // the count and the range badge beside it, so that is
-                      // what gets announced.
-                      accessibilityLabel={t('health.trendOfMeasurements', {
-                        count: measurementCount,
-                      })}
-                      style={{ flex: 1 }}
-                    />
-                  ) : null}
+                  {/*
+                    The sparkline is gone, and its own comment is why: "the
+                    drawing is decorative on its own".
+
+                    It was a single straight line with no axis, no baseline and
+                    no range band, drawn in rose -- the alarm colour -- beside a
+                    badge reading "Within healthy range". A reader who trusted
+                    it learned nothing; a reader who read the colour learned
+                    something false. On a screen reporting clinical results that
+                    is worse than no chart, so there is no chart. The trends
+                    screen behind this card draws the real one, with an axis and
+                    the reference range on it.
+                  */}
                 </Row>
 
                 {/* The claim and the evidence for it on the same line: what
@@ -336,15 +338,12 @@ export default function Health() {
               }
             />
             <ListGroup
-              rows={parameters.slice(0, 5).map((param, index) => {
+              rows={parameters.slice(0, 5).map((param) => {
                 const code = param.code.toUpperCase();
-                const { icon: Icon } = markerVisual(param.code, index);
+                const { icon: Icon } = markerVisual(param.code);
                 const flag = flagByParameterCode.get(code);
                 const descriptionKey = MARKER_DESCRIPTION_KEY_BY_CODE[code];
-                const measurement =
-                  param.latestValue !== undefined
-                    ? `${param.latestValue}${param.unit ? ` ${param.unit}` : ''}`
-                    : '—';
+                const measurement = formatClinicalValue(param.latestValue, param.unit);
                 return (
                   <ListRow
                     key={param.code}
@@ -366,16 +365,21 @@ export default function Health() {
                     subtitle={
                       descriptionKey ? `${measurement} · ${t(descriptionKey)}` : measurement
                     }
+                    /*
+                      Only abnormal gets a badge.
+
+                      Six identical green "Normal" pills down the right edge,
+                      under a header pill also reading "All normal", is the same
+                      fact three times and it trains the eye to skip the column
+                      -- which is the one column that has to be noticed on the
+                      day something is wrong. Normal is the expected state and
+                      now reads as one: no pill. The row still announces its
+                      status to a screen reader, where there is no visual
+                      hierarchy to protect.
+                    */
                     trailing={
-                      flag ? (
-                        <Badge
-                          label={
-                            flag === 'NORMAL'
-                              ? t('medical.resultFlags.normal')
-                              : t('health.needsReview')
-                          }
-                          tone={flag === 'NORMAL' ? 'success' : 'warning'}
-                        />
+                      flag && flag !== 'NORMAL' ? (
+                        <Badge label={t('health.needsReview')} tone="warning" />
                       ) : undefined
                     }
                     accessibilityLabel={`${param.name}: ${param.latestValue ?? '—'} ${param.unit ?? ''}. ${t('health.viewTrends')}`}

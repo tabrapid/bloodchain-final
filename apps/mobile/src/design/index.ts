@@ -88,8 +88,8 @@ export type { MonthGridProps } from './components/MonthGrid';
 export { FlowStep } from './components/Flow';
 export type { FlowStepProps } from './components/Flow';
 
-export { ScreenHeader, TabBar } from './components/Chrome';
-export type { ScreenHeaderProps } from './components/Chrome';
+export { ScreenHeader, ScreenTitle, TabBar } from './components/Chrome';
+export type { ScreenHeaderProps, ScreenTitleProps } from './components/Chrome';
 
 /** The typeface. Screens needing a face for a one-off use `fonts.semibold`, never a numeric weight. */
 export { fonts, useAppFonts, type FontFamily } from './fonts';

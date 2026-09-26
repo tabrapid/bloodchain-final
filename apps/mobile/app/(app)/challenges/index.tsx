@@ -155,7 +155,9 @@ function ChallengeCard({
           <Stack gap="xs" style={{ flex: 1 }}>
             {/* The type used to render as its enum -- "DONATION_MILESTONE" --
                 in a rose badge beside the title. */}
-            <Badge label={t(`challenges.types.${challenge.type}`)} tone="insight" />
+            {/* A kind of challenge is not a status and not a model's output,
+                so it takes the neutral badge. */}
+            <Badge label={t(`challenges.types.${challenge.type}`)} />
             <Text variant="h3">{challenge.title}</Text>
           </Stack>
         </Row>

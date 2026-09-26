@@ -132,7 +132,16 @@ export default function Home() {
             <Text variant="caption" tone="tertiary">
               {formatDayHeading(new Date())}
             </Text>
-            <Text variant="h1" numberOfLines={2}>
+            {/*
+              Demoted from h1.
+
+              At 30pt bold the greeting was the largest thing on the screen --
+              larger than the blood type, the eligibility state and the next
+              appointment, none of which it outranks. A greeting is an opening,
+              not a headline. The identity block below is the screen's anchor
+              now, which is what the eye should land on.
+            */}
+            <Text variant="h3" numberOfLines={2}>
               {greeting}
             </Text>
           </View>
@@ -271,27 +280,34 @@ export default function Home() {
             accessibilityLabel={`${t('home.completeProfile')}. ${completionPercentage}%`}
             style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
           >
-            <Surface>
-              <Stack gap="md">
-                <Row gap="md">
-                  <UserRound size={iconSize.lg} color={colors.clinical.base} />
-                  <View style={{ flex: 1, gap: 2 }}>
-                    <Text variant="bodyStrong">{t('home.completeProfile')}</Text>
-                    <Text variant="caption" tone="secondary">
-                      {t('home.completeProfileBody')}
-                    </Text>
-                  </View>
-                  <ChevronRight size={iconSize.md} color={colors.textTertiary} />
-                </Row>
-                <Progress
-                  label={t('home.completeProfile')}
-                  caption={`${completionPercentage}%`}
-                  value={completionPercentage / 100}
-                  tone="clinical"
-                  bare
-                />
-              </Stack>
-            </Surface>
+            {/*
+              No card.
+
+              This used to be its own Surface directly beneath the identity
+              card, which made two boxes of the same size and weight say two
+              different kinds of thing -- one is who you are, the other is a
+              task. It reads as part of the identity block now: same gutter, no
+              border, separated by rhythm rather than by a second rectangle.
+            */}
+            <Stack gap="md" style={{ paddingHorizontal: space.lg }}>
+              <Row gap="md">
+                <UserRound size={iconSize.md} color={colors.clinical.base} />
+                <View style={{ flex: 1, gap: 2 }}>
+                  <Text variant="bodyStrong">{t('home.completeProfile')}</Text>
+                  <Text variant="caption" tone="secondary">
+                    {t('home.completeProfileBody')}
+                  </Text>
+                </View>
+                <ChevronRight size={iconSize.md} color={colors.textTertiary} />
+              </Row>
+              <Progress
+                label={t('home.completeProfile')}
+                caption={`${completionPercentage}%`}
+                value={completionPercentage / 100}
+                tone="clinical"
+                bare
+              />
+            </Stack>
           </Pressable>
         ) : null}
 
@@ -356,8 +372,17 @@ export default function Home() {
             />
           </StatRow>
 
+          {/*
+            Below the clinical content and without a box of its own.
+
+            A purple progress bar in its own card, at the same width and weight
+            as donation eligibility, asked a donor to weigh a game mechanic
+            against a medical fact. It is still here -- it is real and people
+            like it -- but it is the quietest thing in the section it belongs to
+            rather than a peer of the section above.
+          */}
           {levelProgress ? (
-            <Surface>
+            <View style={{ paddingHorizontal: space.lg }}>
               <Progress
                 label={`${t('home.levelAndXp')} ${levelProgress.currentLevel}`}
                 // The bar and the caption have to measure the same thing. The
@@ -370,9 +395,11 @@ export default function Home() {
                   level: levelProgress.nextLevelName,
                 })}
                 value={percentAsFraction(levelProgress.progress)}
-                tone="insight"
+                // Violet is the AI's colour in V3 and nothing else's. A level
+                // bar is arithmetic on a donation count.
+                bare
               />
-            </Surface>
+            </View>
           ) : null}
         </Stack>
 
@@ -405,7 +432,9 @@ export default function Home() {
               <QuickRow
                 key="learn"
                 icon={BookOpen}
-                tone="insight"
+                // Violet means AI in V3 and nothing else. An education link is
+                // ordinary navigation.
+                tone="clinical"
                 label={t('home.quickActionLearn')}
                 onPress={() => router.push('/education')}
               />,

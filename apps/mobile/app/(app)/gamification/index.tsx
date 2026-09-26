@@ -126,62 +126,75 @@ export default function GamificationScreen() {
       }}
     >
       <Stack gap="xl">
-        {/* ------------------------------------------------ where you are */}
-        <Surface>
-          <Stack gap="lg">
-            <Row gap="lg" align="flex-start">
-              <View style={{ gap: 2 }}>
-                <Text variant="overline" tone="tertiary" caps>
-                  {t('gamification.level')}
-                </Text>
-                <ValueText variant="display">{profile?.level ?? 1}</ValueText>
-                <Text variant="caption" tone="secondary">
-                  {levelProgress?.currentLevelName ?? t('gamification.newDonor')}
-                </Text>
-              </View>
-              <View style={{ flex: 1, alignItems: 'flex-end', gap: 2 }}>
-                <Text variant="overline" tone="tertiary" caps>
-                  {t('gamification.xpPoints')}
-                </Text>
-                <ValueText variant="h1" style={{ color: colors.insight.text }}>
-                  {profile?.totalXp ?? 0}
-                </ValueText>
-              </View>
-            </Row>
+        {/* ------------------------------------------------ where you are
+            No box. This is the first thing under the header, so there is
+            nothing above it for a border to separate it from -- and a 40pt
+            level number is already the largest thing on the screen. The card
+            was adding a rectangle around the one block that did not need help
+            being noticed.
 
-            <Progress
-              label={t('gamification.progressToLevel', {
-                level: levelProgress?.nextLevelName ?? t('gamification.nextLevel'),
-              })}
-              // The label already names the level being worked towards; the
-              // caption used to name it again, in the same 329pt row, in a
-              // server-supplied English string that is longer in Russian than
-              // the row is wide. The number is enough here.
-              caption={t('gamification.xpValue', { xp: profile?.xpToNextLevel ?? 0 })}
-              value={percentAsFraction(profile?.progress)}
-              tone="insight"
-            />
-          </Stack>
-        </Surface>
+            The violet is gone with it. V2 drew the XP figure and the progress
+            bar in `insight`, which in V3 means one thing only: the AI has
+            spoken. Experience points are not a model's output, and colouring
+            them as though they were is how a palette stops meaning anything. */}
+        <Stack gap="lg">
+          <Row gap="lg" align="flex-start">
+            <View style={{ gap: 2 }}>
+              <Text variant="overline" tone="tertiary" caps>
+                {t('gamification.level')}
+              </Text>
+              <ValueText variant="display">{profile?.level ?? 1}</ValueText>
+              <Text variant="caption" tone="secondary">
+                {levelProgress?.currentLevelName ?? t('gamification.newDonor')}
+              </Text>
+            </View>
+            <View style={{ flex: 1, alignItems: 'flex-end', gap: 2 }}>
+              <Text variant="overline" tone="tertiary" caps>
+                {t('gamification.xpPoints')}
+              </Text>
+              <ValueText variant="h1">{profile?.totalXp ?? 0}</ValueText>
+            </View>
+          </Row>
 
+          <Progress
+            label={t('gamification.progressToLevel', {
+              level: levelProgress?.nextLevelName ?? t('gamification.nextLevel'),
+            })}
+            // The label already names the level being worked towards; the
+            // caption used to name it again, in the same 329pt row, in a
+            // server-supplied English string that is longer in Russian than
+            // the row is wide. The number is enough here.
+            caption={t('gamification.xpValue', { xp: profile?.xpToNextLevel ?? 0 })}
+            value={percentAsFraction(profile?.progress)}
+          />
+        </Stack>
+
+        {/*
+          Three stats, three accents, no status between them. Badges earned was
+          amber -- the colour this app uses for "your haemoglobin is low".
+          Achievements in progress was green, which is the colour of a cleared
+          eligibility check. Overall rank was violet. None of the three is a
+          state anything can be in, so all three were borrowing urgency from
+          the parts of the app where the colour is load-bearing, and spending
+          it on a trophy count.
+
+          The numbers are the same numbers. They are just not pretending.
+        */}
         <StatRow>
           <Stat
             label={t('gamification.badgesEarned')}
             value={String(earnedBadges)}
             icon={({ size, color }) => <Trophy size={size} color={color} />}
-            tone="warning"
           />
           <Stat
             label={t('gamification.rankOverall')}
             value={profile?.rank ? `#${profile.rank}` : '—'}
             icon={({ size, color }) => <Star size={size} color={color} />}
-            tone="insight"
           />
           <Stat
             label={t('gamification.inProgress')}
             value={String(inProgress.length)}
             icon={({ size, color }) => <Award size={size} color={color} />}
-            tone="success"
           />
         </StatRow>
 
@@ -196,20 +209,19 @@ export default function GamificationScreen() {
               />
             }
           />
+          {/* Each tile is already its own object. The card around twelve of
+              them was a border around a grid, and it is what made the grid
+              read as one lump instead of twelve things. */}
           {badgeGrid.length > 0 ? (
-            <Surface>
-              <Row gap="md" align="flex-start" style={{ flexWrap: 'wrap', rowGap: space.lg }}>
-                {badgeGrid.map((badge) => (
-                  <BadgeTile key={badge.id} badge={badge} width="28%" />
-                ))}
-              </Row>
-            </Surface>
+            <Row gap="md" align="flex-start" style={{ flexWrap: 'wrap', rowGap: space.lg }}>
+              {badgeGrid.map((badge) => (
+                <BadgeTile key={badge.id} badge={badge} width="28%" />
+              ))}
+            </Row>
           ) : (
-            <Surface>
-              <Text variant="body" tone="secondary">
-                {t('gamification.noBadges')}
-              </Text>
-            </Surface>
+            <Text variant="body" tone="secondary">
+              {t('gamification.noBadges')}
+            </Text>
           )}
         </Stack>
 
@@ -221,11 +233,9 @@ export default function GamificationScreen() {
               <AchievementRow key={achievement.id} achievement={achievement} />
             ))
           ) : (
-            <Surface>
-              <Text variant="body" tone="secondary">
-                {t('gamification.nothingInProgress')}
-              </Text>
-            </Surface>
+            <Text variant="body" tone="secondary">
+              {t('gamification.nothingInProgress')}
+            </Text>
           )}
         </Stack>
 
@@ -245,11 +255,9 @@ export default function GamificationScreen() {
               <AchievementRow key={achievement.id} achievement={achievement} />
             ))
           ) : (
-            <Surface>
-              <Text variant="body" tone="secondary">
-                {t('gamification.noAchievements')}
-              </Text>
-            </Surface>
+            <Text variant="body" tone="secondary">
+              {t('gamification.noAchievements')}
+            </Text>
           )}
         </Stack>
 

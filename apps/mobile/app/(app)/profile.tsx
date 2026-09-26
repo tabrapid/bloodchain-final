@@ -18,10 +18,12 @@ import {
   Badge,
   Button,
   ConfirmationSheet,
+  LinkButton,
   ListGroup,
   ListRow,
   Progress,
   Row,
+  ScreenTitle,
   ScrollScreen,
   SectionHeader,
   SegmentedControl,
@@ -32,7 +34,6 @@ import {
   Text,
   ValueText,
   iconSize,
-  space,
   useDesign,
   type AccentName,
   Skeleton,
@@ -125,9 +126,7 @@ export default function Profile() {
   return (
     <ScrollScreen>
       <Stack gap="xl">
-        <View style={{ paddingTop: space.md }}>
-          <Text variant="h1">{t('profile.title')}</Text>
-        </View>
+        <ScreenTitle title={t('profile.title')} />
 
         {/* ------------------------------------------------------- who you are */}
         <Surface>
@@ -187,11 +186,25 @@ export default function Profile() {
               ) : null}
             </Row>
 
-            <Button
+            {/*
+              Editing a profile is a tertiary action, and V2 drew it as the
+              largest interactive target on the screen: a full-width outlined
+              box sitting directly above the chevron rows that are the actual
+              navigation. Rank in an interface is size and weight, so the box
+              announced "this is the main thing here" about the one control a
+              donor opens once and never again -- while "Donor profile" and
+              "Achievements", which are where they are actually going, were
+              thin rows underneath it.
+
+              It is a word now, at the right of the card it acts on, the way
+              "See all" sits at the right of a section header. The destination
+              is unchanged and still has its own row under Donor records,
+              which is where a donor looks for it.
+            */}
+            <LinkButton
               label={t('profile.editProfile')}
-              variant="secondary"
-              size="md"
               onPress={() => router.push('/(app)/profile/edit')}
+              style={{ alignSelf: 'flex-end' }}
             />
           </Stack>
         </Surface>
@@ -231,20 +244,20 @@ export default function Profile() {
                 label={t('profile.emergencyResponses')}
                 value={String(gamificationProfile.emergencyResponseCount)}
               />
-              <Stat label={t('profile.xp')} value={String(gamificationProfile.totalXp)} tone="insight" />
+              <Stat label={t('profile.xp')} value={String(gamificationProfile.totalXp)} />
             </StatRow>
 
+            {/* A card whose entire contents were one progress bar. The bar has
+                its own label, its own caption and its own fill; the rectangle
+                around it said nothing the bar had not already said. */}
             {levelProgress && !levelProgress.isMaxLevel ? (
-              <Surface>
-                <Progress
-                  label={`${levelProgress.currentLevelName} → ${levelProgress.nextLevelName}`}
-                  // The label is "<current> → <next>", so the caption saying
-                  // the next level's name again put it twice in one row.
-                  caption={t('gamification.xpValue', { xp: levelProgress.xpToNextLevel })}
-                  value={percentAsFraction(levelProgress.progress)}
-                  tone="insight"
-                />
-              </Surface>
+              <Progress
+                label={`${levelProgress.currentLevelName} → ${levelProgress.nextLevelName}`}
+                // The label is "<current> → <next>", so the caption saying
+                // the next level's name again put it twice in one row.
+                caption={t('gamification.xpValue', { xp: levelProgress.xpToNextLevel })}
+                value={percentAsFraction(levelProgress.progress)}
+              />
             ) : null}
           </Stack>
         ) : null}
@@ -291,23 +304,26 @@ export default function Profile() {
 
           {/* Above the settings list rather than inside it: the language
               decides how every row below reads, so it belongs where it is
-              seen first. */}
-          <Surface>
-            <Stack gap="md">
-              <Row gap="sm">
-                <Languages size={iconSize.sm} color={colors.textTertiary} />
-                <Text variant="label" tone="secondary">
-                  {t('language.title')}
-                </Text>
-              </Row>
-              <SegmentedControl<Locale>
-                options={SUPPORTED_LOCALES.map((value) => ({ value, label: LOCALE_NAMES[value] }))}
-                value={locale}
-                onChange={setLocale}
-                accessibilityLabel={t('language.title')}
-              />
-            </Stack>
-          </Surface>
+              seen first.
+
+              A segmented control is already a bordered track with a filled
+              thumb in it. Putting that inside a card gave the language picker
+              two nested rectangles and made it the heaviest object in the
+              settings block, above notifications, privacy and security. */}
+          <Stack gap="md">
+            <Row gap="sm">
+              <Languages size={iconSize.sm} color={colors.textTertiary} />
+              <Text variant="label" tone="secondary">
+                {t('language.title')}
+              </Text>
+            </Row>
+            <SegmentedControl<Locale>
+              options={SUPPORTED_LOCALES.map((value) => ({ value, label: LOCALE_NAMES[value] }))}
+              value={locale}
+              onChange={setLocale}
+              accessibilityLabel={t('language.title')}
+            />
+          </Stack>
 
           <ListGroup
             rows={[

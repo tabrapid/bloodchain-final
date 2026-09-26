@@ -142,7 +142,7 @@ export default function EducationArticle() {
             ) : null}
             {content.xpReward > 0 ? (
               <Row gap="xs">
-                <Award size={iconSize.sm} color={colors.insight.base} />
+                <Award size={iconSize.sm} color={colors.textTertiary} />
                 <Text variant="caption" tone="secondary">
                   {`+${content.xpReward} ${t('profile.xp')}`}
                 </Text>

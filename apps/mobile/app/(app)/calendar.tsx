@@ -10,6 +10,7 @@ import {
   ListRow,
   MonthGrid,
   Row,
+  ScreenTitle,
   ScrollScreen,
   SectionHeader,
   Skeleton,
@@ -29,11 +30,26 @@ import { useMyAppointments } from '../../src/hooks/useAppointments';
 import type { Appointment } from '../../src/api/appointments';
 import { useTranslation } from '../../src/i18n';
 
-/** Icon, label and accent per appointment type -- the legend reads from this too. */
+/**
+ * Icon, label and accent per appointment type -- the legend reads from this too.
+ *
+ * Two colours for three types, on purpose. A month cell can only show a dot, so
+ * this is one of the few places colour genuinely carries the category and not
+ * just decoration -- but there is no third colour available that does not
+ * already mean something. Violet, which a consultation used to take, means the
+ * AI produced something; amber and green mean a value is flagged or a check has
+ * cleared, and this screen shows status badges in both.
+ *
+ * So the split is the one that is actually true: rose is the appointment where
+ * the donor gives, clinical blue is the appointment where a clinician does
+ * something to them. A blood test and a consultation being the same colour
+ * groups two things that belong together, and the legend and the icons -- flask
+ * against stethoscope -- separate them for anyone who needs them separated.
+ */
 const TYPES: Record<string, { labelKey: string; icon: LucideIcon; tone: AccentName }> = {
   BLOOD_DONATION: { labelKey: 'medical.appointmentTypes.bloodDonation', icon: Droplet, tone: 'rose' },
   BLOOD_TEST: { labelKey: 'medical.appointmentTypes.bloodTest', icon: FlaskConical, tone: 'clinical' },
-  CONSULTATION: { labelKey: 'medical.appointmentTypes.consultation', icon: Stethoscope, tone: 'insight' },
+  CONSULTATION: { labelKey: 'medical.appointmentTypes.consultation', icon: Stethoscope, tone: 'clinical' },
 };
 
 /** What an appointment status means, as a badge tone. */
@@ -134,22 +150,20 @@ export default function Calendar() {
   return (
     <ScrollScreen refreshing={isRefetching} onRefresh={() => void refetch()}>
       <Stack gap="xl">
-        <Row align="flex-start" gap="md" style={{ paddingTop: space.md }}>
-          <View style={{ flex: 1, gap: 2 }}>
-            <Text variant="h1">{t('calendar.title')}</Text>
-            <Text variant="body" tone="secondary">
-              {t('calendar.subtitle')}
-            </Text>
-          </View>
-          <Button
-            label={t('calendar.schedule')}
-            size="md"
-            block={false}
-            accessibilityLabel={t('calendar.a11ySchedule')}
-            icon={({ size, color }) => <Plus size={size} color={color} />}
-            onPress={() => router.push('/(booking)/select-type')}
-          />
-        </Row>
+        <ScreenTitle
+          title={t('calendar.title')}
+          subtitle={t('calendar.subtitle')}
+          action={
+            <Button
+              label={t('calendar.schedule')}
+              size="md"
+              block={false}
+              accessibilityLabel={t('calendar.a11ySchedule')}
+              icon={({ size, color }) => <Plus size={size} color={color} />}
+              onPress={() => router.push('/(booking)/select-type')}
+            />
+          }
+        />
 
         {/* ------------------------------------------------------ the month */}
         <Surface>

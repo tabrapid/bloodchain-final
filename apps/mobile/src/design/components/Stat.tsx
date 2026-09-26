@@ -28,7 +28,19 @@ export interface StatProps {
  */
 export function Stat({ label, value, unit, icon, tone, style }: StatProps) {
   const { colors } = useDesign();
-  const accent = tone ? colors[tone] : null;
+
+  /*
+    A zero recedes.
+
+    "Emergency responses: 0" was drawn in the same weight and the same accent as
+    "Donations: 3", so a donor who has never responded to an emergency got a
+    number shouting at them about something that has not happened. Nothing is
+    not an achievement and it is not a warning; it is the absence of data, and
+    it should read as quietly as it means. The value is still announced in full
+    to a screen reader -- this changes how it looks, not what it says.
+  */
+  const isZero = String(value).trim() === '0';
+  const accent = tone && !isZero ? colors[tone] : null;
 
   return (
     <View
@@ -60,7 +72,13 @@ export function Stat({ label, value, unit, icon, tone, style }: StatProps) {
         </Text>
       </View>
       <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: space.xs }}>
-        <ValueText style={accent ? { color: accent.text } : undefined}>{value}</ValueText>
+        <ValueText
+          style={
+            accent ? { color: accent.text } : isZero ? { color: colors.textTertiary } : undefined
+          }
+        >
+          {value}
+        </ValueText>
         {unit ? (
           <Text variant="label" tone="tertiary">
             {unit}

@@ -21,6 +21,7 @@ import {
   ListRow,
   Progress,
   Row,
+  ScreenTitle,
   ScrollScreen,
   SectionError,
   SectionHeader,
@@ -63,10 +64,15 @@ const DONATION_TYPES: {
   tone: AccentName;
   intervalDays?: number;
 }[] = [
+  // Whole blood is rose because it is the donation this app is for. The three
+  // apheresis products are clinical blue, and their icons tell them apart.
+  // Platelets were amber and "other" was violet, which in this app mean a
+  // flagged clinical value and a model's output -- neither of which is a thing
+  // a donation type can be.
   { value: 'WHOLE_BLOOD', labelKey: 'medical.donationTypes.wholeBlood', icon: Droplet, tone: 'rose', intervalDays: 56 },
   { value: 'PLASMA', labelKey: 'medical.donationTypes.plasma', icon: TestTube, tone: 'clinical', intervalDays: 28 },
-  { value: 'PLATELETS', labelKey: 'medical.donationTypes.platelets', icon: Layers, tone: 'warning', intervalDays: 7 },
-  { value: 'OTHER', labelKey: 'medical.donationTypes.other', icon: Droplets, tone: 'insight' },
+  { value: 'PLATELETS', labelKey: 'medical.donationTypes.platelets', icon: Layers, tone: 'clinical', intervalDays: 7 },
+  { value: 'OTHER', labelKey: 'medical.donationTypes.other', icon: Droplets, tone: 'clinical' },
 ];
 
 /** The figure every blood service quotes, and the screen says so beside it. */
@@ -126,14 +132,7 @@ export default function Donate() {
     void challenges.refetch();
   };
 
-  const header = (
-    <View style={{ paddingTop: space.md, gap: 2 }}>
-      <Text variant="h1">{t('donate.title')}</Text>
-      <Text variant="body" tone="secondary">
-        {t('donate.subtitle')}
-      </Text>
-    </View>
-  );
+  const header = <ScreenTitle title={t('donate.title')} subtitle={t('donate.subtitle')} />;
 
   if (stats.isPending) {
     return (
@@ -324,11 +323,18 @@ export default function Donate() {
               icon={({ size, color }) => <Users size={size} color={color} />}
               tone="clinical"
             />
+            {/*
+              The one stat in this row that is a state rather than a count, so
+              the one that earns a semantic colour -- and only in the state
+              that means something. Green when a donor may give today; plain
+              while the clock runs down, because "fourteen days to go" is not a
+              success and was not worth the violet it used to be drawn in.
+            */}
             <Stat
               label={isEligible ? t('donate.readyToGive') : t('donate.daysToGo')}
               value={isEligible ? t('donate.now') : String(daysToEligible)}
               icon={({ size, color }) => <CalendarDays size={size} color={color} />}
-              tone="insight"
+              {...(isEligible ? { tone: 'success' as const } : {})}
             />
           </StatRow>
           {/* The multiplier is stated, not implied. "Lives supported" is an
