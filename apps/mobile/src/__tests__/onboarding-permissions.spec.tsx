@@ -43,6 +43,19 @@ jest.mock('../notifications/push', () => ({
   registerForPushNotificationsAsync: () => mockRegisterPush(),
 }));
 
+// What this build can actually deliver. Default: a configured build, so every
+// existing case below is unaffected.
+const pushConfig: { configured: boolean; expected: boolean; projectId?: string; reason?: string } = {
+  configured: true,
+  expected: false,
+  projectId: 'project-from-the-build',
+};
+jest.mock('../notifications/push-config', () => ({
+  get pushConfig() {
+    return pushConfig;
+  },
+}));
+
 jest.mock('../hooks/useDonors', () => ({
   useUpdateDonorProfile: () => ({ mutateAsync: jest.fn(), isPending: false }),
 }));
@@ -109,6 +122,8 @@ function advance(tree: renderer.ReactTestRenderer, times: number) {
 }
 
 beforeEach(() => {
+  pushConfig.configured = true;
+  pushConfig.expected = false;
   mockRequestLocation.mockClear().mockResolvedValue({ status: 'granted', canAskAgain: true });
   mockGetPosition.mockClear();
   mockRequestNotifications.mockClear().mockResolvedValue({ status: 'granted', canAskAgain: true });
@@ -199,6 +214,32 @@ describe('notifications are explained before they are requested', () => {
     expect(mockRequestNotifications).toHaveBeenCalledTimes(1);
     expect(mockRegisterPush).toHaveBeenCalledTimes(1);
     expect(renderedText(tree)).toContain(t('onboarding.notificationsAllowed'));
+    act(() => tree.unmount());
+  });
+
+  /**
+   * The phone saying yes is not the same as the app being able to deliver.
+   *
+   * There is no Expo project for this product yet, so on a preview or
+   * production build every one of the categories above -- emergency requests
+   * included -- is unreachable. Showing "Notifications are on" here would be
+   * the same untruth the settings screen used to tell, on the screen that
+   * actually does the asking.
+   */
+  it('does not claim notifications are on when this build cannot deliver any', async () => {
+    pushConfig.configured = false;
+    pushConfig.expected = false;
+    const tree = render();
+    advance(tree, 4);
+
+    press(tree, t('onboarding.explainNotifications'));
+    await act(async () => {
+      press(tree, t('onboarding.notificationsAllow'));
+    });
+
+    const text = renderedText(tree);
+    expect(text).not.toContain(t('onboarding.notificationsAllowed'));
+    expect(text).toContain(t('notificationSettings.unavailableTitle'));
     act(() => tree.unmount());
   });
 

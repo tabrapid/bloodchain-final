@@ -42,6 +42,7 @@ import { LucideIcon } from '../../src/types/icons';
 import { useUpdateDonorProfile } from '../../src/hooks/useDonors';
 import { useUpdateUserProfile } from '../../src/hooks/useUsers';
 import { useUpdateNotificationPreferences } from '../../src/hooks/useNotifications';
+import { pushConfig } from '../../src/notifications/push-config';
 import { registerForPushNotificationsAsync } from '../../src/notifications/push';
 import { useAuthStore } from '../../src/stores/auth.store';
 import { ApiRequestError } from '../../src/api/client';
@@ -513,7 +514,20 @@ export default function OnboardingWelcome() {
             {/* The categories above are the app's own preferences and are saved
                 either way. This is the separate question of whether the phone
                 will show any of them at all. */}
-            {notificationConsent === 'granted' ? (
+            {notificationConsent === 'granted' && !pushConfig.configured && !pushConfig.expected ? (
+              /*
+                The phone said yes and the app still cannot deliver anything.
+                Telling a donor "notifications are on" here would be the same
+                untruth the settings screen used to tell, on the screen that
+                actually asks them -- and the categories above include
+                emergency requests.
+              */
+              <Banner
+                tone="warning"
+                title={t('notificationSettings.unavailableTitle')}
+                description={t('notificationSettings.unavailableBody')}
+              />
+            ) : notificationConsent === 'granted' ? (
               <Banner tone="success" title={t('onboarding.notificationsAllowed')} />
             ) : notificationConsent === 'blocked' ? (
               <Banner

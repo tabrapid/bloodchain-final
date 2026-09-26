@@ -178,11 +178,17 @@ export const apiEnvironment = environment;
 /**
  * Set when this build has no address it is allowed to use.
  *
- * Read by the client, which refuses to send anything while it is set, and by
- * the sign-in screen, which says the build is misconfigured rather than
- * blaming the donor's connection. It is a value rather than a thrown error on
- * purpose: this module is imported at module scope by screens and by four
- * test files, and throwing here would be a white screen before any UI exists.
+ * Read by the client, which refuses to send anything while it is set and
+ * raises API_NOT_CONFIGURED instead -- so the message a donor sees says the
+ * build is misconfigured rather than blaming their connection. No screen reads
+ * this value directly: a build in this state now fails at config-evaluation
+ * time, so reaching it at runtime means an older binary running newer JS, and
+ * the error path covers that without speculative UI for a state that should
+ * not exist.
+ *
+ * It is a value rather than a thrown error on purpose: this module is imported
+ * at module scope by screens and by four test files, and throwing here would
+ * be a white screen before any UI exists.
  */
 export const apiConfigError: string | undefined = resolution.ok ? undefined : resolution.error;
 
@@ -198,8 +204,13 @@ export const apiHostWarning = resolution.ok ? resolution.warning : undefined;
 
 // One line, once, so the address in use is visible instead of guessed at when
 // a request fails.
+// Outside the __DEV__ guard on purpose. This fires only in a build that cannot
+// reach any API, where the whole app is about to fail; a line in logcat or
+// Console.app is the only way a tester or a support engineer finds out which
+// variable was missing. Everything else stays development-only.
+if (apiConfigError) console.error(`[api] ${apiConfigError}`);
+
 if (__DEV__) {
-  if (apiConfigError) console.error(`[api] ${apiConfigError}`);
-  else console.log(`[api] ${environment}: trying ${apiCandidates.join(', ')}`);
+  if (!apiConfigError) console.log(`[api] ${environment}: trying ${apiCandidates.join(', ')}`);
   if (apiHostWarning) console.warn(`[api] ${apiHostWarning}`);
 }

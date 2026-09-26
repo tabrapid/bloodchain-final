@@ -96,10 +96,28 @@ export function LocationMap({ markers, height = 220 }: LocationMapProps) {
    *
    * iOS is unaffected: PROVIDER_DEFAULT is Apple Maps, which needs no key.
    */
+  /**
+   * Whether to say so instead of drawing an empty map.
+   *
+   * `!== true` rather than `=== false`: an absent flag means the manifest did
+   * not come from this config layer, and a grey rectangle during a live
+   * emergency is the failure this branch exists to prevent -- being wrong in
+   * the direction of an honest caption is cheap.
+   *
+   * Development is exempt, and that is not laziness. The flag is computed from
+   * the *bundler's* environment at `expo start`; the key it describes lives in
+   * the native binary's manifest, built at some other time with some other
+   * environment. A developer whose dev client was built with a key would
+   * otherwise watch the map vanish because the variable was not exported in
+   * the shell they happened to run Metro from.
+   */
+  const extra = Constants.expoConfig?.extra as
+    | { androidMapsConfigured?: boolean; appEnv?: string }
+    | undefined;
   const androidMapsUnconfigured =
     Platform.OS === 'android' &&
-    (Constants.expoConfig?.extra as { androidMapsConfigured?: boolean } | undefined)
-      ?.androidMapsConfigured === false;
+    extra?.appEnv !== 'development' &&
+    extra?.androidMapsConfigured !== true;
 
   if (markers.length === 0 || androidMapsUnconfigured) {
     return (

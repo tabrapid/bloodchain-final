@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "engines": {
-    "node": "^20.19.4 || ^22.13.0 || ^24.3.0 || >= 25.0.0"
+    "node": "^22.18.0 || ^24.3.0 || >= 25.0.0"
   },
   "main": "expo-router/entry",
   "expo": {
@@ -29,7 +29,6 @@
   },
   "dependencies": {
     "@babel/runtime": "^8.0.0",
-    "@bloodchain/config": "workspace:*",
     "@bloodchain/i18n": "workspace:*",
     "@bloodchain/types": "workspace:*",
     "@bloodchain/utils": "workspace:*",

@@ -325,6 +325,80 @@ if (!locationPlugin) {
   notes.push('location: foreground only, on both platforms');
 }
 
+// ------------------------------------------------- the config can be loaded at all
+
+/**
+ * `app.config.ts` is TypeScript that Node has to `require`.
+ *
+ * Expo transpiles the config entry file, but its own `require` of
+ * `src/config/app-config.ts` goes to Node's loader and relies on type
+ * stripping -- unflagged from Node 22.18. That makes the Node version a build
+ * dependency rather than a preference: on an older runtime every build fails
+ * at config evaluation with a module-not-found, which is a confusing way to
+ * learn about a version floor.
+ *
+ * So it is asserted, in three places that have to agree: the feature is present
+ * on this runtime, `apps/mobile/package.json` declares a range that excludes
+ * the versions without it, and `eas.json` pins a version inside that range.
+ */
+if (process.features.typescript !== 'strip' && process.features.typescript !== true) {
+  fail(
+    `This Node (${process.version}) does not strip TypeScript types when requiring a module, so ` +
+      'apps/mobile/app.config.ts cannot be loaded and no build can be configured. ' +
+      'Node 22.18 or later is required.',
+  );
+} else {
+  notes.push(`node ${process.version} can require app.config.ts (type stripping: ${process.features.typescript})`);
+}
+
+const mobilePackage = JSON.parse(readFileSync(path.join(MOBILE, 'package.json'), 'utf8'));
+const declaredNode = mobilePackage.engines?.node;
+if (!declaredNode) {
+  fail('apps/mobile/package.json declares no engines.node, so nothing states the version floor the config layer needs.');
+} else if (!/22\.18|24\.3|25/.test(declaredNode)) {
+  fail(
+    `apps/mobile/package.json declares engines.node "${declaredNode}", which permits versions ` +
+      'without require-time type stripping. app.config.ts cannot load on those.',
+  );
+}
+
+const easNode = JSON.parse(readFileSync(path.join(MOBILE, 'eas.json'), 'utf8')).build?.base?.node;
+if (!easNode) {
+  fail('eas.json pins no Node version for builds, so an EAS build could run on one that cannot load app.config.ts.');
+} else {
+  const [major, minor] = easNode.split('.').map(Number);
+  const ok = (major === 22 && minor >= 18) || (major === 24 && minor >= 3) || major >= 25;
+  if (!ok) {
+    fail(`eas.json builds on Node ${easNode}, which cannot require app.config.ts. Pin 22.18 or later.`);
+  } else {
+    notes.push(`eas.json builds on node ${easNode}`);
+  }
+}
+
+// Every EAS profile has to say which environment it is, or the config layer
+// falls back to development and a store build quietly skips the strict rules.
+const easProfiles = JSON.parse(readFileSync(path.join(MOBILE, 'eas.json'), 'utf8')).build ?? {};
+const KNOWN_ENVIRONMENTS = new Set(['development', 'preview', 'production']);
+for (const [name, profile] of Object.entries(easProfiles)) {
+  if (name === 'base') continue;
+  const declared = profile.env?.APP_ENV;
+  if (!declared) {
+    fail(
+      `eas.json profile "${name}" sets no env.APP_ENV. The build would resolve to development ` +
+        'and a store build would skip the rules that make it a production one.',
+    );
+  } else if (!KNOWN_ENVIRONMENTS.has(declared)) {
+    // Checking that APP_ENV merely equalled the profile name would bless a
+    // profile called "store": the name matches itself, and the config layer
+    // has never heard of it.
+    fail(
+      `eas.json profile "${name}" declares APP_ENV "${declared}", which is not one of ` +
+        `${[...KNOWN_ENVIRONMENTS].join(', ')}. app.config.ts would refuse to build it.`,
+    );
+  }
+}
+notes.push('every eas.json profile declares a known APP_ENV');
+
 // -------------------------------------------------- the policy, not just the config
 
 /**

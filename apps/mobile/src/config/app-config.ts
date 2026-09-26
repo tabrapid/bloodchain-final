@@ -34,6 +34,15 @@ export type EnvironmentResolution = {
   readonly source: 'APP_ENV' | 'EAS_BUILD_PROFILE' | 'default';
   /** Set when an input was present but unusable. Never silently ignored. */
   readonly warning?: string;
+  /**
+   * Set when something declared an environment this file does not know.
+   *
+   * That is a build failure, not a warning. Defaulting a declared-but-unknown
+   * value to `development` would mean a profile named `store` -- a plausible
+   * thing for someone to add to eas.json -- produced a store binary with every
+   * strict rule switched off and CI green.
+   */
+  readonly invalid?: string;
 };
 
 /**
@@ -69,9 +78,9 @@ export function resolveAppEnvironment(
     return {
       environment: 'development',
       source: 'default',
-      warning:
+      invalid:
         `APP_ENV is "${declared}", which is not one of ${APP_ENVIRONMENTS.join(', ')}. ` +
-        'Treating this as a development build.',
+        'Name the environment this build is for; it is not guessed.',
     };
   }
 
@@ -84,9 +93,9 @@ export function resolveAppEnvironment(
     return {
       environment: 'development',
       source: 'default',
-      warning:
+      invalid:
         `EAS_BUILD_PROFILE is "${profile}", which no environment maps to, and APP_ENV is unset. ` +
-        "Treating this as a development build. Set APP_ENV in that profile's env block in eas.json.",
+        "Set APP_ENV in that profile's env block in eas.json; it is not guessed.",
     };
   }
 
@@ -99,30 +108,154 @@ export type ApiUrlVerdict =
   | { readonly ok: true; readonly url: string }
   | { readonly ok: false; readonly reason: string };
 
-/** `scheme://host[:port][/path]`, and nothing else -- no query, no fragment, no credentials. */
-const ABSOLUTE_HTTP_URL = /^(https?):\/\/([^/?#@]+?)(?::(\d{1,5}))?(\/[^?#]*)?$/i;
+/**
+ * `scheme://authority[/path]`. The authority is checked separately, below,
+ * because a negated character class is not a host grammar -- the first version
+ * of this used one and accepted `https://:3001`, `https://a b` and
+ * `https://api.example.com:999999`.
+ */
+const ABSOLUTE_HTTP_URL = /^(https?):\/\/([^/?#]+)(\/[^?#]*)?$/i;
+
+/** A bracketed IPv6 literal, or anything else, plus an optional port. */
+const AUTHORITY = /^(\[[0-9A-Fa-f:.]+\]|[^:[\]/?#@\\]+)(?::(\d+))?$/;
+
+/** One DNS label: letters, digits and inner hyphens. */
+const DNS_LABEL = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/;
 
 /**
- * Addresses that mean "this device".
+ * One part of an IPv4 address, in any of the three bases a URL parser accepts.
  *
- * On a phone they resolve to the phone, where nothing is listening. In
- * development that is the point -- the simulator really is the machine running
- * the API. Anywhere else it is a build that can only work on the laptop that
- * made it.
+ * This is not pedantry. `https://127.1`, `https://2130706433` and
+ * `https://0x7f000001` are all the loopback address as far as `fetch` is
+ * concerned, and all three sailed through the string comparison this replaced.
+ * Anything judging "is this address the device itself?" has to canonicalise
+ * first or it is judging spelling.
  */
-function isLoopback(hostname: string): boolean {
-  const host = hostname.toLowerCase();
-  return (
-    host === 'localhost' ||
-    host === '0.0.0.0' ||
-    host === '::1' ||
-    host === '[::1]' ||
-    host === '[0:0:0:0:0:0:0:1]' ||
-    /^127\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(host) ||
-    // The Android emulator's alias for the host machine. Useful in development,
-    // meaningless on a real device.
-    host === '10.0.2.2'
-  );
+function parseIpv4Part(part: string): number | null {
+  if (part === '') return null;
+
+  let radix = 10;
+  let digits = part;
+  if (/^0[xX]/.test(part)) {
+    radix = 16;
+    digits = part.slice(2);
+    if (digits === '') return 0;
+  } else if (/^0[0-7]+$/.test(part)) {
+    radix = 8;
+    digits = part.slice(1);
+  }
+
+  const shape = radix === 16 ? /^[0-9a-fA-F]+$/ : radix === 8 ? /^[0-7]+$/ : /^[0-9]+$/;
+  if (!shape.test(digits)) return null;
+
+  const value = parseInt(digits, radix);
+  return Number.isSafeInteger(value) ? value : null;
+}
+
+/** The address as a 32-bit number, or null when the host is not IPv4 in any spelling. */
+function asIpv4(host: string): number | null {
+  const parts = host.split('.');
+  // A trailing dot is legal and means the same address.
+  if (parts.length > 1 && parts[parts.length - 1] === '') parts.pop();
+  if (parts.length === 0 || parts.length > 4) return null;
+
+  const numbers = parts.map(parseIpv4Part);
+  if (numbers.some((value) => value === null)) return null;
+
+  // The last part carries whatever octets were left out: 127.1 is 127.0.0.1.
+  const last = numbers[numbers.length - 1]!;
+  if (last >= 256 ** (4 - (parts.length - 1))) return null;
+
+  let value = last;
+  for (let index = 0; index < parts.length - 1; index += 1) {
+    const octet = numbers[index]!;
+    if (octet > 255) return null;
+    value += octet * 256 ** (3 - index);
+  }
+  return value >>> 0;
+}
+
+function ipv4Octets(value: number): [number, number, number, number] {
+  return [(value >>> 24) & 255, (value >>> 16) & 255, (value >>> 8) & 255, value & 255];
+}
+
+/**
+ * Addresses a build that has left this machine cannot usefully reach.
+ *
+ * Loopback is the device itself. Link-local includes 169.254.169.254, the cloud
+ * metadata endpoint, which is never an API host and is worth refusing loudly.
+ * The private ranges are someone's laptop or office LAN -- fine in development,
+ * and a build that cannot work for anyone else if it ships.
+ */
+function ipv4Problem(value: number): string | undefined {
+  const [a, b] = ipv4Octets(value);
+  if (a === 0) return 'the unspecified address';
+  if (a === 127) return 'the loopback address -- the device the app is running on';
+  if (a === 10) return 'a private network address';
+  if (a === 172 && b! >= 16 && b! <= 31) return 'a private network address';
+  if (a === 192 && b === 168) return 'a private network address';
+  if (a === 169 && b === 254) return 'a link-local address';
+  if (a === 100 && b! >= 64 && b! <= 127) return 'a carrier-grade NAT address';
+  if (a! >= 224) return 'a multicast or reserved address';
+  return undefined;
+}
+
+/** Expands `::`, so `::1`, `0:0:0:0:0:0:0:1` and `[0000:...:0001]` are one address. */
+function expandIpv6(literal: string): string[] | null {
+  const body = literal.replace(/^\[|\]$/g, '');
+  if (body.includes('%')) return null; // a zone id is device-local by definition
+  if ((body.match(/::/g) ?? []).length > 1) return null;
+
+  const [head = '', tail = ''] = body.includes('::') ? body.split('::') : [body, undefined as never];
+  const headParts = head === '' ? [] : head.split(':');
+  const tailParts = body.includes('::') ? (tail === '' ? [] : tail.split(':')) : [];
+
+  // A trailing IPv4 form: ::ffff:127.0.0.1
+  const embedded = [...headParts, ...tailParts].find((part) => part.includes('.'));
+  let ipv4Groups: string[] = [];
+  if (embedded) {
+    const value = asIpv4(embedded);
+    if (value === null) return null;
+    const [a, b, c, d] = ipv4Octets(value);
+    ipv4Groups = [
+      ((a << 8) | b).toString(16),
+      ((c << 8) | d).toString(16),
+    ];
+  }
+
+  const strip = (parts: string[]) => parts.filter((part) => !part.includes('.'));
+  const left = strip(headParts);
+  const right = [...strip(tailParts), ...ipv4Groups];
+  const missing = 8 - left.length - right.length;
+  if (!body.includes('::')) {
+    const all = [...left, ...right];
+    return all.length === 8 ? all.map((part) => part.padStart(4, '0')) : null;
+  }
+  if (missing < 0) return null;
+  return [...left, ...Array(missing).fill('0'), ...right].map((part) => part.padStart(4, '0'));
+}
+
+function ipv6Problem(literal: string): string | undefined {
+  const groups = expandIpv6(literal);
+  if (!groups) return 'not a usable IPv6 address';
+
+  const joined = groups.join(':');
+  if (joined === '0000:0000:0000:0000:0000:0000:0000:0001') {
+    return 'the loopback address -- the device the app is running on';
+  }
+  if (joined === '0000:0000:0000:0000:0000:0000:0000:0000') return 'the unspecified address';
+
+  // ::ffff:a.b.c.d -- an IPv4 address wearing an IPv6 hat.
+  if (/^0000:0000:0000:0000:0000:ffff:/.test(joined)) {
+    const high = parseInt(groups[6]!, 16);
+    const low = parseInt(groups[7]!, 16);
+    return ipv4Problem(((high << 16) | low) >>> 0);
+  }
+
+  const first = parseInt(groups[0]!, 16);
+  if ((first & 0xffc0) === 0xfe80) return 'a link-local address';
+  if ((first & 0xfe00) === 0xfc00) return 'a unique-local address';
+  return undefined;
 }
 
 /** Trailing slashes would produce `https://host//api/v1` once the base path is appended. */
@@ -144,7 +277,8 @@ function normalise(url: string): string {
  *
  * `URL` is a partial polyfill under Hermes whose behaviour differs from Node's
  * on exactly the malformed inputs this has to judge, so the shape is matched
- * here instead, where both engines agree.
+ * here instead, where both engines agree -- and matched against what a URL
+ * parser would actually dial, rather than against how the value is spelled.
  */
 export function checkApiUrl(
   raw: string | undefined,
@@ -164,20 +298,39 @@ export function checkApiUrl(
     };
   }
 
+  const malformed = (detail: string): ApiUrlVerdict => ({
+    ok: false,
+    reason: `"${value}" is not a usable API address: ${detail}.`,
+  });
+
   const match = ABSOLUTE_HTTP_URL.exec(value);
   if (!match) {
-    return {
-      ok: false,
-      reason:
-        `"${value}" is not an absolute http(s) address. Expected scheme://host[:port][/path] ` +
-        'with no query string, fragment or credentials.',
-    };
+    return malformed(
+      'expected scheme://host[:port][/path] with no query string, fragment or credentials',
+    );
   }
 
-  const [, scheme = '', hostname = '', port] = match;
+  const [, scheme = '', authority = ''] = match;
+  const parts = AUTHORITY.exec(authority);
+  if (!parts) return malformed('the host and port are not a valid authority');
 
-  if (port !== undefined && Number(port) > 65535) {
-    return { ok: false, reason: `"${value}" has port ${port}, which is not a port.` };
+  const [, host = '', port] = parts;
+
+  if (port !== undefined) {
+    if (!/^[1-9][0-9]{0,4}$/.test(port) || Number(port) > 65535) {
+      return malformed(`${port} is not a port`);
+    }
+  }
+
+  const isIpv6Literal = host.startsWith('[');
+  const ipv4 = isIpv6Literal ? null : asIpv4(host);
+
+  if (!isIpv6Literal && ipv4 === null) {
+    // A DNS name. Anything that is not a name and not an address is neither.
+    const labels = host.toLowerCase().replace(/\.$/, '').split('.');
+    if (labels.some((label) => !DNS_LABEL.test(label)) || host.length > 253) {
+      return malformed('the host is neither a valid hostname nor an IP address');
+    }
   }
 
   // Development takes whatever it is given. Someone pointing a dev build at a
@@ -186,12 +339,22 @@ export function checkApiUrl(
     return { ok: true, url: normalise(value) };
   }
 
-  if (isLoopback(hostname)) {
+  const unreachable = isIpv6Literal
+    ? ipv6Problem(host)
+    : ipv4 !== null
+      ? ipv4Problem(ipv4)
+      : /^(localhost|.*\.localhost)$/.test(host.toLowerCase().replace(/\.$/, ''))
+        ? 'the loopback address -- the device the app is running on'
+        : host.replace(/\.$/, '').includes('.')
+          ? undefined
+          : 'a single-label host, which only resolves on one network';
+
+  if (unreachable) {
     return {
       ok: false,
       reason:
-        `"${value}" points at the device the app is running on. A ${environment} build cannot ` +
-        'reach an API there; it needs an address that exists on the network.',
+        `"${value}" points at ${unreachable}. A ${environment} build needs an address that ` +
+        'exists on the network it will run on.',
     };
   }
 
@@ -262,6 +425,7 @@ export function describeAppConfig(
   const resolved = resolveAppEnvironment(env);
   const environment = resolved.environment;
   if (resolved.warning) warnings.push(resolved.warning);
+  if (resolved.invalid) errors.push(resolved.invalid);
 
   // ------------------------------------------------------------------ the API
 

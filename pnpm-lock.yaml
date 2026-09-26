@@ -440,9 +440,6 @@ importers:
       '@babel/runtime':
         specifier: ^8.0.0
         version: 8.0.0
-      '@bloodchain/config':
-        specifier: workspace:*
-        version: link:../../packages/config
       '@bloodchain/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
