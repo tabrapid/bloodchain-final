@@ -107,6 +107,7 @@ bundle were all green before the next one started.
 | A2 | `3ba75a92` | 53 → 54 | 19.0.0 → 19.1.0 | 0.79.6 → 0.81.5 |
 | A3 | `c954c7c4` | 54 → 55 | 19.1.0 → 19.2.0 | 0.81.5 → 0.83.10 |
 | A4 | `1ee416c1` | 55 → **56** | 19.2.0 → 19.2.3 | 0.83.10 → **0.85.3** |
+| A5 | `da476dc5` | 56 → **57** | 19.2.3 (unchanged) | 0.85.3 → **0.86.3** |
 
 ---
 
@@ -253,7 +254,7 @@ once inside a single test.
 
 ## 5. Native dependency compatibility
 
-Every native module is at the version SDK 56's own `bundledNativeModules.json`
+Every native module is at the version SDK 57's own `bundledNativeModules.json`
 pins. Two checks back this up:
 
 - expo-doctor's **"Check that packages match versions required by installed
@@ -475,7 +476,7 @@ account that only the Product Owner can provide.
 
 | # | Blocker | What it stops | Notes |
 |---|---|---|---|
-| B1 | **No production API URL.** `src/api/config.ts` derives the API host from the Metro host. A release build has no Metro, so it falls back to `http://localhost:3001` — wrong, and cleartext HTTP, which Android blocks by default from API 28. | The app cannot talk to anything in a release build. | Needs a hostname and a TLS certificate. Until then, set `EXPO_PUBLIC_API_URL` or `extra.apiUrl` per build profile. |
+| B1 `EXTERNAL_BLOCKER_PRODUCTION_API` | **No production API URL.** There is still no hostname. What changed in S12 is what happens without one: a production build used to derive the address from the Metro host and fall back to `http://localhost:3001` on iOS — or `http://10.0.2.2:3001` on Android, an emulator-only alias — and ship pointing at the donor's own phone. It now fails closed, at config-evaluation time and again at runtime. | Nothing can be built for production until a hostname exists; that is the intended trade. | Needs an https hostname. Set `EXPO_PUBLIC_API_URL` for the build; `APP_ENV` selects the rules. |
 | B2 | **No EAS project ID.** `src/notifications/push.ts` needs `extra.eas.projectId`; `getExpoPushTokenAsync` throws without it, the `catch` swallows it, and push silently never registers — no crash, no token, no error. | Push notifications do not work in any real build. Also blocks every EAS build. | Requires an Expo account and `eas init`. |
 | B3 | **No Google Maps Android API key.** `LocationMap` uses `PROVIDER_DEFAULT`, which on Android is Google Maps and needs a key. | The map renders blank on Android release builds. The emergency journey and courier screens lose their map. | Requires a Google Cloud project. Alternative: switch Android to a provider that needs no key, which is a product decision. |
 | B4 | **No signing identity for either store.** | No uploadable artifact. | Android needs an upload keystore; iOS needs an Apple Developer Program membership, a distribution certificate and a provisioning profile. Explicitly out of scope for this sprint. |
@@ -500,7 +501,7 @@ Accepted, with reasons:
 | `userInterfaceStyle: "dark"` is not enforced on Android | `expo prebuild` warns that this needs `expo-system-ui`, which is not installed, so the declaration is inert on Android. It also interacts badly with the app's own `'light' \| 'dark' \| 'system'` preference: on iOS, `UIUserInterfaceStyle: Dark` makes RN's `useColorScheme()` always return `dark`, so the "system" preference cannot follow the device. Left as found — changing it changes product behaviour — and carried into Track B, where the theme is rebuilt. |
 | `RECEIVE_BOOT_COMPLETED` on Android | Contributed by expo-notifications' own manifest. The app schedules no local notifications, so it is unused. Removing it means blocking a library-contributed permission, which risks breaking scheduled notifications if they are ever added. Recorded rather than removed. |
 | Mobile lint warnings | 36 through Track A, unchanged across all four hops — the same set as at the baseline. **15 after Track B**, because most of them lived in the V1 component layer that was deleted: 12 `no-explicit-any` and 3 `react-hooks/exhaustive-deps`. 0 errors throughout. |
-| TypeScript 5.9.3, not 6.0 | SDK 56's template suggests `typescript ~6.0.3`. The monorepo shares one TypeScript across eleven packages, so moving to 6.0 is a monorepo-wide change with its own risk surface and does not belong in a mobile sprint. 5.9.3 typechecks the app cleanly. |
+| TypeScript 5.9.3, not 6.0 | SDK 57's template suggests `typescript ~6.0.3`. The monorepo shares one TypeScript across eleven packages, so moving to 6.0 is a monorepo-wide change with its own risk surface and does not belong in a mobile sprint. 5.9.3 typechecks the app cleanly. |
 
 ---
 
@@ -788,3 +789,129 @@ locally instead, on the final tree, and this is what was run:
 The one thing that cannot be reproduced here is expo-doctor's two network
 checks (`api.expo.dev` is refused by this environment). Those ran green in #153,
 on the same `package.json`.
+
+---
+
+## 20. Sprint 12 — configuration, and what a build is allowed to do
+
+### 20.1 Three questions, not one
+
+`docs/mobile-release-blockers.md` now opens with the distinction this document
+had been blurring: **A** code/native buildability, **B** production runtime
+readiness, **C** store submission readiness. A is provable here and is not
+proven yet (`NATIVE_BUILD_NOT_COMPILED`). B and C are not claimable at all
+while the external rows are open, and every blocker row says which of the three
+it blocks.
+
+### 20.2 The API address
+
+The app derived its API host from whichever machine served the bundle, in every
+build, with `http://localhost:3001` underneath it — `http://10.0.2.2:3001` on
+Android, which is the emulator's alias for its own host and reaches nothing on
+a phone. In a store build that is an app pointed at the donor's handset, and
+the failure surfaced as "the server took too long to respond", which reads as a
+bad connection.
+
+There is now an environment, stated rather than inferred:
+
+| | Address | Rule |
+| --- | --- | --- |
+| development | explicit if set, else derived from Metro | anything, localhost included |
+| preview | explicit only | must exist on the network; cleartext permitted for a private staging host |
+| production | explicit only | https, and never the device itself |
+
+A production build without a valid address **fails at config-evaluation time**
+— `eas build --profile production` stops before building — and, if one somehow
+existed, the client throws `API_NOT_CONFIGURED` without sending a request.
+`EXTERNAL_BLOCKER_PRODUCTION_API` stays open and now blocks building as well as
+running, which is the intended trade. No hostname has been invented.
+
+It is deliberately **not** keyed on `__DEV__`. `expo export` and the visual-QA
+harness both produce release bundles that point at localhost on purpose, and a
+rule keyed on `__DEV__` would have refused the only way this app has ever been
+photographed.
+
+### 20.3 The configuration layer
+
+`app.json` remains the static base and every value in it is unchanged.
+`app.config.ts` layers on the four per-build values that must never be
+committed: the environment, the API address, the EAS project id and the Android
+Maps key. The logic is in `src/config/app-config.ts` — in `src/`, because that
+is the tree jest runs and eslint checks, and the file that decides production
+configuration should not be the one file nothing tests. It has no relative
+imports: Expo transpiles only the config entry, so a sibling `.ts` import would
+go to Node's loader and fail to resolve.
+
+### 20.4 Push and maps stop pretending
+
+Push had a seam nobody could set and a `catch` that flattened "this build can
+never receive a notification" into one `console.warn` — in a store build, into
+nothing at all — while the notification settings screen showed six enabled
+toggles above it. Registration now returns what happened (`registered`,
+`permission-not-granted`, `not-configured`, `failed`), a missing project is
+detected before the call rather than inferred from its exception, and the
+screen says so. `EXTERNAL_BLOCKER_EAS_PROJECT_ID` is unchanged; the seam ships
+unset and no id has been invented.
+
+The Android Maps key has a seam that reaches the manifest and is stripped from
+the public OTA manifest, which is where a key belongs. Without one the map says
+it is unavailable rather than rendering a grey rectangle that, on the SOS screen
+during a live emergency, is indistinguishable from a map still loading.
+
+### 20.5 The location prompt
+
+Foreground-only was already true and is unchanged. The prompt was not: it
+described two of the four things the app uses location for and led with the
+rarest. It now leads with the everyday one and names all four — nearest
+centres, the home area saved at onboarding, an emergency journey, a courier
+delivery — and says "authorised hospital staff" and "while you use the app".
+`ACCESS_BACKGROUND_LOCATION` is now blocked outright so a future config plugin
+cannot add it quietly. Collection behaviour is not broadened; the
+Play data-safety and App Privacy answers must name all four purposes when they
+are filled in (§13, §14).
+
+### 20.6 The check that was not checking
+
+`pnpm verify:android-release` asserted that the identifiers were *present*. The
+blockers page said it "fails the build if either regresses". It did not — the
+identifier could have become anything with CI green. It now reads the resolved
+config rather than the static file, compares both identifiers and the scheme
+against expected values, asserts the permission prompt still covers every use,
+and proves the fail-closed rule by asking for a production config with no
+address and requiring the refusal. Each guard was verified by breaking the
+value and watching the check fail.
+
+### 20.7 The Expo slug, and an identifier that did not change
+
+The slug was `donor` — the deep-link scheme's word, not a project identity.
+Nothing reads it: no `Constants.expoConfig.slug` anywhere, no `owner`, no
+`extra.eas.projectId`, no `updates` block, no `expo.dev` URL, and `eas.json`
+carries channels only. It is `bloodchain` now, which is free while no EAS
+project exists and stops being free the moment one does.
+
+`scheme: donor` is untouched and now asserted — the API mints password-reset
+and verification links against it.
+
+The application identifier stays `uz.bloodchain.donor`. A later brief specified
+`com.bloodchainga.mobile`; put to the Product Owner against the S11.1
+ratification, the answer was that the S11.1 decision stands. See "A decision
+that was superseded" in `docs/mobile-release-blockers.md`.
+
+### 20.8 Node
+
+`react-native` 0.86.3 declares a floor of `^22.13.0`. Nothing in the repository
+declared one, and CI's `NODE_VERSION: '22'` resolves to whatever the runner
+image has cached, which may sit below it. `apps/mobile/package.json` now states
+the range and CI pins `22.22.2`, the version `eas.json` already builds with.
+Scoped to the mobile package on purpose: a root `engines` field is enforced by
+pnpm across all eleven workspaces, which is the monorepo-wide change this sprint
+is not (§12, and the same reason TypeScript stays at 5.9.3).
+
+### 20.9 expo-doctor, and what "green" means
+
+Two of its checks reach `api.expo.dev` and `reactnative.directory`. This
+environment's egress policy refuses both (403), so from here they are
+**`NETWORK_UNVERIFIED`** — a tracked row in the blockers register, not a pass.
+The other 19 run offline and pass. expo-doctor is never to be described as
+"fully green" from an environment that could not execute its online checks;
+the last run that did was CI #153.

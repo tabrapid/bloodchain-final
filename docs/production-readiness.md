@@ -129,7 +129,7 @@ The four packs live in [`review-packs/`](review-packs/).
 | **MB-03** | No crash or error reporting in the mobile app. | P1 | INFRA | ENG | Absent | Sentry or equivalent | BETA |
 | **MB-04** | No app icon, splash screen or store assets at release quality. | P1 | STORE | PO + design | Development placeholders | Produce assets | BETA |
 | **MB-05** | Deep links are unverified on a device — universal links and app links are unconfigured. | P1 | STORE | ENG | Routes exist | Configure and test on hardware | BETA |
-| **MB-06** | Expo SDK 52 with React Native 0.76; upgrade cadence unplanned. | P2 | INFRA | ENG | Current | Out of scope by instruction | PROD |
+| **MB-06** | ~~Expo SDK 52 with React Native 0.76; upgrade cadence unplanned.~~ **Superseded.** The app is on Expo SDK 57 / React Native 0.86.3 as of `da476dc5`; the migration ran 52 → 53 → 54 → 55 → 56 → 57, a commit per hop. See `docs/mobile-release-readiness.md` §3. | P2 | INFRA | ENG | Superseded | Tracked in the mobile readiness doc | PROD |
 
 ## G. Web deployment
 

@@ -56,6 +56,13 @@ and every screen photographs its error state while looking like it worked.
 Flags: `--devices iphone,android,small` · `--only tabs/home,sos` ·
 `--api http://localhost:3001` · `--out <dir>` · `--port 3000`.
 
+**Why a release export is allowed to point at localhost.** `expo export`
+produces `__DEV__ === false`, so a policy keyed on that would call this a
+production build and refuse the cleartext loopback address the harness needs.
+The API rules are keyed on `APP_ENV` instead, which nothing here sets — so this
+is a development build, which is what it is. Do not set `APP_ENV=production`
+for a capture run; it will fail at config-evaluation time, correctly.
+
 ### How a state is produced
 
 `screens.mjs` is the catalogue: every screen, every state, the route that opens

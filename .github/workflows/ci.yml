@@ -372,16 +372,18 @@ jobs:
 
       - name: Expo doctor
         # The checks themselves are reported and read rather than taken as a
-        # build break. On SDK 57 every one of them passes, the Hermes V1 memory
+        # build break. On SDK 57 the offline checks pass, the Hermes V1 memory
         # regression included -- that was the last standing failure and the
-        # reason the upgrade was asked for. What keeps this step off the
-        # critical path is that two checks reach api.expo.dev and
-        # reactnative.directory: they are reachable from GitHub's runners but
-        # not from every environment this repository is worked on in, and their
-        # answers can change without a commit here. The checks that matter for
-        # an upgrade -- package versions against the SDK, duplicate
-        # dependencies, React Navigation alongside expo-router -- are offline
-        # and are covered by the steps above and below.
+        # reason the upgrade was asked for. The two that reach api.expo.dev and
+        # reactnative.directory pass only where egress is open, which is true of
+        # this runner and not of every environment the repository is worked on
+        # in; there they are NETWORK_UNVERIFIED rather than passing, and
+        # expo-doctor must not be reported as "fully green" from one of them.
+        # That, plus answers those two can change without a commit here, is what
+        # keeps this step off the critical path. The checks that matter for an
+        # upgrade -- package versions against the SDK, duplicate dependencies,
+        # React Navigation alongside expo-router -- are offline and are covered
+        # by the steps above and below.
         continue-on-error: true
         run: pnpm --filter @bloodchain/mobile exec expo-doctor
 
