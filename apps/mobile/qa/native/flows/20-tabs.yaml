@@ -1,0 +1,54 @@
+# The six donor tabs, signed in against the seeded account.
+#
+# Signing in here rather than in a shared setup flow is deliberate: Maestro
+# restarts the app between files, and a tab screenshot taken from a session this
+# file did not establish is a screenshot of whatever the last file left behind.
+appId: uz.bloodchain.donor
+name: 20 tabs
+env:
+  EMAIL: donor@donor.local
+  PASSWORD: DevelopmentOnly!123
+---
+- launchApp:
+    clearState: true
+    permissions:
+      all: allow
+
+- tapOn: 'Sign In'
+- assertVisible: 'Welcome back'
+- tapOn: 'Use my email address'
+- tapOn:
+    point: '50%,45%'
+- inputText: ${EMAIL}
+- hideKeyboard
+- tapOn:
+    id: 'password'
+    optional: true
+- inputText: ${PASSWORD}
+- hideKeyboard
+- tapOn: 'Sign in to your account'
+
+# Twenty seconds: a cold start against a laptop API over adb reverse is slower
+# than the emulator this selector was first written for.
+- assertVisible:
+    text: 'Good'
+    timeout: 20000
+- takeScreenshot: 03-home
+
+- tapOn: 'Health'
+- assertVisible:
+    text: 'Health'
+    timeout: 15000
+- takeScreenshot: 04-health
+
+- tapOn: 'Donate'
+- takeScreenshot: 05-donate
+
+- tapOn: 'Community'
+- takeScreenshot: 06-community
+
+- tapOn: 'Calendar'
+- takeScreenshot: 07-calendar
+
+- tapOn: 'Profile'
+- takeScreenshot: 08-profile

@@ -5,8 +5,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BottomTabBarHeightCallbackContext, type BottomTabBarProps } from 'expo-router/js-tabs';
 import { useDesign } from '../useDesign';
 import { elevation, hitTarget, icon as iconScale, radius, space } from '../tokens';
+import { fonts } from '../fonts';
 import { Text } from './Text';
 import { IconButton } from './Button';
+
+/** Blur where it is real, a plain surface where it is not. See the note at the use site. */
+const Bar = Platform.OS === 'android' ? (View as unknown as typeof BlurView) : BlurView;
 
 /**
  * `backLabel` is required whenever `onBack` is, and impossible without it.
@@ -137,13 +141,36 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
               shadowRadius: elevation.floating.shadowRadius,
               shadowOffset: { width: 0, height: elevation.floating.shadowOffsetY },
             }
-          : null),
+          : // The one place on Android where a shadow has something to fall on:
+            // the bar sits over scrolling content, so the lift is visible.
+            { elevation: elevation.floating.android }),
       }}
     >
-      <BlurView
+      {/*
+        Blur on iOS, an opaque surface on Android.
+
+        This is a decision, not a fallback. `expo-blur` on Android samples what
+        is drawn beneath it, and when that sample is unavailable -- which over a
+        navigator it often is -- the platform draws a flat tinted plate instead
+        of a blur. V1 already found this and turned blur off on cards with a
+        comment saying the look never rested on it. Betting the one remaining
+        translucent surface in the app on that same sampler, over the one
+        component a donor sees on every screen, is a bet with no upside: a real
+        blur and a grey plate are hard to tell apart, and the plate is what you
+        get on the bad day.
+
+        So Android gets a deliberately composed opaque surface at the raised
+        tone with real elevation, which reads as lift on every device. If the
+        Product Owner confirms blur looks genuinely good on the target hardware,
+        this is one branch to delete.
+      */}
+      <Bar
         intensity={colors.chrome.blurIntensity}
         tint={colors.chrome.blurTint}
-        style={{ flexDirection: 'row', backgroundColor: colors.chrome.fill }}
+        style={{
+          flexDirection: 'row',
+          backgroundColor: Platform.OS === 'android' ? colors.surfaceRaised : colors.chrome.fill,
+        }}
       >
         {visible.map((route) => {
           const { options } = descriptors[route.key]!;
@@ -177,7 +204,16 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
                   self-evident in a language the donor may not read. */}
               <Text
                 variant="caption"
-                style={{ color, fontSize: 10, lineHeight: 13, fontWeight: focused ? '600' : '400' }}
+                // 11sp is the floor: at 10 the six labels read as decoration
+                // rather than navigation, and Russian makes it worse. The
+                // focused state changes FACE, not weight -- asking Android for
+                // a numeric weight on top of a real family makes it synthesise.
+                style={{
+                  color,
+                  fontSize: 11,
+                  lineHeight: 14,
+                  fontFamily: focused ? fonts.semibold : fonts.regular,
+                }}
                 numberOfLines={1}
               >
                 {label}
@@ -185,7 +221,7 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
             </Pressable>
           );
         })}
-      </BlurView>
+      </Bar>
     </View>
   );
 }

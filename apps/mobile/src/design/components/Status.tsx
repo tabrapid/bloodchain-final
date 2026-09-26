@@ -1,5 +1,6 @@
 import { type ReactNode } from 'react';
 import { View, type ViewStyle } from 'react-native';
+import { fonts } from '../fonts';
 import { useDesign } from '../useDesign';
 import { icon as iconScale, radius, space, type AccentName } from '../tokens';
 import { Text } from './Text';
@@ -49,7 +50,7 @@ export function Badge({ label, tone = 'neutral', icon, style }: BadgeProps) {
       ]}
     >
       {icon?.({ size: iconScale.sm, color: foreground })}
-      <Text variant="caption" style={{ color: foreground, fontWeight: '600' }} numberOfLines={1}>
+      <Text variant="caption" style={{ color: foreground, fontFamily: fonts.semibold }} numberOfLines={1}>
         {label}
       </Text>
     </View>

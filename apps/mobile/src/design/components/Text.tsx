@@ -1,4 +1,4 @@
-import { Text as RNText, type TextProps as RNTextProps, type TextStyle } from 'react-native';
+import { Platform, Text as RNText, type TextProps as RNTextProps, type TextStyle } from 'react-native';
 import { type ReactNode } from 'react';
 import { useDesign } from '../useDesign';
 import { type TypeVariant, type AccentName, type as typeScale } from '../tokens';
@@ -62,11 +62,21 @@ export function Text({
         {
           fontSize: scale.fontSize,
           lineHeight: scale.lineHeight,
-          fontWeight: scale.fontWeight as TextStyle['fontWeight'],
-          letterSpacing: caps ? 0.8 : scale.letterSpacing,
+          // A family, never a numeric weight. Setting both asks Android to
+          // synthesise a weight on top of a face that already carries it, and
+          // the result is the slightly smeared, slightly-too-heavy text that
+          // reads as amateur. See src/design/fonts.ts.
+          fontFamily: scale.fontFamily,
+          letterSpacing: caps ? 0.9 : scale.letterSpacing,
           color,
           textAlign: align,
           textTransform: caps ? 'uppercase' : undefined,
+          // Android adds padding above and below every glyph from the font's
+          // own metrics, which is why RN text sits high in its box and why
+          // vertical rhythm never quite lands. Turning it off means the line
+          // box is exactly `lineHeight`, which is why every variant declares
+          // one explicitly.
+          ...(Platform.OS === 'android' ? { includeFontPadding: false } : null),
         },
         style,
       ]}

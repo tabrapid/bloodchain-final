@@ -1,0 +1,51 @@
+{
+  "$comment": [
+    "The fifteen screens Sprint 11.2 asks for, plus the extra states Phase 12 asks for.",
+    "",
+    "`flow` is the Maestro file that navigates to the screen and calls",
+    "`takeScreenshot: <shot>`. `shot` is therefore both Maestro's output name and",
+    "this catalogue's key -- if they drift, the runner reports the screen as",
+    "NATIVE_QA_UNCAPTURED rather than silently filing nothing.",
+    "",
+    "`route` is the expo-router path, for the report. `state` is what the screen",
+    "was showing when the shutter fired, and is never a guess: a flow that could",
+    "not reach a state does not photograph a different one and call it that."
+  ],
+  "targets": [
+    { "shot": "01-welcome",        "screen": "auth/welcome",          "route": "/(auth)/welcome",              "state": "default",   "flow": "10-auth.yaml" },
+    { "shot": "02-login",          "screen": "auth/login",            "route": "/(auth)/login",                "state": "empty",     "flow": "10-auth.yaml" },
+    { "shot": "03-home",           "screen": "tabs/home",             "route": "/(app)/home",                  "state": "populated", "flow": "20-tabs.yaml" },
+    { "shot": "04-health",         "screen": "tabs/health",           "route": "/(app)/health",                "state": "populated", "flow": "20-tabs.yaml" },
+    { "shot": "05-donate",         "screen": "tabs/donate",           "route": "/(app)/donate",                "state": "populated", "flow": "20-tabs.yaml" },
+    { "shot": "06-community",      "screen": "tabs/community",        "route": "/(app)/community",             "state": "populated", "flow": "20-tabs.yaml" },
+    { "shot": "07-calendar",       "screen": "tabs/calendar",         "route": "/(app)/calendar",              "state": "populated", "flow": "20-tabs.yaml" },
+    { "shot": "08-profile",        "screen": "tabs/profile",          "route": "/(app)/profile",               "state": "populated", "flow": "20-tabs.yaml" },
+    { "shot": "09-booking",        "screen": "booking/1-select-type", "route": "/(app)/booking",               "state": "step-1",    "flow": "30-flows.yaml" },
+    { "shot": "10-sos",            "screen": "sos/emergency",         "route": "/sos",                         "state": "list",      "flow": "30-flows.yaml" },
+    { "shot": "11-laboratory",     "screen": "health/laboratory",     "route": "/(app)/laboratory",            "state": "populated", "flow": "30-flows.yaml" },
+    { "shot": "12-ai-insights",    "screen": "health/insights",       "route": "/(app)/insights",              "state": "populated", "flow": "30-flows.yaml" },
+    { "shot": "13-gamification",   "screen": "community/gamification","route": "/(app)/gamification",          "state": "populated", "flow": "30-flows.yaml" },
+    { "shot": "14-notifications",  "screen": "account/notifications", "route": "/(app)/notifications",         "state": "populated", "flow": "30-flows.yaml" },
+    { "shot": "15-courier-active", "screen": "courier/active",        "route": "/(courier)/active",            "state": "populated", "flow": "40-courier.yaml" }
+  ],
+  "extras": [
+    { "shot": "e1-home-ru",        "screen": "tabs/home",   "route": "/(app)/home",   "state": "locale-ru",     "flow": "50-locales.yaml", "why": "long Russian labels" },
+    { "shot": "e2-home-uz",        "screen": "tabs/home",   "route": "/(app)/home",   "state": "locale-uz",     "flow": "50-locales.yaml", "why": "long Uzbek labels" },
+    { "shot": "e3-health-ru",      "screen": "tabs/health", "route": "/(app)/health", "state": "locale-ru",     "flow": "50-locales.yaml", "why": "long Russian labels in dense rows" },
+    { "shot": "e4-home-error",     "screen": "tabs/home",   "route": "/(app)/home",   "state": "error",         "flow": "60-states.yaml",  "why": "a real unreachable API, not a mocked one" },
+    { "shot": "e5-home-loading",   "screen": "tabs/home",   "route": "/(app)/home",   "state": "loading",       "flow": "60-states.yaml",  "why": "shutter fires before the first response lands" },
+    { "shot": "e6-calendar-empty", "screen": "tabs/calendar","route": "/(app)/calendar","state": "empty",        "flow": "60-states.yaml",  "why": "a month with nothing booked in it" }
+  ],
+  "smallScreen": {
+    "$comment": [
+      "The same physical phone, reconfigured. `wm size` and `wm density` change",
+      "what the framework reports to the app, so the layout really does reflow at",
+      "360dp -- it is not a scaled image of a bigger one. The runner always",
+      "restores the device afterwards, including when a flow fails."
+    ],
+    "width": 720,
+    "height": 1280,
+    "density": 240,
+    "shots": ["03-home", "04-health", "08-profile"]
+  }
+}

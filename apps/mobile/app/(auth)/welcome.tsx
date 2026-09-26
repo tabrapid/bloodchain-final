@@ -4,7 +4,7 @@ import { Linking, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowRight } from 'lucide-react-native';
 import { BrandMark } from '../../src/components/BrandMark';
-import { Button, Stack, Text, space, useDesign } from '../../src/design';
+import { Button, Stack, Text, fonts, space, useDesign } from '../../src/design';
 import { BRAND_NAME, BRAND_TAGLINE } from '../../src/brand';
 import { useTranslation } from '../../src/i18n';
 
@@ -163,7 +163,7 @@ function LegalLink({ url, children }: { url: string | null; children: ReactNode 
 
   if (!url) {
     return (
-      <Text variant="caption" style={{ color: colors.textSecondary, fontWeight: '600' }}>
+      <Text variant="caption" style={{ color: colors.textSecondary, fontFamily: fonts.semibold }}>
         {children}
       </Text>
     );
@@ -174,7 +174,7 @@ function LegalLink({ url, children }: { url: string | null; children: ReactNode 
       variant="caption"
       accessibilityRole="link"
       onPress={() => Linking.openURL(url)}
-      style={{ color: colors.clinical.text, fontWeight: '600', textDecorationLine: 'underline' }}
+      style={{ color: colors.clinical.text, fontFamily: fonts.semibold, textDecorationLine: 'underline' }}
     >
       {children}
     </Text>

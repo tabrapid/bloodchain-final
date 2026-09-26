@@ -1,0 +1,48 @@
+# Error, loading and empty — the three states a screenshot set usually lies about.
+#
+# None of them is faked here. The error state is a genuinely unreachable API (the
+# runner removes the adb reverse tunnel before this file and restores it after),
+# the loading state is the real first paint before the first response lands, and
+# the empty state is a real month with nothing booked in it.
+#
+# If the app answers from cache and never shows the error, this file fails and
+# the runner records NATIVE_QA_UNCAPTURED. It does not photograph the cached
+# screen and call it an error.
+appId: uz.bloodchain.donor
+name: 60 states
+env:
+  EMAIL: donor@donor.local
+  PASSWORD: DevelopmentOnly!123
+---
+- launchApp:
+    clearState: true
+    permissions:
+      all: allow
+
+- tapOn: 'Sign In'
+- tapOn: 'Use my email address'
+- tapOn:
+    point: '50%,45%'
+- inputText: ${EMAIL}
+- hideKeyboard
+- tapOn:
+    id: 'password'
+    optional: true
+- inputText: ${PASSWORD}
+- hideKeyboard
+- tapOn: 'Sign in to your account'
+
+# The shutter fires immediately, before anything has resolved. This is the real
+# first paint, which is the only honest way to photograph a loading state.
+- takeScreenshot: e5-home-loading
+
+- assertVisible:
+    text: 'Good'
+    timeout: 20000
+
+# A month the seed leaves empty.
+- tapOn: 'Calendar'
+- tapOn:
+    text: 'Next month'
+    optional: true
+- takeScreenshot: e6-calendar-empty

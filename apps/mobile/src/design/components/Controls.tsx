@@ -1,5 +1,6 @@
 import { useRef, type ReactNode } from 'react';
 import { Animated, Pressable, Switch, View, type ViewStyle } from 'react-native';
+import { fonts } from '../fonts';
 import { useDesign } from '../useDesign';
 import { hitTarget, icon as iconScale, motion, radius, space } from '../tokens';
 import { Text } from './Text';
@@ -138,7 +139,7 @@ export function SegmentedControl<T extends string>({
             <Text
               variant="label"
               tone={selected ? 'primary' : 'secondary'}
-              style={{ fontWeight: selected ? '600' : '500' }}
+              style={{ fontFamily: selected ? fonts.semibold : fonts.medium }}
               numberOfLines={1}
             >
               {option.label}
@@ -234,7 +235,7 @@ export function Choice({
           }}
         >
           {selected ? (
-            <Text variant="caption" tone="onAccent" style={{ fontWeight: '700' }}>
+            <Text variant="caption" tone="onAccent" style={{ fontFamily: fonts.bold }}>
               ✓
             </Text>
           ) : null}

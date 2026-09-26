@@ -56,13 +56,19 @@ export function Surface({
   const { colors } = useDesign();
   const e = elevationScale[level];
 
-  const shadowless = Platform.OS === 'android' || level === 'flat';
+  // Android gets its lift from tone and, where a shadow has something to fall
+  // on, from real elevation. The hairline stays wherever neither is doing the
+  // work: it is what keeps a flush card's edge crisp on a dark panel.
+  const androidElevation = Platform.OS === 'android' ? e.android : 0;
+  const shadowless = (Platform.OS === 'android' && androidElevation === 0) || level === 'flat';
   const showBorder = bordered ?? shadowless;
 
   const padding = padded === false ? 0 : padded === true ? space.lg : space[padding_(padded)];
 
   const frame: ViewStyle = {
-    backgroundColor: colors.surface,
+    // Tonal elevation: a floating surface is lighter, not just shadowed. On a
+    // dark panel this is the signal a viewer actually perceives.
+    backgroundColor: level === 'floating' ? colors.surfaceRaised : colors.surface,
     borderRadius: radiusScale[corner],
     padding,
     borderWidth: showBorder ? 1 : 0,
@@ -76,6 +82,9 @@ export function Surface({
           shadowOffset: { width: 0, height: e.shadowOffsetY },
         }
       : null),
+    // Android's own property. Only non-zero for `floating`, where the shadow
+    // lands on content rather than on a near-black page and therefore reads.
+    ...(androidElevation > 0 ? { elevation: androidElevation } : null),
   };
 
   if (!onPress) {

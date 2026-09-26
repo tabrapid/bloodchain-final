@@ -1,0 +1,63 @@
+# Russian and Uzbek, switched inside the app rather than on the device.
+#
+# The app carries its own locale setting and does not follow the system one, so
+# `adb shell settings` would change the phone and not the screenshots. Driving
+# the switcher is also the honest test: it is the path a donor actually takes.
+appId: uz.bloodchain.donor
+name: 50 locales
+env:
+  EMAIL: donor@donor.local
+  PASSWORD: DevelopmentOnly!123
+---
+- launchApp:
+    clearState: true
+    permissions:
+      all: allow
+
+- tapOn: 'Sign In'
+- tapOn: 'Use my email address'
+- tapOn:
+    point: '50%,45%'
+- inputText: ${EMAIL}
+- hideKeyboard
+- tapOn:
+    id: 'password'
+    optional: true
+- inputText: ${PASSWORD}
+- hideKeyboard
+- tapOn: 'Sign in to your account'
+- assertVisible:
+    text: 'Good'
+    timeout: 20000
+
+# ---------------------------------------------------------------------- Russian
+- tapOn: 'Profile'
+- tapOn:
+    text: 'Language'
+    optional: true
+- tapOn:
+    text: 'Русский'
+    optional: true
+- tapOn:
+    text: 'Home'
+    optional: true
+- tapOn:
+    point: '8%,96%'
+- takeScreenshot: e1-home-ru
+
+- tapOn:
+    point: '25%,96%'
+- takeScreenshot: e3-health-ru
+
+# ------------------------------------------------------------------------ Uzbek
+- tapOn:
+    point: '92%,96%'
+- tapOn:
+    text: 'Til'
+    optional: true
+- tapOn:
+    text: "O'zbek"
+    optional: true
+- tapOn:
+    point: '8%,96%'
+- takeScreenshot: e2-home-uz

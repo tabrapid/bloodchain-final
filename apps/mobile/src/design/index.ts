@@ -69,6 +69,8 @@ export type {
 } from './components/Controls';
 
 export { SectionHeader, ListRow, Divider, ListGroup } from './components/List';
+export { Section, Sections } from './components/Section';
+export type { SectionProps, SectionsProps, SectionGap, SectionRhythm } from './components/Section';
 export type { SectionHeaderProps, ListRowProps } from './components/List';
 
 export { Sparkline } from './components/Chart';
@@ -88,3 +90,6 @@ export type { FlowStepProps } from './components/Flow';
 
 export { ScreenHeader, TabBar } from './components/Chrome';
 export type { ScreenHeaderProps } from './components/Chrome';
+
+/** The typeface. Screens needing a face for a one-off use `fonts.semibold`, never a numeric weight. */
+export { fonts, useAppFonts, type FontFamily } from './fonts';

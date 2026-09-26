@@ -40,6 +40,8 @@
  * mechanism: colour is scarce, so it means something when it appears.
  */
 
+import { fonts } from './fonts';
+
 /* ------------------------------------------------------------------ palette */
 
 /**
@@ -50,15 +52,15 @@
  */
 const ink = {
   /** App background. Near-black, not black: pure black makes every border shout. */
-  950: '#0A0A12',
+  950: '#07070E',
   /** Sunken wells — inputs, inset lists, the area behind a scroller. */
-  925: '#0F0F1A',
+  925: '#0E0E18',
   /** The default surface: cards, sheets, rows. */
-  900: '#15151F',
+  900: '#191926',
   /** A surface sitting on another surface. */
-  850: '#1C1C2A',
+  850: '#222232',
   /** Pressed state of a surface, and the highest level in the system. */
-  800: '#242435',
+  800: '#2A2A3C',
   /** Hairline separators inside a surface. */
   750: '#2B2B3E',
   /** Visible borders — inputs at rest, outlined buttons. */
@@ -66,8 +68,12 @@ const ink = {
   /** Disabled fills and tracks. */
   600: '#45455C',
   /** Tertiary text: timestamps, footnotes, units. Measured, not picked: this is
-   *  the lightest value that still clears 4.5:1 on the lightest dark surface. */
-  500: '#8A8AA6',
+   *  the DARKEST value that still clears 4.5:1 on the lightest dark surface.
+   *  It moved with the surfaces in V3 -- lifting `900` and `800` to give the
+   *  page real tonal separation cost the old value its margin, and a token that
+   *  used to be compliant and quietly stopped being so is the failure mode the
+   *  contrast suite exists to catch. It did. */
+  500: '#9A9AB4',
   /** Secondary text: everything supporting, and most body copy on a card. */
   400: '#A3A3BC',
   /** Primary text. Not pure white — #FFF on near-black vibrates. */
@@ -232,6 +238,11 @@ export const space = {
   xl: 24,
   /** Between sections of a screen. */
   xxl: 32,
+  /**
+   * A genuine break between two halves of a screen. Rare on purpose: V2 spaced
+   * everything at 24 and read as a list because a uniform gap groups nothing.
+   */
+  xxxl: 48,
 } as const;
 
 export const radius = {
@@ -256,13 +267,38 @@ export const radius = {
  * surface degrades into a hard grey rectangle inside the card -- a V1 finding
  * that cost four rounds of bug reports. Not worth re-earning.
  */
+/**
+ * Depth, and why Android needed a different answer.
+ *
+ * V2 declared `android: 0` at every level and gated its shadows behind
+ * `Platform.OS === 'ios'`, so on a phone nothing had any depth at all: surfaces
+ * were separated by a 4% background step and a hairline, which on an OLED panel
+ * at normal brightness is close to invisible. That is the texture the Product
+ * Owner described as weak, and it is not a taste question -- there was nothing
+ * there to see.
+ *
+ * The fix is NOT to switch Android shadows on and call it done. A black shadow
+ * cast onto a near-black page renders almost nothing; that is the standing
+ * problem with elevation in any dark theme, and it is why Material 3 answers it
+ * with *tonal* elevation instead. So:
+ *
+ *   - Tone does the work. `ink` now steps 07 → 19 → 22 → 2C rather than
+ *     0A → 15 → 1C → 24, which roughly doubles the page-to-surface delta and is
+ *     visible on a real panel rather than only in a colour picker.
+ *   - `android` elevation is spent where a shadow actually falls on something:
+ *     a sheet or the floating tab bar, over content. A card sitting directly on
+ *     the page gets 0, because its shadow would land on black.
+ *   - iOS keeps real shadows at every level; it composites them well and the
+ *     platform's own surfaces look wrong without them.
+ */
 export const elevation = {
-  /** Flush with the page. Lists, inline groups. */
+  /** Flush with the page. Lists, inline groups. Tone and a hairline only. */
   flat: { shadowOpacity: 0, shadowRadius: 0, shadowOffsetY: 0, android: 0 },
-  /** A card. The common case. */
-  raised: { shadowOpacity: 0.18, shadowRadius: 12, shadowOffsetY: 4, android: 0 },
-  /** Sheets, menus, the tab bar. */
-  floating: { shadowOpacity: 0.28, shadowRadius: 24, shadowOffsetY: 10, android: 0 },
+  /** A card. The common case. Tonal on Android; a real shadow on iOS. */
+  raised: { shadowOpacity: 0.20, shadowRadius: 14, shadowOffsetY: 4, android: 0 },
+  /** Sheets, menus, the tab bar — the things that sit OVER content, where a
+   *  shadow has something to fall on and reads as lift on both platforms. */
+  floating: { shadowOpacity: 0.34, shadowRadius: 28, shadowOffsetY: 12, android: 12 },
 } as const;
 
 export type ElevationName = keyof typeof elevation;
@@ -278,21 +314,44 @@ export type ElevationName = keyof typeof elevation;
  * shimmer as it updates — which matters here, because the columns are
  * laboratory results.
  */
+/**
+ * The scale.
+ *
+ * V2 ran 34/26/20/17/15/13/12/11 and separated most of its levels by two
+ * points plus a weight. Two points is not a difference anyone perceives, so the
+ * weight was doing all the work -- and on Android, with no font loaded, the
+ * weight was not reliably doing anything. V3 opens the steps out and makes every
+ * adjacent pair differ in BOTH size and face, so hierarchy survives a renderer
+ * that disagrees about weight.
+ *
+ *   display 40 bold      h1 30 bold      h2 22 semibold      h3 18 semibold
+ *   body 15 regular      label 13 medium      caption 11 regular
+ *
+ * `fontWeight` appears nowhere. The face carries the weight (see `fonts.ts`);
+ * asking for both makes Android synthesise on top of a real face.
+ *
+ * Line heights are explicit because `includeFontPadding: false` is set on every
+ * Text -- Android's extra glyph padding is what makes RN text sit slightly high
+ * in its box, and turning it off requires taking responsibility for the metrics.
+ * Inter has a tall x-height, so these are a touch looser than the same numbers
+ * would want in Roboto.
+ */
 export const type = {
-  display: { fontSize: 34, lineHeight: 40, fontWeight: '700', letterSpacing: -0.6 },
-  h1: { fontSize: 26, lineHeight: 32, fontWeight: '700', letterSpacing: -0.4 },
-  h2: { fontSize: 20, lineHeight: 26, fontWeight: '600', letterSpacing: -0.2 },
-  h3: { fontSize: 17, lineHeight: 23, fontWeight: '600', letterSpacing: -0.1 },
-  body: { fontSize: 15, lineHeight: 22, fontWeight: '400', letterSpacing: 0 },
-  bodyStrong: { fontSize: 15, lineHeight: 22, fontWeight: '600', letterSpacing: 0 },
-  label: { fontSize: 13, lineHeight: 18, fontWeight: '500', letterSpacing: 0 },
-  caption: { fontSize: 12, lineHeight: 16, fontWeight: '400', letterSpacing: 0 },
+  display: { fontSize: 40, lineHeight: 46, fontFamily: fonts.bold, letterSpacing: -0.8 },
+  h1: { fontSize: 30, lineHeight: 36, fontFamily: fonts.bold, letterSpacing: -0.5 },
+  h2: { fontSize: 22, lineHeight: 28, fontFamily: fonts.semibold, letterSpacing: -0.3 },
+  h3: { fontSize: 18, lineHeight: 24, fontFamily: fonts.semibold, letterSpacing: -0.1 },
+  body: { fontSize: 15, lineHeight: 22, fontFamily: fonts.regular, letterSpacing: 0 },
+  /** Emphasis inside body copy. Same size on purpose: this is not a level. */
+  bodyStrong: { fontSize: 15, lineHeight: 22, fontFamily: fonts.medium, letterSpacing: 0 },
+  label: { fontSize: 13, lineHeight: 18, fontFamily: fonts.medium, letterSpacing: 0 },
+  caption: { fontSize: 11, lineHeight: 15, fontFamily: fonts.regular, letterSpacing: 0.1 },
   /** Section headers. Uppercase is applied by the component, not by the caller. */
-  overline: { fontSize: 11, lineHeight: 14, fontWeight: '600', letterSpacing: 0.8 },
+  overline: { fontSize: 11, lineHeight: 14, fontFamily: fonts.semibold, letterSpacing: 0.9 },
   /** A single prominent value: a lab result, a count, a countdown. */
-  value: { fontSize: 28, lineHeight: 32, fontWeight: '700', letterSpacing: -0.5 },
+  value: { fontSize: 28, lineHeight: 32, fontFamily: fonts.bold, letterSpacing: -0.5 },
   /** The blood type, and nothing else. */
-  hero: { fontSize: 48, lineHeight: 52, fontWeight: '700', letterSpacing: -1.5 },
+  hero: { fontSize: 48, lineHeight: 52, fontFamily: fonts.bold, letterSpacing: -1.5 },
 } as const;
 
 export type TypeVariant = keyof typeof type;

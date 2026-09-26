@@ -1,0 +1,18 @@
+# Signed out. Fresh install state, so the welcome screen is the first thing drawn.
+#
+# `clearState` is what makes this deterministic: a second run must photograph a
+# first run, not a session left behind by the previous one.
+appId: uz.bloodchain.donor
+name: 10 auth
+---
+- launchApp:
+    clearState: true
+    permissions:
+      all: allow
+
+- assertVisible: 'A stronger tomorrow, together.'
+- takeScreenshot: 01-welcome
+
+- tapOn: 'Sign In'
+- assertVisible: 'Welcome back'
+- takeScreenshot: 02-login
