@@ -754,7 +754,7 @@ policy (403 on CONNECT), while Gradle itself, `maven.google.com`,
 `plugins.gradle.org` and Maven Central are all reachable. The blockers are one
 per row in `docs/mobile-release-blockers.md`.
 
-### 19.7 CI could not run on the last four commits
+### 19.7 CI could not run on the last four commits (resolved)
 
 The last CI run that executed is **#153** on `fe2cb23b`
 (https://github.com/tabrapid/bloodchain-final/actions/runs/36171148293) —
@@ -789,6 +789,16 @@ locally instead, on the final tree, and this is what was run:
 The one thing that cannot be reproduced here is expo-doctor's two network
 checks (`api.expo.dev` is refused by this environment). Those ran green in #153,
 on the same `package.json`.
+
+**Resolved the next day.** CI run
+[#161](https://github.com/tabrapid/bloodchain-final/actions/runs/36221261362) on
+`56ec532a` allocated runners normally and passed all eight jobs, with no change
+to the workflow beyond what S12 added. So the cause was an account- or
+platform-side condition that cleared on its own, not anything in this
+repository, and the S11.1 commits that never got a run are covered by it
+transitively — #161 builds the tree they produced. The paragraph above is kept
+because the failure was real for half an hour and the diagnosis in it is the one
+to reach for if it recurs.
 
 ---
 
@@ -907,7 +917,16 @@ Scoped to the mobile package on purpose: a root `engines` field is enforced by
 pnpm across all eleven workspaces, which is the monorepo-wide change this sprint
 is not (§12, and the same reason TypeScript stays at 5.9.3).
 
-### 20.9 expo-doctor, and what "green" means
+### 20.9 CI
+
+Run [#161](https://github.com/tabrapid/bloodchain-final/actions/runs/36221261362)
+on `56ec532a` is green across all eight jobs: lint and typecheck, unit tests,
+API e2e, the verification scripts (each run twice with no reset between),
+migration rehearsal, e2e isolation, both production bundles, prebuild, and the
+manifest check. The `verify:android-release` gate in it is the strengthened one
+described in §20.6.
+
+### 20.10 expo-doctor, and what "green" means
 
 Two of its checks reach `api.expo.dev` and `reactnative.directory`. This
 environment's egress policy refuses both (403), so from here they are
