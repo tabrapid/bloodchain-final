@@ -23,6 +23,7 @@ import {
   useUpdateNotificationPreferences,
 } from '../../src/hooks/useNotifications';
 import { registerForPushNotificationsAsync } from '../../src/notifications/push';
+import { pushConfig } from '../../src/notifications/push-config';
 import type { NotificationPreferences } from '../../src/api/notifications';
 import { useTranslation } from '../../src/i18n';
 
@@ -142,6 +143,27 @@ export default function NotificationSettings() {
     >
       <Stack gap="xl">
         {error ? <Banner tone="critical" title={error} /> : null}
+
+        {/*
+          The build itself, before anything about this phone.
+
+          Every switch below is real and is honoured by the delivery service --
+          but only if the build can receive a notification at all, and this one
+          cannot: there is no Expo project for this product yet. The screen used
+          to show six enabled toggles and a green "allowed" over a build where
+          nothing could ever arrive, which is the app telling a donor they will
+          be alerted to an emergency when they will not.
+
+          A development build is not nagged about it: nobody expects push on a
+          laptop.
+        */}
+        {!pushConfig.configured && !pushConfig.expected ? (
+          <Banner
+            tone="warning"
+            title={t('notificationSettings.unavailableTitle')}
+            description={t('notificationSettings.unavailableBody')}
+          />
+        ) : null}
 
         {/* ------------------------------------------- the phone's own switch */}
         {device !== 'unknown' && device !== 'granted' ? (

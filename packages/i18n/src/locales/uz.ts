@@ -52,6 +52,7 @@ export const uz: Catalog = {
     a11yGoBack: 'Orqaga qaytish',
     a11yCloseBooking: 'Band qilishni yopish',
     noLocationData: 'Joylashuv ma’lumoti hali yo‘q',
+    mapUnavailable: 'Bu yig‘mada xarita mavjud emas. Yuqoridagi manzillar o‘z kuchida qoladi.',
   },
 
   apiErrors: {
@@ -2060,6 +2061,11 @@ export const uz: Catalog = {
   },
   notificationSettings: {
     deviceSection: 'Ushbu qurilmada',
+    unavailableTitle: 'Bu ilova hozircha bildirishnoma ola olmaydi',
+    unavailableBody:
+      'Bu yig‘ma uchun push-bildirishnomalar sozlanmagan, shuning uchun quyidagilarning hech ' +
+      'biri sizga yetib bormaydi — shoshilinch so‘rovlar ham. Tanlovlaringiz saqlanadi va ' +
+      'sozlangach kuchga kiradi.',
     notAllowedYet: 'Telefoningiz hozircha Bloodchain bildirishnomalarini ko‘rsatmayapti.',
     title: 'Bildirishnoma sozlamalari',
     subtitle: 'Ilova sizga nima haqida xabar berishini tanlang',

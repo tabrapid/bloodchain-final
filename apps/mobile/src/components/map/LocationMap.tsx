@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
+import Constants from 'expo-constants';
 import MapView, { Marker, PROVIDER_DEFAULT, type Region } from 'react-native-maps';
-import { Text, radius, useDesign } from '../../design';
+import { Text, radius, space, useDesign } from '../../design';
 import { useTranslation } from '../../i18n';
 
 // Deliberately NOT re-exported through '../index' or the design system's
@@ -84,7 +85,23 @@ export function LocationMap({ markers, height = 220 }: LocationMapProps) {
     );
   }, [markers]);
 
-  if (markers.length === 0) {
+  /**
+   * A map with no key is not a map.
+   *
+   * Google Maps on Android needs an API key in the manifest, and there is none
+   * for this product yet (EXTERNAL_BLOCKER_ANDROID_MAPS_KEY). Without it the
+   * tiles never load and `MapView` renders a grey rectangle -- which on the SOS
+   * screen, during a live emergency, is indistinguishable from a map that is
+   * still loading. A donor waits for something that is never going to arrive.
+   *
+   * iOS is unaffected: PROVIDER_DEFAULT is Apple Maps, which needs no key.
+   */
+  const androidMapsUnconfigured =
+    Platform.OS === 'android' &&
+    (Constants.expoConfig?.extra as { androidMapsConfigured?: boolean } | undefined)
+      ?.androidMapsConfigured === false;
+
+  if (markers.length === 0 || androidMapsUnconfigured) {
     return (
       <View
         style={{
@@ -95,10 +112,11 @@ export function LocationMap({ markers, height = 220 }: LocationMapProps) {
           backgroundColor: colors.surface,
           alignItems: 'center',
           justifyContent: 'center',
+          paddingHorizontal: space.lg,
         }}
       >
-        <Text variant="caption" tone="tertiary">
-          {t('common.noLocationData')}
+        <Text variant="caption" tone="tertiary" align="center">
+          {androidMapsUnconfigured ? t('common.mapUnavailable') : t('common.noLocationData')}
         </Text>
       </View>
     );

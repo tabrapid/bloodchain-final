@@ -43,7 +43,14 @@ export default [
     // styles, and does not check hook dependency arrays -- both classes of
     // problem have shipped here before, so they are errors rather than
     // warnings and gate the build.
-    files: ['apps/mobile/app/**/*.{ts,tsx}', 'apps/mobile/src/**/*.{ts,tsx}'],
+    // `app.config.ts` is in here too: it is the file that decides what a
+    // production build is configured with, and it was the only TypeScript in
+    // the app that nothing linted.
+    files: [
+      'apps/mobile/app/**/*.{ts,tsx}',
+      'apps/mobile/src/**/*.{ts,tsx}',
+      'apps/mobile/app.config.ts',
+    ],
     languageOptions: {
       parser: tsParser,
       parserOptions: {

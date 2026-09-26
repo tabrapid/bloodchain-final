@@ -23,7 +23,12 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  NODE_VERSION: '22'
+  # Pinned rather than floating on 22.x. react-native 0.86.3 declares a floor of
+  # ^22.13.0 and setup-node's '22' resolves to whatever the runner image has
+  # cached, which may sit below it -- a version skew nothing in the repo would
+  # have caught. This is the version eas.json builds with and the version the
+  # suite is verified on.
+  NODE_VERSION: '22.22.2'
   # Named so the seed's own guard recognises it as disposable.
   #
   # `prisma/seed.ts` TRUNCATEs every table it owns, so it refuses to run unless

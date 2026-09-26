@@ -13,6 +13,9 @@
     },
     "development": {
       "extends": "base",
+      "env": {
+        "APP_ENV": "development"
+      },
       "developmentClient": true,
       "distribution": "internal",
       "channel": "development",
@@ -27,6 +30,9 @@
     },
     "preview": {
       "extends": "base",
+      "env": {
+        "APP_ENV": "preview"
+      },
       "distribution": "internal",
       "channel": "preview",
       "android": {
@@ -38,6 +44,9 @@
     },
     "production": {
       "extends": "base",
+      "env": {
+        "APP_ENV": "production"
+      },
       "distribution": "store",
       "channel": "production",
       "android": {

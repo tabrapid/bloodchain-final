@@ -55,6 +55,7 @@ export const en: Catalog = {
     a11yGoBack: 'Go back',
     a11yCloseBooking: 'Close booking',
     noLocationData: 'No location data yet',
+    mapUnavailable: 'The map is not available in this build. The addresses above are still correct.',
   },
 
   /**
@@ -2134,6 +2135,10 @@ export const en: Catalog = {
   },
   notificationSettings: {
     deviceSection: 'On this device',
+    unavailableTitle: 'This app cannot receive notifications yet',
+    unavailableBody:
+      'Push notifications are not set up for this build, so nothing below will reach you — ' +
+      'including emergency requests. Your choices are saved and will apply once it is.',
     notAllowedYet: 'Your phone is not showing Bloodchain notifications yet.',
     title: 'Notification settings',
     subtitle: 'Choose what this app tells you about',

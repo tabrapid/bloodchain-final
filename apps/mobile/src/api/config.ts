@@ -1,5 +1,6 @@
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
+import { checkApiUrl, isAppEnvironment, type AppEnvironment } from '../config/app-config';
 
 /** The port the API listens on (see the API's `PORT`, default 3001). */
 const API_PORT = 3001;
@@ -15,8 +16,12 @@ const API_PORT = 3001;
  * login screen says the server took too long. Which network the laptop happens
  * to be on (tethered to a phone one day, Wi-Fi the next) changes its address,
  * so any address written down by hand goes stale.
+ *
+ * All of which is true of a developer's machine and of nowhere else. A build
+ * that leaves this laptop has no Metro to follow, which is why this is now
+ * reached only in development.
  */
-function metroHost(): string | undefined {
+function metroHostUri(): string | undefined {
   const hostUri =
     Constants.expoConfig?.hostUri ??
     (Constants.expoGoConfig as { debuggerHost?: string } | undefined)?.debuggerHost ??
@@ -32,13 +37,10 @@ function metroHost(): string | undefined {
  * the Metro port over adb, so the bundle *does* arrive from `localhost` --
  * which means the host we just derived is right for Metro and wrong for
  * everything else, this API included.
- *
- * The alternative is `adb reverse tcp:3001 tcp:3001` before every session.
- * This needs nothing typed.
  */
-function resolveHost(host: string): string {
+function resolveHost(host: string, platform: string): string {
   const isLoopback = host === 'localhost' || host === '127.0.0.1';
-  return isLoopback && Platform.OS === 'android' ? '10.0.2.2' : host;
+  return isLoopback && platform === 'android' ? '10.0.2.2' : host;
 }
 
 /**
@@ -54,22 +56,78 @@ function resolveHost(host: string): string {
  */
 const TUNNEL_HOST = /\.(exp\.direct|ngrok\.io|ngrok-free\.app|trycloudflare\.com|loca\.lt)$/i;
 
-function defaultBaseUrl(): string {
-  const host = metroHost();
-  return `http://${resolveHost(host ?? 'localhost')}:${API_PORT}`;
+export type ApiResolution =
+  | { readonly ok: true; readonly candidates: readonly string[]; readonly warning?: string }
+  | { readonly ok: false; readonly error: string };
+
+/**
+ * Where this build is allowed to send requests.
+ *
+ * A pure function of its inputs, which is the only way the production branch
+ * can be tested at all: `EXPO_PUBLIC_*` names are substituted into the bundle
+ * by babel when it is built, not read at runtime, so no test can set one.
+ *
+ * The three environments are genuinely different problems, and treating them
+ * as one was the bug. Development has to find an API that moves around.
+ * Preview and production have to be told, once, and refuse everything else.
+ */
+export function resolveApiConfig(input: {
+  readonly environment: AppEnvironment;
+  readonly explicitUrl?: string;
+  readonly metroHost?: string;
+  readonly platform: string;
+}): ApiResolution {
+  const { environment, explicitUrl, metroHost, platform } = input;
+
+  if (environment !== 'development') {
+    const verdict = checkApiUrl(explicitUrl, environment);
+    if (!verdict.ok) return { ok: false, error: verdict.reason };
+    // Exactly one address, so the probe below never runs and there is nothing
+    // to fall back to. That is the whole point of fail-closed: a build that
+    // leaves this machine talks to the address it was given, or to nothing.
+    return { ok: true, candidates: [verdict.url] };
+  }
+
+  if (explicitUrl?.trim()) {
+    const verdict = checkApiUrl(explicitUrl, environment);
+    if (verdict.ok) return { ok: true, candidates: [verdict.url] };
+    // Development never fails closed -- it says what is wrong and carries on
+    // deriving, because a typo in a developer's shell should not brick the app
+    // they are trying to debug.
+    return {
+      ok: true,
+      candidates: derive(metroHost, platform),
+      warning: `EXPO_PUBLIC_API_URL was ignored: ${verdict.reason}`,
+    };
+  }
+
+  return { ok: true, candidates: derive(metroHost, platform), warning: diagnose(metroHost) };
 }
 
 /**
- * Why the derived address is likely to fail, when it is. Empty when the address
- * looks reachable. The API client appends this to a timeout so the message
- * names the actual problem rather than blaming the connection.
+ * Every address worth trying, best guess first.
+ *
+ * One derived address is right often enough to look correct and wrong often
+ * enough to lose an afternoon: the emulator needs 10.0.2.2, the simulator needs
+ * localhost, a phone needs the laptop's LAN address, and which of those applies
+ * cannot be known from inside the bundle -- `Platform.OS` says android for both
+ * an emulator and a phone. So offer all of them and let the one that answers
+ * win.
  */
-function diagnoseHost(): string | undefined {
-  if (Constants.expoConfig?.extra?.apiUrl || process.env.EXPO_PUBLIC_API_URL) {
-    return undefined;
-  }
+function derive(host: string | undefined, platform: string): string[] {
+  return Array.from(
+    new Set(
+      [
+        `http://${resolveHost(host ?? 'localhost', platform)}:${API_PORT}`,
+        platform === 'android' ? `http://10.0.2.2:${API_PORT}` : undefined,
+        `http://localhost:${API_PORT}`,
+      ].filter((url): url is string => url !== undefined),
+    ),
+  );
+}
 
-  const host = metroHost();
+/** Why the derived address is likely to fail, when it is. */
+function diagnose(host: string | undefined): string | undefined {
   if (!host) {
     return 'The app could not tell which machine served it, so it fell back to localhost.';
   }
@@ -85,54 +143,63 @@ function diagnoseHost(): string | undefined {
 }
 
 /**
- * Where the app sends its requests. An explicit setting always wins -- set
- * `EXPO_PUBLIC_API_URL`, or `extra.apiUrl` in app.json, when the API is not on
- * the machine running Metro (a staging server, a tunnel, a phone on a
- * different network). Otherwise it follows Metro.
+ * Which environment this build is.
  *
- * `EXPO_PUBLIC_*` names are substituted into the bundle when it is built, not
- * read at runtime: changing one means restarting `expo start`, and a value set
- * only in the shell that launched the app will not reach it.
+ * Written into `extra` by `app.config.ts` at build time. A bundle with nothing
+ * there was built outside that layer -- which today means a local `expo export`
+ * or the visual-QA harness -- and those are development by definition. It is
+ * deliberately not inferred from `__DEV__`: a release web export is not a
+ * production build, and treating it as one would refuse to render the only
+ * screenshots this app has.
  */
-const explicitBaseUrl =
-  (Constants.expoConfig?.extra?.apiUrl as string | undefined) ?? process.env.EXPO_PUBLIC_API_URL;
+const environment: AppEnvironment = (() => {
+  const declared = (Constants.expoConfig?.extra as { appEnv?: string } | undefined)?.appEnv;
+  return isAppEnvironment(declared) ? declared : 'development';
+})();
 
 /**
- * Every address worth trying, best guess first.
- *
- * One derived address is right often enough to look correct and wrong often
- * enough to lose an afternoon: the emulator needs 10.0.2.2, the simulator needs
- * localhost, a phone needs the laptop's LAN address, and which of those applies
- * cannot be known from inside the bundle -- `Platform.OS` says android for both
- * an emulator and a phone. So offer all of them and let the one that answers
- * win. An explicitly configured address skips this entirely: someone who said
- * where the API is should not be second-guessed.
+ * An explicit setting always wins. `extra.apiUrl` is what `app.config.ts`
+ * baked in; `EXPO_PUBLIC_API_URL` is the same value inlined by babel, and is
+ * what a bare `expo start`/`expo export` uses when no config layer ran.
  */
-export const apiCandidates: string[] = explicitBaseUrl
-  ? [explicitBaseUrl]
-  : Array.from(
-      new Set(
-        [
-          defaultBaseUrl(),
-          Platform.OS === 'android' ? `http://10.0.2.2:${API_PORT}` : undefined,
-          `http://localhost:${API_PORT}`,
-        ].filter((url): url is string => url !== undefined),
-      ),
-    );
+const explicitBaseUrl =
+  ((Constants.expoConfig?.extra as { apiUrl?: string } | undefined)?.apiUrl) ??
+  process.env.EXPO_PUBLIC_API_URL;
+
+const resolution = resolveApiConfig({
+  environment,
+  explicitUrl: explicitBaseUrl,
+  metroHost: metroHostUri(),
+  platform: Platform.OS,
+});
+
+export const apiEnvironment = environment;
+
+/**
+ * Set when this build has no address it is allowed to use.
+ *
+ * Read by the client, which refuses to send anything while it is set, and by
+ * the sign-in screen, which says the build is misconfigured rather than
+ * blaming the donor's connection. It is a value rather than a thrown error on
+ * purpose: this module is imported at module scope by screens and by four
+ * test files, and throwing here would be a white screen before any UI exists.
+ */
+export const apiConfigError: string | undefined = resolution.ok ? undefined : resolution.error;
+
+export const apiCandidates: string[] = resolution.ok ? [...resolution.candidates] : [];
 
 /** The best guess, used until a probe finds one that actually answers. */
-export const apiBaseUrl = apiCandidates[0]!;
+export const apiBaseUrl = apiCandidates[0] ?? '';
 
 export const apiBasePath = '/api/v1';
 
 /** Set when the derived address is unlikely to work, explaining why. */
-export const apiHostWarning = diagnoseHost();
+export const apiHostWarning = resolution.ok ? resolution.warning : undefined;
 
 // One line, once, so the address in use is visible instead of guessed at when
 // a request fails.
 if (__DEV__) {
-  console.log(`[api] trying ${apiCandidates.join(', ')}`);
-  if (apiHostWarning) {
-    console.warn(`[api] ${apiHostWarning}`);
-  }
+  if (apiConfigError) console.error(`[api] ${apiConfigError}`);
+  else console.log(`[api] ${environment}: trying ${apiCandidates.join(', ')}`);
+  if (apiHostWarning) console.warn(`[api] ${apiHostWarning}`);
 }

@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Bloodchain",
-    "slug": "donor",
+    "slug": "bloodchain",
     "scheme": "donor",
     "version": "0.1.0",
     "orientation": "portrait",
@@ -12,7 +12,8 @@
       "blockedPermissions": [
         "android.permission.SYSTEM_ALERT_WINDOW",
         "android.permission.READ_EXTERNAL_STORAGE",
-        "android.permission.WRITE_EXTERNAL_STORAGE"
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.ACCESS_BACKGROUND_LOCATION"
       ]
     },
     "ios": {
@@ -31,7 +32,7 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Bloodchain uses your location while you are responding to an emergency request, so the hospital can see you are on the way. It is also used, when you allow it, to show which donation centres are nearest to you.",
+          "locationWhenInUsePermission": "Bloodchain uses your location while you use the app to show which donation centres are nearest to you and, if you choose, to save a home area so nearby emergency requests can reach you. When you accept an emergency request or carry a delivery, your location is shared with the authorised hospital staff handling it, for that journey only.",
           "locationAlwaysAndWhenInUsePermission": false,
           "locationAlwaysPermission": false,
           "motionUsagePermission": false

@@ -6,7 +6,7 @@ import {
   getRefreshToken,
   setAccessToken,
 } from '../auth/storage';
-import { apiBaseUrl, apiBasePath, apiCandidates, apiHostWarning } from './config';
+import { apiBaseUrl, apiBasePath, apiCandidates, apiConfigError, apiHostWarning } from './config';
 import { useAuthStore } from '../stores/auth.store';
 
 export interface ApiError {
@@ -73,6 +73,25 @@ let resolving: Promise<string> | undefined;
  * network mid-session needs a reload either way.
  */
 async function resolveBaseUrl(): Promise<string> {
+  // Fail closed.
+  //
+  // A preview or production build that was not given a valid API address has
+  // nowhere legitimate to send this, and the old behaviour -- derive one from
+  // whatever served the bundle, fall back to localhost, then report a timeout
+  // as a connection problem -- is how a store build would have shipped talking
+  // to the donor's own phone. Nothing is sent, and the error says what is
+  // actually wrong.
+  if (apiConfigError) {
+    throw new ApiRequestError({
+      statusCode: 0,
+      code: 'API_NOT_CONFIGURED',
+      // Short and true for whoever is holding the phone; the diagnosis rides
+      // along in `details` and is printed once at startup in development.
+      message: 'This build of the app has no server to talk to, so it cannot sign in or load data.',
+      details: apiConfigError,
+    });
+  }
+
   if (resolvedBaseUrl) return resolvedBaseUrl;
   if (apiCandidates.length === 1) {
     resolvedBaseUrl = apiCandidates[0]!;

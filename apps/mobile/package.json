@@ -2,6 +2,9 @@
   "name": "@bloodchain/mobile",
   "private": true,
   "version": "0.1.0",
+  "engines": {
+    "node": "^20.19.4 || ^22.13.0 || ^24.3.0 || >= 25.0.0"
+  },
   "main": "expo-router/entry",
   "expo": {
     "install": {
@@ -21,7 +24,7 @@
     "export": "expo export",
     "doctor": "expo-doctor",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint \"app/**/*.{ts,tsx}\" \"src/**/*.{ts,tsx}\"",
+    "lint": "eslint \"app/**/*.{ts,tsx}\" \"src/**/*.{ts,tsx}\" app.config.ts",
     "test": "jest"
   },
   "dependencies": {

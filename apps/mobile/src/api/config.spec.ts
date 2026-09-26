@@ -14,6 +14,8 @@ function load(opts: {
   hostUri?: string;
   extraApiUrl?: string;
   envApiUrl?: string;
+  /** What `app.config.ts` baked in. Absent means a bundle built outside it. */
+  appEnv?: 'development' | 'preview' | 'production';
 }) {
   let mod: typeof import('./config');
   // Reset immediately before re-mocking, not only in `afterEach`.
@@ -31,7 +33,13 @@ function load(opts: {
       default: {
         expoConfig: {
           hostUri: opts.hostUri,
-          extra: opts.extraApiUrl ? { apiUrl: opts.extraApiUrl } : undefined,
+          extra:
+            opts.extraApiUrl || opts.appEnv
+              ? {
+                  ...(opts.extraApiUrl ? { apiUrl: opts.extraApiUrl } : {}),
+                  ...(opts.appEnv ? { appEnv: opts.appEnv } : {}),
+                }
+              : undefined,
         },
       },
     }));
@@ -133,5 +141,82 @@ describe('apiHostWarning', () => {
   it('explains a missing Metro host rather than silently using localhost', () => {
     const { apiHostWarning } = load({ hostUri: undefined });
     expect(apiHostWarning).toMatch(/could not tell which machine/i);
+  });
+});
+
+/**
+ * The half that did not exist.
+ *
+ * Every case above is a development build finding an API that moves around,
+ * and that was the whole file. A release build has the opposite problem: it
+ * must talk to the address it was given and to nothing else, and the old
+ * module would happily hand it `http://localhost:3001` -- the donor's own
+ * phone -- and then report the resulting timeout as a connection problem.
+ */
+describe('a build that leaves this machine', () => {
+  it('uses the address it was built with', () => {
+    const mod = load({ appEnv: 'production', extraApiUrl: 'https://api.bloodchain.uz' });
+    expect(mod.apiConfigError).toBeUndefined();
+    expect(mod.apiBaseUrl).toBe('https://api.bloodchain.uz');
+  });
+
+  // One candidate, so the probe in the client never runs and there is nothing
+  // to fall back to when it fails.
+  it('offers exactly one address, never a list to guess from', () => {
+    expect(load({ appEnv: 'production', extraApiUrl: 'https://api.bloodchain.uz' }).apiCandidates)
+      .toEqual(['https://api.bloodchain.uz']);
+  });
+
+  it('fails closed when it was given no address at all', () => {
+    const mod = load({ appEnv: 'production', hostUri: '192.168.1.14:8081' });
+    expect(mod.apiConfigError).toMatch(/must be given its API address explicitly/);
+    expect(mod.apiCandidates).toEqual([]);
+    expect(mod.apiBaseUrl).toBe('');
+  });
+
+  it('does not fall back to Metro, or to localhost, or to anything', () => {
+    // The Metro host is present and would have been derived from before.
+    const mod = load({ appEnv: 'production', hostUri: '192.168.1.14:8081', platform: 'android' });
+    expect(mod.apiCandidates).toEqual([]);
+    expect(JSON.stringify(mod.apiCandidates)).not.toContain('192.168.1.14');
+    expect(JSON.stringify(mod.apiCandidates)).not.toContain('localhost');
+    expect(JSON.stringify(mod.apiCandidates)).not.toContain('10.0.2.2');
+  });
+
+  it.each([
+    ['cleartext http', 'http://api.bloodchain.uz'],
+    ['localhost', 'https://localhost:3001'],
+    ['loopback', 'https://127.0.0.1:3001'],
+    ['the emulator alias', 'https://10.0.2.2:3001'],
+  ])('refuses %s in production', (_label, url) => {
+    expect(load({ appEnv: 'production', extraApiUrl: url }).apiConfigError).toBeDefined();
+  });
+
+  it('allows a cleartext staging host in preview but still demands one', () => {
+    expect(load({ appEnv: 'preview', extraApiUrl: 'http://staging.internal:3001' }).apiConfigError)
+      .toBeUndefined();
+    expect(load({ appEnv: 'preview', hostUri: '192.168.1.14:8081' }).apiConfigError)
+      .toMatch(/must be given its API address explicitly/);
+  });
+
+  /**
+   * The visual-QA harness builds a *release* web export pointed at
+   * `http://localhost:3001`, and it is the only way this app has ever been
+   * seen running. A policy keyed on `__DEV__` would have called that a
+   * production build and refused it; keying on what the config declares is
+   * what keeps the evidence path working.
+   */
+  it('treats a bundle built outside the config layer as development', () => {
+    const mod = load({ hostUri: 'localhost:8081', extraApiUrl: 'http://localhost:3001' });
+    expect(mod.apiEnvironment).toBe('development');
+    expect(mod.apiConfigError).toBeUndefined();
+    expect(mod.apiBaseUrl).toBe('http://localhost:3001');
+  });
+
+  it('ignores a malformed address in development rather than bricking the app', () => {
+    const mod = load({ appEnv: 'development', extraApiUrl: 'not a url', hostUri: '192.168.1.14:8081' });
+    expect(mod.apiConfigError).toBeUndefined();
+    expect(mod.apiBaseUrl).toBe('http://192.168.1.14:3001');
+    expect(mod.apiHostWarning).toMatch(/ignored/i);
   });
 });
