@@ -1,4 +1,4 @@
-import { useContext, type ReactNode } from 'react';
+import { useContext, useState, type ReactNode } from 'react';
 import { Platform, Pressable, View, type ViewStyle } from 'react-native';
 import { ChevronLeft } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -193,6 +193,8 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const { colors } = useDesign();
   const insets = useSafeAreaInsets();
   const reportHeight = useContext(BottomTabBarHeightCallbackContext);
+  // Measured, because a label is sized to its item explicitly (below).
+  const [barWidth, setBarWidth] = useState(0);
 
   const visible = state.routes.filter((route) => {
     const options = descriptors[route.key]?.options;
@@ -204,17 +206,42 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
 
   const focusedKey = state.routes[state.index]?.key;
 
+  /**
+   * A label's width, set explicitly.
+   *
+   * A sixth of a 360pt bar is 58pt and "Сообщество" at 10pt is 61: the word
+   * needs the padding on either side of its item, and it needs it as a
+   * number. Flexbox will not give it: a centred text is shrink-to-fit inside
+   * the content box, and the browser renderer wraps it there whatever the
+   * negative margin says. So the label is as wide as its item plus 5pt a
+   * side; the neighbours' labels are centred, so the space is there.
+   */
+  const spill = 5;
+  const itemWidth = barWidth > 0 && visible.length > 0 ? (barWidth - space.xs * 2) / visible.length : 0;
+  // Only a single word gets the extra width. A label with a space in it
+  // ("Сдать кровь") can wrap at the space instead, and must: two long
+  // labels side by side that both spill run into each other.
+  const widthFor = (label: string) => {
+    if (itemWidth <= 0) return { width: undefined, margin: 0 };
+    return /\s/.test(label)
+      ? { width: itemWidth - space.xs, margin: 0 }
+      : { width: itemWidth + spill * 2, margin: -spill };
+  };
+
   // One decision for the whole bar, so the six labels share a size.
   const compact = visible.some((route) => {
     const label = (descriptors[route.key]?.options.title as string | undefined) ?? route.name;
-    return label.length > 9;
+    return label.length >= 9;
   });
 
   return (
     <View
       // Compared by key, not index: `state.index` indexes the FULL route list,
       // so comparing it against the filtered one highlights the wrong tab.
-      onLayout={(event) => reportHeight?.(event.nativeEvent.layout.height)}
+      onLayout={(event) => {
+        reportHeight?.(event.nativeEvent.layout.height);
+        setBarWidth(event.nativeEvent.layout.width);
+      }}
       style={{
         flexDirection: 'row',
         alignItems: 'flex-start',
@@ -239,6 +266,7 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
         const focused = focusedKey === route.key;
         const label = (options.title as string) ?? route.name;
         const color = focused ? colors.rose.base : colors.textTertiary;
+        const labelBox = widthFor(label);
 
         return (
           <Pressable
@@ -256,7 +284,6 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
               justifyContent: 'flex-start',
               gap: 4,
               minHeight: hitTarget.min,
-              paddingHorizontal: space.xs,
             }}
           >
             <View
@@ -294,8 +321,12 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
                 // the padding on either side; the neighbours' labels are
                 // centred, so the space is there. Without it "Сообщество"
                 // still lost its last letter to a second line at 360pt.
-                letterSpacing: compact ? -0.2 : 0,
-                marginHorizontal: -space.sm,
+                letterSpacing: compact ? -0.3 : 0,
+                width: labelBox.width,
+                // Also the max: the web renderer caps a multi-line text at
+                // 100% of its parent, which is the item, which is the point.
+                maxWidth: labelBox.width,
+                marginHorizontal: labelBox.margin,
               }}
               numberOfLines={2}
             >

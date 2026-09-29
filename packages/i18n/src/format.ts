@@ -194,9 +194,11 @@ export function formatMonth(
 ): string {
   const date = toDate(value);
   if (Number.isNaN(date.getTime())) return '';
+  // CLDR's uz pattern is "sentabr, 2026"; the short form drops the comma
+  // because a date block takes its first word and "sen," is not a month.
   const fallback = () =>
     locale === 'uz'
-      ? `${UZ_MONTHS[width][date.getMonth()] ?? pad(date.getMonth() + 1)}, ${date.getFullYear()}`
+      ? `${UZ_MONTHS[width][date.getMonth()] ?? pad(date.getMonth() + 1)}${width === 'long' ? ',' : ''} ${date.getFullYear()}`
       : `${pad(date.getMonth() + 1)}.${date.getFullYear()}`;
   if (locale === 'uz' && !uzHasNames()) return fallback();
   return safe(() => {

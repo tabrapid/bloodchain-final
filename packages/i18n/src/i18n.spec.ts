@@ -198,6 +198,7 @@ describe('formatting', () => {
     resetIntlProbe();
     try {
       expect(formatMonth('uz', september)).toBe('sentabr, 2026');
+      expect(formatMonth('uz', september, 'short')).toBe('sen 2026');
       expect(formatWeekday('uz', september)).toBe('Sesh');
       expect(formatWeekday('uz', september, 'narrow')).toBe('S');
       expect(formatDate('uz', september)).toBe('1 sentabr, 2026');
