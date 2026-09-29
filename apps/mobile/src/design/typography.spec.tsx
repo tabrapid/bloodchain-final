@@ -13,7 +13,7 @@ import { fonts } from './fonts';
 describe('the scale carries faces, not weights', () => {
   const variants = Object.keys(typeScale) as (keyof typeof typeScale)[];
 
-  it.each(variants)('%s names a real Inter face', (variant) => {
+  it.each(variants)('%s names a real face from the loader', (variant) => {
     const families: string[] = Object.values(fonts);
     expect(families).toContain(typeScale[variant].fontFamily);
   });
@@ -41,7 +41,7 @@ describe('the scale carries faces, not weights', () => {
  * work -- and the weight was the part Android would not honour.
  */
 describe('adjacent levels differ by size AND face', () => {
-  const ladder = ['display', 'h1', 'h2', 'h3', 'body'] as const;
+  const ladder = ['display', 'h1', 'h2', 'h3', 'title', 'body'] as const;
 
   it.each(ladder.slice(0, -1).map((level, i) => [level, ladder[i + 1]!] as const))(
     '%s is distinguishable from %s by more than one signal',
@@ -65,21 +65,33 @@ describe('adjacent levels differ by size AND face', () => {
   });
 });
 
-describe('the scale the Product Owner specified', () => {
+describe('the V4 scale', () => {
   it('is the one in the tokens', () => {
     expect(typeScale.display.fontSize).toBe(40);
-    expect(typeScale.h1.fontSize).toBe(30);
+    expect(typeScale.h1.fontSize).toBe(28);
     expect(typeScale.h2.fontSize).toBe(22);
     expect(typeScale.h3.fontSize).toBe(18);
+    expect(typeScale.title.fontSize).toBe(16);
     expect(typeScale.body.fontSize).toBe(15);
     expect(typeScale.label.fontSize).toBe(13);
-    expect(typeScale.caption.fontSize).toBe(11);
+    expect(typeScale.caption.fontSize).toBe(12);
+  });
+
+  it('draws titles and values in the display face, sentences in the text face', () => {
+    // Two families, each with one job. A title in Inter is anonymous; a
+    // paragraph in Manrope is tiring. The split is what gives the hierarchy
+    // its "obvious at arm's length" quality, so it is pinned.
+    for (const variant of ['display', 'h1', 'h2', 'h3', 'value', 'valueSm', 'hero'] as const) {
+      expect(typeScale[variant].fontFamily.startsWith('Manrope_')).toBe(true);
+    }
+    for (const variant of ['title', 'body', 'bodyMedium', 'bodyStrong', 'label', 'caption', 'overline'] as const) {
+      expect(typeScale[variant].fontFamily.startsWith('Inter_')).toBe(true);
+    }
   });
 
   /**
-   * Phase 10: the tab bar drew its labels at 10sp, which at six tabs reads as
-   * decoration rather than navigation. `caption` is what it uses, so the floor
-   * is enforced here.
+   * The tab bar drew its labels at 10sp once, which at six tabs reads as
+   * decoration rather than navigation. Nothing readable goes below 11.
    */
   it('never puts readable interface text below 11', () => {
     expect(typeScale.caption.fontSize).toBeGreaterThanOrEqual(11);
@@ -103,7 +115,10 @@ describe('the faces exist on disk', () => {
   const { readdirSync, existsSync } = require('node:fs') as typeof import('node:fs');
   const { dirname, join } = require('node:path') as typeof import('node:path');
 
-  const packageRoot = dirname(require.resolve('@expo-google-fonts/inter/package.json'));
+  const packageRoots = [
+    dirname(require.resolve('@expo-google-fonts/inter/package.json')),
+    dirname(require.resolve('@expo-google-fonts/manrope/package.json')),
+  ];
 
   function ttfNames(dir: string, found: Set<string> = new Set()): Set<string> {
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
@@ -114,7 +129,10 @@ describe('the faces exist on disk', () => {
     return found;
   }
 
-  const shipped = existsSync(packageRoot) ? ttfNames(packageRoot) : new Set<string>();
+  const shipped = new Set<string>();
+  for (const root of packageRoots) {
+    if (existsSync(root)) for (const name of ttfNames(root)) shipped.add(name);
+  }
 
   it.each(Object.entries(fonts))('%s -> %s is a real file', (_weight, family) => {
     expect(shipped.has(family)).toBe(true);

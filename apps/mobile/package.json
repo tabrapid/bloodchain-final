@@ -34,6 +34,7 @@
     "@bloodchain/utils": "workspace:*",
     "@bloodchain/validation": "workspace:*",
     "@expo-google-fonts/inter": "^0.4.2",
+    "@expo-google-fonts/manrope": "0.4.2",
     "@hookform/resolvers": "^3.9.1",
     "@tanstack/react-query": "^5.62.8",
     "expo": "~57.0.25",

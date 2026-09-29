@@ -100,16 +100,23 @@ jest.mock('@bloodchain/i18n', () => {
   return { ...actual, detectPlatformLocales: () => ['en-US'] };
 });
 
-// The typeface never loads under jest -- there is no native font module and no
+// The typefaces never load under jest -- there is no native font module and no
 // file system to read a TTF from -- so `useFonts` would sit at `false` forever
 // and the root layout would correctly hold the app on its background colour,
 // which is not what any of these tests are about. Reporting the faces as loaded
-// lets every screen test assert the screen. The one thing that genuinely
-// depends on the loading branch has its own spec and mocks this itself.
-jest.mock('@expo-google-fonts/inter', () => ({
+// lets every screen test assert the screen.
+jest.mock('expo-font', () => ({
   useFonts: () => [true, null],
+  loadAsync: () => Promise.resolve(),
+  isLoaded: () => true,
+}));
+jest.mock('@expo-google-fonts/inter', () => ({
   Inter_400Regular: 'Inter_400Regular',
   Inter_500Medium: 'Inter_500Medium',
   Inter_600SemiBold: 'Inter_600SemiBold',
-  Inter_700Bold: 'Inter_700Bold',
+}));
+jest.mock('@expo-google-fonts/manrope', () => ({
+  Manrope_600SemiBold: 'Manrope_600SemiBold',
+  Manrope_700Bold: 'Manrope_700Bold',
+  Manrope_800ExtraBold: 'Manrope_800ExtraBold',
 }));

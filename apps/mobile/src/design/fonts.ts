@@ -2,40 +2,51 @@ import {
   Inter_400Regular,
   Inter_500Medium,
   Inter_600SemiBold,
-  Inter_700Bold,
-  useFonts,
 } from '@expo-google-fonts/inter';
+import {
+  Manrope_600SemiBold,
+  Manrope_700Bold,
+  Manrope_800ExtraBold,
+} from '@expo-google-fonts/manrope';
+import { useFonts } from 'expo-font';
 
 /**
- * The typeface, and why it is loaded by name rather than by weight.
+ * The typefaces of Bloodchain Mobile V4, and why there are two.
  *
- * Until V3 the app loaded no font at all. Every word on Android was stock
- * Roboto at whatever weight the platform decided `fontWeight: '600'` meant --
- * and on Android that is the least reliable value in the set, because Roboto
- * ships Regular, Medium and Bold and the framework picks among them. The V2
- * scale leaned on `600` for `h2`, `h3`, `bodyStrong`, `overline` and the
- * focused tab label, so when it resolved toward Regular the hierarchy went with
- * it. That is most of why the app read as flat on a real phone while the
- * browser captures looked fine: Chromium had its own font and its own weight
- * synthesis, and neither was what the device did.
+ * One family cannot be both a calm reading face and a display face with
+ * presence. Inter is superb at 13–16pt on a phone: neutral, wide apertures,
+ * tabular figures. It is also anonymous at 28pt, which is why three previous
+ * scales built entirely on it read as "software" rather than as a product.
  *
- * So weights are FAMILIES here, never numbers. `Inter_600SemiBold` is a file;
- * there is nothing for the platform to interpret and nothing for it to
- * synthesise. `fontWeight` is deliberately absent from the scale — setting both
- * asks Android to fake a weight on top of a face that already has it, which is
- * how you get the smeared, slightly-too-heavy look that reads as amateur.
+ * Manrope carries the identity: every title, every large number, the blood
+ * type. It is geometric with a slightly narrow, low-contrast construction, so
+ * at display sizes it reads as precise and modern without being decorative —
+ * the register of a serious fintech or clinical product, not a game.
+ *
+ * Six faces, loaded by family name. `fontWeight` never appears in the scale:
+ * asking Android for a numeric weight on top of a face that already has it
+ * makes it synthesise one, and the result is the smeared, too-heavy text that
+ * reads as amateur. A face is a file; there is nothing to interpret.
  */
 export const fonts = {
+  /** Body copy, hints, captions. */
   regular: 'Inter_400Regular',
+  /** Labels, row values, tab labels. */
   medium: 'Inter_500Medium',
+  /** Emphasis inside text, row titles, button labels. */
   semibold: 'Inter_600SemiBold',
-  bold: 'Inter_700Bold',
+  /** Section titles. */
+  displaySemibold: 'Manrope_600SemiBold',
+  /** Screen titles, sheet titles, clinical values. */
+  displayBold: 'Manrope_700Bold',
+  /** The hero: the blood type, the welcome headline. */
+  displayExtraBold: 'Manrope_800ExtraBold',
 } as const;
 
 export type FontFamily = (typeof fonts)[keyof typeof fonts];
 
 /**
- * Loads the four faces.
+ * Loads the six faces.
  *
  * Returns `false` until every one is in memory. The root layout holds the app
  * on its background colour while that is true rather than rendering text in a
@@ -48,14 +59,16 @@ export function useAppFonts(): boolean {
     Inter_400Regular,
     Inter_500Medium,
     Inter_600SemiBold,
-    Inter_700Bold,
+    Manrope_600SemiBold,
+    Manrope_700Bold,
+    Manrope_800ExtraBold,
   });
 
   // A font that fails to load is not a reason to show nothing forever. The app
-  // proceeds on the system face, which is exactly where V2 was, and the error
-  // is visible in the log rather than swallowed.
+  // proceeds on the system face and the error is visible in the log rather
+  // than swallowed.
   if (error) {
-    console.error('[fonts] Inter failed to load; falling back to the system face:', error);
+    console.error('[fonts] typefaces failed to load; falling back to the system face:', error);
     return true;
   }
 
