@@ -38,11 +38,18 @@ cd apps/mobile
 BLOODCHAIN_VISUAL_QA=1 EXPO_PUBLIC_API_URL=http://localhost:3001 \
   pnpm exec expo export --platform web --output-dir .qa-web-export
 
-# 3. The capture itself.
-node qa/visual/capture.mjs --export .qa-web-export --devices iphone,android
+# 3. The capture itself. `playwright` is a devDependency of this package; it
+#    downloads its own Chromium on first use unless QA_CHROMIUM names one
+#    (a container that already ships Chromium, a proxy that blocks the CDN).
+QA_CHROMIUM=/opt/pw-browsers/chromium-1194/chrome-linux/chrome \
+  node qa/visual/capture.mjs --export .qa-web-export --devices iphone,android,small \
+  --out ../../artifacts/mobile-v4-visual-qa
+
+# 4. The inventory tables in docs/mobile-v4-ui-report.md, from screenshots.json.
+node qa/visual/report.mjs
 ```
 
-Output lands in `artifacts/mobile-v2-visual-qa/<device>/<screen>/<state>.png`,
+Output lands in `artifacts/mobile-v4-visual-qa/<device>/<screen>/<state>.png`,
 with `screenshots.json` beside it recording, for every shot: the route, the
 state, the device and its dimensions, the locale, whether the data came from the
 seeded database or from an override, the first lines of text the page rendered,
@@ -53,8 +60,11 @@ any element drawn past the right edge, and any console error.
 `http://127.0.0.1:3000` is a different origin to a browser — every request fails
 and every screen photographs its error state while looking like it worked.
 
-Flags: `--devices iphone,android,small` · `--only tabs/home,sos` ·
+Flags: `--devices iphone,android,small` (393, 412 and 360pt wide) · `--only tabs/home,sos` ·
 `--api http://localhost:3001` · `--out <dir>` · `--port 3000`.
+
+The `small` frame is the one to read for Russian: 360pt is where a six-tab bar
+and a two-line Cyrillic label meet.
 
 **Why a release export is allowed to point at localhost.** `expo export`
 produces `__DEV__ === false`, so a policy keyed on that would call this a
@@ -104,7 +114,7 @@ emulator -avd Pixel_8_API_36 &
 The script checks its prerequisites before it builds anything, generates the
 native project (`expo prebuild`), builds and installs a release binary, runs
 every flow in `qa/visual/maestro/`, and files the screenshots into the same
-`artifacts/mobile-v2-visual-qa/<device>/<screen>/<state>.png` layout so the
+`artifacts/mobile-v4-visual-qa/<device>/<screen>/<state>.png` layout so the
 report can put the two side by side.
 
 `maestro/00-shared.md` says how the flows select controls and which states they

@@ -204,6 +204,12 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
 
   const focusedKey = state.routes[state.index]?.key;
 
+  // One decision for the whole bar, so the six labels share a size.
+  const compact = visible.some((route) => {
+    const label = (descriptors[route.key]?.options.title as string | undefined) ?? route.name;
+    return label.length > 9;
+  });
+
   return (
     <View
       // Compared by key, not index: `state.index` indexes the FULL route list,
@@ -271,14 +277,16 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
                 self-evident in a language the donor may not read. */}
             <Text
               variant="caption"
-              // 11sp is the floor: at 10 the six labels read as decoration.
-              // The focused state changes FACE, not weight. Two lines rather
-              // than an ellipsis: "Сообщество" does not fit a sixth of a
-              // 360pt phone at any readable size, and "Сообщес…" is not a
-              // label. The bar grows by one line only when a language needs it.
+              // 11 when every label is short; 10 -- the size iOS itself uses
+              // for a tab label -- when one is not. "Сообщество" is a single
+              // ten-letter word and at 11 it splits mid-word in a sixth of a
+              // 393pt phone; at 10 it fits. Two lines rather than an
+              // ellipsis for the labels that have a space to break at
+              // ("Сдать кровь"), because "Сообщес…" is not a label. The
+              // focused state changes FACE, not weight.
               style={{
                 color: focused ? colors.rose.text : colors.textTertiary,
-                fontSize: 11,
+                fontSize: compact ? 10 : 11,
                 lineHeight: 13,
                 fontFamily: focused ? fonts.semibold : fonts.medium,
                 textAlign: 'center',

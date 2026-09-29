@@ -11,8 +11,10 @@ import {
   formatAddress,
   formatDate,
   formatDateTime,
+  formatDayHeading,
   formatMonth,
   formatWeekday,
+  resetIntlProbe,
   formatNumber,
   formatTime,
   normalizeLocale,
@@ -193,13 +195,19 @@ describe('formatting', () => {
       }
     }
     Intl.DateTimeFormat = SlimIntl as unknown as typeof Intl.DateTimeFormat;
+    resetIntlProbe();
     try {
       expect(formatMonth('uz', september)).toBe('sentabr, 2026');
       expect(formatWeekday('uz', september)).toBe('Sesh');
       expect(formatWeekday('uz', september, 'narrow')).toBe('S');
+      expect(formatDate('uz', september)).toBe('1 sentabr, 2026');
+      expect(formatDate('uz', september, 'medium')).toBe('1 sen, 2026');
+      expect(formatDate('uz', september, 'full')).toBe('seshanba, 1 sentabr, 2026');
+      expect(formatDayHeading('uz', september)).toBe('Seshanba, 1 sen');
       expect(formatMonth('en', september)).toContain('September');
     } finally {
       Intl.DateTimeFormat = original;
+      resetIntlProbe();
     }
   });
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Turns `screenshots.json` into the inventory tables in
- * `docs/mobile-v2-visual-qa-report.md`.
+ * `docs/mobile-v4-ui-report.md`.
  *
  * The prose in that document is written by hand. The tables are not, because a
  * hand-written inventory of 593 screenshots is a document that is wrong by the
@@ -18,8 +18,8 @@ import { fileURLToPath } from 'node:url';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const REPO = path.resolve(HERE, '../../../..');
-const MANIFEST = path.join(REPO, 'artifacts/mobile-v2-visual-qa/screenshots.json');
-const REPORT = path.join(REPO, 'docs/mobile-v2-visual-qa-report.md');
+const MANIFEST = path.join(REPO, process.env.QA_MANIFEST ?? 'artifacts/mobile-v4-visual-qa/screenshots.json');
+const REPORT = path.join(REPO, process.env.QA_REPORT ?? 'docs/mobile-v4-ui-report.md');
 
 const START = '<!-- generated:inventory:start -->';
 const END = '<!-- generated:inventory:end -->';

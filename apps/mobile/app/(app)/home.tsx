@@ -184,7 +184,7 @@ export default function Home() {
               accessibilityLabel={t('profile.title')}
               hitSlop={8}
             >
-              <Avatar name={fullName ?? user?.firstName ?? 'Donor'} size={44} />
+              <Avatar name={fullName ?? user?.firstName ?? t('table.donor')} size={44} />
             </Pressable>
           </Row>
         </Row>

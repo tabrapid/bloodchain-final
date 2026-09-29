@@ -87,7 +87,7 @@ export default function Profile() {
   const unlockedCount = achievements?.unlocked.length ?? 0;
   const inProgressCount = achievements?.inProgress.length ?? 0;
 
-  const fullName = user ? [user.firstName, user.lastName].filter(Boolean).join(' ') || 'Donor' : '—';
+  const fullName = user ? [user.firstName, user.lastName].filter(Boolean).join(' ') || t('table.donor') : '—';
   const contact = user?.phone || user?.email;
 
   const bloodTypeDisplay =

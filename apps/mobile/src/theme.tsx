@@ -335,28 +335,6 @@ export const radius = {
   pill: 999,
 } as const;
 
-export const typography = {
-  display: { fontSize: 38, fontWeight: '700' as const, lineHeight: 44, letterSpacing: -0.5 },
-  /**
-   * The screen title as the reference actually renders it — 27pt, not the
-   * 32pt its token table nominally declares. Every tab root and pushed
-   * screen in the reference draws its own `<h1>` at 27/700/-0.03em; the
-   * larger size only appears on the two auth headlines, which set it
-   * explicitly.
-   */
-  title: { fontSize: 27, fontWeight: '700' as const, lineHeight: 32, letterSpacing: -0.8 },
-  /** The reference's `cardTitle` — smaller and tighter than the old 19pt heading. */
-  heading: { fontSize: 16, fontWeight: '600' as const, lineHeight: 22 },
-  body: { fontSize: 15, fontWeight: '400' as const, lineHeight: 22 },
-  bodySmall: { fontSize: 13, fontWeight: '400' as const, lineHeight: 19 },
-  /** The reference's `sectionLabel`, as rendered by its SectionHeader. */
-  caption: { fontSize: 11, fontWeight: '700' as const, letterSpacing: 1.5 },
-  button: { fontSize: 15, fontWeight: '700' as const },
-  numeric: { fontSize: 28, fontWeight: '700' as const, lineHeight: 34, letterSpacing: -0.5 },
-  /** The reference's `heroNumber` — the blood-type value, the strongest number in the app. */
-  bloodType: { fontSize: 56, fontWeight: '800' as const, lineHeight: 58, letterSpacing: -2 },
-} as const;
-
 export type ColorToken = keyof typeof darkColors;
 export type SpacingToken = keyof typeof spacing;
 
