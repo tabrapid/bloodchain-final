@@ -1,5 +1,6 @@
 import { useRef, type ReactNode } from 'react';
 import { Animated, Pressable, Switch, View, type ViewStyle } from 'react-native';
+import { Check, ChevronDown } from 'lucide-react-native';
 import { fonts } from '../fonts';
 import { useDesign } from '../useDesign';
 import { hitTarget, icon as iconScale, motion, radius, space } from '../tokens';
@@ -13,6 +14,8 @@ export interface ToggleProps {
   disabled?: boolean;
   /** Shown while the change is being saved; the control is inert meanwhile. */
   busy?: boolean;
+  /** An icon drawn before the label. */
+  icon?: (props: { size: number; color: string }) => ReactNode;
 }
 
 /**
@@ -24,7 +27,7 @@ export interface ToggleProps {
  * people already know, it animates correctly, and it is already wired to
  * assistive technology.
  */
-export function Toggle({ label, description, value, onValueChange, disabled = false, busy = false }: ToggleProps) {
+export function Toggle({ label, description, value, onValueChange, disabled = false, busy = false, icon }: ToggleProps) {
   const { colors } = useDesign();
   const inert = disabled || busy;
 
@@ -39,15 +42,29 @@ export function Toggle({ label, description, value, onValueChange, disabled = fa
       style={({ pressed }) => ({
         flexDirection: 'row',
         alignItems: 'center',
-        gap: space.lg,
+        gap: space.md,
         minHeight: hitTarget.comfortable,
         paddingVertical: space.md,
         opacity: inert ? 0.5 : 1,
         backgroundColor: pressed ? colors.surfacePressed : 'transparent',
       })}
     >
+      {icon ? (
+        <View
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: radius.sm,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: colors.surfaceRaised,
+          }}
+        >
+          {icon({ size: iconScale.md, color: colors.textSecondary })}
+        </View>
+      ) : null}
       <View style={{ flex: 1, gap: 2 }}>
-        <Text variant="body">{label}</Text>
+        <Text variant="bodyMedium">{label}</Text>
         {description ? (
           <Text variant="caption" tone="tertiary">
             {description}
@@ -63,8 +80,9 @@ export function Toggle({ label, description, value, onValueChange, disabled = fa
         // the same setting twice.
         accessibilityElementsHidden
         importantForAccessibility="no-hide-descendants"
-        trackColor={{ false: colors.track, true: colors.success.fill }}
+        trackColor={{ false: colors.track, true: colors.rose.fill }}
         thumbColor={colors.textOnAccent}
+        ios_backgroundColor={colors.track}
       />
     </Pressable>
   );
@@ -110,9 +128,7 @@ export function SegmentedControl<T extends string>({
           flexDirection: 'row',
           padding: 3,
           borderRadius: radius.sm,
-          backgroundColor: colors.sunken,
-          borderWidth: 1,
-          borderColor: colors.divider,
+          backgroundColor: colors.surface,
         },
         style,
       ]}
@@ -132,8 +148,9 @@ export function SegmentedControl<T extends string>({
               alignItems: 'center',
               justifyContent: 'center',
               paddingVertical: space.sm,
-              borderRadius: radius.xs,
-              backgroundColor: selected ? colors.surfaceRaised : 'transparent',
+              paddingHorizontal: space.xs,
+              borderRadius: radius.xs + 1,
+              backgroundColor: selected ? colors.surfacePressed : 'transparent',
             }}
           >
             <Text
@@ -160,6 +177,8 @@ export interface ChoiceProps {
   /** Why it is disabled. Shown in place of the description, and announced. */
   unavailableReason?: string;
   icon?: (props: { size: number; color: string }) => ReactNode;
+  /** A short value on the right: a distance, a price, a count. */
+  meta?: string;
 }
 
 /**
@@ -180,6 +199,7 @@ export function Choice({
   disabled = false,
   unavailableReason,
   icon,
+  meta,
 }: ChoiceProps) {
   const { colors } = useDesign();
   const scale = useRef(new Animated.Value(1)).current;
@@ -203,25 +223,43 @@ export function Choice({
         style={{
           flexDirection: 'row',
           alignItems: 'center',
-          gap: space.lg,
+          gap: space.md,
           minHeight: hitTarget.comfortable,
           padding: space.lg,
-          borderRadius: radius.md,
-          borderWidth: selected ? 2 : 1,
-          borderColor: selected ? colors.rose.base : colors.border,
+          borderRadius: radius.lg,
+          borderWidth: 1.5,
+          borderColor: selected ? colors.rose.base : 'transparent',
           backgroundColor: selected ? colors.rose.soft : colors.surface,
           opacity: inert ? 0.5 : 1,
         }}
       >
-        {icon?.({ size: iconScale.lg, color: selected ? colors.rose.text : colors.textSecondary })}
+        {icon ? (
+          <View
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: radius.sm,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: selected ? colors.rose.soft : colors.surfaceRaised,
+            }}
+          >
+            {icon({ size: iconScale.md + 2, color: selected ? colors.rose.base : colors.textSecondary })}
+          </View>
+        ) : null}
         <View style={{ flex: 1, gap: 2 }}>
-          <Text variant="bodyStrong">{label}</Text>
+          <Text variant="bodyMedium">{label}</Text>
           {detail ? (
             <Text variant="caption" tone={unavailableReason ? 'warning' : 'secondary'}>
               {detail}
             </Text>
           ) : null}
         </View>
+        {meta ? (
+          <Text variant="label" tone="tertiary">
+            {meta}
+          </Text>
+        ) : null}
         <View
           style={{
             width: 22,
@@ -234,11 +272,7 @@ export function Choice({
             justifyContent: 'center',
           }}
         >
-          {selected ? (
-            <Text variant="caption" tone="onAccent" style={{ fontFamily: fonts.bold }}>
-              ✓
-            </Text>
-          ) : null}
+          {selected ? <Check size={14} color={colors.textOnAccent} strokeWidth={3} /> : null}
         </View>
       </Pressable>
     </Animated.View>
@@ -261,19 +295,17 @@ export interface OptionGridProps<T extends string> {
   accessibilityLabel: string;
   /** Items per row. Four fits a two-character label; three fits a time. */
   columns?: number;
+  /** Draws the label in the display face at a larger size: for a blood type. */
+  large?: boolean;
 }
 
 /**
  * A grid of short, mutually exclusive options: a blood type, a time slot.
  *
  * Between SegmentedControl (up to four words in a row) and Choice (a card per
- * option). Eight blood types are too many for one and too small for the other,
- * and V1 built the grid by hand on two screens with two different sizes.
- *
- * Every cell is a `radio`, so a screen reader says "A plus, radio button, 3 of
- * 8, selected" instead of reading eight buttons with no relationship. The
- * selected cell is a filled border AND a tinted ground: a tint alone is
- * invisible in daylight, and a border alone disappears at a glance.
+ * option). Every cell is a `radio`, so a screen reader says "A plus, radio
+ * button, 3 of 8, selected" instead of reading eight buttons with no
+ * relationship.
  */
 export function OptionGrid<T extends string>({
   options,
@@ -281,6 +313,7 @@ export function OptionGrid<T extends string>({
   onChange,
   accessibilityLabel,
   columns = 4,
+  large = false,
 }: OptionGridProps<T>) {
   const { colors } = useDesign();
   const gap = space.sm;
@@ -303,37 +336,35 @@ export function OptionGrid<T extends string>({
             accessibilityLabel={option.accessibilityLabel ?? option.label}
             style={({ pressed }) => ({
               // A row of `columns` cells has `columns - 1` gaps in it, and each
-              // cell has to give up its share of all of them -- not of one.
-              // Giving up `gap / columns` returned a single gap's width to a
-              // row that needed three, so four 25% cells plus three 8pt gaps
-              // came to more than the row and the fourth wrapped: the blood
-              // type grid rendered 3/3/2, and the two time pickers rendered two
-              // slots per row with a third of the row empty beside them.
-              //
-              //   columns x (100/columns% - gap(columns-1)/columns) + (columns-1) x gap = 100%
+              // cell has to give up its share of all of them.
               width: `${100 / columns}%`,
               flexBasis: `${100 / columns}%`,
               flexGrow: 0,
               flexShrink: 1,
               maxWidth: `${100 / columns}%`,
               marginRight: (-gap * (columns - 1)) / columns,
-              minHeight: hitTarget.comfortable,
+              minHeight: large ? 60 : hitTarget.comfortable,
               alignItems: 'center',
               justifyContent: 'center',
               paddingHorizontal: space.sm,
-              borderRadius: radius.sm,
-              borderWidth: 1,
-              borderColor: selected ? colors.rose.base : colors.border,
+              borderRadius: radius.md,
+              borderWidth: 1.5,
+              borderColor: selected ? colors.rose.base : 'transparent',
               backgroundColor: selected
                 ? colors.rose.soft
                 : pressed
                   ? colors.surfacePressed
                   : colors.surface,
-              opacity: option.disabled ? 0.45 : 1,
+              opacity: option.disabled ? 0.4 : 1,
               transform: [{ scale: pressed && !option.disabled ? motion.pressScale : 1 }],
             })}
           >
-            <Text variant="bodyStrong" tone={selected ? 'rose' : 'primary'} numberOfLines={1}>
+            <Text
+              variant={large ? 'valueSm' : 'bodyMedium'}
+              tone={selected ? 'rose' : 'primary'}
+              numberOfLines={1}
+              style={large ? { fontVariant: ['tabular-nums'] } : undefined}
+            >
               {option.label}
             </Text>
           </Pressable>
@@ -345,12 +376,8 @@ export function OptionGrid<T extends string>({
 
 export interface FilterChipProps {
   /**
-   * Which filter this is -- "Region", "Service".
-   *
-   * It is what makes the chip readable out of context: the visible label is
-   * the chosen value ("Tashkent City"), which on its own says nothing about
-   * which filter it belongs to -- to a screen reader, or to anyone scanning a
-   * row of five chips for the one they want to change.
+   * Which filter this is -- "Region", "Service". It is what makes the chip
+   * readable out of context: the visible label is the chosen value.
    */
   field: string;
   /** The current value, shown on the chip. */
@@ -374,7 +401,7 @@ export function FilterChip({
   opens = true,
 }: FilterChipProps) {
   const { colors } = useDesign();
-  const foreground = active ? colors.textOnAccent : colors.textPrimary;
+  const foreground = active ? colors.rose.text : colors.textPrimary;
 
   return (
     <Pressable
@@ -387,24 +414,20 @@ export function FilterChip({
         flexDirection: 'row',
         alignItems: 'center',
         gap: space.xs,
-        minHeight: hitTarget.min,
+        minHeight: 36,
         paddingHorizontal: space.md,
         borderRadius: radius.full,
         borderWidth: 1,
-        backgroundColor: active ? colors.rose.fill : pressed ? colors.surfacePressed : colors.surface,
-        borderColor: active ? colors.rose.fill : colors.border,
-        opacity: disabled ? 0.45 : 1,
+        backgroundColor: active ? colors.rose.soft : pressed ? colors.surfacePressed : colors.surface,
+        borderColor: active ? colors.rose.base : 'transparent',
+        opacity: disabled ? 0.4 : 1,
       })}
     >
       {icon?.({ size: iconScale.sm, color: foreground })}
       <Text variant="label" numberOfLines={1} style={{ color: foreground }}>
         {label}
       </Text>
-      {opens ? (
-        <Text variant="caption" style={{ color: foreground }}>
-          ▾
-        </Text>
-      ) : null}
+      {opens ? <ChevronDown size={14} color={foreground} /> : null}
     </Pressable>
   );
 }

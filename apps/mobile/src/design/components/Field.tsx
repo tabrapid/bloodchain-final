@@ -8,8 +8,9 @@ import {
   type TextInputProps,
   type ViewStyle,
 } from 'react-native';
-import { Eye, EyeOff } from 'lucide-react-native';
+import { Eye, EyeOff, X } from 'lucide-react-native';
 import { useDesign } from '../useDesign';
+import { fonts } from '../fonts';
 import { hitTarget, icon as iconScale, radius, space } from '../tokens';
 import { Text } from './Text';
 import { InlineError } from './Feedback';
@@ -30,22 +31,17 @@ export interface FieldProps extends Omit<TextInputProps, 'style'> {
 /**
  * The text field.
  *
- * The label sits ABOVE the field rather than inside it. V1 stacked the label
- * on the value inside one 68pt box, which made each field a single object and
- * the form shorter -- but it also meant the label and the value shared a
- * contrast budget, the field could not grow to two lines without the label
- * moving, and a screen reader announced them as one run of text. Above the
- * field is duller and correct.
- *
- * Focus is a border colour change and nothing else. V1 added a coloured glow;
- * on a form with six fields that is six halos competing with the submit button.
+ * A filled control: a raised tone with no border at rest, a 1.5pt clinical
+ * ring when focused, the emergency red when wrong. The label sits ABOVE the
+ * field so the two never share a contrast budget and a screen reader reads
+ * them as label then value.
  *
  * The error, when there is one, replaces the hint rather than appearing beneath
  * it, so the field never changes height as you type -- which is what makes a
  * form jump under your thumb.
  */
 export const Field = forwardRef<TextInput, FieldProps>(function Field(
-  { label, hint, error, leading, trailing, required, containerStyle, onFocus, onBlur, ...rest },
+  { label, hint, error, leading, trailing, required, containerStyle, onFocus, onBlur, editable, ...rest },
   ref,
 ) {
   const { colors } = useDesign();
@@ -63,7 +59,7 @@ export const Field = forwardRef<TextInput, FieldProps>(function Field(
     onBlur?.(event);
   };
 
-  const borderColor = error ? colors.critical.base : focused ? colors.clinical.base : colors.border;
+  const borderColor = error ? colors.critical.base : focused ? colors.clinical.base : 'transparent';
 
   return (
     <View style={containerStyle}>
@@ -74,9 +70,7 @@ export const Field = forwardRef<TextInput, FieldProps>(function Field(
         </Text>
       ) : null}
 
-      {/* The whole field takes the tap, not just the text line: at 52pt tall
-          with an icon inside it, most of what looks like the control was dead
-          space you could press without anything happening. */}
+      {/* The whole field takes the tap, not just the text line. */}
       <Pressable onPress={() => inputRef.current?.focus()} accessible={false}>
         <View
           style={{
@@ -85,10 +79,11 @@ export const Field = forwardRef<TextInput, FieldProps>(function Field(
             gap: space.md,
             minHeight: hitTarget.comfortable,
             paddingHorizontal: space.lg,
-            borderRadius: radius.sm,
-            borderWidth: 1,
+            borderRadius: radius.md,
+            borderWidth: 1.5,
             borderColor,
-            backgroundColor: colors.sunken,
+            backgroundColor: colors.surfaceRaised,
+            opacity: editable === false ? 0.6 : 1,
           }}
         >
           {leading}
@@ -104,8 +99,10 @@ export const Field = forwardRef<TextInput, FieldProps>(function Field(
             // when the field is wrong.
             accessibilityHint={error ? undefined : hint}
             placeholderTextColor={colors.textTertiary}
+            selectionColor={colors.clinical.base}
             onFocus={handleFocus}
             onBlur={handleBlur}
+            editable={editable}
             maxFontSizeMultiplier={2}
             style={{
               flex: 1,
@@ -114,6 +111,7 @@ export const Field = forwardRef<TextInput, FieldProps>(function Field(
               // default input padding would offset it from everything else.
               paddingHorizontal: 0,
               color: colors.textPrimary,
+              fontFamily: fonts.regular,
               fontSize: 16,
               lineHeight: 22,
             }}
@@ -126,7 +124,7 @@ export const Field = forwardRef<TextInput, FieldProps>(function Field(
       {error ? (
         <InlineError message={error} />
       ) : hint ? (
-        <Text variant="caption" tone="tertiary" style={{ marginTop: space.xs }}>
+        <Text variant="caption" tone="tertiary" style={{ marginTop: space.sm }}>
           {hint}
         </Text>
       ) : null}
@@ -144,15 +142,9 @@ export interface PasswordFieldProps extends Omit<FieldProps, 'secureTextEntry' |
 /**
  * A password field with a reveal control.
  *
- * Four screens built this by hand -- sign in, register, reset password and
- * security -- each with its own `showPassword` state, its own hit area and, on
- * two of them, an icon with no accessible label at all. The labels are props
- * rather than fixed strings because "show password" belongs to the screen's
- * own namespace, not to the design system's.
- *
- * The toggle is a 44pt target with `hitSlop` on top of it: it sits inside a
- * field, where the visible icon has to stay small, and a 20pt icon is a 20pt
- * target unless someone says otherwise.
+ * The labels are props rather than fixed strings because "show password"
+ * belongs to the screen's own namespace, not to the design system's. The
+ * toggle is a 44pt target with `hitSlop` on top of it.
  */
 export const PasswordField = forwardRef<TextInput, PasswordFieldProps>(function PasswordField(
   { showLabel, hideLabel, ...rest },
@@ -209,10 +201,10 @@ export const PhoneField = forwardRef<TextInput, PhoneFieldProps>(function PhoneF
       autoComplete="tel"
       leading={
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
-          <Text variant="body" tone="secondary">
+          <Text variant="body" style={{ fontFamily: fonts.medium, fontVariant: ['tabular-nums'] }}>
             {prefix}
           </Text>
-          <View style={{ width: 1, height: 20, backgroundColor: colors.divider }} />
+          <View style={{ width: 1, height: 22, backgroundColor: colors.border }} />
         </View>
       }
       {...rest}
@@ -248,9 +240,7 @@ export const SearchField = forwardRef<TextInput, SearchFieldProps>(function Sear
             hitSlop={12}
             style={{ padding: space.xs }}
           >
-            <Text variant="body" tone="tertiary">
-              ✕
-            </Text>
+            <X size={iconScale.sm} color={colors.textTertiary} />
           </Pressable>
         ) : undefined
       }

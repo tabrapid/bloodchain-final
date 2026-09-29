@@ -1,12 +1,45 @@
 import { type ReactNode } from 'react';
-import { Platform, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
+import { ChevronLeft, X } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { KeyboardAvoidingView, ScrollView } from 'react-native';
 import { useDesign } from '../useDesign';
-import { layout, space } from '../tokens';
+import { layout, radius, space } from '../tokens';
 import { Text } from './Text';
 import { Button, IconButton } from './Button';
-import { Progress } from './Stat';
+
+/**
+ * Progress through a fixed number of steps, as segments.
+ *
+ * Segments rather than a bar: a bar at 60% is a quantity, five segments with
+ * three filled is a position, and a person in a booking flow wants to know
+ * where they are, not how much is left as a fraction.
+ *
+ * Announced as a progressbar with the step as its value.
+ */
+export function StepIndicator({ step, total, label }: { step: number; total: number; label: string }) {
+  const { colors } = useDesign();
+  return (
+    <View
+      accessible
+      accessibilityRole="progressbar"
+      accessibilityLabel={label}
+      accessibilityValue={{ min: 1, max: total, now: step }}
+      style={{ flexDirection: 'row', gap: space.xs + 2 }}
+    >
+      {Array.from({ length: total }, (_, i) => (
+        <View
+          key={i}
+          style={{
+            flex: 1,
+            height: 4,
+            borderRadius: radius.full,
+            backgroundColor: i < step ? colors.rose.base : colors.track,
+          }}
+        />
+      ))}
+    </View>
+  );
+}
 
 export interface FlowStepProps {
   /** 1-based position. */
@@ -34,23 +67,10 @@ export interface FlowStepProps {
 /**
  * One step of a multi-screen flow.
  *
- * The booking wizard is five routes, and before this each of them grew its own
- * header, its own title size and its own pair of stacked buttons -- so a donor
- * moving through it saw five screens that resembled each other rather than one
- * screen changing. This is that chrome, once.
- *
- * Three things it owns that a per-screen header keeps getting wrong:
- *
- *   The exit. Back steps within the flow; close leaves it. A wizard with only
- *   a back button makes abandoning it a five-tap operation.
- *
- *   The progress. A real `progressbar` with its position announced, not a
- *   decorative bar -- "step 3 of 5" is the single most useful thing an
- *   assistive technology can say about a wizard.
- *
- *   The action. One primary button, pinned below the scroll area rather than
- *   inside it, so it is in the same place on every step and never scrolls out
- *   of reach on a long one.
+ * The booking wizard is five routes, and this is their shared chrome: back
+ * and close in the corners, the step indicator under them, the title, the
+ * content, and one primary action pinned below the scroll area so it is in
+ * the same place on every step and never scrolls out of reach.
  */
 export function FlowStep({
   step,
@@ -81,8 +101,6 @@ export function FlowStep({
         style={{
           flex: 1,
           paddingTop: insets.top,
-          // See `Screen`: a wizard is a column, and it stops growing past a
-          // readable width rather than spreading across a tablet.
           width: '100%',
           maxWidth: layout.maxContentWidth,
           alignSelf: 'center',
@@ -93,17 +111,15 @@ export function FlowStep({
             flexDirection: 'row',
             alignItems: 'center',
             gap: space.sm,
-            paddingHorizontal: layout.gutter,
+            paddingHorizontal: layout.gutter - space.sm,
+            paddingTop: space.xs,
           }}
         >
           {onBack && backLabel ? (
             <IconButton
               accessibilityLabel={backLabel}
               onPress={onBack}
-              style={{ marginLeft: -space.md }}
-              icon={({ size, color }) => (
-                <Text style={{ fontSize: size + 4, color, lineHeight: size + 6 }}>‹</Text>
-              )}
+              icon={({ size, color }) => <ChevronLeft size={size + 2} color={color} />}
             />
           ) : (
             <View style={{ width: 44 }} />
@@ -116,19 +132,12 @@ export function FlowStep({
           <IconButton
             accessibilityLabel={closeLabel}
             onPress={onClose}
-            style={{ marginRight: -space.md }}
-            icon={({ size, color }) => (
-              <Text style={{ fontSize: size, color, lineHeight: size + 4 }}>✕</Text>
-            )}
+            icon={({ size, color }) => <X size={size} color={color} />}
           />
         </View>
 
         <View style={{ paddingHorizontal: layout.gutter, paddingTop: space.sm }}>
-          <Progress
-            label={counterLabel}
-            value={step / total}
-            bare
-          />
+          <StepIndicator step={step} total={total} label={counterLabel} />
         </View>
 
         <ScrollView
@@ -143,7 +152,7 @@ export function FlowStep({
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          <View style={{ gap: space.xs }}>
+          <View style={{ gap: space.sm }}>
             <Text variant="h1" accessibilityRole="header">
               {title}
             </Text>
@@ -164,8 +173,6 @@ export function FlowStep({
               paddingTop: space.md,
               paddingBottom: Math.max(insets.bottom, space.lg),
               gap: space.md,
-              borderTopWidth: 1,
-              borderTopColor: colors.divider,
               backgroundColor: colors.background,
             }}
           >

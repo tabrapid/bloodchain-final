@@ -12,8 +12,8 @@ import { useDesign } from '../useDesign';
 import { hitTarget, icon as iconScale, motion, radius, space, type AccentName } from '../tokens';
 import { Text } from './Text';
 
-export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'critical';
-export type ButtonSize = 'md' | 'lg';
+export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'critical';
+export type ButtonSize = 'sm' | 'md' | 'lg';
 
 export interface ButtonProps extends Omit<PressableProps, 'children' | 'style'> {
   label: string;
@@ -27,32 +27,31 @@ export interface ButtonProps extends Omit<PressableProps, 'children' | 'style'> 
   /** Overrides the accent. Use sparingly — the variant should usually decide. */
   accent?: AccentName;
   /**
-   * The button sits on a filled accent surface (the emergency banner).
-   *
-   * Without it a `secondary` button there draws its label in `textPrimary`,
-   * which is near-white in dark and near-black in light -- and near-black on a
-   * saturated red is about 3.5:1, under the 4.5:1 this app holds itself to.
-   * The label and the border both become `textOnAccent`, which is the one
-   * colour checked against every accent fill.
+   * The button sits on a filled accent surface (the emergency banner). The
+   * label and the border both become `textOnAccent`, which is the one colour
+   * checked against every accent fill.
    */
   onAccent?: boolean;
   style?: ViewStyle;
 }
 
 /**
- * The V2 button.
+ * The V4 button.
  *
- * Four variants, and the fourth is the reason the palette was reorganised:
- * `critical` is the only control in the app that fills itself with a saturated
- * red, and it is reserved for emergency response and for destructive
- * confirmation. Everything else that used to be red -- the brand, the primary
- * action -- is `primary`, drawn in rose. Someone glancing at a screen can tell
- * "this is the main thing to do" from "this is the emergency" without reading a
- * word, which is the whole point.
+ *   primary    rose fill. The one thing to do on the screen.
+ *   secondary  a tonal fill (raised surface, no border). The quiet alternative.
+ *              Tonal rather than outlined because an outline on a dark page
+ *              reads as a form field, and a screen with three outlined boxes
+ *              in a column reads as a form.
+ *   outline    a hairline. For an action on a tinted or hero surface where a
+ *              tonal fill would vanish.
+ *   ghost      text only.
+ *   critical   the emergency red. Reserved for emergency response and for
+ *              destructive confirmation.
  *
- * Press feedback is a 3% scale and a colour change, both at 120ms. It is
- * deliberately at the edge of perception: the brief is calm, and a button that
- * bounces is not.
+ * Press feedback is a 2.5% scale and a colour change, both at 120ms. It is
+ * deliberately at the edge of perception: the brief is calm, and a button
+ * that bounces is not.
  */
 export function Button({
   label,
@@ -76,17 +75,23 @@ export function Button({
   const accentName: AccentName = accent ?? (variant === 'critical' ? 'critical' : 'rose');
   const tone = colors[accentName];
 
-  const height = size === 'lg' ? hitTarget.comfortable : hitTarget.min;
+  const height = size === 'lg' ? hitTarget.comfortable : size === 'md' ? hitTarget.min : 36;
   const iconSize = size === 'lg' ? iconScale.md : iconScale.sm;
+  const corner = size === 'lg' ? radius.md : size === 'md' ? radius.sm : 10;
 
   const fills: Record<ButtonVariant, { background: string; border: string; label: string }> = {
     primary: { background: tone.fill, border: 'transparent', label: colors.textOnAccent },
     critical: { background: colors.critical.fill, border: 'transparent', label: colors.textOnAccent },
-    secondary: { background: 'transparent', border: colors.border, label: colors.textPrimary },
+    secondary: {
+      background: accent ? tone.soft : colors.surfaceRaised,
+      border: 'transparent',
+      label: accent ? tone.text : colors.textPrimary,
+    },
+    outline: { background: 'transparent', border: colors.border, label: accent ? tone.text : colors.textPrimary },
     ghost: { background: 'transparent', border: 'transparent', label: tone.text },
   };
   const paint = onAccent
-    ? { background: 'transparent', border: colors.textOnAccent, label: colors.textOnAccent }
+    ? { background: 'rgba(255,255,255,0.14)', border: 'transparent', label: colors.textOnAccent }
     : fills[variant];
 
   const animate = (to: number) =>
@@ -116,15 +121,14 @@ export function Button({
             alignItems: 'center',
             justifyContent: 'center',
             gap: space.sm,
-            paddingHorizontal: size === 'lg' ? space.xl : space.lg,
-            paddingVertical: space.md,
-            borderRadius: radius.sm,
+            paddingHorizontal: size === 'lg' ? space.xl : size === 'md' ? space.lg : space.md,
+            paddingVertical: size === 'sm' ? space.sm : space.md,
+            borderRadius: corner,
             backgroundColor: paint.background,
-            borderWidth: variant === 'secondary' || onAccent ? 1 : 0,
+            borderWidth: variant === 'outline' ? 1 : 0,
             borderColor: paint.border,
-            opacity: isDisabled ? 0.45 : 1,
-            // Secondary and ghost have no fill to darken, so they take a tint.
-            ...(pressed && !isDisabled && variant !== 'primary' && variant !== 'critical'
+            opacity: isDisabled ? 0.4 : pressed && (variant === 'primary' || variant === 'critical') ? 0.88 : 1,
+            ...(pressed && !isDisabled && variant !== 'primary' && variant !== 'critical' && !onAccent
               ? { backgroundColor: colors.surfacePressed }
               : null),
           },
@@ -137,7 +141,11 @@ export function Button({
         ) : (
           icon?.({ size: iconSize, color: paint.label })
         )}
-        <Text variant="bodyStrong" style={{ color: paint.label }} numberOfLines={1}>
+        <Text
+          variant={size === 'sm' ? 'label' : 'bodyStrong'}
+          style={{ color: paint.label }}
+          numberOfLines={1}
+        >
           {label}
         </Text>
       </Pressable>
@@ -149,7 +157,9 @@ export interface LinkButtonProps extends Omit<PressableProps, 'children' | 'styl
   label: string;
   onPress: () => void;
   /** Defaults to the clinical blue every link in the app uses. */
-  tone?: AccentName;
+  tone?: AccentName | 'secondary';
+  /** A small icon after the label: a chevron, an arrow. */
+  icon?: (props: { size: number; color: string }) => ReactNode;
   style?: ViewStyle;
 }
 
@@ -158,15 +168,11 @@ export interface LinkButtonProps extends Omit<PressableProps, 'children' | 'styl
  *
  * It exists because the alternative -- a bare `Text` inside a `Pressable` --
  * is what every screen reaches for, and every screen then picks its own
- * colour, its own hit area and its own pressed feedback. Three V1 screens had
- * one of these with no `hitSlop` at all, which on a 13pt label is a target
- * under half the size a finger needs.
- *
- * Deliberately not a `ghost` Button: a ghost Button is rose and button-sized,
- * and a row of section headers with rose buttons in them competes with the
- * primary action of the screen.
+ * colour, its own hit area and its own pressed feedback.
  */
-export function LinkButton({ label, onPress, tone = 'clinical', disabled, style, ...rest }: LinkButtonProps) {
+export function LinkButton({ label, onPress, tone = 'clinical', icon, disabled, style, ...rest }: LinkButtonProps) {
+  const { colors } = useDesign();
+  const color = tone === 'secondary' ? colors.textSecondary : colors[tone].text;
   return (
     <Pressable
       accessibilityRole="button"
@@ -178,6 +184,9 @@ export function LinkButton({ label, onPress, tone = 'clinical', disabled, style,
       style={({ pressed }) => [
         {
           minHeight: hitTarget.min,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: space.xs,
           justifyContent: 'center',
           opacity: pressed || disabled ? 0.6 : 1,
         },
@@ -185,9 +194,10 @@ export function LinkButton({ label, onPress, tone = 'clinical', disabled, style,
       ]}
       {...rest}
     >
-      <Text variant="label" tone={tone} numberOfLines={1}>
+      <Text variant="label" style={{ color }} numberOfLines={1}>
         {label}
       </Text>
+      {icon?.({ size: iconScale.sm, color })}
     </Pressable>
   );
 }
@@ -196,7 +206,8 @@ export interface IconButtonProps extends Omit<PressableProps, 'children' | 'styl
   /** Required. An icon with no label is invisible to a screen reader. */
   accessibilityLabel: string;
   icon: (props: { size: number; color: string }) => ReactNode;
-  variant?: 'plain' | 'surface';
+  /** `plain` sits on nothing; `surface` is a tonal circle; `tonal` is an accent-tinted one. */
+  variant?: 'plain' | 'surface' | 'tonal';
   tone?: 'primary' | 'secondary' | AccentName;
   style?: ViewStyle;
 }
@@ -218,8 +229,15 @@ export function IconButton({
   ...rest
 }: IconButtonProps) {
   const { colors } = useDesign();
+  const accent = tone !== 'primary' && tone !== 'secondary' ? colors[tone] : null;
   const color =
-    tone === 'primary' ? colors.textPrimary : tone === 'secondary' ? colors.textSecondary : colors[tone].text;
+    tone === 'primary'
+      ? colors.textPrimary
+      : tone === 'secondary'
+        ? colors.textSecondary
+        : variant === 'tonal'
+          ? accent!.base
+          : accent!.text;
 
   return (
     <Pressable
@@ -233,20 +251,22 @@ export function IconButton({
           height: hitTarget.min,
           alignItems: 'center',
           justifyContent: 'center',
-          borderRadius: radius.sm,
+          borderRadius: radius.full,
           backgroundColor:
             pressed && !disabled
               ? colors.surfacePressed
               : variant === 'surface'
                 ? colors.surfaceRaised
-                : 'transparent',
-          opacity: disabled ? 0.45 : 1,
+                : variant === 'tonal' && accent
+                  ? accent.soft
+                  : 'transparent',
+          opacity: disabled ? 0.4 : 1,
         },
         style,
       ]}
       {...rest}
     >
-      {icon({ size: iconScale.lg, color })}
+      {icon({ size: iconScale.md + 2, color })}
     </Pressable>
   );
 }

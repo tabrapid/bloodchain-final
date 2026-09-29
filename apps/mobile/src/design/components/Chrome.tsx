@@ -1,16 +1,13 @@
 import { useContext, type ReactNode } from 'react';
 import { Platform, Pressable, View, type ViewStyle } from 'react-native';
-import { BlurView } from 'expo-blur';
+import { ChevronLeft } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BottomTabBarHeightCallbackContext, type BottomTabBarProps } from 'expo-router/js-tabs';
 import { useDesign } from '../useDesign';
-import { elevation, hitTarget, icon as iconScale, radius, space } from '../tokens';
+import { elevation, hitTarget, icon as iconScale, layout, radius, space } from '../tokens';
 import { fonts } from '../fonts';
 import { Text } from './Text';
 import { IconButton } from './Button';
-
-/** Blur where it is real, a plain surface where it is not. See the note at the use site. */
-const Bar = Platform.OS === 'android' ? (View as unknown as typeof BlurView) : BlurView;
 
 /**
  * `backLabel` is required whenever `onBack` is, and impossible without it.
@@ -26,6 +23,12 @@ export type ScreenHeaderProps = {
   eyebrow?: string;
   /** Controls at the trailing edge. */
   actions?: ReactNode;
+  /**
+   * `inline` (default) keeps the title beside the back button at 18pt.
+   * `large` puts a 28pt title on its own line under the bar, for a pushed
+   * screen that is a destination in its own right rather than a step.
+   */
+  size?: 'inline' | 'large';
   style?: ViewStyle;
 } & ({ onBack: () => void; backLabel: string } | { onBack?: never; backLabel?: never });
 
@@ -40,46 +43,60 @@ export type ScreenHeaderProps = {
  * `title` is a `header` for assistive technology, so the screen announces what
  * it is on arrival.
  */
-export function ScreenHeader({ title, eyebrow, onBack, backLabel, actions, style }: ScreenHeaderProps) {
+export function ScreenHeader({ title, eyebrow, onBack, backLabel, actions, size = 'inline', style }: ScreenHeaderProps) {
+  const large = size === 'large' && Boolean(title);
   return (
-    <View
-      style={[
-        {
+    <View style={[{ paddingHorizontal: layout.gutter - space.sm }, style]}>
+      <View
+        style={{
           flexDirection: 'row',
           alignItems: 'center',
-          gap: space.md,
+          gap: space.sm,
           minHeight: hitTarget.comfortable,
-          paddingHorizontal: space.lg,
-          paddingVertical: space.sm,
-        },
-        style,
-      ]}
-    >
-      {onBack ? (
-        <IconButton
-          accessibilityLabel={backLabel!}
-          onPress={onBack}
-          style={{ marginLeft: -space.md }}
-          icon={({ size, color }) => (
-            <Text style={{ fontSize: size + 4, color, lineHeight: size + 6 }}>‹</Text>
-          )}
-        />
-      ) : null}
+          paddingVertical: space.xs,
+        }}
+      >
+        {onBack ? (
+          <IconButton
+            accessibilityLabel={backLabel!}
+            onPress={onBack}
+            icon={({ size: s, color }) => <ChevronLeft size={s + 2} color={color} />}
+          />
+        ) : (
+          <View style={{ width: space.sm }} />
+        )}
 
-      <View style={{ flex: 1, gap: 2 }}>
-        {eyebrow ? (
-          <Text variant="overline" tone="tertiary" caps numberOfLines={1}>
-            {eyebrow}
-          </Text>
-        ) : null}
-        {title ? (
-          <Text variant="h2" accessibilityRole="header" numberOfLines={1}>
+        {large ? (
+          <View style={{ flex: 1 }} />
+        ) : (
+          <View style={{ flex: 1, gap: 1, paddingLeft: onBack ? 0 : space.xs }}>
+            {eyebrow ? (
+              <Text variant="overline" tone="tertiary" caps numberOfLines={1}>
+                {eyebrow}
+              </Text>
+            ) : null}
+            {title ? (
+              <Text variant="h3" accessibilityRole="header" numberOfLines={1}>
+                {title}
+              </Text>
+            ) : null}
+          </View>
+        )}
+
+        {actions}
+      </View>
+      {large ? (
+        <View style={{ paddingHorizontal: space.sm, paddingTop: space.xs, paddingBottom: space.sm, gap: 2 }}>
+          {eyebrow ? (
+            <Text variant="overline" tone="tertiary" caps numberOfLines={1}>
+              {eyebrow}
+            </Text>
+          ) : null}
+          <Text variant="h1" accessibilityRole="header">
             {title}
           </Text>
-        ) : null}
-      </View>
-
-      {actions}
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -89,6 +106,8 @@ export interface ScreenTitleProps {
   title: string;
   /** One line saying what the screen is for. */
   subtitle?: string;
+  /** A small line above the title: today's date, a context word. */
+  eyebrow?: string;
   /** A control at the trailing edge: a button, an icon button, a status badge. */
   action?: ReactNode;
   style?: ViewStyle;
@@ -97,34 +116,24 @@ export interface ScreenTitleProps {
 /**
  * The title of a root tab screen.
  *
- * `ScreenHeader` covers pushed screens; this covers the six that have no back
- * button, and it exists because all five that had a title were hand-rolling the
- * same six lines. They had drifted, in the two ways hand-rolled chrome always
- * drifts:
- *
- *   Community paid `paddingBottom: space.lg` on top of the `Stack`'s own 24,
- *   so one tab of six opened 40pt lower than its siblings. Nothing chose that;
- *   it accumulated.
- *
- *   Not one of the five carried `accessibilityRole="header"`. The auth screens
- *   all do, so the app announced "Verify your email" as a heading and
- *   "Health", "Donate", "Calendar", "Community" and "Profile" as ordinary text
- *   -- which means heading navigation, the way a screen-reader user skips to
- *   the top of a screen, worked everywhere except the six screens they are
- *   actually in.
- *
- * `h1` (30) rather than the header's `h2` (22): a root screen is a place and a
- * pushed screen is a step, and the 8pt between them is what says which.
+ * `h1` (28) rather than the pushed header's `h3` (18): a root screen is a
+ * place and a pushed screen is a step, and the 10pt between them is what says
+ * which.
  */
-export function ScreenTitle({ title, subtitle, action, style }: ScreenTitleProps) {
+export function ScreenTitle({ title, subtitle, eyebrow, action, style }: ScreenTitleProps) {
   return (
     <View
       style={[
-        { flexDirection: 'row', alignItems: 'flex-start', gap: space.md, paddingTop: space.md },
+        { flexDirection: 'row', alignItems: 'center', gap: space.md, paddingTop: space.md, minHeight: 44 },
         style,
       ]}
     >
       <View style={{ flex: 1, gap: 2 }}>
+        {eyebrow ? (
+          <Text variant="label" tone="tertiary" numberOfLines={1}>
+            {eyebrow}
+          </Text>
+        ) : null}
         <Text variant="h1" accessibilityRole="header">
           {title}
         </Text>
@@ -140,12 +149,16 @@ export function ScreenTitle({ title, subtitle, action, style }: ScreenTitleProps
 }
 
 /**
- * The floating bottom tab bar.
+ * The bottom tab bar.
  *
- * This is the one place in V2 that spends translucency. It is a single surface
- * over scrolling content, which is exactly the case blur is for, and a single
- * failure here is a slightly flat pill rather than a dimmed app -- which is why
- * V1 had to switch it off everywhere else.
+ * Full width, opaque, a hairline above it and the safe area below: the shape
+ * of a native tab bar on both platforms, which is what a donor's thumb already
+ * knows. The earlier floating pill read as a template and cost every screen
+ * 24pt of dead space at the foot.
+ *
+ * The active tab is marked three ways -- a tinted pill behind the icon, the
+ * rose colour, and a heavier label face -- so it survives colour blindness
+ * and a renderer that disagrees about weight.
  *
  * Two things it must do that a custom tab bar easily forgets:
  *
@@ -154,11 +167,7 @@ export function ScreenTitle({ title, subtitle, action, style }: ScreenTitleProps
  *   content by the wrong amount and the last card sitting underneath the bar.
  *
  *   It honours `href: null`. `state.routes` is EVERY route registered in the
- *   navigator, including the dozen pushed screens that are not tabs. Expo
- *   Router implements `href: null` as `tabBarButton: () => null` plus
- *   `tabBarItemStyle: { display: 'none' }`, and both of those are read only by
- *   React Navigation's own bar. A custom one gets the unfiltered list and will
- *   happily lay out a flex cell for all nineteen.
+ *   navigator, including the dozen pushed screens that are not tabs.
  */
 export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const { colors } = useDesign();
@@ -179,104 +188,84 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
     <View
       // Compared by key, not index: `state.index` indexes the FULL route list,
       // so comparing it against the filtered one highlights the wrong tab.
-      onLayout={(event) => reportHeight?.(event.nativeEvent.layout.height + insets.bottom)}
+      onLayout={(event) => reportHeight?.(event.nativeEvent.layout.height)}
       style={{
-        position: 'absolute',
-        left: space.lg,
-        right: space.lg,
-        bottom: insets.bottom + space.sm,
-        borderRadius: radius.lg,
-        overflow: 'hidden',
-        borderWidth: 1,
-        borderColor: colors.chrome.border,
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        paddingTop: space.sm,
+        paddingBottom: Math.max(insets.bottom, space.sm),
+        paddingHorizontal: space.xs,
+        backgroundColor: colors.chrome.fill,
+        borderTopWidth: 1,
+        borderTopColor: colors.chrome.border,
         ...(Platform.OS === 'ios'
           ? {
               shadowColor: '#000',
               shadowOpacity: elevation.floating.shadowOpacity,
               shadowRadius: elevation.floating.shadowRadius,
-              shadowOffset: { width: 0, height: elevation.floating.shadowOffsetY },
+              shadowOffset: { width: 0, height: -4 },
             }
-          : // The one place on Android where a shadow has something to fall on:
-            // the bar sits over scrolling content, so the lift is visible.
-            { elevation: elevation.floating.android }),
+          : { elevation: elevation.floating.android }),
       }}
     >
-      {/*
-        Blur on iOS, an opaque surface on Android.
+      {visible.map((route) => {
+        const { options } = descriptors[route.key]!;
+        const focused = focusedKey === route.key;
+        const label = (options.title as string) ?? route.name;
+        const color = focused ? colors.rose.base : colors.textTertiary;
 
-        This is a decision, not a fallback. `expo-blur` on Android samples what
-        is drawn beneath it, and when that sample is unavailable -- which over a
-        navigator it often is -- the platform draws a flat tinted plate instead
-        of a blur. V1 already found this and turned blur off on cards with a
-        comment saying the look never rested on it. Betting the one remaining
-        translucent surface in the app on that same sampler, over the one
-        component a donor sees on every screen, is a bet with no upside: a real
-        blur and a grey plate are hard to tell apart, and the plate is what you
-        get on the bad day.
-
-        So Android gets a deliberately composed opaque surface at the raised
-        tone with real elevation, which reads as lift on every device. If the
-        Product Owner confirms blur looks genuinely good on the target hardware,
-        this is one branch to delete.
-      */}
-      <Bar
-        intensity={colors.chrome.blurIntensity}
-        tint={colors.chrome.blurTint}
-        style={{
-          flexDirection: 'row',
-          backgroundColor: Platform.OS === 'android' ? colors.surfaceRaised : colors.chrome.fill,
-        }}
-      >
-        {visible.map((route) => {
-          const { options } = descriptors[route.key]!;
-          const focused = focusedKey === route.key;
-          const label = (options.title as string) ?? route.name;
-          const color = focused ? colors.rose.text : colors.textTertiary;
-
-          return (
-            <Pressable
-              key={route.key}
-              accessibilityRole="tab"
-              accessibilityLabel={(options.tabBarAccessibilityLabel as string) ?? label}
-              accessibilityState={{ selected: focused }}
-              onPress={() => {
-                const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
-                if (!focused && !event.defaultPrevented) navigation.navigate(route.name);
-              }}
+        return (
+          <Pressable
+            key={route.key}
+            accessibilityRole="tab"
+            accessibilityLabel={(options.tabBarAccessibilityLabel as string) ?? label}
+            accessibilityState={{ selected: focused }}
+            onPress={() => {
+              const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
+              if (!focused && !event.defaultPrevented) navigation.navigate(route.name);
+            }}
+            style={{
+              flex: 1,
+              alignItems: 'center',
+              justifyContent: 'flex-start',
+              gap: 4,
+              minHeight: hitTarget.min,
+              paddingHorizontal: 2,
+            }}
+          >
+            <View
               style={{
-                flex: 1,
+                width: 52,
+                height: 30,
+                borderRadius: radius.full,
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: 3,
-                paddingVertical: space.md,
-                minHeight: hitTarget.comfortable,
+                backgroundColor: focused ? colors.rose.soft : 'transparent',
               }}
             >
-              {options.tabBarIcon?.({ focused, color, size: iconScale.md })}
-              {/* The label stays at every state. An icon-only bar is two taps
-                  of guessing for anyone who does not already know the app, and
-                  the icons here (a droplet, a heart, a calendar) are not
-                  self-evident in a language the donor may not read. */}
-              <Text
-                variant="caption"
-                // 11sp is the floor: at 10 the six labels read as decoration
-                // rather than navigation, and Russian makes it worse. The
-                // focused state changes FACE, not weight -- asking Android for
-                // a numeric weight on top of a real family makes it synthesise.
-                style={{
-                  color,
-                  fontSize: 11,
-                  lineHeight: 14,
-                  fontFamily: focused ? fonts.semibold : fonts.regular,
-                }}
-                numberOfLines={1}
-              >
-                {label}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </Bar>
+              {options.tabBarIcon?.({ focused, color, size: iconScale.md + 2 })}
+            </View>
+            {/* The label stays at every state. An icon-only bar is two taps
+                of guessing for anyone who does not already know the app, and
+                the icons here (a droplet, a heart, a calendar) are not
+                self-evident in a language the donor may not read. */}
+            <Text
+              variant="caption"
+              // 11sp is the floor: at 10 the six labels read as decoration.
+              // The focused state changes FACE, not weight.
+              style={{
+                color: focused ? colors.rose.text : colors.textTertiary,
+                fontSize: 11,
+                lineHeight: 14,
+                fontFamily: focused ? fonts.semibold : fonts.medium,
+              }}
+              numberOfLines={1}
+            >
+              {label}
+            </Text>
+          </Pressable>
+        );
+      })}
     </View>
   );
 }

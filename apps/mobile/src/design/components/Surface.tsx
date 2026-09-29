@@ -1,16 +1,37 @@
 import { Platform, Pressable, View, type ViewProps, type ViewStyle } from 'react-native';
 import { type ReactNode } from 'react';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useDesign } from '../useDesign';
-import { elevation as elevationScale, radius as radiusScale, space, type ElevationName } from '../tokens';
+import {
+  elevation as elevationScale,
+  radius as radiusScale,
+  space,
+  type AccentName,
+  type ElevationName,
+} from '../tokens';
 
 export interface SurfaceProps extends ViewProps {
   level?: ElevationName;
-  /** `md` is the default card corner; `lg` for sheets and full-bleed. */
+  /** `lg` is the default card corner; `xl` for sheets and the hero. */
   corner?: keyof typeof radiusScale;
   /** Inner padding. `false` for a surface whose children manage their own. */
   padded?: boolean | keyof typeof space;
-  /** A hairline edge. On by default for `flat`, off for anything with a shadow. */
+  /** A hairline edge. Off by default: in V4 a border means "takes input". */
   bordered?: boolean;
+  /**
+   * Tints the surface with an accent's soft ground.
+   *
+   * For a block whose whole meaning is a state -- "you can donate today", "a
+   * result needs attention". Never for decoration: a tinted card that means
+   * nothing spends the colour a real state would need.
+   */
+  tone?: AccentName;
+  /**
+   * The identity hero. The one gradient in the system: a deep rose-plum that
+   * fades into the surface colour. Used by the donor's identity block and
+   * nowhere else.
+   */
+  hero?: boolean;
   /**
    * Makes the whole card the tap target.
    *
@@ -24,56 +45,57 @@ export interface SurfaceProps extends ViewProps {
 }
 
 /**
- * Every opaque panel in V2.
+ * Every opaque panel in V4.
  *
  * Three levels, and each says something:
  *
- *   flat      part of the page. Grouped lists, inline sections. Bordered.
- *   raised    a card: a thing you could pick up and move. The common case.
- *   floating  above the page: sheets, menus, the tab bar.
+ *   flat      part of the page: a grouped list, an inline block. Surface tone,
+ *             nothing else.
+ *   raised    a card: a distinct object. Surface tone, a hairline of light on
+ *             its top edge, and on iOS a soft shadow.
+ *   floating  above the page: sheets, menus, the tab bar. Raised tone and a
+ *             real shadow on both platforms.
  *
- * Uniform elevation on everything is the same as no elevation -- nothing is
- * more important than anything else and the eye has nowhere to land. V1 made
- * everything a card; this is the fix, and using it means choosing.
- *
- * Android gets no shadow on purpose. It derives the shadow from the view's
- * outline, and on a surface whose fill lives in a child that degrades into a
- * hard grey rectangle drawn inside the card. That was reported four times
- * across separate builds in V1. The border carries the separation instead, and
- * `bordered` defaults to on wherever the shadow is doing nothing.
+ * No border at rest. Three previous systems outlined every card, and an
+ * outline on every card is the "wall of identical rounded rectangles" the
+ * product owner kept seeing. Tone separates a surface from the page; the top
+ * highlight says it is lit from above; a border is reserved for controls.
  */
 export function Surface({
   level = 'raised',
-  corner = 'md',
+  corner = 'lg',
   padded = true,
-  bordered,
+  bordered = false,
+  tone,
+  hero = false,
   onPress,
   disabled = false,
   style,
   children,
   ...rest
 }: SurfaceProps) {
-  const { colors } = useDesign();
+  const { colors, isDark } = useDesign();
   const e = elevationScale[level];
 
-  // Android gets its lift from tone and, where a shadow has something to fall
-  // on, from real elevation. The hairline stays wherever neither is doing the
-  // work: it is what keeps a flush card's edge crisp on a dark panel.
   const androidElevation = Platform.OS === 'android' ? e.android : 0;
-  const shadowless = (Platform.OS === 'android' && androidElevation === 0) || level === 'flat';
-  const showBorder = bordered ?? shadowless;
+  const padding = padded === false ? 0 : padded === true ? space.lg : space[padded];
+  const cornerRadius = radiusScale[corner];
 
-  const padding = padded === false ? 0 : padded === true ? space.lg : space[padding_(padded)];
+  const background = tone
+    ? colors[tone].soft
+    : level === 'floating'
+      ? colors.surfaceRaised
+      : colors.surface;
 
   const frame: ViewStyle = {
-    // Tonal elevation: a floating surface is lighter, not just shadowed. On a
-    // dark panel this is the signal a viewer actually perceives.
-    backgroundColor: level === 'floating' ? colors.surfaceRaised : colors.surface,
-    borderRadius: radiusScale[corner],
-    padding,
-    borderWidth: showBorder ? 1 : 0,
-    borderColor: colors.divider,
+    backgroundColor: hero ? colors.surface : background,
+    borderRadius: cornerRadius,
+    borderWidth: bordered ? 1 : 0,
+    borderColor: colors.border,
     opacity: disabled ? 0.5 : 1,
+    // The gradient and the highlight are children that must not spill past
+    // the corner.
+    overflow: 'hidden',
     ...(Platform.OS === 'ios' && e.shadowOpacity > 0
       ? {
           shadowColor: '#000',
@@ -82,15 +104,38 @@ export function Surface({
           shadowOffset: { width: 0, height: e.shadowOffsetY },
         }
       : null),
-    // Android's own property. Only non-zero for `floating`, where the shadow
-    // lands on content rather than on a near-black page and therefore reads.
     ...(androidElevation > 0 ? { elevation: androidElevation } : null),
   };
+
+  // The light along the top edge. Only a raised surface on a dark page has
+  // one: a flat block is part of the page and a light surface is already lit.
+  const lit = isDark && level !== 'flat' && !tone;
+
+  const inner = (
+    <>
+      {hero ? (
+        <LinearGradient
+          pointerEvents="none"
+          colors={[colors.heroGradient[0], colors.heroGradient[1]]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0.9, y: 1 }}
+          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+        />
+      ) : null}
+      {lit ? (
+        <View
+          pointerEvents="none"
+          style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1, backgroundColor: colors.highlight }}
+        />
+      ) : null}
+      <View style={{ padding }}>{children}</View>
+    </>
+  );
 
   if (!onPress) {
     return (
       <View style={[frame, style as ViewStyle]} {...rest}>
-        {children}
+        {inner}
       </View>
     );
   }
@@ -103,30 +148,28 @@ export function Surface({
       onPress={onPress}
       style={({ pressed }) => [
         frame,
-        pressed ? { backgroundColor: colors.surfacePressed } : null,
+        pressed && !hero ? { backgroundColor: colors.surfacePressed } : null,
+        pressed && hero ? { opacity: 0.88 } : null,
         style as ViewStyle,
       ]}
       {...rest}
     >
-      {children}
+      {inner}
     </Pressable>
   );
-}
-
-function padding_(value: Exclude<SurfaceProps['padded'], boolean | undefined>): keyof typeof space {
-  return value;
 }
 
 /**
  * An inset well: the visual opposite of a Surface.
  *
- * Used where content belongs *below* the page rather than above it -- an input
- * field's interior, a read-only value block, an inline result list. Having both
- * directions is what lets a screen show grouping without adding another card.
+ * Used where content belongs *below* the page rather than above it -- a
+ * read-only value block, an inline result list, a quotation from the server.
+ * Having both directions is what lets a screen show grouping without adding
+ * another card.
  */
-export function Well({ corner = 'sm', padded = true, style, children, ...rest }: SurfaceProps) {
+export function Well({ corner = 'md', padded = true, style, children, ...rest }: SurfaceProps) {
   const { colors } = useDesign();
-  const padding = padded === false ? 0 : padded === true ? space.md : space[padding_(padded)];
+  const padding = padded === false ? 0 : padded === true ? space.md : space[padded];
 
   return (
     <View
@@ -135,14 +178,54 @@ export function Well({ corner = 'sm', padded = true, style, children, ...rest }:
           backgroundColor: colors.sunken,
           borderRadius: radiusScale[corner],
           padding,
-          borderWidth: 1,
-          borderColor: colors.divider,
         },
         style as ViewStyle,
       ]}
       {...rest}
     >
       {children}
+    </View>
+  );
+}
+
+/**
+ * A rounded tinted square with an icon in it: the leading element of a row, a
+ * feature marker, an empty-state glyph.
+ *
+ * One component, because every screen that drew one by hand chose a different
+ * size and a different tint opacity, and a list of rows whose icon tiles are
+ * 32, 36 and 40pt looks assembled rather than designed.
+ */
+export function IconTile({
+  icon,
+  tone,
+  size = 36,
+  style,
+}: {
+  icon: (props: { size: number; color: string }) => ReactNode;
+  /** Accent tint. Omit for a neutral tile. */
+  tone?: AccentName;
+  size?: 32 | 36 | 40 | 48 | 56;
+  style?: ViewStyle;
+}) {
+  const { colors } = useDesign();
+  const accent = tone ? colors[tone] : null;
+  const iconSize = size >= 48 ? 26 : size >= 40 ? 22 : 20;
+  return (
+    <View
+      style={[
+        {
+          width: size,
+          height: size,
+          borderRadius: size >= 48 ? radiusScale.md : radiusScale.sm,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: accent ? accent.soft : colors.surfaceRaised,
+        },
+        style,
+      ]}
+    >
+      {icon({ size: iconSize, color: accent ? accent.base : colors.textSecondary })}
     </View>
   );
 }

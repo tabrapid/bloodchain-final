@@ -1,6 +1,7 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import { Animated, View, type ViewStyle } from 'react-native';
 import { useDesign } from '../useDesign';
+import { fonts } from '../fonts';
 import { icon as iconScale, motion, radius, space, type as typeScale, type AccentName } from '../tokens';
 import { Text, ValueText } from './Text';
 
@@ -12,33 +13,26 @@ export interface StatProps {
   unit?: string;
   icon?: (props: { size: number; color: string }) => ReactNode;
   tone?: AccentName;
+  /** `sm` for a stat inside a row; `md` (default) for a stat row of its own. */
+  size?: 'sm' | 'md';
   style?: ViewStyle;
 }
 
 /**
  * One number and what it means.
  *
- * The label reads first and the value second, which is the opposite of how V1
- * drew it. A column of large numbers above small grey words makes the eye
- * collect four numbers and then go back for four meanings; label-first is read
- * once.
+ * The label reads first and the value second. A column of large numbers above
+ * small grey words makes the eye collect four numbers and then go back for
+ * four meanings; label-first is read once.
  *
  * The whole thing is one accessible element, so a screen reader says "Donations
  * this year, 4" rather than "Donations this year" then "4" as separate stops.
  */
-export function Stat({ label, value, unit, icon, tone, style }: StatProps) {
+export function Stat({ label, value, unit, icon, tone, size = 'md', style }: StatProps) {
   const { colors } = useDesign();
 
-  /*
-    A zero recedes.
-
-    "Emergency responses: 0" was drawn in the same weight and the same accent as
-    "Donations: 3", so a donor who has never responded to an emergency got a
-    number shouting at them about something that has not happened. Nothing is
-    not an achievement and it is not a warning; it is the absence of data, and
-    it should read as quietly as it means. The value is still announced in full
-    to a screen reader -- this changes how it looks, not what it says.
-  */
+  // A zero recedes: nothing is not an achievement and not a warning, and it
+  // should read as quietly as it means. The value is still announced in full.
   const isZero = String(value).trim() === '0';
   const accent = tone && !isZero ? colors[tone] : null;
 
@@ -49,20 +43,13 @@ export function Stat({ label, value, unit, icon, tone, style }: StatProps) {
       accessibilityLabel={unit ? `${label}: ${value} ${unit}` : `${label}: ${value}`}
       style={[{ gap: space.xs, flex: 1 }, style]}
     >
-      {/*
-        Two lines, and room reserved for both.
-
-        A row of three stats at 393pt gives each label about 100pt, and
-        "Emergency responses" is longer than that in English before Russian and
-        Uzbek make it longer still -- so a single clipped line read "Emergency
-        r…". Wrapping fixes the clipping; reserving the height keeps the three
-        numbers on one baseline whether the labels wrap or not.
-      */}
       <View
         style={{
           flexDirection: 'row',
           alignItems: 'flex-start',
           gap: space.xs,
+          // Room for two lines, so three stats keep one baseline whether their
+          // labels wrap or not -- and in Russian they do.
           minHeight: typeScale.caption.lineHeight * 2,
         }}
       >
@@ -73,9 +60,8 @@ export function Stat({ label, value, unit, icon, tone, style }: StatProps) {
       </View>
       <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: space.xs }}>
         <ValueText
-          style={
-            accent ? { color: accent.text } : isZero ? { color: colors.textTertiary } : undefined
-          }
+          variant={size === 'sm' ? 'valueSm' : 'value'}
+          style={accent ? { color: accent.text } : isZero ? { color: colors.textTertiary } : undefined}
         >
           {value}
         </ValueText>
@@ -89,22 +75,35 @@ export function Stat({ label, value, unit, icon, tone, style }: StatProps) {
   );
 }
 
-/** A row of stats sharing the width, divided rather than boxed. */
-export function StatRow({ children }: { children: ReactNode }) {
+/**
+ * A row of stats sharing the width, divided by hairlines rather than boxed
+ * individually. Sits on a surface of its own by default; `bare` draws it on
+ * whatever it is already inside.
+ */
+export function StatRow({ children, bare = false }: { children: ReactNode; bare?: boolean }) {
   const { colors } = useDesign();
+  const items = Array.isArray(children) ? children.filter(Boolean) : [children];
   return (
     <View
-      style={{
-        flexDirection: 'row',
-        gap: space.lg,
-        padding: space.lg,
-        borderRadius: radius.md,
-        backgroundColor: colors.surface,
-        borderWidth: 1,
-        borderColor: colors.divider,
-      }}
+      style={
+        bare
+          ? { flexDirection: 'row' }
+          : {
+              flexDirection: 'row',
+              padding: space.lg,
+              borderRadius: radius.lg,
+              backgroundColor: colors.surface,
+            }
+      }
     >
-      {children}
+      {items.map((child, index) => (
+        <View key={index} style={{ flex: 1, flexDirection: 'row' }}>
+          {index > 0 ? (
+            <View style={{ width: 1, backgroundColor: colors.divider, marginRight: space.md, marginVertical: 2 }} />
+          ) : null}
+          <View style={{ flex: 1 }}>{child}</View>
+        </View>
+      ))}
     </View>
   );
 }
@@ -119,6 +118,8 @@ export interface ProgressProps {
   tone?: AccentName;
   /** Hides the label row and draws the bar alone, for use inside a row that already says what it is. */
   bare?: boolean;
+  /** Bar thickness. `thin` (4) inside rows; `regular` (6) on its own. */
+  thickness?: 'thin' | 'regular';
 }
 
 /**
@@ -129,7 +130,7 @@ export interface ProgressProps {
  * The fill animates over `motion.quick`; anything slower feels like lag rather
  * than motion, and the brief here is calm, not sleepy.
  */
-export function Progress({ value, label, caption, tone = 'rose', bare = false }: ProgressProps) {
+export function Progress({ value, label, caption, tone = 'rose', bare = false, thickness = 'regular' }: ProgressProps) {
   const { colors } = useDesign();
   const clamped = Math.max(0, Math.min(1, Number.isFinite(value) ? value : 0));
   const width = useRef(new Animated.Value(clamped)).current;
@@ -143,6 +144,8 @@ export function Progress({ value, label, caption, tone = 'rose', bare = false }:
       useNativeDriver: false,
     }).start();
   }, [clamped, width]);
+
+  const height = thickness === 'thin' ? 4 : 6;
 
   return (
     <View
@@ -158,13 +161,13 @@ export function Progress({ value, label, caption, tone = 'rose', bare = false }:
             {label}
           </Text>
           {caption ? (
-            <Text variant="label" tone="tertiary">
+            <Text variant="label" tone="tertiary" style={{ fontVariant: ['tabular-nums'] }}>
               {caption}
             </Text>
           ) : null}
         </View>
       )}
-      <View style={{ height: 6, borderRadius: radius.full, backgroundColor: colors.track, overflow: 'hidden' }}>
+      <View style={{ height, borderRadius: radius.full, backgroundColor: colors.track, overflow: 'hidden' }}>
         <Animated.View
           style={{
             height: '100%',
@@ -214,12 +217,20 @@ export function Avatar({ name, size = 44, ring }: AvatarProps) {
         borderRadius: radius.full,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: colors.surfaceRaised,
-        borderWidth: ring ? 2 : 1,
-        borderColor: ring ? colors[ring].base : colors.divider,
+        backgroundColor: colors.rose.soft,
+        borderWidth: ring ? 2 : 0,
+        borderColor: ring ? colors[ring].base : 'transparent',
       }}
     >
-      <Text variant={size >= 56 ? 'h2' : 'bodyStrong'} tone="secondary">
+      <Text
+        style={{
+          fontFamily: fonts.displayBold,
+          fontSize: Math.round(size * 0.38),
+          lineHeight: Math.round(size * 0.46),
+          color: colors.rose.text,
+          letterSpacing: -0.3,
+        }}
+      >
         {initials || '?'}
       </Text>
     </View>

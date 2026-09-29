@@ -390,16 +390,21 @@ describe('a screen is a column, not a canvas', () => {
 });
 
 describe('Surface', () => {
-  it('draws a border rather than a shadow where the shadow cannot work', () => {
+  it('never casts a shadow on Android, and draws no border unless asked', () => {
     // Android derives a shadow from the view's outline, and on a surface whose
     // fill lives in a child that degrades into a hard grey rectangle drawn
-    // inside the card. It was reported four times across separate V1 builds.
+    // inside the card. And in V4 a border means "takes input": a card is
+    // separated from the page by tone, never by an outline.
     const tree = render(<Surface level="flat">{null}</Surface>);
     const view = tree.root.findAllByType(View)[0]!;
     const style = flatten(view.props.style);
 
-    expect(style.borderWidth).toBe(1);
+    expect(style.borderWidth).toBe(0);
     expect(style.shadowOpacity).toBeUndefined();
+    expect(style.elevation).toBeUndefined();
+
+    const outlined = render(<Surface bordered>{null}</Surface>);
+    expect(flatten(outlined.root.findAllByType(View)[0]!.props.style).borderWidth).toBe(1);
   });
 
   it('is announced as one button when the whole card is the target', () => {

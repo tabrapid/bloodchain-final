@@ -322,6 +322,7 @@ describe('P3-9: the four screens that used className render with real styles', (
     expect(
       fingerprint.includes(colors.border) ||
         fingerprint.includes(colors.glassBorder) ||
+        fingerprint.includes(dark.surface) ||
         fingerprint.includes(dark.divider),
     ).toBe(true);
   });

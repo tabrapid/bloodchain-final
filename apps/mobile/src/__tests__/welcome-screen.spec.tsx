@@ -111,8 +111,10 @@ describe('Welcome', () => {
     const secondary = styleOf(buttonWithLabel(tree, 'Sign in to Bloodchain'));
 
     expect(primary.backgroundColor).toBe(themes.dark.rose.fill);
-    expect(secondary.backgroundColor).toBe('transparent');
-    expect(secondary.borderWidth).toBe(1);
+    // The alternative is tonal: a raised surface with no outline, so it
+    // reads as the quieter of two actions rather than as a form field.
+    expect(secondary.backgroundColor).toBe(themes.dark.surfaceRaised);
+    expect(secondary.borderWidth).toBe(0);
   });
 
   it('keeps both actions above the 44pt touch target', () => {

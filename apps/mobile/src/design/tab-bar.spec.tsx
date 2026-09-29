@@ -168,17 +168,20 @@ describe('TabBar', () => {
 });
 
 /**
- * Cards gave up their backdrop blur in V2 -- a screen tiled with them dimmed
- * the whole app whenever the platform could not sample the backdrop. The bar
- * is the exception and should stay one: a single surface floating over
- * scrolling content, where a failure is a slightly flat pill rather than a
- * dimmed app.
+ * The V4 bar is opaque.
+ *
+ * `expo-blur` on Android samples what is drawn beneath it, and over a
+ * navigator that sample is often unavailable, at which point the platform
+ * draws a flat tinted plate. A blur that is a grey plate on the bad day is a
+ * bet with no upside on the one component a donor sees on every screen. The
+ * bar is a composed opaque tone with a hairline above it -- which is also what
+ * a native tab bar looks like.
  */
-describe('the tab bar keeps its blur', () => {
-  it('mounts exactly one BlurView', () => {
+describe('the tab bar is opaque', () => {
+  it('mounts no BlurView', () => {
     const { BlurView } = require('expo-blur');
     const { props } = buildProps(['home', 'health', 'donate'], 0);
-    expect(renderBar(props).root.findAllByType(BlurView)).toHaveLength(1);
+    expect(renderBar(props).root.findAllByType(BlurView)).toHaveLength(0);
   });
 });
 

@@ -15,14 +15,14 @@ export interface TextProps extends Omit<RNTextProps, 'children'> {
 }
 
 /**
- * The only way text is drawn in V2.
+ * The only way text is drawn.
  *
  * A call site picks a role -- "this is a heading", "this is supporting" -- and
- * never a size, weight or colour. That is what keeps forty screens looking like
- * one product, and it is also what makes a change to the scale possible at all:
- * V1 had thirteen screens setting `fontSize` directly on top of a variant,
- * which silently kept the variant's line height and clipped the glyphs. There
- * is no prop here to do that with.
+ * never a size, weight or colour. That is what keeps sixty screens looking
+ * like one product, and it is what makes a change to the scale possible at
+ * all: an early version of this app had thirteen screens setting `fontSize`
+ * directly on top of a variant, which silently kept the variant's line height
+ * and clipped the glyphs.
  *
  * `tone` resolves to the accent's TEXT value, never its `base`. The two exist
  * separately precisely so that a label cannot accidentally be drawn in the
@@ -62,12 +62,9 @@ export function Text({
         {
           fontSize: scale.fontSize,
           lineHeight: scale.lineHeight,
-          // A family, never a numeric weight. Setting both asks Android to
-          // synthesise a weight on top of a face that already carries it, and
-          // the result is the slightly smeared, slightly-too-heavy text that
-          // reads as amateur. See src/design/fonts.ts.
+          // A family, never a numeric weight. See src/design/fonts.ts.
           fontFamily: scale.fontFamily,
-          letterSpacing: caps ? 0.9 : scale.letterSpacing,
+          letterSpacing: caps ? 0.8 : scale.letterSpacing,
           color,
           textAlign: align,
           textTransform: caps ? 'uppercase' : undefined,

@@ -1,9 +1,9 @@
 /**
- * Bloodchain Mobile V2 — the design system.
+ * Bloodchain Mobile V4 — the design system.
  *
  * A screen imports from here and from nowhere else in this folder. One entry
  * point is what makes it possible to tell, by grepping the imports, whether a
- * screen has been rebuilt or is still on V1.
+ * screen has been rebuilt or is still on an older system.
  *
  * NOT re-exported: `src/components/map/LocationMap`. react-native-maps links a
  * native module that Expo Go does not ship, so importing it anywhere in a
@@ -28,7 +28,7 @@ export type { DesignColors, Accent, AccentName, TypeVariant, ElevationName } fro
 export { Text, ValueText } from './components/Text';
 export type { TextProps, TextTone } from './components/Text';
 
-export { Surface, Well } from './components/Surface';
+export { Surface, Well, IconTile } from './components/Surface';
 export type { SurfaceProps } from './components/Surface';
 
 export { Button, IconButton, LinkButton, ButtonRow } from './components/Button';
@@ -37,12 +37,13 @@ export type { ButtonProps, ButtonVariant, ButtonSize, IconButtonProps, LinkButto
 export { Screen, ScrollScreen, FormScreen, Stack, Row, useTabBarClearance } from './components/Screen';
 export type { ScreenProps, ScrollScreenProps } from './components/Screen';
 
-export { Badge, StatusDot, Banner, EmergencyBanner } from './components/Status';
-export type { BadgeProps, BannerProps, StatusTone } from './components/Status';
+export { Badge, StatusDot, Banner, EmergencyBanner, Timeline } from './components/Status';
+export type { BadgeProps, BannerProps, StatusTone, TimelineStep } from './components/Status';
 
 export {
   Skeleton,
   SkeletonRow,
+  SkeletonCard,
   EmptyState,
   ErrorState,
   SectionError,
@@ -68,29 +69,16 @@ export type {
   FilterChipProps,
 } from './components/Controls';
 
-export { SectionHeader, ListRow, Divider, ListGroup } from './components/List';
+export { SectionHeader, ListRow, Divider, ListGroup, KeyValueRow } from './components/List';
 export { Section, Sections } from './components/Section';
 export type { SectionProps, SectionsProps, SectionGap, SectionRhythm } from './components/Section';
 export type { SectionHeaderProps, ListRowProps } from './components/List';
 
-/*
-  The Sparkline is gone, and the Product Owner's rule is why: if a chart cannot
-  communicate real data honestly, remove it.
+export { RecordRow, ValueBlock } from './components/Record';
+export type { RecordRowProps } from './components/Record';
 
-  It scaled each series to its own min and max, so a haemoglobin reading that
-  moved 0.1 g/dL across five months rendered as a line sweeping the full height
-  of the box -- the same drawing a genuine collapse would produce. There was no
-  axis to read it against and no reference range on it, and it defaulted to
-  rose, which in this app is the alarm colour. Its one call site was the Health
-  screen's headline card, where it sat beside a badge reading "within healthy
-  range" and contradicted it.
-
-  The trends screen draws the real chart: straight segments between measured
-  points, a y-axis, and the laboratory's reference range as two dashed lines.
-  Deleting this rather than leaving it exported is deliberate -- an unused
-  primitive in the barrel is an invitation, and the next screen that wanted "a
-  little line showing the trend" would have taken it.
-*/
+export { ChartFrame } from './components/Chart';
+export type { ChartFrameProps } from './components/Chart';
 
 export { Stat, StatRow, Progress, Avatar } from './components/Stat';
 export type { StatProps, ProgressProps, AvatarProps } from './components/Stat';
@@ -101,11 +89,11 @@ export type { SheetProps, ConfirmationSheetProps, PermissionExplainerProps } fro
 export { MonthGrid } from './components/MonthGrid';
 export type { MonthGridProps } from './components/MonthGrid';
 
-export { FlowStep } from './components/Flow';
+export { FlowStep, StepIndicator } from './components/Flow';
 export type { FlowStepProps } from './components/Flow';
 
 export { ScreenHeader, ScreenTitle, TabBar } from './components/Chrome';
 export type { ScreenHeaderProps, ScreenTitleProps } from './components/Chrome';
 
-/** The typeface. Screens needing a face for a one-off use `fonts.semibold`, never a numeric weight. */
+/** The typefaces. A screen needing a face for a one-off uses `fonts.semibold`, never a numeric weight. */
 export { fonts, useAppFonts, type FontFamily } from './fonts';

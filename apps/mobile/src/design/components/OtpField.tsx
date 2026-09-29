@@ -26,9 +26,7 @@ export interface OtpFieldProps {
  * offers "From Messages" above the keyboard for a field with
  * `textContentType="oneTimeCode"`, and Android's SMS Retriever fills a field
  * with `autoComplete="sms-otp"` -- both of which deliver the whole code at
- * once, into one field. Six separate inputs, which is the obvious way to build
- * this, silently break both: the code arrives, goes into box one, and the donor
- * types the rest by hand while wondering why the suggestion did nothing.
+ * once, into one field. Six separate inputs silently break both.
  *
  * It submits itself on the last digit. Asking someone to press "Verify" after
  * typing six digits that can only mean one thing is a button that exists to be
@@ -60,6 +58,7 @@ export function OtpField({
   const digits = Array.from({ length }, (_, i) => value[i] ?? '');
   // The box the next digit lands in, which is the one to highlight.
   const activeIndex = Math.min(value.length, length - 1);
+  const boxHeight = hitTarget.comfortable + 8;
 
   return (
     <View>
@@ -80,19 +79,25 @@ export function OtpField({
               importantForAccessibility="no-hide-descendants"
               style={{
                 flex: 1,
-                height: hitTarget.comfortable + 4,
+                height: boxHeight,
                 alignItems: 'center',
                 justifyContent: 'center',
-                borderRadius: radius.sm,
-                borderWidth: isActive ? 2 : 1,
-                borderColor: error ? colors.critical.base : isActive ? colors.clinical.base : colors.border,
-                backgroundColor: colors.sunken,
+                borderRadius: radius.md,
+                borderWidth: 1.5,
+                borderColor: error ? colors.critical.base : isActive ? colors.clinical.base : 'transparent',
+                backgroundColor: colors.surfaceRaised,
                 opacity: disabled ? 0.5 : 1,
               }}
             >
-              <Text variant="h2" style={{ fontVariant: ['tabular-nums'] }}>
-                {digit}
-              </Text>
+              {digit ? (
+                <Text variant="h2" style={{ fontVariant: ['tabular-nums'] }}>
+                  {digit}
+                </Text>
+              ) : isActive ? (
+                <View style={{ width: 2, height: 24, borderRadius: 1, backgroundColor: colors.clinical.base }} />
+              ) : (
+                <View style={{ width: 8, height: 2, borderRadius: 1, backgroundColor: colors.track }} />
+              )}
             </View>
           );
         })}
@@ -121,7 +126,7 @@ export function OtpField({
           top: 0,
           left: 0,
           right: 0,
-          height: hitTarget.comfortable + 4,
+          height: boxHeight,
           opacity: 0,
           color: 'transparent',
         }}

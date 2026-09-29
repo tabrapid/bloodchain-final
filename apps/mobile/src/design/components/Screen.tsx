@@ -29,10 +29,8 @@ export interface ScreenProps {
  * The page frame.
  *
  * It owns three things every screen would otherwise get slightly wrong on its
- * own: the background colour, the safe-area insets, and the space the floating
- * tab bar occupies. In V1 each screen painted its own gradient and guessed at
- * the bottom inset, which is why the last card on several screens sat under
- * the tab bar.
+ * own: the background colour, the safe-area insets, and the space the tab bar
+ * occupies.
  *
  * The tab-bar height is read from context rather than from
  * `useBottomTabBarHeight()`, which throws on the screens that are not inside a
@@ -51,9 +49,8 @@ export function Screen({ children, gutter = true, topPadding = true, style, test
           backgroundColor: colors.background,
           paddingTop: topPadding ? insets.top : 0,
           paddingHorizontal: gutter ? layout.gutter : 0,
-          // A phone layout stretched across a tablet or an unfolded foldable
-          // is a 700pt line of body text, which nobody can read. The column
-          // stops growing and centres instead.
+          // A phone layout stretched across a tablet is a 700pt line of body
+          // text, which nobody can read. The column stops growing and centres.
           width: '100%',
           maxWidth: layout.maxContentWidth,
           alignSelf: 'center',
@@ -80,28 +77,10 @@ export interface ScrollScreenProps extends Omit<ScrollViewProps, 'style' | 'cont
 }
 
 /**
- * A scrolling page.
+ * How much room the tab bar needs at the foot of a scrolling surface.
  *
- * `flexGrow` rather than `flex` on the content container, which is the
- * difference between a short screen filling the viewport and a long screen
- * being clamped to it. V1 shipped `flex: 1` here for a while and everything
- * past the fold was unreachable, with the last card cut in half.
- *
- * Bottom padding is the tab bar's measured height when there is one, and a
- * documented clearance when there is not -- so content always scrolls clear of
- * the floating bar instead of ending underneath it.
- */
-/**
- * How much room the floating tab bar needs at the foot of a scrolling surface.
- *
- * The bar draws over the content, and its height depends on the device -- a
- * home indicator adds to it. `ScrollScreen` has always measured it; the six
- * FlatList screens each hard-coded `layout.tabBarClearance` instead, which is
- * the fallback for screens that are not inside the tab navigator at all. On a
- * phone with a home indicator that constant is about 10pt short, so the last
- * card in every one of those lists sat under the bar, and none of them left
- * the `space.xl` of breathing room the scrolling screens do.
- *
+ * The bar's real height comes from context when there is one; the documented
+ * clearance is the fallback for screens outside the tab navigator.
  * Exported so a list cannot get this wrong by copying a number.
  */
 export function useTabBarClearance(): number {
@@ -109,6 +88,13 @@ export function useTabBarClearance(): number {
   return (tabBarHeight ?? layout.tabBarClearance) + space.xl;
 }
 
+/**
+ * A scrolling page.
+ *
+ * `flexGrow` rather than `flex` on the content container, which is the
+ * difference between a short screen filling the viewport and a long screen
+ * being clamped to it.
+ */
 export function ScrollScreen({
   children,
   gutter = true,
@@ -131,7 +117,6 @@ export function ScrollScreen({
           flex: 1,
           backgroundColor: colors.background,
           paddingTop: topPadding ? insets.top : 0,
-          // See `Screen`: the column stops growing past a readable width.
           width: '100%',
           maxWidth: layout.maxContentWidth,
           alignSelf: 'center',
@@ -152,8 +137,7 @@ export function ScrollScreen({
         ]}
         showsVerticalScrollIndicator={false}
         // Without this the first tap with a keyboard open only dismisses the
-        // keyboard, so every button on a form screen needs pressing twice --
-        // including the one that submits it.
+        // keyboard, so every button on a form screen needs pressing twice.
         keyboardShouldPersistTaps="handled"
         refreshControl={
           onRefresh ? (
@@ -162,7 +146,7 @@ export function ScrollScreen({
               onRefresh={onRefresh}
               tintColor={colors.textSecondary}
               colors={[colors.rose.base]}
-              progressBackgroundColor={colors.surface}
+              progressBackgroundColor={colors.surfaceRaised}
             />
           ) : undefined
         }
@@ -178,8 +162,7 @@ export function ScrollScreen({
  * A form page: scrolls, and lifts its content clear of the keyboard.
  *
  * iOS needs `padding` and Android needs `height`; getting this wrong is why a
- * submit button ends up under the keyboard on one platform only, which is the
- * kind of bug that survives review because the reviewer had the other phone.
+ * submit button ends up under the keyboard on one platform only.
  */
 export function FormScreen({ children, gutter = true, topPadding = true, header, ...rest }: ScrollScreenProps) {
   return (

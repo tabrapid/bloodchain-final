@@ -1,6 +1,8 @@
 import { type ReactNode } from 'react';
 import { Pressable, View } from 'react-native';
+import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { useDesign } from '../useDesign';
+import { fonts } from '../fonts';
 import { hitTarget, radius, space } from '../tokens';
 import { Text } from './Text';
 import { IconButton } from './Button';
@@ -47,14 +49,13 @@ export interface MonthGridProps {
 /**
  * A month of real dates.
  *
- * Three screens drew this independently -- the Calendar tab, the donation
- * wizard's date step and the laboratory wizard's -- at three different cell
- * sizes, with three different ideas of which day was "today" and two different
- * weekday rows. This is one of them.
- *
  * What it will not do is decide anything: which days are bookable, what the
  * dots under a day mean and how a date reads aloud are all the caller's, so
  * the grid cannot invent availability it has not been given.
+ *
+ * The month name sits at the left in the display face with the arrows
+ * together at the right, the way every native calendar draws it; a centred
+ * name between two arrows is a carousel, and a calendar is not one.
  */
 export function MonthGrid({
   year,
@@ -92,29 +93,29 @@ export function MonthGrid({
   return (
     <View style={{ gap: space.md }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
-        {onPrevious && previousLabel ? (
-          <IconButton
-            accessibilityLabel={previousLabel}
-            onPress={onPrevious}
-            disabled={previousDisabled}
-            icon={({ size, color }) => (
-              <Text style={{ fontSize: size, color, lineHeight: size + 4 }}>‹</Text>
-            )}
-          />
-        ) : null}
-        <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space.sm }}>
+        <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: space.md }}>
           <Text variant="h3" accessibilityRole="header">
             {monthLabel}
           </Text>
           {action}
         </View>
+        {onPrevious && previousLabel ? (
+          <IconButton
+            accessibilityLabel={previousLabel}
+            onPress={onPrevious}
+            disabled={previousDisabled}
+            variant="surface"
+            tone="secondary"
+            icon={({ size, color }) => <ChevronLeft size={size} color={color} />}
+          />
+        ) : null}
         {onNext && nextLabel ? (
           <IconButton
             accessibilityLabel={nextLabel}
             onPress={onNext}
-            icon={({ size, color }) => (
-              <Text style={{ fontSize: size, color, lineHeight: size + 4 }}>›</Text>
-            )}
+            variant="surface"
+            tone="secondary"
+            icon={({ size, color }) => <ChevronRight size={size} color={color} />}
           />
         ) : null}
       </View>
@@ -142,6 +143,7 @@ export function MonthGrid({
           }
           const disabled = isDisabled?.(day) ?? false;
           const selected = selectedDay === day;
+          const current = isToday(day);
           return (
             <Pressable
               key={day}
@@ -158,27 +160,31 @@ export function MonthGrid({
                     style={{
                       width: 38,
                       height: 38,
-                      borderRadius: radius.sm,
+                      borderRadius: radius.full,
                       alignItems: 'center',
                       justifyContent: 'center',
-                      borderWidth: 1,
-                      borderColor: isToday(day) && !selected ? colors.rose.base : 'transparent',
+                      borderWidth: current && !selected ? 1.5 : 0,
+                      borderColor: colors.rose.base,
                       backgroundColor: selected
                         ? colors.rose.fill
                         : pressed
                           ? colors.surfacePressed
                           : 'transparent',
-                      opacity: disabled ? 0.35 : 1,
+                      opacity: disabled ? 0.3 : 1,
                     }}
                   >
                     <Text
-                      variant="label"
-                      tone={selected ? 'onAccent' : isToday(day) ? 'rose' : 'primary'}
+                      variant="body"
+                      tone={selected ? 'onAccent' : current ? 'rose' : 'primary'}
+                      style={{
+                        fontFamily: selected || current ? fonts.semibold : fonts.regular,
+                        fontVariant: ['tabular-nums'],
+                      }}
                     >
                       {day}
                     </Text>
                   </View>
-                  <View style={{ flexDirection: 'row', gap: 2, height: 6, marginTop: 3 }}>
+                  <View style={{ flexDirection: 'row', gap: 3, height: 6, marginTop: 2 }}>
                     {renderMarkers?.(day)}
                   </View>
                 </>

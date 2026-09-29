@@ -11,6 +11,7 @@ import {
   useWindowDimensions,
   type ViewStyle,
 } from 'react-native';
+import { X } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDesign } from '../useDesign';
 import { icon as iconScale, motion, radius, space } from '../tokens';
@@ -40,8 +41,7 @@ export interface SheetProps {
  * because a sheet that bounces reads as playful and this app is not.
  *
  * Android's hardware back closes it. That sounds obvious and is the single most
- * common omission in a hand-rolled sheet: the person presses back expecting the
- * sheet to go and leaves the screen instead.
+ * common omission in a hand-rolled sheet.
  */
 export function BottomSheet({
   visible,
@@ -78,16 +78,6 @@ export function BottomSheet({
 
   return (
     <RNModal visible={visible} transparent animationType="none" onRequestClose={onClose} statusBarTranslucent>
-      {/*
-        Two things a bottom-anchored sheet has to survive: a body taller than
-        the phone, and a keyboard.
-       
-        The region picker in booking is twelve rows plus a header; anchored to
-        the bottom with nothing to scroll, it grew off the TOP of the screen and
-        took its own title and close button with it. And every sheet with a text
-        field in it -- decline a delivery, report a problem -- had the keyboard
-        cover the field and the submit button, because nothing lifted it.
-      */}
       <KeyboardAvoidingView
         style={{ flex: 1, justifyContent: 'flex-end' }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -105,11 +95,11 @@ export function BottomSheet({
           accessibilityViewIsModal
           style={[
             {
-              backgroundColor: colors.surface,
-              borderTopLeftRadius: radius.lg,
-              borderTopRightRadius: radius.lg,
-              paddingTop: space.md,
-              paddingHorizontal: space.lg,
+              backgroundColor: colors.surfaceRaised,
+              borderTopLeftRadius: radius.xl,
+              borderTopRightRadius: radius.xl,
+              paddingTop: space.sm,
+              paddingHorizontal: space.xl - 4,
               paddingBottom: insets.bottom + space.lg,
               gap: space.lg,
               transform: [{ translateY: slide.interpolate({ inputRange: [0, 1], outputRange: [400, 0] }) }],
@@ -127,7 +117,8 @@ export function BottomSheet({
               width: 36,
               height: 4,
               borderRadius: radius.full,
-              backgroundColor: colors.border,
+              backgroundColor: colors.track,
+              marginBottom: space.xs,
             }}
           />
 
@@ -145,9 +136,10 @@ export function BottomSheet({
             <IconButton
               accessibilityLabel={closeLabel}
               onPress={onClose}
-              icon={({ size, color }) => (
-                <Text style={{ fontSize: size, color, lineHeight: size + 2 }}>✕</Text>
-              )}
+              variant="surface"
+              tone="secondary"
+              style={{ marginTop: -space.xs, marginRight: -space.sm, backgroundColor: colors.surfacePressed }}
+              icon={({ size, color }) => <X size={size - 2} color={color} />}
             />
           </View>
 
@@ -206,6 +198,7 @@ export function ConfirmationSheet({
   destructive = false,
   busy = false,
 }: ConfirmationSheetProps) {
+  const { colors } = useDesign();
   return (
     <BottomSheet
       visible={visible}
@@ -216,7 +209,13 @@ export function ConfirmationSheet({
       footer={
         <ButtonRow>
           <View style={{ flex: 1 }}>
-            <Button label={cancelLabel} variant="secondary" onPress={onCancel} disabled={busy} />
+            <Button
+              label={cancelLabel}
+              variant="secondary"
+              onPress={onCancel}
+              disabled={busy}
+              style={{ backgroundColor: colors.surfacePressed }}
+            />
           </View>
           <View style={{ flex: 1 }}>
             <Button
@@ -280,42 +279,56 @@ export function PermissionExplainer({
       description={description}
       closeLabel={denyLabel}
       footer={
-        <View style={{ gap: space.md }}>
+        <View style={{ gap: space.sm }}>
           <Button label={allowLabel} onPress={onAllow} />
-          <Button label={denyLabel} variant="ghost" onPress={onDeny} />
+          <Button label={denyLabel} variant="ghost" accent="clinical" onPress={onDeny} />
         </View>
       }
     >
-      {icon ? (
-        <View
-          style={{
-            alignSelf: 'center',
-            width: 56,
-            height: 56,
-            borderRadius: radius.full,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: colors.clinical.soft,
-          }}
-        >
-          {icon({ size: iconScale.xl, color: colors.clinical.base })}
-        </View>
-      ) : null}
+      <View style={{ gap: space.lg }}>
+        {icon ? (
+          <View
+            style={{
+              alignSelf: 'flex-start',
+              width: 56,
+              height: 56,
+              borderRadius: radius.md,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: colors.clinical.soft,
+            }}
+          >
+            {icon({ size: iconScale.xl, color: colors.clinical.base })}
+          </View>
+        ) : null}
 
-      {assurances?.length ? (
-        <View style={{ gap: space.sm }}>
-          {assurances.map((line) => (
-            <View key={line} style={{ flexDirection: 'row', gap: space.sm }}>
-              <Text variant="body" style={{ color: colors.success.text }}>
-                ✓
-              </Text>
-              <Text variant="caption" tone="secondary" style={{ flex: 1 }}>
-                {line}
-              </Text>
-            </View>
-          ))}
-        </View>
-      ) : null}
+        {assurances?.length ? (
+          <View style={{ gap: space.sm }}>
+            {assurances.map((line) => (
+              <View key={line} style={{ flexDirection: 'row', gap: space.sm, alignItems: 'flex-start' }}>
+                <View
+                  style={{
+                    width: 18,
+                    height: 18,
+                    borderRadius: radius.full,
+                    backgroundColor: colors.success.soft,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginTop: 2,
+                  }}
+                >
+                  <Text variant="caption" style={{ color: colors.success.text, fontSize: 10, lineHeight: 12 }}>
+                    ✓
+                  </Text>
+                </View>
+                <Text variant="body" tone="secondary" style={{ flex: 1 }}>
+                  {line}
+                </Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
+      </View>
     </BottomSheet>
   );
 }

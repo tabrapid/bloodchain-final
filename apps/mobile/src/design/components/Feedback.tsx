@@ -1,5 +1,6 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import { ActivityIndicator, Animated, Easing, View, type ViewStyle, type DimensionValue } from 'react-native';
+import { AlertTriangle } from 'lucide-react-native';
 import { useDesign } from '../useDesign';
 import { icon as iconScale, motion, radius, space } from '../tokens';
 import { Text } from './Text';
@@ -29,13 +30,13 @@ export interface SkeletonProps {
  */
 export function Skeleton({ width = '100%', height = 16, corner = 'xs', style }: SkeletonProps) {
   const { colors } = useDesign();
-  const pulse = useRef(new Animated.Value(0.5)).current;
+  const pulse = useRef(new Animated.Value(0.55)).current;
 
   useEffect(() => {
     const loop = Animated.loop(
       Animated.sequence([
         Animated.timing(pulse, { toValue: 1, duration: 1100, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(pulse, { toValue: 0.5, duration: 1100, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 0.55, duration: 1100, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
       ]),
     );
     loop.start();
@@ -55,11 +56,24 @@ export function Skeleton({ width = '100%', height = 16, corner = 'xs', style }: 
 export function SkeletonRow() {
   return (
     <View style={{ flexDirection: 'row', gap: space.md, alignItems: 'center', paddingVertical: space.md }}>
-      <Skeleton width={40} height={40} corner="sm" />
+      <Skeleton width={36} height={36} corner="sm" />
       <View style={{ flex: 1, gap: space.sm }}>
         <Skeleton height={14} width="55%" />
         <Skeleton height={12} width="35%" />
       </View>
+    </View>
+  );
+}
+
+/** A skeleton shaped like a card: a title line and two body lines on a surface. */
+export function SkeletonCard({ lines = 2 }: { lines?: number }) {
+  const { colors } = useDesign();
+  return (
+    <View style={{ padding: space.lg, borderRadius: radius.lg, backgroundColor: colors.surface, gap: space.md }}>
+      <Skeleton height={18} width="45%" />
+      {Array.from({ length: lines }, (_, i) => (
+        <Skeleton key={i} height={12} width={i === lines - 1 ? '60%' : '90%'} />
+      ))}
     </View>
   );
 }
@@ -69,6 +83,8 @@ export interface EmptyStateProps {
   description?: string;
   icon?: (props: { size: number; color: string }) => ReactNode;
   action?: { label: string; onPress: () => void };
+  /** `compact` for an empty section inside a screen; `full` (default) for an empty screen. */
+  size?: 'full' | 'compact';
   style?: ViewStyle;
 }
 
@@ -78,39 +94,57 @@ export interface EmptyStateProps {
  * nicety: an empty donation history and a failed request used to render the
  * same reassuring card, with no way to retry.
  */
-export function EmptyState({ title, description, icon, action, style }: EmptyStateProps) {
+export function EmptyState({ title, description, icon, action, size = 'full', style }: EmptyStateProps) {
   const { colors } = useDesign();
+  const compact = size === 'compact';
 
   return (
     <View
       accessible
       accessibilityLabel={description ? `${title}. ${description}` : title}
-      style={[{ alignItems: 'center', gap: space.md, paddingVertical: space.xxl, paddingHorizontal: space.lg }, style]}
+      style={[
+        {
+          alignItems: 'center',
+          gap: space.md,
+          paddingVertical: compact ? space.xl : space.xxxl,
+          paddingHorizontal: space.lg,
+        },
+        style,
+      ]}
     >
       {icon ? (
         <View
           style={{
-            width: 56,
-            height: 56,
-            borderRadius: radius.full,
+            width: compact ? 48 : 64,
+            height: compact ? 48 : 64,
+            borderRadius: radius.md,
             alignItems: 'center',
             justifyContent: 'center',
             backgroundColor: colors.surfaceRaised,
           }}
         >
-          {icon({ size: iconScale.xl, color: colors.textTertiary })}
+          {icon({ size: compact ? iconScale.lg : iconScale.xl, color: colors.textSecondary })}
         </View>
       ) : null}
-      <Text variant="h3" align="center">
-        {title}
-      </Text>
-      {description ? (
-        <Text variant="body" tone="secondary" align="center">
-          {description}
+      <View style={{ gap: space.xs, alignItems: 'center' }}>
+        <Text variant={compact ? 'title' : 'h3'} align="center">
+          {title}
         </Text>
-      ) : null}
+        {description ? (
+          <Text variant={compact ? 'caption' : 'body'} tone="secondary" align="center" style={{ maxWidth: 300 }}>
+            {description}
+          </Text>
+        ) : null}
+      </View>
       {action ? (
-        <Button label={action.label} variant="secondary" size="md" block={false} onPress={action.onPress} />
+        <Button
+          label={action.label}
+          variant="secondary"
+          size="md"
+          block={false}
+          onPress={action.onPress}
+          style={{ marginTop: space.xs }}
+        />
       ) : null}
     </View>
   );
@@ -140,32 +174,32 @@ export function ErrorState({ title, description, onRetry, retryLabel, style }: E
       accessible
       accessibilityRole="alert"
       accessibilityLabel={description ? `${title}. ${description}` : title}
-      style={[{ alignItems: 'center', gap: space.md, paddingVertical: space.xxl, paddingHorizontal: space.lg }, style]}
+      style={[{ alignItems: 'center', gap: space.md, paddingVertical: space.xxxl, paddingHorizontal: space.lg }, style]}
     >
       <View
         style={{
-          width: 56,
-          height: 56,
-          borderRadius: radius.full,
+          width: 64,
+          height: 64,
+          borderRadius: radius.md,
           alignItems: 'center',
           justifyContent: 'center',
           backgroundColor: colors.warning.soft,
         }}
       >
-        <Text variant="h2" style={{ color: colors.warning.text }}>
-          !
-        </Text>
+        <AlertTriangle size={iconScale.xl} color={colors.warning.base} strokeWidth={1.75} />
       </View>
-      <Text variant="h3" align="center">
-        {title}
-      </Text>
-      {description ? (
-        <Text variant="body" tone="secondary" align="center">
-          {description}
+      <View style={{ gap: space.xs, alignItems: 'center' }}>
+        <Text variant="h3" align="center">
+          {title}
         </Text>
-      ) : null}
+        {description ? (
+          <Text variant="body" tone="secondary" align="center" style={{ maxWidth: 300 }}>
+            {description}
+          </Text>
+        ) : null}
+      </View>
       {onRetry && retryLabel ? (
-        <Button label={retryLabel} variant="secondary" size="md" block={false} onPress={onRetry} />
+        <Button label={retryLabel} variant="secondary" size="md" block={false} onPress={onRetry} style={{ marginTop: space.xs }} />
       ) : null}
     </View>
   );
@@ -199,17 +233,18 @@ export function SectionError({
         flexDirection: 'row',
         alignItems: 'center',
         gap: space.md,
-        padding: space.lg,
-        borderRadius: radius.md,
-        backgroundColor: colors.surface,
-        borderWidth: 1,
-        borderColor: colors.divider,
+        paddingVertical: space.md,
+        paddingLeft: space.lg,
+        paddingRight: space.sm,
+        borderRadius: radius.lg,
+        backgroundColor: colors.warning.soft,
       }}
     >
+      <AlertTriangle size={iconScale.sm} color={colors.warning.base} />
       <Text variant="caption" tone="secondary" style={{ flex: 1 }}>
         {message}
       </Text>
-      <Button label={retryLabel} variant="ghost" size="md" block={false} onPress={onRetry} />
+      <Button label={retryLabel} variant="ghost" size="sm" block={false} accent="warning" onPress={onRetry} />
     </View>
   );
 }
@@ -222,7 +257,7 @@ export function InlineError({ message }: { message: string }) {
     <Text
       variant="caption"
       accessibilityRole="alert"
-      style={{ color: colors.critical.text, marginTop: space.xs }}
+      style={{ color: colors.critical.text, marginTop: space.sm }}
     >
       {message}
     </Text>
@@ -270,9 +305,6 @@ const StyleSheetAbsoluteFill = {
 
 /**
  * Inline "still working", for a section rather than a page.
- *
- * `motion.quick` is not used here: a spinner that fades in on every render is
- * more distracting than one that simply appears.
  */
 export function LoadingSection({ label }: { label?: string }) {
   const { colors } = useDesign();
