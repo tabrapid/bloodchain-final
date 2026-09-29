@@ -25,15 +25,16 @@ import {
   OptionGrid,
   PermissionExplainer,
   PhoneField,
-  Progress,
   Row,
   ScreenHeader,
   Stack,
+  StepIndicator,
   Surface,
   Text,
   Toggle,
   Well,
   iconSize,
+  radius,
   space,
   useDesign,
   IconButton,
@@ -313,16 +314,28 @@ export default function OnboardingWelcome() {
       }
     >
       <Stack gap="xl" style={{ flex: 1 }}>
-        <Progress
-          label={t(step.titleKey)}
-          caption={t('onboarding.stepOf', { current: currentStep + 1, total: STEPS.length })}
-          value={(currentStep + 1) / STEPS.length}
-          bare
+        <StepIndicator
+          step={currentStep + 1}
+          total={STEPS.length}
+          label={t('onboarding.stepOf', { current: currentStep + 1, total: STEPS.length })}
         />
 
-        <Row gap="md" align="flex-start">
-          <StepIcon size={iconSize.lg} color={colors.rose.base} />
-          <View style={{ flex: 1, gap: space.xs }}>
+        {/* A guided step, not a form page: the icon in a tile, the question as
+            a title, the reason under it. Every step has the same anatomy. */}
+        <View style={{ gap: space.lg }}>
+          <View
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: radius.md,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: colors.rose.soft,
+            }}
+          >
+            <StepIcon size={iconSize.lg} color={colors.rose.base} />
+          </View>
+          <View style={{ gap: space.xs }}>
             <Text variant="h1" accessibilityRole="header">
               {t(step.titleKey)}
             </Text>
@@ -330,16 +343,40 @@ export default function OnboardingWelcome() {
               {t(step.subtitleKey)}
             </Text>
           </View>
-        </Row>
+        </View>
 
         {/* ------------------------------------------------ what each step asks */}
         {currentStep === 0 ? (
           <ListGroup
             rows={[
-              <ListRow key="history" title={t('onboarding.featureHistory')} />,
-              <ListRow key="emergencies" title={t('onboarding.featureEmergencies')} />,
-              <ListRow key="booking" title={t('onboarding.featureBooking')} />,
-              <ListRow key="records" title={t('onboarding.featureRecords')} />,
+              <ListRow
+                key="history"
+                icon={({ size, color }) => <Droplet size={size} color={color} />}
+                iconTone="rose"
+                title={t('onboarding.featureHistory')}
+                multiline
+              />,
+              <ListRow
+                key="emergencies"
+                icon={({ size, color }) => <HeartHandshake size={size} color={color} />}
+                iconTone="critical"
+                title={t('onboarding.featureEmergencies')}
+                multiline
+              />,
+              <ListRow
+                key="booking"
+                icon={({ size, color }) => <CheckCircle2 size={size} color={color} />}
+                iconTone="clinical"
+                title={t('onboarding.featureBooking')}
+                multiline
+              />,
+              <ListRow
+                key="records"
+                icon={({ size, color }) => <Info size={size} color={color} />}
+                iconTone="clinical"
+                title={t('onboarding.featureRecords')}
+                multiline
+              />,
             ]}
           />
         ) : null}
@@ -381,6 +418,7 @@ export default function OnboardingWelcome() {
             <OptionGrid
               accessibilityLabel={t('medical.bloodGroup')}
               columns={4}
+              large
               value={selectedBloodType}
               onChange={(label) => {
                 const entry = BLOOD_TYPES.find((candidate) => candidate.label === label)!;
@@ -482,7 +520,7 @@ export default function OnboardingWelcome() {
 
         {currentStep === 4 ? (
           <Stack gap="lg">
-            <Surface padded={false}>
+            <Surface level="flat" padded={false}>
               <View style={{ paddingHorizontal: space.lg }}>
                 <Toggle
                   label={t('onboarding.notifyEmergencies')}

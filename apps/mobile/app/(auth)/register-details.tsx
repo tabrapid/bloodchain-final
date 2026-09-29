@@ -1,8 +1,8 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Pressable, TextInput, View } from 'react-native';
-import { ArrowRight, Eye, EyeOff, Lock, Mail, User } from 'lucide-react-native';
+import { TextInput, View } from 'react-native';
+import { ArrowRight, Lock, Mail, User } from 'lucide-react-native';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { emailSchema, nameSchema, strongPasswordSchema } from '@bloodchain/validation';
@@ -11,6 +11,7 @@ import {
   Button,
   Field,
   FormScreen,
+  PasswordField,
   Row,
   Stack,
   Text,
@@ -52,7 +53,6 @@ export default function RegisterDetails() {
   const setUser = useAuthStore((s) => s.setUser);
 
   const [serverError, setServerError] = useState<string | null>(null);
-  const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const lastNameRef = useRef<TextInput>(null);
   const passwordRef = useRef<TextInput>(null);
@@ -107,8 +107,8 @@ export default function RegisterDetails() {
     // top margin the title block was carrying instead.
     <FormScreen header={<ScreenHeader onBack={() => router.back()} backLabel={t('auth.a11y.goBack')} />}>
       <Stack gap="xl">
-        <View style={{ gap: space.sm, marginTop: space.md }}>
-          <Text variant="display" accessibilityRole="header">
+        <View style={{ gap: space.sm, marginTop: space.sm }}>
+          <Text variant="h1" accessibilityRole="header">
             {t('auth.details.title')}
           </Text>
           <Text variant="body" tone="secondary">
@@ -166,32 +166,17 @@ export default function RegisterDetails() {
           control={control}
           name="password"
           render={({ field, fieldState }) => (
-            <Field
+            <PasswordField
               ref={passwordRef}
               label={t('auth.fields.password')}
               hint={t('auth.fields.passwordPolicy')}
               placeholder={t('auth.fields.passwordPlaceholder')}
               leading={<Lock size={iconSize.md} color={colors.textTertiary} />}
-              secureTextEntry={!showPassword}
               autoComplete="new-password"
               returnKeyType="next"
               error={fieldState.error?.message ? t(fieldState.error.message) : undefined}
-              trailing={
-                <Pressable
-                  onPress={() => setShowPassword((shown) => !shown)}
-                  accessibilityRole="button"
-                  accessibilityLabel={
-                    showPassword ? t('auth.fields.hidePassword') : t('auth.fields.showPassword')
-                  }
-                  hitSlop={12}
-                >
-                  {showPassword ? (
-                    <EyeOff size={iconSize.md} color={colors.textTertiary} />
-                  ) : (
-                    <Eye size={iconSize.md} color={colors.textTertiary} />
-                  )}
-                </Pressable>
-              }
+              showLabel={t('auth.fields.showPassword')}
+              hideLabel={t('auth.fields.hidePassword')}
               value={field.value}
               onChangeText={field.onChange}
               onBlur={field.onBlur}

@@ -18,7 +18,6 @@ import {
   Skeleton,
   Surface,
   Text,
-  iconSize,
   space,
   useDesign,
   type AccentName,

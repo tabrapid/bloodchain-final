@@ -1,8 +1,8 @@
 import { router } from 'expo-router';
 import { useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Pressable, TextInput, View } from 'react-native';
-import { ArrowRight, Eye, EyeOff, Lock, Mail, Phone, ShieldCheck } from 'lucide-react-native';
+import { TextInput, View } from 'react-native';
+import { ArrowRight, Lock, Mail, Phone, ShieldCheck } from 'lucide-react-native';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { normalizePhone } from '@bloodchain/validation';
 import { z } from 'zod';
@@ -11,6 +11,8 @@ import {
   Button,
   Field,
   FormScreen,
+  LinkButton,
+  PasswordField,
   PhoneField,
   Row,
   ScreenHeader,
@@ -32,7 +34,6 @@ export default function Login() {
   const login = useLogin();
   const [serverError, setServerError] = useState<string | null>(null);
   const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
-  const [showPassword, setShowPassword] = useState(false);
   const passwordRef = useRef<TextInput>(null);
   /**
    * Which identifier this donor is signing in with.
@@ -98,8 +99,8 @@ export default function Login() {
         of the page empty beneath it.
       */}
       <Stack gap="xl" style={{ flex: 1 }}>
-        <View style={{ gap: space.sm, marginTop: space.md }}>
-          <Text variant="display" accessibilityRole="header">
+        <View style={{ gap: space.sm, marginTop: space.sm }}>
+          <Text variant="h1" accessibilityRole="header">
             {t('auth.login.title')}
           </Text>
           <Text variant="body" tone="secondary">
@@ -152,64 +153,33 @@ export default function Login() {
           {/* One line, not a segmented control: there is a default that is
               right for almost everyone, and the other option only has to be
               findable. */}
-          <Pressable
+          <LinkButton
+            label={method === 'phone' ? t('auth.phone.useEmail') : t('auth.phone.usePhone')}
+            icon={({ size, color }) =>
+              method === 'phone' ? <Mail size={size} color={color} /> : <Phone size={size} color={color} />
+            }
             onPress={() => {
               setMethod((current) => (current === 'phone' ? 'email' : 'phone'));
               setServerError(null);
             }}
-            accessibilityRole="button"
-            accessibilityLabel={method === 'phone' ? t('auth.phone.useEmail') : t('auth.phone.usePhone')}
-            hitSlop={12}
-            style={({ pressed }) => ({
-              alignSelf: 'flex-start',
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: space.sm,
-              minHeight: 44,
-              marginTop: -space.md,
-              opacity: pressed ? 0.6 : 1,
-            })}
-          >
-            {method === 'phone' ? (
-              <Mail size={iconSize.sm} color={colors.clinical.text} />
-            ) : (
-              <Phone size={iconSize.sm} color={colors.clinical.text} />
-            )}
-            <Text variant="label" tone="clinical">
-              {method === 'phone' ? t('auth.phone.useEmail') : t('auth.phone.usePhone')}
-            </Text>
-          </Pressable>
+            style={{ alignSelf: 'flex-start', marginTop: -space.md }}
+          />
 
           <Controller
             control={control}
             name="password"
             render={({ field, fieldState }) => (
-              <Field
+              <PasswordField
                 ref={passwordRef}
                 label={t('auth.fields.password')}
                 placeholder="••••••••"
-                secureTextEntry={!showPassword}
                 autoComplete="password"
                 returnKeyType="go"
                 onSubmitEditing={onSubmit}
                 leading={<Lock size={iconSize.md} color={colors.textTertiary} />}
                 error={fieldState.error?.message ? t(fieldState.error.message) : undefined}
-                trailing={
-                  <Pressable
-                    onPress={() => setShowPassword((v) => !v)}
-                    hitSlop={12}
-                    accessibilityRole="button"
-                    accessibilityLabel={
-                      showPassword ? t('auth.fields.hidePassword') : t('auth.fields.showPassword')
-                    }
-                  >
-                    {showPassword ? (
-                      <EyeOff size={iconSize.md} color={colors.textTertiary} />
-                    ) : (
-                      <Eye size={iconSize.md} color={colors.textTertiary} />
-                    )}
-                  </Pressable>
-                }
+                showLabel={t('auth.fields.showPassword')}
+                hideLabel={t('auth.fields.hidePassword')}
                 value={field.value}
                 onChangeText={field.onChange}
                 onBlur={field.onBlur}
@@ -219,23 +189,12 @@ export default function Login() {
 
           {/* Sits with the password field it belongs to, right-aligned -- the
               one place a person looks after mistyping a password twice. */}
-          <Pressable
-            onPress={() => router.push('/(auth)/forgot-password')}
-            accessibilityRole="button"
+          <LinkButton
+            label={t('auth.login.forgotPassword')}
             accessibilityLabel={t('auth.login.a11yForgotPassword')}
-            hitSlop={12}
-            style={({ pressed }) => ({
-              alignSelf: 'flex-end',
-              minHeight: 44,
-              justifyContent: 'center',
-              marginTop: -space.md,
-              opacity: pressed ? 0.6 : 1,
-            })}
-          >
-            <Text variant="label" tone="clinical">
-              {t('auth.login.forgotPassword')}
-            </Text>
-          </Pressable>
+            onPress={() => router.push('/(auth)/forgot-password')}
+            style={{ alignSelf: 'flex-end', marginTop: -space.md }}
+          />
 
           {serverError ? <Banner tone="critical" title={serverError} /> : null}
 

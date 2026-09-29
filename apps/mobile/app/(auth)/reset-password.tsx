@@ -1,7 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useRef, useState } from 'react';
-import { Pressable, TextInput, View } from 'react-native';
-import { CheckCircle2, Eye, EyeOff, KeyRound, Lock, LinkIcon } from 'lucide-react-native';
+import { TextInput, View } from 'react-native';
+import { CheckCircle2, KeyRound, Lock, LinkIcon } from 'lucide-react-native';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -11,6 +11,8 @@ import {
   Button,
   Field,
   FormScreen,
+  LinkButton,
+  PasswordField,
   Screen,
   ScreenHeader,
   Stack,
@@ -75,7 +77,6 @@ export default function ResetPassword() {
   const [serverError, setServerError] = useState<string | null>(null);
   const [tokenRejected, setTokenRejected] = useState(false);
   const [done, setDone] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
   const confirmRef = useRef<TextInput>(null);
 
   const { control, handleSubmit, formState } = useForm<FormValues>({
@@ -153,8 +154,8 @@ export default function ResetPassword() {
         of the page empty beneath it.
       */}
       <Stack gap="xl" style={{ flex: 1 }}>
-        <View style={{ gap: space.sm, marginTop: space.md }}>
-          <Text variant="display" accessibilityRole="header">
+        <View style={{ gap: space.sm, marginTop: space.sm }}>
+          <Text variant="h1" accessibilityRole="header">
             {t('auth.resetPassword.title')}
           </Text>
           <Text variant="body" tone="secondary">
@@ -193,15 +194,13 @@ export default function ResetPassword() {
             control={control}
             name="newPassword"
             render={({ field, fieldState }) => (
-              <Field
+              <PasswordField
                 label={t('auth.resetPassword.newPassword')}
                 placeholder={t('auth.fields.passwordPlaceholder')}
                 // The policy in advance, rather than as four separate
                 // rejections.
                 hint={t('auth.fields.passwordPolicy')}
-                secureTextEntry={!showPassword}
                 autoComplete="new-password"
-                autoCapitalize="none"
                 autoFocus={Boolean(linkToken)}
                 leading={<Lock size={iconSize.md} color={colors.textTertiary} />}
                 returnKeyType="next"
@@ -209,22 +208,8 @@ export default function ResetPassword() {
                 onSubmitEditing={() => confirmRef.current?.focus()}
                 editable={!busy}
                 error={fieldState.error?.message ? t(fieldState.error.message) : undefined}
-                trailing={
-                  <Pressable
-                    onPress={() => setShowPassword((v) => !v)}
-                    hitSlop={12}
-                    accessibilityRole="button"
-                    accessibilityLabel={
-                      showPassword ? t('auth.fields.hidePassword') : t('auth.fields.showPassword')
-                    }
-                  >
-                    {showPassword ? (
-                      <EyeOff size={iconSize.md} color={colors.textTertiary} />
-                    ) : (
-                      <Eye size={iconSize.md} color={colors.textTertiary} />
-                    )}
-                  </Pressable>
-                }
+                showLabel={t('auth.fields.showPassword')}
+                hideLabel={t('auth.fields.hidePassword')}
                 value={field.value}
                 onChangeText={field.onChange}
                 onBlur={field.onBlur}
@@ -236,18 +221,18 @@ export default function ResetPassword() {
             control={control}
             name="confirmPassword"
             render={({ field, fieldState }) => (
-              <Field
+              <PasswordField
                 ref={confirmRef}
                 label={t('auth.resetPassword.confirmPassword')}
                 placeholder={t('auth.resetPassword.confirmPlaceholder')}
-                secureTextEntry={!showPassword}
                 autoComplete="new-password"
-                autoCapitalize="none"
                 leading={<Lock size={iconSize.md} color={colors.textTertiary} />}
                 returnKeyType="go"
                 onSubmitEditing={onSubmit}
                 editable={!busy}
                 error={fieldState.error?.message ? t(fieldState.error.message) : undefined}
+                showLabel={t('auth.fields.showPassword')}
+                hideLabel={t('auth.fields.hidePassword')}
                 value={field.value}
                 onChangeText={field.onChange}
                 onBlur={field.onBlur}
@@ -268,20 +253,11 @@ export default function ResetPassword() {
 
         <View style={{ flex: 1, minHeight: space.xl }} />
 
-        <Pressable
+        <LinkButton
+          label={t('auth.checkEmail.backToSignIn')}
+          tone="secondary"
           onPress={() => router.replace('/(auth)/login')}
-          accessibilityRole="button"
-          accessibilityLabel={t('auth.checkEmail.backToSignIn')}
-          hitSlop={12}
-          style={({ pressed }) => ({
-            minHeight: 44,
-            alignItems: 'center',
-            justifyContent: 'center',
-            opacity: pressed ? 0.6 : 1,
-          })}
-        >
-          <Text variant="bodyStrong">{t('auth.checkEmail.backToSignIn')}</Text>
-        </Pressable>
+        />
       </Stack>
     </FormScreen>
   );
@@ -317,7 +293,7 @@ function Outcome({
             style={{
               width: 64,
               height: 64,
-              borderRadius: radius.lg,
+              borderRadius: radius.md,
               alignItems: 'center',
               justifyContent: 'center',
               backgroundColor: colors[tone].soft,
@@ -342,22 +318,7 @@ function Outcome({
               onPress={primary.onPress}
             />
             {secondary ? (
-              <Pressable
-                onPress={secondary.onPress}
-                accessibilityRole="button"
-                accessibilityLabel={secondary.label}
-                hitSlop={12}
-                style={({ pressed }) => ({
-                  minHeight: 44,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  opacity: pressed ? 0.6 : 1,
-                })}
-              >
-                <Text variant="bodyStrong" tone="clinical">
-                  {secondary.label}
-                </Text>
-              </Pressable>
+              <LinkButton label={secondary.label} onPress={secondary.onPress} />
             ) : null}
           </Stack>
         </Stack>

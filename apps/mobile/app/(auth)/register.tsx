@@ -1,8 +1,8 @@
 import { router } from 'expo-router';
 import { useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Pressable, TextInput, View } from 'react-native';
-import { ArrowRight, Eye, EyeOff, Lock, Mail, ShieldCheck } from 'lucide-react-native';
+import { TextInput, View } from 'react-native';
+import { ArrowRight, Lock, Mail, ShieldCheck } from 'lucide-react-native';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { registerSchema, type RegisterInput } from '@bloodchain/validation';
 import {
@@ -10,6 +10,7 @@ import {
   Button,
   Field,
   FormScreen,
+  PasswordField,
   Row,
   ScreenHeader,
   Stack,
@@ -34,7 +35,6 @@ export default function Register() {
   const { t } = useTranslation();
   const registerUser = useRegister();
   const [serverError, setServerError] = useState<string | null>(null);
-  const [showPassword, setShowPassword] = useState(false);
   const lastNameRef = useRef<TextInput>(null);
   const emailRef = useRef<TextInput>(null);
   const passwordRef = useRef<TextInput>(null);
@@ -65,8 +65,8 @@ export default function Register() {
         of the page empty beneath it.
       */}
       <Stack gap="xl" style={{ flex: 1 }}>
-        <View style={{ gap: space.sm, marginTop: space.md }}>
-          <Text variant="display" accessibilityRole="header">
+        <View style={{ gap: space.sm, marginTop: space.sm }}>
+          <Text variant="h1" accessibilityRole="header">
             {t('auth.register.title')}
           </Text>
           <Text variant="body" tone="secondary">
@@ -156,36 +156,19 @@ export default function Register() {
             control={control}
             name="password"
             render={({ field, fieldState }) => (
-              <Field
+              <PasswordField
                 ref={passwordRef}
                 label={t('auth.fields.password')}
                 placeholder={t('auth.fields.passwordPlaceholder')}
                 // The same sentence, in the same place, as the reset screen.
-                // The rule is one rule; two screens describing it differently
-                // is how a person concludes the second one is stricter.
                 hint={t('auth.fields.passwordPolicy')}
-                secureTextEntry={!showPassword}
                 autoComplete="new-password"
                 returnKeyType="go"
                 onSubmitEditing={onSubmit}
                 leading={<Lock size={iconSize.md} color={colors.textTertiary} />}
                 error={fieldState.error?.message ? t(fieldState.error.message) : undefined}
-                trailing={
-                  <Pressable
-                    onPress={() => setShowPassword((v) => !v)}
-                    hitSlop={12}
-                    accessibilityRole="button"
-                    accessibilityLabel={
-                      showPassword ? t('auth.fields.hidePassword') : t('auth.fields.showPassword')
-                    }
-                  >
-                    {showPassword ? (
-                      <EyeOff size={iconSize.md} color={colors.textTertiary} />
-                    ) : (
-                      <Eye size={iconSize.md} color={colors.textTertiary} />
-                    )}
-                  </Pressable>
-                }
+                showLabel={t('auth.fields.showPassword')}
+                hideLabel={t('auth.fields.hidePassword')}
                 value={field.value}
                 onChangeText={field.onChange}
                 onBlur={field.onBlur}

@@ -1,8 +1,8 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
 import { Mail } from 'lucide-react-native';
-import { Banner, Button, Screen, Stack, Text, iconSize, radius, useDesign } from '../../src/design';
+import { Banner, Button, LinkButton, Screen, Stack, Text, iconSize, radius, useDesign } from '../../src/design';
 import { useResendVerification, getAuthErrorMessage } from '../../src/hooks/useAuth';
 import { useTranslation } from '../../src/i18n';
 
@@ -43,7 +43,7 @@ export default function CheckEmail() {
             style={{
               width: 64,
               height: 64,
-              borderRadius: radius.lg,
+              borderRadius: radius.md,
               backgroundColor: colors.clinical.soft,
               alignItems: 'center',
               justifyContent: 'center',
@@ -69,24 +69,12 @@ export default function CheckEmail() {
           <Stack gap="md" style={{ alignSelf: 'stretch' }}>
             <Button label={t('auth.checkEmail.backToSignIn')} onPress={() => router.replace('/(auth)/login')} />
 
-            <Pressable
-              onPress={onResend}
+            <LinkButton
+              label={resend.isPending ? t('common.sending') : t('auth.checkEmail.resend')}
               disabled={!canResend}
-              accessibilityRole="button"
-              accessibilityLabel={t('auth.checkEmail.resend')}
               accessibilityState={{ disabled: !canResend, busy: resend.isPending }}
-              hitSlop={12}
-              style={({ pressed }) => ({
-                minHeight: 44,
-                alignItems: 'center',
-                justifyContent: 'center',
-                opacity: pressed || !canResend ? 0.6 : 1,
-              })}
-            >
-              <Text variant="bodyStrong" tone="clinical">
-                {resend.isPending ? t('common.sending') : t('auth.checkEmail.resend')}
-              </Text>
-            </Pressable>
+              onPress={onResend}
+            />
           </Stack>
         </Stack>
       </View>

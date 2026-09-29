@@ -1,11 +1,12 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
 import { ArrowRight } from 'lucide-react-native';
 import {
   Banner,
   Button,
   FormScreen,
+  LinkButton,
   OtpField,
   ScreenHeader,
   Stack,
@@ -128,8 +129,8 @@ export default function OtpScreen() {
   return (
     <FormScreen header={<ScreenHeader onBack={() => router.back()} backLabel={t('auth.a11y.goBack')} />}>
       <Stack gap="xl">
-        <View style={{ gap: space.sm, marginTop: space.md }}>
-          <Text variant="display" accessibilityRole="header">
+        <View style={{ gap: space.sm, marginTop: space.sm }}>
+          <Text variant="h1" accessibilityRole="header">
             {t('auth.otp.title')}
           </Text>
           <Text variant="body" tone="secondary">
@@ -167,7 +168,7 @@ export default function OtpScreen() {
           />
         </Stack>
 
-        <Stack gap="md" style={{ alignItems: 'center' }}>
+        <Stack gap="sm" style={{ alignItems: 'center' }}>
           {secondsLeft > 0 ? (
             // Not a disabled button: a control that looks pressable and does
             // nothing is worse than a sentence that explains the wait.
@@ -175,32 +176,20 @@ export default function OtpScreen() {
               {t('auth.otp.resendIn', { seconds: secondsLeft })}
             </Text>
           ) : (
-            <Pressable
-              onPress={onResend}
-              disabled={isResending}
-              accessibilityRole="button"
+            <LinkButton
+              label={isResending ? t('common.sending') : t('auth.otp.resend')}
               accessibilityLabel={t('auth.otp.a11yResend')}
+              disabled={isResending}
               accessibilityState={{ disabled: isResending, busy: isResending }}
-              hitSlop={12}
-              style={{ minHeight: 44, justifyContent: 'center' }}
-            >
-              <Text variant="bodyStrong" tone="clinical">
-                {isResending ? t('common.sending') : t('auth.otp.resend')}
-              </Text>
-            </Pressable>
+              onPress={onResend}
+            />
           )}
 
-          <Pressable
+          <LinkButton
+            label={t('auth.otp.wrongNumber')}
+            tone="secondary"
             onPress={() => router.back()}
-            accessibilityRole="link"
-            accessibilityLabel={t('auth.otp.wrongNumber')}
-            hitSlop={12}
-            style={{ minHeight: 44, justifyContent: 'center' }}
-          >
-            <Text variant="caption" tone="tertiary">
-              {t('auth.otp.wrongNumber')}
-            </Text>
-          </Pressable>
+          />
         </Stack>
       </Stack>
     </FormScreen>

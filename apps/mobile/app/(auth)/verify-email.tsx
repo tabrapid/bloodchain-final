@@ -113,7 +113,7 @@ function Outcome({
             style={{
               width: 64,
               height: 64,
-              borderRadius: radius.lg,
+              borderRadius: radius.md,
               alignItems: 'center',
               justifyContent: 'center',
               backgroundColor: colors[tone].soft,

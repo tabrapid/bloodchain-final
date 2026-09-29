@@ -1,20 +1,19 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
 import { ArrowRight, Mail } from 'lucide-react-native';
 import { normalizePhone } from '@bloodchain/validation';
 import {
   Banner,
   Button,
   FormScreen,
+  LinkButton,
   PhoneField,
   Row,
   ScreenHeader,
   Stack,
   Text,
-  iconSize,
   space,
-  useDesign,
 } from '../../src/design';
 import { requestPhoneCode } from '../../src/api/auth';
 import { apiErrorMessage } from '../../src/api/errors';
@@ -33,7 +32,6 @@ import { useTranslation } from '../../src/i18n';
  * the same code, and the API decides what the code is good for.
  */
 export default function PhoneEntry() {
-  const { colors } = useDesign();
   const { t, locale } = useTranslation();
   const params = useLocalSearchParams<{ purpose?: string }>();
   const purpose = params.purpose === 'PASSWORD_RESET' ? 'PASSWORD_RESET' : 'REGISTRATION';
@@ -70,8 +68,8 @@ export default function PhoneEntry() {
   return (
     <FormScreen header={<ScreenHeader onBack={() => router.back()} backLabel={t('auth.a11y.goBack')} />}>
       <Stack gap="xl">
-        <View style={{ gap: space.sm, marginTop: space.md }}>
-          <Text variant="display" accessibilityRole="header">
+        <View style={{ gap: space.sm, marginTop: space.sm }}>
+          <Text variant="h1" accessibilityRole="header">
             {t('auth.phone.title')}
           </Text>
           <Text variant="body" tone="secondary">
@@ -110,38 +108,26 @@ export default function PhoneEntry() {
         </Stack>
 
         {purpose === 'REGISTRATION' ? (
-          <Stack gap="md" style={{ alignItems: 'center' }}>
-            <Pressable
-              onPress={() => router.push('/(auth)/login')}
-              accessibilityRole="link"
-              accessibilityLabel={t('auth.welcome.a11ySignIn')}
-              hitSlop={12}
-              style={{ minHeight: 44, justifyContent: 'center' }}
-            >
+          <Stack gap="sm" style={{ alignItems: 'center' }}>
+            <Row gap="xs">
               <Text variant="body" tone="secondary">
-                {t('auth.phone.signInInstead')}{' '}
-                <Text variant="bodyStrong" tone="clinical">
-                  {t('auth.phone.signIn')}
-                </Text>
+                {t('auth.phone.signInInstead')}
               </Text>
-            </Pressable>
+              <LinkButton
+                label={t('auth.phone.signIn')}
+                accessibilityLabel={t('auth.welcome.a11ySignIn')}
+                onPress={() => router.push('/(auth)/login')}
+              />
+            </Row>
 
             {/* Email sign-up stays reachable. Every account made before this
                 sprint has one, and some donors would rather use it. */}
-            <Pressable
+            <LinkButton
+              label={t('auth.phone.useEmail')}
+              tone="secondary"
+              icon={({ size, color }) => <Mail size={size} color={color} />}
               onPress={() => router.push('/(auth)/register')}
-              accessibilityRole="link"
-              accessibilityLabel={t('auth.phone.useEmail')}
-              hitSlop={12}
-              style={{ minHeight: 44, justifyContent: 'center' }}
-            >
-              <Row gap="sm">
-                <Mail size={iconSize.sm} color={colors.textTertiary} />
-                <Text variant="caption" tone="tertiary">
-                  {t('auth.phone.useEmail')}
-                </Text>
-              </Row>
-            </Pressable>
+            />
           </Stack>
         ) : null}
       </Stack>

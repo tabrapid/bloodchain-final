@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
 import { ArrowRight, Mail, MailCheck } from 'lucide-react-native';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -10,6 +10,7 @@ import {
   Button,
   Field,
   FormScreen,
+  LinkButton,
   Screen,
   ScreenHeader,
   Stack,
@@ -66,7 +67,7 @@ export default function ForgotPassword() {
               style={{
                 width: 64,
                 height: 64,
-                borderRadius: radius.lg,
+                borderRadius: radius.md,
                 backgroundColor: colors.clinical.soft,
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -90,7 +91,7 @@ export default function ForgotPassword() {
             <Stack gap="md" style={{ alignSelf: 'stretch' }}>
               <Button label={t('auth.checkEmail.backToSignIn')} onPress={() => router.replace('/(auth)/login')} />
 
-              <TextAction
+              <LinkButton
                 label={t('auth.forgotPassword.useDifferentEmail')}
                 accessibilityLabel={t('auth.forgotPassword.a11yUseDifferentEmail')}
                 disabled={busy}
@@ -99,17 +100,17 @@ export default function ForgotPassword() {
                   setSentTo(null);
                   setServerError(null);
                 }}
-              />
+                />
 
               {/* Reachable without leaving and coming back: someone who has
                   the link already should not have to guess where the next
                   screen is. */}
-              <TextAction
+              <LinkButton
                 label={t('auth.forgotPassword.haveCode')}
                 accessibilityLabel={t('auth.forgotPassword.a11yHaveCode')}
-                tone="tertiary"
+                tone="secondary"
                 onPress={() => router.push('/(auth)/reset-password')}
-              />
+                />
             </Stack>
           </Stack>
         </View>
@@ -127,8 +128,8 @@ export default function ForgotPassword() {
         of the page empty beneath it.
       */}
       <Stack gap="xl" style={{ flex: 1 }}>
-        <View style={{ gap: space.sm, marginTop: space.md }}>
-          <Text variant="display" accessibilityRole="header">
+        <View style={{ gap: space.sm, marginTop: space.sm }}>
+          <Text variant="h1" accessibilityRole="header">
             {t('auth.forgotPassword.title')}
           </Text>
           <Text variant="body" tone="secondary">
@@ -175,73 +176,32 @@ export default function ForgotPassword() {
         <View style={{ flex: 1, minHeight: space.xl }} />
 
         <Stack gap="sm">
-          <TextAction
+          <LinkButton
             label={`${t('auth.forgotPassword.haveCode')} ${t('auth.forgotPassword.enterIt')}`}
             accessibilityLabel={t('auth.forgotPassword.a11yHaveCode')}
-            tone="tertiary"
+            tone="secondary"
             onPress={() => router.push('/(auth)/reset-password')}
-          />
+            />
 
           {/* Recovery by SMS, for the donors who have a number and no inbox.
               It reuses the same reset token the emailed link carries, so it is
               the same flow with a different first step -- not a second, weaker
               way in. */}
-          <TextAction
+          <LinkButton
             label={t('auth.phone.usePhone')}
             accessibilityLabel={t('auth.phone.a11ySubmit')}
             tone="clinical"
             onPress={() => router.push({ pathname: '/(auth)/phone', params: { purpose: 'PASSWORD_RESET' } })}
-          />
+            />
 
-          <TextAction
+          <LinkButton
             label={t('auth.checkEmail.backToSignIn')}
             accessibilityLabel={t('auth.checkEmail.backToSignIn')}
-            tone="primary"
+            tone="rose"
             onPress={() => router.replace('/(auth)/login')}
-          />
+            />
         </Stack>
       </Stack>
     </FormScreen>
-  );
-}
-
-/**
- * A centred text button.
- *
- * Four of these sit at the foot of this screen, and hand-rolling each one is
- * how they end up with four different heights and three different opacities.
- */
-function TextAction({
-  label,
-  accessibilityLabel,
-  tone,
-  onPress,
-  disabled = false,
-}: {
-  label: string;
-  accessibilityLabel: string;
-  tone: 'primary' | 'tertiary' | 'clinical';
-  onPress: () => void;
-  disabled?: boolean;
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      disabled={disabled}
-      accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel}
-      accessibilityState={{ disabled }}
-      hitSlop={12}
-      style={({ pressed }) => ({
-        minHeight: 44,
-        alignItems: 'center',
-        justifyContent: 'center',
-        opacity: pressed || disabled ? 0.6 : 1,
-      })}
-    >
-      <Text variant={tone === 'tertiary' ? 'caption' : 'bodyStrong'} tone={tone}>
-        {label}
-      </Text>
-    </Pressable>
   );
 }
