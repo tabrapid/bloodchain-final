@@ -167,6 +167,39 @@ describe('HealthTrendsService', () => {
       expect(result?.trend).toBe('STABLE');
     });
 
+    it('looks the reference range up for the parameter, not just the test type', async () => {
+      // A Complete Blood Count carries one range per parameter. Matching on
+      // the test type alone returned whichever range was created last -- the
+      // platelet range under a haematocrit of 42.
+      const mockItems = [
+        {
+          numericValue: BigInt(42),
+          unit: '%',
+          flag: 'NORMAL',
+          parameter: { code: 'HEMATOCRIT', name: 'Hematocrit', unit: '%', testType: { category: 'HEMATOLOGY' } },
+          result: { id: '1', performedAt: new Date('2024-01-01'), laboratoryId: 'lab-1', laboratory: { name: 'Lab A' } },
+        },
+      ];
+
+      mockPrismaService.laboratoryResultItem.findMany.mockResolvedValue(mockItems);
+      mockPrismaService.testParameter.findFirst.mockResolvedValue({ id: 'param-hct', testTypeId: 'tt-1' });
+      mockPrismaService.testReferenceRange.findFirst.mockResolvedValue({ minValue: 36, maxValue: 52 });
+
+      const result = await service.getTrendData('user-123', { parameter: 'HEMATOCRIT' });
+
+      expect(mockPrismaService.testReferenceRange.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            testTypeId: 'tt-1',
+            OR: [{ parameterId: 'param-hct' }, { parameterId: null }],
+          }),
+          orderBy: [{ parameterId: 'desc' }, { createdAt: 'desc' }],
+        }),
+      );
+      expect(result?.referenceMin).toBe(36);
+      expect(result?.referenceMax).toBe(52);
+    });
+
     it('should return INSUFFICIENT_DATA when only one data point', async () => {
       const mockItems = [
         {
