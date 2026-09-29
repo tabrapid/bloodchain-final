@@ -27,6 +27,8 @@ branch was taken from there and `main` was not touched.
 | `e50d3319` | Health (laboratory, trends, insights), community, recognition, account and courier screens |
 | `b4f4ce49` | Visual corrections from the first full screenshot review |
 | `34625ce9` | Second pass: Uzbek dates without ICU data, tab labels that fit, dead theme code removed |
+| `5cc42406` | API test pinning the per-parameter reference-range lookup |
+| `76c9d338`, `ca537e40` | Tab labels may spill into their item padding (the 393pt and 360pt frames each showed one more break) |
 | _final_ | Final capture artifacts and this report (the last commit on the branch) |
 
 The stages are coherent on their own: each one typechecks, lints and passes
@@ -205,7 +207,14 @@ by shot:
   and composes from the tables when it has no names.
 - "Сообщество" split mid-word in the Russian tab bar at 393pt even with two
   lines allowed → the bar drops to 10pt (the iOS tab-label size) whenever one
-  label is a single word longer than nine letters.
+  label is a single word longer than nine letters. The 360pt frame then
+  showed "Сообщество" and even the English "Community" still breaking (a
+  sixth of that bar is 58pt), so a label may now use the 4pt of padding on
+  either side of its item; the neighbours' labels are centred, so the space
+  is there.
+- The trends screen kept showing the platelet range after the API fix
+  because the API process serving the harness had been built before it; the
+  final capture runs against the rebuilt API.
 
 ## 11. A defect outside the UI
 
@@ -225,7 +234,7 @@ worth a look from whoever owns the API.
 react-native-web against the real seeded API (Postgres + `prisma migrate` +
 `prisma:seed` + `apps/api` on :3001), with per-state route overrides for
 error, loading, offline and fixture states. Three frames: iPhone 393×852,
-Android 412×915, small 360×800. The inventory tables at the end of this
+Android 412×915, small 360×640. The inventory tables at the end of this
 document are generated from the manifest by `node qa/visual/report.mjs`.
 
 How to reproduce: `apps/mobile/qa/visual/README.md`.
@@ -336,6 +345,11 @@ The commands CI runs were run locally and are listed above.
   runtime's ICU.
 - AI insights could only be captured in the "switched off" state; the
   deployment has no model configured.
+- Some strings arrive from the API in English whatever the locale: donor
+  level names ("Regular Donor → Community Donor"), parameter names
+  ("Hematocrit"), organisation names, and campaign or notification copy.
+  They show as English inside otherwise Russian and Uzbek screens. That is
+  API-side content, listed in `docs/backlog-api-localization.md`.
 
 ## 20. Store blockers
 
