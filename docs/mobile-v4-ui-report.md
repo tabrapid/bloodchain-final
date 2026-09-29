@@ -28,7 +28,7 @@ branch was taken from there and `main` was not touched.
 | `b4f4ce49` | Visual corrections from the first full screenshot review |
 | `34625ce9` | Second pass: Uzbek dates without ICU data, tab labels that fit, dead theme code removed |
 | `5cc42406` | API test pinning the per-parameter reference-range lookup |
-| `76c9d338`, `ca537e40` | Tab labels may spill into their item padding (the 393pt and 360pt frames each showed one more break) |
+| `76c9d338`, `ca537e40`, `3b414081` | Tab labels sized from the measured bar so a long word fits at 360pt; short Uzbek month without comma |
 | _final_ | Final capture artifacts and this report (the last commit on the branch) |
 
 The stages are coherent on their own: each one typechecks, lints and passes
@@ -207,11 +207,17 @@ by shot:
   and composes from the tables when it has no names.
 - "Сообщество" split mid-word in the Russian tab bar at 393pt even with two
   lines allowed → the bar drops to 10pt (the iOS tab-label size) whenever one
-  label is a single word longer than nine letters. The 360pt frame then
+  label is a single word of nine letters or more. The 360pt frame then
   showed "Сообщество" and even the English "Community" still breaking (a
-  sixth of that bar is 58pt), so a label may now use the 4pt of padding on
-  either side of its item; the neighbours' labels are centred, so the space
-  is there.
+  sixth of that bar is 58pt), and two rounds of flexbox margins did nothing:
+  a centred text is shrink-to-fit, and react-native-web caps a multi-line
+  text at 100% of its parent. The bar now measures itself and sizes each
+  label as a number: a single word gets its item plus 5pt a side, a label
+  with a space gets its item minus 4pt so it wraps at the space instead of
+  running into a neighbour that also spills. Verified against the real Inter
+  faces measured in Chromium (Сообщество at 10pt semibold is 62.7pt).
+- The Uzbek short-month fallback carried CLDR's comma into the date block
+  ("SEN,") → dropped for the short form.
 - The trends screen kept showing the platelet range after the API fix
   because the API process serving the harness had been built before it; the
   final capture runs against the rebuilt API.
