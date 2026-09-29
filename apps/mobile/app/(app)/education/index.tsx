@@ -32,6 +32,7 @@ import {
   useTabBarClearance,
   LinkButton,
 } from '../../../src/design';
+import { count } from '../../../src/utils/format';
 import { useTranslation } from '../../../src/i18n';
 import type { TranslateFn } from '@bloodchain/i18n';
 
@@ -146,9 +147,9 @@ export default function EducationScreen() {
                     neither is true of a reading count, and a row where two of
                     three figures are coloured for no reason is how a reader
                     learns to stop reading the colours. */}
-                <Stat label={t('education.completed')} value={String(stats.totalCompleted)} />
-                <Stat label={t('education.started')} value={String(stats.totalStarted)} />
-                <Stat label={t('education.xpEarned')} value={String(stats.totalXpEarned)} />
+                <Stat label={t('education.completed')} value={count(stats.totalCompleted)} />
+                <Stat label={t('education.started')} value={count(stats.totalStarted)} />
+                <Stat label={t('education.xpEarned')} value={count(stats.totalXpEarned)} />
               </StatRow>
             ) : null}
 

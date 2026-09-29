@@ -409,7 +409,15 @@ export function buildCatalogue(ids) {
       url: '/(app)/donations',
       states: [
         { id: 'populated' },
-        { id: 'empty', routes: { '/donations/me': { body: [] } } },
+        {
+          id: 'empty',
+          // The statistics route shares the prefix and is matched first, so
+          // the tile shows zeros rather than a list where a figure should be.
+          routes: {
+            '/donations/me/statistics': { body: { totalDonations: 0, totalVolumeMl: 0, completedCount: 0, cancelledCount: 0, abortedCount: 0 } },
+            '/donations/me': { body: [] },
+          },
+        },
         { id: 'filtered-empty', intent: 'a filter with no matches is not the same as having none', act: tap('Cancelled', { after: 900 }) },
         { id: 'error', routes: { '/donations/me': FAIL } },
         { id: 'loading', routes: { '/donations/me': { hang: true } }, settle: 1500 },
@@ -422,7 +430,7 @@ export function buildCatalogue(ids) {
     /* ------------------------------------- community and recognition -- */
     { id: 'community/campaigns', title: 'Campaigns', url: '/(app)/campaigns', states: [{ id: 'populated' }, { id: 'empty', routes: { '/campaigns': { body: { items: [], total: 0 } } } }, { id: 'error', routes: { '/campaigns': FAIL } }, { id: 'long-content', fullPage: true }] },
     { id: 'community/challenges', title: 'Challenges', url: '/(app)/challenges', states: [{ id: 'populated' }, { id: 'empty', routes: { '/challenges': { body: { items: [], total: 0 } } } }, { id: 'error', routes: { '/challenges': FAIL } }, { id: 'long-content', fullPage: true }] },
-    { id: 'community/education', title: 'Education', url: '/(app)/education', states: [{ id: 'populated' }, { id: 'empty', routes: { '/education': { body: { items: [], total: 0 } } } }, { id: 'error', routes: { '/education': FAIL } }, { id: 'locale-uz', locale: 'uz-UZ' }, { id: 'long-content', fullPage: true }] },
+    { id: 'community/education', title: 'Education', url: '/(app)/education', states: [{ id: 'populated' }, { id: 'empty', routes: { '/education/my/stats': { body: { totalStarted: 0, totalCompleted: 0, totalXpEarned: 0 } }, '/education': { body: { items: [], total: 0 } } } }, { id: 'error', routes: { '/education': FAIL } }, { id: 'locale-uz', locale: 'uz-UZ' }, { id: 'long-content', fullPage: true }] },
     {
       id: 'community/education-article',
       title: 'Education — the article',

@@ -23,6 +23,7 @@ import {
 } from '../../../src/design';
 import { useMyDonations, useDonationStatistics } from '../../../src/hooks/useDonations';
 import { type Donation } from '../../../src/api/donations';
+import { count } from '../../../src/utils/format';
 import { useTranslation } from '../../../src/i18n';
 
 type Filter = 'all' | 'completed' | 'cancelled';
@@ -138,17 +139,17 @@ export default function DonationsScreen() {
               <StatRow>
                 <Stat
                   label={t('donationHistory.totalDonations')}
-                  value={String(stats.totalDonations)}
+                  value={count(stats.totalDonations)}
                   tone="rose"
                 />
                 <Stat
                   label={t('donationHistory.volumeDonated')}
-                  value={(stats.totalVolumeMl / 1000).toFixed(1)}
+                  value={Number.isFinite(stats.totalVolumeMl) ? (stats.totalVolumeMl / 1000).toFixed(1) : '—'}
                   unit="L"
                 />
                 <Stat
                   label={t('status.donation.COMPLETED')}
-                  value={String(stats.completedCount)}
+                  value={count(stats.completedCount)}
                   tone="success"
                 />
               </StatRow>
