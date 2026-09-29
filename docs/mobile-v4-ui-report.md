@@ -29,6 +29,7 @@ branch was taken from there and `main` was not touched.
 | `34625ce9` | Second pass: Uzbek dates without ICU data, tab labels that fit, dead theme code removed |
 | `5cc42406` | API test pinning the per-parameter reference-range lookup |
 | `76c9d338`, `ca537e40`, `3b414081`, `12e5ae8f` | Tab labels sized from the measured bar so a long word fits at 360pt; short Uzbek month without comma |
+| `6996dac4` | Statistic tiles draw a dash, never "undefined"; harness answers statistics routes with zeros |
 | _final_ | Final capture artifacts and this report (the last commit on the branch) |
 
 The stages are coherent on their own: each one typechecks, lints and passes
@@ -36,11 +37,12 @@ the suite at that commit.
 
 ## 3. Files changed
 
-`git diff --stat cb963889..HEAD`: 89 files at the visual-corrections commit
-(81 of them under `apps/mobile`), plus the QA and documentation commit. Outside
-the mobile app: the i18n formatter and its tests (`packages/i18n`), and two
-service files in the API where a reference-range lookup returned the wrong
-parameter's range (section 11).
+`git diff --stat cb963889..HEAD` before the artifact commit: 97 files
+(86 of them under `apps/mobile`), plus this report. The final commit adds the
+735 screenshot files and the manifest under `artifacts/mobile-v4-visual-qa`.
+Outside the mobile app: the i18n formatter and its tests (`packages/i18n`),
+and two service files and a test in the API where a reference-range lookup
+returned the wrong parameter's range (section 11).
 
 Of the 54 screen files under `apps/mobile/app`, 44 were rewritten or edited;
 the remaining 10 are layouts and thin index redirects whose content is entirely
@@ -218,6 +220,11 @@ by shot:
   faces measured in Chromium (Сообщество at 10pt semibold is 62.7pt).
 - The Uzbek short-month fallback carried CLDR's comma into the date block
   ("SEN,") → dropped for the short form.
+- The empty states of donation history and the education hub printed
+  "undefined" and "NaN" in their statistics tiles when a stub answered the
+  statistics route with the wrong shape → every figure passes through a
+  `count()` that draws a dash for anything that is not a number, and the
+  harness answers those routes with zeros.
 - The first full manifest flagged 270 captures for content past the right
   edge: every screen with a tab bar, because the outermost label's box ran
   one point past the screen. The spill now equals the bar's own padding and
@@ -250,7 +257,18 @@ document are generated from the manifest by `node qa/visual/report.mjs`.
 
 How to reproduce: `apps/mobile/qa/visual/README.md`.
 
-<!-- capture-summary -->
+**Final capture (this commit):** 735 screenshots, 53 screens, 3 frames, 3
+locales. 0 captures failed. 0 captures measured content past the right edge.
+189 captures logged a console error, all of them expected for the state
+being photographed: 126 are the HTTP 500 the harness returns for the error
+states, 45 are react-native-web's "BackHandler is not supported on web"
+notice (the sheet's hardware-back handler, native-only), and the rest are
+the 400/404/409 and connection-refused responses that the validation,
+slot-taken and offline states are made of.
+
+Read the `small-360x640` frame for Russian and Uzbek: every tab label sits
+on one line, every header uses its subtitle slot, and no screen shrinks its
+text below the scale.
 
 ## 13. Native Android build
 
@@ -322,7 +340,7 @@ At the final commit, from the repository root:
 | --- | --- | --- |
 | Mobile typecheck | `pnpm --filter @bloodchain/mobile typecheck` | clean |
 | Mobile lint | `pnpm --filter @bloodchain/mobile lint` | 0 errors (15 pre-existing `no-explicit-any` warnings) |
-| Mobile tests | `pnpm --filter @bloodchain/mobile test` | 43 suites, 631 tests pass |
+| Mobile tests | `pnpm --filter @bloodchain/mobile test` | 44 suites, 633 tests pass |
 | i18n tests | `pnpm --filter @bloodchain/i18n test` | 81 tests pass |
 | API (touched modules) | `npx jest src/modules/health-trends src/modules/ai-health src/modules/laboratory` in `apps/api` | 7 suites, 90 tests pass |
 | API typecheck | `npx tsc --noEmit` in `apps/api` | clean |
@@ -389,7 +407,7 @@ build the app.
 
 <!-- generated:inventory:start -->
 
-**735 screenshots**, 53 screens, 3 device sizes (android-412x915, iphone-393x852, small-360x640), 3 locales (en, ru, uz). 0 captures failed. 270 captures measured content past the right edge. 189 captures logged a console error.
+**735 screenshots**, 53 screens, 3 device sizes (android-412x915, iphone-393x852, small-360x640), 3 locales (en, ru, uz). 0 captures failed. 0 captures measured content past the right edge. 189 captures logged a console error.
 
 Every link below is relative to `docs/`, so it opens from this file.
 
@@ -402,16 +420,16 @@ Every link below is relative to `docs/`, so it opens from this file.
 | `locale-ru` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/account/notification-settings/locale-ru.png) | 412x915 @2x | ru | seeded database | none measured | — | captured |
 | `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/account/notification-settings/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
 | `permission-explainer` | explained before the OS is asked | [png](../artifacts/mobile-v4-visual-qa/android-412x915/account/notification-settings/permission-explainer.png) | 412x915 @2x | en | seeded database | none measured | **1** | captured |
-| `default` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/account/notification-settings/default.png) | 393x852 @2x | en | seeded database | **1** past 393pt: “Profile” | — | captured |
-| `error` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/account/notification-settings/error.png) | 393x852 @2x | en | overridden | **1** past 393pt: “Profile” | **1** | captured |
-| `locale-ru` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/account/notification-settings/locale-ru.png) | 393x852 @2x | ru | seeded database | **1** past 393pt: “Профиль” | — | captured |
-| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/account/notification-settings/long-content.png) | 393x852 @2x | en | seeded database | **1** past 393pt: “Profile” | — | captured |
-| `permission-explainer` | explained before the OS is asked | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/account/notification-settings/permission-explainer.png) | 393x852 @2x | en | seeded database | **1** past 393pt: “Profile” | **1** | captured |
-| `default` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/account/notification-settings/default.png) | 360x640 @2x | en | seeded database | **1** past 360pt: “Profile” | — | captured |
-| `error` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/account/notification-settings/error.png) | 360x640 @2x | en | overridden | **1** past 360pt: “Profile” | **1** | captured |
-| `locale-ru` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/account/notification-settings/locale-ru.png) | 360x640 @2x | ru | seeded database | **1** past 360pt: “Профиль” | — | captured |
-| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/account/notification-settings/long-content.png) | 360x640 @2x | en | seeded database | **1** past 360pt: “Profile” | — | captured |
-| `permission-explainer` | explained before the OS is asked | [png](../artifacts/mobile-v4-visual-qa/small-360x640/account/notification-settings/permission-explainer.png) | 360x640 @2x | en | seeded database | **1** past 360pt: “Profile” | **1** | captured |
+| `default` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/account/notification-settings/default.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/account/notification-settings/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `locale-ru` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/account/notification-settings/locale-ru.png) | 393x852 @2x | ru | seeded database | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/account/notification-settings/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `permission-explainer` | explained before the OS is asked | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/account/notification-settings/permission-explainer.png) | 393x852 @2x | en | seeded database | none measured | **1** | captured |
+| `default` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/account/notification-settings/default.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/account/notification-settings/error.png) | 360x640 @2x | en | overridden | none measured | **1** | captured |
+| `locale-ru` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/account/notification-settings/locale-ru.png) | 360x640 @2x | ru | seeded database | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/account/notification-settings/long-content.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
+| `permission-explainer` | explained before the OS is asked | [png](../artifacts/mobile-v4-visual-qa/small-360x640/account/notification-settings/permission-explainer.png) | 360x640 @2x | en | seeded database | none measured | **1** | captured |
 
 ### `account/notifications` — Notifications
 
@@ -422,16 +440,16 @@ Every link below is relative to `docs/`, so it opens from this file.
 | `loading` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/account/notifications/loading.png) | 412x915 @2x | en | overridden | none measured | — | captured |
 | `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/account/notifications/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
 | `populated` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/account/notifications/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `empty` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/account/notifications/empty.png) | 393x852 @2x | en | overridden | **1** past 393pt: “Profile” | — | captured |
-| `error` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/account/notifications/error.png) | 393x852 @2x | en | overridden | **1** past 393pt: “Profile” | **1** | captured |
-| `loading` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/account/notifications/loading.png) | 393x852 @2x | en | overridden | **1** past 393pt: “Profile” | — | captured |
-| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/account/notifications/long-content.png) | 393x852 @2x | en | seeded database | **1** past 393pt: “Profile” | — | captured |
-| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/account/notifications/populated.png) | 393x852 @2x | en | seeded database | **1** past 393pt: “Profile” | — | captured |
-| `empty` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/account/notifications/empty.png) | 360x640 @2x | en | overridden | **1** past 360pt: “Profile” | — | captured |
-| `error` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/account/notifications/error.png) | 360x640 @2x | en | overridden | **1** past 360pt: “Profile” | **1** | captured |
-| `loading` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/account/notifications/loading.png) | 360x640 @2x | en | overridden | **1** past 360pt: “Profile” | — | captured |
-| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/account/notifications/long-content.png) | 360x640 @2x | en | seeded database | **1** past 360pt: “Profile” | — | captured |
-| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/account/notifications/populated.png) | 360x640 @2x | en | seeded database | **1** past 360pt: “Profile” | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/account/notifications/empty.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/account/notifications/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `loading` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/account/notifications/loading.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/account/notifications/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/account/notifications/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/account/notifications/empty.png) | 360x640 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/account/notifications/error.png) | 360x640 @2x | en | overridden | none measured | **1** | captured |
+| `loading` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/account/notifications/loading.png) | 360x640 @2x | en | overridden | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/account/notifications/long-content.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/account/notifications/populated.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
 
 ### `account/privacy` — Privacy
 
@@ -441,14 +459,14 @@ Every link below is relative to `docs/`, so it opens from this file.
 | `delete-account` | the deletion route as it stands today | [png](../artifacts/mobile-v4-visual-qa/android-412x915/account/privacy/delete-account.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
 | `locale-ru` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/account/privacy/locale-ru.png) | 412x915 @2x | ru | seeded database | none measured | — | captured |
 | `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/account/privacy/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `default` | what the backend can actually do, and what it cannot | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/account/privacy/default.png) | 393x852 @2x | en | seeded database | **1** past 393pt: “Profile” | — | captured |
-| `delete-account` | the deletion route as it stands today | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/account/privacy/delete-account.png) | 393x852 @2x | en | seeded database | **1** past 393pt: “Profile” | — | captured |
-| `locale-ru` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/account/privacy/locale-ru.png) | 393x852 @2x | ru | seeded database | **1** past 393pt: “Профиль” | — | captured |
-| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/account/privacy/long-content.png) | 393x852 @2x | en | seeded database | **1** past 393pt: “Profile” | — | captured |
-| `default` | what the backend can actually do, and what it cannot | [png](../artifacts/mobile-v4-visual-qa/small-360x640/account/privacy/default.png) | 360x640 @2x | en | seeded database | **1** past 360pt: “Profile” | — | captured |
-| `delete-account` | the deletion route as it stands today | [png](../artifacts/mobile-v4-visual-qa/small-360x640/account/privacy/delete-account.png) | 360x640 @2x | en | seeded database | **1** past 360pt: “Profile” | — | captured |
-| `locale-ru` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/account/privacy/locale-ru.png) | 360x640 @2x | ru | seeded database | **1** past 360pt: “Профиль” | — | captured |
-| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/account/privacy/long-content.png) | 360x640 @2x | en | seeded database | **1** past 360pt: “Profile” | — | captured |
+| `default` | what the backend can actually do, and what it cannot | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/account/privacy/default.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `delete-account` | the deletion route as it stands today | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/account/privacy/delete-account.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `locale-ru` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/account/privacy/locale-ru.png) | 393x852 @2x | ru | seeded database | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/account/privacy/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `default` | what the backend can actually do, and what it cannot | [png](../artifacts/mobile-v4-visual-qa/small-360x640/account/privacy/default.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
+| `delete-account` | the deletion route as it stands today | [png](../artifacts/mobile-v4-visual-qa/small-360x640/account/privacy/delete-account.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
+| `locale-ru` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/account/privacy/locale-ru.png) | 360x640 @2x | ru | seeded database | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/account/privacy/long-content.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
 
 ### `account/profile-donor` — Donor profile
 
@@ -458,14 +476,14 @@ Every link below is relative to `docs/`, so it opens from this file.
 | `locale-ru` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/account/profile-donor/locale-ru.png) | 412x915 @2x | ru | seeded database | none measured | — | captured |
 | `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/account/profile-donor/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
 | `populated` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/account/profile-donor/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `error` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/account/profile-donor/error.png) | 393x852 @2x | en | overridden | **1** past 393pt: “Profile” | **1** | captured |
-| `locale-ru` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/account/profile-donor/locale-ru.png) | 393x852 @2x | ru | seeded database | **1** past 393pt: “Профиль” | — | captured |
-| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/account/profile-donor/long-content.png) | 393x852 @2x | en | seeded database | **1** past 393pt: “Profile” | — | captured |
-| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/account/profile-donor/populated.png) | 393x852 @2x | en | seeded database | **1** past 393pt: “Profile” | — | captured |
-| `error` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/account/profile-donor/error.png) | 360x640 @2x | en | overridden | **1** past 360pt: “Profile” | **1** | captured |
-| `locale-ru` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/account/profile-donor/locale-ru.png) | 360x640 @2x | ru | seeded database | **1** past 360pt: “Профиль” | — | captured |
-| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/account/profile-donor/long-content.png) | 360x640 @2x | en | seeded database | **1** past 360pt: “Profile” | — | captured |
-| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/account/profile-donor/populated.png) | 360x640 @2x | en | seeded database | **1** past 360pt: “Profile” | — | captured |
+| `error` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/account/profile-donor/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `locale-ru` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/account/profile-donor/locale-ru.png) | 393x852 @2x | ru | seeded database | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/account/profile-donor/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/account/profile-donor/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/account/profile-donor/error.png) | 360x640 @2x | en | overridden | none measured | **1** | captured |
+| `locale-ru` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/account/profile-donor/locale-ru.png) | 360x640 @2x | ru | seeded database | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/account/profile-donor/long-content.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/account/profile-donor/populated.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
 
 ### `account/profile-edit` — Edit profile
 
@@ -475,14 +493,14 @@ Every link below is relative to `docs/`, so it opens from this file.
 | `populated` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/account/profile-edit/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
 | `server-error` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/account/profile-edit/server-error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
 | `validation-errors` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/account/profile-edit/validation-errors.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/account/profile-edit/long-content.png) | 393x852 @2x | en | seeded database | **1** past 393pt: “Profile” | — | captured |
-| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/account/profile-edit/populated.png) | 393x852 @2x | en | seeded database | **1** past 393pt: “Profile” | — | captured |
-| `server-error` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/account/profile-edit/server-error.png) | 393x852 @2x | en | overridden | **1** past 393pt: “Profile” | **1** | captured |
-| `validation-errors` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/account/profile-edit/validation-errors.png) | 393x852 @2x | en | seeded database | **1** past 393pt: “Profile” | — | captured |
-| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/account/profile-edit/long-content.png) | 360x640 @2x | en | seeded database | **1** past 360pt: “Profile” | — | captured |
-| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/account/profile-edit/populated.png) | 360x640 @2x | en | seeded database | **1** past 360pt: “Profile” | — | captured |
-| `server-error` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/account/profile-edit/server-error.png) | 360x640 @2x | en | overridden | **1** past 360pt: “Profile” | **1** | captured |
-| `validation-errors` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/account/profile-edit/validation-errors.png) | 360x640 @2x | en | seeded database | **1** past 360pt: “Profile” | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/account/profile-edit/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/account/profile-edit/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `server-error` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/account/profile-edit/server-error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `validation-errors` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/account/profile-edit/validation-errors.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/account/profile-edit/long-content.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/account/profile-edit/populated.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
+| `server-error` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/account/profile-edit/server-error.png) | 360x640 @2x | en | overridden | none measured | **1** | captured |
+| `validation-errors` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/account/profile-edit/validation-errors.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
 
 ### `account/security` — Security
 
@@ -493,16 +511,16 @@ Every link below is relative to `docs/`, so it opens from this file.
 | `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/account/security/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
 | `sessions-error` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/account/security/sessions-error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
 | `validation-errors` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/account/security/validation-errors.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `change-password` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/account/security/change-password.png) | 393x852 @2x | en | seeded database | **1** past 393pt: “Profile” | — | captured |
-| `default` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/account/security/default.png) | 393x852 @2x | en | seeded database | **1** past 393pt: “Profile” | — | captured |
-| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/account/security/long-content.png) | 393x852 @2x | en | seeded database | **1** past 393pt: “Profile” | — | captured |
-| `sessions-error` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/account/security/sessions-error.png) | 393x852 @2x | en | overridden | **1** past 393pt: “Profile” | **1** | captured |
-| `validation-errors` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/account/security/validation-errors.png) | 393x852 @2x | en | seeded database | **1** past 393pt: “Profile” | — | captured |
-| `change-password` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/account/security/change-password.png) | 360x640 @2x | en | seeded database | **1** past 360pt: “Profile” | — | captured |
-| `default` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/account/security/default.png) | 360x640 @2x | en | seeded database | **1** past 360pt: “Profile” | — | captured |
-| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/account/security/long-content.png) | 360x640 @2x | en | seeded database | **1** past 360pt: “Profile” | — | captured |
-| `sessions-error` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/account/security/sessions-error.png) | 360x640 @2x | en | overridden | **1** past 360pt: “Profile” | **1** | captured |
-| `validation-errors` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/account/security/validation-errors.png) | 360x640 @2x | en | seeded database | **1** past 360pt: “Profile” | — | captured |
+| `change-password` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/account/security/change-password.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `default` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/account/security/default.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/account/security/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `sessions-error` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/account/security/sessions-error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `validation-errors` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/account/security/validation-errors.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `change-password` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/account/security/change-password.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
+| `default` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/account/security/default.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/account/security/long-content.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
+| `sessions-error` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/account/security/sessions-error.png) | 360x640 @2x | en | overridden | none measured | **1** | captured |
+| `validation-errors` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/account/security/validation-errors.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
 
 ### `auth/check-email` — Check your email
 
@@ -769,14 +787,14 @@ Every link below is relative to `docs/`, so it opens from this file.
 | `error` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/community/achievements/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
 | `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/community/achievements/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
 | `populated` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/community/achievements/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `empty` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/community/achievements/empty.png) | 393x852 @2x | en | overridden | **1** past 393pt: “Profile” | — | captured |
-| `error` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/community/achievements/error.png) | 393x852 @2x | en | overridden | **1** past 393pt: “Profile” | **1** | captured |
-| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/community/achievements/long-content.png) | 393x852 @2x | en | seeded database | **1** past 393pt: “Profile” | — | captured |
-| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/community/achievements/populated.png) | 393x852 @2x | en | seeded database | **1** past 393pt: “Profile” | — | captured |
-| `empty` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/community/achievements/empty.png) | 360x640 @2x | en | overridden | **1** past 360pt: “Profile” | — | captured |
-| `error` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/community/achievements/error.png) | 360x640 @2x | en | overridden | **1** past 360pt: “Profile” | **1** | captured |
-| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/community/achievements/long-content.png) | 360x640 @2x | en | seeded database | **1** past 360pt: “Profile” | — | captured |
-| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/community/achievements/populated.png) | 360x640 @2x | en | seeded database | **1** past 360pt: “Profile” | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/community/achievements/empty.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/community/achievements/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/community/achievements/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/community/achievements/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/community/achievements/empty.png) | 360x640 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/community/achievements/error.png) | 360x640 @2x | en | overridden | none measured | **1** | captured |
+| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/community/achievements/long-content.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/community/achievements/populated.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
 
 ### `community/badges` — Badges
 
@@ -786,14 +804,14 @@ Every link below is relative to `docs/`, so it opens from this file.
 | `error` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/community/badges/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
 | `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/community/badges/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
 | `populated` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/community/badges/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `empty` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/community/badges/empty.png) | 393x852 @2x | en | overridden | **1** past 393pt: “Profile” | — | captured |
-| `error` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/community/badges/error.png) | 393x852 @2x | en | overridden | **1** past 393pt: “Profile” | **1** | captured |
-| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/community/badges/long-content.png) | 393x852 @2x | en | seeded database | **1** past 393pt: “Profile” | — | captured |
-| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/community/badges/populated.png) | 393x852 @2x | en | seeded database | **1** past 393pt: “Profile” | — | captured |
-| `empty` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/community/badges/empty.png) | 360x640 @2x | en | overridden | **1** past 360pt: “Profile” | — | captured |
-| `error` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/community/badges/error.png) | 360x640 @2x | en | overridden | **1** past 360pt: “Profile” | **1** | captured |
-| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/community/badges/long-content.png) | 360x640 @2x | en | seeded database | **1** past 360pt: “Profile” | — | captured |
-| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/community/badges/populated.png) | 360x640 @2x | en | seeded database | **1** past 360pt: “Profile” | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/community/badges/empty.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/community/badges/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/community/badges/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/community/badges/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/community/badges/empty.png) | 360x640 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/community/badges/error.png) | 360x640 @2x | en | overridden | none measured | **1** | captured |
+| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/community/badges/long-content.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/community/badges/populated.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
 
 ### `community/campaigns` — Campaigns
 
@@ -803,14 +821,14 @@ Every link below is relative to `docs/`, so it opens from this file.
 | `error` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/community/campaigns/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
 | `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/community/campaigns/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
 | `populated` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/community/campaigns/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `empty` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/community/campaigns/empty.png) | 393x852 @2x | en | overridden | **1** past 393pt: “Profile” | — | captured |
-| `error` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/community/campaigns/error.png) | 393x852 @2x | en | overridden | **1** past 393pt: “Profile” | **1** | captured |
-| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/community/campaigns/long-content.png) | 393x852 @2x | en | seeded database | **1** past 393pt: “Profile” | — | captured |
-| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/community/campaigns/populated.png) | 393x852 @2x | en | seeded database | **1** past 393pt: “Profile” | — | captured |
-| `empty` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/community/campaigns/empty.png) | 360x640 @2x | en | overridden | **1** past 360pt: “Profile” | — | captured |
-| `error` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/community/campaigns/error.png) | 360x640 @2x | en | overridden | **1** past 360pt: “Profile” | **1** | captured |
-| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/community/campaigns/long-content.png) | 360x640 @2x | en | seeded database | **1** past 360pt: “Profile” | — | captured |
-| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/community/campaigns/populated.png) | 360x640 @2x | en | seeded database | **1** past 360pt: “Profile” | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/community/campaigns/empty.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/community/campaigns/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/community/campaigns/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/community/campaigns/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/community/campaigns/empty.png) | 360x640 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/community/campaigns/error.png) | 360x640 @2x | en | overridden | none measured | **1** | captured |
+| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/community/campaigns/long-content.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/community/campaigns/populated.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
 
 ### `community/challenges` — Challenges
 
@@ -820,34 +838,34 @@ Every link below is relative to `docs/`, so it opens from this file.
 | `error` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/community/challenges/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
 | `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/community/challenges/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
 | `populated` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/community/challenges/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `empty` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/community/challenges/empty.png) | 393x852 @2x | en | overridden | **1** past 393pt: “Profile” | — | captured |
-| `error` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/community/challenges/error.png) | 393x852 @2x | en | overridden | **1** past 393pt: “Profile” | **1** | captured |
-| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/community/challenges/long-content.png) | 393x852 @2x | en | seeded database | **1** past 393pt: “Profile” | — | captured |
-| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/community/challenges/populated.png) | 393x852 @2x | en | seeded database | **1** past 393pt: “Profile” | — | captured |
-| `empty` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/community/challenges/empty.png) | 360x640 @2x | en | overridden | **1** past 360pt: “Profile” | — | captured |
-| `error` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/community/challenges/error.png) | 360x640 @2x | en | overridden | **1** past 360pt: “Profile” | **1** | captured |
-| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/community/challenges/long-content.png) | 360x640 @2x | en | seeded database | **1** past 360pt: “Profile” | — | captured |
-| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/community/challenges/populated.png) | 360x640 @2x | en | seeded database | **1** past 360pt: “Profile” | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/community/challenges/empty.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/community/challenges/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/community/challenges/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/community/challenges/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/community/challenges/empty.png) | 360x640 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/community/challenges/error.png) | 360x640 @2x | en | overridden | none measured | **1** | captured |
+| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/community/challenges/long-content.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/community/challenges/populated.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
 
 ### `community/education` — Education
 
 | State | Intent | Screenshot | Device | Locale | Data | Clipping | Console | Result |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `empty` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/community/education/empty.png) | 412x915 @2x | en | overridden | **1** past 412pt: “undefined” | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/community/education/empty.png) | 412x915 @2x | en | overridden | none measured | — | captured |
 | `error` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/community/education/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
 | `locale-uz` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/community/education/locale-uz.png) | 412x915 @2x | uz | seeded database | none measured | — | captured |
 | `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/community/education/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
 | `populated` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/community/education/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `empty` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/community/education/empty.png) | 393x852 @2x | en | overridden | **2** past 393pt: “undefined” | — | captured |
-| `error` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/community/education/error.png) | 393x852 @2x | en | overridden | **1** past 393pt: “Profile” | **1** | captured |
-| `locale-uz` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/community/education/locale-uz.png) | 393x852 @2x | uz | seeded database | **1** past 393pt: “Profil” | — | captured |
-| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/community/education/long-content.png) | 393x852 @2x | en | seeded database | **1** past 393pt: “Profile” | — | captured |
-| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/community/education/populated.png) | 393x852 @2x | en | seeded database | **1** past 393pt: “Profile” | — | captured |
-| `empty` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/community/education/empty.png) | 360x640 @2x | en | overridden | **2** past 360pt: “undefined” | — | captured |
-| `error` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/community/education/error.png) | 360x640 @2x | en | overridden | **1** past 360pt: “Profile” | **1** | captured |
-| `locale-uz` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/community/education/locale-uz.png) | 360x640 @2x | uz | seeded database | **1** past 360pt: “Profil” | — | captured |
-| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/community/education/long-content.png) | 360x640 @2x | en | seeded database | **1** past 360pt: “Profile” | — | captured |
-| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/community/education/populated.png) | 360x640 @2x | en | seeded database | **1** past 360pt: “Profile” | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/community/education/empty.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/community/education/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `locale-uz` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/community/education/locale-uz.png) | 393x852 @2x | uz | seeded database | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/community/education/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/community/education/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/community/education/empty.png) | 360x640 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/community/education/error.png) | 360x640 @2x | en | overridden | none measured | **1** | captured |
+| `locale-uz` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/community/education/locale-uz.png) | 360x640 @2x | uz | seeded database | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/community/education/long-content.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/community/education/populated.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
 
 ### `community/education-article` — Education — the article
 
@@ -858,16 +876,16 @@ Every link below is relative to `docs/`, so it opens from this file.
 | `locale-ru` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/community/education-article/locale-ru.png) | 412x915 @2x | ru | seeded database | none measured | — | captured |
 | `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/community/education-article/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
 | `populated` | the body the module has always carried and never showed | [png](../artifacts/mobile-v4-visual-qa/android-412x915/community/education-article/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `error` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/community/education-article/error.png) | 393x852 @2x | en | overridden | **1** past 393pt: “Profile” | **1** | captured |
-| `loading` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/community/education-article/loading.png) | 393x852 @2x | en | overridden | **1** past 393pt: “Profile” | — | captured |
-| `locale-ru` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/community/education-article/locale-ru.png) | 393x852 @2x | ru | seeded database | **1** past 393pt: “Профиль” | — | captured |
-| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/community/education-article/long-content.png) | 393x852 @2x | en | seeded database | **1** past 393pt: “Profile” | — | captured |
-| `populated` | the body the module has always carried and never showed | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/community/education-article/populated.png) | 393x852 @2x | en | seeded database | **1** past 393pt: “Profile” | — | captured |
-| `error` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/community/education-article/error.png) | 360x640 @2x | en | overridden | **1** past 360pt: “Profile” | **1** | captured |
-| `loading` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/community/education-article/loading.png) | 360x640 @2x | en | overridden | **1** past 360pt: “Profile” | — | captured |
-| `locale-ru` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/community/education-article/locale-ru.png) | 360x640 @2x | ru | seeded database | **1** past 360pt: “Профиль” | — | captured |
-| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/community/education-article/long-content.png) | 360x640 @2x | en | seeded database | **1** past 360pt: “Profile” | — | captured |
-| `populated` | the body the module has always carried and never showed | [png](../artifacts/mobile-v4-visual-qa/small-360x640/community/education-article/populated.png) | 360x640 @2x | en | seeded database | **1** past 360pt: “Profile” | — | captured |
+| `error` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/community/education-article/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `loading` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/community/education-article/loading.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `locale-ru` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/community/education-article/locale-ru.png) | 393x852 @2x | ru | seeded database | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/community/education-article/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `populated` | the body the module has always carried and never showed | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/community/education-article/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/community/education-article/error.png) | 360x640 @2x | en | overridden | none measured | **1** | captured |
+| `loading` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/community/education-article/loading.png) | 360x640 @2x | en | overridden | none measured | — | captured |
+| `locale-ru` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/community/education-article/locale-ru.png) | 360x640 @2x | ru | seeded database | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/community/education-article/long-content.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
+| `populated` | the body the module has always carried and never showed | [png](../artifacts/mobile-v4-visual-qa/small-360x640/community/education-article/populated.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
 
 ### `community/gamification` — Recognition
 
@@ -877,14 +895,14 @@ Every link below is relative to `docs/`, so it opens from this file.
 | `loading` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/community/gamification/loading.png) | 412x915 @2x | en | overridden | none measured | — | captured |
 | `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/community/gamification/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
 | `populated` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/community/gamification/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `error` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/community/gamification/error.png) | 393x852 @2x | en | overridden | **1** past 393pt: “Profile” | **1** | captured |
-| `loading` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/community/gamification/loading.png) | 393x852 @2x | en | overridden | **1** past 393pt: “Profile” | — | captured |
-| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/community/gamification/long-content.png) | 393x852 @2x | en | seeded database | **1** past 393pt: “Profile” | — | captured |
-| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/community/gamification/populated.png) | 393x852 @2x | en | seeded database | **1** past 393pt: “Profile” | — | captured |
-| `error` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/community/gamification/error.png) | 360x640 @2x | en | overridden | **1** past 360pt: “Profile” | **1** | captured |
-| `loading` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/community/gamification/loading.png) | 360x640 @2x | en | overridden | **1** past 360pt: “Profile” | — | captured |
-| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/community/gamification/long-content.png) | 360x640 @2x | en | seeded database | **1** past 360pt: “Profile” | — | captured |
-| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/community/gamification/populated.png) | 360x640 @2x | en | seeded database | **1** past 360pt: “Profile” | — | captured |
+| `error` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/community/gamification/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `loading` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/community/gamification/loading.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/community/gamification/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/community/gamification/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/community/gamification/error.png) | 360x640 @2x | en | overridden | none measured | **1** | captured |
+| `loading` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/community/gamification/loading.png) | 360x640 @2x | en | overridden | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/community/gamification/long-content.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/community/gamification/populated.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
 
 ### `community/leaderboard` — Leaderboard
 
@@ -894,14 +912,14 @@ Every link below is relative to `docs/`, so it opens from this file.
 | `error` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/community/leaderboard/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
 | `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/community/leaderboard/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
 | `populated` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/community/leaderboard/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `empty` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/community/leaderboard/empty.png) | 393x852 @2x | en | overridden | **1** past 393pt: “Profile” | — | captured |
-| `error` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/community/leaderboard/error.png) | 393x852 @2x | en | overridden | **1** past 393pt: “Profile” | **1** | captured |
-| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/community/leaderboard/long-content.png) | 393x852 @2x | en | seeded database | **1** past 393pt: “Profile” | — | captured |
-| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/community/leaderboard/populated.png) | 393x852 @2x | en | seeded database | **1** past 393pt: “Profile” | — | captured |
-| `empty` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/community/leaderboard/empty.png) | 360x640 @2x | en | overridden | **1** past 360pt: “Profile” | — | captured |
-| `error` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/community/leaderboard/error.png) | 360x640 @2x | en | overridden | **1** past 360pt: “Profile” | **1** | captured |
-| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/community/leaderboard/long-content.png) | 360x640 @2x | en | seeded database | **1** past 360pt: “Profile” | — | captured |
-| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/community/leaderboard/populated.png) | 360x640 @2x | en | seeded database | **1** past 360pt: “Profile” | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/community/leaderboard/empty.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/community/leaderboard/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/community/leaderboard/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/community/leaderboard/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/community/leaderboard/empty.png) | 360x640 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/community/leaderboard/error.png) | 360x640 @2x | en | overridden | none measured | **1** | captured |
+| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/community/leaderboard/long-content.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/community/leaderboard/populated.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
 
 ### `courier/active` — Courier — active delivery
 
@@ -969,16 +987,16 @@ Every link below is relative to `docs/`, so it opens from this file.
 | `loading` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/health/insights/loading.png) | 412x915 @2x | en | overridden | none measured | — | captured |
 | `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/health/insights/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
 | `populated` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/health/insights/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `ai-disabled` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/health/insights/ai-disabled.png) | 393x852 @2x | en | overridden | **1** past 393pt: “Profile” | — | captured |
-| `error` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/health/insights/error.png) | 393x852 @2x | en | overridden | **1** past 393pt: “Profile” | — | captured |
-| `loading` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/health/insights/loading.png) | 393x852 @2x | en | overridden | **1** past 393pt: “Profile” | — | captured |
-| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/health/insights/long-content.png) | 393x852 @2x | en | seeded database | **1** past 393pt: “Profile” | — | captured |
-| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/health/insights/populated.png) | 393x852 @2x | en | seeded database | **1** past 393pt: “Profile” | — | captured |
-| `ai-disabled` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/health/insights/ai-disabled.png) | 360x640 @2x | en | overridden | **1** past 360pt: “Profile” | — | captured |
-| `error` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/health/insights/error.png) | 360x640 @2x | en | overridden | **1** past 360pt: “Profile” | — | captured |
-| `loading` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/health/insights/loading.png) | 360x640 @2x | en | overridden | **1** past 360pt: “Profile” | — | captured |
-| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/health/insights/long-content.png) | 360x640 @2x | en | seeded database | **1** past 360pt: “Profile” | — | captured |
-| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/health/insights/populated.png) | 360x640 @2x | en | seeded database | **1** past 360pt: “Profile” | — | captured |
+| `ai-disabled` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/health/insights/ai-disabled.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/health/insights/error.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `loading` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/health/insights/loading.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/health/insights/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/health/insights/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `ai-disabled` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/health/insights/ai-disabled.png) | 360x640 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/health/insights/error.png) | 360x640 @2x | en | overridden | none measured | — | captured |
+| `loading` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/health/insights/loading.png) | 360x640 @2x | en | overridden | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/health/insights/long-content.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/health/insights/populated.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
 
 ### `health/laboratory` — Blood tests
 
@@ -990,18 +1008,18 @@ Every link below is relative to `docs/`, so it opens from this file.
 | `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/health/laboratory/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
 | `partial-failure` | one list failed; the other must not read as "you have none" | [png](../artifacts/mobile-v4-visual-qa/android-412x915/health/laboratory/partial-failure.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
 | `populated` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/health/laboratory/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `empty` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/health/laboratory/empty.png) | 393x852 @2x | en | overridden | **1** past 393pt: “Profile” | — | captured |
-| `error` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/health/laboratory/error.png) | 393x852 @2x | en | overridden | **1** past 393pt: “Profile” | **1** | captured |
-| `loading` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/health/laboratory/loading.png) | 393x852 @2x | en | overridden | **1** past 393pt: “Profile” | — | captured |
-| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/health/laboratory/long-content.png) | 393x852 @2x | en | seeded database | **1** past 393pt: “Profile” | — | captured |
-| `partial-failure` | one list failed; the other must not read as "you have none" | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/health/laboratory/partial-failure.png) | 393x852 @2x | en | overridden | **1** past 393pt: “Profile” | **1** | captured |
-| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/health/laboratory/populated.png) | 393x852 @2x | en | seeded database | **1** past 393pt: “Profile” | — | captured |
-| `empty` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/health/laboratory/empty.png) | 360x640 @2x | en | overridden | **1** past 360pt: “Profile” | — | captured |
-| `error` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/health/laboratory/error.png) | 360x640 @2x | en | overridden | **1** past 360pt: “Profile” | **1** | captured |
-| `loading` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/health/laboratory/loading.png) | 360x640 @2x | en | overridden | **1** past 360pt: “Profile” | — | captured |
-| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/health/laboratory/long-content.png) | 360x640 @2x | en | seeded database | **1** past 360pt: “Profile” | — | captured |
-| `partial-failure` | one list failed; the other must not read as "you have none" | [png](../artifacts/mobile-v4-visual-qa/small-360x640/health/laboratory/partial-failure.png) | 360x640 @2x | en | overridden | **1** past 360pt: “Profile” | **1** | captured |
-| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/health/laboratory/populated.png) | 360x640 @2x | en | seeded database | **1** past 360pt: “Profile” | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/health/laboratory/empty.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/health/laboratory/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `loading` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/health/laboratory/loading.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/health/laboratory/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `partial-failure` | one list failed; the other must not read as "you have none" | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/health/laboratory/partial-failure.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/health/laboratory/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/health/laboratory/empty.png) | 360x640 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/health/laboratory/error.png) | 360x640 @2x | en | overridden | none measured | **1** | captured |
+| `loading` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/health/laboratory/loading.png) | 360x640 @2x | en | overridden | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/health/laboratory/long-content.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
+| `partial-failure` | one list failed; the other must not read as "you have none" | [png](../artifacts/mobile-v4-visual-qa/small-360x640/health/laboratory/partial-failure.png) | 360x640 @2x | en | overridden | none measured | **1** | captured |
+| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/health/laboratory/populated.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
 
 ### `health/trends` — Health trends
 
@@ -1012,16 +1030,16 @@ Every link below is relative to `docs/`, so it opens from this file.
 | `loading` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/health/trends/loading.png) | 412x915 @2x | en | overridden | none measured | — | captured |
 | `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/health/trends/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
 | `populated` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/health/trends/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `empty` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/health/trends/empty.png) | 393x852 @2x | en | overridden | **1** past 393pt: “Profile” | — | captured |
-| `error` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/health/trends/error.png) | 393x852 @2x | en | overridden | **1** past 393pt: “Profile” | — | captured |
-| `loading` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/health/trends/loading.png) | 393x852 @2x | en | overridden | **1** past 393pt: “Profile” | — | captured |
-| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/health/trends/long-content.png) | 393x852 @2x | en | seeded database | **1** past 393pt: “Profile” | — | captured |
-| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/health/trends/populated.png) | 393x852 @2x | en | seeded database | **1** past 393pt: “Profile” | — | captured |
-| `empty` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/health/trends/empty.png) | 360x640 @2x | en | overridden | **1** past 360pt: “Profile” | — | captured |
-| `error` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/health/trends/error.png) | 360x640 @2x | en | overridden | **1** past 360pt: “Profile” | — | captured |
-| `loading` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/health/trends/loading.png) | 360x640 @2x | en | overridden | **1** past 360pt: “Profile” | — | captured |
-| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/health/trends/long-content.png) | 360x640 @2x | en | seeded database | **1** past 360pt: “Profile” | — | captured |
-| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/health/trends/populated.png) | 360x640 @2x | en | seeded database | **1** past 360pt: “Profile” | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/health/trends/empty.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/health/trends/error.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `loading` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/health/trends/loading.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/health/trends/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/health/trends/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/health/trends/empty.png) | 360x640 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/health/trends/error.png) | 360x640 @2x | en | overridden | none measured | — | captured |
+| `loading` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/health/trends/loading.png) | 360x640 @2x | en | overridden | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/health/trends/long-content.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/health/trends/populated.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
 
 ### `history/appointment-detail` — Appointment detail
 
@@ -1031,14 +1049,14 @@ Every link below is relative to `docs/`, so it opens from this file.
 | `error` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/history/appointment-detail/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
 | `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/history/appointment-detail/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
 | `populated` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/history/appointment-detail/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `cancel-confirmation` | cancelling asks first | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/history/appointment-detail/cancel-confirmation.png) | 393x852 @2x | en | seeded database | **1** past 393pt: “Profile” | **1** | captured |
-| `error` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/history/appointment-detail/error.png) | 393x852 @2x | en | overridden | **1** past 393pt: “Profile” | **1** | captured |
-| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/history/appointment-detail/long-content.png) | 393x852 @2x | en | seeded database | **1** past 393pt: “Profile” | — | captured |
-| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/history/appointment-detail/populated.png) | 393x852 @2x | en | seeded database | **1** past 393pt: “Profile” | — | captured |
-| `cancel-confirmation` | cancelling asks first | [png](../artifacts/mobile-v4-visual-qa/small-360x640/history/appointment-detail/cancel-confirmation.png) | 360x640 @2x | en | seeded database | **1** past 360pt: “Profile” | **1** | captured |
-| `error` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/history/appointment-detail/error.png) | 360x640 @2x | en | overridden | **1** past 360pt: “Profile” | **1** | captured |
-| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/history/appointment-detail/long-content.png) | 360x640 @2x | en | seeded database | **1** past 360pt: “Profile” | — | captured |
-| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/history/appointment-detail/populated.png) | 360x640 @2x | en | seeded database | **1** past 360pt: “Profile” | — | captured |
+| `cancel-confirmation` | cancelling asks first | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/history/appointment-detail/cancel-confirmation.png) | 393x852 @2x | en | seeded database | none measured | **1** | captured |
+| `error` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/history/appointment-detail/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/history/appointment-detail/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/history/appointment-detail/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `cancel-confirmation` | cancelling asks first | [png](../artifacts/mobile-v4-visual-qa/small-360x640/history/appointment-detail/cancel-confirmation.png) | 360x640 @2x | en | seeded database | none measured | **1** | captured |
+| `error` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/history/appointment-detail/error.png) | 360x640 @2x | en | overridden | none measured | **1** | captured |
+| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/history/appointment-detail/long-content.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/history/appointment-detail/populated.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
 
 ### `history/donation-detail` — Donation detail
 
@@ -1049,39 +1067,39 @@ Every link below is relative to `docs/`, so it opens from this file.
 | `locale-ru` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/history/donation-detail/locale-ru.png) | 412x915 @2x | ru | seeded database | none measured | — | captured |
 | `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/history/donation-detail/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
 | `populated` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/history/donation-detail/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `error` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/history/donation-detail/error.png) | 393x852 @2x | en | overridden | **1** past 393pt: “Profile” | **1** | captured |
-| `loading` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/history/donation-detail/loading.png) | 393x852 @2x | en | overridden | **1** past 393pt: “Profile” | — | captured |
-| `locale-ru` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/history/donation-detail/locale-ru.png) | 393x852 @2x | ru | seeded database | **1** past 393pt: “Профиль” | — | captured |
-| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/history/donation-detail/long-content.png) | 393x852 @2x | en | seeded database | **1** past 393pt: “Profile” | — | captured |
-| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/history/donation-detail/populated.png) | 393x852 @2x | en | seeded database | **1** past 393pt: “Profile” | — | captured |
-| `error` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/history/donation-detail/error.png) | 360x640 @2x | en | overridden | **1** past 360pt: “Profile” | **1** | captured |
-| `loading` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/history/donation-detail/loading.png) | 360x640 @2x | en | overridden | **1** past 360pt: “Profile” | — | captured |
-| `locale-ru` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/history/donation-detail/locale-ru.png) | 360x640 @2x | ru | seeded database | **1** past 360pt: “Профиль” | — | captured |
-| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/history/donation-detail/long-content.png) | 360x640 @2x | en | seeded database | **1** past 360pt: “Profile” | — | captured |
-| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/history/donation-detail/populated.png) | 360x640 @2x | en | seeded database | **1** past 360pt: “Profile” | — | captured |
+| `error` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/history/donation-detail/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `loading` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/history/donation-detail/loading.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `locale-ru` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/history/donation-detail/locale-ru.png) | 393x852 @2x | ru | seeded database | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/history/donation-detail/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/history/donation-detail/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/history/donation-detail/error.png) | 360x640 @2x | en | overridden | none measured | **1** | captured |
+| `loading` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/history/donation-detail/loading.png) | 360x640 @2x | en | overridden | none measured | — | captured |
+| `locale-ru` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/history/donation-detail/locale-ru.png) | 360x640 @2x | ru | seeded database | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/history/donation-detail/long-content.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/history/donation-detail/populated.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
 
 ### `history/donations` — Donation history
 
 | State | Intent | Screenshot | Device | Locale | Data | Clipping | Console | Result |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `empty` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/history/donations/empty.png) | 412x915 @2x | en | overridden | **1** past 412pt: “undefined” | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/history/donations/empty.png) | 412x915 @2x | en | overridden | none measured | — | captured |
 | `error` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/history/donations/error.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
 | `filtered-empty` | a filter with no matches is not the same as having none | [png](../artifacts/mobile-v4-visual-qa/android-412x915/history/donations/filtered-empty.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
 | `loading` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/history/donations/loading.png) | 412x915 @2x | en | overridden | none measured | — | captured |
 | `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/history/donations/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
 | `populated` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/history/donations/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `empty` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/history/donations/empty.png) | 393x852 @2x | en | overridden | **2** past 393pt: “undefined” | — | captured |
-| `error` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/history/donations/error.png) | 393x852 @2x | en | overridden | **1** past 393pt: “Profile” | **1** | captured |
-| `filtered-empty` | a filter with no matches is not the same as having none | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/history/donations/filtered-empty.png) | 393x852 @2x | en | seeded database | **1** past 393pt: “Profile” | — | captured |
-| `loading` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/history/donations/loading.png) | 393x852 @2x | en | overridden | **1** past 393pt: “Profile” | — | captured |
-| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/history/donations/long-content.png) | 393x852 @2x | en | seeded database | **1** past 393pt: “Profile” | — | captured |
-| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/history/donations/populated.png) | 393x852 @2x | en | seeded database | **1** past 393pt: “Profile” | — | captured |
-| `empty` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/history/donations/empty.png) | 360x640 @2x | en | overridden | **2** past 360pt: “undefined” | — | captured |
-| `error` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/history/donations/error.png) | 360x640 @2x | en | overridden | **1** past 360pt: “Profile” | **1** | captured |
-| `filtered-empty` | a filter with no matches is not the same as having none | [png](../artifacts/mobile-v4-visual-qa/small-360x640/history/donations/filtered-empty.png) | 360x640 @2x | en | seeded database | **1** past 360pt: “Profile” | — | captured |
-| `loading` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/history/donations/loading.png) | 360x640 @2x | en | overridden | **1** past 360pt: “Profile” | — | captured |
-| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/history/donations/long-content.png) | 360x640 @2x | en | seeded database | **1** past 360pt: “Profile” | — | captured |
-| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/history/donations/populated.png) | 360x640 @2x | en | seeded database | **1** past 360pt: “Profile” | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/history/donations/empty.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/history/donations/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `filtered-empty` | a filter with no matches is not the same as having none | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/history/donations/filtered-empty.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `loading` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/history/donations/loading.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/history/donations/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/history/donations/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/history/donations/empty.png) | 360x640 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/history/donations/error.png) | 360x640 @2x | en | overridden | none measured | **1** | captured |
+| `filtered-empty` | a filter with no matches is not the same as having none | [png](../artifacts/mobile-v4-visual-qa/small-360x640/history/donations/filtered-empty.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
+| `loading` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/history/donations/loading.png) | 360x640 @2x | en | overridden | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/history/donations/long-content.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/history/donations/populated.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
 
 ### `lab-booking/1-test-type` — Lab — test
 
@@ -1247,18 +1265,18 @@ Every link below is relative to `docs/`, so it opens from this file.
 | `locale-uz` | Uzbek weekday and month names | [png](../artifacts/mobile-v4-visual-qa/android-412x915/tabs/calendar/locale-uz.png) | 412x915 @2x | uz | seeded database | none measured | — | captured |
 | `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/tabs/calendar/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
 | `populated` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/tabs/calendar/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `empty` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/calendar/empty.png) | 393x852 @2x | en | overridden | **1** past 393pt: “Profile” | — | captured |
-| `error` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/calendar/error.png) | 393x852 @2x | en | overridden | **1** past 393pt: “Profile” | **1** | captured |
-| `locale-ru` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/calendar/locale-ru.png) | 393x852 @2x | ru | seeded database | **1** past 393pt: “Профиль” | — | captured |
-| `locale-uz` | Uzbek weekday and month names | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/calendar/locale-uz.png) | 393x852 @2x | uz | seeded database | **1** past 393pt: “Profil” | — | captured |
-| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/calendar/long-content.png) | 393x852 @2x | en | seeded database | **1** past 393pt: “Profile” | — | captured |
-| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/calendar/populated.png) | 393x852 @2x | en | seeded database | **1** past 393pt: “Profile” | — | captured |
-| `empty` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/calendar/empty.png) | 360x640 @2x | en | overridden | **1** past 360pt: “Profile” | — | captured |
-| `error` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/calendar/error.png) | 360x640 @2x | en | overridden | **1** past 360pt: “Profile” | **1** | captured |
-| `locale-ru` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/calendar/locale-ru.png) | 360x640 @2x | ru | seeded database | **1** past 360pt: “Профиль” | — | captured |
-| `locale-uz` | Uzbek weekday and month names | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/calendar/locale-uz.png) | 360x640 @2x | uz | seeded database | **1** past 360pt: “Profil” | — | captured |
-| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/calendar/long-content.png) | 360x640 @2x | en | seeded database | **1** past 360pt: “Profile” | — | captured |
-| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/calendar/populated.png) | 360x640 @2x | en | seeded database | **1** past 360pt: “Profile” | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/calendar/empty.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/calendar/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `locale-ru` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/calendar/locale-ru.png) | 393x852 @2x | ru | seeded database | none measured | — | captured |
+| `locale-uz` | Uzbek weekday and month names | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/calendar/locale-uz.png) | 393x852 @2x | uz | seeded database | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/calendar/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/calendar/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/calendar/empty.png) | 360x640 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/calendar/error.png) | 360x640 @2x | en | overridden | none measured | **1** | captured |
+| `locale-ru` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/calendar/locale-ru.png) | 360x640 @2x | ru | seeded database | none measured | — | captured |
+| `locale-uz` | Uzbek weekday and month names | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/calendar/locale-uz.png) | 360x640 @2x | uz | seeded database | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/calendar/long-content.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/calendar/populated.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
 
 ### `tabs/community` — Community
 
@@ -1270,18 +1288,18 @@ Every link below is relative to `docs/`, so it opens from this file.
 | `locale-ru` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/tabs/community/locale-ru.png) | 412x915 @2x | ru | seeded database | none measured | — | captured |
 | `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/tabs/community/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
 | `populated` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/tabs/community/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `empty` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/community/empty.png) | 393x852 @2x | en | overridden | **1** past 393pt: “Profile” | — | captured |
-| `error` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/community/error.png) | 393x852 @2x | en | overridden | **1** past 393pt: “Profile” | **1** | captured |
-| `loading` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/community/loading.png) | 393x852 @2x | en | overridden | **1** past 393pt: “Profile” | — | captured |
-| `locale-ru` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/community/locale-ru.png) | 393x852 @2x | ru | seeded database | **1** past 393pt: “Профиль” | — | captured |
-| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/community/long-content.png) | 393x852 @2x | en | seeded database | **1** past 393pt: “Profile” | — | captured |
-| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/community/populated.png) | 393x852 @2x | en | seeded database | **1** past 393pt: “Profile” | — | captured |
-| `empty` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/community/empty.png) | 360x640 @2x | en | overridden | **1** past 360pt: “Profile” | — | captured |
-| `error` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/community/error.png) | 360x640 @2x | en | overridden | **1** past 360pt: “Profile” | **1** | captured |
-| `loading` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/community/loading.png) | 360x640 @2x | en | overridden | **1** past 360pt: “Profile” | — | captured |
-| `locale-ru` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/community/locale-ru.png) | 360x640 @2x | ru | seeded database | **1** past 360pt: “Профиль” | — | captured |
-| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/community/long-content.png) | 360x640 @2x | en | seeded database | **1** past 360pt: “Profile” | — | captured |
-| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/community/populated.png) | 360x640 @2x | en | seeded database | **1** past 360pt: “Profile” | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/community/empty.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/community/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `loading` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/community/loading.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `locale-ru` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/community/locale-ru.png) | 393x852 @2x | ru | seeded database | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/community/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/community/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/community/empty.png) | 360x640 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/community/error.png) | 360x640 @2x | en | overridden | none measured | **1** | captured |
+| `loading` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/community/loading.png) | 360x640 @2x | en | overridden | none measured | — | captured |
+| `locale-ru` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/community/locale-ru.png) | 360x640 @2x | ru | seeded database | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/community/long-content.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/community/populated.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
 
 ### `tabs/donate` — Donate
 
@@ -1294,20 +1312,20 @@ Every link below is relative to `docs/`, so it opens from this file.
 | `locale-uz` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/tabs/donate/locale-uz.png) | 412x915 @2x | uz | seeded database | none measured | — | captured |
 | `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/tabs/donate/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
 | `populated` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/tabs/donate/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `empty` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/donate/empty.png) | 393x852 @2x | en | overridden | **1** past 393pt: “Profile” | — | captured |
-| `error` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/donate/error.png) | 393x852 @2x | en | overridden | **1** past 393pt: “Profile” | **1** | captured |
-| `loading` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/donate/loading.png) | 393x852 @2x | en | overridden | **1** past 393pt: “Profile” | — | captured |
-| `locale-ru` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/donate/locale-ru.png) | 393x852 @2x | ru | seeded database | **1** past 393pt: “Профиль” | — | captured |
-| `locale-uz` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/donate/locale-uz.png) | 393x852 @2x | uz | seeded database | **1** past 393pt: “Profil” | — | captured |
-| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/donate/long-content.png) | 393x852 @2x | en | seeded database | **1** past 393pt: “Profile” | — | captured |
-| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/donate/populated.png) | 393x852 @2x | en | seeded database | **1** past 393pt: “Profile” | — | captured |
-| `empty` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/donate/empty.png) | 360x640 @2x | en | overridden | **1** past 360pt: “Profile” | — | captured |
-| `error` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/donate/error.png) | 360x640 @2x | en | overridden | **1** past 360pt: “Profile” | **1** | captured |
-| `loading` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/donate/loading.png) | 360x640 @2x | en | overridden | **1** past 360pt: “Profile” | — | captured |
-| `locale-ru` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/donate/locale-ru.png) | 360x640 @2x | ru | seeded database | **1** past 360pt: “Профиль” | — | captured |
-| `locale-uz` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/donate/locale-uz.png) | 360x640 @2x | uz | seeded database | **1** past 360pt: “Profil” | — | captured |
-| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/donate/long-content.png) | 360x640 @2x | en | seeded database | **1** past 360pt: “Profile” | — | captured |
-| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/donate/populated.png) | 360x640 @2x | en | seeded database | **1** past 360pt: “Profile” | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/donate/empty.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/donate/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `loading` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/donate/loading.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `locale-ru` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/donate/locale-ru.png) | 393x852 @2x | ru | seeded database | none measured | — | captured |
+| `locale-uz` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/donate/locale-uz.png) | 393x852 @2x | uz | seeded database | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/donate/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/donate/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `empty` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/donate/empty.png) | 360x640 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/donate/error.png) | 360x640 @2x | en | overridden | none measured | **1** | captured |
+| `loading` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/donate/loading.png) | 360x640 @2x | en | overridden | none measured | — | captured |
+| `locale-ru` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/donate/locale-ru.png) | 360x640 @2x | ru | seeded database | none measured | — | captured |
+| `locale-uz` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/donate/locale-uz.png) | 360x640 @2x | uz | seeded database | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/donate/long-content.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/donate/populated.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
 
 ### `tabs/health` — Health
 
@@ -1321,22 +1339,22 @@ Every link below is relative to `docs/`, so it opens from this file.
 | `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/tabs/health/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
 | `partial-failure` | results loaded, appointments did not | [png](../artifacts/mobile-v4-visual-qa/android-412x915/tabs/health/partial-failure.png) | 412x915 @2x | en | overridden | none measured | — | captured |
 | `populated` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/tabs/health/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `ai-unavailable` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/health/ai-unavailable.png) | 393x852 @2x | en | overridden | **1** past 393pt: “Profile” | **1** | captured |
-| `empty` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/health/empty.png) | 393x852 @2x | en | overridden | **1** past 393pt: “Profile” | — | captured |
-| `error` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/health/error.png) | 393x852 @2x | en | overridden | **1** past 393pt: “Profile” | **1** | captured |
-| `loading` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/health/loading.png) | 393x852 @2x | en | overridden | **1** past 393pt: “Profile” | — | captured |
-| `locale-ru` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/health/locale-ru.png) | 393x852 @2x | ru | seeded database | **1** past 393pt: “Профиль” | — | captured |
-| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/health/long-content.png) | 393x852 @2x | en | seeded database | **1** past 393pt: “Profile” | — | captured |
-| `partial-failure` | results loaded, appointments did not | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/health/partial-failure.png) | 393x852 @2x | en | overridden | **1** past 393pt: “Profile” | — | captured |
-| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/health/populated.png) | 393x852 @2x | en | seeded database | **1** past 393pt: “Profile” | — | captured |
-| `ai-unavailable` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/health/ai-unavailable.png) | 360x640 @2x | en | overridden | **1** past 360pt: “Profile” | **1** | captured |
-| `empty` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/health/empty.png) | 360x640 @2x | en | overridden | **1** past 360pt: “Profile” | — | captured |
-| `error` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/health/error.png) | 360x640 @2x | en | overridden | **1** past 360pt: “Profile” | **1** | captured |
-| `loading` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/health/loading.png) | 360x640 @2x | en | overridden | **1** past 360pt: “Profile” | — | captured |
-| `locale-ru` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/health/locale-ru.png) | 360x640 @2x | ru | seeded database | **1** past 360pt: “Профиль” | — | captured |
-| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/health/long-content.png) | 360x640 @2x | en | seeded database | **1** past 360pt: “Profile” | — | captured |
-| `partial-failure` | results loaded, appointments did not | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/health/partial-failure.png) | 360x640 @2x | en | overridden | **1** past 360pt: “Profile” | — | captured |
-| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/health/populated.png) | 360x640 @2x | en | seeded database | **1** past 360pt: “Profile” | — | captured |
+| `ai-unavailable` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/health/ai-unavailable.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `empty` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/health/empty.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/health/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `loading` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/health/loading.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `locale-ru` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/health/locale-ru.png) | 393x852 @2x | ru | seeded database | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/health/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `partial-failure` | results loaded, appointments did not | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/health/partial-failure.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/health/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `ai-unavailable` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/health/ai-unavailable.png) | 360x640 @2x | en | overridden | none measured | **1** | captured |
+| `empty` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/health/empty.png) | 360x640 @2x | en | overridden | none measured | — | captured |
+| `error` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/health/error.png) | 360x640 @2x | en | overridden | none measured | **1** | captured |
+| `loading` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/health/loading.png) | 360x640 @2x | en | overridden | none measured | — | captured |
+| `locale-ru` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/health/locale-ru.png) | 360x640 @2x | ru | seeded database | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/health/long-content.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
+| `partial-failure` | results loaded, appointments did not | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/health/partial-failure.png) | 360x640 @2x | en | overridden | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/health/populated.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
 
 ### `tabs/home` — Home
 
@@ -1352,26 +1370,26 @@ Every link below is relative to `docs/`, so it opens from this file.
 | `long-content` | whole page, to see it end to end | [png](../artifacts/mobile-v4-visual-qa/android-412x915/tabs/home/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
 | `offline` | the data requests never reach the server | [png](../artifacts/mobile-v4-visual-qa/android-412x915/tabs/home/offline.png) | 412x915 @2x | en | overridden | none measured | **1** | captured |
 | `populated` | seeded donor: verified blood type, history, next appointment | [png](../artifacts/mobile-v4-visual-qa/android-412x915/tabs/home/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
-| `emergency-banner` | an active emergency matching this donor | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/home/emergency-banner.png) | 393x852 @2x | en | overridden | **1** past 393pt: “Profile” | — | captured |
-| `empty` | nothing scheduled, no emergencies, no campaigns | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/home/empty.png) | 393x852 @2x | en | overridden | **1** past 393pt: “Profile” | — | captured |
-| `error` | every section failed | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/home/error.png) | 393x852 @2x | en | overridden | **1** past 393pt: “Profile” | **1** | captured |
-| `light` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/home/light.png) | 393x852 @2x | en | seeded database | **1** past 393pt: “Profile” | — | captured |
-| `loading` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/home/loading.png) | 393x852 @2x | en | overridden | **1** past 393pt: “Profile” | — | captured |
-| `locale-ru` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/home/locale-ru.png) | 393x852 @2x | ru | seeded database | **1** past 393pt: “Профиль” | — | captured |
-| `locale-uz` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/home/locale-uz.png) | 393x852 @2x | uz | seeded database | **1** past 393pt: “Profil” | — | captured |
-| `long-content` | whole page, to see it end to end | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/home/long-content.png) | 393x852 @2x | en | seeded database | **1** past 393pt: “Profile” | — | captured |
-| `offline` | the data requests never reach the server | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/home/offline.png) | 393x852 @2x | en | overridden | **1** past 393pt: “Profile” | **1** | captured |
-| `populated` | seeded donor: verified blood type, history, next appointment | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/home/populated.png) | 393x852 @2x | en | seeded database | **1** past 393pt: “Profile” | — | captured |
-| `emergency-banner` | an active emergency matching this donor | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/home/emergency-banner.png) | 360x640 @2x | en | overridden | **1** past 360pt: “Profile” | — | captured |
-| `empty` | nothing scheduled, no emergencies, no campaigns | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/home/empty.png) | 360x640 @2x | en | overridden | **1** past 360pt: “Profile” | — | captured |
-| `error` | every section failed | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/home/error.png) | 360x640 @2x | en | overridden | **1** past 360pt: “Profile” | **1** | captured |
-| `light` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/home/light.png) | 360x640 @2x | en | seeded database | **1** past 360pt: “Profile” | — | captured |
-| `loading` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/home/loading.png) | 360x640 @2x | en | overridden | **1** past 360pt: “Profile” | — | captured |
-| `locale-ru` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/home/locale-ru.png) | 360x640 @2x | ru | seeded database | **1** past 360pt: “Профиль” | — | captured |
-| `locale-uz` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/home/locale-uz.png) | 360x640 @2x | uz | seeded database | **1** past 360pt: “Profil” | — | captured |
-| `long-content` | whole page, to see it end to end | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/home/long-content.png) | 360x640 @2x | en | seeded database | **1** past 360pt: “Profile” | — | captured |
-| `offline` | the data requests never reach the server | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/home/offline.png) | 360x640 @2x | en | overridden | **1** past 360pt: “Profile” | **1** | captured |
-| `populated` | seeded donor: verified blood type, history, next appointment | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/home/populated.png) | 360x640 @2x | en | seeded database | **1** past 360pt: “Profile” | — | captured |
+| `emergency-banner` | an active emergency matching this donor | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/home/emergency-banner.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `empty` | nothing scheduled, no emergencies, no campaigns | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/home/empty.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `error` | every section failed | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/home/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `light` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/home/light.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `loading` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/home/loading.png) | 393x852 @2x | en | overridden | none measured | — | captured |
+| `locale-ru` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/home/locale-ru.png) | 393x852 @2x | ru | seeded database | none measured | — | captured |
+| `locale-uz` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/home/locale-uz.png) | 393x852 @2x | uz | seeded database | none measured | — | captured |
+| `long-content` | whole page, to see it end to end | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/home/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `offline` | the data requests never reach the server | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/home/offline.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `populated` | seeded donor: verified blood type, history, next appointment | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/home/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `emergency-banner` | an active emergency matching this donor | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/home/emergency-banner.png) | 360x640 @2x | en | overridden | none measured | — | captured |
+| `empty` | nothing scheduled, no emergencies, no campaigns | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/home/empty.png) | 360x640 @2x | en | overridden | none measured | — | captured |
+| `error` | every section failed | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/home/error.png) | 360x640 @2x | en | overridden | none measured | **1** | captured |
+| `light` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/home/light.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
+| `loading` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/home/loading.png) | 360x640 @2x | en | overridden | none measured | — | captured |
+| `locale-ru` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/home/locale-ru.png) | 360x640 @2x | ru | seeded database | none measured | — | captured |
+| `locale-uz` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/home/locale-uz.png) | 360x640 @2x | uz | seeded database | none measured | — | captured |
+| `long-content` | whole page, to see it end to end | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/home/long-content.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
+| `offline` | the data requests never reach the server | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/home/offline.png) | 360x640 @2x | en | overridden | none measured | **1** | captured |
+| `populated` | seeded donor: verified blood type, history, next appointment | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/home/populated.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
 
 ### `tabs/profile` — Profile
 
@@ -1382,294 +1400,15 @@ Every link below is relative to `docs/`, so it opens from this file.
 | `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/tabs/profile/long-content.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
 | `populated` | — | [png](../artifacts/mobile-v4-visual-qa/android-412x915/tabs/profile/populated.png) | 412x915 @2x | en | seeded database | none measured | — | captured |
 | `sign-out-confirmation` | the destructive action asks first | [png](../artifacts/mobile-v4-visual-qa/android-412x915/tabs/profile/sign-out-confirmation.png) | 412x915 @2x | en | seeded database | none measured | **1** | captured |
-| `error` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/profile/error.png) | 393x852 @2x | en | overridden | **1** past 393pt: “Profile” | **1** | captured |
-| `locale-ru` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/profile/locale-ru.png) | 393x852 @2x | ru | seeded database | **1** past 393pt: “Профиль” | — | captured |
-| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/profile/long-content.png) | 393x852 @2x | en | seeded database | **1** past 393pt: “Profile” | — | captured |
-| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/profile/populated.png) | 393x852 @2x | en | seeded database | **1** past 393pt: “Profile” | — | captured |
-| `sign-out-confirmation` | the destructive action asks first | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/profile/sign-out-confirmation.png) | 393x852 @2x | en | seeded database | **1** past 393pt: “Profile” | **1** | captured |
-| `error` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/profile/error.png) | 360x640 @2x | en | overridden | **1** past 360pt: “Profile” | **1** | captured |
-| `locale-ru` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/profile/locale-ru.png) | 360x640 @2x | ru | seeded database | **1** past 360pt: “Профиль” | — | captured |
-| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/profile/long-content.png) | 360x640 @2x | en | seeded database | **1** past 360pt: “Profile” | — | captured |
-| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/profile/populated.png) | 360x640 @2x | en | seeded database | **1** past 360pt: “Profile” | — | captured |
-| `sign-out-confirmation` | the destructive action asks first | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/profile/sign-out-confirmation.png) | 360x640 @2x | en | seeded database | **1** past 360pt: “Profile” | **1** | captured |
-
-### Every clipping measurement
-
-| Screen | State | Device | Element | Text | Drawn to | Viewport |
-| --- | --- | --- | --- | --- | --- | --- |
-| `tabs/home` | populated | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `tabs/home` | empty | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `tabs/home` | error | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `tabs/home` | offline | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `tabs/home` | emergency-banner | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `tabs/home` | loading | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `tabs/home` | locale-ru | iphone-393x852 | div | “Профиль” | 394pt | 393pt |
-| `tabs/home` | locale-uz | iphone-393x852 | div | “Profil” | 394pt | 393pt |
-| `tabs/home` | light | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `tabs/home` | long-content | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `tabs/health` | populated | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `tabs/health` | empty | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `tabs/health` | error | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `tabs/health` | partial-failure | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `tabs/health` | ai-unavailable | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `tabs/health` | loading | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `tabs/health` | locale-ru | iphone-393x852 | div | “Профиль” | 394pt | 393pt |
-| `tabs/health` | long-content | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `tabs/donate` | populated | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `tabs/donate` | empty | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `tabs/donate` | error | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `tabs/donate` | loading | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `tabs/donate` | locale-ru | iphone-393x852 | div | “Профиль” | 394pt | 393pt |
-| `tabs/donate` | locale-uz | iphone-393x852 | div | “Profil” | 394pt | 393pt |
-| `tabs/donate` | long-content | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `tabs/community` | populated | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `tabs/community` | empty | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `tabs/community` | error | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `tabs/community` | loading | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `tabs/community` | locale-ru | iphone-393x852 | div | “Профиль” | 394pt | 393pt |
-| `tabs/community` | long-content | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `tabs/calendar` | populated | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `tabs/calendar` | empty | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `tabs/calendar` | error | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `tabs/calendar` | locale-ru | iphone-393x852 | div | “Профиль” | 394pt | 393pt |
-| `tabs/calendar` | locale-uz | iphone-393x852 | div | “Profil” | 394pt | 393pt |
-| `tabs/calendar` | long-content | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `tabs/profile` | populated | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `tabs/profile` | error | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `tabs/profile` | sign-out-confirmation | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `tabs/profile` | locale-ru | iphone-393x852 | div | “Профиль” | 394pt | 393pt |
-| `tabs/profile` | long-content | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `health/laboratory` | populated | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `health/laboratory` | empty | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `health/laboratory` | error | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `health/laboratory` | partial-failure | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `health/laboratory` | loading | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `health/laboratory` | long-content | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `health/trends` | populated | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `health/trends` | empty | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `health/trends` | error | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `health/trends` | loading | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `health/trends` | long-content | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `health/insights` | populated | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `health/insights` | ai-disabled | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `health/insights` | error | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `health/insights` | loading | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `health/insights` | long-content | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `history/donations` | populated | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `history/donations` | empty | iphone-393x852 | div | “undefined” | 405pt | 393pt |
-| `history/donations` | empty | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `history/donations` | filtered-empty | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `history/donations` | error | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `history/donations` | loading | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `history/donations` | long-content | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `history/donation-detail` | populated | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `history/donation-detail` | error | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `history/donation-detail` | loading | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `history/donation-detail` | locale-ru | iphone-393x852 | div | “Профиль” | 394pt | 393pt |
-| `history/donation-detail` | long-content | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `history/appointment-detail` | populated | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `history/appointment-detail` | cancel-confirmation | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `history/appointment-detail` | error | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `history/appointment-detail` | long-content | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `community/campaigns` | populated | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `community/campaigns` | empty | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `community/campaigns` | error | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `community/campaigns` | long-content | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `community/challenges` | populated | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `community/challenges` | empty | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `community/challenges` | error | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `community/challenges` | long-content | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `community/education` | populated | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `community/education` | empty | iphone-393x852 | div | “undefined” | 405pt | 393pt |
-| `community/education` | empty | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `community/education` | error | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `community/education` | locale-uz | iphone-393x852 | div | “Profil” | 394pt | 393pt |
-| `community/education` | long-content | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `community/education-article` | populated | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `community/education-article` | error | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `community/education-article` | loading | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `community/education-article` | locale-ru | iphone-393x852 | div | “Профиль” | 394pt | 393pt |
-| `community/education-article` | long-content | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `community/gamification` | populated | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `community/gamification` | error | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `community/gamification` | loading | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `community/gamification` | long-content | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `community/badges` | populated | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `community/badges` | empty | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `community/badges` | error | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `community/badges` | long-content | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `community/achievements` | populated | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `community/achievements` | empty | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `community/achievements` | error | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `community/achievements` | long-content | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `community/leaderboard` | populated | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `community/leaderboard` | empty | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `community/leaderboard` | error | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `community/leaderboard` | long-content | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `account/privacy` | default | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `account/privacy` | delete-account | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `account/privacy` | locale-ru | iphone-393x852 | div | “Профиль” | 394pt | 393pt |
-| `account/privacy` | long-content | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `account/security` | default | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `account/security` | change-password | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `account/security` | validation-errors | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `account/security` | sessions-error | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `account/security` | long-content | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `account/notifications` | populated | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `account/notifications` | empty | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `account/notifications` | error | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `account/notifications` | loading | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `account/notifications` | long-content | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `account/notification-settings` | default | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `account/notification-settings` | permission-explainer | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `account/notification-settings` | error | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `account/notification-settings` | locale-ru | iphone-393x852 | div | “Профиль” | 394pt | 393pt |
-| `account/notification-settings` | long-content | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `account/profile-edit` | populated | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `account/profile-edit` | validation-errors | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `account/profile-edit` | server-error | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `account/profile-edit` | long-content | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `account/profile-donor` | populated | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `account/profile-donor` | error | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `account/profile-donor` | locale-ru | iphone-393x852 | div | “Профиль” | 394pt | 393pt |
-| `account/profile-donor` | long-content | iphone-393x852 | div | “Profile” | 394pt | 393pt |
-| `history/donations` | empty | android-412x915 | div | “undefined” | 418pt | 412pt |
-| `community/education` | empty | android-412x915 | div | “undefined” | 418pt | 412pt |
-| `tabs/home` | populated | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `tabs/home` | empty | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `tabs/home` | error | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `tabs/home` | offline | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `tabs/home` | emergency-banner | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `tabs/home` | loading | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `tabs/home` | locale-ru | small-360x640 | div | “Профиль” | 361pt | 360pt |
-| `tabs/home` | locale-uz | small-360x640 | div | “Profil” | 361pt | 360pt |
-| `tabs/home` | light | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `tabs/home` | long-content | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `tabs/health` | populated | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `tabs/health` | empty | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `tabs/health` | error | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `tabs/health` | partial-failure | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `tabs/health` | ai-unavailable | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `tabs/health` | loading | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `tabs/health` | locale-ru | small-360x640 | div | “Профиль” | 361pt | 360pt |
-| `tabs/health` | long-content | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `tabs/donate` | populated | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `tabs/donate` | empty | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `tabs/donate` | error | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `tabs/donate` | loading | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `tabs/donate` | locale-ru | small-360x640 | div | “Профиль” | 361pt | 360pt |
-| `tabs/donate` | locale-uz | small-360x640 | div | “Profil” | 361pt | 360pt |
-| `tabs/donate` | long-content | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `tabs/community` | populated | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `tabs/community` | empty | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `tabs/community` | error | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `tabs/community` | loading | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `tabs/community` | locale-ru | small-360x640 | div | “Профиль” | 361pt | 360pt |
-| `tabs/community` | long-content | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `tabs/calendar` | populated | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `tabs/calendar` | empty | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `tabs/calendar` | error | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `tabs/calendar` | locale-ru | small-360x640 | div | “Профиль” | 361pt | 360pt |
-| `tabs/calendar` | locale-uz | small-360x640 | div | “Profil” | 361pt | 360pt |
-| `tabs/calendar` | long-content | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `tabs/profile` | populated | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `tabs/profile` | error | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `tabs/profile` | sign-out-confirmation | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `tabs/profile` | locale-ru | small-360x640 | div | “Профиль” | 361pt | 360pt |
-| `tabs/profile` | long-content | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `health/laboratory` | populated | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `health/laboratory` | empty | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `health/laboratory` | error | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `health/laboratory` | partial-failure | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `health/laboratory` | loading | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `health/laboratory` | long-content | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `health/trends` | populated | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `health/trends` | empty | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `health/trends` | error | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `health/trends` | loading | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `health/trends` | long-content | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `health/insights` | populated | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `health/insights` | ai-disabled | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `health/insights` | error | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `health/insights` | loading | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `health/insights` | long-content | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `history/donations` | populated | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `history/donations` | empty | small-360x640 | div | “undefined” | 383pt | 360pt |
-| `history/donations` | empty | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `history/donations` | filtered-empty | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `history/donations` | error | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `history/donations` | loading | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `history/donations` | long-content | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `history/donation-detail` | populated | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `history/donation-detail` | error | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `history/donation-detail` | loading | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `history/donation-detail` | locale-ru | small-360x640 | div | “Профиль” | 361pt | 360pt |
-| `history/donation-detail` | long-content | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `history/appointment-detail` | populated | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `history/appointment-detail` | cancel-confirmation | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `history/appointment-detail` | error | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `history/appointment-detail` | long-content | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `community/campaigns` | populated | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `community/campaigns` | empty | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `community/campaigns` | error | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `community/campaigns` | long-content | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `community/challenges` | populated | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `community/challenges` | empty | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `community/challenges` | error | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `community/challenges` | long-content | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `community/education` | populated | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `community/education` | empty | small-360x640 | div | “undefined” | 383pt | 360pt |
-| `community/education` | empty | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `community/education` | error | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `community/education` | locale-uz | small-360x640 | div | “Profil” | 361pt | 360pt |
-| `community/education` | long-content | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `community/education-article` | populated | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `community/education-article` | error | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `community/education-article` | loading | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `community/education-article` | locale-ru | small-360x640 | div | “Профиль” | 361pt | 360pt |
-| `community/education-article` | long-content | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `community/gamification` | populated | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `community/gamification` | error | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `community/gamification` | loading | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `community/gamification` | long-content | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `community/badges` | populated | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `community/badges` | empty | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `community/badges` | error | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `community/badges` | long-content | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `community/achievements` | populated | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `community/achievements` | empty | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `community/achievements` | error | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `community/achievements` | long-content | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `community/leaderboard` | populated | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `community/leaderboard` | empty | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `community/leaderboard` | error | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `community/leaderboard` | long-content | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `account/privacy` | default | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `account/privacy` | delete-account | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `account/privacy` | locale-ru | small-360x640 | div | “Профиль” | 361pt | 360pt |
-| `account/privacy` | long-content | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `account/security` | default | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `account/security` | change-password | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `account/security` | validation-errors | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `account/security` | sessions-error | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `account/security` | long-content | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `account/notifications` | populated | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `account/notifications` | empty | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `account/notifications` | error | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `account/notifications` | loading | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `account/notifications` | long-content | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `account/notification-settings` | default | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `account/notification-settings` | permission-explainer | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `account/notification-settings` | error | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `account/notification-settings` | locale-ru | small-360x640 | div | “Профиль” | 361pt | 360pt |
-| `account/notification-settings` | long-content | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `account/profile-edit` | populated | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `account/profile-edit` | validation-errors | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `account/profile-edit` | server-error | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `account/profile-edit` | long-content | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `account/profile-donor` | populated | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `account/profile-donor` | error | small-360x640 | div | “Profile” | 361pt | 360pt |
-| `account/profile-donor` | locale-ru | small-360x640 | div | “Профиль” | 361pt | 360pt |
-| `account/profile-donor` | long-content | small-360x640 | div | “Profile” | 361pt | 360pt |
+| `error` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/profile/error.png) | 393x852 @2x | en | overridden | none measured | **1** | captured |
+| `locale-ru` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/profile/locale-ru.png) | 393x852 @2x | ru | seeded database | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/profile/long-content.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/profile/populated.png) | 393x852 @2x | en | seeded database | none measured | — | captured |
+| `sign-out-confirmation` | the destructive action asks first | [png](../artifacts/mobile-v4-visual-qa/iphone-393x852/tabs/profile/sign-out-confirmation.png) | 393x852 @2x | en | seeded database | none measured | **1** | captured |
+| `error` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/profile/error.png) | 360x640 @2x | en | overridden | none measured | **1** | captured |
+| `locale-ru` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/profile/locale-ru.png) | 360x640 @2x | ru | seeded database | none measured | — | captured |
+| `long-content` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/profile/long-content.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
+| `populated` | — | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/profile/populated.png) | 360x640 @2x | en | seeded database | none measured | — | captured |
+| `sign-out-confirmation` | the destructive action asks first | [png](../artifacts/mobile-v4-visual-qa/small-360x640/tabs/profile/sign-out-confirmation.png) | 360x640 @2x | en | seeded database | none measured | **1** | captured |
 
 <!-- generated:inventory:end -->
