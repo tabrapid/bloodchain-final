@@ -77,7 +77,7 @@ export default function EducationScreen() {
     <ScreenHeader
       title={t('education.title')}
       size="large"
-      eyebrow={t('education.subtitle')}
+      subtitle={t('education.subtitle')}
       onBack={() => router.back()}
       backLabel={t('common.a11yGoBack')}
     />

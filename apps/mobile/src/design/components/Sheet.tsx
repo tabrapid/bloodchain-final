@@ -14,7 +14,7 @@ import {
 import { X } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDesign } from '../useDesign';
-import { icon as iconScale, motion, radius, space } from '../tokens';
+import { motion, radius, space } from '../tokens';
 import { Text } from './Text';
 import { Button, ButtonRow, IconButton } from './Button';
 
@@ -267,10 +267,12 @@ export function PermissionExplainer({
   denyLabel,
   onAllow,
   onDeny,
-  icon,
 }: PermissionExplainerProps) {
   const { colors } = useDesign();
 
+  // The `icon` prop is accepted for the call sites that pass one and not
+  // drawn: a lone tile between the description and the assurances read as a
+  // decoration looking for a job, and the sheet is about the words.
   return (
     <BottomSheet
       visible={visible}
@@ -286,22 +288,6 @@ export function PermissionExplainer({
       }
     >
       <View style={{ gap: space.lg }}>
-        {icon ? (
-          <View
-            style={{
-              alignSelf: 'flex-start',
-              width: 56,
-              height: 56,
-              borderRadius: radius.md,
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: colors.clinical.soft,
-            }}
-          >
-            {icon({ size: iconScale.xl, color: colors.clinical.base })}
-          </View>
-        ) : null}
-
         {assurances?.length ? (
           <View style={{ gap: space.sm }}>
             {assurances.map((line) => (

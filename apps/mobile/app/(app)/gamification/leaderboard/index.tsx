@@ -122,7 +122,7 @@ export default function LeaderboardScreen() {
         <ScreenHeader
           title={t('gamification.leaderboard')}
           size="large"
-          eyebrow={subtitle}
+          subtitle={subtitle}
           onBack={() => router.back()}
           backLabel={t('common.a11yGoBack')}
         />
@@ -262,7 +262,7 @@ function LeaderboardRow({ entry, isMe }: { entry: LeaderboardEntry; isMe: boolea
         {t('gamification.xpValue', { xp: formatNumber(entry.xp) })}
       </Text>
 
-      {entry.rank === 1 ? <Trophy size={iconSize.sm} color={colors.warning.base} /> : null}
+      {entry.rank === 1 ? <Trophy size={iconSize.sm} color={colors.rose.text} /> : null}
     </View>
   );
 }

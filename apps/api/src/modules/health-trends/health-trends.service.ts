@@ -530,6 +530,7 @@ export class HealthTrendsService {
         code: parameterCode,
       },
       select: {
+        id: true,
         testTypeId: true,
       },
     });
@@ -538,14 +539,18 @@ export class HealthTrendsService {
       return null;
     }
 
+    // The range for THIS parameter first, and the test type's own (parameter-
+    // less) range only as a fallback. Matching on the test type alone handed
+    // haematocrit the platelet range on a Complete Blood Count -- whichever of
+    // the panel's ranges had been created last -- and the app then printed
+    // "150 000 - 450 000 %" under a value of 42.
     return this.db.testReferenceRange.findFirst({
       where: {
         testTypeId: param.testTypeId,
+        OR: [{ parameterId: param.id }, { parameterId: null }],
         isActive: true,
       },
-      orderBy: {
-        createdAt: 'desc',
-      },
+      orderBy: [{ parameterId: 'desc' }, { createdAt: 'desc' }],
     });
   }
 

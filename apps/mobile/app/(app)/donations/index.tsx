@@ -112,7 +112,7 @@ export default function DonationsScreen() {
     <Screen gutter={false}>
       <ScreenHeader
         title={t('donationHistory.title')}
-        eyebrow={t('donationHistory.subtitle')}
+        subtitle={t('donationHistory.subtitle')}
         size="large"
         onBack={() => router.back()}
         backLabel={t('common.a11yGoBack')}

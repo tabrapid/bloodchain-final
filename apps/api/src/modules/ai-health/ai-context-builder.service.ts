@@ -109,11 +109,15 @@ export class AIContextBuilder {
           value: Number(i.numericValue!),
         }));
 
+      // This parameter's own range ahead of the test type's shared one; see
+      // HealthTrendsService.getReferenceRangeForParameter for why.
       const refRange = await this.db.testReferenceRange.findFirst({
         where: {
           testTypeId: item.parameter.testTypeId,
+          OR: [{ parameterId: item.parameterId }, { parameterId: null }],
           isActive: true,
         },
+        orderBy: [{ parameterId: 'desc' }],
       });
 
       contextItems.push({

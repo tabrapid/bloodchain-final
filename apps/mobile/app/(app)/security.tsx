@@ -130,7 +130,7 @@ export default function Security() {
         <ScreenHeader
           title={t('security.title')}
           size="large"
-          eyebrow={t('security.subtitle')}
+          subtitle={t('security.subtitle')}
           onBack={() => router.back()}
           backLabel={t('common.a11yGoBack')}
         />
@@ -252,8 +252,8 @@ export default function Security() {
                       <Smartphone size={iconSize.md} color={colors.textSecondary} />
                     </View>
                     <View style={{ flex: 1, gap: 2 }}>
-                      <Row gap="sm">
-                        <Text variant="body" numberOfLines={1} style={{ flexShrink: 1 }}>
+                      <Row gap="sm" style={{ flexWrap: 'wrap' }}>
+                        <Text variant="body" numberOfLines={2} style={{ flexShrink: 1 }}>
                           {session.deviceName || session.deviceType || t('security.unknownDevice')}
                         </Text>
                         {/* The server decides this from the token the request

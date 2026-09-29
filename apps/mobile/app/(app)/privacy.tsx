@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { View } from 'react-native';
 import { router } from 'expo-router';
 import Constants from 'expo-constants';
-import { MapPin } from 'lucide-react-native';
+import { Download, UserX } from 'lucide-react-native';
 import {
   Banner,
   ListGroup,
@@ -101,7 +101,7 @@ export default function Privacy() {
         <ScreenHeader
           title={t('privacy.title')}
           size="large"
-          eyebrow={t('privacy.subtitle')}
+          subtitle={t('privacy.subtitle')}
           onBack={() => router.back()}
           backLabel={t('common.a11yGoBack')}
         />
@@ -138,13 +138,14 @@ export default function Privacy() {
             rows={[
               <ListRow
                 key="download"
-                icon={({ size, color }) => <MapPin size={size} color={color} />}
+                icon={({ size, color }) => <Download size={size} color={color} />}
                 title={t('privacy.downloadData')}
                 subtitle={t('privacy.downloadDataHint')}
                 disabled
               />,
               <ListRow
                 key="delete"
+                icon={({ size, color }) => <UserX size={size} color={color} />}
                 title={t('privacy.deleteAccount')}
                 subtitle={t('privacy.deleteAccountHint')}
                 disabled

@@ -28,6 +28,7 @@ export default function EditProfile() {
   const { data: user } = useUserProfile();
   const updateProfile = useUpdateUserProfile();
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [phoneError, setPhoneError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     firstName: user?.firstName ?? '',
@@ -52,12 +53,21 @@ export default function EditProfile() {
 
   const handleSave = async () => {
     setSaveError(null);
+    setPhoneError(null);
+    // A number that does not normalise used to be dropped from the request
+    // and the save reported success: the donor typed a phone and the app
+    // silently kept none. Say so at the field instead.
+    const phone = formData.phone ? normalizePhone(`+998${formData.phone}`) : null;
+    if (formData.phone && !phone) {
+      setPhoneError(t('validation.phoneUzbek'));
+      return;
+    }
     try {
       await updateProfile.mutateAsync({
         firstName: formData.firstName || undefined,
         lastName: formData.lastName || undefined,
         displayName: formData.displayName || undefined,
-        phone: formData.phone ? (normalizePhone(`+998${formData.phone}`) ?? undefined) : undefined,
+        phone: phone ?? undefined,
       });
       router.back();
     } catch (error) {
@@ -129,9 +139,11 @@ export default function EditProfile() {
             label={t('profileEdit.phoneOptional')}
             placeholder={t('auth.phone.placeholder')}
             value={formData.phone}
-            onChangeText={(phone) =>
-              setFormData((prev) => ({ ...prev, phone: phone.replace(/\D/g, '') }))
-            }
+            error={phoneError ?? undefined}
+            onChangeText={(phone) => {
+              setPhoneError(null);
+              setFormData((prev) => ({ ...prev, phone: phone.replace(/\D/g, '') }));
+            }}
           />
         </Stack>
 

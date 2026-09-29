@@ -92,7 +92,7 @@ export default function EditDonorProfile() {
         <ScreenHeader
           title={t('profileEdit.donorTitle')}
           size="large"
-          eyebrow={t('profileEdit.donorSubtitle')}
+          subtitle={t('profileEdit.donorSubtitle')}
           onBack={() => router.back()}
           backLabel={t('common.a11yGoBack')}
         />

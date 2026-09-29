@@ -73,10 +73,12 @@ const TYPE_TONE: Record<NotificationType, AccentName | null> = {
   APPOINTMENT: 'clinical',
   LABORATORY: 'clinical',
   AI: 'insight',
-  GAMIFICATION: 'warning',
+  // Rose, not amber: a badge is good news, and amber is reserved for the
+  // states that need attention.
+  GAMIFICATION: 'rose',
   BLOOD_REQUEST: 'critical',
   SHIPMENT: 'clinical',
-  INVENTORY: 'warning',
+  INVENTORY: 'clinical',
   SECURITY: 'warning',
   SYSTEM: null,
 };

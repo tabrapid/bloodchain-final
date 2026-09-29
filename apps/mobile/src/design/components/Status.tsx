@@ -1,5 +1,6 @@
 import { type ReactNode } from 'react';
 import { View, type ViewStyle } from 'react-native';
+import { AlertCircle, AlertTriangle, CheckCircle2, Info } from 'lucide-react-native';
 import { fonts } from '../fonts';
 import { useDesign } from '../useDesign';
 import { icon as iconScale, radius, space, type AccentName } from '../tokens';
@@ -117,6 +118,21 @@ export function Banner({ title, description, tone = 'clinical', icon, action, st
   const { colors } = useDesign();
   const accent = tone === 'neutral' ? null : colors[tone];
 
+  // A banner with no icon is a coloured block; the icon is the second signal
+  // that says WHAT KIND of message it is, for a reader who does not see the
+  // tint. The tone chooses a default so no screen ships a bare block.
+  const glyph =
+    icon ??
+    (tone === 'critical'
+      ? ({ size, color }: { size: number; color: string }) => <AlertCircle size={size} color={color} />
+      : tone === 'warning'
+        ? ({ size, color }: { size: number; color: string }) => <AlertTriangle size={size} color={color} />
+        : tone === 'success'
+          ? ({ size, color }: { size: number; color: string }) => <CheckCircle2 size={size} color={color} />
+          : tone === 'clinical'
+            ? ({ size, color }: { size: number; color: string }) => <Info size={size} color={color} />
+            : undefined);
+
   return (
     <View
       accessible
@@ -133,8 +149,8 @@ export function Banner({ title, description, tone = 'clinical', icon, action, st
         style,
       ]}
     >
-      {icon ? (
-        <View style={{ paddingTop: 1 }}>{icon({ size: iconScale.md, color: accent?.base ?? colors.textSecondary })}</View>
+      {glyph ? (
+        <View style={{ paddingTop: 1 }}>{glyph({ size: iconScale.md, color: accent?.base ?? colors.textSecondary })}</View>
       ) : null}
       <View style={{ flex: 1, gap: space.xs }}>
         <Text variant="bodyMedium">{title}</Text>

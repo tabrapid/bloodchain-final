@@ -131,6 +131,9 @@ export function ScrollScreen({
           {
             flexGrow: 1,
             paddingHorizontal: gutter ? layout.gutter : 0,
+            // Under a fixed header the content needs a breath before the
+            // first surface; without one the card sits against the bar.
+            paddingTop: header ? space.md : 0,
             paddingBottom: bottomClearance,
           },
           contentStyle,

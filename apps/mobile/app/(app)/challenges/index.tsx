@@ -58,7 +58,7 @@ export default function ChallengesScreen() {
     <ScreenHeader
       title={t('challenges.title')}
       size="large"
-      eyebrow={t('challenges.subtitle')}
+      subtitle={t('challenges.subtitle')}
       onBack={() => router.back()}
       backLabel={t('common.a11yGoBack')}
     />

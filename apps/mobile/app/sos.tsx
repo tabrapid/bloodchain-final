@@ -816,30 +816,9 @@ export default function SosScreen() {
       <Stack gap="xl">
         {actionError ? <Banner tone="critical" title={actionError} /> : null}
 
-        {emergencies.length > 0 ? (
-          <Stack gap="md">
-            {/*
-              Only when there is a second group to tell this one apart from.
-
-              The header already says "2 active requests near you" in its
-              eyebrow; a section header underneath reading "Active emergency
-              requests near you" put the same sentence on the screen twice, in
-              two stacked lines of capitals, whenever the donor had no
-              responses of their own -- which is the ordinary case.
-            */}
-            {myResponses.length > 0 ? <SectionHeader title={t('sos.activeNearYou')} /> : null}
-            {emergencies.map((emergency) =>
-              renderEmergencyCard(emergency, () => handleViewMatch(emergency)),
-            )}
-          </Stack>
-        ) : (
-          <EmptyState
-            title={t('sos.noActiveEmergencies')}
-            description={t('sos.noActiveEmergenciesHint')}
-            icon={({ size, color }) => <AlertTriangle size={size} color={color} />}
-          />
-        )}
-
+        {/* The donor's own commitment first: a journey in progress outranks
+            a list of requests they have not answered, and an empty list above
+            it read as "nothing is happening" to someone already en route. */}
         {myResponses.length > 0 ? (
           <Stack gap="md">
             <SectionHeader title={t('sos.yourActiveResponses')} />
@@ -853,6 +832,24 @@ export default function SosScreen() {
             )}
           </Stack>
         ) : null}
+
+        {emergencies.length > 0 ? (
+          <Stack gap="md">
+            {/* Only when there is a second group to tell this one apart from:
+                the header's eyebrow already counts the requests. */}
+            {myResponses.length > 0 ? <SectionHeader title={t('sos.activeNearYou')} /> : null}
+            {emergencies.map((emergency) =>
+              renderEmergencyCard(emergency, () => handleViewMatch(emergency)),
+            )}
+          </Stack>
+        ) : (
+          <EmptyState
+            size={myResponses.length > 0 ? 'compact' : 'full'}
+            title={t('sos.noActiveEmergencies')}
+            description={t('sos.noActiveEmergenciesHint')}
+            icon={({ size, color }) => <AlertTriangle size={size} color={color} />}
+          />
+        )}
 
         <Text variant="caption" tone="tertiary" align="center">
           {t('sos.commitmentNotice')}

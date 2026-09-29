@@ -56,7 +56,7 @@ export function RecordRow({
             {parameter}
           </Text>
           {reference ? (
-            <Text variant="caption" tone="tertiary" numberOfLines={1}>
+            <Text variant="caption" tone="tertiary" numberOfLines={2}>
               {reference}
             </Text>
           ) : null}

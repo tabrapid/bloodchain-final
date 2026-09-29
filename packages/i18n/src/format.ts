@@ -23,6 +23,30 @@ function safe<T>(run: () => T, fallback: () => T): T {
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
+/**
+ * Uzbek calendar names, for runtimes whose ICU has no Uzbek.
+ *
+ * Node and both phone platforms know `uz-Latn-UZ`; a slim ICU (some browser
+ * builds, some Hermes builds) does not, and `Intl` then does not throw -- it
+ * prints "M09" for September and the English weekday initials. That is a
+ * calendar the donor cannot read, so the names are carried here as data and
+ * used whenever `Intl` hands back a placeholder. Locale data, not copy: the
+ * same names CLDR ships for uz-Latn.
+ */
+const UZ_MONTHS = {
+  long: ['yanvar', 'fevral', 'mart', 'aprel', 'may', 'iyun', 'iyul', 'avgust', 'sentabr', 'oktabr', 'noyabr', 'dekabr'],
+  short: ['yan', 'fev', 'mar', 'apr', 'may', 'iyn', 'iyl', 'avg', 'sen', 'okt', 'noy', 'dek'],
+} as const;
+
+const UZ_WEEKDAYS = {
+  long: ['yakshanba', 'dushanba', 'seshanba', 'chorshanba', 'payshanba', 'juma', 'shanba'],
+  short: ['Yak', 'Dush', 'Sesh', 'Chor', 'Pay', 'Jum', 'Shan'],
+  narrow: ['Y', 'D', 'S', 'C', 'P', 'J', 'S'],
+} as const;
+
+/** True when `Intl` returned ICU's "no data" placeholder for a month. */
+const isMonthPlaceholder = (text: string) => /\bM\d{2}\b/.test(text);
+
 /** "13 sentabr, 2026" / "13 сентября 2026 г." / "13 September 2026" */
 export function formatDate(
   locale: Locale,
@@ -86,10 +110,13 @@ export function formatWeekday(
 ): string {
   const date = toDate(value);
   if (Number.isNaN(date.getTime())) return '';
-  return safe(
-    () => new Intl.DateTimeFormat(INTL_LOCALES[locale], { weekday: width }).format(date),
-    () => '',
-  );
+  const uzFallback = () => (locale === 'uz' ? (UZ_WEEKDAYS[width][date.getDay()] ?? '') : '');
+  return safe(() => {
+    if (locale === 'uz' && Intl.DateTimeFormat.supportedLocalesOf([INTL_LOCALES.uz]).length === 0) {
+      return uzFallback();
+    }
+    return new Intl.DateTimeFormat(INTL_LOCALES[locale], { weekday: width }).format(date);
+  }, uzFallback);
 }
 
 /**
@@ -121,10 +148,14 @@ export function formatMonth(
 ): string {
   const date = toDate(value);
   if (Number.isNaN(date.getTime())) return '';
-  return safe(
-    () => new Intl.DateTimeFormat(INTL_LOCALES[locale], { month: width, year: 'numeric' }).format(date),
-    () => `${pad(date.getMonth() + 1)}.${date.getFullYear()}`,
-  );
+  const fallback = () =>
+    locale === 'uz'
+      ? `${UZ_MONTHS[width][date.getMonth()] ?? pad(date.getMonth() + 1)}, ${date.getFullYear()}`
+      : `${pad(date.getMonth() + 1)}.${date.getFullYear()}`;
+  return safe(() => {
+    const text = new Intl.DateTimeFormat(INTL_LOCALES[locale], { month: width, year: 'numeric' }).format(date);
+    return locale === 'uz' && isMonthPlaceholder(text) ? fallback() : text;
+  }, fallback);
 }
 
 /** "1 234 567,5" in uz and ru; "1,234,567.5" in en. */

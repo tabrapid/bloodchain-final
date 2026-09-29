@@ -1,5 +1,6 @@
 import { forwardRef, useRef, useState, type ReactNode } from 'react';
 import {
+  Platform,
   Pressable,
   TextInput,
   View,
@@ -114,6 +115,10 @@ export const Field = forwardRef<TextInput, FieldProps>(function Field(
               fontFamily: fonts.regular,
               fontSize: 16,
               lineHeight: 22,
+              // The browser's own focus ring, for the visual-QA harness: the
+              // field draws its own focus state, and a second yellow outline
+              // around the input is not something a phone ever shows.
+              ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : null),
             }}
             {...rest}
           />

@@ -218,9 +218,18 @@ export default function Health() {
       : inRange
         ? t('medical.resultFlags.withinRange')
         : t('medical.resultFlags.outsideRange');
+  // The range comes from the published result for THIS parameter, never from
+  // the trend summary: the summary's range was observed carrying another
+  // parameter's limits, and a headline reading "42 % · 150 000–450 000 %" is a
+  // clinical claim the screen cannot stand behind.
+  const headlineCode = (trend?.parameterCode ?? latestParam?.code ?? '').toUpperCase();
+  const headlineRange = latestByCode.get(headlineCode);
   const referenceText =
-    trend?.hasReferenceRange && trend.referenceMin !== undefined && trend.referenceMax !== undefined
-      ? `${formatClinicalValue(trend.referenceMin)}–${formatClinicalValue(trend.referenceMax, trend.unit)}`
+    headlineRange?.referenceMin !== undefined && headlineRange?.referenceMax !== undefined
+      ? `${formatClinicalValue(headlineRange.referenceMin)}–${formatClinicalValue(
+          headlineRange.referenceMax,
+          headlineRange.unit ?? headlineUnit,
+        )}`
       : null;
 
   const upcoming = summary.data?.nextUpcomingAppointment

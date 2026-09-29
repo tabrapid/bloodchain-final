@@ -197,7 +197,7 @@ export default function ForgotPassword() {
           <LinkButton
             label={t('auth.checkEmail.backToSignIn')}
             accessibilityLabel={t('auth.checkEmail.backToSignIn')}
-            tone="rose"
+            tone="clinical"
             onPress={() => router.replace('/(auth)/login')}
             />
         </Stack>

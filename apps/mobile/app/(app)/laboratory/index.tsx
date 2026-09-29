@@ -219,12 +219,13 @@ export default function LaboratoryScreen() {
                   icon={({ size, color }) => <Beaker size={size} color={color} />}
                   iconTone="success"
                   title={result.testType.name}
-                  subtitle={`${result.laboratory.name} · ${
+                  subtitle={`${t('units.parametersTested', { count: result.items.length })} · ${
+                    result.laboratory.name
+                  } · ${
                     result.publishedAt
                       ? formatDate(result.publishedAt, 'medium')
                       : t('laboratory.dateUnknown')
                   }`}
-                  value={t('units.parametersTested', { count: result.items.length })}
                   onPress={() => router.push('/health-trends')}
                 />
               ))}

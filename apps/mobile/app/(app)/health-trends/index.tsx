@@ -29,6 +29,7 @@ import {
   useDesign,
 } from '../../../src/design';
 import { formatClinicalValue } from '../../../src/utils/clinical';
+import { fonts } from '../../../src/design/fonts';
 import { ChevronDown } from 'lucide-react-native';
 import {
   useAvailableParameters,
@@ -147,13 +148,16 @@ export default function HealthTrendsScreen() {
       ? `medical.trendDirection.${data.trend}`
       : 'medical.trendDirection.INSUFFICIENT_DATA';
 
+  // Direction is a fact, not a verdict: a rising haemoglobin and a rising
+  // white-cell count are the same arrow, and neither is amber. The colour
+  // budget on this screen is spent on the out-of-range flag, nowhere else.
   const directionIcon =
     data?.trend === 'INCREASING' ? (
-      <TrendingUp size={iconSize.sm} color={colors.warning.base} />
+      <TrendingUp size={iconSize.sm} color={colors.textSecondary} />
     ) : data?.trend === 'DECREASING' ? (
-      <TrendingDown size={iconSize.sm} color={colors.clinical.base} />
+      <TrendingDown size={iconSize.sm} color={colors.textSecondary} />
     ) : data?.trend === 'STABLE' ? (
-      <Minus size={iconSize.sm} color={colors.success.base} />
+      <Minus size={iconSize.sm} color={colors.textSecondary} />
     ) : (
       <Activity size={iconSize.sm} color={colors.textTertiary} />
     );
@@ -420,7 +424,9 @@ export default function HealthTrendsScreen() {
                           stroke: colors.divider,
                           strokeWidth: 0.5,
                         },
-                        propsForLabels: { fontSize: 11 },
+                        // SVG text does not inherit the app's typeface; left
+                        // alone the axis renders in the platform serif.
+                        propsForLabels: { fontSize: 11, fontFamily: fonts.regular },
                       }}
                       /*
                         `bezier` is deliberately absent. A smoothed curve

@@ -110,12 +110,22 @@ export const COURIER = {
     shipmentReference: 'SHP-2026-0041',
     status: 'IN_TRANSIT',
     priority: 'URGENT',
-    pickupAt: iso(-35),
-    expectedDeliveryAt: iso(25),
-    origin: { id: 'qa-center', name: 'Republican Blood Center — Jizzakh', address: "Navoi ko'chasi 8" },
-    destination: HOSPITAL,
-    items: [{ id: 'qa-item-1', bloodType: 'O', rhFactor: 'NEGATIVE', componentType: 'RED_CELLS', units: 2 }],
-    temperatureRange: { minC: 2, maxC: 6 },
+    bloodRequestId: 'qa-request-1',
+    assignedAt: iso(-60),
+    acceptedAt: iso(-55),
+    pickupStartedAt: iso(-45),
+    pickedUpAt: iso(-35),
+    inTransitAt: iso(-30),
+    createdAt: iso(-60),
+    bloodRequest: { id: 'qa-request-1', requestReference: 'REQ-2026-0193', priority: 'URGENT' },
+    // The shape `GET /courier/shipments/active` returns: organisations, not
+    // "origin"/"destination", and units with a nested bloodUnit.
+    sourceOrganization: { id: 'qa-center', name: 'Republican Blood Center — Jizzakh', address: "Navoi ko'chasi 8" },
+    destinationOrganization: { id: HOSPITAL.id, name: HOSPITAL.name, address: HOSPITAL.address },
+    units: [
+      { id: 'qa-unit-1', status: 'IN_TRANSIT', bloodUnit: { id: 'bu-1', bloodType: 'O', rhFactor: 'NEGATIVE', componentType: 'RED_CELLS' } },
+      { id: 'qa-unit-2', status: 'IN_TRANSIT', bloodUnit: { id: 'bu-2', bloodType: 'O', rhFactor: 'NEGATIVE', componentType: 'RED_CELLS' } },
+    ],
   },
   empty: null,
 };

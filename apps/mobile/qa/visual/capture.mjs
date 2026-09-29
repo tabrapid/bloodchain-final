@@ -185,6 +185,11 @@ async function capture(browser, device, screen, state) {
   await installOverrides(context, state.routes);
 
   const page = await context.newPage();
+  // A phone never draws the browser's focus ring; the harness should not
+  // photograph one around whichever element Chromium focused on load.
+  page.on('domcontentloaded', () => {
+    page.addStyleTag({ content: '*:focus, *:focus-visible { outline: none !important; }' }).catch(() => undefined);
+  });
   page.on('pageerror', (error) => consoleErrors.push(String(error).slice(0, 300)));
   page.on('console', (message) => {
     if (message.type() === 'error') consoleErrors.push(message.text().slice(0, 300));

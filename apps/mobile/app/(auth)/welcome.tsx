@@ -56,9 +56,9 @@ export default function Welcome() {
       <LinearGradient
         pointerEvents="none"
         colors={[colors.heroGradient[0], colors.background]}
-        start={{ x: 0.2, y: 0 }}
-        end={{ x: 0.6, y: 1 }}
-        style={{ position: 'absolute', top: 0, left: 0, right: 0, height: Math.min(height * 0.48, 420) }}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+        style={{ position: 'absolute', top: 0, left: 0, right: 0, height: Math.min(height * 0.5, 440) }}
       />
 
       <View

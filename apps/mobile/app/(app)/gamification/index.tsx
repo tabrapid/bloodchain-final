@@ -75,7 +75,7 @@ export default function GamificationScreen() {
     <ScreenHeader
       title={t('gamification.achievements')}
       size="large"
-      eyebrow={t('gamification.subtitle')}
+      subtitle={t('gamification.subtitle')}
       onBack={() => router.back()}
       backLabel={t('common.a11yGoBack')}
     />

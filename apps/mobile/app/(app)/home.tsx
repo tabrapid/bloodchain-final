@@ -28,6 +28,7 @@ import {
   Row,
   ScrollScreen,
   Section,
+  SectionError,
   Sections,
   Skeleton,
   Stat,
@@ -83,8 +84,10 @@ export default function Home() {
   const { data: userProfile } = useUserProfile();
   const { data: donorProfile, isPending: donorPending } = useDonorProfile();
   const { data: completionData } = useProfileCompletion();
-  const { data: nextAppointment } = useNextAppointment();
-  const { data: donationStats } = useDonationStatistics();
+  const appointmentQuery = useNextAppointment();
+  const nextAppointment = appointmentQuery.data;
+  const statsQuery = useDonationStatistics();
+  const donationStats = statsQuery.data;
   const { data: gamificationProfile } = useGamificationProfile();
   const { data: levelProgress } = useLevelProgress();
   const { data: unreadCount } = useUnreadCount();
@@ -332,7 +335,13 @@ export default function Home() {
 
         {/* ---------------------------------------------- the next appointment */}
         <Section title={t('home.nextAppointment')}>
-          {appointmentDate ? (
+          {appointmentQuery.isError ? (
+            <SectionError
+              message={t('common.errorBody')}
+              retryLabel={t('common.retry')}
+              onRetry={() => void appointmentQuery.refetch()}
+            />
+          ) : appointmentDate ? (
             <Surface
               level="flat"
               onPress={() => router.push(`/appointment/${nextAppointment!.id}`)}
@@ -347,7 +356,7 @@ export default function Home() {
                   tone="rose"
                 />
                 <View style={{ flex: 1, gap: 2 }}>
-                  <Text variant="bodyMedium" numberOfLines={1}>
+                  <Text variant="bodyMedium" numberOfLines={2}>
                     {nextAppointment!.organization.name}
                   </Text>
                   <Text variant="caption" tone="secondary">
@@ -380,6 +389,15 @@ export default function Home() {
 
         {/* ------------------------------------------ what you have done */}
         <Section title={t('home.impact')}>
+          {/* A failed request is not zero donations. The numbers are only
+              drawn when they are the donor's numbers. */}
+          {statsQuery.isError ? (
+            <SectionError
+              message={t('common.errorBody')}
+              retryLabel={t('common.retry')}
+              onRetry={() => void statsQuery.refetch()}
+            />
+          ) : (
           <StatRow>
             <Stat
               label={t('home.donations')}
@@ -398,6 +416,7 @@ export default function Home() {
               icon={({ size, color }) => <Heart size={size} color={color} />}
             />
           </StatRow>
+          )}
 
           {/* The level: real, and the quietest thing in the section. A game
               mechanic never sits at the weight of a medical fact. */}

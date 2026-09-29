@@ -107,7 +107,7 @@ export default function CourierProfileScreen() {
   };
 
   const header = (
-    <ScreenHeader title={t('courier.profileTitle')} size="large" eyebrow={t('courier.profileSubtitle')} />
+    <ScreenHeader title={t('courier.profileTitle')} size="large" subtitle={t('courier.profileSubtitle')} />
   );
 
   if (isLoading) {

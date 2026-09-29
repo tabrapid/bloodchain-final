@@ -62,7 +62,7 @@ export default function CampaignsScreen() {
     <ScreenHeader
       title={t('campaigns.title')}
       size="large"
-      eyebrow={t('campaigns.subtitle')}
+      subtitle={t('campaigns.subtitle')}
       onBack={() => router.back()}
       backLabel={t('common.a11yGoBack')}
     />

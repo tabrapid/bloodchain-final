@@ -21,6 +21,12 @@ export type ScreenHeaderProps = {
   title?: string;
   /** Smaller line above the title: a breadcrumb, a step count, a date. */
   eyebrow?: string;
+  /**
+   * A sentence under the title, `size="large"` only. An eyebrow is a word or
+   * a count and lives in caps; a sentence set in caps on one clipped line is
+   * what "JOIN CAMPAIGNS TO HELP SAVE LIVES IN YOUR COMM..." looked like.
+   */
+  subtitle?: string;
   /** Controls at the trailing edge. */
   actions?: ReactNode;
   /**
@@ -43,7 +49,16 @@ export type ScreenHeaderProps = {
  * `title` is a `header` for assistive technology, so the screen announces what
  * it is on arrival.
  */
-export function ScreenHeader({ title, eyebrow, onBack, backLabel, actions, size = 'inline', style }: ScreenHeaderProps) {
+export function ScreenHeader({
+  title,
+  eyebrow,
+  subtitle,
+  onBack,
+  backLabel,
+  actions,
+  size = 'inline',
+  style,
+}: ScreenHeaderProps) {
   const large = size === 'large' && Boolean(title);
   return (
     <View style={[{ paddingHorizontal: layout.gutter - space.sm }, style]}>
@@ -95,6 +110,11 @@ export function ScreenHeader({ title, eyebrow, onBack, backLabel, actions, size 
           <Text variant="h1" accessibilityRole="header">
             {title}
           </Text>
+          {subtitle ? (
+            <Text variant="body" tone="secondary" style={{ marginTop: space.xs }}>
+              {subtitle}
+            </Text>
+          ) : null}
         </View>
       ) : null}
     </View>
@@ -230,7 +250,7 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
               justifyContent: 'flex-start',
               gap: 4,
               minHeight: hitTarget.min,
-              paddingHorizontal: 2,
+              paddingHorizontal: 1,
             }}
           >
             <View
@@ -252,14 +272,18 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
             <Text
               variant="caption"
               // 11sp is the floor: at 10 the six labels read as decoration.
-              // The focused state changes FACE, not weight.
+              // The focused state changes FACE, not weight. Two lines rather
+              // than an ellipsis: "Сообщество" does not fit a sixth of a
+              // 360pt phone at any readable size, and "Сообщес…" is not a
+              // label. The bar grows by one line only when a language needs it.
               style={{
                 color: focused ? colors.rose.text : colors.textTertiary,
                 fontSize: 11,
-                lineHeight: 14,
+                lineHeight: 13,
                 fontFamily: focused ? fonts.semibold : fonts.medium,
+                textAlign: 'center',
               }}
-              numberOfLines={1}
+              numberOfLines={2}
             >
               {label}
             </Text>

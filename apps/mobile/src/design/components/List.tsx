@@ -127,7 +127,10 @@ export function ListRow({
     <>
       {icon ? <IconTile icon={icon} tone={iconTone} /> : leading ? <View>{leading}</View> : null}
       <View style={{ flex: 1, gap: 2 }}>
-        <Text variant="bodyMedium" numberOfLines={multiline ? undefined : 1}>
+        {/* Two lines, not one: organisation names here are long ("Republican
+            Blood Center — Jizzakh") and a row that clips the name it exists
+            to show is a row that failed. */}
+        <Text variant="bodyMedium" numberOfLines={multiline ? undefined : 2}>
           {title}
         </Text>
         {subtitle || subtitleTrailing ? (
@@ -145,8 +148,9 @@ export function ListRow({
         <Text
           variant="label"
           tone={valueTone ?? 'secondary'}
-          numberOfLines={1}
-          style={{ maxWidth: '45%' }}
+          align="right"
+          numberOfLines={2}
+          style={{ maxWidth: '48%', flexShrink: 1 }}
         >
           {value}
         </Text>

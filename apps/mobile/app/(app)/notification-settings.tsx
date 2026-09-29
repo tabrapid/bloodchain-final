@@ -136,7 +136,7 @@ export default function NotificationSettings() {
         <ScreenHeader
           title={t('notificationSettings.title')}
           size="large"
-          eyebrow={t('notificationSettings.subtitle')}
+          subtitle={t('notificationSettings.subtitle')}
           onBack={() => router.back()}
           backLabel={t('common.a11yGoBack')}
         />
