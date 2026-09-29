@@ -4,6 +4,7 @@ import { View } from 'react-native';
 import {
   AlertCircle,
   Calendar,
+  Check,
   Clock,
   Droplet,
   FlaskConical,
@@ -23,11 +24,12 @@ import {
   Row,
   ScreenHeader,
   ScrollScreen,
+  Section,
   Skeleton,
   Stack,
   Surface,
   Text,
-  iconSize,
+  radius,
   useDesign,
   type StatusTone,
   ErrorState,
@@ -178,13 +180,15 @@ export default function AppointmentDetail() {
           rows={[
             <ListRow
               key="date"
-              leading={<Calendar size={iconSize.lg} color={colors.success.base} />}
+              icon={({ size, color }) => <Calendar size={size} color={color} />}
+              iconTone="success"
               title={t('table.date')}
               value={formatDate(start, 'medium')}
             />,
             <ListRow
               key="time"
-              leading={<Clock size={iconSize.lg} color={colors.clinical.base} />}
+              icon={({ size, color }) => <Clock size={size} color={color} />}
+              iconTone="clinical"
               title={t('table.time')}
               subtitle={t('appointment.aboutDuration', {
                 duration: t('units.minutes', { count: durationMin }),
@@ -193,14 +197,16 @@ export default function AppointmentDetail() {
             />,
             <ListRow
               key="where"
-              leading={<MapPin size={iconSize.lg} color={colors.rose.base} />}
+              icon={({ size, color }) => <MapPin size={size} color={color} />}
+              iconTone="rose"
               title={t('table.location')}
               subtitle={appointment.organization.address ?? undefined}
               value={appointment.organization.name}
             />,
             <ListRow
               key="type"
-              leading={<Droplet size={iconSize.lg} color={colors.rose.base} />}
+              icon={({ size, color }) => <Droplet size={size} color={color} />}
+              iconTone="rose"
               title={t('table.type')}
               value={t(`appointmentTypes.${appointment.appointmentType}`)}
             />,
@@ -211,7 +217,8 @@ export default function AppointmentDetail() {
               ? [
                   <ListRow
                     key="panel"
-                    leading={<FlaskConical size={iconSize.lg} color={colors.clinical.base} />}
+                    icon={({ size, color }) => <FlaskConical size={size} color={color} />}
+                    iconTone="clinical"
                     title={t('labBooking.testType')}
                     value={appointment.testType.name}
                   />,
@@ -219,7 +226,7 @@ export default function AppointmentDetail() {
               : []),
             <ListRow
               key="reference"
-              leading={<Hash size={iconSize.lg} color={colors.textSecondary} />}
+              icon={({ size, color }) => <Hash size={size} color={color} />}
               title={t('booking.referenceNumber')}
               value={appointment.referenceNumber}
             />,
@@ -227,29 +234,42 @@ export default function AppointmentDetail() {
         />
 
         {isOpen ? (
-          <Surface>
-            <Stack gap="sm">
-              <Text variant="bodyStrong">{t('appointment.preparation')}</Text>
-              {PREPARATION.map((tip) => (
-                <Text key={tip} variant="caption" tone="secondary">
-                  {`• ${t(tip)}`}
-                </Text>
-              ))}
-            </Stack>
-          </Surface>
+          <Section title={t('appointment.preparation')}>
+            <Surface level="flat">
+              <Stack gap="md">
+                {PREPARATION.map((tip) => (
+                  <Row key={tip} gap="md" align="flex-start">
+                    <View
+                      style={{
+                        width: 22,
+                        height: 22,
+                        borderRadius: radius.full,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: colors.success.soft,
+                        marginTop: 1,
+                      }}
+                    >
+                      <Check size={13} color={colors.success.base} strokeWidth={3} />
+                    </View>
+                    <Text variant="body" tone="secondary" style={{ flex: 1 }}>
+                      {t(tip)}
+                    </Text>
+                  </Row>
+                ))}
+              </Stack>
+            </Surface>
+          </Section>
         ) : null}
 
         {appointment.notes ? (
-          <Surface>
-            <Stack gap="xs">
-              <Text variant="overline" tone="tertiary" caps>
-                {t('table.notes')}
-              </Text>
+          <Section title={t('table.notes')}>
+            <Surface level="flat">
               <Text variant="body" tone="secondary">
                 {appointment.notes}
               </Text>
-            </Stack>
-          </Surface>
+            </Surface>
+          </Section>
         ) : null}
 
         {appointment.cancellationReason ? (
@@ -307,7 +327,6 @@ export default function AppointmentDetail() {
                   label={t('actions.cancel')}
                   variant="secondary"
                   accent="critical"
-                  style={{ borderColor: colors.critical.base }}
                   onPress={() => setConfirmingCancel(true)}
                 />
               </View>

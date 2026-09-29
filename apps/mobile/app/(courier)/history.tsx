@@ -11,8 +11,6 @@ import {
   Stack,
   Stat,
   StatRow,
-  iconSize,
-  useDesign,
   type StatusTone,
   StatusDot,
 } from '../../src/design';
@@ -39,7 +37,6 @@ const STATUS_TONE: Record<string, StatusTone> = {
 
 export default function CourierHistory() {
   const { t, formatDateTime } = useTranslation();
-  const { colors } = useDesign();
   const [shipments, setShipments] = useState<Shipment[]>([]);
   const [stats, setStats] = useState<CourierStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -139,7 +136,8 @@ export default function CourierHistory() {
             rows={shipments.map((shipment) => (
               <ListRow
                 key={shipment.id}
-                leading={<Droplet size={iconSize.lg} color={colors.rose.base} />}
+                icon={({ size, color }) => <Droplet size={size} color={color} />}
+                iconTone="rose"
                 title={shipment.shipmentReference}
                 // The date was last in a four-fact subtitle clamped to two
                 // lines, so on a delivery record -- a screen whose entire

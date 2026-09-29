@@ -12,8 +12,6 @@ import {
   Skeleton,
   Stack,
   Text,
-  iconSize,
-  useDesign,
 } from '../../src/design';
 import {
   laboratoriesOfferingTestType,
@@ -36,7 +34,6 @@ import { LAB_BOOKING_STEP_COUNT } from './test-type';
  */
 export default function ReviewLabBooking() {
   const { t, formatDate, formatTime } = useTranslation();
-  const { colors } = useDesign();
   const params = useLocalSearchParams<{
     testTypeId: string;
     laboratoryId: string;
@@ -163,21 +160,24 @@ export default function ReviewLabBooking() {
         rows={[
           <ListRow
             key="test"
-            leading={<FlaskConical size={iconSize.lg} color={colors.clinical.base} />}
+            icon={({ size, color }) => <FlaskConical size={size} color={color} />}
+            iconTone="clinical"
             title={t('labBooking.testType')}
             subtitle={t('units.parametersTested', { count: testType.parameters.length })}
             value={testType.name}
           />,
           <ListRow
             key="where"
-            leading={<Building2 size={iconSize.lg} color={colors.rose.base} />}
+            icon={({ size, color }) => <Building2 size={size} color={color} />}
+            iconTone="rose"
             title={t('table.location')}
             subtitle={laboratory.address ?? undefined}
             value={laboratory.name}
           />,
           <ListRow
             key="when"
-            leading={<Calendar size={iconSize.lg} color={colors.success.base} />}
+            icon={({ size, color }) => <Calendar size={size} color={color} />}
+            iconTone="success"
             title={t('booking.dateAndTime')}
             subtitle={t('booking.endsAround', { time: formatTime(slot.endAt) })}
             value={`${formatDate(slot.startAt, 'medium')} · ${formatTime(slot.startAt)}`}

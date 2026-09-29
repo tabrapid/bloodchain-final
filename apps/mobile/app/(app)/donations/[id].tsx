@@ -17,7 +17,6 @@ import {
   Surface,
   Text,
   ValueText,
-  iconSize,
   useDesign,
   type StatusTone,
 } from '../../../src/design';
@@ -107,25 +106,27 @@ export default function DonationDetailScreen() {
   return (
     <ScrollScreen header={header}>
       <Stack gap="xl">
-        <Surface>
-          <Stack gap="md">
-            <Row gap="md">
-              <Droplet size={iconSize.xl} color={colors.rose.base} />
+        <Surface tone={donation.status === 'COMPLETED' ? 'rose' : undefined} corner="xl">
+          <Stack gap="lg">
+            <Row gap="md" align="flex-start">
               <View style={{ flex: 1, gap: 2 }}>
-                <Text variant="h3">{t(`medical.components.${donation.donationType}`)}</Text>
-                <Text variant="caption" tone="tertiary">
+                <Text variant="overline" tone="tertiary" caps>
                   {donation.donationReference}
                 </Text>
+                <Text variant="h2">{t(`medical.components.${donation.donationType}`)}</Text>
               </View>
               <Badge
                 label={t(`status.donation.${donation.status}`)}
                 tone={statusTone(donation.status)}
+                dot
               />
             </Row>
 
             {donation.volumeMl ? (
               <Row gap="xs" align="baseline">
-                <ValueText variant="display">{donation.volumeMl}</ValueText>
+                <ValueText variant="display" style={{ color: colors.rose.text }}>
+                  {donation.volumeMl}
+                </ValueText>
                 <Text variant="h3" tone="secondary">
                   ml
                 </Text>
@@ -138,7 +139,7 @@ export default function DonationDetailScreen() {
           rows={[
             <ListRow
               key="date"
-              leading={<Calendar size={iconSize.lg} color={colors.textSecondary} />}
+              icon={({ size, color }) => <Calendar size={size} color={color} />}
               title={t('table.date')}
               value={formatDate(donation.collectionCompletedAt ?? donation.createdAt, 'medium')}
             />,
@@ -146,7 +147,7 @@ export default function DonationDetailScreen() {
               ? [
                   <ListRow
                     key="time"
-                    leading={<Clock size={iconSize.lg} color={colors.textSecondary} />}
+                    icon={({ size, color }) => <Clock size={size} color={color} />}
                     title={t('table.time')}
                     value={`${formatTime(donation.collectionStartedAt)}${
                       donation.collectionCompletedAt
@@ -158,7 +159,7 @@ export default function DonationDetailScreen() {
               : []),
             <ListRow
               key="org"
-              leading={<Building2 size={iconSize.lg} color={colors.textSecondary} />}
+              icon={({ size, color }) => <Building2 size={size} color={color} />}
               title={t('table.organization')}
               subtitle={donation.organization.address ?? undefined}
               value={donation.organization.name}
@@ -167,7 +168,8 @@ export default function DonationDetailScreen() {
               ? [
                   <ListRow
                     key="blood"
-                    leading={<Droplet size={iconSize.lg} color={colors.rose.base} />}
+                    icon={({ size, color }) => <Droplet size={size} color={color} />}
+                    iconTone="rose"
                     title={t('medical.bloodGroup')}
                     value={bloodType}
                   />,
@@ -177,7 +179,7 @@ export default function DonationDetailScreen() {
         />
 
         {donation.nextDonationDate ? (
-          <Surface>
+          <Surface level="flat">
             <Stack gap="xs">
               <Text variant="overline" tone="tertiary" caps>
                 {t('donationHistory.nextDonationDate')}

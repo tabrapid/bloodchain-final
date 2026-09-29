@@ -157,7 +157,8 @@ export default function LaboratoryScreen() {
               rows={upcoming.slice(0, 3).map((appointment) => (
                 <ListRow
                   key={appointment.id}
-                  leading={<FlaskConical size={iconSize.lg} color={colors.clinical.base} />}
+                  icon={({ size, color }) => <FlaskConical size={size} color={color} />}
+                  iconTone="clinical"
                   title={appointment.testType?.name ?? appointment.organization.name}
                   subtitle={`${formatDate(appointment.scheduledStart, 'medium')} · ${formatTime(
                     appointment.scheduledStart,
@@ -189,7 +190,8 @@ export default function LaboratoryScreen() {
               rows={published.slice(0, 3).map((result) => (
                 <ListRow
                   key={result.id}
-                  leading={<Beaker size={iconSize.lg} color={colors.success.base} />}
+                  icon={({ size, color }) => <Beaker size={size} color={color} />}
+                  iconTone="success"
                   title={result.testType.name}
                   subtitle={`${result.laboratory.name} · ${
                     result.publishedAt

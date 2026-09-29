@@ -17,7 +17,6 @@ import {
   Stat,
   StatRow,
   Surface,
-  iconSize,
   layout,
   space,
   useDesign,
@@ -90,7 +89,8 @@ export default function DonationsScreen() {
       const date = formatDate(item.collectionCompletedAt ?? item.createdAt, 'medium');
       return (
         <ListRow
-          leading={<Droplet size={iconSize.lg} color={colors.rose.base} />}
+          icon={({ size, color }) => <Droplet size={size} color={color} />}
+          iconTone="rose"
           title={t(`medical.components.${item.donationType}`)}
           subtitle={`${date} · ${item.organization.name}`}
           trailing={<Badge label={badge.label} tone={badge.tone} />}

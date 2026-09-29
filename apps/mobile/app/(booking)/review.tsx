@@ -12,8 +12,6 @@ import {
   Skeleton,
   Stack,
   Text,
-  iconSize,
-  useDesign,
 } from '../../src/design';
 import {
   useAvailability,
@@ -27,7 +25,6 @@ import { BOOKING_STEP_COUNT } from './select-type';
 
 export default function ReviewBooking() {
   const { t, formatDate, formatTime } = useTranslation();
-  const { colors } = useDesign();
   const params = useLocalSearchParams<{
     slotId: string;
     organizationId: string;
@@ -166,20 +163,23 @@ export default function ReviewBooking() {
         rows={[
           <ListRow
             key="type"
-            leading={<Droplet size={iconSize.lg} color={colors.rose.base} />}
+            icon={({ size, color }) => <Droplet size={size} color={color} />}
+            iconTone="rose"
             title={t('booking.donationType')}
             value={t(`appointmentTypes.${params.type}`)}
           />,
           <ListRow
             key="where"
-            leading={<Building2 size={iconSize.lg} color={colors.clinical.base} />}
+            icon={({ size, color }) => <Building2 size={size} color={color} />}
+            iconTone="clinical"
             title={t('table.location')}
             subtitle={organization.address ?? undefined}
             value={organization.name}
           />,
           <ListRow
             key="when"
-            leading={<Calendar size={iconSize.lg} color={colors.success.base} />}
+            icon={({ size, color }) => <Calendar size={size} color={color} />}
+            iconTone="success"
             title={t('booking.dateAndTime')}
             subtitle={t('booking.endsAround', { time: formatTime(slot.endAt) })}
             value={`${formatDate(start, 'medium')} · ${formatTime(slot.startAt)}`}

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Linking, Pressable, View } from 'react-native';
+import { Linking, View } from 'react-native';
 import * as Location from 'expo-location';
 import { router } from 'expo-router';
 import {
@@ -19,6 +19,7 @@ import {
   EmergencyBanner,
   EmptyState,
   ErrorState,
+  KeyValueRow,
   LoadingSection,
   PermissionExplainer,
   Row,
@@ -28,9 +29,9 @@ import {
   Stack,
   Surface,
   Text,
+  Timeline,
   ValueText,
   iconSize,
-  motion,
   radius,
   space,
   useDesign,
@@ -421,92 +422,83 @@ export default function SosScreen() {
     const isCritical = emergency.urgencyLevel?.toUpperCase() === 'CRITICAL';
     const rh = rhSign(emergency.rhFactor);
     const deadline = timeLeftLabel(emergency.requiredBefore, t);
+    const accent = isCritical ? colors.critical : colors.rose;
 
     return (
-      <Pressable
+      <Surface
         key={emergency.id}
         onPress={onPress}
-        accessibilityRole="button"
         accessibilityLabel={`${emergency.emergencyReference}. ${emergency.bloodType}${rh}. ${emergency.hospital.name}. ${statusLabel(emergency)}`}
-        style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1, transform: [{ scale: pressed ? motion.pressScale : 1 }] })}
+        {...(isCritical ? { tone: 'critical' as const } : {})}
+        padded={false}
       >
-        <Surface
-          level="raised"
-          style={
-            isCritical
-              ? { borderWidth: 1, borderColor: colors.critical.base, backgroundColor: colors.critical.soft }
-              : undefined
-          }
-        >
-          <Stack gap="md">
-            <Row align="flex-start" gap="lg">
-              <View style={{ flex: 1, gap: space.sm }}>
-                <Row gap="sm">
-                  <ValueText variant="h1" style={{ color: isCritical ? colors.critical.text : colors.rose.text }}>
-                    {emergency.bloodType}
-                    {rh}
-                  </ValueText>
-                  <Badge
-                    label={t(`status.urgency.${emergency.urgencyLevel?.toUpperCase()}`)}
-                    tone={isCritical ? 'critical' : 'warning'}
-                    icon={({ size, color }) => <AlertTriangle size={size} color={color} />}
-                  />
-                </Row>
-                <View style={{ gap: 2 }}>
-                  <Text variant="bodyStrong" numberOfLines={2}>
-                    {emergency.hospital.name}
-                  </Text>
-                  <Text variant="caption" tone="tertiary" numberOfLines={2}>
-                    {emergency.description ?? emergency.emergencyReference}
-                  </Text>
-                </View>
-              </View>
-
-              {/*
-                Shrinkable, and capped.
-
-                This column has no flex, so it sized itself to its longest
-                child -- and its longest child is the donation location
-                ("Emergency entrance, ground floor"), which took more than half
-                the card and truncated the hospital's name to "Jizzakh City …".
-                Between a ward entrance and which hospital it is, the hospital
-                is the one a donor needs to read.
-              */}
-              <View style={{ alignItems: 'flex-end', gap: space.xs, flexShrink: 1, maxWidth: '45%' }}>
+        <View style={{ padding: space.lg, gap: space.md }}>
+          {/* Blood type, urgency and time: the three facts a donor decides on,
+              in the first line, at the largest sizes on the card. */}
+          <Row gap="md" align="flex-start">
+            <View
+              style={{
+                minWidth: 72,
+                paddingHorizontal: space.md,
+                paddingVertical: space.sm,
+                borderRadius: radius.md,
+                alignItems: 'center',
+                backgroundColor: accent.soft,
+              }}
+            >
+              <ValueText variant="h1" style={{ color: accent.text }}>
+                {emergency.bloodType}
+                {rh}
+              </ValueText>
+              <Text variant="overline" tone="tertiary" caps>
+                {t('home.bloodTypeLabel')}
+              </Text>
+            </View>
+            <View style={{ flex: 1, gap: space.xs }}>
+              <Row gap="sm" style={{ flexWrap: 'wrap' }}>
+                <Badge
+                  label={t(`status.urgency.${emergency.urgencyLevel?.toUpperCase()}`)}
+                  tone={isCritical ? 'critical' : 'warning'}
+                  emphasis={isCritical ? 'solid' : 'soft'}
+                  icon={({ size, color }) => <AlertTriangle size={size} color={color} />}
+                />
                 {deadline ? (
-                  <Row gap="xs">
-                    <Clock size={iconSize.sm} color={colors.critical.text} />
-                    <Text variant="label" style={{ color: colors.critical.text }}>
-                      {deadline}
-                    </Text>
-                  </Row>
+                  <Badge
+                    label={deadline}
+                    tone={isCritical ? 'critical' : 'neutral'}
+                    icon={({ size, color }) => <Clock size={size} color={color} />}
+                  />
                 ) : null}
-                <Text variant="caption" tone="tertiary">
-                  {t('units.unitsNeeded', { count: emergency.unitsRequired })}
-                </Text>
-                {emergency.donationLocation ? (
-                  <Row gap="xs">
-                    <MapPin size={iconSize.sm} color={colors.textTertiary} />
-                    <Text
-                      variant="caption"
-                      tone="tertiary"
-                      numberOfLines={2}
-                      style={{ flexShrink: 1, textAlign: 'right' }}
-                    >
-                      {emergency.donationLocation}
-                    </Text>
-                  </Row>
-                ) : null}
-              </View>
-            </Row>
+              </Row>
+              <Text variant="title" numberOfLines={2}>
+                {emergency.hospital.name}
+              </Text>
+              <Text variant="caption" tone="secondary">
+                {t('units.unitsNeeded', { count: emergency.unitsRequired })}
+                {emergency.donationLocation ? ` · ${emergency.donationLocation}` : ''}
+              </Text>
+            </View>
+          </Row>
+        </View>
 
-            <View style={{ height: 1, backgroundColor: colors.divider }} />
-            <Text variant="label" tone={isCritical ? 'critical' : 'clinical'}>
-              {statusLabel(emergency)}
-            </Text>
-          </Stack>
-        </Surface>
-      </Pressable>
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: space.sm,
+            paddingHorizontal: space.lg,
+            paddingVertical: space.md,
+            backgroundColor: isCritical ? 'rgba(255,255,255,0.05)' : colors.surfaceRaised,
+          }}
+        >
+          <Text variant="label" tone={isCritical ? 'critical' : 'clinical'} style={{ flex: 1 }}>
+            {statusLabel(emergency)}
+          </Text>
+          <Text variant="caption" tone="tertiary">
+            {emergency.emergencyReference}
+          </Text>
+        </View>
+      </Surface>
     );
   };
 
@@ -549,23 +541,30 @@ export default function SosScreen() {
             icon={({ size, color }) => <AlertTriangle size={size} color={color} />}
           />
 
-          <Surface>
-            <Stack gap="md">
-              <DetailRow label={t('sos.bloodTypeNeeded')} value={`${selectedEmergency.bloodType}${rh}`} />
-              <DetailRow label={t('sos.unitsRequired')} value={String(selectedEmergency.unitsRequired)} />
-              <DetailRow label={t('table.hospital')} value={selectedEmergency.hospital.name} />
+          <Surface padded="lg">
+            <View style={{ gap: 0 }}>
+              <KeyValueRow
+                label={t('sos.bloodTypeNeeded')}
+                value={`${selectedEmergency.bloodType}${rh}`}
+                valueTone="rose"
+              />
+              <View style={{ height: 1, backgroundColor: colors.divider }} />
+              <KeyValueRow label={t('sos.unitsRequired')} value={String(selectedEmergency.unitsRequired)} />
+              <View style={{ height: 1, backgroundColor: colors.divider }} />
+              <KeyValueRow label={t('table.hospital')} value={selectedEmergency.hospital.name} multiline />
               {selectedEmergency.donationLocation ? (
-                <DetailRow label={t('table.location')} value={selectedEmergency.donationLocation} />
+                <>
+                  <View style={{ height: 1, backgroundColor: colors.divider }} />
+                  <KeyValueRow label={t('table.location')} value={selectedEmergency.donationLocation} multiline />
+                </>
               ) : null}
               {selectedEmergency.description ? (
-                <View style={{ gap: space.xs }}>
-                  <Text variant="label" tone="tertiary">
-                    {t('sos.description')}
-                  </Text>
-                  <Text variant="body">{selectedEmergency.description}</Text>
-                </View>
+                <>
+                  <View style={{ height: 1, backgroundColor: colors.divider }} />
+                  <KeyValueRow label={t('sos.description')} value={selectedEmergency.description} multiline />
+                </>
               ) : null}
-            </Stack>
+            </View>
           </Surface>
 
           {actionError ? <Banner tone="critical" title={actionError} /> : null}
@@ -609,33 +608,46 @@ export default function SosScreen() {
       <View style={{ flex: 1 }}>
         <ScrollScreen header={<ScreenHeader title={t('sos.yourResponse')} onBack={() => setStatus('idle')} backLabel={t('common.a11yGoBack')} />}>
           <Stack gap="xl">
-            <JourneyProgress status={status} />
-
-            <Surface>
-              <Stack gap="md">
-                <Row gap="md">
-                  <CheckCircle size={iconSize.lg} color={colors.success.base} />
-                  <View style={{ flex: 1, gap: 2 }}>
-                    <Text variant="bodyStrong">{t('sos.responseAccepted')}</Text>
-                    <Text variant="caption" tone="secondary">
-                      {t('sos.responseAcceptedBody')}
+            {/* The destination first, then where the donor is on the way to it.
+                Hospital, blood type and location dominate; the journey is a
+                timeline of the three states the donor owns. */}
+            <Surface tone="rose" corner="xl">
+              <View style={{ gap: space.lg }}>
+                <Row gap="lg" align="flex-start">
+                  <View style={{ flex: 1, gap: space.xs }}>
+                    <Text variant="overline" tone="tertiary" caps>
+                      {t('table.hospital')}
+                    </Text>
+                    <Text variant="h2">{selectedEmergency.hospital.name}</Text>
+                    {selectedEmergency.donationLocation ? (
+                      <Row gap="xs" align="flex-start">
+                        <MapPin size={iconSize.sm} color={colors.textSecondary} style={{ marginTop: 3 }} />
+                        <Text variant="body" tone="secondary" style={{ flex: 1 }}>
+                          {selectedEmergency.donationLocation}
+                        </Text>
+                      </Row>
+                    ) : null}
+                  </View>
+                  <View style={{ alignItems: 'flex-end', gap: 2 }}>
+                    <ValueText variant="h1" style={{ color: colors.rose.text }}>
+                      {selectedEmergency.bloodType}
+                      {rhSign(selectedEmergency.rhFactor)}
+                    </ValueText>
+                    <Text variant="caption" tone="tertiary">
+                      {t('units.unitsNeeded', { count: selectedEmergency.unitsRequired })}
                     </Text>
                   </View>
                 </Row>
-                <View style={{ height: 1, backgroundColor: colors.divider }} />
-                <Row gap="md" align="flex-start">
-                  <MapPin size={iconSize.md} color={colors.rose.base} />
-                  <View style={{ flex: 1, gap: 2 }}>
-                    <Text variant="bodyStrong">{selectedEmergency.hospital.name}</Text>
-                    {selectedEmergency.donationLocation ? (
-                      <Text variant="caption" tone="secondary">
-                        {selectedEmergency.donationLocation}
-                      </Text>
-                    ) : null}
-                  </View>
-                </Row>
-              </Stack>
+                <JourneyProgress status={status} />
+              </View>
             </Surface>
+
+            <Banner
+              tone="success"
+              title={t('sos.responseAccepted')}
+              description={t('sos.responseAcceptedBody')}
+              icon={({ size, color }) => <CheckCircle size={size} color={color} />}
+            />
 
             {/*
               Declining is not a decision a donor is held to.
@@ -850,20 +862,6 @@ export default function SosScreen() {
   );
 }
 
-/** A label and its value on one line, for the request's facts. */
-function DetailRow({ label, value }: { label: string; value: string }) {
-  return (
-    <Row gap="lg" align="flex-start" style={{ justifyContent: 'space-between' }}>
-      <Text variant="body" tone="secondary" style={{ flex: 1 }}>
-        {label}
-      </Text>
-      <Text variant="bodyStrong" align="right" style={{ flex: 1 }}>
-        {value}
-      </Text>
-    </Row>
-  );
-}
-
 /**
  * Where the donor is in the three steps they own.
  *
@@ -873,7 +871,6 @@ function DetailRow({ label, value }: { label: string; value: string }) {
  * not. What happens after arrival belongs to the hospital.
  */
 function JourneyProgress({ status }: { status: EmergencyStatus }) {
-  const { colors } = useDesign();
   const { t } = useTranslation();
 
   const steps: { key: EmergencyStatus; label: string }[] = [
@@ -881,32 +878,16 @@ function JourneyProgress({ status }: { status: EmergencyStatus }) {
     { key: 'en_route', label: t('status.response.EN_ROUTE') },
     { key: 'arrived', label: t('status.response.ARRIVED') },
   ];
-  const activeIndex = steps.findIndex((step) => step.key === status);
+  const activeIndex = Math.max(
+    0,
+    steps.findIndex((step) => step.key === status),
+  );
 
   return (
-    <Row gap="sm" accessibilityRole="progressbar" accessibilityLabel={steps[Math.max(activeIndex, 0)]?.label}>
-      {steps.map((step, index) => {
-        const reached = index <= activeIndex;
-        return (
-          <View key={step.key} style={{ flex: 1, gap: space.xs }}>
-            <View
-              style={{
-                height: 4,
-                borderRadius: radius.full,
-                backgroundColor: reached ? colors.rose.base : colors.track,
-              }}
-            />
-            <Text
-              variant="caption"
-              tone={reached ? 'primary' : 'tertiary'}
-              numberOfLines={1}
-              style={{ fontSize: 11 }}
-            >
-              {step.label}
-            </Text>
-          </View>
-        );
-      })}
-    </Row>
+    <Timeline
+      steps={steps.map((step) => ({ label: step.label }))}
+      current={activeIndex}
+      tone="rose"
+    />
   );
 }

@@ -10,6 +10,7 @@ import {
   ScrollScreen,
   Skeleton,
   Stack,
+  Surface,
   Text,
   ValueText,
   iconSize,
@@ -44,15 +45,15 @@ export default function LabBookingConfirmation() {
         <Stack gap="lg" style={{ alignItems: 'center', paddingTop: space.xxl }}>
           <View
             style={{
-              width: 64,
-              height: 64,
+              width: 72,
+              height: 72,
               borderRadius: radius.full,
               alignItems: 'center',
               justifyContent: 'center',
-              backgroundColor: colors.success.soft,
+              backgroundColor: colors.success.fill,
             }}
           >
-            <Check size={iconSize.xl} color={colors.success.base} strokeWidth={2.5} />
+            <Check size={iconSize.xl} color={colors.textOnAccent} strokeWidth={3} />
           </View>
           <Stack gap="sm" style={{ alignItems: 'center' }}>
             <Text variant="h1" align="center" accessibilityRole="alert">
@@ -71,14 +72,16 @@ export default function LabBookingConfirmation() {
           </Stack>
         ) : appointment ? (
           <Stack gap="md">
-            <Stack gap="xs" style={{ alignItems: 'center' }}>
-              <Text variant="overline" tone="tertiary" caps>
-                {t('booking.referenceNumber')}
-              </Text>
-              <ValueText variant="h1" selectable>
-                {appointment.referenceNumber}
-              </ValueText>
-            </Stack>
+            <Surface tone="success" corner="xl">
+              <Stack gap="xs" style={{ alignItems: 'center' }}>
+                <Text variant="overline" tone="tertiary" caps>
+                  {t('booking.referenceNumber')}
+                </Text>
+                <ValueText variant="value" selectable>
+                  {appointment.referenceNumber}
+                </ValueText>
+              </Stack>
+            </Surface>
 
             <ListGroup
               rows={[

@@ -14,9 +14,7 @@ import {
   Surface,
   Text,
   Toggle,
-  iconSize,
   space,
-  useDesign,
 } from '../../src/design';
 import { useDonorProfile, useUpdateDonorProfile } from '../../src/hooks/useDonors';
 import {
@@ -55,7 +53,6 @@ const LAST_UPDATED = new Date(2026, 8, 1);
  */
 export default function Privacy() {
   const { t, formatMonth } = useTranslation();
-  const { colors } = useDesign();
   const { data: donorProfile } = useDonorProfile();
   const updateDonorProfile = useUpdateDonorProfile();
   const { data: gamificationProfile } = useGamificationProfile();
@@ -140,7 +137,7 @@ export default function Privacy() {
             rows={[
               <ListRow
                 key="download"
-                leading={<MapPin size={iconSize.lg} color={colors.textTertiary} />}
+                icon={({ size, color }) => <MapPin size={size} color={color} />}
                 title={t('privacy.downloadData')}
                 subtitle={t('privacy.downloadDataHint')}
                 disabled
