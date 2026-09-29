@@ -256,7 +256,7 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
               justifyContent: 'flex-start',
               gap: 4,
               minHeight: hitTarget.min,
-              paddingHorizontal: 1,
+              paddingHorizontal: space.xs,
             }}
           >
             <View
@@ -290,6 +290,13 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
                 lineHeight: 13,
                 fontFamily: focused ? fonts.semibold : fonts.medium,
                 textAlign: 'center',
+                // A long label may spill a few points into the gutter on
+                // either side of its item; the neighbours' labels are
+                // centred, so the space is there. Without it "Сообщество"
+                // still lost its last letter to a second line at 393pt.
+                letterSpacing: compact ? -0.2 : 0,
+                marginHorizontal: -space.xs,
+                maxWidth: '100%' as const,
               }}
               numberOfLines={2}
             >
