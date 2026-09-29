@@ -5,11 +5,11 @@ import {
   Award,
   Bell,
   BellRing,
-  ChevronRight,
   Droplet,
   Languages,
   Lock,
   LogOut,
+  PencilLine,
   Shield,
   User,
 } from 'lucide-react-native';
@@ -18,22 +18,22 @@ import {
   Badge,
   Button,
   ConfirmationSheet,
-  LinkButton,
   ListGroup,
   ListRow,
   Progress,
   Row,
   ScreenTitle,
   ScrollScreen,
-  SectionHeader,
+  Section,
+  Sections,
   SegmentedControl,
-  Stack,
   Stat,
   StatRow,
   Surface,
   Text,
   ValueText,
   iconSize,
+  space,
   useDesign,
   type AccentName,
   Skeleton,
@@ -50,11 +50,9 @@ import { useState } from 'react';
 /**
  * The fields the server reports as missing, as catalogue keys.
  *
- * V1 printed the raw codes with the underscores swapped for spaces --
- * "Missing: basic identity, contact verified, blood type provided" -- which is
- * a database column list shown to a donor. A code with no entry here is left
- * out rather than guessed at: the list is the server's, and a new code should
- * appear as a shorter list, not as an untranslated one.
+ * A code with no entry here is left out rather than guessed at: the list is
+ * the server's, and a new code should appear as a shorter list, not as an
+ * untranslated one.
  */
 const MISSING_FIELD_KEYS: Record<string, string> = {
   basic_identity: 'profile.missingFields.basicIdentity',
@@ -65,24 +63,12 @@ const MISSING_FIELD_KEYS: Record<string, string> = {
 };
 
 /**
- * Profile, rebuilt for V2.
+ * Profile, composed for V4: an account screen, not a dashboard.
  *
- * V1 opened with an elevated glass card, then a teaser card, then a
- * green-to-blue gradient completion card, then a rose gradient blood-type card
- * with a 140pt watermark droplet behind it -- four competing heroes before the
- * first setting. Most of a profile screen is a list of destinations, and a list
- * is what it is now: identity and standing at the top, then rows.
- *
- * Five strings here were English literals on a screen that ships in three
- * languages: 'Verified', 'Under Review', 'Verified Donor', `${type} Blood
- * Type`, and `${unlocked} earned · ${inProgress} in progress`. Two more were
- * raw database values printed straight to the donor: `Missing:
- * basic_identity, contact_verified` with the underscores swapped for spaces,
- * and `Source: BLOOD_CENTER`.
- *
- * And the version stamp read 0.2.0 while app.json said 0.1.0. It is read from
- * the manifest now, so the number a donor reads to support is the number that
- * was built.
+ * Identity at the top -- name, contact, blood type, verification -- then a
+ * quiet line of standing, then the account organised into groups of rows:
+ * donor details, preferences, privacy and security. Every setting is a row;
+ * nothing that is a destination is a card.
  */
 export default function Profile() {
   const { colors } = useDesign();
@@ -102,6 +88,7 @@ export default function Profile() {
   const inProgressCount = achievements?.inProgress.length ?? 0;
 
   const fullName = user ? [user.firstName, user.lastName].filter(Boolean).join(' ') || 'Donor' : '—';
+  const contact = user?.phone || user?.email;
 
   const bloodTypeDisplay =
     donor?.bloodType && donor?.rhFactor
@@ -125,192 +112,155 @@ export default function Profile() {
 
   return (
     <ScrollScreen>
-      <Stack gap="xl">
+      <Sections rhythm="major">
         <ScreenTitle title={t('profile.title')} />
 
         {/* ------------------------------------------------------- who you are */}
-        <Surface>
-          <Stack gap="lg">
-            <Row gap="lg">
-              <Avatar name={fullName} size={56} ring={verificationTone} />
+        <Surface padded="lg">
+          <View style={{ gap: space.lg }}>
+            <Row gap="lg" align="center">
+              <Avatar name={fullName} size={64} ring={donorPending ? undefined : verificationTone} />
               <View style={{ flex: 1, gap: 2 }}>
                 <Text variant="h3" numberOfLines={1}>
                   {fullName}
                 </Text>
-                {user?.email ? (
+                {contact ? (
                   <Text variant="caption" tone="tertiary" numberOfLines={1}>
-                    {user.email}
+                    {contact}
+                  </Text>
+                ) : null}
+                <View style={{ marginTop: space.xs }}>
+                  {donorPending ? (
+                    <Skeleton width={96} height={22} corner="full" />
+                  ) : (
+                    <Badge
+                      label={t(`status.verification.${verificationStatus}`)}
+                      tone={verificationTone}
+                      dot
+                    />
+                  )}
+                </View>
+              </View>
+              <View
+                style={{ alignItems: 'flex-end' }}
+                accessible
+                accessibilityLabel={`${t('home.bloodTypeLabel')} ${bloodTypeDisplay}`}
+              >
+                <ValueText variant="value" style={{ color: colors.rose.text }}>
+                  {bloodTypeDisplay}
+                </ValueText>
+                {donor?.bloodTypeSource ? (
+                  <Text variant="caption" tone="tertiary" numberOfLines={1}>
+                    {t(`medical.verificationSource.${donor.bloodTypeSource}`)}
                   </Text>
                 ) : null}
               </View>
-              {/*
-                The value, not the label, decides this column's width.
-
-                "ГРУППА КРОВИ" at 11pt with letter-spacing is about 95pt wide
-                while "AB+" needs about 45, and the column was sized by the
-                longer of the two -- so the donor's own name and email, in the
-                flexible column beside it, paid for a caption. The label is
-                announced rather than drawn; the badge row below already says
-                what the number is.
-              */}
-              <View style={{ alignItems: 'flex-end' }} accessible accessibilityLabel={`${t('home.bloodTypeLabel')} ${bloodTypeDisplay}`}>
-                <ValueText variant="h1" style={{ color: colors.rose.text }}>
-                  {bloodTypeDisplay}
-                </ValueText>
-              </View>
             </Row>
 
-            {/*
-              An absent profile is not an unverified one.
-
-              `verificationStatus` falls back to UNVERIFIED whenever `donor` is
-              undefined -- every cold start, and every failed request -- so a
-              verified donor was told otherwise, in a badge, until the first
-              response arrived.
-            */}
-            <Row gap="sm">
-              {donorPending ? (
-                <Skeleton width={96} height={22} />
-              ) : (
-                <Badge
-                  label={t(`status.verification.${verificationStatus}`)}
-                  tone={verificationTone}
-                />
-              )}
-              {/* Where the group came from is part of what "verified" means.
-                  V1 printed the enum. */}
-              {donor?.bloodTypeSource ? (
-                <Text variant="caption" tone="tertiary" numberOfLines={1} style={{ flex: 1 }}>
-                  {t(`medical.verificationSource.${donor.bloodTypeSource}`)}
-                </Text>
-              ) : null}
-            </Row>
-
-            {/*
-              Editing a profile is a tertiary action, and V2 drew it as the
-              largest interactive target on the screen: a full-width outlined
-              box sitting directly above the chevron rows that are the actual
-              navigation. Rank in an interface is size and weight, so the box
-              announced "this is the main thing here" about the one control a
-              donor opens once and never again -- while "Donor profile" and
-              "Achievements", which are where they are actually going, were
-              thin rows underneath it.
-
-              It is a word now, at the right of the card it acts on, the way
-              "See all" sits at the right of a section header. The destination
-              is unchanged and still has its own row under Donor records,
-              which is where a donor looks for it.
-            */}
-            <LinkButton
+            <Button
               label={t('profile.editProfile')}
+              variant="secondary"
+              size="md"
+              icon={({ size, color }) => <PencilLine size={size} color={color} />}
               onPress={() => router.push('/(app)/profile/edit')}
-              style={{ alignSelf: 'flex-end' }}
             />
-          </Stack>
+          </View>
         </Surface>
 
         {/* ------------------------------------- what is left to fill in */}
         {completion && completion.percentage < 100 ? (
           <Surface
+            level="flat"
+            tone="clinical"
             onPress={() => router.push('/(onboarding)/complete-profile')}
             accessibilityLabel={`${t('profile.completion')} ${completion.percentage}%. ${missingLabels.join(', ')}`}
           >
-            <Stack gap="md">
+            <View style={{ gap: space.md }}>
               <Progress
                 label={t('profile.completion')}
                 caption={`${completion.percentage}%`}
                 value={completion.percentage / 100}
                 tone="clinical"
+                thickness="thin"
               />
               {missingLabels.length > 0 ? (
                 <Text variant="caption" tone="secondary">
                   {t('profile.stillNeeded', { items: missingLabels.join(', ') })}
                 </Text>
               ) : null}
-            </Stack>
+            </View>
           </Surface>
         ) : null}
 
-        {/* ------------------------------------------------- what you have done */}
+        {/* ------------------------------------------------- your standing */}
         {gamificationProfile ? (
-          <Stack gap="md">
+          <View style={{ gap: space.md }}>
             <StatRow>
               <Stat
                 label={t('profile.donations')}
                 value={String(gamificationProfile.donationCount)}
                 tone="rose"
+                size="sm"
               />
               <Stat
                 label={t('profile.emergencyResponses')}
                 value={String(gamificationProfile.emergencyResponseCount)}
+                size="sm"
               />
-              <Stat label={t('profile.xp')} value={String(gamificationProfile.totalXp)} />
+              <Stat label={t('profile.xp')} value={String(gamificationProfile.totalXp)} size="sm" />
             </StatRow>
-
-            {/* A card whose entire contents were one progress bar. The bar has
-                its own label, its own caption and its own fill; the rectangle
-                around it said nothing the bar had not already said. */}
             {levelProgress && !levelProgress.isMaxLevel ? (
-              <Progress
-                label={`${levelProgress.currentLevelName} → ${levelProgress.nextLevelName}`}
-                // The label is "<current> → <next>", so the caption saying
-                // the next level's name again put it twice in one row.
-                caption={t('gamification.xpValue', { xp: levelProgress.xpToNextLevel })}
-                value={percentAsFraction(levelProgress.progress)}
-              />
+              <View style={{ paddingHorizontal: space.xs }}>
+                <Progress
+                  label={`${levelProgress.currentLevelName} → ${levelProgress.nextLevelName}`}
+                  caption={t('gamification.xpValue', { xp: levelProgress.xpToNextLevel })}
+                  value={percentAsFraction(levelProgress.progress)}
+                  thickness="thin"
+                />
+              </View>
             ) : null}
-          </Stack>
+          </View>
         ) : null}
 
         {/* --------------------------------------------------- donor records */}
-        <Stack gap="md">
-          <SectionHeader title={t('profile.donorInfo')} />
+        <Section title={t('profile.donorInfo')}>
           <ListGroup
             rows={[
               <ListRow
                 key="donor"
-                leading={<Droplet size={iconSize.lg} color={colors.rose.base} />}
+                icon={({ size, color }) => <Droplet size={size} color={color} />}
+                iconTone="rose"
                 title={t('profile.donorProfile')}
                 subtitle={t('profile.donorProfileNote')}
-                trailing={<ChevronRight size={iconSize.md} color={colors.textTertiary} />}
                 onPress={() => router.push('/(app)/profile/donor')}
               />,
               <ListRow
                 key="personal"
-                leading={<User size={iconSize.lg} color={colors.clinical.base} />}
+                icon={({ size, color }) => <User size={size} color={color} />}
+                iconTone="clinical"
                 title={t('profile.personalInfo')}
                 subtitle={t('profile.personalInfoNote')}
-                trailing={<ChevronRight size={iconSize.md} color={colors.textTertiary} />}
                 onPress={() => router.push('/(app)/profile/edit')}
               />,
               <ListRow
                 key="achievements"
-                leading={<Award size={iconSize.lg} color={colors.warning.base} />}
+                icon={({ size, color }) => <Award size={size} color={color} />}
                 title={t('profile.achievements')}
                 subtitle={[
                   t('profile.earnedCount', { count: unlockedCount }),
                   t('profile.inProgressCount', { count: inProgressCount }),
                 ].join(' · ')}
-                trailing={<ChevronRight size={iconSize.md} color={colors.textTertiary} />}
                 onPress={() => router.push('/(app)/gamification')}
               />,
             ]}
           />
-        </Stack>
+        </Section>
 
         {/* ------------------------------------------------------- settings */}
-        <Stack gap="md">
-          <SectionHeader title={t('profile.settings')} />
-
-          {/* Above the settings list rather than inside it: the language
-              decides how every row below reads, so it belongs where it is
-              seen first.
-
-              A segmented control is already a bordered track with a filled
-              thumb in it. Putting that inside a card gave the language picker
-              two nested rectangles and made it the heaviest object in the
-              settings block, above notifications, privacy and security. */}
-          <Stack gap="md">
+        <Section title={t('profile.settings')}>
+          {/* The language decides how every row below reads, so it belongs
+              where it is seen first. */}
+          <View style={{ gap: space.sm }}>
             <Row gap="sm">
               <Languages size={iconSize.sm} color={colors.textTertiary} />
               <Text variant="label" tone="secondary">
@@ -323,60 +273,54 @@ export default function Profile() {
               onChange={setLocale}
               accessibilityLabel={t('language.title')}
             />
-          </Stack>
+          </View>
 
           <ListGroup
             rows={[
               <ListRow
                 key="notifications"
-                leading={<Bell size={iconSize.lg} color={colors.textSecondary} />}
+                icon={({ size, color }) => <Bell size={size} color={color} />}
                 title={t('profile.notifications')}
-                trailing={<ChevronRight size={iconSize.md} color={colors.textTertiary} />}
                 onPress={() => router.push('/(app)/notifications')}
               />,
-              // Onboarding asked which notifications to send and nothing ever
-              // offered to change the answer.
               <ListRow
                 key="notification-settings"
-                leading={<BellRing size={iconSize.lg} color={colors.textSecondary} />}
+                icon={({ size, color }) => <BellRing size={size} color={color} />}
                 title={t('notificationSettings.title')}
-                trailing={<ChevronRight size={iconSize.md} color={colors.textTertiary} />}
                 onPress={() => router.push('/(app)/notification-settings')}
               />,
               <ListRow
                 key="privacy"
-                leading={<Lock size={iconSize.lg} color={colors.textSecondary} />}
+                icon={({ size, color }) => <Lock size={size} color={color} />}
                 title={t('profile.privacy')}
-                trailing={<ChevronRight size={iconSize.md} color={colors.textTertiary} />}
                 onPress={() => router.push('/(app)/privacy')}
               />,
               <ListRow
                 key="security"
-                leading={<Shield size={iconSize.lg} color={colors.textSecondary} />}
+                icon={({ size, color }) => <Shield size={size} color={color} />}
                 title={t('profile.security')}
-                trailing={<ChevronRight size={iconSize.md} color={colors.textTertiary} />}
                 onPress={() => router.push('/(app)/security')}
               />,
             ]}
           />
-        </Stack>
+        </Section>
 
         {/* Signing out on a phone that is someone's only way back into an
-            emergency response deserves the one question. V1 signed out on the
-            first tap. */}
-        <Button
-          label={t('profile.signOut')}
-          variant="secondary"
-          accent="critical"
-          icon={({ size }) => <LogOut size={size} color={colors.critical.text} />}
-          onPress={() => setConfirmingSignOut(true)}
-          style={{ borderColor: colors.critical.base }}
-        />
+            emergency response deserves the one question. */}
+        <View style={{ gap: space.lg }}>
+          <Button
+            label={t('profile.signOut')}
+            variant="secondary"
+            accent="critical"
+            icon={({ size, color }) => <LogOut size={size} color={color} />}
+            onPress={() => setConfirmingSignOut(true)}
+          />
 
-        <Text variant="caption" tone="tertiary" align="center">
-          {t('profile.versionStamp', { version, phase: t('profile.phase') })}
-        </Text>
-      </Stack>
+          <Text variant="caption" tone="tertiary" align="center">
+            {t('profile.versionStamp', { version, phase: t('profile.phase') })}
+          </Text>
+        </View>
+      </Sections>
 
       <ConfirmationSheet
         visible={confirmingSignOut}

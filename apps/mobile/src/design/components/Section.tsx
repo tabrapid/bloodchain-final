@@ -29,6 +29,8 @@ export type SectionGap = 'tight' | 'related' | 'none';
 export interface SectionProps {
   /** The overline above the group. Omit for a group that needs no label. */
   title?: string;
+  /** One line under the title. */
+  subtitle?: string;
   /** A small control on the header's right — "See all", "Edit". */
   action?: ReactNode;
   /**
@@ -50,10 +52,10 @@ const GAPS: Record<SectionGap, number> = {
   none: 0,
 };
 
-export function Section({ title, action, gap = 'related', children, style }: SectionProps) {
+export function Section({ title, subtitle, action, gap = 'related', children, style }: SectionProps) {
   return (
     <View style={[{ gap: GAPS[gap] }, style]}>
-      {title ? <SectionHeader title={title} action={action} /> : null}
+      {title ? <SectionHeader title={title} subtitle={subtitle} action={action} /> : null}
       {children}
     </View>
   );

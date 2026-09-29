@@ -21,15 +21,19 @@ import {
   Banner,
   BottomSheet,
   Button,
+  Choice,
   EmptyState,
   ErrorState,
   IconButton,
+  LinkButton,
+  ListGroup,
+  ListRow,
   Row,
   Screen,
   ScreenTitle,
-  SectionHeader,
-  SkeletonRow,
-  Stack,
+  Section,
+  Sections,
+  SkeletonCard,
   Stat,
   StatRow,
   Surface,
@@ -42,7 +46,6 @@ import {
   useDesign,
   type StatusTone,
   useTabBarClearance,
-  Choice,
 } from '../../../src/design';
 import {
   getFeed,
@@ -65,23 +68,10 @@ type ReportReason = (typeof REPORT_REASONS)[number];
 /**
  * What each kind of post is, as an icon and an accent.
  *
- * The type used to render as the raw enum value in a rose badge --
- * "COMMUNITY_UPDATE" shouted at the reader beside every author's name. A
- * shaped label and a colour carry the same fact without taking over the card.
+ * One accent survives: a campaign is the only post type that asks the donor
+ * to do something, so it is rose. The other six are news and take the neutral
+ * chip, told apart by their icon and their translated label.
  */
-//
-// Seven post types had five different accents between them: two amber, two
-// violet, one green, one blue, one rose. A feed is a column of these chips, so
-// the effect was a scroll of confetti in which no colour meant anything -- and
-// four of the five were colours this app spends elsewhere on whether a lab
-// value is flagged, whether a check has cleared, and whether a model produced
-// something.
-//
-// One accent survives. A campaign is the only post type that asks the donor to
-// do something, so it is rose, the colour of the primary action everywhere
-// else; the other six are news and take the neutral chip. Each still carries
-// its own icon and its own translated label, which is what told them apart in
-// the first place.
 const POST_TYPES: Record<string, { labelKey: string; icon: LucideIcon; tone: StatusTone }> = {
   CAMPAIGN: { labelKey: 'community.postTypes.campaign', icon: Droplet, tone: 'rose' },
   EDUCATION: { labelKey: 'community.education', icon: GraduationCap, tone: 'neutral' },
@@ -92,12 +82,7 @@ const POST_TYPES: Record<string, { labelKey: string; icon: LucideIcon; tone: Sta
   IMPACT: { labelKey: 'community.impact', icon: Sparkles, tone: 'neutral' },
 };
 
-/**
- * "today" / "3 days ago" / "12 Mar", in the donor's language.
- *
- * The three words and the date format were all hardcoded English, on a feed
- * whose posts are in Uzbek.
- */
+/** "today" / "3 days ago" / "12 Mar", in the donor's language. */
 function formatWhen(
   iso: string,
   t: TranslateFn,
@@ -113,28 +98,14 @@ function formatWhen(
 }
 
 /**
- * Community, rebuilt for V2.
+ * Community, composed for V4.
  *
- * The product rule for this screen is the hardest one in the sprint: donating
- * blood is not a game, and recognition must not make it feel like one. V1's
- * answer was a rose-to-plum gradient with a 40pt `#1`, a trophy in a tinted
- * square and three white statistics under a rule -- the visual language of a
- * mobile game's season pass, attached to a medical act.
- *
- * V2 keeps every number and states them plainly. Standing is a rank among
- * named donors on an ordinary surface; the three counts are the same three
- * counts. Nothing is celebrated at the donor, and nothing was removed.
- *
- * Two things this screen did badly:
- *
- *   `of ${userRank.total} donors` and `Share: ${post.title}` were English
- *   literals, the second of them the only thing a screen reader announces for
- *   that button.
- *
- *   Reporting a post ran through three chained `Alert.alert` calls -- a
- *   five-option action sheet, then a success alert, then possibly a failure
- *   alert. On Android that is a stack of system dialogs with no styling and no
- *   way back; the outcome is a sheet and a banner now.
+ * The product rule for this screen is the hardest one: donating blood is not
+ * a game, and recognition must not make it feel like one. So standing is
+ * stated plainly -- a rank among named donors, three counts -- on one quiet
+ * surface; the three destinations (campaigns, challenges, education) are
+ * rows; and the feed is a column of posts with the author, the kind of post
+ * and the two actions a reader has.
  */
 export default function CommunityScreen() {
   const tabBarClearance = useTabBarClearance();
@@ -142,8 +113,6 @@ export default function CommunityScreen() {
   const { t } = useTranslation();
   const [reporting, setReporting] = useState<CommunityPost | null>(null);
   // Accusing another donor is a two-step action: pick a reason, then confirm.
-  // It used to commit on a single tap of a list row carrying a chevron, which
-  // everywhere else in this app means "opens something".
   const [reportReason, setReportReason] = useState<ReportReason | null>(null);
   const [outcome, setOutcome] = useState<'sent' | 'failed' | null>(null);
 
@@ -177,27 +146,20 @@ export default function CommunityScreen() {
       .catch(() => setOutcome('failed'));
   };
 
-  // The stray `paddingBottom: space.lg` is gone: the Stack below already
-  // spaces this from what follows, and paying it twice opened Community 40pt
-  // lower than the five tabs beside it.
-  const header = (
-    <ScreenTitle
-      title={t('community.title')}
-      subtitle={t('community.subtitle')}
-      action={
-        <IconButton
-          accessibilityLabel={t('community.education')}
-          onPress={() => router.push('/education')}
-          variant="surface"
-          icon={({ size, color }) => <BookOpen size={size} color={color} />}
-        />
-      }
-    />
-  );
-
   const listHeader = (
-    <Stack gap="xl" style={{ paddingBottom: space.lg }}>
-      {header}
+    <Sections rhythm="major" style={{ paddingBottom: space.lg }}>
+      <ScreenTitle
+        title={t('community.title')}
+        subtitle={t('community.subtitle')}
+        action={
+          <IconButton
+            accessibilityLabel={t('community.education')}
+            onPress={() => router.push('/education')}
+            variant="surface"
+            icon={({ size, color }) => <BookOpen size={size} color={color} />}
+          />
+        }
+      />
 
       {/* ------------------------------------------------- where you stand */}
       {userRank.data ? (
@@ -208,32 +170,45 @@ export default function CommunityScreen() {
             count: userRank.data.total,
           })}. ${t('community.leaderboard')}`}
         >
-          <Stack gap="lg">
+          <View style={{ gap: space.lg }}>
             <Row gap="md" align="flex-start">
               <View style={{ flex: 1, gap: space.xs }}>
                 <Text variant="overline" tone="tertiary" caps>
                   {t('community.thisMonth')}
                 </Text>
                 <Row gap="sm" align="baseline">
-                  <ValueText variant="display">{`#${userRank.data.rank}`}</ValueText>
+                  <ValueText>{`#${userRank.data.rank}`}</ValueText>
                   <Text variant="body" tone="secondary">
                     {t('community.ofDonors', { count: userRank.data.total })}
                   </Text>
                 </Row>
               </View>
-              <Trophy size={iconSize.lg} color={colors.textTertiary} strokeWidth={1.6} />
+              <View
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: radius.sm,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: colors.surfaceRaised,
+                }}
+              >
+                <Trophy size={iconSize.md} color={colors.textSecondary} strokeWidth={1.75} />
+              </View>
             </Row>
 
             {impact.data ? (
-              <StatRow>
-                <Stat label={t('community.donations')} value={String(impact.data.donations)} />
+              <StatRow bare>
+                <Stat label={t('community.donations')} value={String(impact.data.donations)} size="sm" />
                 <Stat
                   label={t('community.campaigns')}
                   value={String(impact.data.campaignParticipations)}
+                  size="sm"
                 />
                 <Stat
                   label={t('community.challenges')}
                   value={String(impact.data.challengeCompletions)}
+                  size="sm"
                 />
               </StatRow>
             ) : null}
@@ -244,23 +219,42 @@ export default function CommunityScreen() {
               </Text>
               <ChevronRight size={iconSize.sm} color={colors.textTertiary} />
             </Row>
-          </Stack>
+          </View>
         </Surface>
       ) : null}
 
-      <SectionHeader title={t('community.feed')} />
-    </Stack>
+      {/* ----------------------------------------------- the three places */}
+      <ListGroup
+        rows={[
+          <ListRow
+            key="campaigns"
+            icon={({ size, color }) => <Droplet size={size} color={color} />}
+            iconTone="rose"
+            title={t('community.campaigns')}
+            onPress={() => router.push('/campaigns')}
+          />,
+          <ListRow
+            key="challenges"
+            icon={({ size, color }) => <Award size={size} color={color} />}
+            title={t('community.challenges')}
+            onPress={() => router.push('/challenges')}
+          />,
+          <ListRow
+            key="education"
+            icon={({ size, color }) => <GraduationCap size={size} color={color} />}
+            iconTone="clinical"
+            title={t('community.education')}
+            onPress={() => router.push('/education')}
+          />,
+        ]}
+      />
+
+      <Section title={t('community.feed')}>{null}</Section>
+    </Sections>
   );
 
   return (
     <Screen gutter={false} topPadding>
-      {/*
-        Over the list, not inside its header.
-
-        Reporting a post from halfway down the feed closed the sheet and put
-        the confirmation at the very top of the list, where the donor could not
-        see it: the report either worked or failed in silence.
-      */}
       {outcome ? (
         <View
           style={{
@@ -279,7 +273,7 @@ export default function CommunityScreen() {
               <Button
                 label={t('common.close')}
                 variant="secondary"
-                size="md"
+                size="sm"
                 block={false}
                 onPress={() => setOutcome(null)}
               />
@@ -301,11 +295,10 @@ export default function CommunityScreen() {
         ListHeaderComponent={listHeader}
         ListEmptyComponent={
           feed.isPending ? (
-            <Surface>
-              <SkeletonRow />
-              <SkeletonRow />
-              <SkeletonRow />
-            </Surface>
+            <View style={{ gap: space.md }}>
+              <SkeletonCard lines={3} />
+              <SkeletonCard lines={2} />
+            </View>
           ) : feed.isError ? (
             <ErrorState
               title={t('common.errorTitle')}
@@ -315,6 +308,7 @@ export default function CommunityScreen() {
             />
           ) : (
             <EmptyState
+              size="compact"
               title={t('community.empty')}
               description={t('community.emptyBody')}
               icon={({ size, color }) => <Users size={size} color={color} />}
@@ -328,13 +322,6 @@ export default function CommunityScreen() {
         }}
       />
 
-      {/*
-        `POST /community/posts/:id/report` and the admin console's moderation
-        queue have both existed since the community module shipped, and nothing
-        in the app ever called the route -- so a donor who saw something wrong
-        on the feed had no way to say so, and the queue could only ever be
-        empty. The reasons are the ones the server's own DTO accepts.
-      */}
       <BottomSheet
         visible={reporting !== null}
         onClose={() => {
@@ -345,8 +332,8 @@ export default function CommunityScreen() {
         description={t('community.reportBody')}
         closeLabel={t('common.close')}
       >
-        <Stack gap="md">
-          <Stack gap="sm">
+        <View style={{ gap: space.lg }}>
+          <View style={{ gap: space.sm }}>
             {REPORT_REASONS.map((reason) => (
               <Choice
                 key={reason}
@@ -355,14 +342,14 @@ export default function CommunityScreen() {
                 onPress={() => setReportReason(reason)}
               />
             ))}
-          </Stack>
+          </View>
           <Button
             label={t('community.report')}
             accent="critical"
             disabled={reportReason === null}
             onPress={submitReport}
           />
-        </Stack>
+        </View>
       </BottomSheet>
     </Screen>
   );
@@ -370,6 +357,7 @@ export default function CommunityScreen() {
 
 function FeedPost({ post, onReport }: { post: CommunityPost; onReport: () => void }) {
   const { t, formatDate } = useTranslation();
+  const { colors } = useDesign();
 
   const authorName =
     post.author?.displayName ||
@@ -388,7 +376,7 @@ function FeedPost({ post, onReport }: { post: CommunityPost; onReport: () => voi
 
   return (
     <Surface>
-      <Stack gap="md">
+      <View style={{ gap: space.md }}>
         <Row gap="sm">
           {post.author?.avatarUrl ? (
             <Image
@@ -400,7 +388,7 @@ function FeedPost({ post, onReport }: { post: CommunityPost; onReport: () => voi
             <Avatar name={authorName} size={36} />
           )}
           <View style={{ flex: 1, gap: 1 }}>
-            <Text variant="bodyStrong" numberOfLines={1}>
+            <Text variant="bodyMedium" numberOfLines={1}>
               {authorName}
             </Text>
             <Text variant="caption" tone="tertiary">
@@ -414,45 +402,39 @@ function FeedPost({ post, onReport }: { post: CommunityPost; onReport: () => voi
           />
         </Row>
 
-        <Stack gap="xs">
-          <Text variant="h3">{post.title}</Text>
+        <View style={{ gap: space.xs }}>
+          <Text variant="title">{post.title}</Text>
           <Text variant="body" tone="secondary">
             {post.body}
           </Text>
-        </Stack>
+        </View>
 
         {post.imageUrl ? (
           <Image
             source={{ uri: post.imageUrl }}
             accessibilityIgnoresInvertColors
             resizeMode="cover"
-            style={{ width: '100%', height: 180, borderRadius: radius.sm }}
+            style={{ width: '100%', height: 180, borderRadius: radius.md }}
           />
         ) : null}
 
-        {/* Buttons, not bare text on a card: text with an icon beside it gives
-            nothing to aim at and no sign that it is pressable at all. */}
-        <Row gap="sm">
-          <Button
+        <Row gap="lg" style={{ paddingTop: space.xs, borderTopWidth: 1, borderTopColor: colors.divider }}>
+          <LinkButton
             label={t('common.share')}
-            variant="secondary"
-            size="md"
-            block={false}
+            tone="secondary"
             accessibilityLabel={t('community.a11yShare', { title: post.title })}
             icon={({ size, color }) => <Share2 size={size} color={color} />}
             onPress={share}
           />
-          <Button
+          <LinkButton
             label={t('community.report')}
-            variant="secondary"
-            size="md"
-            block={false}
+            tone="secondary"
             accessibilityLabel={t('community.a11yReport', { title: post.title })}
             icon={({ size, color }) => <Flag size={size} color={color} />}
             onPress={onReport}
           />
         </Row>
-      </Stack>
+      </View>
     </Surface>
   );
 }

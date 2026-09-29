@@ -320,3 +320,39 @@ export function KeyValueRow({
     </View>
   );
 }
+
+/**
+ * A date as a small block: the day number over the short month.
+ *
+ * The leading element of an appointment or donation row. A date read as a
+ * sentence ("26 Sept 2026") is what a row's subtitle is for; the block lets a
+ * list of appointments be scanned by day the way a calendar is.
+ */
+export function DateBlock({ day, month, tone }: { day: string; month: string; tone?: AccentName }) {
+  const { colors } = useDesign();
+  const accent = tone ? colors[tone] : null;
+  return (
+    <View
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={{
+        width: 48,
+        paddingVertical: space.sm - 2,
+        borderRadius: radius.sm,
+        alignItems: 'center',
+        backgroundColor: accent ? accent.soft : colors.surfaceRaised,
+        gap: 0,
+      }}
+    >
+      <Text
+        variant="valueSm"
+        style={{ color: accent ? accent.text : colors.textPrimary, fontVariant: ['tabular-nums'] }}
+      >
+        {day}
+      </Text>
+      <Text variant="overline" caps style={{ color: accent ? accent.text : colors.textTertiary }}>
+        {month}
+      </Text>
+    </View>
+  );
+}

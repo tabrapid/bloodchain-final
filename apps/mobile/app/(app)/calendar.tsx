@@ -1,24 +1,24 @@
 import { useState, useMemo } from 'react';
-import { View, Pressable } from 'react-native';
+import { View } from 'react-native';
 import { router } from 'expo-router';
 import { CalendarDays, Droplet, FlaskConical, Plus, Stethoscope } from 'lucide-react-native';
 import {
   Button,
   EmptyState,
   ErrorState,
+  IconButton,
   ListGroup,
   ListRow,
   MonthGrid,
   Row,
   ScreenTitle,
   ScrollScreen,
-  SectionHeader,
+  Section,
+  Sections,
   Skeleton,
-  Stack,
   Surface,
   Text,
   iconSize,
-  radius,
   space,
   useDesign,
   type AccentName,
@@ -33,18 +33,11 @@ import { useTranslation } from '../../src/i18n';
 /**
  * Icon, label and accent per appointment type -- the legend reads from this too.
  *
- * Two colours for three types, on purpose. A month cell can only show a dot, so
- * this is one of the few places colour genuinely carries the category and not
- * just decoration -- but there is no third colour available that does not
- * already mean something. Violet, which a consultation used to take, means the
- * AI produced something; amber and green mean a value is flagged or a check has
- * cleared, and this screen shows status badges in both.
- *
- * So the split is the one that is actually true: rose is the appointment where
- * the donor gives, clinical blue is the appointment where a clinician does
- * something to them. A blood test and a consultation being the same colour
- * groups two things that belong together, and the legend and the icons -- flask
- * against stethoscope -- separate them for anyone who needs them separated.
+ * Two colours for three types, on purpose: rose is the appointment where the
+ * donor gives, clinical blue is the appointment where a clinician does
+ * something to them. There is no third colour that does not already mean a
+ * state, and the icons separate the two blues for anyone who needs them
+ * separated.
  */
 const TYPES: Record<string, { labelKey: string; icon: LucideIcon; tone: AccentName }> = {
   BLOOD_DONATION: { labelKey: 'medical.appointmentTypes.bloodDonation', icon: Droplet, tone: 'rose' },
@@ -73,20 +66,14 @@ function statusTone(status: string): StatusTone {
 }
 
 /**
- * Calendar, rebuilt for V2.
+ * Calendar, composed for V4: a scheduling interface.
  *
- * The grid was the one part of V1 that was already right -- a month of real
- * dates, one dot per appointment in its own type's colour, weekday names from
- * `Intl` rather than hardcoded English. It is kept, on V2 tokens, with bigger
- * targets: a day cell was a 13pt number in a circle inside a 14.28%-wide cell,
- * and on a 360dp phone that is a 44dp row split seven ways.
- *
- * What was wrong was underneath it. The appointment card printed
- * `{apt.status}` -- the raw enum, 'CONFIRMED', in capitals, in every language
- * -- and fell back to `appointmentType.replace('_', ' ')` for a type it did
- * not recognise, which is 'BLOOD DONATION' shouted at a Uzbek reader. Both are
- * catalogue lookups now: `status.appointment.*` has had all eleven values
- * since the status namespace shipped, and nothing was reading them.
+ * The month is the instrument, so it sits on a surface at the top with the
+ * navigation at its right and the legend under it. The selected day's
+ * appointments are rows -- time, organisation, type, status -- not cards,
+ * because a day with three appointments is a list, and a list scans. Under
+ * that, what is coming next across every month, so the tab answers "when is
+ * my next one" without a hunt through the grid.
  */
 export default function Calendar() {
   const { colors } = useDesign();
@@ -97,9 +84,8 @@ export default function Calendar() {
     month: new Date().getMonth(),
   });
 
-  // Every appointment, not just the upcoming ones. Filtered to upcoming, the
-  // grid could only ever dot future days and any past date you tapped claimed
-  // you had nothing on -- in a calendar, where looking back is half the point.
+  // Every appointment, not just the upcoming ones: looking back is half the
+  // point of a calendar.
   const { data: appointments = [], isPending, isError, refetch, isRefetching } = useMyAppointments();
 
   const today = new Date();
@@ -118,9 +104,20 @@ export default function Calendar() {
     return map;
   }, [appointments]);
 
+  const upcoming = useMemo(
+    () =>
+      appointments
+        .filter((apt) => new Date(apt.scheduledStart).getTime() >= today.getTime())
+        .sort((a, b) => a.scheduledStart.localeCompare(b.scheduledStart))
+        .slice(0, 4),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [appointments],
+  );
+
   const selectedDateAppointments = appointmentsByDate[selectedDate.toDateString()] ?? [];
   const isViewingCurrentMonth =
     viewDate.month === today.getMonth() && viewDate.year === today.getFullYear();
+  const selectedIsToday = selectedDate.toDateString() === new Date().toDateString();
 
   const goToPreviousMonth = () =>
     setViewDate((prev) =>
@@ -147,26 +144,50 @@ export default function Calendar() {
     return entry ? colors[entry.tone].base : colors.textTertiary;
   };
 
+  const appointmentRow = (apt: Appointment, withDate: boolean) => {
+    const entry = typeOf(apt.appointmentType);
+    const Icon = entry?.icon ?? CalendarDays;
+    const typeLabel = entry ? t(entry.labelKey) : t('calendar.appointment');
+    const when = withDate
+      ? `${formatDate(apt.scheduledStart, 'medium')} · ${formatTime(apt.scheduledStart)}`
+      : formatTime(apt.scheduledStart);
+    return (
+      <ListRow
+        key={apt.id}
+        icon={({ size, color }) => <Icon size={size} color={color} />}
+        iconTone={entry?.tone}
+        title={apt.organization.name}
+        subtitle={`${when} · ${typeLabel}`}
+        subtitleTrailing={
+          <StatusDot label={t(`status.appointment.${apt.status}`)} tone={statusTone(apt.status)} />
+        }
+        accessibilityLabel={`${typeLabel}, ${when}, ${apt.organization.name}. ${t(
+          `status.appointment.${apt.status}`,
+        )}`}
+        onPress={() => router.push(`/appointment/${apt.id}`)}
+      />
+    );
+  };
+
   return (
     <ScrollScreen refreshing={isRefetching} onRefresh={() => void refetch()}>
-      <Stack gap="xl">
+      <Sections rhythm="major">
         <ScreenTitle
           title={t('calendar.title')}
           subtitle={t('calendar.subtitle')}
           action={
-            <Button
-              label={t('calendar.schedule')}
-              size="md"
-              block={false}
+            <IconButton
               accessibilityLabel={t('calendar.a11ySchedule')}
-              icon={({ size, color }) => <Plus size={size} color={color} />}
+              variant="tonal"
+              tone="rose"
               onPress={() => router.push('/(booking)/select-type')}
+              icon={({ size, color }) => <Plus size={size} color={color} />}
             />
           }
         />
 
         {/* ------------------------------------------------------ the month */}
-        <Surface>
+        <Surface padded="lg">
           <MonthGrid
             year={viewDate.year}
             month={viewDate.month}
@@ -189,8 +210,7 @@ export default function Calendar() {
                 items.length ? `, ${t('calendar.appointmentsCount', { count: items.length })}` : ''
               }`;
             }}
-            // One dot per appointment, up to three, each in its own type's
-            // colour -- a single dot said "something today" and stopped there.
+            // One dot per appointment, up to three, each in its own type's colour.
             renderMarkers={(day) =>
               dayAppointments(day)
                 .slice(0, 3)
@@ -198,41 +218,30 @@ export default function Calendar() {
                   <View
                     key={apt.id}
                     style={{
-                      width: 4,
-                      height: 4,
-                      borderRadius: 2,
+                      width: 5,
+                      height: 5,
+                      borderRadius: 3,
                       backgroundColor: typeColor(apt.appointmentType),
                     }}
                   />
                 ))
             }
-            // Only when you have wandered off it -- a "today" button on the
-            // month you are already looking at does nothing.
+            // Only when you have wandered off it.
             action={
               isViewingCurrentMonth ? null : (
-                <Pressable
-                  onPress={goToToday}
-                  accessibilityRole="button"
+                <Button
+                  label={t('common.today')}
+                  size="sm"
+                  variant="secondary"
+                  block={false}
                   accessibilityLabel={t('calendar.a11yBackToToday')}
-                  hitSlop={10}
-                  style={({ pressed }) => ({
-                    minHeight: 28,
-                    justifyContent: 'center',
-                    paddingHorizontal: space.md,
-                    borderRadius: radius.full,
-                    backgroundColor: colors.rose.soft,
-                    opacity: pressed ? 0.7 : 1,
-                  })}
-                >
-                  <Text variant="caption" tone="rose">
-                    {t('common.today')}
-                  </Text>
-                </Pressable>
+                  onPress={goToToday}
+                />
               )
             }
           />
 
-          <Row gap="lg" style={{ justifyContent: 'center', paddingTop: space.lg }}>
+          <Row gap="lg" style={{ paddingTop: space.lg, paddingLeft: space.xs }}>
             {Object.entries(TYPES).map(([type, entry]) => (
               <Row key={type} gap="xs">
                 <View
@@ -252,20 +261,18 @@ export default function Calendar() {
         </Surface>
 
         {/* --------------------------------------------- the day you picked */}
-        <Stack gap="md">
-          <SectionHeader title={formatDate(selectedDate, 'full')} />
-
+        <Section
+          title={selectedIsToday ? t('common.today') : formatDate(selectedDate, 'full')}
+          subtitle={selectedIsToday ? formatDate(selectedDate, 'full') : undefined}
+        >
           {isPending ? (
-            <Surface>
-              <Stack gap="md">
+            <Surface level="flat">
+              <View style={{ gap: space.md }}>
                 <Skeleton height={16} width="60%" />
-                <Skeleton height={16} width="40%" />
-              </Stack>
+                <Skeleton height={12} width="40%" />
+              </View>
             </Surface>
           ) : isError ? (
-            // The month grid's dots and this list both come from one request,
-            // so a failed one made an empty calendar rather than saying it had
-            // failed.
             <ErrorState
               title={t('common.errorTitle')}
               description={t('common.errorBody')}
@@ -274,6 +281,7 @@ export default function Calendar() {
             />
           ) : selectedDateAppointments.length === 0 ? (
             <EmptyState
+              size="compact"
               title={t('calendar.nothingBooked')}
               description={t('calendar.noAppointmentsOnDay')}
               icon={({ size, color }) => <CalendarDays size={size} color={color} />}
@@ -283,42 +291,17 @@ export default function Calendar() {
               }}
             />
           ) : (
-            <ListGroup
-              rows={selectedDateAppointments.map((apt) => {
-                const entry = typeOf(apt.appointmentType);
-                const Icon = entry?.icon ?? CalendarDays;
-                const typeLabel = entry ? t(entry.labelKey) : t('calendar.appointment');
-                return (
-                  <ListRow
-                    key={apt.id}
-                    leading={<Icon size={iconSize.lg} color={typeColor(apt.appointmentType)} />}
-                    title={`${formatTime(apt.scheduledStart)} · ${apt.organization.name}`}
-                    // The status used to be a trailing Badge, which takes its
-                    // full width before the title column gets any -- so the
-                    // organisation name, the only thing that identifies the
-                    // appointment, was the part that got cut, and cut sooner in
-                    // Russian and Uzbek where both strings are longer. A
-                    // StatusDot on the subtitle line says the same thing
-                    // without competing for the same row; Status.tsx documents
-                    // it as existing for exactly this.
-                    subtitle={typeLabel}
-                    subtitleTrailing={
-                      <StatusDot
-                        label={t(`status.appointment.${apt.status}`)}
-                        tone={statusTone(apt.status)}
-                      />
-                    }
-                    accessibilityLabel={`${typeLabel}, ${formatTime(apt.scheduledStart)}, ${
-                      apt.organization.name
-                    }. ${t(`status.appointment.${apt.status}`)}`}
-                    onPress={() => router.push(`/appointment/${apt.id}`)}
-                  />
-                );
-              })}
-            />
+            <ListGroup rows={selectedDateAppointments.map((apt) => appointmentRow(apt, false))} />
           )}
-        </Stack>
-      </Stack>
+        </Section>
+
+        {/* ------------------------------------------------- what is next */}
+        {!isPending && !isError && upcoming.length > 0 ? (
+          <Section title={t('laboratory.upcomingAppointments')}>
+            <ListGroup rows={upcoming.map((apt) => appointmentRow(apt, true))} />
+          </Section>
+        ) : null}
+      </Sections>
     </ScrollScreen>
   );
 }

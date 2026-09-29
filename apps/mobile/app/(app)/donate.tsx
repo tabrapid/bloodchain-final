@@ -4,11 +4,14 @@ import { useQuery } from '@tanstack/react-query';
 import {
   Award,
   CalendarDays,
+  CalendarPlus,
   ChevronRight,
   Droplet,
   Droplets,
   Heart,
+  History,
   Layers,
+  Siren,
   TestTube,
   Users,
 } from 'lucide-react-native';
@@ -23,22 +26,25 @@ import {
   Row,
   ScreenTitle,
   ScrollScreen,
+  Section,
   SectionError,
-  SectionHeader,
+  Sections,
   Skeleton,
   SkeletonRow,
-  Stack,
   Stat,
   StatRow,
   Surface,
   Text,
+  ValueText,
   iconSize,
+  radius,
   space,
   useDesign,
   type AccentName,
 } from '../../src/design';
 import { LucideIcon } from '../../src/types/icons';
 import { useDonationStatistics, useMyDonations } from '../../src/hooks/useDonations';
+import { useDonorEmergencies } from '../../src/hooks/useEmergency';
 import { getCampaigns } from '../../src/api/campaigns';
 import { getActiveChallenges } from '../../src/api/challenges';
 import { useTranslation } from '../../src/i18n';
@@ -48,13 +54,8 @@ import { useTranslation } from '../../src/i18n';
  * with the interval between donations of that kind.
  *
  * The intervals are standard donation medicine -- 56 days for whole blood, 28
- * for plasma, 7 for platelets -- and are static reference copy, like the
- * marker definitions on Health. `OTHER` has no fixed interval and shows none.
- *
- * The reference's fourth tile is "Double Red", which the enum has no value
- * for. Labelling `OTHER` as Double Red would put every other kind of donation
- * into its count, so the row keeps the honest label until the enum gains the
- * value.
+ * for plasma, 7 for platelets -- and are static reference copy. `OTHER` has
+ * no fixed interval and shows none.
  */
 const DONATION_TYPES: {
   value: string;
@@ -64,11 +65,6 @@ const DONATION_TYPES: {
   tone: AccentName;
   intervalDays?: number;
 }[] = [
-  // Whole blood is rose because it is the donation this app is for. The three
-  // apheresis products are clinical blue, and their icons tell them apart.
-  // Platelets were amber and "other" was violet, which in this app mean a
-  // flagged clinical value and a model's output -- neither of which is a thing
-  // a donation type can be.
   { value: 'WHOLE_BLOOD', labelKey: 'medical.donationTypes.wholeBlood', icon: Droplet, tone: 'rose', intervalDays: 56 },
   { value: 'PLASMA', labelKey: 'medical.donationTypes.plasma', icon: TestTube, tone: 'clinical', intervalDays: 28 },
   { value: 'PLATELETS', labelKey: 'medical.donationTypes.platelets', icon: Layers, tone: 'clinical', intervalDays: 7 },
@@ -83,38 +79,23 @@ function daysBetween(from: number, to: number): number {
 }
 
 /**
- * Donate, rebuilt for V2.
+ * Donate, composed for V4: action-oriented.
  *
- * One question brings a donor to this tab: can I give, and if not, when. V1
- * answered it inside a full-bleed rose-to-mulberry gradient with a shouting
- * caps pill, a 26pt sentence, a 54pt droplet and a translucent button -- and
- * answered it in English, in an app that ships in Uzbek and Russian. Eleven
- * separate strings on this screen were literals: 'ELIGIBLE NOW', 'You can
- * donate today.', 'Your next donation opens in N days', 'Last donated N days
- * ago', 'Estimated eligible date', 'Schedule a donation', 'Every N days', 'N
- * donations', "You're making a difference", 'About 3 lives per donation',
- * 'Ready to give'. Every one of them is a catalogue key now, and the two that
- * count things are real plural rules rather than an English -s.
- *
- * The answer is now the first thing on the screen, in words, on a plain
- * surface, with the one action that follows from it directly beneath.
- *
- * The four donation types were a 2x2 grid of fixed-width tiles. "Whole blood"
- * is "Butun qon" in Uzbek and "Цельная кровь" in Russian; a tile cannot grow
- * and a row can, so they are rows.
- *
- * Kept deliberately: the Challenges section, which is the only route into that
- * screen, and the donor's own per-type counts, which are the only place in the
- * app that answers "what have I actually given".
+ * One question brings a donor to this tab: can I give, and if not, when. The
+ * answer is the first thing on the screen, as a sentence on a surface tinted
+ * by the answer, with the one action that follows from it directly beneath.
+ * Below that: the emergency requests near them, a record of what they have
+ * given, the numbers it adds up to, and the campaigns and challenges that
+ * are asking for donors.
  */
 export default function Donate() {
   const { colors } = useDesign();
   const { t, formatDate } = useTranslation();
 
   const stats = useDonationStatistics();
-  // Enough history to count every donation per type -- at 3, the rows below
-  // were counting the three most recent donations and calling it a total.
+  // Enough history to count every donation per type.
   const donations = useMyDonations({ limit: 100 });
+  const emergencies = useDonorEmergencies();
   const campaigns = useQuery({
     queryKey: ['campaigns', 'active-preview'],
     queryFn: () => getCampaigns({ status: 'ACTIVE', limit: 3 }),
@@ -130,6 +111,7 @@ export default function Donate() {
     void donations.refetch();
     void campaigns.refetch();
     void challenges.refetch();
+    void emergencies.refetch();
   };
 
   const header = <ScreenTitle title={t('donate.title')} subtitle={t('donate.subtitle')} />;
@@ -137,20 +119,21 @@ export default function Donate() {
   if (stats.isPending) {
     return (
       <ScrollScreen>
-        <Stack gap="xl">
+        <Sections>
           {header}
           <Surface>
-            <Stack gap="md">
-              <Skeleton width="40%" height={12} />
+            <View style={{ gap: space.md }}>
+              <Skeleton width="30%" height={22} corner="full" />
               <Skeleton width="75%" height={28} />
-              <Skeleton height={52} corner="sm" />
-            </Stack>
+              <Skeleton width="55%" height={12} />
+              <Skeleton height={52} corner="md" style={{ marginTop: space.sm }} />
+            </View>
           </Surface>
-          <Surface>
+          <Surface level="flat">
             <SkeletonRow />
             <SkeletonRow />
           </Surface>
-        </Stack>
+        </Sections>
       </ScrollScreen>
     );
   }
@@ -158,7 +141,7 @@ export default function Donate() {
   if (stats.isError) {
     return (
       <ScrollScreen>
-        <Stack gap="xl">
+        <Sections>
           {header}
           <ErrorState
             title={t('common.errorTitle')}
@@ -166,7 +149,7 @@ export default function Donate() {
             retryLabel={t('common.retry')}
             onRetry={() => void stats.refetch()}
           />
-        </Stack>
+        </Sections>
       </ScrollScreen>
     );
   }
@@ -182,6 +165,7 @@ export default function Donate() {
 
   const activeCampaigns = campaigns.data?.items ?? [];
   const featuredChallenge = challenges.data?.[0];
+  const activeEmergencyCount = emergencies.data?.active.length ?? 0;
 
   const nextDate = stats.data?.nextDonationDate ? new Date(stats.data.nextDonationDate) : null;
   const daysToEligible = nextDate ? daysBetween(Date.now(), nextDate.getTime()) : 0;
@@ -194,90 +178,120 @@ export default function Donate() {
     router.push({ pathname: '/(booking)/organizations', params: { type: 'BLOOD_DONATION' } });
   };
 
+  const evidence = [
+    daysSinceLast === null
+      ? null
+      : daysSinceLast <= 0
+        ? t('donate.lastDonatedToday')
+        : t('donate.lastDonatedOn', { date: formatDate(lastDonated!, 'medium') }),
+    nextDate && !isEligible ? t('donate.nextEligibleOn', { date: formatDate(nextDate, 'medium') }) : null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+
   return (
     <ScrollScreen refreshing={refreshing} onRefresh={onRefresh}>
-      <Stack gap="xl">
+      <Sections rhythm="major">
         {header}
 
         {/* ------------------------------------------- can I give, and when */}
-        <Surface>
-          <Stack gap="lg">
-            <Row gap="md" align="flex-start">
+        <Surface tone={isEligible ? 'success' : undefined} corner="xl">
+          <View style={{ gap: space.lg }}>
+            <Row gap="lg" align="flex-start">
               <View style={{ flex: 1, gap: space.sm }}>
                 <Badge
                   label={isEligible ? t('donate.eligibleNow') : t('donate.notEligible')}
                   tone={isEligible ? 'success' : 'warning'}
+                  dot
                 />
                 <Text variant="h2">
                   {isEligible
                     ? t('donate.canDonateToday')
                     : t('donate.opensInDays', { count: daysToEligible })}
                 </Text>
-                {/* The evidence for the sentence above it, never on its own:
-                    a date with no claim attached is just a date. */}
-                {daysSinceLast !== null || (nextDate && !isEligible) ? (
-                  <Text variant="caption" tone="tertiary">
-                    {[
-                      daysSinceLast === null
-                        ? null
-                        : daysSinceLast <= 0
-                          ? t('donate.lastDonatedToday')
-                          : t('donate.lastDonatedOn', { date: formatDate(lastDonated!, 'medium') }),
-                      nextDate && !isEligible
-                        ? t('donate.nextEligibleOn', { date: formatDate(nextDate, 'medium') })
-                        : null,
-                    ]
-                      .filter(Boolean)
-                      .join(' · ')}
+                {evidence ? (
+                  <Text variant="caption" tone="secondary">
+                    {evidence}
                   </Text>
                 ) : null}
               </View>
-              <Droplet size={iconSize.xl} color={colors.rose.base} strokeWidth={1.5} />
+              {!isEligible ? (
+                <View style={{ alignItems: 'center', gap: 2, minWidth: 64 }}>
+                  <ValueText style={{ color: colors.textPrimary }}>{String(daysToEligible)}</ValueText>
+                  <Text variant="overline" tone="tertiary" caps>
+                    {t('donate.daysLabel')}
+                  </Text>
+                </View>
+              ) : (
+                <View
+                  style={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: radius.md,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: colors.success.soft,
+                  }}
+                >
+                  <Droplet size={iconSize.lg} color={colors.success.base} />
+                </View>
+              )}
             </Row>
 
-            {/*
-              The reference calls this "View eligibility timeline". There is no
-              timeline screen, and there is no point sending someone to one
-              that does not exist -- so it goes where the answer actually
-              lives: the booking flow when you can donate, your donation
-              history when you cannot, since that is where the date it counts
-              from comes from.
-            */}
             {isEligible ? (
               <Button
                 label={t('donate.schedule')}
-                icon={({ size, color }) => <CalendarDays size={size} color={color} />}
+                icon={({ size, color }) => <CalendarPlus size={size} color={color} />}
                 onPress={goToBooking}
               />
             ) : (
               <Button
                 label={t('donate.viewHistory')}
                 variant="secondary"
-                icon={({ size, color }) => <CalendarDays size={size} color={color} />}
+                icon={({ size, color }) => <History size={size} color={color} />}
                 onPress={() => router.push('/donations')}
               />
             )}
-          </Stack>
+          </View>
         </Surface>
 
-        {/*
-          What you give -- a record, not a menu.
+        {/* ------------------------------------------------ emergency area */}
+        <ListGroup
+          rows={[
+            <ListRow
+              key="sos"
+              icon={({ size, color }) => <Siren size={size} color={color} />}
+              iconTone={activeEmergencyCount > 0 ? 'critical' : undefined}
+              title={t('home.emergencyRequests')}
+              subtitle={
+                activeEmergencyCount > 0
+                  ? t('home.emergenciesMatched', { count: activeEmergencyCount })
+                  : t('home.noEmergencies')
+              }
+              subtitleTrailing={
+                activeEmergencyCount > 0 ? (
+                  <Badge label={String(activeEmergencyCount)} tone="critical" emphasis="solid" />
+                ) : undefined
+              }
+              onPress={() => router.push('/sos')}
+            />,
+            <ListRow
+              key="history"
+              icon={({ size, color }) => <History size={size} color={color} />}
+              title={t('donate.viewHistory')}
+              value={completedCount ? t('units.donations', { count: completedCount }) : undefined}
+              onPress={() => router.push('/donations')}
+            />,
+          ]}
+        />
 
-          These four rows used to be pressable and all four called the same
-          handler, which books a BLOOD_DONATION appointment regardless: tapping
-          "Plasma" and tapping "Platelets" did exactly the same thing, and the
-          row announced "Book a donation" while doing it. Appointment types are
-          BLOOD_DONATION / BLOOD_TEST / CONSULTATION; the donation type is a
-          property of the donation, decided at the centre. So the rows say what
-          this donor has given, and the one button above books the appointment.
-        */}
-        <Stack gap="md">
-          <SectionHeader
-            title={t('donate.donationTypes')}
-            action={
-              <LinkButton label={t('donate.learnAboutTypes')} onPress={() => router.push('/education')} />
-            }
-          />
+        {/* ------------------------------------------------ what you give */}
+        <Section
+          title={t('donate.donationTypes')}
+          action={
+            <LinkButton label={t('donate.learnAboutTypes')} onPress={() => router.push('/education')} />
+          }
+        >
           <ListGroup
             rows={DONATION_TYPES.map((type) => {
               const Icon = type.icon;
@@ -285,7 +299,8 @@ export default function Donate() {
               return (
                 <ListRow
                   key={type.value}
-                  leading={<Icon size={iconSize.lg} color={colors[type.tone].base} />}
+                  icon={({ size, color }) => <Icon size={size} color={color} />}
+                  iconTone={count ? type.tone : undefined}
                   title={t(type.labelKey)}
                   subtitle={
                     type.intervalDays
@@ -293,6 +308,7 @@ export default function Donate() {
                       : t('donate.specialDonations')
                   }
                   value={count ? t('units.donations', { count }) : t('donate.notYetDonated')}
+                  valueTone={count ? 'rose' : undefined}
                   accessibilityLabel={`${t(type.labelKey)}. ${
                     count ? t('units.donations', { count }) : t('donate.notYetDonated')
                   }`}
@@ -300,16 +316,19 @@ export default function Donate() {
               );
             })}
           />
-        </Stack>
+        </Section>
 
         {/* ------------------------------------------------- what it added up to */}
-        <Stack gap="md">
-          <SectionHeader
-            title={t('donate.journey')}
-            action={
-              <LinkButton label={t('donate.viewImpact')} onPress={() => router.push('/(app)/gamification')} />
-            }
-          />
+        <Section
+          title={t('donate.journey')}
+          action={
+            <LinkButton
+              label={t('donate.viewImpact')}
+              onPress={() => router.push('/(app)/gamification')}
+              icon={({ size, color }) => <ChevronRight size={size} color={color} />}
+            />
+          }
+        >
           <StatRow>
             <Stat
               label={t('donate.totalDonations')}
@@ -323,13 +342,6 @@ export default function Donate() {
               icon={({ size, color }) => <Users size={size} color={color} />}
               tone="clinical"
             />
-            {/*
-              The one stat in this row that is a state rather than a count, so
-              the one that earns a semantic colour -- and only in the state
-              that means something. Green when a donor may give today; plain
-              while the clock runs down, because "fourteen days to go" is not a
-              success and was not worth the violet it used to be drawn in.
-            */}
             <Stat
               label={isEligible ? t('donate.readyToGive') : t('donate.daysToGo')}
               value={isEligible ? t('donate.now') : String(daysToEligible)}
@@ -337,15 +349,13 @@ export default function Donate() {
               {...(isEligible ? { tone: 'success' as const } : {})}
             />
           </StatRow>
-          {/* The multiplier is stated, not implied. "Lives supported" is an
-              estimate the blood service quotes, and a donor is entitled to
-              know it is arithmetic rather than a count of people. */}
+          {/* The multiplier is stated, not implied. */}
           <Text variant="caption" tone="tertiary">
             {completedCount
               ? t('donate.livesPerDonation', { count: LIVES_PER_DONATION })
               : t('donate.firstOneStarts')}
           </Text>
-        </Stack>
+        </Section>
 
         {/* --------------------------------------------------- campaigns */}
         {campaigns.isError ? (
@@ -355,49 +365,50 @@ export default function Donate() {
             onRetry={() => void campaigns.refetch()}
           />
         ) : activeCampaigns.length > 0 ? (
-          <Stack gap="md">
-            <SectionHeader
-              title={t('donate.activeCampaigns')}
-              action={
-                <LinkButton label={t('common.viewAll')} onPress={() => router.push('/campaigns')} />
-              }
-            />
+          <Section
+            title={t('donate.activeCampaigns')}
+            action={<LinkButton label={t('common.viewAll')} onPress={() => router.push('/campaigns')} />}
+          >
             <ListGroup
               rows={activeCampaigns.map((campaign) => (
                 <ListRow
                   key={campaign.id}
-                  leading={<Droplet size={iconSize.lg} color={colors.rose.base} />}
+                  icon={({ size, color }) => <Droplet size={size} color={color} />}
+                  iconTone="rose"
                   title={campaign.title}
                   subtitle={
                     campaign.description || campaign.organization?.name || t('donate.ongoingCampaign')
                   }
-                  trailing={<ChevronRight size={iconSize.md} color={colors.textTertiary} />}
                   onPress={() => router.push('/campaigns')}
                 />
               ))}
             />
-          </Stack>
+          </Section>
         ) : null}
 
-        {/*
-          Below the reference's crop, and kept: this screen is the only route
-          into Challenges. Dropping the section to match a screenshot would
-          strand a whole screen with nothing linking to it.
-        */}
+        {/* This screen is the only route into Challenges. */}
         {featuredChallenge ? (
-          <Stack gap="md">
-            <SectionHeader
-              title={t('donate.challenges')}
-              action={
-                <LinkButton label={t('common.viewAll')} onPress={() => router.push('/challenges')} />
-              }
-            />
+          <Section
+            title={t('donate.challenges')}
+            action={<LinkButton label={t('common.viewAll')} onPress={() => router.push('/challenges')} />}
+          >
             <Surface onPress={() => router.push('/challenges')} accessibilityLabel={featuredChallenge.title}>
-              <Stack gap="md">
+              <View style={{ gap: space.md }}>
                 <Row gap="md" align="flex-start">
-                  <Award size={iconSize.lg} color={colors.warning.base} />
+                  <View
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: radius.sm,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: colors.surfaceRaised,
+                    }}
+                  >
+                    <Award size={iconSize.md} color={colors.textSecondary} />
+                  </View>
                   <View style={{ flex: 1, gap: 2 }}>
-                    <Text variant="bodyStrong" numberOfLines={1}>
+                    <Text variant="title" numberOfLines={1}>
                       {featuredChallenge.title}
                     </Text>
                     <Text variant="caption" tone="secondary" numberOfLines={2}>
@@ -413,11 +424,11 @@ export default function Donate() {
                     goal: featuredChallenge.goal,
                   })}
                   value={(featuredChallenge.userProgress ?? 0) / (featuredChallenge.goal || 1)}
-                  tone="warning"
+                  thickness="thin"
                 />
-              </Stack>
+              </View>
             </Surface>
-          </Stack>
+          </Section>
         ) : null}
 
         {donations.isError ? (
@@ -427,7 +438,7 @@ export default function Donate() {
             onRetry={() => void donations.refetch()}
           />
         ) : null}
-      </Stack>
+      </Sections>
     </ScrollScreen>
   );
 }

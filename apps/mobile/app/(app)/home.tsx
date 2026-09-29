@@ -3,12 +3,14 @@ import { Pressable, View } from 'react-native';
 import {
   Bell,
   BookOpen,
-  CalendarCheck,
-  CalendarDays,
+  CalendarCheck2,
+  CalendarPlus,
   ChevronRight,
   Droplet,
   FileText,
   Heart,
+  MapPin,
+  ShieldCheck,
   Siren,
   UserRound,
 } from 'lucide-react-native';
@@ -17,6 +19,7 @@ import {
   Badge,
   Banner,
   Button,
+  DateBlock,
   EmergencyBanner,
   IconButton,
   ListGroup,
@@ -24,8 +27,9 @@ import {
   Progress,
   Row,
   ScrollScreen,
-  SectionHeader,
-  Stack,
+  Section,
+  Sections,
+  Skeleton,
   Stat,
   StatRow,
   Surface,
@@ -36,8 +40,6 @@ import {
   space,
   useDesign,
   type AccentName,
-  Skeleton,
-  SkeletonRow,
 } from '../../src/design';
 import { LucideIcon } from '../../src/types/icons';
 import { useUserProfile } from '../../src/hooks/useUsers';
@@ -53,37 +55,30 @@ import { useTranslation } from '../../src/i18n';
 import type { TranslateFn } from '@bloodchain/i18n';
 
 /**
- * Home, rebuilt for V2.
+ * Home, composed for V4.
  *
- * The brief: make the donor's identity, eligibility, next appointment, the
- * urgent thing and their impact immediately legible -- and do NOT overload the
- * screen with every feature.
+ * The brief: within seconds the donor should know who they are, their blood
+ * type, whether it is verified, whether they can donate, when their next
+ * appointment is, and whether anything needs attention -- and gamification
+ * must never outrank any of that.
  *
- * V1 answered the first half and lost the second. It opened with a full-bleed
- * rose-to-violet hero carrying the blood type, a verification badge, a shield,
- * a location and three statistics; below it three more cards, a completion
- * card, an emergency card and a four-up grid of quick actions. Eleven distinct
- * surfaces, most of them shadowed, all competing. When everything is elevated,
- * nothing is.
+ * So the screen is one composition rather than a stack of cards:
  *
- * V2 keeps the same information and orders it by how urgent it is:
- *
- *   1. Who you are     -- greeting, blood type, verification. Quiet.
- *   2. What is urgent  -- the emergency line, and ONLY when there is one, in
- *                        the one red the app reserves for it.
- *   3. What is next    -- eligibility and the next appointment, as rows.
- *   4. What you have done -- three numbers, flat.
- *   5. Everything else -- a list, not a grid of tiles.
- *
- * The four quick actions were hardcoded English strings with literal newlines
- * in them (`'Schedule\nDonation'`) on a screen the app ships in Uzbek and
- * Russian. They are catalogue keys now, and rows rather than tiles, because a
- * two-word label in English is a five-word label in Russian and a tile cannot
- * grow.
+ *   1. A greeting line with the two controls a donor reaches for daily.
+ *   2. The identity hero: blood type, verification and location on the one
+ *      gradient surface in the system, with donation eligibility as a strip
+ *      along its foot. Identity and eligibility are the two facts a blood
+ *      service cares about, so they share a surface.
+ *   3. What needs attention: the emergency, if there is one, in the only red
+ *      the app has; an incomplete profile as a quiet row.
+ *   4. The next appointment, as one row with a date block.
+ *   5. Impact: three numbers, then the level as the quietest line in the
+ *      section.
+ *   6. Shortcuts, as rows.
  */
 export default function Home() {
   const { colors } = useDesign();
-  const { t, formatDayHeading, formatDate, formatTime } = useTranslation();
+  const { t, formatDayHeading, formatDate, formatTime, formatMonth } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const { data: userProfile } = useUserProfile();
   const { data: donorProfile, isPending: donorPending } = useDonorProfile();
@@ -123,29 +118,26 @@ export default function Home() {
     ? [donorProfile.city, donorProfile.district].filter(Boolean).join(', ')
     : null;
 
+  const heroLabel = donorPending
+    ? t('common.loading')
+    : `${t('home.bloodTypeLabel')} ${bloodTypeDisplay}. ${verification.note}. ${
+        isEligible ? t('home.eligibleToday') : t('home.eligibilityOpensThen')
+      }. ${t('home.verificationOpenProfile')}`;
+
   return (
     <ScrollScreen>
-      <Stack gap="xl">
-        {/* ------------------------------------------------- who you are */}
-        <Row align="flex-start" gap="md" style={{ paddingTop: space.md }}>
+      <Sections rhythm="major">
+        {/* ------------------------------------------------- the greeting */}
+        <Row align="center" gap="md" style={{ paddingTop: space.md }}>
           <View style={{ flex: 1, gap: 2 }}>
-            <Text variant="caption" tone="tertiary">
+            <Text variant="label" tone="tertiary">
               {formatDayHeading(new Date())}
             </Text>
-            {/*
-              Demoted from h1.
-
-              At 30pt bold the greeting was the largest thing on the screen --
-              larger than the blood type, the eligibility state and the next
-              appointment, none of which it outranks. A greeting is an opening,
-              not a headline. The identity block below is the screen's anchor
-              now, which is what the eye should land on.
-            */}
-            <Text variant="h3" numberOfLines={2}>
+            <Text variant="h2" numberOfLines={2}>
               {greeting}
             </Text>
           </View>
-          <Row gap="xs">
+          <Row gap="sm">
             <View>
               <IconButton
                 accessibilityLabel={
@@ -154,28 +146,30 @@ export default function Home() {
                     : t('profile.notifications')
                 }
                 onPress={() => router.push('/(app)/notifications')}
+                variant="surface"
                 icon={({ size, color }) => <Bell size={size} color={color} />}
               />
               {unreadCount?.count ? (
                 <View
-                  // Decorative: the count is already in the button's label, so
-                  // announcing the dot as well says it twice.
+                  // Decorative: the count is already in the button's label.
                   accessibilityElementsHidden
                   importantForAccessibility="no-hide-descendants"
                   style={{
                     position: 'absolute',
-                    top: 6,
-                    right: 6,
-                    minWidth: 16,
-                    height: 16,
-                    paddingHorizontal: 4,
+                    top: 4,
+                    right: 4,
+                    minWidth: 18,
+                    height: 18,
+                    paddingHorizontal: 5,
                     borderRadius: radius.full,
                     backgroundColor: colors.critical.fill,
+                    borderWidth: 2,
+                    borderColor: colors.background,
                     alignItems: 'center',
                     justifyContent: 'center',
                   }}
                 >
-                  <Text variant="caption" tone="onAccent" style={{ fontSize: 10, lineHeight: 13 }}>
+                  <Text variant="caption" tone="onAccent" style={{ fontSize: 10, lineHeight: 12 }}>
                     {unreadCount.count > 9 ? '9+' : unreadCount.count}
                   </Text>
                 </View>
@@ -187,172 +181,205 @@ export default function Home() {
               accessibilityLabel={t('profile.title')}
               hitSlop={8}
             >
-              <Avatar name={fullName ?? user?.firstName ?? 'Donor'} size={40} />
+              <Avatar name={fullName ?? user?.firstName ?? 'Donor'} size={44} />
             </Pressable>
           </Row>
         </Row>
 
-        <Pressable
+        {/* ------------------------------------------------ the identity hero */}
+        <Surface
+          hero
+          corner="xl"
+          padded={false}
           onPress={() => router.push('/(app)/profile/donor')}
-          accessibilityRole="button"
-          accessibilityLabel={
-            donorPending
-              ? t('common.loading')
-              : `${t('home.bloodTypeLabel')} ${bloodTypeDisplay}. ${verification.note}. ${t('home.verificationOpenProfile')}`
-          }
-          style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
+          accessibilityLabel={heroLabel}
         >
-          <Surface>
-            <Row gap="lg">
-              {/* The blood type is the donor's identity in this app, so it is
-                  the largest thing on the screen -- but in rose on an ordinary
-                  surface rather than white on a full-bleed gradient. */}
-              <View style={{ alignItems: 'center', gap: 2 }}>
-                <ValueText variant="hero" style={{ color: colors.rose.text }}>
-                  {donorPending ? '' : bloodTypeDisplay}
-                </ValueText>
+          <View style={{ padding: space.xl - 4, paddingBottom: space.lg, gap: space.lg }}>
+            <Row align="flex-start" gap="lg">
+              <View style={{ flex: 1, gap: space.xs }}>
                 <Text variant="overline" tone="tertiary" caps>
                   {t('home.bloodTypeLabel')}
                 </Text>
-              </View>
-
-              {/*
-                While the profile is loading, say nothing rather than the
-                opposite of the truth.
-
-                `getVerification` falls back to UNVERIFIED and the blood type
-                falls back to an em dash, so every cold start told a verified
-                donor, at 48pt, that their blood type was unknown and their
-                verification missing -- for the length of the first round trip,
-                and for as long as the request kept failing.
-              */}
-              <View style={{ flex: 1, gap: space.sm }}>
                 {donorPending ? (
-                  <>
-                    <SkeletonRow />
-                    <Skeleton height={14} />
-                  </>
+                  <Skeleton width={96} height={52} corner="sm" />
                 ) : (
-                  <>
-                    <Badge label={verification.badge} tone={verification.tone} />
-                    <Text variant="caption" tone="secondary">
-                      {verification.note}
-                    </Text>
-                  </>
+                  <ValueText variant="hero" style={{ color: colors.textPrimary }}>
+                    {bloodTypeDisplay}
+                  </ValueText>
                 )}
-                {location && !donorPending ? (
-                  <Text variant="caption" tone="tertiary" numberOfLines={1}>
-                    {location}
+              </View>
+              <View style={{ alignItems: 'flex-end', gap: space.sm, maxWidth: '55%' }}>
+                {donorPending ? (
+                  <Skeleton width={96} height={24} corner="full" />
+                ) : (
+                  <Badge
+                    label={verification.badge}
+                    tone={verification.tone}
+                    icon={verification.tone === 'success' ? ({ size, color }) => <ShieldCheck size={size} color={color} /> : undefined}
+                    dot={verification.tone !== 'success'}
+                  />
+                )}
+                {!donorPending ? (
+                  <Text variant="caption" tone="secondary" align="right">
+                    {verification.note}
                   </Text>
                 ) : null}
+                {location && !donorPending ? (
+                  <Row gap="xs">
+                    <MapPin size={12} color={colors.textTertiary} />
+                    <Text variant="caption" tone="tertiary" numberOfLines={1}>
+                      {location}
+                    </Text>
+                  </Row>
+                ) : null}
               </View>
-
-              <ChevronRight size={iconSize.md} color={colors.textTertiary} />
             </Row>
-          </Surface>
-        </Pressable>
+          </View>
 
-        {/* -------------------------------------------- what is urgent */}
-        {activeEmergencyCount > 0 ? (
-          <EmergencyBanner
-            title={t('home.emergenciesMatched', { count: activeEmergencyCount })}
-            description={t('home.emergencyNearbyNeed')}
-            icon={({ size, color }) => <Siren size={size} color={color} />}
-            action={
-              <Button
-                label={t('home.viewRequests')}
-                variant="secondary"
-                size="md"
-                block={false}
-                // It sits on the emergency fill, where `textPrimary` is
-                // near-black in light mode and about 3.5:1 on that red.
-                onAccent
-                onPress={() => router.push('/sos')}
+          {/* The eligibility strip: the second fact the hero carries. */}
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: space.md,
+              paddingHorizontal: space.xl - 4,
+              paddingVertical: space.md + 2,
+              backgroundColor: isEligible ? colors.success.soft : 'rgba(255,255,255,0.05)',
+            }}
+          >
+            <CalendarCheck2
+              size={iconSize.md}
+              color={isEligible ? colors.success.base : colors.textSecondary}
+            />
+            <View style={{ flex: 1, gap: 1 }}>
+              <Text variant="bodyMedium" tone={isEligible ? 'success' : 'primary'}>
+                {isEligible ? t('home.eligibleNow') : t('home.eligibilityTitle')}
+              </Text>
+              <Text variant="caption" tone="secondary">
+                {isEligible
+                  ? t('home.eligibleToday')
+                  : `${t('home.eligibilityOpensThen')} ${formatDate(nextEligible!, 'medium')}`}
+              </Text>
+            </View>
+            <ChevronRight size={iconSize.md} color={colors.textTertiary} />
+          </View>
+        </Surface>
+
+        {/* -------------------------------------------- what needs attention */}
+        {activeEmergencyCount > 0 || completionPercentage < 100 ? (
+          <Section gap="related">
+            {activeEmergencyCount > 0 ? (
+              <EmergencyBanner
+                title={t('home.emergenciesMatched', { count: activeEmergencyCount })}
+                description={t('home.emergencyNearbyNeed')}
+                icon={({ size, color }) => <Siren size={size} color={color} />}
+                action={
+                  <Button
+                    label={t('home.viewRequests')}
+                    variant="secondary"
+                    size="md"
+                    block={false}
+                    onAccent
+                    onPress={() => router.push('/sos')}
+                  />
+                }
               />
-            }
-          />
+            ) : null}
+
+            {completionPercentage < 100 ? (
+              <Surface
+                level="flat"
+                padded="lg"
+                onPress={() => router.push('/(onboarding)/complete-profile')}
+                accessibilityLabel={`${t('home.completeProfile')}. ${completionPercentage}%`}
+              >
+                <View style={{ gap: space.md }}>
+                  <Row gap="md">
+                    <View
+                      style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: radius.sm,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: colors.clinical.soft,
+                      }}
+                    >
+                      <UserRound size={iconSize.md} color={colors.clinical.base} />
+                    </View>
+                    <View style={{ flex: 1, gap: 2 }}>
+                      <Text variant="bodyMedium">{t('home.completeProfile')}</Text>
+                      <Text variant="caption" tone="secondary">
+                        {t('home.completeProfileBody')}
+                      </Text>
+                    </View>
+                    <Text variant="label" tone="clinical" style={{ fontVariant: ['tabular-nums'] }}>
+                      {completionPercentage}%
+                    </Text>
+                  </Row>
+                  <Progress
+                    label={t('home.completeProfile')}
+                    value={completionPercentage / 100}
+                    tone="clinical"
+                    thickness="thin"
+                    bare
+                  />
+                </View>
+              </Surface>
+            ) : null}
+          </Section>
         ) : null}
 
-        {completionPercentage < 100 ? (
-          <Pressable
-            onPress={() => router.push('/(onboarding)/complete-profile')}
-            accessibilityRole="button"
-            accessibilityLabel={`${t('home.completeProfile')}. ${completionPercentage}%`}
-            style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
-          >
-            {/*
-              No card.
-
-              This used to be its own Surface directly beneath the identity
-              card, which made two boxes of the same size and weight say two
-              different kinds of thing -- one is who you are, the other is a
-              task. It reads as part of the identity block now: same gutter, no
-              border, separated by rhythm rather than by a second rectangle.
-            */}
-            <Stack gap="md" style={{ paddingHorizontal: space.lg }}>
-              <Row gap="md">
-                <UserRound size={iconSize.md} color={colors.clinical.base} />
+        {/* ---------------------------------------------- the next appointment */}
+        <Section title={t('home.nextAppointment')}>
+          {appointmentDate ? (
+            <Surface
+              level="flat"
+              onPress={() => router.push(`/appointment/${nextAppointment!.id}`)}
+              accessibilityLabel={`${formatDate(appointmentDate, 'long')}, ${formatTime(appointmentDate)}, ${
+                nextAppointment!.organization.name
+              }`}
+            >
+              <Row gap="lg">
+                <DateBlock
+                  day={String(appointmentDate.getDate())}
+                  month={formatMonth(appointmentDate, 'short').replace(/\s?\d{4}.*$/, '')}
+                  tone="rose"
+                />
                 <View style={{ flex: 1, gap: 2 }}>
-                  <Text variant="bodyStrong">{t('home.completeProfile')}</Text>
+                  <Text variant="bodyMedium" numberOfLines={1}>
+                    {nextAppointment!.organization.name}
+                  </Text>
                   <Text variant="caption" tone="secondary">
-                    {t('home.completeProfileBody')}
+                    {`${formatDate(appointmentDate, 'medium')} · ${formatTime(appointmentDate)}`}
                   </Text>
                 </View>
                 <ChevronRight size={iconSize.md} color={colors.textTertiary} />
               </Row>
-              <Progress
-                label={t('home.completeProfile')}
-                caption={`${completionPercentage}%`}
-                value={completionPercentage / 100}
-                tone="clinical"
-                bare
-              />
-            </Stack>
-          </Pressable>
-        ) : null}
-
-        {/* ---------------------------------------------- what is next */}
-        <Stack gap="md">
-          <SectionHeader title={t('home.nextAppointment')} />
-          <ListGroup
-            rows={[
-              <ListRow
-                key="eligibility"
-                leading={
-                  <CalendarCheck
-                    size={iconSize.lg}
-                    color={isEligible ? colors.success.base : colors.textTertiary}
-                  />
-                }
-                title={t('home.eligibilityTitle')}
-                subtitle={isEligible ? t('home.eligibleToday') : t('home.eligibilityOpensThen')}
-                value={isEligible ? t('home.eligibleNow') : formatDate(nextEligible!, 'medium')}
-                onPress={() => router.push('/(booking)/select-type')}
-              />,
-              <ListRow
-                key="appointment"
-                leading={<CalendarDays size={iconSize.lg} color={colors.clinical.base} />}
-                title={
-                  appointmentDate ? formatDate(appointmentDate, 'medium') : t('home.noAppointment')
-                }
-                subtitle={
-                  appointmentDate
-                    ? `${formatTime(appointmentDate)} · ${nextAppointment!.organization.name}`
-                    : t('home.scheduleNext')
-                }
-                onPress={() =>
-                  nextAppointment
-                    ? router.push(`/appointment/${nextAppointment.id}`)
-                    : router.push('/(booking)/select-type')
-                }
-              />,
-            ]}
-          />
-        </Stack>
+            </Surface>
+          ) : (
+            <Surface level="flat">
+              <Row gap="lg">
+                <View style={{ flex: 1, gap: 2 }}>
+                  <Text variant="bodyMedium">{t('home.noAppointment')}</Text>
+                  <Text variant="caption" tone="secondary">
+                    {t('home.scheduleNext')}
+                  </Text>
+                </View>
+                <Button
+                  label={t('calendar.schedule')}
+                  size="md"
+                  block={false}
+                  icon={({ size, color }) => <CalendarPlus size={size} color={color} />}
+                  onPress={() => router.push('/(booking)/select-type')}
+                />
+              </Row>
+            </Surface>
+          )}
+        </Section>
 
         {/* ------------------------------------------ what you have done */}
-        <Stack gap="md">
-          <SectionHeader title={t('home.impact')} />
+        <Section title={t('home.impact')}>
           <StatRow>
             <Stat
               label={t('home.donations')}
@@ -372,40 +399,25 @@ export default function Home() {
             />
           </StatRow>
 
-          {/*
-            Below the clinical content and without a box of its own.
-
-            A purple progress bar in its own card, at the same width and weight
-            as donation eligibility, asked a donor to weigh a game mechanic
-            against a medical fact. It is still here -- it is real and people
-            like it -- but it is the quietest thing in the section it belongs to
-            rather than a peer of the section above.
-          */}
+          {/* The level: real, and the quietest thing in the section. A game
+              mechanic never sits at the weight of a medical fact. */}
           {levelProgress ? (
-            <View style={{ paddingHorizontal: space.lg }}>
+            <View style={{ paddingHorizontal: space.xs }}>
               <Progress
                 label={`${t('home.levelAndXp')} ${levelProgress.currentLevel}`}
-                // The bar and the caption have to measure the same thing. The
-                // API's `progress` is how far through *this level* the donor
-                // is; `currentXp / xpForNextLevel` is a different fraction, and
-                // showing the two side by side read as a bug. The remaining XP
-                // is the API's own number and agrees with the bar.
                 caption={t('gamification.xpToNext', {
                   count: levelProgress.xpToNextLevel,
                   level: levelProgress.nextLevelName,
                 })}
                 value={percentAsFraction(levelProgress.progress)}
-                // Violet is the AI's colour in V3 and nothing else's. A level
-                // bar is arithmetic on a donation count.
-                bare
+                thickness="thin"
               />
             </View>
           ) : null}
-        </Stack>
+        </Section>
 
-        {/* ------------------------------------------------ everything else */}
-        <Stack gap="md">
-          <SectionHeader title={t('home.quickActions')} />
+        {/* ------------------------------------------------ shortcuts */}
+        <Section title={t('home.quickActions')}>
           <ListGroup
             rows={[
               <QuickRow
@@ -432,18 +444,16 @@ export default function Home() {
               <QuickRow
                 key="learn"
                 icon={BookOpen}
-                // Violet means AI in V3 and nothing else. An education link is
-                // ordinary navigation.
                 tone="clinical"
                 label={t('home.quickActionLearn')}
                 onPress={() => router.push('/education')}
               />,
             ]}
           />
-        </Stack>
+        </Section>
 
         {/* Kept last and quiet: when there is no emergency, saying so is
-            reassurance, not news, and it does not belong above the fold. */}
+            reassurance, not news. */}
         {activeEmergencyCount === 0 ? (
           <Banner
             tone="neutral"
@@ -452,7 +462,7 @@ export default function Home() {
             icon={({ size, color }) => <Siren size={size} color={color} />}
           />
         ) : null}
-      </Stack>
+      </Sections>
     </ScrollScreen>
   );
 }
@@ -468,12 +478,11 @@ function QuickRow({
   label: string;
   onPress: () => void;
 }) {
-  const { colors } = useDesign();
   return (
     <ListRow
       title={label}
-      leading={<Icon size={iconSize.lg} color={colors[tone].base} />}
-      trailing={<ChevronRight size={iconSize.md} color={colors.textTertiary} />}
+      icon={({ size, color }) => <Icon size={size} color={color} />}
+      iconTone={tone}
       onPress={onPress}
     />
   );
@@ -507,20 +516,20 @@ function getVerification(
 ): { badge: string; tone: AccentName; note: string } {
   if (status === 'VERIFIED') {
     return {
-      badge: t('home.verificationVerified'),
+      badge: t('status.verification.VERIFIED'),
       tone: 'success',
       note: t('home.bloodTypeVerified'),
     };
   }
   if (status === 'REQUIRES_REVIEW') {
     return {
-      badge: t('home.verificationUnderReview'),
+      badge: t('status.verification.REQUIRES_REVIEW'),
       tone: 'warning',
       note: t('home.verificationInProgress'),
     };
   }
   return {
-    badge: t('home.verificationUnverified'),
+    badge: t('status.verification.UNVERIFIED'),
     tone: 'clinical',
     note: t('home.verifyBloodType'),
   };

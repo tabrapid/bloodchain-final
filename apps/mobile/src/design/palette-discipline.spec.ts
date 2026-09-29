@@ -63,19 +63,22 @@ describe('violet means the AI spoke, and nothing else', () => {
 
 describe('a Surface has to mean something', () => {
   /**
-   * V2's worst screen stacked six. The cap is what a screen can hold while each
-   * box still distinguishes its contents from the page: a distinct object, a
-   * single tappable entity, or something genuinely floating.
+   * The cap is what a screen can hold while each raised box still
+   * distinguishes its contents from the page: a distinct object, a single
+   * tappable entity, or something genuinely floating.
    *
-   * Two of the four on the screens that sit at the cap are loading skeletons,
-   * which are never on screen at the same time as the cards they stand in for.
+   * A `level="flat"` surface is a grouping device -- a row on the page, a
+   * block that belongs to the page -- and is not a card, so it is not counted.
+   * Loading skeletons are never on screen at the same time as the cards they
+   * stand in for, but they are counted anyway: the cap is a reading of the
+   * source, and a source that draws six boxes is a source someone will copy.
    */
   const CAP = 4;
 
-  it.each(SCREENS.map(({ name, source }) => [name, (source.match(/<Surface[\s>]/g) ?? []).length]))(
-    '%s draws %i',
-    (_name, count) => {
-      expect(count).toBeLessThanOrEqual(CAP);
-    },
-  );
+  const raised = (source: string) =>
+    (source.match(/<Surface(?:\s[^>]*)?>/gs) ?? []).filter((tag) => !/level=["']flat["']/.test(tag)).length;
+
+  it.each(SCREENS.map(({ name, source }) => [name, raised(source)]))('%s draws %i', (_name, count) => {
+    expect(count).toBeLessThanOrEqual(CAP);
+  });
 });

@@ -69,7 +69,7 @@ export type {
   FilterChipProps,
 } from './components/Controls';
 
-export { SectionHeader, ListRow, Divider, ListGroup, KeyValueRow } from './components/List';
+export { SectionHeader, ListRow, Divider, ListGroup, KeyValueRow, DateBlock } from './components/List';
 export { Section, Sections } from './components/Section';
 export type { SectionProps, SectionsProps, SectionGap, SectionRhythm } from './components/Section';
 export type { SectionHeaderProps, ListRowProps } from './components/List';
