@@ -381,10 +381,13 @@ describe('P3-9: the four screens that used className render with real styles', (
     const nodes = allNodes(await renderTree(ChallengesScreen));
     const fingerprint = styleFingerprint(nodes);
 
-    // The bar fills to userProgress/goal (1 of 3) in a real accent -- rose in
-    // V1, the challenge tone in V2 -- rather than an unstyled rectangle.
+    // The bar fills to userProgress/goal (1 of 3) in a real accent -- the
+    // brand rose, since a challenge in progress is not a warning -- rather
+    // than an unstyled rectangle.
     expect(
-      fingerprint.includes(colors.primary) || fingerprint.includes(themes.dark.warning.base),
+      fingerprint.includes(colors.primary) ||
+        fingerprint.includes(themes.dark.rose.base) ||
+        fingerprint.includes(themes.dark.warning.base),
     ).toBe(true);
     expect(fingerprint).toMatch(/33\.3\d*%/);
     expect(renderedText(nodes)).toContain(challengeFixture.title);

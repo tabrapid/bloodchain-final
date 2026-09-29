@@ -25,7 +25,6 @@ import {
   ScreenHeader,
   SegmentedControl,
   SkeletonRow,
-  Surface,
   Text,
   iconSize,
   layout,
@@ -131,8 +130,7 @@ export default function NotificationsCenter() {
     <Screen gutter={false}>
       <ScreenHeader
         title={t('notifications.title')}
-        // `${n} unread` was an English literal; the plural key it needed has
-        // existed since the notifications namespace shipped.
+        size="large"
         eyebrow={stats?.unread ? t('notifications.unreadCount', { count: stats.unread }) : undefined}
         onBack={() => router.back()}
         backLabel={t('common.a11yGoBack')}
@@ -173,11 +171,11 @@ export default function NotificationsCenter() {
         }
         ListEmptyComponent={
           isPending ? (
-            <Surface>
+            <View>
               <SkeletonRow />
               <SkeletonRow />
               <SkeletonRow />
-            </Surface>
+            </View>
           ) : isError ? (
             // "All caught up" and "we could not reach the server" are not the
             // same message, and one of them is reassuring when it should not be.
@@ -252,7 +250,7 @@ function NotificationRow({
         <View style={{ flex: 1, gap: space.xs }}>
           <View style={{ flexDirection: 'row', gap: space.sm, alignItems: 'flex-start' }}>
             <Text
-              variant={unread ? 'bodyStrong' : 'body'}
+              variant={unread ? 'bodyMedium' : 'body'}
               tone={unread ? 'primary' : 'secondary'}
               numberOfLines={2}
               style={{ flex: 1 }}
@@ -275,7 +273,7 @@ function NotificationRow({
             {/* Unread is a word as well as a weight: "slightly bolder" is not
                 a state anyone can see next to a read row they cannot compare
                 it against. */}
-            {unread ? <Badge label={t('notifications.unread')} tone="clinical" /> : null}
+            {unread ? <Badge label={t('notifications.unread')} tone="clinical" dot /> : null}
           </View>
         </View>
       </View>

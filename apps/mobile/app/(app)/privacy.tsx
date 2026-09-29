@@ -100,6 +100,7 @@ export default function Privacy() {
       header={
         <ScreenHeader
           title={t('privacy.title')}
+          size="large"
           eyebrow={t('privacy.subtitle')}
           onBack={() => router.back()}
           backLabel={t('common.a11yGoBack')}
@@ -111,7 +112,7 @@ export default function Privacy() {
 
         <Stack gap="md">
           <SectionHeader title={t('privacy.locationAndData')} />
-          <Surface padded={false}>
+          <Surface level="flat" padded={false}>
             <View style={{ paddingHorizontal: space.lg }}>
               <Toggle
                 label={t('privacy.shareLocation')}

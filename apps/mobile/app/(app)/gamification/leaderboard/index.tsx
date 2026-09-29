@@ -58,6 +58,7 @@ const PAGE_SIZE = 10;
  */
 export default function LeaderboardScreen() {
   const { t, formatMonth, formatNumber } = useTranslation();
+  const { colors } = useDesign();
   const [timeRange, setTimeRange] = useState<TimeRange>('ALL_TIME');
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -120,6 +121,7 @@ export default function LeaderboardScreen() {
       header={
         <ScreenHeader
           title={t('gamification.leaderboard')}
+          size="large"
           eyebrow={subtitle}
           onBack={() => router.back()}
           backLabel={t('common.a11yGoBack')}
@@ -140,13 +142,13 @@ export default function LeaderboardScreen() {
         />
 
         {userRank ? (
-          <Surface>
+          <Surface tone="rose">
             <Row gap="lg">
               <View style={{ gap: 2 }}>
                 <Text variant="overline" tone="tertiary" caps>
                   {t('gamification.yourRank')}
                 </Text>
-                <ValueText variant="h1">
+                <ValueText variant="value" style={{ color: colors.rose.text }}>
                   {t('gamification.rankOf', { rank: userRank.rank, total: userRank.total })}
                 </ValueText>
               </View>
@@ -184,7 +186,7 @@ export default function LeaderboardScreen() {
             icon={({ size, color }) => <Trophy size={size} color={color} />}
           />
         ) : (
-          <Surface padded="lg">
+          <Surface level="flat" padded="lg">
             {entries.map((entry, index) => (
               <View key={entry.userId}>
                 {index > 0 ? <Divider /> : null}

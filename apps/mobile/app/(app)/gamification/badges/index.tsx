@@ -26,6 +26,7 @@ export default function BadgesScreen() {
   const header = (
     <ScreenHeader
       title={t('gamification.badges')}
+      size="large"
       // `${n} of ${m} earned` was an English literal here.
       eyebrow={t('gamification.earnedOf', { earned: earned.length, total: badges?.length ?? 0 })}
       onBack={() => router.back()}
@@ -73,7 +74,7 @@ export default function BadgesScreen() {
         {earned.length > 0 ? (
           <Stack gap="md">
             <SectionHeader title={`${t('gamification.earned')} · ${earned.length}`} />
-            <Surface>
+            <Surface level="flat">
               <Row gap="md" align="flex-start" style={{ flexWrap: 'wrap', rowGap: space.lg }}>
                 {earned.map((badge) => (
                   <BadgeTile key={badge.id} badge={badge} width="28%" />
@@ -86,7 +87,7 @@ export default function BadgesScreen() {
         {unearned.length > 0 ? (
           <Stack gap="md">
             <SectionHeader title={`${t('gamification.notYetEarned')} · ${unearned.length}`} />
-            <Surface>
+            <Surface level="flat">
               <Row gap="md" align="flex-start" style={{ flexWrap: 'wrap', rowGap: space.lg }}>
                 {unearned.map((badge) => (
                   <BadgeTile key={badge.id} badge={badge} width="28%" />

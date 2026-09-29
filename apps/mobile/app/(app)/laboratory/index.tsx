@@ -1,4 +1,5 @@
 import { router } from 'expo-router';
+import { View } from 'react-native';
 import {
   Beaker,
   ChevronRight,
@@ -14,14 +15,17 @@ import {
   ListRow,
   ScreenHeader,
   ScrollScreen,
-  SectionHeader,
+  Section,
+  Sections,
   Skeleton,
   Stack,
   Stat,
   StatRow,
   Surface,
+  Row,
   Text,
   iconSize,
+  radius,
   useDesign,
   type StatusTone,
 } from '../../../src/design';
@@ -74,7 +78,14 @@ export default function LaboratoryScreen() {
   const isPending = appointments.isPending || results.isPending;
   const bothFailed = appointments.isError && results.isError;
 
-  const header = <ScreenHeader title={t('laboratory.title')} />;
+  const header = (
+    <ScreenHeader
+      title={t('laboratory.title')}
+      size="large"
+      onBack={() => router.back()}
+      backLabel={t('common.a11yGoBack')}
+    />
+  );
 
   if (isPending) {
     return (
@@ -115,7 +126,7 @@ export default function LaboratoryScreen() {
         void results.refetch();
       }}
     >
-      <Stack gap="xl">
+      <Sections rhythm="major">
         <StatRow>
           <Stat
             label={t('laboratory.upcoming')}
@@ -132,15 +143,31 @@ export default function LaboratoryScreen() {
         </StatRow>
 
         <Surface
+          tone="clinical"
           onPress={() => router.push('/(lab-booking)/test-type')}
           accessibilityLabel={`${t('laboratory.bookBloodTest')}. ${t('laboratory.bookHint')}`}
         >
-          <Stack gap="xs">
-            <Text variant="bodyStrong">{t('laboratory.bookBloodTest')}</Text>
-            <Text variant="caption" tone="secondary">
-              {t('laboratory.bookHint')}
-            </Text>
-          </Stack>
+          <Row gap="md">
+            <View
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: radius.sm,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: colors.clinical.soft,
+              }}
+            >
+              <FlaskConical size={iconSize.md + 2} color={colors.clinical.base} />
+            </View>
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text variant="title">{t('laboratory.bookBloodTest')}</Text>
+              <Text variant="caption" tone="secondary">
+                {t('laboratory.bookHint')}
+              </Text>
+            </View>
+            <ChevronRight size={iconSize.md} color={colors.textTertiary} />
+          </Row>
         </Surface>
 
         {appointments.isError ? (
@@ -151,8 +178,7 @@ export default function LaboratoryScreen() {
             onRetry={() => void appointments.refetch()}
           />
         ) : upcoming.length > 0 ? (
-          <Stack gap="md">
-            <SectionHeader title={t('laboratory.upcomingAppointments')} />
+          <Section title={t('laboratory.upcomingAppointments')}>
             <ListGroup
               rows={upcoming.slice(0, 3).map((appointment) => (
                 <ListRow
@@ -163,17 +189,18 @@ export default function LaboratoryScreen() {
                   subtitle={`${formatDate(appointment.scheduledStart, 'medium')} · ${formatTime(
                     appointment.scheduledStart,
                   )}${appointment.testType ? ` · ${appointment.organization.name}` : ''}`}
-                  trailing={
+                  subtitleTrailing={
                     <Badge
                       label={t(`status.appointment.${appointment.status}`)}
                       tone={appointmentTone(appointment.status)}
+                      dot
                     />
                   }
                   onPress={() => router.push(`/appointment/${appointment.id}`)}
                 />
               ))}
             />
-          </Stack>
+          </Section>
         ) : null}
 
         {results.isError ? (
@@ -184,8 +211,7 @@ export default function LaboratoryScreen() {
             onRetry={() => void results.refetch()}
           />
         ) : published.length > 0 ? (
-          <Stack gap="md">
-            <SectionHeader title={t('laboratory.recentResults')} />
+          <Section title={t('laboratory.recentResults')}>
             <ListGroup
               rows={published.slice(0, 3).map((result) => (
                 <ListRow
@@ -199,12 +225,11 @@ export default function LaboratoryScreen() {
                       : t('laboratory.dateUnknown')
                   }`}
                   value={t('units.parametersTested', { count: result.items.length })}
-                  trailing={<ChevronRight size={iconSize.md} color={colors.textTertiary} />}
                   onPress={() => router.push('/health-trends')}
                 />
               ))}
             />
-          </Stack>
+          </Section>
         ) : null}
 
         {nothingYet && !appointments.isError && !results.isError ? (
@@ -218,7 +243,7 @@ export default function LaboratoryScreen() {
             }}
           />
         ) : null}
-      </Stack>
+      </Sections>
     </ScrollScreen>
   );
 }

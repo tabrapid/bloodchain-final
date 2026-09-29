@@ -91,7 +91,6 @@ function safetyTone(level: SafetyLevel): StatusTone {
 
 export default function InsightsScreen() {
   const { t } = useTranslation();
-  const { colors } = useDesign();
 
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -248,9 +247,10 @@ export default function InsightsScreen() {
       header={
         <ScreenHeader
           title={t('insights.title')}
+          size="large"
           onBack={() => router.back()}
           backLabel={t('common.a11yGoBack')}
-          actions={<Badge label={t('insights.poweredByAi')} tone="insight" />}
+          actions={<Badge label={t('insights.poweredByAi')} tone="insight" dot />}
         />
       }
       refreshing={isRefreshing}
@@ -297,12 +297,8 @@ export default function InsightsScreen() {
               return (
                 <ListRow
                   key={action.key}
-                  leading={
-                    <Icon
-                      size={iconSize.lg}
-                      color={disabled ? colors.textTertiary : colors.insight.base}
-                    />
-                  }
+                  icon={({ size, color }) => <Icon size={size} color={color} />}
+                  iconTone={disabled ? undefined : 'insight'}
                   title={action.title}
                   subtitle={action.subtitle}
                   disabled={disabled}
@@ -359,9 +355,9 @@ export default function InsightsScreen() {
               <Skeleton height={96} />
             </Stack>
           ) : history.filter((insight) => insight.id !== latestInsight?.id).length === 0 ? (
-            <Surface>
+            <Surface level="flat">
               <Stack gap="xs">
-                <Text variant="bodyStrong">{t('insights.empty')}</Text>
+                <Text variant="bodyMedium">{t('insights.empty')}</Text>
                 <Text variant="caption" tone="secondary">
                   {availableParams.length === 0
                     ? t('insights.emptyNoData')
@@ -386,7 +382,7 @@ export default function InsightsScreen() {
 
         <Stack gap="md">
           <SectionHeader title={t('insights.askAbout')} />
-          <Surface>
+          <Surface level="flat">
             <Stack gap="md">
               <Field
                 label={t('insights.askAbout')}
@@ -460,7 +456,7 @@ function InsightCard({
             <Icon size={iconSize.md} color={colors.insight.base} />
           </View>
           <View style={{ flex: 1, gap: space.xs }}>
-            <Text variant="bodyStrong">{insight.title}</Text>
+            <Text variant="title">{insight.title}</Text>
             <Row gap="xs" style={{ flexWrap: 'wrap' }}>
               <Badge label={t(`medical.aiInsightTypes.${type}`)} tone="insight" />
               <Badge

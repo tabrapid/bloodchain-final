@@ -84,6 +84,7 @@ export default function EditProfile() {
       header={
         <ScreenHeader
           title={t('profileEdit.personalSection')}
+          size="large"
           onBack={() => router.back()}
           backLabel={t('common.a11yGoBack')}
         />

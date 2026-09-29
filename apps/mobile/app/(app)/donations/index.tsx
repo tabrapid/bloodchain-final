@@ -1,25 +1,23 @@
 import { useCallback, useMemo, useState } from 'react';
-import { FlatList } from 'react-native';
+import { FlatList, View } from 'react-native';
 import { router } from 'expo-router';
 import { Droplet } from 'lucide-react-native';
 import {
   Badge,
+  DateBlock,
   Divider,
   EmptyState,
   ErrorState,
   ListRow,
   Screen,
   ScreenHeader,
-  SectionHeader,
   SegmentedControl,
   SkeletonRow,
   Stack,
   Stat,
   StatRow,
-  Surface,
   layout,
   space,
-  useDesign,
   type StatusTone,
   useTabBarClearance,
 } from '../../../src/design';
@@ -67,8 +65,7 @@ function statusBadge(
 
 export default function DonationsScreen() {
   const tabBarClearance = useTabBarClearance();
-  const { t, formatDate } = useTranslation();
-  const { colors } = useDesign();
+  const { t, formatDate, formatMonth } = useTranslation();
   const [filter, setFilter] = useState<Filter>('all');
 
   // Resolved here rather than in the module list above, because a label built
@@ -87,13 +84,19 @@ export default function DonationsScreen() {
     ({ item }: { item: Donation }) => {
       const badge = statusBadge(item, t);
       const date = formatDate(item.collectionCompletedAt ?? item.createdAt, 'medium');
+      const when = new Date(item.collectionCompletedAt ?? item.createdAt);
       return (
         <ListRow
-          icon={({ size, color }) => <Droplet size={size} color={color} />}
-          iconTone="rose"
+          leading={
+            <DateBlock
+              day={String(when.getDate())}
+              month={formatMonth(when, 'short').replace(/\s?\d{4}.*$/, '')}
+              tone={item.status === 'COMPLETED' ? 'rose' : undefined}
+            />
+          }
           title={t(`medical.components.${item.donationType}`)}
-          subtitle={`${date} · ${item.organization.name}`}
-          trailing={<Badge label={badge.label} tone={badge.tone} />}
+          subtitle={item.organization.name}
+          subtitleTrailing={<Badge label={badge.label} tone={badge.tone} dot />}
           accessibilityLabel={t('donationHistory.a11yRow', {
             type: t(`medical.components.${item.donationType}`),
             date,
@@ -102,12 +105,18 @@ export default function DonationsScreen() {
         />
       );
     },
-    [colors, formatDate, t],
+    [formatDate, formatMonth, t],
   );
 
   return (
     <Screen gutter={false}>
-      <ScreenHeader title={t('donationHistory.title')} eyebrow={t('donationHistory.subtitle')} />
+      <ScreenHeader
+        title={t('donationHistory.title')}
+        eyebrow={t('donationHistory.subtitle')}
+        size="large"
+        onBack={() => router.back()}
+        backLabel={t('common.a11yGoBack')}
+      />
       <FlatList
         style={{ flex: 1 }}
         data={donations}
@@ -152,16 +161,15 @@ export default function DonationsScreen() {
               accessibilityLabel={t('filters.all')}
             />
 
-            <SectionHeader title={t('donationHistory.title')} />
           </Stack>
         }
         ListEmptyComponent={
           isLoading ? (
-            <Surface>
+            <View>
               <SkeletonRow />
               <SkeletonRow />
               <SkeletonRow />
-            </Surface>
+            </View>
           ) : isError ? (
             // An unreachable server used to render the same "no donations yet"
             // card as an account with none, which is a different fact.

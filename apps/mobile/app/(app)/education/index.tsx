@@ -76,6 +76,7 @@ export default function EducationScreen() {
   const header = (
     <ScreenHeader
       title={t('education.title')}
+      size="large"
       eyebrow={t('education.subtitle')}
       onBack={() => router.back()}
       backLabel={t('common.a11yGoBack')}
@@ -86,7 +87,7 @@ export default function EducationScreen() {
     return (
       <Screen>
         {header}
-        <Surface>
+        <Surface level="flat">
           <SkeletonRow />
           <SkeletonRow />
         </Surface>
@@ -133,7 +134,7 @@ export default function EducationScreen() {
           />
         )}
         ListHeaderComponent={
-          <Stack gap="lg" style={{ paddingBottom: space.md }}>
+          <Stack gap="xl" style={{ paddingBottom: space.md }}>
             {stats ? (
               <SectionHeader title={t('education.yourProgress')} />
             ) : null}
@@ -193,7 +194,7 @@ function EducationCard({
         </Row>
 
         <Stack gap="xs">
-          <Text variant="h3">{content.title}</Text>
+          <Text variant="title">{content.title}</Text>
           <Text variant="body" tone="secondary" numberOfLines={3}>
             {content.description}
           </Text>

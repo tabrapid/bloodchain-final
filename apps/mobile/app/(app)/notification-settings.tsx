@@ -135,6 +135,7 @@ export default function NotificationSettings() {
       header={
         <ScreenHeader
           title={t('notificationSettings.title')}
+          size="large"
           eyebrow={t('notificationSettings.subtitle')}
           onBack={() => router.back()}
           backLabel={t('common.a11yGoBack')}
@@ -185,7 +186,7 @@ export default function NotificationSettings() {
                 }
               />
             ) : (
-              <Surface>
+              <Surface level="flat">
                 <Stack gap="md">
                   <Text variant="body" tone="secondary">
                     {t('notificationSettings.notAllowedYet')}
@@ -219,7 +220,7 @@ export default function NotificationSettings() {
         ) : (
           <Stack gap="md">
             <SectionHeader title={t('notificationSettings.whatYouReceive')} />
-            <Surface padded={false}>
+            <Surface level="flat" padded={false}>
               <View style={{ paddingHorizontal: space.lg }}>
                 {CATEGORIES.map((category) => (
                   <Toggle

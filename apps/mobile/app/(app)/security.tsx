@@ -129,6 +129,7 @@ export default function Security() {
       header={
         <ScreenHeader
           title={t('security.title')}
+          size="large"
           eyebrow={t('security.subtitle')}
           onBack={() => router.back()}
           backLabel={t('common.a11yGoBack')}
@@ -146,9 +147,20 @@ export default function Security() {
             {passwordChanged ? (
               <Stack gap="md">
                 <Row gap="md">
-                  <Key size={iconSize.lg} color={colors.success.base} />
+                  <View
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 12,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: colors.success.soft,
+                    }}
+                  >
+                    <Key size={iconSize.md} color={colors.success.base} />
+                  </View>
                   <View style={{ flex: 1, gap: 2 }}>
-                    <Text variant="bodyStrong">{t('security.passwordChanged')}</Text>
+                    <Text variant="title">{t('security.passwordChanged')}</Text>
                     <Text variant="caption" tone="secondary">
                       {t('security.passwordChangedBody')}
                     </Text>
@@ -159,9 +171,20 @@ export default function Security() {
             ) : (
               <Stack gap="lg">
                 <Row gap="md">
-                  <Key size={iconSize.lg} color={colors.success.base} />
+                  <View
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 12,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: colors.clinical.soft,
+                    }}
+                  >
+                    <Key size={iconSize.md} color={colors.clinical.base} />
+                  </View>
                   <View style={{ flex: 1, gap: 2 }}>
-                    <Text variant="bodyStrong">{t('security.changePassword')}</Text>
+                    <Text variant="title">{t('security.changePassword')}</Text>
                     {/* `At least {n} characters` was an English literal. */}
                     <Text variant="caption" tone="secondary">
                       {t('security.minimumLength', { count: MIN_PASSWORD_LENGTH })}
@@ -211,12 +234,23 @@ export default function Security() {
         <Stack gap="md">
           <SectionHeader title={t('security.activeSessions')} />
           {sessions && sessions.length > 0 ? (
-            <Surface padded="lg">
+            <Surface level="flat" padded="lg">
               {sessions.map((session, index) => (
                 <View key={session.id}>
                   {index > 0 ? <Divider /> : null}
                   <Row gap="md" style={{ paddingVertical: space.md }}>
-                    <Smartphone size={iconSize.lg} color={colors.textTertiary} />
+                    <View
+                      style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 12,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: colors.surfaceRaised,
+                      }}
+                    >
+                      <Smartphone size={iconSize.md} color={colors.textSecondary} />
+                    </View>
                     <View style={{ flex: 1, gap: 2 }}>
                       <Row gap="sm">
                         <Text variant="body" numberOfLines={1} style={{ flexShrink: 1 }}>
@@ -260,22 +294,18 @@ export default function Security() {
             </Text>
           )}
 
-          <Surface
-            onPress={() => setConfirmingLogoutAll(true)}
-            accessibilityLabel={`${t('security.logOutAll')}. ${t('security.logOutAllHint')}`}
-          >
-            <Row gap="md">
-              <LogOut size={iconSize.lg} color={colors.critical.base} />
-              <View style={{ flex: 1, gap: 2 }}>
-                <Text variant="bodyStrong" tone="critical">
-                  {t('security.logOutAll')}
-                </Text>
-                <Text variant="caption" tone="secondary">
-                  {t('security.logOutAllHint')}
-                </Text>
-              </View>
-            </Row>
-          </Surface>
+          <ListGroup
+            rows={[
+              <ListRow
+                key="logout-all"
+                icon={({ size, color }) => <LogOut size={size} color={color} />}
+                iconTone="critical"
+                title={t('security.logOutAll')}
+                subtitle={t('security.logOutAllHint')}
+                onPress={() => setConfirmingLogoutAll(true)}
+              />,
+            ]}
+          />
         </Stack>
 
         {/* ----------------------------------------------- account status */}

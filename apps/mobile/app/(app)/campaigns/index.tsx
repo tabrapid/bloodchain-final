@@ -61,6 +61,7 @@ export default function CampaignsScreen() {
   const header = (
     <ScreenHeader
       title={t('campaigns.title')}
+      size="large"
       eyebrow={t('campaigns.subtitle')}
       onBack={() => router.back()}
       backLabel={t('common.a11yGoBack')}
@@ -71,7 +72,7 @@ export default function CampaignsScreen() {
     return (
       <Screen>
         {header}
-        <Surface>
+        <Surface level="flat">
           <SkeletonRow />
           <SkeletonRow />
         </Surface>
@@ -157,7 +158,7 @@ function CampaignCard({
       <Stack gap="md">
         <Row gap="md" align="flex-start">
           <Stack gap="xs" style={{ flex: 1 }}>
-            <Text variant="h3">{campaign.title}</Text>
+            <Text variant="title">{campaign.title}</Text>
             {campaign.organization ? (
               <Text variant="caption" tone="tertiary">
                 {campaign.organization.name}

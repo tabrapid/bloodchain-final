@@ -107,7 +107,7 @@ export default function CourierProfileScreen() {
   };
 
   const header = (
-    <ScreenHeader title={t('courier.profileTitle')} eyebrow={t('courier.profileSubtitle')} />
+    <ScreenHeader title={t('courier.profileTitle')} size="large" eyebrow={t('courier.profileSubtitle')} />
   );
 
   if (isLoading) {
@@ -139,15 +139,16 @@ export default function CourierProfileScreen() {
   return (
     <FormScreen header={header}>
       <Stack gap="xl">
-        <Surface>
+        <Surface tone={profile.status === 'AVAILABLE' ? 'success' : undefined}>
           <Stack gap="md">
             <Row gap="md">
-              <Text variant="bodyStrong" style={{ flex: 1 }}>
+              <Text variant="title" style={{ flex: 1 }}>
                 {t('courier.availability')}
               </Text>
               <Badge
                 label={t(`status.courier.${profile.status}`)}
                 tone={STATUS_TONE[profile.status] ?? 'neutral'}
+                dot
               />
             </Row>
             {canToggle ? (
@@ -172,7 +173,7 @@ export default function CourierProfileScreen() {
           </Stack>
         </Surface>
 
-        <Surface>
+        <Surface level="flat">
           <Stack gap="lg">
             <Row gap="sm">
               <Building2 size={iconSize.sm} color={colors.textTertiary} />
@@ -213,8 +214,7 @@ export default function CourierProfileScreen() {
           label={t('courier.logOut')}
           variant="secondary"
           accent="critical"
-          style={{ borderColor: colors.critical.base }}
-          icon={({ size }) => <LogOut size={size} color={colors.critical.text} />}
+          icon={({ size, color }) => <LogOut size={size} color={color} />}
           onPress={() => setConfirmingLogout(true)}
         />
       </Stack>

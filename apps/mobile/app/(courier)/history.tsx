@@ -65,7 +65,7 @@ export default function CourierHistory() {
   }, [load]);
 
   const header = (
-    <ScreenHeader title={t('courier.historyTitle')} eyebrow={t('courier.historySubtitle')} />
+    <ScreenHeader title={t('courier.historyTitle')} size="large" eyebrow={t('courier.historySubtitle')} />
   );
 
   if (isLoading) {

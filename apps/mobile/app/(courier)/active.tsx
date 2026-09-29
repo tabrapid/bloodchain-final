@@ -1,15 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
 import * as Location from 'expo-location';
-import {
-  AlertTriangle,
-  Building2,
-  CheckCircle,
-  Droplet,
-  MapPin,
-  Navigation,
-  Package,
-} from 'lucide-react-native';
+import { AlertTriangle, CheckCircle, Droplet, Navigation, Package } from 'lucide-react-native';
 import {
   Badge,
   Banner,
@@ -26,6 +18,7 @@ import {
   Stack,
   Surface,
   Text,
+  Timeline,
   iconSize,
   radius,
   useDesign,
@@ -332,7 +325,7 @@ export default function CourierActive() {
     }
   };
 
-  const header = <ScreenHeader title={t('courier.activeTitle')} />;
+  const header = <ScreenHeader title={t('courier.activeTitle')} size="large" />;
 
   if (isLoading) {
     return (
@@ -374,60 +367,53 @@ export default function CourierActive() {
           )
         ) : (
           <>
-            <Surface>
-              <Stack gap="md">
-                <Row gap="md">
-                  <Text variant="h3" style={{ flex: 1 }}>
-                    {shipment.shipmentReference}
-                  </Text>
+            {/* Operational first: what is being carried, where from, where
+                to, and where in the sequence the delivery is. */}
+            <Surface tone={isInTransit ? 'clinical' : undefined} corner="xl">
+              <Stack gap="lg">
+                <Row gap="md" align="flex-start">
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <Text variant="overline" tone="tertiary" caps>
+                      {shipment.shipmentReference}
+                    </Text>
+                    <Row gap="sm" align="baseline">
+                      <Droplet size={iconSize.md} color={colors.rose.base} />
+                      <Text variant="h2">{unitsSummary(shipment, t)}</Text>
+                    </Row>
+                  </View>
                   <Badge
                     label={t(STATUS_KEY[shipment.status] ?? `status.shipment.${shipment.status}`)}
                     tone={shipment.status === 'IN_TRANSIT' ? 'clinical' : 'neutral'}
+                    emphasis={shipment.status === 'IN_TRANSIT' ? 'solid' : 'soft'}
+                    dot
                   />
                 </Row>
 
-                <Row gap="sm">
-                  <Droplet size={iconSize.sm} color={colors.rose.base} />
-                  <Text variant="body" tone="secondary">
-                    {unitsSummary(shipment, t)}
-                  </Text>
-                </Row>
-
-                {shipment.sourceOrganization ? (
-                  <Row gap="sm" align="flex-start">
-                    <Building2 size={iconSize.sm} color={colors.textTertiary} />
-                    <View style={{ flex: 1, gap: 2 }}>
-                      <Text variant="caption">
-                        {t('courier.pickupFrom', {
-                          organization: shipment.sourceOrganization.name,
-                        })}
-                      </Text>
-                      {shipment.sourceOrganization.address ? (
-                        <Text variant="caption" tone="tertiary">
-                          {shipment.sourceOrganization.address}
-                        </Text>
-                      ) : null}
-                    </View>
-                  </Row>
-                ) : null}
-
-                {shipment.destinationOrganization ? (
-                  <Row gap="sm" align="flex-start">
-                    <MapPin size={iconSize.sm} color={colors.textTertiary} />
-                    <View style={{ flex: 1, gap: 2 }}>
-                      <Text variant="caption">
-                        {t('courier.deliverTo', {
-                          organization: shipment.destinationOrganization.name,
-                        })}
-                      </Text>
-                      {shipment.destinationOrganization.address ? (
-                        <Text variant="caption" tone="tertiary">
-                          {shipment.destinationOrganization.address}
-                        </Text>
-                      ) : null}
-                    </View>
-                  </Row>
-                ) : null}
+                <Timeline
+                  tone="clinical"
+                  steps={[
+                    {
+                      label: t('courier.pickupFrom', {
+                        organization: shipment.sourceOrganization?.name ?? '',
+                      }),
+                      detail: shipment.sourceOrganization?.address,
+                    },
+                    { label: t('status.shipment.IN_TRANSIT') },
+                    {
+                      label: t('courier.deliverTo', {
+                        organization: shipment.destinationOrganization?.name ?? '',
+                      }),
+                      detail: shipment.destinationOrganization?.address,
+                    },
+                  ]}
+                  current={
+                    ['COURIER_ASSIGNED', 'COURIER_ACCEPTED', 'PICKUP_STARTED'].includes(shipment.status)
+                      ? 0
+                      : ['PICKED_UP', 'IN_TRANSIT'].includes(shipment.status)
+                        ? 1
+                        : 2
+                  }
+                />
               </Stack>
             </Surface>
 
@@ -484,7 +470,6 @@ export default function CourierActive() {
                   label={t('courier.decline')}
                   variant="secondary"
                   accent="critical"
-                  style={{ borderColor: colors.critical.base }}
                   disabled={actionLoading}
                   onPress={() => setShowDecline(true)}
                 />
@@ -528,7 +513,7 @@ export default function CourierActive() {
             ) : null}
 
             {shipment.status === 'ARRIVED_AT_HOSPITAL' ? (
-              <Surface>
+              <Surface tone="success">
                 <Stack gap="sm" style={{ alignItems: 'center' }}>
                   <CheckCircle size={iconSize.xl} color={colors.success.base} />
                   <Text variant="h3" align="center">

@@ -28,11 +28,11 @@ export function AchievementRow({ achievement }: { achievement: Achievement }) {
   const complete = achievement.status === 'UNLOCKED' || ratio >= 1;
 
   return (
-    <Surface>
+    <Surface level="flat">
       <Stack gap="md">
         <Row gap="md" align="flex-start">
           <Stack gap="xs" style={{ flex: 1 }}>
-            <Text variant="bodyStrong">{achievement.name}</Text>
+            <Text variant="title">{achievement.name}</Text>
             <Text variant="caption" tone="secondary">
               {achievement.description}
             </Text>
@@ -57,10 +57,11 @@ export function AchievementRow({ achievement }: { achievement: Achievement }) {
               label={achievement.name}
               value={ratio}
               tone={complete ? 'success' : 'rose'}
+              thickness="thin"
               bare
             />
           </View>
-          <Text variant="label" tone="tertiary">
+          <Text variant="label" tone="tertiary" style={{ fontVariant: ['tabular-nums'] }}>
             {`${achievement.progress} / ${achievement.target}`}
           </Text>
         </Row>

@@ -55,20 +55,21 @@ export function BadgeTile({ badge, width }: { badge: Badge; width?: number | `${
       */}
       <View
         style={{
-          width: 56,
-          height: 56,
+          width: 60,
+          height: 60,
           borderRadius: radius.full,
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: earned && accent ? accent.soft : colors.surfaceRaised,
-          borderWidth: 1,
-          borderColor: earned && accent ? accent.base : colors.divider,
-          opacity: earned ? 1 : 0.5,
+          backgroundColor: earned ? (accent?.soft ?? colors.rose.soft) : colors.surfaceRaised,
+          borderWidth: earned && accent ? 1.5 : 0,
+          borderColor: accent?.base ?? 'transparent',
+          opacity: earned ? 1 : 0.45,
         }}
       >
         <Icon
-          size={iconSize.md}
-          color={earned ? (accent?.base ?? colors.textSecondary) : colors.textTertiary}
+          size={iconSize.lg}
+          color={earned ? (accent?.base ?? colors.rose.base) : colors.textTertiary}
+          strokeWidth={1.75}
         />
       </View>
       <Text variant="caption" tone={earned ? 'primary' : 'secondary'} align="center" numberOfLines={2}>

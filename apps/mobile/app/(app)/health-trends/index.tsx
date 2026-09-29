@@ -1,31 +1,35 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { View } from 'react-native';
 import { Activity, Minus, TrendingDown, TrendingUp } from 'lucide-react-native';
 import { LineChart } from 'react-native-chart-kit';
 import {
-  Badge,
   BottomSheet,
+  ChartFrame,
   EmptyState,
   ErrorState,
   ListGroup,
   ListRow,
-  OptionGrid,
+  RecordRow,
   Row,
   ScreenHeader,
   ScrollScreen,
-  SectionHeader,
+  Section,
+  Sections,
+  SegmentedControl,
   Skeleton,
   Stack,
   Surface,
   Text,
-  ValueText,
+  ValueBlock,
   Well,
   iconSize,
   radius,
   space,
   useDesign,
 } from '../../../src/design';
+import { formatClinicalValue } from '../../../src/utils/clinical';
+import { ChevronDown } from 'lucide-react-native';
 import {
   useAvailableParameters,
   useParameterHistory,
@@ -88,7 +92,14 @@ export default function HealthTrendsScreen() {
     }
   }, [available, selectedParam]);
 
-  const header = <ScreenHeader title={t('healthTrends.title')} />;
+  const header = (
+    <ScreenHeader
+      title={t('healthTrends.title')}
+      size="large"
+      onBack={() => router.back()}
+      backLabel={t('common.a11yGoBack')}
+    />
+  );
 
   if (parameters.isPending) {
     return (
@@ -233,14 +244,13 @@ export default function HealthTrendsScreen() {
         void history.refetch();
       }}
     >
-      <Stack gap="xl">
-        <Text variant="body" tone="secondary">
-          {t('healthTrends.subtitle')}
-        </Text>
-
+      <Sections rhythm="major">
+        {/* The parameter picker and the range: the two controls, side by
+            side at the top, so the chart under them is what the screen is. */}
         <Stack gap="md">
-          <SectionHeader title={t('healthTrends.parameter')} />
           <Surface
+            level="flat"
+            padded="lg"
             onPress={() => setPicking(true)}
             accessibilityLabel={`${t('healthTrends.parameter')}: ${
               parameter?.name ?? t('healthTrends.selectParameter')
@@ -248,7 +258,10 @@ export default function HealthTrendsScreen() {
           >
             <Row gap="md">
               <View style={{ flex: 1, gap: 2 }}>
-                <Text variant="bodyStrong">
+                <Text variant="overline" tone="tertiary" caps>
+                  {t('healthTrends.parameter')}
+                </Text>
+                <Text variant="title">
                   {data?.parameterName ?? parameter?.name ?? t('healthTrends.selectParameter')}
                 </Text>
                 {parameter ? (
@@ -260,18 +273,12 @@ export default function HealthTrendsScreen() {
                   </Text>
                 ) : null}
               </View>
-              <Text variant="caption" tone="tertiary">
-                ▾
-              </Text>
+              <ChevronDown size={iconSize.md} color={colors.textTertiary} />
             </Row>
           </Surface>
-        </Stack>
 
-        <Stack gap="md">
-          <SectionHeader title={t('healthTrends.timeRange')} />
-          <OptionGrid
+          <SegmentedControl
             accessibilityLabel={t('healthTrends.timeRange')}
-            columns={3}
             value={range}
             onChange={(value) => setRange(value as TimeRange)}
             options={TIME_RANGES.map((value) => ({ value, label: value }))}
@@ -279,7 +286,7 @@ export default function HealthTrendsScreen() {
         </Stack>
 
         {trend.isPending ? (
-          <Skeleton height={200} />
+          <Skeleton height={220} corner="lg" />
         ) : trend.isError ? (
           <ErrorState
             title={t('healthTrends.loadFailed')}
@@ -294,20 +301,15 @@ export default function HealthTrendsScreen() {
             icon={({ size, color }) => <Activity size={size} color={color} />}
           />
         ) : (
-          <Stack gap="xl">
+          <>
             {/* ------------------------------------------- where it stands */}
             <Surface>
-              <Stack gap="md">
-                <Row gap="lg" align="flex-start">
-                  <View style={{ gap: 2 }}>
-                    <Row gap="xs" align="baseline">
-                      <ValueText variant="display">{data.latestValue}</ValueText>
-                      {data.unit ? (
-                        <Text variant="h3" tone="secondary">
-                          {data.unit}
-                        </Text>
-                      ) : null}
-                    </Row>
+              <View style={{ gap: space.lg }}>
+                <ValueBlock
+                  label={data.parameterName}
+                  value={formatClinicalValue(data.latestValue)}
+                  unit={data.unit}
+                  context={
                     <Text variant="caption" tone="tertiary">
                       {[
                         data.latestValueDate
@@ -318,28 +320,30 @@ export default function HealthTrendsScreen() {
                         .filter(Boolean)
                         .join(' · ')}
                     </Text>
-                  </View>
-                  <View style={{ flex: 1, alignItems: 'flex-end', gap: space.xs }}>
-                    <Row gap="xs">
-                      {directionIcon}
-                      <Text variant="caption" tone="secondary">
-                        {t(directionKey)}
-                      </Text>
-                    </Row>
-                    {change ? (
-                      <Text variant="label" tone="secondary">
-                        {change}
-                      </Text>
-                    ) : null}
-                    {data.previousValue !== undefined ? (
-                      <Text variant="caption" tone="tertiary">
-                        {t('healthTrends.previousValue', {
-                          value: `${data.previousValue}${data.unit ? ` ${data.unit}` : ''}`,
-                        })}
-                      </Text>
-                    ) : null}
-                  </View>
-                </Row>
+                  }
+                  trailing={
+                    <View style={{ alignItems: 'flex-end', gap: space.xs }}>
+                      <Row gap="xs">
+                        {directionIcon}
+                        <Text variant="label" tone="secondary">
+                          {t(directionKey)}
+                        </Text>
+                      </Row>
+                      {change ? (
+                        <Text variant="caption" tone="tertiary" style={{ fontVariant: ['tabular-nums'] }}>
+                          {change}
+                        </Text>
+                      ) : null}
+                      {data.previousValue !== undefined ? (
+                        <Text variant="caption" tone="tertiary">
+                          {t('healthTrends.previousValue', {
+                            value: `${formatClinicalValue(data.previousValue)}${data.unit ? ` ${data.unit}` : ''}`,
+                          })}
+                        </Text>
+                      ) : null}
+                    </View>
+                  }
+                />
 
                 {/* The reference range is the laboratory's, stated as theirs.
                     Without one the screen says so rather than implying the
@@ -350,9 +354,9 @@ export default function HealthTrendsScreen() {
                   data.referenceMax !== undefined ? (
                     <Stack gap="xs">
                       <Text variant="label">
-                        {`${t('medical.reference.referenceRange')}: ${data.referenceMin} – ${
-                          data.referenceMax
-                        }${data.unit ? ` ${data.unit}` : ''}`}
+                        {`${t('medical.reference.referenceRange')}: ${formatClinicalValue(data.referenceMin)} – ${formatClinicalValue(
+                          data.referenceMax,
+                        )}${data.unit ? ` ${data.unit}` : ''}`}
                       </Text>
                       <Text variant="caption" tone="tertiary">
                         {t('healthTrends.referenceFromLab')}
@@ -364,16 +368,24 @@ export default function HealthTrendsScreen() {
                     </Text>
                   )}
                 </Well>
-              </Stack>
+              </View>
             </Surface>
 
             {/* ------------------------------------------------- the shape */}
-            <Stack gap="md">
-              <SectionHeader title={t('healthTrends.trendChart')} />
-              <Surface
-                padded={false}
-                style={{ overflow: 'hidden' }}
-                onLayout={(event) => setChartWidth(event.nativeEvent.layout.width)}
+            <View onLayout={(event) => setChartWidth(event.nativeEvent.layout.width - space.lg * 2)}>
+              <ChartFrame
+                title={t('healthTrends.trendChart')}
+                unit={data.unit}
+                period={
+                  points.length > 1
+                    ? `${formatDate(points[0]!.date, 'medium')} – ${formatDate(points[points.length - 1]!.date, 'medium')}`
+                    : undefined
+                }
+                legend={[
+                  { label: data.parameterName, tone: 'clinical' },
+                  ...(band ? [{ label: t('medical.reference.referenceRange'), tone: 'reference' as const }] : []),
+                ]}
+                footnote={t('units.measurements', { count: points.length })}
               >
                 {/* A chart says nothing to a screen reader, so the series is
                     described in words and the drawing itself is hidden from
@@ -387,11 +399,12 @@ export default function HealthTrendsScreen() {
                     count: points.length,
                     direction: t(directionKey),
                   })}
+                  style={{ marginHorizontal: -space.sm }}
                 >
                   {chartData && chartWidth > 0 ? (
                     <LineChart
                       data={chartData}
-                      width={chartWidth}
+                      width={chartWidth + space.sm * 2}
                       height={220}
                       chartConfig={{
                         backgroundColor: colors.surface,
@@ -407,57 +420,42 @@ export default function HealthTrendsScreen() {
                           stroke: colors.divider,
                           strokeWidth: 0.5,
                         },
+                        propsForLabels: { fontSize: 11 },
                       }}
                       /*
-                        `bezier` is gone. A smoothed curve between two
-                        measurements draws a value at every pixel between them,
-                        and a cubic through real data overshoots: two
-                        haemoglobin readings of 13.6 and 13.8 can be joined by
-                        a curve that dips to 13.2, below the reference minimum
-                        the dashed line is right there to show. Nobody measured
-                        13.2. Straight segments claim only what the laboratory
-                        reported, and the dots say where the claims are.
+                        `bezier` is deliberately absent. A smoothed curve
+                        between two measurements draws a value at every pixel
+                        between them and overshoots. Straight segments claim
+                        only what the laboratory reported.
                       */
                       withInnerLines
                       withOuterLines={false}
                       withVerticalLines={false}
                       withHorizontalLines
-                      style={{ marginVertical: space.sm, borderRadius: radius.md }}
+                      style={{ marginVertical: space.xs, borderRadius: radius.md }}
                     />
                   ) : null}
                 </View>
-                <View style={{ padding: space.lg, paddingTop: 0 }}>
-                  <Text variant="caption" tone="tertiary">
-                    {t('units.measurements', { count: points.length })}
-                  </Text>
-                </View>
-              </Surface>
-            </Stack>
+              </ChartFrame>
+            </View>
 
             {/* ------------------------------------------ the measurements */}
-            <Stack gap="md">
-              <SectionHeader title={t('healthTrends.history')} />
+            <Section title={t('healthTrends.history')}>
               {history.isPending ? (
                 <Skeleton height={64} />
               ) : history.data && history.data.history.length > 0 ? (
                 <ListGroup
                   rows={history.data.history.map((item, index) => (
-                    <ListRow
+                    <RecordRow
                       key={item.resultId || index}
-                      title={`${item.value}${item.unit ? ` ${item.unit}` : ''}`}
-                      subtitle={[
-                        item.date ? formatDate(item.date, 'medium') : t('common.unknown'),
-                        item.laboratoryName,
-                      ]
-                        .filter(Boolean)
-                        .join(' · ')}
-                      trailing={
-                        item.flag && item.flag !== 'NORMAL' ? (
-                          <Badge
-                            label={t(`medical.resultFlagsByCode.${item.flag}`)}
-                            tone="warning"
-                          />
-                        ) : undefined
+                      parameter={item.date ? formatDate(item.date, 'medium') : t('common.unknown')}
+                      reference={item.laboratoryName}
+                      value={formatClinicalValue(item.value)}
+                      unit={item.unit}
+                      status={
+                        item.flag && item.flag !== 'NORMAL'
+                          ? { label: t(`medical.resultFlagsByCode.${item.flag}`), tone: 'warning' }
+                          : undefined
                       }
                     />
                   ))}
@@ -467,10 +465,10 @@ export default function HealthTrendsScreen() {
                   {t('healthTrends.singleResultHint')}
                 </Text>
               )}
-            </Stack>
-          </Stack>
+            </Section>
+          </>
         )}
-      </Stack>
+      </Sections>
 
       <BottomSheet
         visible={picking}

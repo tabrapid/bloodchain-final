@@ -57,6 +57,7 @@ export default function ChallengesScreen() {
   const header = (
     <ScreenHeader
       title={t('challenges.title')}
+      size="large"
       eyebrow={t('challenges.subtitle')}
       onBack={() => router.back()}
       backLabel={t('common.a11yGoBack')}
@@ -67,7 +68,7 @@ export default function ChallengesScreen() {
     return (
       <Screen>
         {header}
-        <Surface>
+        <Surface level="flat">
           <SkeletonRow />
           <SkeletonRow />
         </Surface>
@@ -158,7 +159,7 @@ function ChallengeCard({
             {/* A kind of challenge is not a status and not a model's output,
                 so it takes the neutral badge. */}
             <Badge label={t(`challenges.types.${challenge.type}`)} />
-            <Text variant="h3">{challenge.title}</Text>
+            <Text variant="title">{challenge.title}</Text>
           </Stack>
         </Row>
 
@@ -179,13 +180,14 @@ function ChallengeCard({
           label={t('table.progress')}
           caption={`${current} / ${challenge.goal}`}
           value={progress}
-          tone="warning"
+          tone={progress >= 1 ? 'success' : 'rose'}
+          thickness="thin"
         />
 
         <Row gap="lg" style={{ flexWrap: 'wrap' }}>
           {challenge.xpReward > 0 ? (
             <Row gap="xs">
-              <Trophy size={iconSize.sm} color={colors.warning.base} />
+              <Trophy size={iconSize.sm} color={colors.textTertiary} />
               <Text variant="caption" tone="secondary">
                 {`+${challenge.xpReward} ${t('profile.xp')}`}
               </Text>
@@ -193,7 +195,7 @@ function ChallengeCard({
           ) : null}
           {challenge.badge ? (
             <Row gap="xs">
-              <Award size={iconSize.sm} color={colors.warning.base} />
+              <Award size={iconSize.sm} color={colors.textTertiary} />
               <Text variant="caption" tone="secondary">
                 {challenge.badge.name}
               </Text>

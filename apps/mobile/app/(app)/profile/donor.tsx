@@ -91,6 +91,7 @@ export default function EditDonorProfile() {
       header={
         <ScreenHeader
           title={t('profileEdit.donorTitle')}
+          size="large"
           eyebrow={t('profileEdit.donorSubtitle')}
           onBack={() => router.back()}
           backLabel={t('common.a11yGoBack')}
@@ -106,6 +107,7 @@ export default function EditDonorProfile() {
           <OptionGrid
             accessibilityLabel={t('medical.bloodGroup')}
             columns={4}
+            large
             value={selectedLabel}
             onChange={(label) => {
               const chip = BLOOD_TYPE_CHIPS.find((candidate) => candidate.label === label)!;

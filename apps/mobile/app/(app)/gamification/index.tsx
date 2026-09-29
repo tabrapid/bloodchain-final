@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Award, ChevronRight, Star, Trophy } from 'lucide-react-native';
+import { Award, Star, Trophy } from 'lucide-react-native';
 import {
   useGamificationProfile,
   useLevelProgress,
@@ -10,6 +10,8 @@ import {
 } from '../../../src/hooks/useGamification';
 import {
   LinkButton,
+  ListGroup,
+  ListRow,
   Progress,
   Row,
   ScreenHeader,
@@ -19,12 +21,9 @@ import {
   Stack,
   Stat,
   StatRow,
-  Surface,
   Text,
   ValueText,
-  iconSize,
   space,
-  useDesign,
   ErrorState,
 } from '../../../src/design';
 import { BadgeTile } from '../../../src/components/gamification/BadgeTile';
@@ -47,7 +46,6 @@ import { useTranslation } from '../../../src/i18n';
  */
 export default function GamificationScreen() {
   const { t } = useTranslation();
-  const { colors } = useDesign();
   const router = useRouter();
 
   const {
@@ -76,6 +74,7 @@ export default function GamificationScreen() {
   const header = (
     <ScreenHeader
       title={t('gamification.achievements')}
+      size="large"
       eyebrow={t('gamification.subtitle')}
       onBack={() => router.back()}
       backLabel={t('common.a11yGoBack')}
@@ -261,27 +260,21 @@ export default function GamificationScreen() {
           )}
         </Stack>
 
-        <Surface
-          onPress={() => router.push('/gamification/leaderboard')}
-          accessibilityLabel={`${t('gamification.leaderboard')}. ${
-            profile?.rank
-              ? t('gamification.yourRankAmong', { rank: profile.rank })
-              : t('gamification.seeWhereYouStand')
-          }`}
-        >
-          <Row gap="md">
-            <Trophy size={iconSize.lg} color={colors.textSecondary} />
-            <View style={{ flex: 1, gap: 2 }}>
-              <Text variant="bodyStrong">{t('gamification.leaderboard')}</Text>
-              <Text variant="caption" tone="secondary">
-                {profile?.rank
+        <ListGroup
+          rows={[
+            <ListRow
+              key="leaderboard"
+              icon={({ size, color }) => <Trophy size={size} color={color} />}
+              title={t('gamification.leaderboard')}
+              subtitle={
+                profile?.rank
                   ? t('gamification.yourRankAmong', { rank: profile.rank })
-                  : t('gamification.seeWhereYouStand')}
-              </Text>
-            </View>
-            <ChevronRight size={iconSize.md} color={colors.textTertiary} />
-          </Row>
-        </Surface>
+                  : t('gamification.seeWhereYouStand')
+              }
+              onPress={() => router.push('/gamification/leaderboard')}
+            />,
+          ]}
+        />
       </Stack>
     </ScrollScreen>
   );

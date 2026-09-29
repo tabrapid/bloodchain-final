@@ -25,6 +25,7 @@ export default function AchievementsScreen() {
   const header = (
     <ScreenHeader
       title={t('gamification.achievements')}
+      size="large"
       // `${n} of ${m} unlocked` was an English literal here.
       eyebrow={t('gamification.unlockedOf', { unlocked: unlocked.length, total })}
       onBack={() => router.back()}
