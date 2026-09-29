@@ -213,10 +213,12 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
    * needs the padding on either side of its item, and it needs it as a
    * number. Flexbox will not give it: a centred text is shrink-to-fit inside
    * the content box, and the browser renderer wraps it there whatever the
-   * negative margin says. So the label is as wide as its item plus 5pt a
+   * negative margin says. So the label is as wide as its item plus 4pt a
    * side; the neighbours' labels are centred, so the space is there.
    */
-  const spill = 5;
+  // 4, not more: the bar's own side padding is 4, so the outermost label's
+  // box ends exactly at the screen edge rather than a point past it.
+  const spill = space.xs;
   const itemWidth = barWidth > 0 && visible.length > 0 ? (barWidth - space.xs * 2) / visible.length : 0;
   // Only a single word gets the extra width. A label with a space in it
   // ("Сдать кровь") can wrap at the space instead, and must: two long
