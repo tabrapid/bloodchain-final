@@ -186,7 +186,7 @@ describe('formatting', () => {
         super(slim ? 'en-GB' : locale, options);
         this.slim = slim;
       }
-      static supportedLocalesOf(locales: string | string[]) {
+      static override supportedLocalesOf(locales: string | string[]) {
         return original.supportedLocalesOf(locales).filter((l) => !l.startsWith('uz'));
       }
       override format(date?: Date | number) {

@@ -4,7 +4,7 @@ settings:
   autoInstallPeers: false
   excludeLinksFromLockfile: false
 
-packageExtensionsChecksum: 20143415f7b852a2bd3a970fbf5581b9
+packageExtensionsChecksum: f5366a4a94ea07911aa45558637472fd
 
 importers:
 
@@ -454,10 +454,10 @@ importers:
         version: link:../../packages/validation
       '@expo-google-fonts/inter':
         specifier: ^0.4.2
-        version: 0.4.2
+        version: 0.4.2(react@19.2.3)
       '@expo-google-fonts/manrope':
         specifier: 0.4.2
-        version: 0.4.2
+        version: 0.4.2(react@19.2.3)
       '@hookform/resolvers':
         specifier: ^3.9.1
         version: 3.10.0(react-hook-form@7.85.0(@types/react@19.2.18)(react@19.2.3))(react@19.2.3)
@@ -1846,9 +1846,19 @@ packages:
 
   '@expo-google-fonts/inter@0.4.2':
     resolution: {integrity: sha512-syfiImMaDmq7cFi0of+waE2M4uSCyd16zgyWxdPOY7fN2VBmSLKEzkfbZgeOjJq61kSqPBNNtXjggiQiSD6gMQ==}
+    peerDependencies:
+      react: '*'
+    peerDependenciesMeta:
+      react:
+        optional: true
 
   '@expo-google-fonts/manrope@0.4.2':
     resolution: {integrity: sha512-BZsKe8d9BJrVnIQIZcTS7/Kac0TbXnqs/+8EBSiQxrmK6GoCO6eTkmr50D1weIk/EoF20pTmAkpWICnovATr/g==}
+    peerDependencies:
+      react: '*'
+    peerDependenciesMeta:
+      react:
+        optional: true
 
   '@expo-google-fonts/material-symbols@0.4.48':
     resolution: {integrity: sha512-aZztj44PyA/sj3TXSwwpLJwqMlTUJ49okbZJYURzEcuERxMQB0KbX7RrLBi8WJnuWz5HFOLlTRxORrJfNnUPNQ==}
@@ -9605,9 +9615,13 @@ snapshots:
     optionalDependencies:
       '@noble/hashes': 1.8.0
 
-  '@expo-google-fonts/inter@0.4.2': {}
+  '@expo-google-fonts/inter@0.4.2(react@19.2.3)':
+    optionalDependencies:
+      react: 19.2.3
 
-  '@expo-google-fonts/manrope@0.4.2': {}
+  '@expo-google-fonts/manrope@0.4.2(react@19.2.3)':
+    optionalDependencies:
+      react: 19.2.3
 
   '@expo-google-fonts/material-symbols@0.4.48(react@19.2.3)':
     optionalDependencies:
