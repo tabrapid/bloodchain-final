@@ -16,7 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDesign } from '../useDesign';
 import { motion, radius, space } from '../tokens';
 import { Text } from './Text';
-import { Button, ButtonRow, IconButton } from './Button';
+import { Button, IconButton } from './Button';
 
 export interface SheetProps {
   visible: boolean;
@@ -185,7 +185,10 @@ export interface ConfirmationSheetProps {
  * emergency response, and it needs to say so.
  *
  * Cancel is first in the reading order and confirm is second, so the
- * destructive option is never what a thumb lands on by momentum.
+ * destructive option is never what a thumb lands on by momentum. The two
+ * are stacked, full width: side by side, "Keep my account" and "Delete my
+ * account" each lost their last word to an ellipsis at 393pt, and a
+ * confirmation whose labels cannot be read is not a confirmation.
  */
 export function ConfirmationSheet({
   visible,
@@ -207,25 +210,21 @@ export function ConfirmationSheet({
       description={description}
       closeLabel={cancelLabel}
       footer={
-        <ButtonRow>
-          <View style={{ flex: 1 }}>
-            <Button
-              label={cancelLabel}
-              variant="secondary"
-              onPress={onCancel}
-              disabled={busy}
-              style={{ backgroundColor: colors.surfacePressed }}
-            />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Button
-              label={confirmLabel}
-              variant={destructive ? 'critical' : 'primary'}
-              onPress={onConfirm}
-              loading={busy}
-            />
-          </View>
-        </ButtonRow>
+        <View style={{ gap: space.sm }}>
+          <Button
+            label={cancelLabel}
+            variant="secondary"
+            onPress={onCancel}
+            disabled={busy}
+            style={{ backgroundColor: colors.surfacePressed }}
+          />
+          <Button
+            label={confirmLabel}
+            variant={destructive ? 'critical' : 'primary'}
+            onPress={onConfirm}
+            loading={busy}
+          />
+        </View>
       }
     />
   );

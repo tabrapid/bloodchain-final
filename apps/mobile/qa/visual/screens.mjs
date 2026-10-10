@@ -38,6 +38,14 @@ const tap = (name, options = {}) => async (page) => {
  * answered, so each turn answers with the first option offered before trying
  * again. That is enough for this wizard; it is not a general-purpose robot.
  */
+/** Press the LAST control with that name: a sheet's confirm sits under the screen's. */
+const tapLast = (name, options = {}) => async (page) => {
+  const target = page.getByRole('button', { name, exact: false }).last();
+  await target.waitFor({ state: 'visible', timeout: options.timeout ?? 6000 });
+  await target.click({ force: true });
+  await page.waitForTimeout(options.after ?? 600);
+};
+
 const walkTo = (name, max = 10) => async (page) => {
   for (let step = 0; step < max; step += 1) {
     const target = page.getByRole('button', { name, exact: false }).first();
@@ -505,6 +513,18 @@ export function buildCatalogue(ids) {
         { id: 'validation-errors', act: sequence(type('90 123 45 67', '1'), tap('Save', { after: 1000 })) },
         { id: 'server-error', routes: { '/users/me': FAIL }, act: tap('Save', { after: 1200 }) },
         { id: 'long-content', fullPage: true },
+      ],
+    },
+    {
+      id: 'account/delete-account',
+      title: 'Delete account',
+      url: '/(app)/delete-account',
+      states: [
+        { id: 'populated', intent: 'the consequences, before anything is offered' },
+        { id: 'confirming', intent: 'the second confirmation', act: tap('Delete my account', { after: 900 }) },
+        { id: 'server-error', routes: { 'DELETE /users/me': FAIL }, act: sequence(tap('Delete my account', { after: 600 }), tapLast('Delete my account', { after: 1200 })) },
+        { id: 'locale-ru', locale: 'ru-RU' },
+        { id: 'locale-uz', locale: 'uz-UZ' },
       ],
     },
     { id: 'account/profile-donor', title: 'Donor profile', url: '/(app)/profile/donor', states: [{ id: 'populated' }, { id: 'error', routes: { '/donors/profile': FAIL } }, { id: 'locale-ru', locale: 'ru-RU' }, { id: 'long-content', fullPage: true }] },
