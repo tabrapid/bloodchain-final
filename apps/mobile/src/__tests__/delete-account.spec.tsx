@@ -73,7 +73,7 @@ function render() {
 
 const texts = (tree: renderer.ReactTestRenderer): string[] =>
   tree.root
-    .findAll((node) => typeof node.type === 'string' && node.type === 'Text')
+    .findAll((node) => String(node.type) === 'Text')
     .map((node) => node.children.filter((c): c is string => typeof c === 'string').join(''))
     .filter(Boolean);
 
