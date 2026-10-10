@@ -24,6 +24,12 @@ export interface ButtonProps extends Omit<PressableProps, 'children' | 'style'> 
   loading?: boolean;
   /** Fills the row. Primary actions do; inline ones do not. */
   block?: boolean;
+  /**
+   * Where a non-block button sits in its column. `start` is the default for
+   * an inline action; `center` for the one under a centred empty state,
+   * which used to hang off the left edge of a centred column.
+   */
+  align?: 'start' | 'center';
   /** Overrides the accent. Use sparingly — the variant should usually decide. */
   accent?: AccentName;
   /**
@@ -60,6 +66,7 @@ export function Button({
   icon,
   loading = false,
   block = true,
+  align = 'start',
   accent,
   onAccent = false,
   disabled,
@@ -98,7 +105,9 @@ export function Button({
     Animated.timing(scale, { toValue: to, duration: motion.instant, useNativeDriver: true }).start();
 
   return (
-    <Animated.View style={[{ transform: [{ scale }] }, block ? undefined : { alignSelf: 'flex-start' }]}>
+    <Animated.View
+      style={[{ transform: [{ scale }] }, block ? undefined : { alignSelf: align === 'center' ? 'center' : 'flex-start' }]}
+    >
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={label}

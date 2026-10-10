@@ -74,6 +74,17 @@ export interface ListRowProps {
   subtitleTrailing?: ReactNode;
   /** Right-aligned secondary text: a date, a value, a count. */
   value?: string;
+  /**
+   * Where `value` goes.
+   *
+   * `inline` (the default for a short value) keeps it on the right, where a
+   * date or a count reads as the answer to the title. `stacked` puts it under
+   * the title at full width in the primary colour, with the subtitle beneath:
+   * for a value that is a name -- "Republican Blood Center — Jizzakh" --
+   * which, squeezed into half a row beside a two-line address, wrapped onto
+   * three lines and read as two columns fighting. `auto` picks by length.
+   */
+  valueLayout?: 'auto' | 'inline' | 'stacked';
   /** Draws `value` in the accent's text colour. For a value that is a state. */
   valueTone?: AccentName;
   /** An icon, drawn in a tile. Prefer this to `leading` for a navigation row. */
@@ -115,6 +126,7 @@ export function ListRow({
   subtitleTrailing,
   value,
   valueTone,
+  valueLayout = 'auto',
   icon,
   iconTone,
   leading,
@@ -129,8 +141,33 @@ export function ListRow({
 }: ListRowProps) {
   const { colors } = useDesign();
   const showChevron = chevron ?? (Boolean(onPress) && !trailing);
+  const stacked = Boolean(value) && resolveValueLayout(valueLayout, value!, subtitle) === 'stacked';
 
-  const body = (
+  const body = stacked ? (
+    <>
+      {icon ? <IconTile icon={icon} tone={iconTone ?? tone} /> : leading ? <View>{leading}</View> : null}
+      <View style={{ flex: 1, gap: 2 }}>
+        <Text variant="caption" tone="tertiary" numberOfLines={1}>
+          {title}
+        </Text>
+        <Text variant="bodyMedium" tone={valueTone} numberOfLines={multiline ? undefined : 2}>
+          {value}
+        </Text>
+        {subtitle || subtitleTrailing ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, flexWrap: 'wrap' }}>
+            {subtitle ? (
+              <Text variant="caption" tone="tertiary" numberOfLines={2} style={{ flexShrink: 1 }}>
+                {subtitle}
+              </Text>
+            ) : null}
+            {subtitleTrailing}
+          </View>
+        ) : null}
+      </View>
+      {trailing}
+      {showChevron ? <ChevronRight size={iconScale.md} color={colors.textTertiary} /> : null}
+    </>
+  ) : (
     <>
       {icon ? <IconTile icon={icon} tone={iconTone ?? tone} /> : leading ? <View>{leading}</View> : null}
       <View style={{ flex: 1, gap: 2 }}>
@@ -187,7 +224,7 @@ export function ListRow({
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel ?? (subtitle ? `${title}. ${subtitle}` : title)}
+      accessibilityLabel={accessibilityLabel ?? [title, value, subtitle].filter(Boolean).join('. ')}
       accessibilityState={{ disabled }}
       disabled={disabled}
       onPress={onPress}
@@ -209,6 +246,26 @@ export function ListRow({
       {body}
     </Pressable>
   );
+}
+
+/**
+ * The length past which a right-aligned value stops reading as an answer and
+ * starts reading as a second column. Measured on the 360pt frame: beside a
+ * one-line title the right half holds about twenty characters of the label
+ * face; beside a title with a subtitle the row is already two lines tall and
+ * a value longer than a date wraps against the address.
+ */
+const INLINE_VALUE_MAX = 20;
+const INLINE_VALUE_MAX_WITH_SUBTITLE = 14;
+
+export function resolveValueLayout(
+  layout: 'auto' | 'inline' | 'stacked',
+  value: string,
+  subtitle?: string,
+): 'inline' | 'stacked' {
+  if (layout !== 'auto') return layout;
+  const limit = subtitle ? INLINE_VALUE_MAX_WITH_SUBTITLE : INLINE_VALUE_MAX;
+  return value.length > limit ? 'stacked' : 'inline';
 }
 
 /**

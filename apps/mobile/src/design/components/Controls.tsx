@@ -179,6 +179,13 @@ export interface ChoiceProps {
   icon?: (props: { size: number; color: string }) => ReactNode;
   /** A short value on the right: a distance, a price, a count. */
   meta?: string;
+  /**
+   * A line under the description, inside the card: badges for facts about
+   * the option (verified, distance, demo). Inside rather than beneath,
+   * because a row of badges floating in the gap between two cards belongs
+   * to neither of them.
+   */
+  footer?: ReactNode;
 }
 
 /**
@@ -200,6 +207,7 @@ export function Choice({
   unavailableReason,
   icon,
   meta,
+  footer,
 }: ChoiceProps) {
   const { colors } = useDesign();
   const scale = useRef(new Animated.Value(1)).current;
@@ -254,6 +262,7 @@ export function Choice({
               {detail}
             </Text>
           ) : null}
+          {footer ? <View style={{ marginTop: space.xs }}>{footer}</View> : null}
         </View>
         {meta ? (
           <Text variant="label" tone="tertiary">
@@ -418,7 +427,10 @@ export function FilterChip({
         paddingHorizontal: space.md,
         borderRadius: radius.full,
         borderWidth: 1,
-        backgroundColor: active ? colors.rose.soft : pressed ? colors.surfacePressed : colors.surface,
+        // A chip lives inside a filter panel that is itself a surface, so at
+        // rest it takes the raised tone: on the surface tone it vanished and
+        // the panel read as a column of bare words with carets.
+        backgroundColor: active ? colors.rose.soft : pressed ? colors.surfacePressed : colors.surfaceRaised,
         borderColor: active ? colors.rose.base : 'transparent',
         opacity: disabled ? 0.4 : 1,
       })}

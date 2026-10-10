@@ -251,6 +251,23 @@ describe('SegmentedControl', () => {
 });
 
 describe('Choice', () => {
+  it('draws its footer inside the card, under the description', () => {
+    const tree = render(
+      <Choice
+        label="Arnasoy District Hospital"
+        description="Demo ko‘chasi 4"
+        selected={false}
+        onPress={() => {}}
+        footer={<Badge label="Verified" tone="success" />}
+      />,
+    );
+    const radio = roleOf(tree, 'radio');
+    const labels = radio
+      .findAll((n) => typeof n.props?.variant === 'string' && typeof n.props?.children === 'string')
+      .map((n) => n.props.children as string);
+    expect(labels).toEqual(['Arnasoy District Hospital', 'Demo ko‘chasi 4', 'Verified']);
+  });
+
   it('explains why an option cannot be taken instead of only greying it out', () => {
     const tree = render(
       <Choice label="09:00" selected={false} onPress={() => {}} unavailableReason="Fully booked" />,
@@ -296,6 +313,23 @@ describe('Badge', () => {
 });
 
 describe('ListRow', () => {
+  it('keeps a short value beside the title and stacks a long one under it', () => {
+    const short = render(<ListRow title="Date" value="29 Sept 2026" />);
+    const long = render(
+      <ListRow title="Location" subtitle="Demo ko‘chasi 4, Arnasoy" value="Republican Blood Center — Jizzakh" />,
+    );
+    // The design `Text` wraps the native one; its `variant` is the role.
+    const textNodes = (tree: ReturnType<typeof render>) =>
+      tree.root.findAll((n) => typeof n.props?.variant === 'string' && typeof n.props?.children === 'string');
+    const textsOf = (tree: ReturnType<typeof render>) => textNodes(tree).map((n) => n.props.children as string);
+    // Inline: title then value, value drawn in the label face on the right.
+    expect(textsOf(short)).toEqual(['Date', '29 Sept 2026']);
+    expect(textNodes(short)[1]!.props.variant).toBe('label');
+    // Stacked: the title becomes the caption and the value takes the row.
+    expect(textsOf(long)).toEqual(['Location', 'Republican Blood Center — Jizzakh', 'Demo ko‘chasi 4, Arnasoy']);
+    expect(textNodes(long)[1]!.props.variant).toBe('bodyMedium');
+  });
+
   it('is a button only when it does something', () => {
     const inert = render(<ListRow title="Blood type" value="O+" />);
     expect(focusables(inert).filter((n) => n.props.accessibilityRole === 'button')).toHaveLength(0);

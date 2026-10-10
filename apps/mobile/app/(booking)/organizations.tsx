@@ -21,7 +21,6 @@ import {
   Stack,
   Surface,
   Text,
-  space,
   useDesign,
 } from '../../src/design';
 import { useDiscoverOrganizations } from '../../src/hooks/useOrganizations';
@@ -463,43 +462,44 @@ function OrganizationOption({
       : organization.address
     : place;
 
-  return (
-    <View style={{ gap: space.sm }}>
-      <Choice
-        label={organization.name}
-        description={where || undefined}
-        selected={selected}
-        onPress={onPress}
-        icon={({ size }) => (
-          <Building2
-            size={size}
-            color={organization.type === 'HOSPITAL' ? colors.rose.base : colors.clinical.base}
+  // Distance, verification and demo status: facts about the place, drawn as
+  // badges under the address, inside the card. They used to sit beneath the
+  // card, where a row of badges in the gap between two options belonged to
+  // neither and read as a layout fault.
+  const facts =
+    organization.distanceKm !== null || organization.isVerified || organization.isDemo ? (
+      <Row gap="sm" style={{ flexWrap: 'wrap' }}>
+        {organization.distanceKm !== null ? (
+          <Badge
+            label={t('directory.distanceAway', { km: organization.distanceKm })}
+            tone="clinical"
+            icon={({ size, color }) => <MapPin size={size} color={color} />}
           />
-        )}
-      />
-      {/* Distance, verification and demo status sit under the option rather
-          than inside it: they are facts about the place, not part of the
-          choice, and cramming them into the row is what made V1's cards
-          three lines tall with the name truncated at the top. */}
-      {organization.distanceKm !== null || organization.isVerified || organization.isDemo ? (
-        <Row gap="sm" style={{ flexWrap: 'wrap', paddingLeft: space.xl }}>
-          {organization.distanceKm !== null ? (
-            <Badge
-              label={t('directory.distanceAway', { km: organization.distanceKm })}
-              tone="clinical"
-              icon={({ size, color }) => <MapPin size={size} color={color} />}
-            />
-          ) : null}
-          {organization.isVerified ? (
-            <Badge
-              label={t('directory.verified')}
-              tone="success"
-              icon={({ size, color }) => <ShieldCheck size={size} color={color} />}
-            />
-          ) : null}
-          {organization.isDemo ? <Badge label={t('directory.demo')} tone="warning" /> : null}
-        </Row>
-      ) : null}
-    </View>
+        ) : null}
+        {organization.isVerified ? (
+          <Badge
+            label={t('directory.verified')}
+            tone="success"
+            icon={({ size, color }) => <ShieldCheck size={size} color={color} />}
+          />
+        ) : null}
+        {organization.isDemo ? <Badge label={t('directory.demo')} tone="warning" /> : null}
+      </Row>
+    ) : null;
+
+  return (
+    <Choice
+      label={organization.name}
+      description={where || undefined}
+      selected={selected}
+      onPress={onPress}
+      icon={({ size }) => (
+        <Building2
+          size={size}
+          color={organization.type === 'HOSPITAL' ? colors.rose.base : colors.clinical.base}
+        />
+      )}
+      footer={facts}
+    />
   );
 }

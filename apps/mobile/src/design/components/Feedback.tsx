@@ -142,6 +142,7 @@ export function EmptyState({ title, description, icon, action, size = 'full', st
           variant="secondary"
           size="md"
           block={false}
+          align="center"
           onPress={action.onPress}
           style={{ marginTop: space.xs }}
         />
