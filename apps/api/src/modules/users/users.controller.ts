@@ -1,7 +1,10 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   Patch,
   Query,
@@ -52,6 +55,20 @@ export class UsersController {
       dateOfBirth: dto.dateOfBirth ? new Date(dto.dateOfBirth) : undefined,
     };
     return this.users.updateProfile(userId, data, req.headers['x-forwarded-for'] as string);
+  }
+
+  /**
+   * The donor closes their own account. 200 with a body rather than 204: the
+   * client confirms from the envelope, and a success with nothing in it is
+   * indistinguishable from a proxy that swallowed the response.
+   */
+  @Delete('me')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Close the current account (irreversible)' })
+  @ApiResponse({ status: 200, description: 'Account closed; every session is signed out' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  deleteOwnAccount(@CurrentUser('sub') userId: string, @Req() req: Request) {
+    return this.users.deleteOwnAccount(userId, req.headers['x-forwarded-for'] as string);
   }
 
   @Get()
