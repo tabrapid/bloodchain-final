@@ -8,6 +8,16 @@ deactivation route a donor can reach, and — until Sprint 11.1 — the privacy
 screen told donors to "contact support", which is a channel that exists nowhere
 in this product.
 
+**Status (V4 release pass):** implemented as designed. `DELETE /users/me` in
+`apps/api/src/modules/users/users.service.ts` (`deleteOwnAccount`), the screen
+at `apps/mobile/app/(app)/delete-account.tsx`, and
+`apps/api/test/account-deletion.e2e-spec.ts` as the proof. The implementation
+takes the conservative reading of §2: it removes what the app itself collected
+and leaves every clinical and identity record in place, and the screen names
+those records without claiming a retention period. The retention statement in
+the published privacy policy remains the legal decision this document
+describes below.
+
 This document is the design. It is deliberately not an implementation, because
 the part that cannot be designed by engineering is the part that decides
 everything: **what happens to the clinical record when the person goes.** That
