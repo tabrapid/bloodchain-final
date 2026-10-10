@@ -53,6 +53,7 @@ import { useUnreadCount } from '../../src/hooks/useNotifications';
 import { useDonorEmergencies } from '../../src/hooks/useEmergency';
 import { useAuthStore } from '../../src/stores/auth.store';
 import { useTranslation } from '../../src/i18n';
+import { levelName } from '../../src/utils/gamification';
 import type { TranslateFn } from '@bloodchain/i18n';
 
 /**
@@ -423,10 +424,10 @@ export default function Home() {
           {levelProgress ? (
             <View style={{ paddingHorizontal: space.xs }}>
               <Progress
-                label={`${t('home.levelAndXp')} ${levelProgress.currentLevel}`}
+                label={`${t('gamification.level')} ${levelProgress.currentLevel}`}
                 caption={t('gamification.xpToNext', {
                   count: levelProgress.xpToNextLevel,
-                  level: levelProgress.nextLevelName,
+                  level: levelName(levelProgress.nextLevelName, t),
                 })}
                 value={percentAsFraction(levelProgress.progress)}
                 thickness="thin"

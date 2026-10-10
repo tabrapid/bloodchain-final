@@ -298,5 +298,7 @@ function formatTimeAgo(date: Date, t: TranslateFn, formatDate: (value: Date | st
   if (diffHours < 24) return t('common.hoursAgo', { count: diffHours });
   if (diffDays === 1) return t('common.yesterday');
   if (diffDays < 7) return t('units.daysAgo', { count: diffDays });
-  return formatDate(date, 'short');
+  // The same style every other date in the app uses ("22 Sept 2026"); the
+  // numeric one ("22/09/2026") sat in this list alone and looked imported.
+  return formatDate(date, 'medium');
 }

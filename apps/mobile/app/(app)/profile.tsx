@@ -40,6 +40,7 @@ import {
 } from '../../src/design';
 import { useLogout } from '../../src/hooks/useAuth';
 import { percentAsFraction } from '../../src/utils/progress';
+import { levelName } from '../../src/utils/gamification';
 import { useUserProfile } from '../../src/hooks/useUsers';
 import { useDonorProfile, useProfileCompletion } from '../../src/hooks/useDonors';
 import { useGamificationProfile, useLevelProgress, useAchievements } from '../../src/hooks/useGamification';
@@ -212,7 +213,7 @@ export default function Profile() {
             {levelProgress && !levelProgress.isMaxLevel ? (
               <View style={{ paddingHorizontal: space.xs }}>
                 <Progress
-                  label={`${levelProgress.currentLevelName} → ${levelProgress.nextLevelName}`}
+                  label={`${levelName(levelProgress.currentLevelName, t)} → ${levelName(levelProgress.nextLevelName, t)}`}
                   caption={t('gamification.xpValue', { xp: levelProgress.xpToNextLevel })}
                   value={percentAsFraction(levelProgress.progress)}
                   thickness="thin"

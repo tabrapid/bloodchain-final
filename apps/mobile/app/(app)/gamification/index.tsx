@@ -28,6 +28,7 @@ import {
 } from '../../../src/design';
 import { BadgeTile } from '../../../src/components/gamification/BadgeTile';
 import { percentAsFraction } from '../../../src/utils/progress';
+import { levelName } from '../../../src/utils/gamification';
 import { AchievementRow } from '../../../src/components/gamification/AchievementRow';
 import type { Badge } from '../../../src/api/gamification';
 import { useTranslation } from '../../../src/i18n';
@@ -144,7 +145,7 @@ export default function GamificationScreen() {
               </Text>
               <ValueText variant="display">{profile?.level ?? 1}</ValueText>
               <Text variant="caption" tone="secondary">
-                {levelProgress?.currentLevelName ?? t('gamification.newDonor')}
+                {levelName(levelProgress?.currentLevelName, t) || t('gamification.newDonor')}
               </Text>
             </View>
             <View style={{ flex: 1, alignItems: 'flex-end', gap: 2 }}>
@@ -157,7 +158,7 @@ export default function GamificationScreen() {
 
           <Progress
             label={t('gamification.progressToLevel', {
-              level: levelProgress?.nextLevelName ?? t('gamification.nextLevel'),
+              level: levelName(levelProgress?.nextLevelName, t) || t('gamification.nextLevel'),
             })}
             // The label already names the level being worked towards; the
             // caption used to name it again, in the same 329pt row, in a
