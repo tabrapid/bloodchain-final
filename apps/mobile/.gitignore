@@ -23,4 +23,4 @@ ios/
 .expo-export-ci-ios/
 
 # Web export built for the browser visual-QA harness (qa/visual).
-.qa-web-export/
+.qa-web-export*/
