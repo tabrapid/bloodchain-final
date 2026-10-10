@@ -153,6 +153,33 @@ describe('describeAppConfig', () => {
     expect(described.config.extra?.apiUrl).toBeUndefined();
   });
 
+  it('carries the published policy pages into extra, and only when they are https', () => {
+    const both = describeAppConfig(BASE, {
+      APP_ENV: 'production',
+      EXPO_PUBLIC_API_URL: 'https://api.bloodchain.uz',
+      EXPO_PUBLIC_PRIVACY_POLICY_URL: 'https://bloodchain.uz/privacy',
+      EXPO_PUBLIC_TERMS_URL: 'https://bloodchain.uz/terms',
+    });
+    expect(both.config.extra).toMatchObject({
+      privacyPolicyUrl: 'https://bloodchain.uz/privacy',
+      termsUrl: 'https://bloodchain.uz/terms',
+    });
+    expect(both.warnings.join('\n')).not.toContain('EXPO_PUBLIC_PRIVACY_POLICY_URL');
+
+    const bad = describeAppConfig(BASE, {
+      APP_ENV: 'production',
+      EXPO_PUBLIC_API_URL: 'https://api.bloodchain.uz',
+      EXPO_PUBLIC_PRIVACY_POLICY_URL: 'http://bloodchain.uz/privacy',
+    });
+    expect(bad.config.extra?.privacyPolicyUrl).toBeUndefined();
+    expect(bad.errors).toEqual([]);
+    expect(bad.warnings.join('\n')).toContain('EXPO_PUBLIC_PRIVACY_POLICY_URL');
+
+    const none = describeAppConfig(BASE, { APP_ENV: 'production', EXPO_PUBLIC_API_URL: 'https://api.bloodchain.uz' });
+    expect(none.config.extra?.privacyPolicyUrl).toBeUndefined();
+    expect(none.warnings.join('\n')).toContain('privacy policy URL');
+  });
+
   it('bakes the environment and the address into extra for the app to read back', () => {
     const described = describeAppConfig(BASE, {
       APP_ENV: 'production',

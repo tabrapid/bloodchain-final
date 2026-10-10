@@ -91,6 +91,12 @@ export interface ListRowProps {
   accessibilityLabel?: string;
   /** Lets the title wrap. Off by default so a list scans as a column. */
   multiline?: boolean;
+  /**
+   * Draws the title in the accent's text colour and tints the icon tile to
+   * match. For the one row in a list that is a destructive action, so it is
+   * not mistaken for navigation.
+   */
+  tone?: AccentName;
   style?: ViewStyle;
 }
 
@@ -118,6 +124,7 @@ export function ListRow({
   disabled = false,
   accessibilityLabel,
   multiline = false,
+  tone,
   style,
 }: ListRowProps) {
   const { colors } = useDesign();
@@ -125,12 +132,16 @@ export function ListRow({
 
   const body = (
     <>
-      {icon ? <IconTile icon={icon} tone={iconTone} /> : leading ? <View>{leading}</View> : null}
+      {icon ? <IconTile icon={icon} tone={iconTone ?? tone} /> : leading ? <View>{leading}</View> : null}
       <View style={{ flex: 1, gap: 2 }}>
         {/* Two lines, not one: organisation names here are long ("Republican
             Blood Center — Jizzakh") and a row that clips the name it exists
             to show is a row that failed. */}
-        <Text variant="bodyMedium" numberOfLines={multiline ? undefined : 2}>
+        <Text
+          variant="bodyMedium"
+          numberOfLines={multiline ? undefined : 2}
+          style={tone ? { color: colors[tone].text } : undefined}
+        >
           {title}
         </Text>
         {subtitle || subtitleTrailing ? (

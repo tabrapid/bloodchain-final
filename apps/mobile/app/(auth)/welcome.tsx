@@ -8,16 +8,16 @@ import { BrandMark } from '../../src/components/BrandMark';
 import { Button, Text, fonts, layout, space, useDesign } from '../../src/design';
 import { BRAND_NAME, BRAND_TAGLINE } from '../../src/brand';
 import { useTranslation } from '../../src/i18n';
+import { policyLinks } from '../../src/config/links';
 
 /**
- * Point these at the published legal pages and the two phrases below become
- * links. Until then they are emphasised but inert: the app has no Terms screen
- * and its `privacy` route is the signed-in location-consent settings, not a
- * policy document -- so linking either one from here would send a visitor who
- * has no account into the auth guard.
+ * The two legal phrases become links when the build was given the published
+ * pages (EXPO_PUBLIC_PRIVACY_POLICY_URL, EXPO_PUBLIC_TERMS_URL). Until then
+ * they are emphasised but inert: the app has no Terms screen and its
+ * `privacy` route is the signed-in location-consent settings, not a policy
+ * document -- so linking either one from here would send a visitor who has
+ * no account into the auth guard.
  */
-const TERMS_URL: string | null = null;
-const PRIVACY_URL: string | null = null;
 
 /**
  * The headline is the one thing on the screen sized per device: it has to hold
@@ -44,6 +44,7 @@ function headlineSize(width: number) {
  */
 export default function Welcome() {
   const { t } = useTranslation();
+  const { termsUrl, privacyPolicyUrl } = policyLinks();
   const { colors } = useDesign();
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
@@ -124,8 +125,8 @@ export default function Welcome() {
             maxFontSizeMultiplier={1.4}
             style={{ maxWidth: 300, alignSelf: 'center' }}
           >
-            {t('auth.welcome.legalPrefix')} <LegalLink url={TERMS_URL}>{t('auth.welcome.terms')}</LegalLink>{' '}
-            {t('auth.welcome.and')} <LegalLink url={PRIVACY_URL}>{t('auth.welcome.privacy')}</LegalLink>.
+            {t('auth.welcome.legalPrefix')} <LegalLink url={termsUrl}>{t('auth.welcome.terms')}</LegalLink>{' '}
+            {t('auth.welcome.and')} <LegalLink url={privacyPolicyUrl}>{t('auth.welcome.privacy')}</LegalLink>.
           </Text>
         </View>
       </View>

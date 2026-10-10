@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View } from 'react-native';
+import { Linking, View } from 'react-native';
 import { router } from 'expo-router';
 import Constants from 'expo-constants';
 import { Download, UserX } from 'lucide-react-native';
@@ -22,6 +22,7 @@ import {
   useUpdateLeaderboardVisibility,
 } from '../../src/hooks/useGamification';
 import { useTranslation } from '../../src/i18n';
+import { policyLinks } from '../../src/config/links';
 
 /**
  * When the policy text this screen points at was last revised. A date, not a
@@ -46,10 +47,11 @@ const LAST_UPDATED = new Date(2026, 8, 1);
  * (S11.1), and a donor can take their name off a public ranking here.
  *
  * The same rule applies to the rows below it. There is no data-export endpoint
- * and no self-service account deletion in this backend, so those rows say what
- * to do instead and are visibly, announced-ly disabled rather than tappable
- * things that do nothing. V1 rendered them as ordinary rows with no `onPress`,
- * which looks identical to a row whose handler is broken.
+ * in this backend, so that row says so and is visibly, announced-ly disabled
+ * rather than a tappable thing that does nothing. Account deletion exists
+ * (DELETE /users/me) and the row leads to the screen that spells out what it
+ * does before offering it. The policy rows open the published pages when this
+ * build was given their addresses, and say "not yet published" otherwise.
  */
 export default function Privacy() {
   const { t, formatMonth } = useTranslation();
@@ -94,6 +96,7 @@ export default function Privacy() {
   };
 
   const version = Constants.expoConfig?.version ?? '—';
+  const { privacyPolicyUrl, termsUrl } = policyLinks();
 
   return (
     <ScrollScreen
@@ -146,9 +149,10 @@ export default function Privacy() {
               <ListRow
                 key="delete"
                 icon={({ size, color }) => <UserX size={size} color={color} />}
+                tone="critical"
                 title={t('privacy.deleteAccount')}
                 subtitle={t('privacy.deleteAccountHint')}
-                disabled
+                onPress={() => router.push('/delete-account')}
               />,
             ]}
           />
@@ -161,14 +165,16 @@ export default function Privacy() {
               <ListRow
                 key="policy"
                 title={t('privacy.privacyPolicy')}
-                subtitle={t('privacy.notPublished')}
-                disabled
+                subtitle={privacyPolicyUrl ? t('privacy.opensInBrowser') : t('privacy.notPublished')}
+                onPress={privacyPolicyUrl ? () => void Linking.openURL(privacyPolicyUrl) : undefined}
+                disabled={!privacyPolicyUrl}
               />,
               <ListRow
                 key="terms"
                 title={t('privacy.termsOfService')}
-                subtitle={t('privacy.notPublished')}
-                disabled
+                subtitle={termsUrl ? t('privacy.opensInBrowser') : t('privacy.notPublished')}
+                onPress={termsUrl ? () => void Linking.openURL(termsUrl) : undefined}
+                disabled={!termsUrl}
               />,
               <ListRow
                 key="medical"

@@ -393,6 +393,10 @@ export type AppConfigExtra = {
    * can say it is unconfigured instead of drawing a grey rectangle.
    */
   readonly androidMapsConfigured: boolean;
+  /** Where the published privacy policy lives. Absent until one is published. */
+  readonly privacyPolicyUrl?: string;
+  /** Where the published terms of service live. Absent until published. */
+  readonly termsUrl?: string;
 };
 
 export type AppConfigDescription = {
@@ -406,6 +410,24 @@ export type AppConfigDescription = {
 
 const EAS_PROJECT_ID = 'EXPO_PUBLIC_EAS_PROJECT_ID';
 const MAPS_KEY = 'GOOGLE_MAPS_ANDROID_API_KEY';
+const PRIVACY_POLICY_URL = 'EXPO_PUBLIC_PRIVACY_POLICY_URL';
+const TERMS_URL = 'EXPO_PUBLIC_TERMS_URL';
+
+/**
+ * A policy link is an https page or nothing: the app draws the row disabled
+ * with "not yet published" rather than opening a broken address. Both stores
+ * require the privacy policy to be a public URL, so a store build without one
+ * is reported, not refused -- the listing, not the binary, is what needs it.
+ */
+function policyUrl(raw: string | undefined, name: string, warnings: string[]): string | undefined {
+  const value = raw?.trim();
+  if (!value) return undefined;
+  if (!/^https:\/\/[^\s/]+\.[^\s/]+(\/\S*)?$/.test(value)) {
+    warnings.push(`${name} ("${value}") is not an https URL and was ignored.`);
+    return undefined;
+  }
+  return value;
+}
 
 /**
  * The whole decision as a value, so every branch is reachable from a test.
@@ -488,11 +510,24 @@ export function describeAppConfig(
     );
   }
 
+  // ------------------------------------------------------------ policy pages
+
+  const privacyPolicyUrl = policyUrl(env[PRIVACY_POLICY_URL], PRIVACY_POLICY_URL, warnings);
+  const termsUrl = policyUrl(env[TERMS_URL], TERMS_URL, warnings);
+  if (!privacyPolicyUrl && environment === 'production') {
+    warnings.push(
+      `${PRIVACY_POLICY_URL} is not set. Google Play and the App Store both require a public ` +
+        'privacy policy URL for the listing; the app will show the policy row as not yet published.',
+    );
+  }
+
   const extra: AppConfigExtra = {
     appEnv: environment,
     ...(apiUrl ? { apiUrl } : {}),
     ...(projectId ? { eas: { projectId } } : {}),
     androidMapsConfigured: Boolean(mapsKey),
+    ...(privacyPolicyUrl ? { privacyPolicyUrl } : {}),
+    ...(termsUrl ? { termsUrl } : {}),
   };
 
   const config: AppConfigBase = {

@@ -70,6 +70,7 @@ export default function AppLayout() {
       <Tabs.Screen name="notifications" options={{ href: null }} />
       <Tabs.Screen name="notification-settings" options={{ href: null }} />
       <Tabs.Screen name="privacy" options={{ href: null }} />
+      <Tabs.Screen name="delete-account" options={{ href: null }} />
       <Tabs.Screen name="security" options={{ href: null }} />
       <Tabs.Screen name="appointment/[id]" options={{ href: null }} />
       <Tabs.Screen name="campaigns/index" options={{ href: null }} />
