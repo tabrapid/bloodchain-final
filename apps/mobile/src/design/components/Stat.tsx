@@ -157,7 +157,11 @@ export function Progress({ value, label, caption, tone = 'rose', bare = false, t
     >
       {bare ? null : (
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: space.md }}>
-          <Text variant="label" tone="secondary" numberOfLines={1} style={{ flex: 1 }}>
+          {/* Two lines, not one: "Постоянный донор → Донор сообщества" is a
+              legitimate label and at 360pt it lost its second half to an
+              ellipsis. A bar can carry a two-line label; it cannot carry a
+              label that names only where the donor is coming from. */}
+          <Text variant="label" tone="secondary" numberOfLines={2} style={{ flex: 1 }}>
             {label}
           </Text>
           {caption ? (
