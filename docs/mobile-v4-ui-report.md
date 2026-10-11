@@ -408,7 +408,7 @@ build the app.
 A second review after the release pass, from a fresh browser capture of the
 whole catalogue at `a603bbd4` (iPhone 393, Android 412 and the 360pt frame;
 en, ru, uz) read screen by screen, followed by a targeted re-capture of every
-screen the fixes touch (166 iPhone and 360pt shots, 0 elements past the right
+screen the fixes touch (249 shots on the three frames, 0 elements past the right
 edge, every console error an induced one). What was found, and where it was
 fixed:
 
