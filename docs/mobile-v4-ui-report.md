@@ -403,6 +403,54 @@ build the app.
 
 ---
 
+## 22. Second visual pass (V4.1): every screen, three frames, three languages
+
+A second review after the release pass, from a fresh browser capture of the
+whole catalogue at `a603bbd4` (iPhone 393, Android 412 and the 360pt frame;
+en, ru, uz) read screen by screen, followed by a targeted re-capture of every
+screen the fixes touch (166 iPhone and 360pt shots, 0 elements past the right
+edge, every console error an induced one). What was found, and where it was
+fixed:
+
+- Booking → Select location drew each option's badges ("Verified", "Demo",
+  distance) *beneath* its card, in the gap between two options, where they
+  belonged to neither → `Choice` gains a `footer` slot inside the card.
+- A long value beside a wrapped label fought it for width: "Arnasoy District
+  Hospital" squeezed into half a row beside a two-line address, and on the
+  360pt Russian frame the label "Организация" broke mid-word → `ListRow`
+  stacks a long value under its label (`valueLayout`, auto by length).
+  Appointment detail, donation detail and both review steps read as one
+  column now.
+- The booking filter chips were drawn in the surface tone on a surface and
+  vanished: the panel read as bare words with carets → raised tone at rest.
+- The button under a centred empty state hung off the left edge ("All",
+  "Schedule one", "Next month", "Pick another day", "Book a test") →
+  `Button` gains `align`, `EmptyState` centres it.
+- Home's progress row read "Level & XP 3", a label and a number glued
+  together → "Level 3", next level named in the caption.
+- Level names came from the API in English and were printed as sent, so a
+  Russian or Uzbek profile carried one English line ("Regular Donor →
+  Community Donor") → `levelName()` with translations for the ten names.
+- The translated label then truncated at 360pt ("Постоянный донор → Донор
+  сообще…") → a progress label may take two lines.
+- Notifications older than a week were dated "22/09/2026" in a list where
+  every other date is "22 Sept 2026" → one style.
+- The badges grid showed "First Drop" and "Emergency Hero" twice, once earned
+  and once not: the development seed and the API's boot-time seeder created
+  the same badges under different codes → the seed uses the service's codes.
+  Nine badges, no duplicates, on a reseeded database.
+
+Checked and left alone, on purpose: the welcome screen's empty upper half is
+the identity hero and anchors the headline and actions to the thumb; the
+Russian tab bar at 360pt is tight between "Сообщество" and "Календарь" but
+every label is whole; English article titles in the Uzbek education hub are
+content, not chrome.
+
+Verification for the pass: mobile jest 644 (new tests for the stacked row,
+the footer slot and the level names), i18n 81, API e2e 278 on a database
+seeded with the corrected codes, root typecheck and lint 11/11, Android
+production bundle exported, CI green on every commit.
+
 ## Inventory
 
 <!-- generated:inventory:start -->

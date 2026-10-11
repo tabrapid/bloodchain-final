@@ -29,7 +29,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 222,
-    "firstLines": "Bloodchain | PEOPLE SAVE LIVES | Вместе — сильнее завтра. | Объединяйтесь. Сдавайте кровь. Помогайте. Каждая капля важна.",
+    "firstLines": "Bloodchain | PEOPLE SAVE LIVES | \u0412\u043c\u0435\u0441\u0442\u0435 \u2014 \u0441\u0438\u043b\u044c\u043d\u0435\u0435 \u0437\u0430\u0432\u0442\u0440\u0430. | \u041e\u0431\u044a\u0435\u0434\u0438\u043d\u044f\u0439\u0442\u0435\u0441\u044c. \u0421\u0434\u0430\u0432\u0430\u0439\u0442\u0435 \u043a\u0440\u043e\u0432\u044c. \u041f\u043e\u043c\u043e\u0433\u0430\u0439\u0442\u0435. \u041a\u0430\u0436\u0434\u0430\u044f \u043a\u0430\u043f\u043b\u044f \u0432\u0430\u0436\u043d\u0430.",
     "overflow": [],
     "consoleErrors": []
   },
@@ -46,7 +46,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 209,
-    "firstLines": "Bloodchain | PEOPLE SAVE LIVES | Birgalikda kuchliroq ertaga. | Bog‘laning. Qon topshiring. Hissa qo‘shing. Har tomchi muhim.",
+    "firstLines": "Bloodchain | PEOPLE SAVE LIVES | Birgalikda kuchliroq ertaga. | Bog\u2018laning. Qon topshiring. Hissa qo\u2018shing. Har tomchi muhim.",
     "overflow": [],
     "consoleErrors": []
   },
@@ -167,7 +167,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 182,
-    "firstLines": "С возвращением | Войдите в аккаунт Bloodchain | Номер телефона | +998",
+    "firstLines": "\u0421 \u0432\u043e\u0437\u0432\u0440\u0430\u0449\u0435\u043d\u0438\u0435\u043c | \u0412\u043e\u0439\u0434\u0438\u0442\u0435 \u0432 \u0430\u043a\u043a\u0430\u0443\u043d\u0442 Bloodchain | \u041d\u043e\u043c\u0435\u0440 \u0442\u0435\u043b\u0435\u0444\u043e\u043d\u0430 | +998",
     "overflow": [],
     "consoleErrors": []
   },
@@ -235,7 +235,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 270,
-    "firstLines": "Создайте аккаунт | Присоединяйтесь к Bloodchain и начните спасать жизни | Имя | Фамилия",
+    "firstLines": "\u0421\u043e\u0437\u0434\u0430\u0439\u0442\u0435 \u0430\u043a\u043a\u0430\u0443\u043d\u0442 | \u041f\u0440\u0438\u0441\u043e\u0435\u0434\u0438\u043d\u044f\u0439\u0442\u0435\u0441\u044c \u043a Bloodchain \u0438 \u043d\u0430\u0447\u043d\u0438\u0442\u0435 \u0441\u043f\u0430\u0441\u0430\u0442\u044c \u0436\u0438\u0437\u043d\u0438 | \u0418\u043c\u044f | \u0424\u0430\u043c\u0438\u043b\u0438\u044f",
     "overflow": [],
     "consoleErrors": []
   },
@@ -286,7 +286,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 291,
-    "firstLines": "Deyarli tayyor | Raqamingiz tasdiqlandi. Endi o‘zingiz haqingizda ayting. | Ism | Familiya",
+    "firstLines": "Deyarli tayyor | Raqamingiz tasdiqlandi. Endi o\u2018zingiz haqingizda ayting. | Ism | Familiya",
     "overflow": [],
     "consoleErrors": []
   },
@@ -515,7 +515,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 172,
-    "firstLines": "Проверьте почту | Мы отправили ссылку для подтверждения на donor@donor.local. Откройте её на этом устройстве, чтобы активировать аккаунт. | Вернуться ко входу | Отправить ещё раз",
+    "firstLines": "\u041f\u0440\u043e\u0432\u0435\u0440\u044c\u0442\u0435 \u043f\u043e\u0447\u0442\u0443 | \u041c\u044b \u043e\u0442\u043f\u0440\u0430\u0432\u0438\u043b\u0438 \u0441\u0441\u044b\u043b\u043a\u0443 \u0434\u043b\u044f \u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d\u0438\u044f \u043d\u0430 donor@donor.local. \u041e\u0442\u043a\u0440\u043e\u0439\u0442\u0435 \u0435\u0451 \u043d\u0430 \u044d\u0442\u043e\u043c \u0443\u0441\u0442\u0440\u043e\u0439\u0441\u0442\u0432\u0435, \u0447\u0442\u043e\u0431\u044b \u0430\u043a\u0442\u0438\u0432\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u0430\u043a\u043a\u0430\u0443\u043d\u0442. | \u0412\u0435\u0440\u043d\u0443\u0442\u044c\u0441\u044f \u043a\u043e \u0432\u0445\u043e\u0434\u0443 | \u041e\u0442\u043f\u0440\u0430\u0432\u0438\u0442\u044c \u0435\u0449\u0451 \u0440\u0430\u0437",
     "overflow": [],
     "consoleErrors": []
   },
@@ -532,7 +532,7 @@
     "theme": "dark",
     "data": "overridden",
     "textLength": 21,
-    "firstLines": "Verifying your email…",
+    "firstLines": "Verifying your email\u2026",
     "overflow": [],
     "consoleErrors": []
   },
@@ -644,7 +644,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 268,
-    "firstLines": "ШАГ 1 ИЗ 6 | Добро пожаловать в Bloodchain | Ваш путь спасателя жизней начинается здесь. Давайте настроим профиль донора. | Следите за историей сдач крови",
+    "firstLines": "\u0428\u0410\u0413 1 \u0418\u0417 6 | \u0414\u043e\u0431\u0440\u043e \u043f\u043e\u0436\u0430\u043b\u043e\u0432\u0430\u0442\u044c \u0432 Bloodchain | \u0412\u0430\u0448 \u043f\u0443\u0442\u044c \u0441\u043f\u0430\u0441\u0430\u0442\u0435\u043b\u044f \u0436\u0438\u0437\u043d\u0435\u0439 \u043d\u0430\u0447\u0438\u043d\u0430\u0435\u0442\u0441\u044f \u0437\u0434\u0435\u0441\u044c. \u0414\u0430\u0432\u0430\u0439\u0442\u0435 \u043d\u0430\u0441\u0442\u0440\u043e\u0438\u043c \u043f\u0440\u043e\u0444\u0438\u043b\u044c \u0434\u043e\u043d\u043e\u0440\u0430. | \u0421\u043b\u0435\u0434\u0438\u0442\u0435 \u0437\u0430 \u0438\u0441\u0442\u043e\u0440\u0438\u0435\u0439 \u0441\u0434\u0430\u0447 \u043a\u0440\u043e\u0432\u0438",
     "overflow": [],
     "consoleErrors": [
       "BackHandler is not supported on web and should not be used."
@@ -663,7 +663,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 283,
-    "firstLines": "6 DAN 1-QADAM | Bloodchain’ga xush kelibsiz | Hayot saqlovchi bo‘lish yo‘lingiz shu yerdan boshlanadi. Keling, donor profilingizni sozlaymiz. | Qon topshirish tarixingizni kuzating",
+    "firstLines": "6 DAN 1-QADAM | Bloodchain\u2019ga xush kelibsiz | Hayot saqlovchi bo\u2018lish yo\u2018lingiz shu yerdan boshlanadi. Keling, donor profilingizni sozlaymiz. | Qon topshirish tarixingizni kuzating",
     "overflow": [],
     "consoleErrors": [
       "BackHandler is not supported on web and should not be used."
@@ -681,8 +681,8 @@
     "locale": "en",
     "theme": "dark",
     "data": "seeded database",
-    "textLength": 649,
-    "firstLines": "Tuesday 29 Sept | Good afternoon, Sample | 4 | SD",
+    "textLength": 642,
+    "firstLines": "Sunday 11 Oct | Good evening, Sample | 2 | SD",
     "overflow": [],
     "consoleErrors": []
   },
@@ -698,8 +698,8 @@
     "locale": "en",
     "theme": "dark",
     "data": "overridden",
-    "textLength": 638,
-    "firstLines": "Tuesday 29 Sept | Good afternoon, Sample | 4 | SD",
+    "textLength": 629,
+    "firstLines": "Sunday 11 Oct | Good evening, Sample | 2 | SD",
     "overflow": [],
     "consoleErrors": []
   },
@@ -715,8 +715,8 @@
     "locale": "en",
     "theme": "dark",
     "data": "overridden",
-    "textLength": 678,
-    "firstLines": "Tuesday 29 Sept | Good afternoon, Sample | SD | BLOOD TYPE",
+    "textLength": 669,
+    "firstLines": "Sunday 11 Oct | Good evening, Sample | SD | BLOOD TYPE",
     "overflow": [],
     "consoleErrors": [
       "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
@@ -734,8 +734,8 @@
     "locale": "en",
     "theme": "dark",
     "data": "overridden",
-    "textLength": 680,
-    "firstLines": "Tuesday 29 Sept | Good afternoon, Sample | 4 | SD",
+    "textLength": 671,
+    "firstLines": "Sunday 11 Oct | Good evening, Sample | 2 | SD",
     "overflow": [],
     "consoleErrors": [
       "Failed to load resource: net::ERR_CONNECTION_REFUSED"
@@ -753,8 +753,8 @@
     "locale": "en",
     "theme": "dark",
     "data": "overridden",
-    "textLength": 634,
-    "firstLines": "Tuesday 29 Sept | Good afternoon, Sample | 4 | SD",
+    "textLength": 627,
+    "firstLines": "Sunday 11 Oct | Good evening, Sample | 2 | SD",
     "overflow": [],
     "consoleErrors": []
   },
@@ -770,8 +770,8 @@
     "locale": "en",
     "theme": "dark",
     "data": "overridden",
-    "textLength": 638,
-    "firstLines": "Tuesday 29 Sept | Good afternoon, Sample | 4 | SD",
+    "textLength": 629,
+    "firstLines": "Sunday 11 Oct | Good evening, Sample | 2 | SD",
     "overflow": [],
     "consoleErrors": []
   },
@@ -787,8 +787,8 @@
     "locale": "ru",
     "theme": "dark",
     "data": "seeded database",
-    "textLength": 703,
-    "firstLines": "вторник, 29 сент. | Добрый день, Sample | 4 | SD",
+    "textLength": 705,
+    "firstLines": "\u0432\u043e\u0441\u043a\u0440\u0435\u0441\u0435\u043d\u044c\u0435, 11 \u043e\u043a\u0442. | \u0414\u043e\u0431\u0440\u044b\u0439 \u0432\u0435\u0447\u0435\u0440, Sample | 2 | SD",
     "overflow": [],
     "consoleErrors": []
   },
@@ -804,8 +804,8 @@
     "locale": "uz",
     "theme": "dark",
     "data": "seeded database",
-    "textLength": 768,
-    "firstLines": "Seshanba, 29 sen | Xayrli kun, Sample | 4 | SD",
+    "textLength": 766,
+    "firstLines": "Yakshanba, 11 okt | Xayrli kech, Sample | 2 | SD",
     "overflow": [],
     "consoleErrors": []
   },
@@ -821,8 +821,8 @@
     "locale": "en",
     "theme": "light",
     "data": "seeded database",
-    "textLength": 649,
-    "firstLines": "Tuesday 29 Sept | Good afternoon, Sample | 4 | SD",
+    "textLength": 642,
+    "firstLines": "Sunday 11 Oct | Good evening, Sample | 2 | SD",
     "overflow": [],
     "consoleErrors": []
   },
@@ -838,8 +838,8 @@
     "locale": "en",
     "theme": "dark",
     "data": "seeded database",
-    "textLength": 649,
-    "firstLines": "Tuesday 29 Sept | Good afternoon, Sample | 4 | SD",
+    "textLength": 642,
+    "firstLines": "Sunday 11 Oct | Good evening, Sample | 2 | SD",
     "overflow": [],
     "consoleErrors": []
   },
@@ -962,7 +962,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 902,
-    "firstLines": "Здоровье | Обзор ваших анализов | Всё в норме | HEMATOCRIT",
+    "firstLines": "\u0417\u0434\u043e\u0440\u043e\u0432\u044c\u0435 | \u041e\u0431\u0437\u043e\u0440 \u0432\u0430\u0448\u0438\u0445 \u0430\u043d\u0430\u043b\u0438\u0437\u043e\u0432 | \u0412\u0441\u0451 \u0432 \u043d\u043e\u0440\u043c\u0435 | HEMATOCRIT",
     "overflow": [],
     "consoleErrors": []
   },
@@ -1066,7 +1066,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 925,
-    "firstLines": "Сдать кровь | Запланируйте следующую донацию. | Можно сдавать | Сегодня вы можете сдать кровь.",
+    "firstLines": "\u0421\u0434\u0430\u0442\u044c \u043a\u0440\u043e\u0432\u044c | \u0417\u0430\u043f\u043b\u0430\u043d\u0438\u0440\u0443\u0439\u0442\u0435 \u0441\u043b\u0435\u0434\u0443\u044e\u0449\u0443\u044e \u0434\u043e\u043d\u0430\u0446\u0438\u044e. | \u041c\u043e\u0436\u043d\u043e \u0441\u0434\u0430\u0432\u0430\u0442\u044c | \u0421\u0435\u0433\u043e\u0434\u043d\u044f \u0432\u044b \u043c\u043e\u0436\u0435\u0442\u0435 \u0441\u0434\u0430\u0442\u044c \u043a\u0440\u043e\u0432\u044c.",
     "overflow": [],
     "consoleErrors": []
   },
@@ -1187,7 +1187,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 1346,
-    "firstLines": "Сообщество | Ваша донорская сеть | В ЭТОМ МЕСЯЦЕ | #1",
+    "firstLines": "\u0421\u043e\u043e\u0431\u0449\u0435\u0441\u0442\u0432\u043e | \u0412\u0430\u0448\u0430 \u0434\u043e\u043d\u043e\u0440\u0441\u043a\u0430\u044f \u0441\u0435\u0442\u044c | \u0412 \u042d\u0422\u041e\u041c \u041c\u0415\u0421\u042f\u0426\u0415 | #1",
     "overflow": [],
     "consoleErrors": []
   },
@@ -1220,8 +1220,8 @@
     "locale": "en",
     "theme": "dark",
     "data": "seeded database",
-    "textLength": 561,
-    "firstLines": "Calendar | Appointments & donations | September 2026 | MON",
+    "textLength": 502,
+    "firstLines": "Calendar | Appointments & donations | October 2026 | MON",
     "overflow": [],
     "consoleErrors": []
   },
@@ -1237,8 +1237,8 @@
     "locale": "en",
     "theme": "dark",
     "data": "overridden",
-    "textLength": 334,
-    "firstLines": "Calendar | Appointments & donations | September 2026 | MON",
+    "textLength": 332,
+    "firstLines": "Calendar | Appointments & donations | October 2026 | MON",
     "overflow": [],
     "consoleErrors": []
   },
@@ -1254,8 +1254,8 @@
     "locale": "en",
     "theme": "dark",
     "data": "overridden",
-    "textLength": 362,
-    "firstLines": "Calendar | Appointments & donations | September 2026 | MON",
+    "textLength": 360,
+    "firstLines": "Calendar | Appointments & donations | October 2026 | MON",
     "overflow": [],
     "consoleErrors": [
       "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
@@ -1273,8 +1273,8 @@
     "locale": "ru",
     "theme": "dark",
     "data": "seeded database",
-    "textLength": 581,
-    "firstLines": "Календарь | Записи и донации | сентябрь 2026 г. | ПН",
+    "textLength": 529,
+    "firstLines": "\u041a\u0430\u043b\u0435\u043d\u0434\u0430\u0440\u044c | \u0417\u0430\u043f\u0438\u0441\u0438 \u0438 \u0434\u043e\u043d\u0430\u0446\u0438\u0438 | \u043e\u043a\u0442\u044f\u0431\u0440\u044c 2026 \u0433. | \u041f\u041d",
     "overflow": [],
     "consoleErrors": []
   },
@@ -1290,8 +1290,8 @@
     "locale": "uz",
     "theme": "dark",
     "data": "seeded database",
-    "textLength": 629,
-    "firstLines": "Kalendar | Uchrashuvlar va topshirishlar | sentabr, 2026 | DUSH",
+    "textLength": 566,
+    "firstLines": "Kalendar | Uchrashuvlar va topshirishlar | oktabr, 2026 | DUSH",
     "overflow": [],
     "consoleErrors": []
   },
@@ -1307,8 +1307,8 @@
     "locale": "en",
     "theme": "dark",
     "data": "seeded database",
-    "textLength": 561,
-    "firstLines": "Calendar | Appointments & donations | September 2026 | MON",
+    "textLength": 502,
+    "firstLines": "Calendar | Appointments & donations | October 2026 | MON",
     "overflow": [],
     "consoleErrors": []
   },
@@ -1342,7 +1342,7 @@
     "theme": "dark",
     "data": "overridden",
     "textLength": 446,
-    "firstLines": "Profile | — | — | Unverified",
+    "firstLines": "Profile | \u2014 | \u2014 | Unverified",
     "overflow": [],
     "consoleErrors": [
       "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
@@ -1379,8 +1379,8 @@
     "locale": "ru",
     "theme": "dark",
     "data": "seeded database",
-    "textLength": 563,
-    "firstLines": "Профиль | SD | Sample Donor | donor@donor.local",
+    "textLength": 567,
+    "firstLines": "\u041f\u0440\u043e\u0444\u0438\u043b\u044c | SD | Sample Donor | donor@donor.local",
     "overflow": [],
     "consoleErrors": []
   },
@@ -1573,7 +1573,7 @@
     "theme": "dark",
     "data": "overridden",
     "textLength": 481,
-    "firstLines": "2 АКТИВНЫХ ЗАПРОСА РЯДОМ С ВАМИ | Экстренный вызов | O+ | ГРУППА КРОВИ",
+    "firstLines": "2 \u0410\u041a\u0422\u0418\u0412\u041d\u042b\u0425 \u0417\u0410\u041f\u0420\u041e\u0421\u0410 \u0420\u042f\u0414\u041e\u041c \u0421 \u0412\u0410\u041c\u0418 | \u042d\u043a\u0441\u0442\u0440\u0435\u043d\u043d\u044b\u0439 \u0432\u044b\u0437\u043e\u0432 | O+ | \u0413\u0420\u0423\u041f\u041f\u0410 \u041a\u0420\u041e\u0412\u0418",
     "overflow": [],
     "consoleErrors": []
   },
@@ -1590,7 +1590,7 @@
     "theme": "dark",
     "data": "overridden",
     "textLength": 505,
-    "firstLines": "YAQININGIZDA 2 TA FAOL SO‘ROV | Shoshilinch SOS | O+ | QON GURUHI",
+    "firstLines": "YAQININGIZDA 2 TA FAOL SO\u2018ROV | Shoshilinch SOS | O+ | QON GURUHI",
     "overflow": [],
     "consoleErrors": []
   },
@@ -1614,7 +1614,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/booking/1-select-type/default.png",
     "screen": "booking/1-select-type",
-    "title": "Booking — type",
+    "title": "Booking \u2014 type",
     "route": "/(booking)/select-type",
     "state": "default",
     "intent": "",
@@ -1631,7 +1631,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/booking/1-select-type/selected.png",
     "screen": "booking/1-select-type",
-    "title": "Booking — type",
+    "title": "Booking \u2014 type",
     "route": "/(booking)/select-type",
     "state": "selected",
     "intent": "",
@@ -1648,7 +1648,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/booking/1-select-type/locale-ru.png",
     "screen": "booking/1-select-type",
-    "title": "Booking — type",
+    "title": "Booking \u2014 type",
     "route": "/(booking)/select-type",
     "state": "locale-ru",
     "intent": "",
@@ -1658,14 +1658,14 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 220,
-    "firstLines": "Шаг 1 из 5 | Выберите тип записи | Что вы хотите записать? | Донация крови",
+    "firstLines": "\u0428\u0430\u0433 1 \u0438\u0437 5 | \u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u0442\u0438\u043f \u0437\u0430\u043f\u0438\u0441\u0438 | \u0427\u0442\u043e \u0432\u044b \u0445\u043e\u0442\u0438\u0442\u0435 \u0437\u0430\u043f\u0438\u0441\u0430\u0442\u044c? | \u0414\u043e\u043d\u0430\u0446\u0438\u044f \u043a\u0440\u043e\u0432\u0438",
     "overflow": [],
     "consoleErrors": []
   },
   {
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/booking/2-organizations/populated.png",
     "screen": "booking/2-organizations",
-    "title": "Booking — centre",
+    "title": "Booking \u2014 centre",
     "route": "/(booking)/organizations?type=BLOOD_DONATION",
     "state": "populated",
     "intent": "",
@@ -1682,7 +1682,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/booking/2-organizations/empty.png",
     "screen": "booking/2-organizations",
-    "title": "Booking — centre",
+    "title": "Booking \u2014 centre",
     "route": "/(booking)/organizations?type=BLOOD_DONATION",
     "state": "empty",
     "intent": "",
@@ -1699,7 +1699,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/booking/2-organizations/error.png",
     "screen": "booking/2-organizations",
-    "title": "Booking — centre",
+    "title": "Booking \u2014 centre",
     "route": "/(booking)/organizations?type=BLOOD_DONATION",
     "state": "error",
     "intent": "",
@@ -1718,7 +1718,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/booking/2-organizations/loading.png",
     "screen": "booking/2-organizations",
-    "title": "Booking — centre",
+    "title": "Booking \u2014 centre",
     "route": "/(booking)/organizations?type=BLOOD_DONATION",
     "state": "loading",
     "intent": "",
@@ -1735,7 +1735,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/booking/2-organizations/filters-open.png",
     "screen": "booking/2-organizations",
-    "title": "Booking — centre",
+    "title": "Booking \u2014 centre",
     "route": "/(booking)/organizations?type=BLOOD_DONATION",
     "state": "filters-open",
     "intent": "",
@@ -1752,7 +1752,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/booking/2-organizations/permission-location-explainer.png",
     "screen": "booking/2-organizations",
-    "title": "Booking — centre",
+    "title": "Booking \u2014 centre",
     "route": "/(booking)/organizations?type=BLOOD_DONATION",
     "state": "permission-location-explainer",
     "intent": "nearby asks before the OS does",
@@ -1771,7 +1771,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/booking/2-organizations/locale-ru.png",
     "screen": "booking/2-organizations",
-    "title": "Booking — centre",
+    "title": "Booking \u2014 centre",
     "route": "/(booking)/organizations?type=BLOOD_DONATION",
     "state": "locale-ru",
     "intent": "",
@@ -1781,15 +1781,15 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 2452,
-    "firstLines": "Шаг 2 из 5 | Выберите место | Выберите больницу или центр крови | Фильтры",
+    "firstLines": "\u0428\u0430\u0433 2 \u0438\u0437 5 | \u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u043c\u0435\u0441\u0442\u043e | \u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u0431\u043e\u043b\u044c\u043d\u0438\u0446\u0443 \u0438\u043b\u0438 \u0446\u0435\u043d\u0442\u0440 \u043a\u0440\u043e\u0432\u0438 | \u0424\u0438\u043b\u044c\u0442\u0440\u044b",
     "overflow": [],
     "consoleErrors": []
   },
   {
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/booking/3-date/populated.png",
     "screen": "booking/3-date",
-    "title": "Booking — date",
-    "route": "/(booking)/date?organizationId=cmumf5m4o002q7dj8lhxgss4w&type=BLOOD_DONATION",
+    "title": "Booking \u2014 date",
+    "route": "/(booking)/date?organizationId=cmv2pjfsy002q7d0t0fj1fgqq&type=BLOOD_DONATION",
     "state": "populated",
     "intent": "",
     "device": "iphone-393x852",
@@ -1797,16 +1797,16 @@
     "locale": "en",
     "theme": "dark",
     "data": "seeded database",
-    "textLength": 205,
-    "firstLines": "Step 3 of 5 | Select date | Only dates with open slots can be picked | September 2026",
+    "textLength": 206,
+    "firstLines": "Step 3 of 5 | Select date | Only dates with open slots can be picked | October 2026",
     "overflow": [],
     "consoleErrors": []
   },
   {
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/booking/3-date/no-open-dates.png",
     "screen": "booking/3-date",
-    "title": "Booking — date",
-    "route": "/(booking)/date?organizationId=cmumf5m4o002q7dj8lhxgss4w&type=BLOOD_DONATION",
+    "title": "Booking \u2014 date",
+    "route": "/(booking)/date?organizationId=cmv2pjfsy002q7d0t0fj1fgqq&type=BLOOD_DONATION",
     "state": "no-open-dates",
     "intent": "the month has nothing open",
     "device": "iphone-393x852",
@@ -1814,16 +1814,16 @@
     "locale": "en",
     "theme": "dark",
     "data": "overridden",
-    "textLength": 277,
-    "firstLines": "Step 3 of 5 | Select date | Only dates with open slots can be picked | September 2026",
+    "textLength": 278,
+    "firstLines": "Step 3 of 5 | Select date | Only dates with open slots can be picked | October 2026",
     "overflow": [],
     "consoleErrors": []
   },
   {
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/booking/3-date/error.png",
     "screen": "booking/3-date",
-    "title": "Booking — date",
-    "route": "/(booking)/date?organizationId=cmumf5m4o002q7dj8lhxgss4w&type=BLOOD_DONATION",
+    "title": "Booking \u2014 date",
+    "route": "/(booking)/date?organizationId=cmv2pjfsy002q7d0t0fj1fgqq&type=BLOOD_DONATION",
     "state": "error",
     "intent": "",
     "device": "iphone-393x852",
@@ -1831,7 +1831,7 @@
     "locale": "en",
     "theme": "dark",
     "data": "overridden",
-    "textLength": 280,
+    "textLength": 281,
     "firstLines": "Step 3 of 5 | Select date | Only dates with open slots can be picked | Couldn't load availability. Check your connection and try again.",
     "overflow": [],
     "consoleErrors": [
@@ -1841,8 +1841,8 @@
   {
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/booking/3-date/loading.png",
     "screen": "booking/3-date",
-    "title": "Booking — date",
-    "route": "/(booking)/date?organizationId=cmumf5m4o002q7dj8lhxgss4w&type=BLOOD_DONATION",
+    "title": "Booking \u2014 date",
+    "route": "/(booking)/date?organizationId=cmv2pjfsy002q7d0t0fj1fgqq&type=BLOOD_DONATION",
     "state": "loading",
     "intent": "",
     "device": "iphone-393x852",
@@ -1850,16 +1850,16 @@
     "locale": "en",
     "theme": "dark",
     "data": "overridden",
-    "textLength": 205,
-    "firstLines": "Step 3 of 5 | Select date | Only dates with open slots can be picked | September 2026",
+    "textLength": 206,
+    "firstLines": "Step 3 of 5 | Select date | Only dates with open slots can be picked | October 2026",
     "overflow": [],
     "consoleErrors": []
   },
   {
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/booking/3-date/locale-ru.png",
     "screen": "booking/3-date",
-    "title": "Booking — date",
-    "route": "/(booking)/date?organizationId=cmumf5m4o002q7dj8lhxgss4w&type=BLOOD_DONATION",
+    "title": "Booking \u2014 date",
+    "route": "/(booking)/date?organizationId=cmv2pjfsy002q7d0t0fj1fgqq&type=BLOOD_DONATION",
     "state": "locale-ru",
     "intent": "",
     "device": "iphone-393x852",
@@ -1867,16 +1867,16 @@
     "locale": "ru",
     "theme": "dark",
     "data": "seeded database",
-    "textLength": 222,
-    "firstLines": "Шаг 3 из 5 | Выберите дату | Выбрать можно только даты со свободными местами | сентябрь 2026 г.",
+    "textLength": 224,
+    "firstLines": "\u0428\u0430\u0433 3 \u0438\u0437 5 | \u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u0434\u0430\u0442\u0443 | \u0412\u044b\u0431\u0440\u0430\u0442\u044c \u043c\u043e\u0436\u043d\u043e \u0442\u043e\u043b\u044c\u043a\u043e \u0434\u0430\u0442\u044b \u0441\u043e \u0441\u0432\u043e\u0431\u043e\u0434\u043d\u044b\u043c\u0438 \u043c\u0435\u0441\u0442\u0430\u043c\u0438 | \u043e\u043a\u0442\u044f\u0431\u0440\u044c 2026 \u0433.",
     "overflow": [],
     "consoleErrors": []
   },
   {
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/booking/3-date/locale-uz.png",
     "screen": "booking/3-date",
-    "title": "Booking — date",
-    "route": "/(booking)/date?organizationId=cmumf5m4o002q7dj8lhxgss4w&type=BLOOD_DONATION",
+    "title": "Booking \u2014 date",
+    "route": "/(booking)/date?organizationId=cmv2pjfsy002q7d0t0fj1fgqq&type=BLOOD_DONATION",
     "state": "locale-uz",
     "intent": "",
     "device": "iphone-393x852",
@@ -1884,15 +1884,15 @@
     "locale": "uz",
     "theme": "dark",
     "data": "seeded database",
-    "textLength": 223,
-    "firstLines": "5 qadamdan 3-qadam | Sanani tanlang | Faqat bo‘sh joyi bor sanalarni tanlash mumkin | sentabr, 2026",
+    "textLength": 225,
+    "firstLines": "5 qadamdan 3-qadam | Sanani tanlang | Faqat bo\u2018sh joyi bor sanalarni tanlash mumkin | oktabr, 2026",
     "overflow": [],
     "consoleErrors": []
   },
   {
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/booking/4-time/populated.png",
     "screen": "booking/4-time",
-    "title": "Booking — time",
+    "title": "Booking \u2014 time",
     "route": "/(booking)/time?organizationId=cmumf5m4o002q7dj8lhxgss4w&type=BLOOD_DONATION&date=2026-09-29",
     "state": "populated",
     "intent": "",
@@ -1909,7 +1909,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/booking/4-time/no-times.png",
     "screen": "booking/4-time",
-    "title": "Booking — time",
+    "title": "Booking \u2014 time",
     "route": "/(booking)/time?organizationId=cmumf5m4o002q7dj8lhxgss4w&type=BLOOD_DONATION&date=2026-09-29",
     "state": "no-times",
     "intent": "",
@@ -1926,7 +1926,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/booking/4-time/error.png",
     "screen": "booking/4-time",
-    "title": "Booking — time",
+    "title": "Booking \u2014 time",
     "route": "/(booking)/time?organizationId=cmumf5m4o002q7dj8lhxgss4w&type=BLOOD_DONATION&date=2026-09-29",
     "state": "error",
     "intent": "",
@@ -1945,7 +1945,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/booking/4-time/loading.png",
     "screen": "booking/4-time",
-    "title": "Booking — time",
+    "title": "Booking \u2014 time",
     "route": "/(booking)/time?organizationId=cmumf5m4o002q7dj8lhxgss4w&type=BLOOD_DONATION&date=2026-09-29",
     "state": "loading",
     "intent": "",
@@ -1962,8 +1962,8 @@
   {
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/booking/5-review/populated.png",
     "screen": "booking/5-review",
-    "title": "Booking — review",
-    "route": "/(booking)/review?organizationId=cmumf5m4o002q7dj8lhxgss4w&type=BLOOD_DONATION&date=2026-09-29&slotId=cmumf5n2d00m07dj8r3frjbmz",
+    "title": "Booking \u2014 review",
+    "route": "/(booking)/review?organizationId=cmv2pjfsy002q7d0t0fj1fgqq&type=BLOOD_DONATION&date=2026-10-11&slotId=cmv2pjg7900k07d0t64vuomog",
     "state": "populated",
     "intent": "",
     "device": "iphone-393x852",
@@ -1971,7 +1971,7 @@
     "locale": "en",
     "theme": "dark",
     "data": "seeded database",
-    "textLength": 326,
+    "textLength": 325,
     "firstLines": "Step 5 of 5 | Review booking | Confirm your appointment details | Donation type",
     "overflow": [],
     "consoleErrors": []
@@ -1979,8 +1979,8 @@
   {
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/booking/5-review/slot-taken.png",
     "screen": "booking/5-review",
-    "title": "Booking — review",
-    "route": "/(booking)/review?organizationId=cmumf5m4o002q7dj8lhxgss4w&type=BLOOD_DONATION&date=2026-09-29&slotId=cmumf5n2d00m07dj8r3frjbmz",
+    "title": "Booking \u2014 review",
+    "route": "/(booking)/review?organizationId=cmv2pjfsy002q7d0t0fj1fgqq&type=BLOOD_DONATION&date=2026-10-11&slotId=cmv2pjg7900k07d0t64vuomog",
     "state": "slot-taken",
     "intent": "someone else took it while this donor decided",
     "device": "iphone-393x852",
@@ -1988,7 +1988,7 @@
     "locale": "en",
     "theme": "dark",
     "data": "overridden",
-    "textLength": 357,
+    "textLength": 356,
     "firstLines": "Step 5 of 5 | Review booking | Confirm your appointment details | Donation type",
     "overflow": [],
     "consoleErrors": [
@@ -1998,8 +1998,8 @@
   {
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/booking/5-review/server-error.png",
     "screen": "booking/5-review",
-    "title": "Booking — review",
-    "route": "/(booking)/review?organizationId=cmumf5m4o002q7dj8lhxgss4w&type=BLOOD_DONATION&date=2026-09-29&slotId=cmumf5n2d00m07dj8r3frjbmz",
+    "title": "Booking \u2014 review",
+    "route": "/(booking)/review?organizationId=cmv2pjfsy002q7d0t0fj1fgqq&type=BLOOD_DONATION&date=2026-10-11&slotId=cmv2pjg7900k07d0t64vuomog",
     "state": "server-error",
     "intent": "",
     "device": "iphone-393x852",
@@ -2007,7 +2007,7 @@
     "locale": "en",
     "theme": "dark",
     "data": "overridden",
-    "textLength": 369,
+    "textLength": 368,
     "firstLines": "Step 5 of 5 | Review booking | Confirm your appointment details | Donation type",
     "overflow": [],
     "consoleErrors": [
@@ -2017,8 +2017,8 @@
   {
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/booking/5-review/submitting.png",
     "screen": "booking/5-review",
-    "title": "Booking — review",
-    "route": "/(booking)/review?organizationId=cmumf5m4o002q7dj8lhxgss4w&type=BLOOD_DONATION&date=2026-09-29&slotId=cmumf5n2d00m07dj8r3frjbmz",
+    "title": "Booking \u2014 review",
+    "route": "/(booking)/review?organizationId=cmv2pjfsy002q7d0t0fj1fgqq&type=BLOOD_DONATION&date=2026-10-11&slotId=cmv2pjg7900k07d0t64vuomog",
     "state": "submitting",
     "intent": "",
     "device": "iphone-393x852",
@@ -2026,7 +2026,7 @@
     "locale": "en",
     "theme": "dark",
     "data": "overridden",
-    "textLength": 326,
+    "textLength": 325,
     "firstLines": "Step 5 of 5 | Review booking | Confirm your appointment details | Donation type",
     "overflow": [],
     "consoleErrors": []
@@ -2034,8 +2034,8 @@
   {
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/booking/6-confirmation/populated.png",
     "screen": "booking/6-confirmation",
-    "title": "Booking — confirmed",
-    "route": "/(booking)/confirmation?appointmentId=cmumfk3q0001h7d5f4jrp03j5",
+    "title": "Booking \u2014 confirmed",
+    "route": "/(booking)/confirmation?appointmentId=cmv2pjgc600qg7d0tmej28eal",
     "state": "populated",
     "intent": "",
     "device": "iphone-393x852",
@@ -2043,16 +2043,16 @@
     "locale": "en",
     "theme": "dark",
     "data": "seeded database",
-    "textLength": 337,
-    "firstLines": "Appointment confirmed! | Your appointment has been successfully scheduled. | REFERENCE NUMBER | DON-2026-473165",
+    "textLength": 345,
+    "firstLines": "Appointment confirmed! | Your appointment has been successfully scheduled. | REFERENCE NUMBER | DON-2026-780534",
     "overflow": [],
     "consoleErrors": []
   },
   {
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/booking/6-confirmation/loading.png",
     "screen": "booking/6-confirmation",
-    "title": "Booking — confirmed",
-    "route": "/(booking)/confirmation?appointmentId=cmumfk3q0001h7d5f4jrp03j5",
+    "title": "Booking \u2014 confirmed",
+    "route": "/(booking)/confirmation?appointmentId=cmv2pjgc600qg7d0tmej28eal",
     "state": "loading",
     "intent": "",
     "device": "iphone-393x852",
@@ -2068,8 +2068,8 @@
   {
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/booking/6-confirmation/locale-ru.png",
     "screen": "booking/6-confirmation",
-    "title": "Booking — confirmed",
-    "route": "/(booking)/confirmation?appointmentId=cmumfk3q0001h7d5f4jrp03j5",
+    "title": "Booking \u2014 confirmed",
+    "route": "/(booking)/confirmation?appointmentId=cmv2pjgc600qg7d0tmej28eal",
     "state": "locale-ru",
     "intent": "",
     "device": "iphone-393x852",
@@ -2077,15 +2077,15 @@
     "locale": "ru",
     "theme": "dark",
     "data": "seeded database",
-    "textLength": 338,
-    "firstLines": "Запись подтверждена! | Ваша запись успешно создана. | НОМЕР ЗАПИСИ | DON-2026-473165",
+    "textLength": 349,
+    "firstLines": "\u0417\u0430\u043f\u0438\u0441\u044c \u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d\u0430! | \u0412\u0430\u0448\u0430 \u0437\u0430\u043f\u0438\u0441\u044c \u0443\u0441\u043f\u0435\u0448\u043d\u043e \u0441\u043e\u0437\u0434\u0430\u043d\u0430. | \u041d\u041e\u041c\u0415\u0420 \u0417\u0410\u041f\u0418\u0421\u0418 | DON-2026-780534",
     "overflow": [],
     "consoleErrors": []
   },
   {
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/lab-booking/1-test-type/populated.png",
     "screen": "lab-booking/1-test-type",
-    "title": "Lab — test",
+    "title": "Lab \u2014 test",
     "route": "/(lab-booking)/test-type",
     "state": "populated",
     "intent": "",
@@ -2102,7 +2102,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/lab-booking/1-test-type/empty.png",
     "screen": "lab-booking/1-test-type",
-    "title": "Lab — test",
+    "title": "Lab \u2014 test",
     "route": "/(lab-booking)/test-type",
     "state": "empty",
     "intent": "",
@@ -2119,7 +2119,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/lab-booking/1-test-type/error.png",
     "screen": "lab-booking/1-test-type",
-    "title": "Lab — test",
+    "title": "Lab \u2014 test",
     "route": "/(lab-booking)/test-type",
     "state": "error",
     "intent": "",
@@ -2129,7 +2129,7 @@
     "theme": "dark",
     "data": "overridden",
     "textLength": 164,
-    "firstLines": "Step 1 of 5 | Which test? | Choose the panel you want taken. | Couldn’t load the tests",
+    "firstLines": "Step 1 of 5 | Which test? | Choose the panel you want taken. | Couldn\u2019t load the tests",
     "overflow": [],
     "consoleErrors": [
       "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
@@ -2138,7 +2138,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/lab-booking/1-test-type/loading.png",
     "screen": "lab-booking/1-test-type",
-    "title": "Lab — test",
+    "title": "Lab \u2014 test",
     "route": "/(lab-booking)/test-type",
     "state": "loading",
     "intent": "",
@@ -2155,7 +2155,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/lab-booking/2-laboratory/populated.png",
     "screen": "lab-booking/2-laboratory",
-    "title": "Lab — laboratory",
+    "title": "Lab \u2014 laboratory",
     "route": "/(lab-booking)/laboratory?testTypeId=cmumf5nhn00wt7dj8plljgdld",
     "state": "populated",
     "intent": "",
@@ -2172,7 +2172,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/lab-booking/2-laboratory/empty.png",
     "screen": "lab-booking/2-laboratory",
-    "title": "Lab — laboratory",
+    "title": "Lab \u2014 laboratory",
     "route": "/(lab-booking)/laboratory?testTypeId=cmumf5nhn00wt7dj8plljgdld",
     "state": "empty",
     "intent": "",
@@ -2189,7 +2189,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/lab-booking/2-laboratory/error.png",
     "screen": "lab-booking/2-laboratory",
-    "title": "Lab — laboratory",
+    "title": "Lab \u2014 laboratory",
     "route": "/(lab-booking)/laboratory?testTypeId=cmumf5nhn00wt7dj8plljgdld",
     "state": "error",
     "intent": "",
@@ -2199,7 +2199,7 @@
     "theme": "dark",
     "data": "overridden",
     "textLength": 179,
-    "firstLines": "Step 2 of 5 | Where? | Laboratories that run Complete Blood Count (CBC). | Couldn’t load laboratories",
+    "firstLines": "Step 2 of 5 | Where? | Laboratories that run Complete Blood Count (CBC). | Couldn\u2019t load laboratories",
     "overflow": [],
     "consoleErrors": [
       "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
@@ -2208,7 +2208,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/lab-booking/3-date/populated.png",
     "screen": "lab-booking/3-date",
-    "title": "Lab — date",
+    "title": "Lab \u2014 date",
     "route": "/(lab-booking)/date?testTypeId=cmumf5nhn00wt7dj8plljgdld&laboratoryId=cmumf5m0x001g7dj8fk5mtnoa",
     "state": "populated",
     "intent": "",
@@ -2225,7 +2225,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/lab-booking/3-date/no-open-dates.png",
     "screen": "lab-booking/3-date",
-    "title": "Lab — date",
+    "title": "Lab \u2014 date",
     "route": "/(lab-booking)/date?testTypeId=cmumf5nhn00wt7dj8plljgdld&laboratoryId=cmumf5m0x001g7dj8fk5mtnoa",
     "state": "no-open-dates",
     "intent": "",
@@ -2242,7 +2242,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/lab-booking/3-date/error.png",
     "screen": "lab-booking/3-date",
-    "title": "Lab — date",
+    "title": "Lab \u2014 date",
     "route": "/(lab-booking)/date?testTypeId=cmumf5nhn00wt7dj8plljgdld&laboratoryId=cmumf5m0x001g7dj8fk5mtnoa",
     "state": "error",
     "intent": "",
@@ -2252,7 +2252,7 @@
     "theme": "dark",
     "data": "overridden",
     "textLength": 238,
-    "firstLines": "Step 3 of 5 | Which day? | Days with open times are highlighted. | Couldn’t load availability",
+    "firstLines": "Step 3 of 5 | Which day? | Days with open times are highlighted. | Couldn\u2019t load availability",
     "overflow": [],
     "consoleErrors": [
       "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
@@ -2261,7 +2261,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/lab-booking/3-date/loading.png",
     "screen": "lab-booking/3-date",
-    "title": "Lab — date",
+    "title": "Lab \u2014 date",
     "route": "/(lab-booking)/date?testTypeId=cmumf5nhn00wt7dj8plljgdld&laboratoryId=cmumf5m0x001g7dj8fk5mtnoa",
     "state": "loading",
     "intent": "",
@@ -2278,7 +2278,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/lab-booking/3-date/locale-uz.png",
     "screen": "lab-booking/3-date",
-    "title": "Lab — date",
+    "title": "Lab \u2014 date",
     "route": "/(lab-booking)/date?testTypeId=cmumf5nhn00wt7dj8plljgdld&laboratoryId=cmumf5m0x001g7dj8fk5mtnoa",
     "state": "locale-uz",
     "intent": "",
@@ -2288,15 +2288,15 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 219,
-    "firstLines": "5 qadamdan 3-qadam | Qaysi kuni? | Bo‘sh vaqti bor kunlar ajratib ko‘rsatilgan. | sentabr, 2026",
+    "firstLines": "5 qadamdan 3-qadam | Qaysi kuni? | Bo\u2018sh vaqti bor kunlar ajratib ko\u2018rsatilgan. | sentabr, 2026",
     "overflow": [],
     "consoleErrors": []
   },
   {
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/lab-booking/4-slot/populated.png",
     "screen": "lab-booking/4-slot",
-    "title": "Lab — slot",
-    "route": "/(lab-booking)/slot?testTypeId=cmumf5nhn00wt7dj8plljgdld&laboratoryId=cmumf5m0x001g7dj8fk5mtnoa&date=2026-09-29",
+    "title": "Lab \u2014 slot",
+    "route": "/(lab-booking)/slot?testTypeId=cmv2pjgfj00th7d0tpawr4f0x&laboratoryId=cmv2pjfqm001g7d0tjbtszf5a&date=2026-10-11",
     "state": "populated",
     "intent": "",
     "device": "iphone-393x852",
@@ -2304,16 +2304,16 @@
     "locale": "en",
     "theme": "dark",
     "data": "seeded database",
-    "textLength": 102,
-    "firstLines": "Step 4 of 5 | Select time | Tuesday 29 Sept | Afternoon",
+    "textLength": 100,
+    "firstLines": "Step 4 of 5 | Select time | Sunday 11 Oct | Afternoon",
     "overflow": [],
     "consoleErrors": []
   },
   {
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/lab-booking/4-slot/no-times.png",
     "screen": "lab-booking/4-slot",
-    "title": "Lab — slot",
-    "route": "/(lab-booking)/slot?testTypeId=cmumf5nhn00wt7dj8plljgdld&laboratoryId=cmumf5m0x001g7dj8fk5mtnoa&date=2026-09-29",
+    "title": "Lab \u2014 slot",
+    "route": "/(lab-booking)/slot?testTypeId=cmv2pjgfj00th7d0tpawr4f0x&laboratoryId=cmv2pjfqm001g7d0tjbtszf5a&date=2026-10-11",
     "state": "no-times",
     "intent": "",
     "device": "iphone-393x852",
@@ -2321,16 +2321,16 @@
     "locale": "en",
     "theme": "dark",
     "data": "overridden",
-    "textLength": 142,
-    "firstLines": "Step 4 of 5 | Select time | Tuesday 29 Sept | No times on this day",
+    "textLength": 140,
+    "firstLines": "Step 4 of 5 | Select time | Sunday 11 Oct | No times on this day",
     "overflow": [],
     "consoleErrors": []
   },
   {
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/lab-booking/4-slot/error.png",
     "screen": "lab-booking/4-slot",
-    "title": "Lab — slot",
-    "route": "/(lab-booking)/slot?testTypeId=cmumf5nhn00wt7dj8plljgdld&laboratoryId=cmumf5m0x001g7dj8fk5mtnoa&date=2026-09-29",
+    "title": "Lab \u2014 slot",
+    "route": "/(lab-booking)/slot?testTypeId=cmv2pjgfj00th7d0tpawr4f0x&laboratoryId=cmv2pjfqm001g7d0tjbtszf5a&date=2026-10-11",
     "state": "error",
     "intent": "",
     "device": "iphone-393x852",
@@ -2338,8 +2338,8 @@
     "locale": "en",
     "theme": "dark",
     "data": "overridden",
-    "textLength": 143,
-    "firstLines": "Step 4 of 5 | Select time | Tuesday 29 Sept | Couldn't load times",
+    "textLength": 141,
+    "firstLines": "Step 4 of 5 | Select time | Sunday 11 Oct | Couldn't load times",
     "overflow": [],
     "consoleErrors": [
       "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
@@ -2348,8 +2348,8 @@
   {
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/lab-booking/5-review/populated.png",
     "screen": "lab-booking/5-review",
-    "title": "Lab — review",
-    "route": "/(lab-booking)/review?testTypeId=cmumf5nhn00wt7dj8plljgdld&laboratoryId=cmumf5m0x001g7dj8fk5mtnoa&date=2026-09-29&slotId=cmumf5mri00fe7dj8666m13qe",
+    "title": "Lab \u2014 review",
+    "route": "/(lab-booking)/review?testTypeId=cmv2pjgfj00th7d0tpawr4f0x&laboratoryId=cmv2pjfqm001g7d0tjbtszf5a&date=2026-10-11&slotId=cmv2pjg3400eq7d0toaarytvu",
     "state": "populated",
     "intent": "",
     "device": "iphone-393x852",
@@ -2357,7 +2357,7 @@
     "locale": "en",
     "theme": "dark",
     "data": "seeded database",
-    "textLength": 348,
+    "textLength": 347,
     "firstLines": "Step 5 of 5 | Review booking | Confirm your appointment details | Test",
     "overflow": [],
     "consoleErrors": []
@@ -2365,8 +2365,8 @@
   {
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/lab-booking/5-review/slot-taken.png",
     "screen": "lab-booking/5-review",
-    "title": "Lab — review",
-    "route": "/(lab-booking)/review?testTypeId=cmumf5nhn00wt7dj8plljgdld&laboratoryId=cmumf5m0x001g7dj8fk5mtnoa&date=2026-09-29&slotId=cmumf5mri00fe7dj8666m13qe",
+    "title": "Lab \u2014 review",
+    "route": "/(lab-booking)/review?testTypeId=cmv2pjgfj00th7d0tpawr4f0x&laboratoryId=cmv2pjfqm001g7d0tjbtszf5a&date=2026-10-11&slotId=cmv2pjg3400eq7d0toaarytvu",
     "state": "slot-taken",
     "intent": "",
     "device": "iphone-393x852",
@@ -2374,7 +2374,7 @@
     "locale": "en",
     "theme": "dark",
     "data": "overridden",
-    "textLength": 379,
+    "textLength": 378,
     "firstLines": "Step 5 of 5 | Review booking | Confirm your appointment details | Test",
     "overflow": [],
     "consoleErrors": [
@@ -2384,8 +2384,8 @@
   {
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/lab-booking/5-review/server-error.png",
     "screen": "lab-booking/5-review",
-    "title": "Lab — review",
-    "route": "/(lab-booking)/review?testTypeId=cmumf5nhn00wt7dj8plljgdld&laboratoryId=cmumf5m0x001g7dj8fk5mtnoa&date=2026-09-29&slotId=cmumf5mri00fe7dj8666m13qe",
+    "title": "Lab \u2014 review",
+    "route": "/(lab-booking)/review?testTypeId=cmv2pjgfj00th7d0tpawr4f0x&laboratoryId=cmv2pjfqm001g7d0tjbtszf5a&date=2026-10-11&slotId=cmv2pjg3400eq7d0toaarytvu",
     "state": "server-error",
     "intent": "",
     "device": "iphone-393x852",
@@ -2393,7 +2393,7 @@
     "locale": "en",
     "theme": "dark",
     "data": "overridden",
-    "textLength": 391,
+    "textLength": 390,
     "firstLines": "Step 5 of 5 | Review booking | Confirm your appointment details | Test",
     "overflow": [],
     "consoleErrors": [
@@ -2403,8 +2403,8 @@
   {
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/lab-booking/6-confirmation/populated.png",
     "screen": "lab-booking/6-confirmation",
-    "title": "Lab — confirmed",
-    "route": "/(lab-booking)/confirmation?appointmentId=cmumf5nju00xv7dj8musztggq",
+    "title": "Lab \u2014 confirmed",
+    "route": "/(lab-booking)/confirmation?appointmentId=cmv2pjggt00uj7d0tfmbkhud1",
     "state": "populated",
     "intent": "",
     "device": "iphone-393x852",
@@ -2412,16 +2412,16 @@
     "locale": "en",
     "theme": "dark",
     "data": "seeded database",
-    "textLength": 294,
-    "firstLines": "Test booked | The laboratory has your booking and knows which panel to prepare. | REFERENCE NUMBER | LAB-2026-077594",
+    "textLength": 295,
+    "firstLines": "Test booked | The laboratory has your booking and knows which panel to prepare. | REFERENCE NUMBER | LAB-2026-678088",
     "overflow": [],
     "consoleErrors": []
   },
   {
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/lab-booking/6-confirmation/loading.png",
     "screen": "lab-booking/6-confirmation",
-    "title": "Lab — confirmed",
-    "route": "/(lab-booking)/confirmation?appointmentId=cmumf5nju00xv7dj8musztggq",
+    "title": "Lab \u2014 confirmed",
+    "route": "/(lab-booking)/confirmation?appointmentId=cmv2pjggt00uj7d0tfmbkhud1",
     "state": "loading",
     "intent": "",
     "device": "iphone-393x852",
@@ -2446,7 +2446,7 @@
     "locale": "en",
     "theme": "dark",
     "data": "seeded database",
-    "textLength": 534,
+    "textLength": 531,
     "firstLines": "Blood tests | Upcoming | 1 | Results",
     "overflow": [],
     "consoleErrors": []
@@ -2499,7 +2499,7 @@
     "locale": "en",
     "theme": "dark",
     "data": "overridden",
-    "textLength": 292,
+    "textLength": 293,
     "firstLines": "Blood tests | Upcoming | 1 | Results",
     "overflow": [],
     "consoleErrors": [
@@ -2535,7 +2535,7 @@
     "locale": "en",
     "theme": "dark",
     "data": "seeded database",
-    "textLength": 534,
+    "textLength": 531,
     "firstLines": "Blood tests | Upcoming | 1 | Results",
     "overflow": [],
     "consoleErrors": []
@@ -2553,7 +2553,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 609,
-    "firstLines": "Health trends | PARAMETER | Hematocrit | Haematology · 3 measurements",
+    "firstLines": "Health trends | PARAMETER | Hematocrit | Haematology \u00b7 3 measurements",
     "overflow": [],
     "consoleErrors": []
   },
@@ -2570,7 +2570,7 @@
     "theme": "dark",
     "data": "overridden",
     "textLength": 609,
-    "firstLines": "Health trends | PARAMETER | Hematocrit | Haematology · 3 measurements",
+    "firstLines": "Health trends | PARAMETER | Hematocrit | Haematology \u00b7 3 measurements",
     "overflow": [],
     "consoleErrors": []
   },
@@ -2587,7 +2587,7 @@
     "theme": "dark",
     "data": "overridden",
     "textLength": 609,
-    "firstLines": "Health trends | PARAMETER | Hematocrit | Haematology · 3 measurements",
+    "firstLines": "Health trends | PARAMETER | Hematocrit | Haematology \u00b7 3 measurements",
     "overflow": [],
     "consoleErrors": []
   },
@@ -2604,7 +2604,7 @@
     "theme": "dark",
     "data": "overridden",
     "textLength": 609,
-    "firstLines": "Health trends | PARAMETER | Hematocrit | Haematology · 3 measurements",
+    "firstLines": "Health trends | PARAMETER | Hematocrit | Haematology \u00b7 3 measurements",
     "overflow": [],
     "consoleErrors": []
   },
@@ -2621,7 +2621,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 609,
-    "firstLines": "Health trends | PARAMETER | Hematocrit | Haematology · 3 measurements",
+    "firstLines": "Health trends | PARAMETER | Hematocrit | Haematology \u00b7 3 measurements",
     "overflow": [],
     "consoleErrors": []
   },
@@ -2638,7 +2638,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 679,
-    "firstLines": "Powered by AI | AI insights | Personalized health recommendations | AI-generated informational content, drawn from your own recorded health data. It is not a medical diagnosis — always consult your doctor.",
+    "firstLines": "Powered by AI | AI insights | Personalized health recommendations | AI-generated informational content, drawn from your own recorded health data. It is not a medical diagnosis \u2014 always consult your doctor.",
     "overflow": [],
     "consoleErrors": []
   },
@@ -2655,7 +2655,7 @@
     "theme": "dark",
     "data": "overridden",
     "textLength": 679,
-    "firstLines": "Powered by AI | AI insights | Personalized health recommendations | AI-generated informational content, drawn from your own recorded health data. It is not a medical diagnosis — always consult your doctor.",
+    "firstLines": "Powered by AI | AI insights | Personalized health recommendations | AI-generated informational content, drawn from your own recorded health data. It is not a medical diagnosis \u2014 always consult your doctor.",
     "overflow": [],
     "consoleErrors": []
   },
@@ -2672,7 +2672,7 @@
     "theme": "dark",
     "data": "overridden",
     "textLength": 679,
-    "firstLines": "Powered by AI | AI insights | Personalized health recommendations | AI-generated informational content, drawn from your own recorded health data. It is not a medical diagnosis — always consult your doctor.",
+    "firstLines": "Powered by AI | AI insights | Personalized health recommendations | AI-generated informational content, drawn from your own recorded health data. It is not a medical diagnosis \u2014 always consult your doctor.",
     "overflow": [],
     "consoleErrors": []
   },
@@ -2689,7 +2689,7 @@
     "theme": "dark",
     "data": "overridden",
     "textLength": 679,
-    "firstLines": "Powered by AI | AI insights | Personalized health recommendations | AI-generated informational content, drawn from your own recorded health data. It is not a medical diagnosis — always consult your doctor.",
+    "firstLines": "Powered by AI | AI insights | Personalized health recommendations | AI-generated informational content, drawn from your own recorded health data. It is not a medical diagnosis \u2014 always consult your doctor.",
     "overflow": [],
     "consoleErrors": []
   },
@@ -2706,7 +2706,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 679,
-    "firstLines": "Powered by AI | AI insights | Personalized health recommendations | AI-generated informational content, drawn from your own recorded health data. It is not a medical diagnosis — always consult your doctor.",
+    "firstLines": "Powered by AI | AI insights | Personalized health recommendations | AI-generated informational content, drawn from your own recorded health data. It is not a medical diagnosis \u2014 always consult your doctor.",
     "overflow": [],
     "consoleErrors": []
   },
@@ -2722,7 +2722,7 @@
     "locale": "en",
     "theme": "dark",
     "data": "seeded database",
-    "textLength": 342,
+    "textLength": 341,
     "firstLines": "Donation history | All your previous donations | Total donations | 3",
     "overflow": [],
     "consoleErrors": []
@@ -2809,7 +2809,7 @@
     "locale": "en",
     "theme": "dark",
     "data": "seeded database",
-    "textLength": 342,
+    "textLength": 341,
     "firstLines": "Donation history | All your previous donations | Total donations | 3",
     "overflow": [],
     "consoleErrors": []
@@ -2818,7 +2818,7 @@
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/history/donation-detail/populated.png",
     "screen": "history/donation-detail",
     "title": "Donation detail",
-    "route": "/(app)/donations/cmumf5nct00to7dj8usvm6ere",
+    "route": "/(app)/donations/cmv2pjgc200qc7d0tgm9aq6t8",
     "state": "populated",
     "intent": "",
     "device": "iphone-393x852",
@@ -2826,8 +2826,8 @@
     "locale": "en",
     "theme": "dark",
     "data": "seeded database",
-    "textLength": 248,
-    "firstLines": "Donation details | DONATION-2026-741749 | Whole blood | Cancelled",
+    "textLength": 247,
+    "firstLines": "Donation details | DONATION-2026-103390 | Whole blood | Cancelled",
     "overflow": [],
     "consoleErrors": []
   },
@@ -2835,7 +2835,7 @@
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/history/donation-detail/error.png",
     "screen": "history/donation-detail",
     "title": "Donation detail",
-    "route": "/(app)/donations/cmumf5nct00to7dj8usvm6ere",
+    "route": "/(app)/donations/cmv2pjgc200qc7d0tgm9aq6t8",
     "state": "error",
     "intent": "",
     "device": "iphone-393x852",
@@ -2854,7 +2854,7 @@
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/history/donation-detail/loading.png",
     "screen": "history/donation-detail",
     "title": "Donation detail",
-    "route": "/(app)/donations/cmumf5nct00to7dj8usvm6ere",
+    "route": "/(app)/donations/cmv2pjgc200qc7d0tgm9aq6t8",
     "state": "loading",
     "intent": "",
     "device": "iphone-393x852",
@@ -2871,7 +2871,7 @@
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/history/donation-detail/locale-ru.png",
     "screen": "history/donation-detail",
     "title": "Donation detail",
-    "route": "/(app)/donations/cmumf5nct00to7dj8usvm6ere",
+    "route": "/(app)/donations/cmv2pjgc200qc7d0tgm9aq6t8",
     "state": "locale-ru",
     "intent": "",
     "device": "iphone-393x852",
@@ -2879,8 +2879,8 @@
     "locale": "ru",
     "theme": "dark",
     "data": "seeded database",
-    "textLength": 257,
-    "firstLines": "Детали донации | DONATION-2026-741749 | Цельная кровь | Отменена",
+    "textLength": 256,
+    "firstLines": "\u0414\u0435\u0442\u0430\u043b\u0438 \u0434\u043e\u043d\u0430\u0446\u0438\u0438 | DONATION-2026-103390 | \u0426\u0435\u043b\u044c\u043d\u0430\u044f \u043a\u0440\u043e\u0432\u044c | \u041e\u0442\u043c\u0435\u043d\u0435\u043d\u0430",
     "overflow": [],
     "consoleErrors": []
   },
@@ -2888,7 +2888,7 @@
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/history/donation-detail/long-content.png",
     "screen": "history/donation-detail",
     "title": "Donation detail",
-    "route": "/(app)/donations/cmumf5nct00to7dj8usvm6ere",
+    "route": "/(app)/donations/cmv2pjgc200qc7d0tgm9aq6t8",
     "state": "long-content",
     "intent": "",
     "device": "iphone-393x852",
@@ -2896,8 +2896,8 @@
     "locale": "en",
     "theme": "dark",
     "data": "seeded database",
-    "textLength": 248,
-    "firstLines": "Donation details | DONATION-2026-741749 | Whole blood | Cancelled",
+    "textLength": 247,
+    "firstLines": "Donation details | DONATION-2026-103390 | Whole blood | Cancelled",
     "overflow": [],
     "consoleErrors": []
   },
@@ -2905,7 +2905,7 @@
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/history/appointment-detail/populated.png",
     "screen": "history/appointment-detail",
     "title": "Appointment detail",
-    "route": "/(app)/appointment/cmumfk3q0001h7d5f4jrp03j5",
+    "route": "/(app)/appointment/cmv2pjgc600qg7d0tmej28eal",
     "state": "populated",
     "intent": "",
     "device": "iphone-393x852",
@@ -2913,8 +2913,8 @@
     "locale": "en",
     "theme": "dark",
     "data": "seeded database",
-    "textLength": 450,
-    "firstLines": "Blood donation | Pending | Date | 29 Sept 2026",
+    "textLength": 459,
+    "firstLines": "Blood donation | Confirmed | Date | 11 Oct 2026",
     "overflow": [],
     "consoleErrors": []
   },
@@ -2922,7 +2922,7 @@
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/history/appointment-detail/cancel-confirmation.png",
     "screen": "history/appointment-detail",
     "title": "Appointment detail",
-    "route": "/(app)/appointment/cmumfk3q0001h7d5f4jrp03j5",
+    "route": "/(app)/appointment/cmv2pjgc600qg7d0tmej28eal",
     "state": "cancel-confirmation",
     "intent": "cancelling asks first",
     "device": "iphone-393x852",
@@ -2930,8 +2930,8 @@
     "locale": "en",
     "theme": "dark",
     "data": "seeded database",
-    "textLength": 552,
-    "firstLines": "Blood donation | Pending | Date | 29 Sept 2026",
+    "textLength": 561,
+    "firstLines": "Blood donation | Confirmed | Date | 11 Oct 2026",
     "overflow": [],
     "consoleErrors": [
       "BackHandler is not supported on web and should not be used."
@@ -2941,7 +2941,7 @@
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/history/appointment-detail/error.png",
     "screen": "history/appointment-detail",
     "title": "Appointment detail",
-    "route": "/(app)/appointment/cmumfk3q0001h7d5f4jrp03j5",
+    "route": "/(app)/appointment/cmv2pjgc600qg7d0tmej28eal",
     "state": "error",
     "intent": "",
     "device": "iphone-393x852",
@@ -2960,7 +2960,7 @@
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/history/appointment-detail/long-content.png",
     "screen": "history/appointment-detail",
     "title": "Appointment detail",
-    "route": "/(app)/appointment/cmumfk3q0001h7d5f4jrp03j5",
+    "route": "/(app)/appointment/cmv2pjgc600qg7d0tmej28eal",
     "state": "long-content",
     "intent": "",
     "device": "iphone-393x852",
@@ -2968,8 +2968,8 @@
     "locale": "en",
     "theme": "dark",
     "data": "seeded database",
-    "textLength": 450,
-    "firstLines": "Blood donation | Pending | Date | 29 Sept 2026",
+    "textLength": 459,
+    "firstLines": "Blood donation | Confirmed | Date | 11 Oct 2026",
     "overflow": [],
     "consoleErrors": []
   },
@@ -3179,7 +3179,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 815,
-    "firstLines": "Ta’lim markazi | Qon topshirish haqida o‘rganing va XP oling | Sizning natijangiz | Yakunlangan",
+    "firstLines": "Ta\u2019lim markazi | Qon topshirish haqida o\u2018rganing va XP oling | Sizning natijangiz | Yakunlangan",
     "overflow": [],
     "consoleErrors": []
   },
@@ -3203,7 +3203,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/community/education-article/populated.png",
     "screen": "community/education-article",
-    "title": "Education — the article",
+    "title": "Education \u2014 the article",
     "route": "/(app)/education/cmumf5noj01137dj8zte3qhoh",
     "state": "populated",
     "intent": "the body the module has always carried and never showed",
@@ -3220,7 +3220,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/community/education-article/error.png",
     "screen": "community/education-article",
-    "title": "Education — the article",
+    "title": "Education \u2014 the article",
     "route": "/(app)/education/cmumf5noj01137dj8zte3qhoh",
     "state": "error",
     "intent": "",
@@ -3239,7 +3239,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/community/education-article/loading.png",
     "screen": "community/education-article",
-    "title": "Education — the article",
+    "title": "Education \u2014 the article",
     "route": "/(app)/education/cmumf5noj01137dj8zte3qhoh",
     "state": "loading",
     "intent": "",
@@ -3256,7 +3256,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/community/education-article/locale-ru.png",
     "screen": "community/education-article",
-    "title": "Education — the article",
+    "title": "Education \u2014 the article",
     "route": "/(app)/education/cmumf5noj01137dj8zte3qhoh",
     "state": "locale-ru",
     "intent": "",
@@ -3266,14 +3266,14 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 518,
-    "firstLines": "Обучение | Статья | Начальный | Eligibility",
+    "firstLines": "\u041e\u0431\u0443\u0447\u0435\u043d\u0438\u0435 | \u0421\u0442\u0430\u0442\u044c\u044f | \u041d\u0430\u0447\u0430\u043b\u044c\u043d\u044b\u0439 | Eligibility",
     "overflow": [],
     "consoleErrors": []
   },
   {
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/community/education-article/long-content.png",
     "screen": "community/education-article",
-    "title": "Education — the article",
+    "title": "Education \u2014 the article",
     "route": "/(app)/education/cmumf5noj01137dj8zte3qhoh",
     "state": "long-content",
     "intent": "",
@@ -3299,7 +3299,7 @@
     "locale": "en",
     "theme": "dark",
     "data": "seeded database",
-    "textLength": 827,
+    "textLength": 801,
     "firstLines": "Achievements | Your progress & rewards | LEVEL | 3",
     "overflow": [],
     "consoleErrors": []
@@ -3352,7 +3352,7 @@
     "locale": "en",
     "theme": "dark",
     "data": "seeded database",
-    "textLength": 827,
+    "textLength": 801,
     "firstLines": "Achievements | Your progress & rewards | LEVEL | 3",
     "overflow": [],
     "consoleErrors": []
@@ -3369,8 +3369,8 @@
     "locale": "en",
     "theme": "dark",
     "data": "seeded database",
-    "textLength": 225,
-    "firstLines": "2 OF 11 EARNED | Badges | Earned · 2 | First Drop",
+    "textLength": 198,
+    "firstLines": "2 OF 9 EARNED | Badges | Earned \u00b7 2 | First Drop",
     "overflow": [],
     "consoleErrors": []
   },
@@ -3387,7 +3387,7 @@
     "theme": "dark",
     "data": "overridden",
     "textLength": 113,
-    "firstLines": "0 OF 0 EARNED | Badges | No badges yet — your first donation earns one. | Home",
+    "firstLines": "0 OF 0 EARNED | Badges | No badges yet \u2014 your first donation earns one. | Home",
     "overflow": [],
     "consoleErrors": []
   },
@@ -3422,8 +3422,8 @@
     "locale": "en",
     "theme": "dark",
     "data": "seeded database",
-    "textLength": 225,
-    "firstLines": "2 OF 11 EARNED | Badges | Earned · 2 | First Drop",
+    "textLength": 198,
+    "firstLines": "2 OF 9 EARNED | Badges | Earned \u00b7 2 | First Drop",
     "overflow": [],
     "consoleErrors": []
   },
@@ -3440,7 +3440,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 1181,
-    "firstLines": "3 OF 19 UNLOCKED | Achievements | Unlocked · 3 | First Donation",
+    "firstLines": "3 OF 19 UNLOCKED | Achievements | Unlocked \u00b7 3 | First Donation",
     "overflow": [],
     "consoleErrors": []
   },
@@ -3493,7 +3493,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 1181,
-    "firstLines": "3 OF 19 UNLOCKED | Achievements | Unlocked · 3 | First Donation",
+    "firstLines": "3 OF 19 UNLOCKED | Achievements | Unlocked \u00b7 3 | First Donation",
     "overflow": [],
     "consoleErrors": []
   },
@@ -3614,7 +3614,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 880,
-    "firstLines": "Конфиденциальность | Контролируйте, чем вы делитесь | Геолокация и данные | Делиться геопозицией",
+    "firstLines": "\u041a\u043e\u043d\u0444\u0438\u0434\u0435\u043d\u0446\u0438\u0430\u043b\u044c\u043d\u043e\u0441\u0442\u044c | \u041a\u043e\u043d\u0442\u0440\u043e\u043b\u0438\u0440\u0443\u0439\u0442\u0435, \u0447\u0435\u043c \u0432\u044b \u0434\u0435\u043b\u0438\u0442\u0435\u0441\u044c | \u0413\u0435\u043e\u043b\u043e\u043a\u0430\u0446\u0438\u044f \u0438 \u0434\u0430\u043d\u043d\u044b\u0435 | \u0414\u0435\u043b\u0438\u0442\u044c\u0441\u044f \u0433\u0435\u043e\u043f\u043e\u0437\u0438\u0446\u0438\u0435\u0439",
     "overflow": [],
     "consoleErrors": []
   },
@@ -3734,8 +3734,8 @@
     "locale": "en",
     "theme": "dark",
     "data": "seeded database",
-    "textLength": 852,
-    "firstLines": "Mark all read | 4 UNREAD NOTIFICATIONS | Notifications | All",
+    "textLength": 681,
+    "firstLines": "Mark all read | 2 UNREAD NOTIFICATIONS | Notifications | All",
     "overflow": [],
     "consoleErrors": []
   },
@@ -3804,8 +3804,8 @@
     "locale": "en",
     "theme": "dark",
     "data": "seeded database",
-    "textLength": 852,
-    "firstLines": "Mark all read | 4 UNREAD NOTIFICATIONS | Notifications | All",
+    "textLength": 681,
+    "firstLines": "Mark all read | 2 UNREAD NOTIFICATIONS | Notifications | All",
     "overflow": [],
     "consoleErrors": []
   },
@@ -3877,7 +3877,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 677,
-    "firstLines": "Настройки уведомлений | Выберите, о чём приложение будет сообщать | На этом устройстве | Телефон пока не показывает уведомления Bloodchain.",
+    "firstLines": "\u041d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438 \u0443\u0432\u0435\u0434\u043e\u043c\u043b\u0435\u043d\u0438\u0439 | \u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435, \u043e \u0447\u0451\u043c \u043f\u0440\u0438\u043b\u043e\u0436\u0435\u043d\u0438\u0435 \u0431\u0443\u0434\u0435\u0442 \u0441\u043e\u043e\u0431\u0449\u0430\u0442\u044c | \u041d\u0430 \u044d\u0442\u043e\u043c \u0443\u0441\u0442\u0440\u043e\u0439\u0441\u0442\u0432\u0435 | \u0422\u0435\u043b\u0435\u0444\u043e\u043d \u043f\u043e\u043a\u0430 \u043d\u0435 \u043f\u043e\u043a\u0430\u0437\u044b\u0432\u0430\u0435\u0442 \u0443\u0432\u0435\u0434\u043e\u043c\u043b\u0435\u043d\u0438\u044f Bloodchain.",
     "overflow": [],
     "consoleErrors": []
   },
@@ -4017,7 +4017,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 292,
-    "firstLines": "Профиль донора | Обновите данные донора | Группа крови | A+",
+    "firstLines": "\u041f\u0440\u043e\u0444\u0438\u043b\u044c \u0434\u043e\u043d\u043e\u0440\u0430 | \u041e\u0431\u043d\u043e\u0432\u0438\u0442\u0435 \u0434\u0430\u043d\u043d\u044b\u0435 \u0434\u043e\u043d\u043e\u0440\u0430 | \u0413\u0440\u0443\u043f\u043f\u0430 \u043a\u0440\u043e\u0432\u0438 | A+",
     "overflow": [],
     "consoleErrors": []
   },
@@ -4041,7 +4041,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/courier/active/populated.png",
     "screen": "courier/active",
-    "title": "Courier — active delivery",
+    "title": "Courier \u2014 active delivery",
     "route": "/(courier)/active",
     "state": "populated",
     "intent": "",
@@ -4061,7 +4061,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/courier/active/empty.png",
     "screen": "courier/active",
-    "title": "Courier — active delivery",
+    "title": "Courier \u2014 active delivery",
     "route": "/(courier)/active",
     "state": "empty",
     "intent": "",
@@ -4078,7 +4078,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/courier/active/error.png",
     "screen": "courier/active",
-    "title": "Courier — active delivery",
+    "title": "Courier \u2014 active delivery",
     "route": "/(courier)/active",
     "state": "error",
     "intent": "",
@@ -4097,7 +4097,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/courier/active/loading.png",
     "screen": "courier/active",
-    "title": "Courier — active delivery",
+    "title": "Courier \u2014 active delivery",
     "route": "/(courier)/active",
     "state": "loading",
     "intent": "",
@@ -4114,7 +4114,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/courier/active/permission-location-explainer.png",
     "screen": "courier/active",
-    "title": "Courier — active delivery",
+    "title": "Courier \u2014 active delivery",
     "route": "/(courier)/active",
     "state": "permission-location-explainer",
     "intent": "",
@@ -4134,7 +4134,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/courier/active/long-content.png",
     "screen": "courier/active",
-    "title": "Courier — active delivery",
+    "title": "Courier \u2014 active delivery",
     "route": "/(courier)/active",
     "state": "long-content",
     "intent": "",
@@ -4154,7 +4154,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/courier/history/populated.png",
     "screen": "courier/history",
-    "title": "Courier — history",
+    "title": "Courier \u2014 history",
     "route": "/(courier)/history",
     "state": "populated",
     "intent": "",
@@ -4171,7 +4171,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/courier/history/empty.png",
     "screen": "courier/history",
-    "title": "Courier — history",
+    "title": "Courier \u2014 history",
     "route": "/(courier)/history",
     "state": "empty",
     "intent": "",
@@ -4188,7 +4188,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/courier/history/error.png",
     "screen": "courier/history",
-    "title": "Courier — history",
+    "title": "Courier \u2014 history",
     "route": "/(courier)/history",
     "state": "error",
     "intent": "",
@@ -4207,7 +4207,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/courier/history/long-content.png",
     "screen": "courier/history",
-    "title": "Courier — history",
+    "title": "Courier \u2014 history",
     "route": "/(courier)/history",
     "state": "long-content",
     "intent": "",
@@ -4224,7 +4224,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/courier/profile/populated.png",
     "screen": "courier/profile",
-    "title": "Courier — profile",
+    "title": "Courier \u2014 profile",
     "route": "/(courier)/profile",
     "state": "populated",
     "intent": "",
@@ -4241,7 +4241,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/courier/profile/error.png",
     "screen": "courier/profile",
-    "title": "Courier — profile",
+    "title": "Courier \u2014 profile",
     "route": "/(courier)/profile",
     "state": "error",
     "intent": "",
@@ -4260,7 +4260,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/courier/profile/sign-out-confirmation.png",
     "screen": "courier/profile",
-    "title": "Courier — profile",
+    "title": "Courier \u2014 profile",
     "route": "/(courier)/profile",
     "state": "sign-out-confirmation",
     "intent": "",
@@ -4279,7 +4279,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/iphone-393x852/courier/profile/long-content.png",
     "screen": "courier/profile",
-    "title": "Courier — profile",
+    "title": "Courier \u2014 profile",
     "route": "/(courier)/profile",
     "state": "long-content",
     "intent": "",
@@ -4323,7 +4323,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 222,
-    "firstLines": "Bloodchain | PEOPLE SAVE LIVES | Вместе — сильнее завтра. | Объединяйтесь. Сдавайте кровь. Помогайте. Каждая капля важна.",
+    "firstLines": "Bloodchain | PEOPLE SAVE LIVES | \u0412\u043c\u0435\u0441\u0442\u0435 \u2014 \u0441\u0438\u043b\u044c\u043d\u0435\u0435 \u0437\u0430\u0432\u0442\u0440\u0430. | \u041e\u0431\u044a\u0435\u0434\u0438\u043d\u044f\u0439\u0442\u0435\u0441\u044c. \u0421\u0434\u0430\u0432\u0430\u0439\u0442\u0435 \u043a\u0440\u043e\u0432\u044c. \u041f\u043e\u043c\u043e\u0433\u0430\u0439\u0442\u0435. \u041a\u0430\u0436\u0434\u0430\u044f \u043a\u0430\u043f\u043b\u044f \u0432\u0430\u0436\u043d\u0430.",
     "overflow": [],
     "consoleErrors": []
   },
@@ -4340,7 +4340,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 209,
-    "firstLines": "Bloodchain | PEOPLE SAVE LIVES | Birgalikda kuchliroq ertaga. | Bog‘laning. Qon topshiring. Hissa qo‘shing. Har tomchi muhim.",
+    "firstLines": "Bloodchain | PEOPLE SAVE LIVES | Birgalikda kuchliroq ertaga. | Bog\u2018laning. Qon topshiring. Hissa qo\u2018shing. Har tomchi muhim.",
     "overflow": [],
     "consoleErrors": []
   },
@@ -4461,7 +4461,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 182,
-    "firstLines": "С возвращением | Войдите в аккаунт Bloodchain | Номер телефона | +998",
+    "firstLines": "\u0421 \u0432\u043e\u0437\u0432\u0440\u0430\u0449\u0435\u043d\u0438\u0435\u043c | \u0412\u043e\u0439\u0434\u0438\u0442\u0435 \u0432 \u0430\u043a\u043a\u0430\u0443\u043d\u0442 Bloodchain | \u041d\u043e\u043c\u0435\u0440 \u0442\u0435\u043b\u0435\u0444\u043e\u043d\u0430 | +998",
     "overflow": [],
     "consoleErrors": []
   },
@@ -4529,7 +4529,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 270,
-    "firstLines": "Создайте аккаунт | Присоединяйтесь к Bloodchain и начните спасать жизни | Имя | Фамилия",
+    "firstLines": "\u0421\u043e\u0437\u0434\u0430\u0439\u0442\u0435 \u0430\u043a\u043a\u0430\u0443\u043d\u0442 | \u041f\u0440\u0438\u0441\u043e\u0435\u0434\u0438\u043d\u044f\u0439\u0442\u0435\u0441\u044c \u043a Bloodchain \u0438 \u043d\u0430\u0447\u043d\u0438\u0442\u0435 \u0441\u043f\u0430\u0441\u0430\u0442\u044c \u0436\u0438\u0437\u043d\u0438 | \u0418\u043c\u044f | \u0424\u0430\u043c\u0438\u043b\u0438\u044f",
     "overflow": [],
     "consoleErrors": []
   },
@@ -4580,7 +4580,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 291,
-    "firstLines": "Deyarli tayyor | Raqamingiz tasdiqlandi. Endi o‘zingiz haqingizda ayting. | Ism | Familiya",
+    "firstLines": "Deyarli tayyor | Raqamingiz tasdiqlandi. Endi o\u2018zingiz haqingizda ayting. | Ism | Familiya",
     "overflow": [],
     "consoleErrors": []
   },
@@ -4809,7 +4809,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 172,
-    "firstLines": "Проверьте почту | Мы отправили ссылку для подтверждения на donor@donor.local. Откройте её на этом устройстве, чтобы активировать аккаунт. | Вернуться ко входу | Отправить ещё раз",
+    "firstLines": "\u041f\u0440\u043e\u0432\u0435\u0440\u044c\u0442\u0435 \u043f\u043e\u0447\u0442\u0443 | \u041c\u044b \u043e\u0442\u043f\u0440\u0430\u0432\u0438\u043b\u0438 \u0441\u0441\u044b\u043b\u043a\u0443 \u0434\u043b\u044f \u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d\u0438\u044f \u043d\u0430 donor@donor.local. \u041e\u0442\u043a\u0440\u043e\u0439\u0442\u0435 \u0435\u0451 \u043d\u0430 \u044d\u0442\u043e\u043c \u0443\u0441\u0442\u0440\u043e\u0439\u0441\u0442\u0432\u0435, \u0447\u0442\u043e\u0431\u044b \u0430\u043a\u0442\u0438\u0432\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u0430\u043a\u043a\u0430\u0443\u043d\u0442. | \u0412\u0435\u0440\u043d\u0443\u0442\u044c\u0441\u044f \u043a\u043e \u0432\u0445\u043e\u0434\u0443 | \u041e\u0442\u043f\u0440\u0430\u0432\u0438\u0442\u044c \u0435\u0449\u0451 \u0440\u0430\u0437",
     "overflow": [],
     "consoleErrors": []
   },
@@ -4826,7 +4826,7 @@
     "theme": "dark",
     "data": "overridden",
     "textLength": 21,
-    "firstLines": "Verifying your email…",
+    "firstLines": "Verifying your email\u2026",
     "overflow": [],
     "consoleErrors": []
   },
@@ -4938,7 +4938,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 268,
-    "firstLines": "ШАГ 1 ИЗ 6 | Добро пожаловать в Bloodchain | Ваш путь спасателя жизней начинается здесь. Давайте настроим профиль донора. | Следите за историей сдач крови",
+    "firstLines": "\u0428\u0410\u0413 1 \u0418\u0417 6 | \u0414\u043e\u0431\u0440\u043e \u043f\u043e\u0436\u0430\u043b\u043e\u0432\u0430\u0442\u044c \u0432 Bloodchain | \u0412\u0430\u0448 \u043f\u0443\u0442\u044c \u0441\u043f\u0430\u0441\u0430\u0442\u0435\u043b\u044f \u0436\u0438\u0437\u043d\u0435\u0439 \u043d\u0430\u0447\u0438\u043d\u0430\u0435\u0442\u0441\u044f \u0437\u0434\u0435\u0441\u044c. \u0414\u0430\u0432\u0430\u0439\u0442\u0435 \u043d\u0430\u0441\u0442\u0440\u043e\u0438\u043c \u043f\u0440\u043e\u0444\u0438\u043b\u044c \u0434\u043e\u043d\u043e\u0440\u0430. | \u0421\u043b\u0435\u0434\u0438\u0442\u0435 \u0437\u0430 \u0438\u0441\u0442\u043e\u0440\u0438\u0435\u0439 \u0441\u0434\u0430\u0447 \u043a\u0440\u043e\u0432\u0438",
     "overflow": [],
     "consoleErrors": [
       "BackHandler is not supported on web and should not be used."
@@ -4957,7 +4957,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 283,
-    "firstLines": "6 DAN 1-QADAM | Bloodchain’ga xush kelibsiz | Hayot saqlovchi bo‘lish yo‘lingiz shu yerdan boshlanadi. Keling, donor profilingizni sozlaymiz. | Qon topshirish tarixingizni kuzating",
+    "firstLines": "6 DAN 1-QADAM | Bloodchain\u2019ga xush kelibsiz | Hayot saqlovchi bo\u2018lish yo\u2018lingiz shu yerdan boshlanadi. Keling, donor profilingizni sozlaymiz. | Qon topshirish tarixingizni kuzating",
     "overflow": [],
     "consoleErrors": [
       "BackHandler is not supported on web and should not be used."
@@ -5082,7 +5082,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 703,
-    "firstLines": "вторник, 29 сент. | Добрый день, Sample | 4 | SD",
+    "firstLines": "\u0432\u0442\u043e\u0440\u043d\u0438\u043a, 29 \u0441\u0435\u043d\u0442. | \u0414\u043e\u0431\u0440\u044b\u0439 \u0434\u0435\u043d\u044c, Sample | 4 | SD",
     "overflow": [],
     "consoleErrors": []
   },
@@ -5256,7 +5256,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 902,
-    "firstLines": "Здоровье | Обзор ваших анализов | Всё в норме | HEMATOCRIT",
+    "firstLines": "\u0417\u0434\u043e\u0440\u043e\u0432\u044c\u0435 | \u041e\u0431\u0437\u043e\u0440 \u0432\u0430\u0448\u0438\u0445 \u0430\u043d\u0430\u043b\u0438\u0437\u043e\u0432 | \u0412\u0441\u0451 \u0432 \u043d\u043e\u0440\u043c\u0435 | HEMATOCRIT",
     "overflow": [],
     "consoleErrors": []
   },
@@ -5360,7 +5360,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 925,
-    "firstLines": "Сдать кровь | Запланируйте следующую донацию. | Можно сдавать | Сегодня вы можете сдать кровь.",
+    "firstLines": "\u0421\u0434\u0430\u0442\u044c \u043a\u0440\u043e\u0432\u044c | \u0417\u0430\u043f\u043b\u0430\u043d\u0438\u0440\u0443\u0439\u0442\u0435 \u0441\u043b\u0435\u0434\u0443\u044e\u0449\u0443\u044e \u0434\u043e\u043d\u0430\u0446\u0438\u044e. | \u041c\u043e\u0436\u043d\u043e \u0441\u0434\u0430\u0432\u0430\u0442\u044c | \u0421\u0435\u0433\u043e\u0434\u043d\u044f \u0432\u044b \u043c\u043e\u0436\u0435\u0442\u0435 \u0441\u0434\u0430\u0442\u044c \u043a\u0440\u043e\u0432\u044c.",
     "overflow": [],
     "consoleErrors": []
   },
@@ -5481,7 +5481,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 1346,
-    "firstLines": "Сообщество | Ваша донорская сеть | В ЭТОМ МЕСЯЦЕ | #1",
+    "firstLines": "\u0421\u043e\u043e\u0431\u0449\u0435\u0441\u0442\u0432\u043e | \u0412\u0430\u0448\u0430 \u0434\u043e\u043d\u043e\u0440\u0441\u043a\u0430\u044f \u0441\u0435\u0442\u044c | \u0412 \u042d\u0422\u041e\u041c \u041c\u0415\u0421\u042f\u0426\u0415 | #1",
     "overflow": [],
     "consoleErrors": []
   },
@@ -5568,7 +5568,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 581,
-    "firstLines": "Календарь | Записи и донации | сентябрь 2026 г. | ПН",
+    "firstLines": "\u041a\u0430\u043b\u0435\u043d\u0434\u0430\u0440\u044c | \u0417\u0430\u043f\u0438\u0441\u0438 \u0438 \u0434\u043e\u043d\u0430\u0446\u0438\u0438 | \u0441\u0435\u043d\u0442\u044f\u0431\u0440\u044c 2026 \u0433. | \u041f\u041d",
     "overflow": [],
     "consoleErrors": []
   },
@@ -5636,7 +5636,7 @@
     "theme": "dark",
     "data": "overridden",
     "textLength": 446,
-    "firstLines": "Profile | — | — | Unverified",
+    "firstLines": "Profile | \u2014 | \u2014 | Unverified",
     "overflow": [],
     "consoleErrors": [
       "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
@@ -5674,7 +5674,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 563,
-    "firstLines": "Профиль | SD | Sample Donor | donor@donor.local",
+    "firstLines": "\u041f\u0440\u043e\u0444\u0438\u043b\u044c | SD | Sample Donor | donor@donor.local",
     "overflow": [],
     "consoleErrors": []
   },
@@ -5867,7 +5867,7 @@
     "theme": "dark",
     "data": "overridden",
     "textLength": 479,
-    "firstLines": "2 АКТИВНЫХ ЗАПРОСА РЯДОМ С ВАМИ | Экстренный вызов | O+ | ГРУППА КРОВИ",
+    "firstLines": "2 \u0410\u041a\u0422\u0418\u0412\u041d\u042b\u0425 \u0417\u0410\u041f\u0420\u041e\u0421\u0410 \u0420\u042f\u0414\u041e\u041c \u0421 \u0412\u0410\u041c\u0418 | \u042d\u043a\u0441\u0442\u0440\u0435\u043d\u043d\u044b\u0439 \u0432\u044b\u0437\u043e\u0432 | O+ | \u0413\u0420\u0423\u041f\u041f\u0410 \u041a\u0420\u041e\u0412\u0418",
     "overflow": [],
     "consoleErrors": []
   },
@@ -5884,7 +5884,7 @@
     "theme": "dark",
     "data": "overridden",
     "textLength": 505,
-    "firstLines": "YAQININGIZDA 2 TA FAOL SO‘ROV | Shoshilinch SOS | O+ | QON GURUHI",
+    "firstLines": "YAQININGIZDA 2 TA FAOL SO\u2018ROV | Shoshilinch SOS | O+ | QON GURUHI",
     "overflow": [],
     "consoleErrors": []
   },
@@ -5908,7 +5908,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/android-412x915/booking/1-select-type/default.png",
     "screen": "booking/1-select-type",
-    "title": "Booking — type",
+    "title": "Booking \u2014 type",
     "route": "/(booking)/select-type",
     "state": "default",
     "intent": "",
@@ -5925,7 +5925,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/android-412x915/booking/1-select-type/selected.png",
     "screen": "booking/1-select-type",
-    "title": "Booking — type",
+    "title": "Booking \u2014 type",
     "route": "/(booking)/select-type",
     "state": "selected",
     "intent": "",
@@ -5942,7 +5942,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/android-412x915/booking/1-select-type/locale-ru.png",
     "screen": "booking/1-select-type",
-    "title": "Booking — type",
+    "title": "Booking \u2014 type",
     "route": "/(booking)/select-type",
     "state": "locale-ru",
     "intent": "",
@@ -5952,14 +5952,14 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 220,
-    "firstLines": "Шаг 1 из 5 | Выберите тип записи | Что вы хотите записать? | Донация крови",
+    "firstLines": "\u0428\u0430\u0433 1 \u0438\u0437 5 | \u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u0442\u0438\u043f \u0437\u0430\u043f\u0438\u0441\u0438 | \u0427\u0442\u043e \u0432\u044b \u0445\u043e\u0442\u0438\u0442\u0435 \u0437\u0430\u043f\u0438\u0441\u0430\u0442\u044c? | \u0414\u043e\u043d\u0430\u0446\u0438\u044f \u043a\u0440\u043e\u0432\u0438",
     "overflow": [],
     "consoleErrors": []
   },
   {
     "screenshot": "mobile-v4-visual-qa/android-412x915/booking/2-organizations/populated.png",
     "screen": "booking/2-organizations",
-    "title": "Booking — centre",
+    "title": "Booking \u2014 centre",
     "route": "/(booking)/organizations?type=BLOOD_DONATION",
     "state": "populated",
     "intent": "",
@@ -5976,7 +5976,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/android-412x915/booking/2-organizations/empty.png",
     "screen": "booking/2-organizations",
-    "title": "Booking — centre",
+    "title": "Booking \u2014 centre",
     "route": "/(booking)/organizations?type=BLOOD_DONATION",
     "state": "empty",
     "intent": "",
@@ -5993,7 +5993,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/android-412x915/booking/2-organizations/error.png",
     "screen": "booking/2-organizations",
-    "title": "Booking — centre",
+    "title": "Booking \u2014 centre",
     "route": "/(booking)/organizations?type=BLOOD_DONATION",
     "state": "error",
     "intent": "",
@@ -6012,7 +6012,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/android-412x915/booking/2-organizations/loading.png",
     "screen": "booking/2-organizations",
-    "title": "Booking — centre",
+    "title": "Booking \u2014 centre",
     "route": "/(booking)/organizations?type=BLOOD_DONATION",
     "state": "loading",
     "intent": "",
@@ -6029,7 +6029,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/android-412x915/booking/2-organizations/filters-open.png",
     "screen": "booking/2-organizations",
-    "title": "Booking — centre",
+    "title": "Booking \u2014 centre",
     "route": "/(booking)/organizations?type=BLOOD_DONATION",
     "state": "filters-open",
     "intent": "",
@@ -6046,7 +6046,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/android-412x915/booking/2-organizations/permission-location-explainer.png",
     "screen": "booking/2-organizations",
-    "title": "Booking — centre",
+    "title": "Booking \u2014 centre",
     "route": "/(booking)/organizations?type=BLOOD_DONATION",
     "state": "permission-location-explainer",
     "intent": "nearby asks before the OS does",
@@ -6065,7 +6065,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/android-412x915/booking/2-organizations/locale-ru.png",
     "screen": "booking/2-organizations",
-    "title": "Booking — centre",
+    "title": "Booking \u2014 centre",
     "route": "/(booking)/organizations?type=BLOOD_DONATION",
     "state": "locale-ru",
     "intent": "",
@@ -6075,14 +6075,14 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 2452,
-    "firstLines": "Шаг 2 из 5 | Выберите место | Выберите больницу или центр крови | Фильтры",
+    "firstLines": "\u0428\u0430\u0433 2 \u0438\u0437 5 | \u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u043c\u0435\u0441\u0442\u043e | \u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u0431\u043e\u043b\u044c\u043d\u0438\u0446\u0443 \u0438\u043b\u0438 \u0446\u0435\u043d\u0442\u0440 \u043a\u0440\u043e\u0432\u0438 | \u0424\u0438\u043b\u044c\u0442\u0440\u044b",
     "overflow": [],
     "consoleErrors": []
   },
   {
     "screenshot": "mobile-v4-visual-qa/android-412x915/booking/3-date/populated.png",
     "screen": "booking/3-date",
-    "title": "Booking — date",
+    "title": "Booking \u2014 date",
     "route": "/(booking)/date?organizationId=cmumf5m4o002q7dj8lhxgss4w&type=BLOOD_DONATION",
     "state": "populated",
     "intent": "",
@@ -6099,7 +6099,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/android-412x915/booking/3-date/no-open-dates.png",
     "screen": "booking/3-date",
-    "title": "Booking — date",
+    "title": "Booking \u2014 date",
     "route": "/(booking)/date?organizationId=cmumf5m4o002q7dj8lhxgss4w&type=BLOOD_DONATION",
     "state": "no-open-dates",
     "intent": "the month has nothing open",
@@ -6116,7 +6116,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/android-412x915/booking/3-date/error.png",
     "screen": "booking/3-date",
-    "title": "Booking — date",
+    "title": "Booking \u2014 date",
     "route": "/(booking)/date?organizationId=cmumf5m4o002q7dj8lhxgss4w&type=BLOOD_DONATION",
     "state": "error",
     "intent": "",
@@ -6135,7 +6135,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/android-412x915/booking/3-date/loading.png",
     "screen": "booking/3-date",
-    "title": "Booking — date",
+    "title": "Booking \u2014 date",
     "route": "/(booking)/date?organizationId=cmumf5m4o002q7dj8lhxgss4w&type=BLOOD_DONATION",
     "state": "loading",
     "intent": "",
@@ -6152,7 +6152,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/android-412x915/booking/3-date/locale-ru.png",
     "screen": "booking/3-date",
-    "title": "Booking — date",
+    "title": "Booking \u2014 date",
     "route": "/(booking)/date?organizationId=cmumf5m4o002q7dj8lhxgss4w&type=BLOOD_DONATION",
     "state": "locale-ru",
     "intent": "",
@@ -6162,14 +6162,14 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 222,
-    "firstLines": "Шаг 3 из 5 | Выберите дату | Выбрать можно только даты со свободными местами | сентябрь 2026 г.",
+    "firstLines": "\u0428\u0430\u0433 3 \u0438\u0437 5 | \u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u0434\u0430\u0442\u0443 | \u0412\u044b\u0431\u0440\u0430\u0442\u044c \u043c\u043e\u0436\u043d\u043e \u0442\u043e\u043b\u044c\u043a\u043e \u0434\u0430\u0442\u044b \u0441\u043e \u0441\u0432\u043e\u0431\u043e\u0434\u043d\u044b\u043c\u0438 \u043c\u0435\u0441\u0442\u0430\u043c\u0438 | \u0441\u0435\u043d\u0442\u044f\u0431\u0440\u044c 2026 \u0433.",
     "overflow": [],
     "consoleErrors": []
   },
   {
     "screenshot": "mobile-v4-visual-qa/android-412x915/booking/3-date/locale-uz.png",
     "screen": "booking/3-date",
-    "title": "Booking — date",
+    "title": "Booking \u2014 date",
     "route": "/(booking)/date?organizationId=cmumf5m4o002q7dj8lhxgss4w&type=BLOOD_DONATION",
     "state": "locale-uz",
     "intent": "",
@@ -6179,14 +6179,14 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 223,
-    "firstLines": "5 qadamdan 3-qadam | Sanani tanlang | Faqat bo‘sh joyi bor sanalarni tanlash mumkin | sentabr, 2026",
+    "firstLines": "5 qadamdan 3-qadam | Sanani tanlang | Faqat bo\u2018sh joyi bor sanalarni tanlash mumkin | sentabr, 2026",
     "overflow": [],
     "consoleErrors": []
   },
   {
     "screenshot": "mobile-v4-visual-qa/android-412x915/booking/4-time/populated.png",
     "screen": "booking/4-time",
-    "title": "Booking — time",
+    "title": "Booking \u2014 time",
     "route": "/(booking)/time?organizationId=cmumf5m4o002q7dj8lhxgss4w&type=BLOOD_DONATION&date=2026-09-29",
     "state": "populated",
     "intent": "",
@@ -6203,7 +6203,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/android-412x915/booking/4-time/no-times.png",
     "screen": "booking/4-time",
-    "title": "Booking — time",
+    "title": "Booking \u2014 time",
     "route": "/(booking)/time?organizationId=cmumf5m4o002q7dj8lhxgss4w&type=BLOOD_DONATION&date=2026-09-29",
     "state": "no-times",
     "intent": "",
@@ -6220,7 +6220,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/android-412x915/booking/4-time/error.png",
     "screen": "booking/4-time",
-    "title": "Booking — time",
+    "title": "Booking \u2014 time",
     "route": "/(booking)/time?organizationId=cmumf5m4o002q7dj8lhxgss4w&type=BLOOD_DONATION&date=2026-09-29",
     "state": "error",
     "intent": "",
@@ -6239,7 +6239,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/android-412x915/booking/4-time/loading.png",
     "screen": "booking/4-time",
-    "title": "Booking — time",
+    "title": "Booking \u2014 time",
     "route": "/(booking)/time?organizationId=cmumf5m4o002q7dj8lhxgss4w&type=BLOOD_DONATION&date=2026-09-29",
     "state": "loading",
     "intent": "",
@@ -6256,7 +6256,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/android-412x915/booking/5-review/populated.png",
     "screen": "booking/5-review",
-    "title": "Booking — review",
+    "title": "Booking \u2014 review",
     "route": "/(booking)/review?organizationId=cmumf5m4o002q7dj8lhxgss4w&type=BLOOD_DONATION&date=2026-09-29&slotId=cmumf5n2d00m07dj8r3frjbmz",
     "state": "populated",
     "intent": "",
@@ -6273,7 +6273,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/android-412x915/booking/5-review/slot-taken.png",
     "screen": "booking/5-review",
-    "title": "Booking — review",
+    "title": "Booking \u2014 review",
     "route": "/(booking)/review?organizationId=cmumf5m4o002q7dj8lhxgss4w&type=BLOOD_DONATION&date=2026-09-29&slotId=cmumf5n2d00m07dj8r3frjbmz",
     "state": "slot-taken",
     "intent": "someone else took it while this donor decided",
@@ -6292,7 +6292,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/android-412x915/booking/5-review/server-error.png",
     "screen": "booking/5-review",
-    "title": "Booking — review",
+    "title": "Booking \u2014 review",
     "route": "/(booking)/review?organizationId=cmumf5m4o002q7dj8lhxgss4w&type=BLOOD_DONATION&date=2026-09-29&slotId=cmumf5n2d00m07dj8r3frjbmz",
     "state": "server-error",
     "intent": "",
@@ -6311,7 +6311,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/android-412x915/booking/5-review/submitting.png",
     "screen": "booking/5-review",
-    "title": "Booking — review",
+    "title": "Booking \u2014 review",
     "route": "/(booking)/review?organizationId=cmumf5m4o002q7dj8lhxgss4w&type=BLOOD_DONATION&date=2026-09-29&slotId=cmumf5n2d00m07dj8r3frjbmz",
     "state": "submitting",
     "intent": "",
@@ -6328,7 +6328,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/android-412x915/booking/6-confirmation/populated.png",
     "screen": "booking/6-confirmation",
-    "title": "Booking — confirmed",
+    "title": "Booking \u2014 confirmed",
     "route": "/(booking)/confirmation?appointmentId=cmumfk3q0001h7d5f4jrp03j5",
     "state": "populated",
     "intent": "",
@@ -6345,7 +6345,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/android-412x915/booking/6-confirmation/loading.png",
     "screen": "booking/6-confirmation",
-    "title": "Booking — confirmed",
+    "title": "Booking \u2014 confirmed",
     "route": "/(booking)/confirmation?appointmentId=cmumfk3q0001h7d5f4jrp03j5",
     "state": "loading",
     "intent": "",
@@ -6362,7 +6362,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/android-412x915/booking/6-confirmation/locale-ru.png",
     "screen": "booking/6-confirmation",
-    "title": "Booking — confirmed",
+    "title": "Booking \u2014 confirmed",
     "route": "/(booking)/confirmation?appointmentId=cmumfk3q0001h7d5f4jrp03j5",
     "state": "locale-ru",
     "intent": "",
@@ -6372,14 +6372,14 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 338,
-    "firstLines": "Запись подтверждена! | Ваша запись успешно создана. | НОМЕР ЗАПИСИ | DON-2026-473165",
+    "firstLines": "\u0417\u0430\u043f\u0438\u0441\u044c \u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d\u0430! | \u0412\u0430\u0448\u0430 \u0437\u0430\u043f\u0438\u0441\u044c \u0443\u0441\u043f\u0435\u0448\u043d\u043e \u0441\u043e\u0437\u0434\u0430\u043d\u0430. | \u041d\u041e\u041c\u0415\u0420 \u0417\u0410\u041f\u0418\u0421\u0418 | DON-2026-473165",
     "overflow": [],
     "consoleErrors": []
   },
   {
     "screenshot": "mobile-v4-visual-qa/android-412x915/lab-booking/1-test-type/populated.png",
     "screen": "lab-booking/1-test-type",
-    "title": "Lab — test",
+    "title": "Lab \u2014 test",
     "route": "/(lab-booking)/test-type",
     "state": "populated",
     "intent": "",
@@ -6396,7 +6396,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/android-412x915/lab-booking/1-test-type/empty.png",
     "screen": "lab-booking/1-test-type",
-    "title": "Lab — test",
+    "title": "Lab \u2014 test",
     "route": "/(lab-booking)/test-type",
     "state": "empty",
     "intent": "",
@@ -6413,7 +6413,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/android-412x915/lab-booking/1-test-type/error.png",
     "screen": "lab-booking/1-test-type",
-    "title": "Lab — test",
+    "title": "Lab \u2014 test",
     "route": "/(lab-booking)/test-type",
     "state": "error",
     "intent": "",
@@ -6423,7 +6423,7 @@
     "theme": "dark",
     "data": "overridden",
     "textLength": 164,
-    "firstLines": "Step 1 of 5 | Which test? | Choose the panel you want taken. | Couldn’t load the tests",
+    "firstLines": "Step 1 of 5 | Which test? | Choose the panel you want taken. | Couldn\u2019t load the tests",
     "overflow": [],
     "consoleErrors": [
       "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
@@ -6432,7 +6432,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/android-412x915/lab-booking/1-test-type/loading.png",
     "screen": "lab-booking/1-test-type",
-    "title": "Lab — test",
+    "title": "Lab \u2014 test",
     "route": "/(lab-booking)/test-type",
     "state": "loading",
     "intent": "",
@@ -6449,7 +6449,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/android-412x915/lab-booking/2-laboratory/populated.png",
     "screen": "lab-booking/2-laboratory",
-    "title": "Lab — laboratory",
+    "title": "Lab \u2014 laboratory",
     "route": "/(lab-booking)/laboratory?testTypeId=cmumf5nhn00wt7dj8plljgdld",
     "state": "populated",
     "intent": "",
@@ -6466,7 +6466,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/android-412x915/lab-booking/2-laboratory/empty.png",
     "screen": "lab-booking/2-laboratory",
-    "title": "Lab — laboratory",
+    "title": "Lab \u2014 laboratory",
     "route": "/(lab-booking)/laboratory?testTypeId=cmumf5nhn00wt7dj8plljgdld",
     "state": "empty",
     "intent": "",
@@ -6483,7 +6483,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/android-412x915/lab-booking/2-laboratory/error.png",
     "screen": "lab-booking/2-laboratory",
-    "title": "Lab — laboratory",
+    "title": "Lab \u2014 laboratory",
     "route": "/(lab-booking)/laboratory?testTypeId=cmumf5nhn00wt7dj8plljgdld",
     "state": "error",
     "intent": "",
@@ -6493,7 +6493,7 @@
     "theme": "dark",
     "data": "overridden",
     "textLength": 179,
-    "firstLines": "Step 2 of 5 | Where? | Laboratories that run Complete Blood Count (CBC). | Couldn’t load laboratories",
+    "firstLines": "Step 2 of 5 | Where? | Laboratories that run Complete Blood Count (CBC). | Couldn\u2019t load laboratories",
     "overflow": [],
     "consoleErrors": [
       "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
@@ -6502,7 +6502,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/android-412x915/lab-booking/3-date/populated.png",
     "screen": "lab-booking/3-date",
-    "title": "Lab — date",
+    "title": "Lab \u2014 date",
     "route": "/(lab-booking)/date?testTypeId=cmumf5nhn00wt7dj8plljgdld&laboratoryId=cmumf5m0x001g7dj8fk5mtnoa",
     "state": "populated",
     "intent": "",
@@ -6519,7 +6519,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/android-412x915/lab-booking/3-date/no-open-dates.png",
     "screen": "lab-booking/3-date",
-    "title": "Lab — date",
+    "title": "Lab \u2014 date",
     "route": "/(lab-booking)/date?testTypeId=cmumf5nhn00wt7dj8plljgdld&laboratoryId=cmumf5m0x001g7dj8fk5mtnoa",
     "state": "no-open-dates",
     "intent": "",
@@ -6536,7 +6536,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/android-412x915/lab-booking/3-date/error.png",
     "screen": "lab-booking/3-date",
-    "title": "Lab — date",
+    "title": "Lab \u2014 date",
     "route": "/(lab-booking)/date?testTypeId=cmumf5nhn00wt7dj8plljgdld&laboratoryId=cmumf5m0x001g7dj8fk5mtnoa",
     "state": "error",
     "intent": "",
@@ -6546,7 +6546,7 @@
     "theme": "dark",
     "data": "overridden",
     "textLength": 238,
-    "firstLines": "Step 3 of 5 | Which day? | Days with open times are highlighted. | Couldn’t load availability",
+    "firstLines": "Step 3 of 5 | Which day? | Days with open times are highlighted. | Couldn\u2019t load availability",
     "overflow": [],
     "consoleErrors": [
       "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
@@ -6555,7 +6555,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/android-412x915/lab-booking/3-date/loading.png",
     "screen": "lab-booking/3-date",
-    "title": "Lab — date",
+    "title": "Lab \u2014 date",
     "route": "/(lab-booking)/date?testTypeId=cmumf5nhn00wt7dj8plljgdld&laboratoryId=cmumf5m0x001g7dj8fk5mtnoa",
     "state": "loading",
     "intent": "",
@@ -6572,7 +6572,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/android-412x915/lab-booking/3-date/locale-uz.png",
     "screen": "lab-booking/3-date",
-    "title": "Lab — date",
+    "title": "Lab \u2014 date",
     "route": "/(lab-booking)/date?testTypeId=cmumf5nhn00wt7dj8plljgdld&laboratoryId=cmumf5m0x001g7dj8fk5mtnoa",
     "state": "locale-uz",
     "intent": "",
@@ -6582,14 +6582,14 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 219,
-    "firstLines": "5 qadamdan 3-qadam | Qaysi kuni? | Bo‘sh vaqti bor kunlar ajratib ko‘rsatilgan. | sentabr, 2026",
+    "firstLines": "5 qadamdan 3-qadam | Qaysi kuni? | Bo\u2018sh vaqti bor kunlar ajratib ko\u2018rsatilgan. | sentabr, 2026",
     "overflow": [],
     "consoleErrors": []
   },
   {
     "screenshot": "mobile-v4-visual-qa/android-412x915/lab-booking/4-slot/populated.png",
     "screen": "lab-booking/4-slot",
-    "title": "Lab — slot",
+    "title": "Lab \u2014 slot",
     "route": "/(lab-booking)/slot?testTypeId=cmumf5nhn00wt7dj8plljgdld&laboratoryId=cmumf5m0x001g7dj8fk5mtnoa&date=2026-09-29",
     "state": "populated",
     "intent": "",
@@ -6606,7 +6606,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/android-412x915/lab-booking/4-slot/no-times.png",
     "screen": "lab-booking/4-slot",
-    "title": "Lab — slot",
+    "title": "Lab \u2014 slot",
     "route": "/(lab-booking)/slot?testTypeId=cmumf5nhn00wt7dj8plljgdld&laboratoryId=cmumf5m0x001g7dj8fk5mtnoa&date=2026-09-29",
     "state": "no-times",
     "intent": "",
@@ -6623,7 +6623,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/android-412x915/lab-booking/4-slot/error.png",
     "screen": "lab-booking/4-slot",
-    "title": "Lab — slot",
+    "title": "Lab \u2014 slot",
     "route": "/(lab-booking)/slot?testTypeId=cmumf5nhn00wt7dj8plljgdld&laboratoryId=cmumf5m0x001g7dj8fk5mtnoa&date=2026-09-29",
     "state": "error",
     "intent": "",
@@ -6642,7 +6642,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/android-412x915/lab-booking/5-review/populated.png",
     "screen": "lab-booking/5-review",
-    "title": "Lab — review",
+    "title": "Lab \u2014 review",
     "route": "/(lab-booking)/review?testTypeId=cmumf5nhn00wt7dj8plljgdld&laboratoryId=cmumf5m0x001g7dj8fk5mtnoa&date=2026-09-29&slotId=cmumf5mri00fe7dj8666m13qe",
     "state": "populated",
     "intent": "",
@@ -6659,7 +6659,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/android-412x915/lab-booking/5-review/slot-taken.png",
     "screen": "lab-booking/5-review",
-    "title": "Lab — review",
+    "title": "Lab \u2014 review",
     "route": "/(lab-booking)/review?testTypeId=cmumf5nhn00wt7dj8plljgdld&laboratoryId=cmumf5m0x001g7dj8fk5mtnoa&date=2026-09-29&slotId=cmumf5mri00fe7dj8666m13qe",
     "state": "slot-taken",
     "intent": "",
@@ -6678,7 +6678,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/android-412x915/lab-booking/5-review/server-error.png",
     "screen": "lab-booking/5-review",
-    "title": "Lab — review",
+    "title": "Lab \u2014 review",
     "route": "/(lab-booking)/review?testTypeId=cmumf5nhn00wt7dj8plljgdld&laboratoryId=cmumf5m0x001g7dj8fk5mtnoa&date=2026-09-29&slotId=cmumf5mri00fe7dj8666m13qe",
     "state": "server-error",
     "intent": "",
@@ -6697,7 +6697,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/android-412x915/lab-booking/6-confirmation/populated.png",
     "screen": "lab-booking/6-confirmation",
-    "title": "Lab — confirmed",
+    "title": "Lab \u2014 confirmed",
     "route": "/(lab-booking)/confirmation?appointmentId=cmumf5nju00xv7dj8musztggq",
     "state": "populated",
     "intent": "",
@@ -6714,7 +6714,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/android-412x915/lab-booking/6-confirmation/loading.png",
     "screen": "lab-booking/6-confirmation",
-    "title": "Lab — confirmed",
+    "title": "Lab \u2014 confirmed",
     "route": "/(lab-booking)/confirmation?appointmentId=cmumf5nju00xv7dj8musztggq",
     "state": "loading",
     "intent": "",
@@ -6847,7 +6847,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 609,
-    "firstLines": "Health trends | PARAMETER | Hematocrit | Haematology · 3 measurements",
+    "firstLines": "Health trends | PARAMETER | Hematocrit | Haematology \u00b7 3 measurements",
     "overflow": [],
     "consoleErrors": []
   },
@@ -6864,7 +6864,7 @@
     "theme": "dark",
     "data": "overridden",
     "textLength": 609,
-    "firstLines": "Health trends | PARAMETER | Hematocrit | Haematology · 3 measurements",
+    "firstLines": "Health trends | PARAMETER | Hematocrit | Haematology \u00b7 3 measurements",
     "overflow": [],
     "consoleErrors": []
   },
@@ -6881,7 +6881,7 @@
     "theme": "dark",
     "data": "overridden",
     "textLength": 609,
-    "firstLines": "Health trends | PARAMETER | Hematocrit | Haematology · 3 measurements",
+    "firstLines": "Health trends | PARAMETER | Hematocrit | Haematology \u00b7 3 measurements",
     "overflow": [],
     "consoleErrors": []
   },
@@ -6898,7 +6898,7 @@
     "theme": "dark",
     "data": "overridden",
     "textLength": 609,
-    "firstLines": "Health trends | PARAMETER | Hematocrit | Haematology · 3 measurements",
+    "firstLines": "Health trends | PARAMETER | Hematocrit | Haematology \u00b7 3 measurements",
     "overflow": [],
     "consoleErrors": []
   },
@@ -6915,7 +6915,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 609,
-    "firstLines": "Health trends | PARAMETER | Hematocrit | Haematology · 3 measurements",
+    "firstLines": "Health trends | PARAMETER | Hematocrit | Haematology \u00b7 3 measurements",
     "overflow": [],
     "consoleErrors": []
   },
@@ -6932,7 +6932,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 679,
-    "firstLines": "Powered by AI | AI insights | Personalized health recommendations | AI-generated informational content, drawn from your own recorded health data. It is not a medical diagnosis — always consult your doctor.",
+    "firstLines": "Powered by AI | AI insights | Personalized health recommendations | AI-generated informational content, drawn from your own recorded health data. It is not a medical diagnosis \u2014 always consult your doctor.",
     "overflow": [],
     "consoleErrors": []
   },
@@ -6949,7 +6949,7 @@
     "theme": "dark",
     "data": "overridden",
     "textLength": 679,
-    "firstLines": "Powered by AI | AI insights | Personalized health recommendations | AI-generated informational content, drawn from your own recorded health data. It is not a medical diagnosis — always consult your doctor.",
+    "firstLines": "Powered by AI | AI insights | Personalized health recommendations | AI-generated informational content, drawn from your own recorded health data. It is not a medical diagnosis \u2014 always consult your doctor.",
     "overflow": [],
     "consoleErrors": []
   },
@@ -6966,7 +6966,7 @@
     "theme": "dark",
     "data": "overridden",
     "textLength": 679,
-    "firstLines": "Powered by AI | AI insights | Personalized health recommendations | AI-generated informational content, drawn from your own recorded health data. It is not a medical diagnosis — always consult your doctor.",
+    "firstLines": "Powered by AI | AI insights | Personalized health recommendations | AI-generated informational content, drawn from your own recorded health data. It is not a medical diagnosis \u2014 always consult your doctor.",
     "overflow": [],
     "consoleErrors": []
   },
@@ -6983,7 +6983,7 @@
     "theme": "dark",
     "data": "overridden",
     "textLength": 679,
-    "firstLines": "Powered by AI | AI insights | Personalized health recommendations | AI-generated informational content, drawn from your own recorded health data. It is not a medical diagnosis — always consult your doctor.",
+    "firstLines": "Powered by AI | AI insights | Personalized health recommendations | AI-generated informational content, drawn from your own recorded health data. It is not a medical diagnosis \u2014 always consult your doctor.",
     "overflow": [],
     "consoleErrors": []
   },
@@ -7000,7 +7000,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 679,
-    "firstLines": "Powered by AI | AI insights | Personalized health recommendations | AI-generated informational content, drawn from your own recorded health data. It is not a medical diagnosis — always consult your doctor.",
+    "firstLines": "Powered by AI | AI insights | Personalized health recommendations | AI-generated informational content, drawn from your own recorded health data. It is not a medical diagnosis \u2014 always consult your doctor.",
     "overflow": [],
     "consoleErrors": []
   },
@@ -7174,7 +7174,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 257,
-    "firstLines": "Детали донации | DONATION-2026-741749 | Цельная кровь | Отменена",
+    "firstLines": "\u0414\u0435\u0442\u0430\u043b\u0438 \u0434\u043e\u043d\u0430\u0446\u0438\u0438 | DONATION-2026-741749 | \u0426\u0435\u043b\u044c\u043d\u0430\u044f \u043a\u0440\u043e\u0432\u044c | \u041e\u0442\u043c\u0435\u043d\u0435\u043d\u0430",
     "overflow": [],
     "consoleErrors": []
   },
@@ -7473,7 +7473,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 815,
-    "firstLines": "Ta’lim markazi | Qon topshirish haqida o‘rganing va XP oling | Sizning natijangiz | Yakunlangan",
+    "firstLines": "Ta\u2019lim markazi | Qon topshirish haqida o\u2018rganing va XP oling | Sizning natijangiz | Yakunlangan",
     "overflow": [],
     "consoleErrors": []
   },
@@ -7497,7 +7497,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/android-412x915/community/education-article/populated.png",
     "screen": "community/education-article",
-    "title": "Education — the article",
+    "title": "Education \u2014 the article",
     "route": "/(app)/education/cmumf5noj01137dj8zte3qhoh",
     "state": "populated",
     "intent": "the body the module has always carried and never showed",
@@ -7514,7 +7514,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/android-412x915/community/education-article/error.png",
     "screen": "community/education-article",
-    "title": "Education — the article",
+    "title": "Education \u2014 the article",
     "route": "/(app)/education/cmumf5noj01137dj8zte3qhoh",
     "state": "error",
     "intent": "",
@@ -7533,7 +7533,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/android-412x915/community/education-article/loading.png",
     "screen": "community/education-article",
-    "title": "Education — the article",
+    "title": "Education \u2014 the article",
     "route": "/(app)/education/cmumf5noj01137dj8zte3qhoh",
     "state": "loading",
     "intent": "",
@@ -7550,7 +7550,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/android-412x915/community/education-article/locale-ru.png",
     "screen": "community/education-article",
-    "title": "Education — the article",
+    "title": "Education \u2014 the article",
     "route": "/(app)/education/cmumf5noj01137dj8zte3qhoh",
     "state": "locale-ru",
     "intent": "",
@@ -7560,14 +7560,14 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 518,
-    "firstLines": "Обучение | Статья | Начальный | Eligibility",
+    "firstLines": "\u041e\u0431\u0443\u0447\u0435\u043d\u0438\u0435 | \u0421\u0442\u0430\u0442\u044c\u044f | \u041d\u0430\u0447\u0430\u043b\u044c\u043d\u044b\u0439 | Eligibility",
     "overflow": [],
     "consoleErrors": []
   },
   {
     "screenshot": "mobile-v4-visual-qa/android-412x915/community/education-article/long-content.png",
     "screen": "community/education-article",
-    "title": "Education — the article",
+    "title": "Education \u2014 the article",
     "route": "/(app)/education/cmumf5noj01137dj8zte3qhoh",
     "state": "long-content",
     "intent": "",
@@ -7664,7 +7664,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 225,
-    "firstLines": "2 OF 11 EARNED | Badges | Earned · 2 | First Drop",
+    "firstLines": "2 OF 11 EARNED | Badges | Earned \u00b7 2 | First Drop",
     "overflow": [],
     "consoleErrors": []
   },
@@ -7681,7 +7681,7 @@
     "theme": "dark",
     "data": "overridden",
     "textLength": 113,
-    "firstLines": "0 OF 0 EARNED | Badges | No badges yet — your first donation earns one. | Home",
+    "firstLines": "0 OF 0 EARNED | Badges | No badges yet \u2014 your first donation earns one. | Home",
     "overflow": [],
     "consoleErrors": []
   },
@@ -7717,7 +7717,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 225,
-    "firstLines": "2 OF 11 EARNED | Badges | Earned · 2 | First Drop",
+    "firstLines": "2 OF 11 EARNED | Badges | Earned \u00b7 2 | First Drop",
     "overflow": [],
     "consoleErrors": []
   },
@@ -7734,7 +7734,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 1181,
-    "firstLines": "3 OF 19 UNLOCKED | Achievements | Unlocked · 3 | First Donation",
+    "firstLines": "3 OF 19 UNLOCKED | Achievements | Unlocked \u00b7 3 | First Donation",
     "overflow": [],
     "consoleErrors": []
   },
@@ -7787,7 +7787,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 1181,
-    "firstLines": "3 OF 19 UNLOCKED | Achievements | Unlocked · 3 | First Donation",
+    "firstLines": "3 OF 19 UNLOCKED | Achievements | Unlocked \u00b7 3 | First Donation",
     "overflow": [],
     "consoleErrors": []
   },
@@ -7908,7 +7908,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 880,
-    "firstLines": "Конфиденциальность | Контролируйте, чем вы делитесь | Геолокация и данные | Делиться геопозицией",
+    "firstLines": "\u041a\u043e\u043d\u0444\u0438\u0434\u0435\u043d\u0446\u0438\u0430\u043b\u044c\u043d\u043e\u0441\u0442\u044c | \u041a\u043e\u043d\u0442\u0440\u043e\u043b\u0438\u0440\u0443\u0439\u0442\u0435, \u0447\u0435\u043c \u0432\u044b \u0434\u0435\u043b\u0438\u0442\u0435\u0441\u044c | \u0413\u0435\u043e\u043b\u043e\u043a\u0430\u0446\u0438\u044f \u0438 \u0434\u0430\u043d\u043d\u044b\u0435 | \u0414\u0435\u043b\u0438\u0442\u044c\u0441\u044f \u0433\u0435\u043e\u043f\u043e\u0437\u0438\u0446\u0438\u0435\u0439",
     "overflow": [],
     "consoleErrors": []
   },
@@ -8171,7 +8171,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 677,
-    "firstLines": "Настройки уведомлений | Выберите, о чём приложение будет сообщать | На этом устройстве | Телефон пока не показывает уведомления Bloodchain.",
+    "firstLines": "\u041d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438 \u0443\u0432\u0435\u0434\u043e\u043c\u043b\u0435\u043d\u0438\u0439 | \u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435, \u043e \u0447\u0451\u043c \u043f\u0440\u0438\u043b\u043e\u0436\u0435\u043d\u0438\u0435 \u0431\u0443\u0434\u0435\u0442 \u0441\u043e\u043e\u0431\u0449\u0430\u0442\u044c | \u041d\u0430 \u044d\u0442\u043e\u043c \u0443\u0441\u0442\u0440\u043e\u0439\u0441\u0442\u0432\u0435 | \u0422\u0435\u043b\u0435\u0444\u043e\u043d \u043f\u043e\u043a\u0430 \u043d\u0435 \u043f\u043e\u043a\u0430\u0437\u044b\u0432\u0430\u0435\u0442 \u0443\u0432\u0435\u0434\u043e\u043c\u043b\u0435\u043d\u0438\u044f Bloodchain.",
     "overflow": [],
     "consoleErrors": []
   },
@@ -8311,7 +8311,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 292,
-    "firstLines": "Профиль донора | Обновите данные донора | Группа крови | A+",
+    "firstLines": "\u041f\u0440\u043e\u0444\u0438\u043b\u044c \u0434\u043e\u043d\u043e\u0440\u0430 | \u041e\u0431\u043d\u043e\u0432\u0438\u0442\u0435 \u0434\u0430\u043d\u043d\u044b\u0435 \u0434\u043e\u043d\u043e\u0440\u0430 | \u0413\u0440\u0443\u043f\u043f\u0430 \u043a\u0440\u043e\u0432\u0438 | A+",
     "overflow": [],
     "consoleErrors": []
   },
@@ -8335,7 +8335,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/android-412x915/courier/active/populated.png",
     "screen": "courier/active",
-    "title": "Courier — active delivery",
+    "title": "Courier \u2014 active delivery",
     "route": "/(courier)/active",
     "state": "populated",
     "intent": "",
@@ -8355,7 +8355,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/android-412x915/courier/active/empty.png",
     "screen": "courier/active",
-    "title": "Courier — active delivery",
+    "title": "Courier \u2014 active delivery",
     "route": "/(courier)/active",
     "state": "empty",
     "intent": "",
@@ -8372,7 +8372,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/android-412x915/courier/active/error.png",
     "screen": "courier/active",
-    "title": "Courier — active delivery",
+    "title": "Courier \u2014 active delivery",
     "route": "/(courier)/active",
     "state": "error",
     "intent": "",
@@ -8391,7 +8391,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/android-412x915/courier/active/loading.png",
     "screen": "courier/active",
-    "title": "Courier — active delivery",
+    "title": "Courier \u2014 active delivery",
     "route": "/(courier)/active",
     "state": "loading",
     "intent": "",
@@ -8408,7 +8408,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/android-412x915/courier/active/permission-location-explainer.png",
     "screen": "courier/active",
-    "title": "Courier — active delivery",
+    "title": "Courier \u2014 active delivery",
     "route": "/(courier)/active",
     "state": "permission-location-explainer",
     "intent": "",
@@ -8428,7 +8428,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/android-412x915/courier/active/long-content.png",
     "screen": "courier/active",
-    "title": "Courier — active delivery",
+    "title": "Courier \u2014 active delivery",
     "route": "/(courier)/active",
     "state": "long-content",
     "intent": "",
@@ -8448,7 +8448,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/android-412x915/courier/history/populated.png",
     "screen": "courier/history",
-    "title": "Courier — history",
+    "title": "Courier \u2014 history",
     "route": "/(courier)/history",
     "state": "populated",
     "intent": "",
@@ -8465,7 +8465,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/android-412x915/courier/history/empty.png",
     "screen": "courier/history",
-    "title": "Courier — history",
+    "title": "Courier \u2014 history",
     "route": "/(courier)/history",
     "state": "empty",
     "intent": "",
@@ -8482,7 +8482,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/android-412x915/courier/history/error.png",
     "screen": "courier/history",
-    "title": "Courier — history",
+    "title": "Courier \u2014 history",
     "route": "/(courier)/history",
     "state": "error",
     "intent": "",
@@ -8501,7 +8501,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/android-412x915/courier/history/long-content.png",
     "screen": "courier/history",
-    "title": "Courier — history",
+    "title": "Courier \u2014 history",
     "route": "/(courier)/history",
     "state": "long-content",
     "intent": "",
@@ -8518,7 +8518,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/android-412x915/courier/profile/populated.png",
     "screen": "courier/profile",
-    "title": "Courier — profile",
+    "title": "Courier \u2014 profile",
     "route": "/(courier)/profile",
     "state": "populated",
     "intent": "",
@@ -8535,7 +8535,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/android-412x915/courier/profile/error.png",
     "screen": "courier/profile",
-    "title": "Courier — profile",
+    "title": "Courier \u2014 profile",
     "route": "/(courier)/profile",
     "state": "error",
     "intent": "",
@@ -8554,7 +8554,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/android-412x915/courier/profile/sign-out-confirmation.png",
     "screen": "courier/profile",
-    "title": "Courier — profile",
+    "title": "Courier \u2014 profile",
     "route": "/(courier)/profile",
     "state": "sign-out-confirmation",
     "intent": "",
@@ -8573,7 +8573,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/android-412x915/courier/profile/long-content.png",
     "screen": "courier/profile",
-    "title": "Courier — profile",
+    "title": "Courier \u2014 profile",
     "route": "/(courier)/profile",
     "state": "long-content",
     "intent": "",
@@ -8617,7 +8617,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 222,
-    "firstLines": "Bloodchain | PEOPLE SAVE LIVES | Вместе — сильнее завтра. | Объединяйтесь. Сдавайте кровь. Помогайте. Каждая капля важна.",
+    "firstLines": "Bloodchain | PEOPLE SAVE LIVES | \u0412\u043c\u0435\u0441\u0442\u0435 \u2014 \u0441\u0438\u043b\u044c\u043d\u0435\u0435 \u0437\u0430\u0432\u0442\u0440\u0430. | \u041e\u0431\u044a\u0435\u0434\u0438\u043d\u044f\u0439\u0442\u0435\u0441\u044c. \u0421\u0434\u0430\u0432\u0430\u0439\u0442\u0435 \u043a\u0440\u043e\u0432\u044c. \u041f\u043e\u043c\u043e\u0433\u0430\u0439\u0442\u0435. \u041a\u0430\u0436\u0434\u0430\u044f \u043a\u0430\u043f\u043b\u044f \u0432\u0430\u0436\u043d\u0430.",
     "overflow": [],
     "consoleErrors": []
   },
@@ -8634,7 +8634,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 209,
-    "firstLines": "Bloodchain | PEOPLE SAVE LIVES | Birgalikda kuchliroq ertaga. | Bog‘laning. Qon topshiring. Hissa qo‘shing. Har tomchi muhim.",
+    "firstLines": "Bloodchain | PEOPLE SAVE LIVES | Birgalikda kuchliroq ertaga. | Bog\u2018laning. Qon topshiring. Hissa qo\u2018shing. Har tomchi muhim.",
     "overflow": [],
     "consoleErrors": []
   },
@@ -8755,7 +8755,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 182,
-    "firstLines": "С возвращением | Войдите в аккаунт Bloodchain | Номер телефона | +998",
+    "firstLines": "\u0421 \u0432\u043e\u0437\u0432\u0440\u0430\u0449\u0435\u043d\u0438\u0435\u043c | \u0412\u043e\u0439\u0434\u0438\u0442\u0435 \u0432 \u0430\u043a\u043a\u0430\u0443\u043d\u0442 Bloodchain | \u041d\u043e\u043c\u0435\u0440 \u0442\u0435\u043b\u0435\u0444\u043e\u043d\u0430 | +998",
     "overflow": [],
     "consoleErrors": []
   },
@@ -8823,7 +8823,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 270,
-    "firstLines": "Создайте аккаунт | Присоединяйтесь к Bloodchain и начните спасать жизни | Имя | Фамилия",
+    "firstLines": "\u0421\u043e\u0437\u0434\u0430\u0439\u0442\u0435 \u0430\u043a\u043a\u0430\u0443\u043d\u0442 | \u041f\u0440\u0438\u0441\u043e\u0435\u0434\u0438\u043d\u044f\u0439\u0442\u0435\u0441\u044c \u043a Bloodchain \u0438 \u043d\u0430\u0447\u043d\u0438\u0442\u0435 \u0441\u043f\u0430\u0441\u0430\u0442\u044c \u0436\u0438\u0437\u043d\u0438 | \u0418\u043c\u044f | \u0424\u0430\u043c\u0438\u043b\u0438\u044f",
     "overflow": [],
     "consoleErrors": []
   },
@@ -8874,7 +8874,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 291,
-    "firstLines": "Deyarli tayyor | Raqamingiz tasdiqlandi. Endi o‘zingiz haqingizda ayting. | Ism | Familiya",
+    "firstLines": "Deyarli tayyor | Raqamingiz tasdiqlandi. Endi o\u2018zingiz haqingizda ayting. | Ism | Familiya",
     "overflow": [],
     "consoleErrors": []
   },
@@ -9103,7 +9103,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 172,
-    "firstLines": "Проверьте почту | Мы отправили ссылку для подтверждения на donor@donor.local. Откройте её на этом устройстве, чтобы активировать аккаунт. | Вернуться ко входу | Отправить ещё раз",
+    "firstLines": "\u041f\u0440\u043e\u0432\u0435\u0440\u044c\u0442\u0435 \u043f\u043e\u0447\u0442\u0443 | \u041c\u044b \u043e\u0442\u043f\u0440\u0430\u0432\u0438\u043b\u0438 \u0441\u0441\u044b\u043b\u043a\u0443 \u0434\u043b\u044f \u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d\u0438\u044f \u043d\u0430 donor@donor.local. \u041e\u0442\u043a\u0440\u043e\u0439\u0442\u0435 \u0435\u0451 \u043d\u0430 \u044d\u0442\u043e\u043c \u0443\u0441\u0442\u0440\u043e\u0439\u0441\u0442\u0432\u0435, \u0447\u0442\u043e\u0431\u044b \u0430\u043a\u0442\u0438\u0432\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u0430\u043a\u043a\u0430\u0443\u043d\u0442. | \u0412\u0435\u0440\u043d\u0443\u0442\u044c\u0441\u044f \u043a\u043e \u0432\u0445\u043e\u0434\u0443 | \u041e\u0442\u043f\u0440\u0430\u0432\u0438\u0442\u044c \u0435\u0449\u0451 \u0440\u0430\u0437",
     "overflow": [],
     "consoleErrors": []
   },
@@ -9120,7 +9120,7 @@
     "theme": "dark",
     "data": "overridden",
     "textLength": 21,
-    "firstLines": "Verifying your email…",
+    "firstLines": "Verifying your email\u2026",
     "overflow": [],
     "consoleErrors": []
   },
@@ -9232,7 +9232,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 268,
-    "firstLines": "ШАГ 1 ИЗ 6 | Добро пожаловать в Bloodchain | Ваш путь спасателя жизней начинается здесь. Давайте настроим профиль донора. | Следите за историей сдач крови",
+    "firstLines": "\u0428\u0410\u0413 1 \u0418\u0417 6 | \u0414\u043e\u0431\u0440\u043e \u043f\u043e\u0436\u0430\u043b\u043e\u0432\u0430\u0442\u044c \u0432 Bloodchain | \u0412\u0430\u0448 \u043f\u0443\u0442\u044c \u0441\u043f\u0430\u0441\u0430\u0442\u0435\u043b\u044f \u0436\u0438\u0437\u043d\u0435\u0439 \u043d\u0430\u0447\u0438\u043d\u0430\u0435\u0442\u0441\u044f \u0437\u0434\u0435\u0441\u044c. \u0414\u0430\u0432\u0430\u0439\u0442\u0435 \u043d\u0430\u0441\u0442\u0440\u043e\u0438\u043c \u043f\u0440\u043e\u0444\u0438\u043b\u044c \u0434\u043e\u043d\u043e\u0440\u0430. | \u0421\u043b\u0435\u0434\u0438\u0442\u0435 \u0437\u0430 \u0438\u0441\u0442\u043e\u0440\u0438\u0435\u0439 \u0441\u0434\u0430\u0447 \u043a\u0440\u043e\u0432\u0438",
     "overflow": [],
     "consoleErrors": [
       "BackHandler is not supported on web and should not be used."
@@ -9251,7 +9251,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 283,
-    "firstLines": "6 DAN 1-QADAM | Bloodchain’ga xush kelibsiz | Hayot saqlovchi bo‘lish yo‘lingiz shu yerdan boshlanadi. Keling, donor profilingizni sozlaymiz. | Qon topshirish tarixingizni kuzating",
+    "firstLines": "6 DAN 1-QADAM | Bloodchain\u2019ga xush kelibsiz | Hayot saqlovchi bo\u2018lish yo\u2018lingiz shu yerdan boshlanadi. Keling, donor profilingizni sozlaymiz. | Qon topshirish tarixingizni kuzating",
     "overflow": [],
     "consoleErrors": [
       "BackHandler is not supported on web and should not be used."
@@ -9269,8 +9269,8 @@
     "locale": "en",
     "theme": "dark",
     "data": "seeded database",
-    "textLength": 649,
-    "firstLines": "Tuesday 29 Sept | Good afternoon, Sample | 4 | SD",
+    "textLength": 642,
+    "firstLines": "Sunday 11 Oct | Good evening, Sample | 2 | SD",
     "overflow": [],
     "consoleErrors": []
   },
@@ -9286,8 +9286,8 @@
     "locale": "en",
     "theme": "dark",
     "data": "overridden",
-    "textLength": 638,
-    "firstLines": "Tuesday 29 Sept | Good afternoon, Sample | 4 | SD",
+    "textLength": 629,
+    "firstLines": "Sunday 11 Oct | Good evening, Sample | 2 | SD",
     "overflow": [],
     "consoleErrors": []
   },
@@ -9303,8 +9303,8 @@
     "locale": "en",
     "theme": "dark",
     "data": "overridden",
-    "textLength": 678,
-    "firstLines": "Tuesday 29 Sept | Good afternoon, Sample | SD | BLOOD TYPE",
+    "textLength": 669,
+    "firstLines": "Sunday 11 Oct | Good evening, Sample | SD | BLOOD TYPE",
     "overflow": [],
     "consoleErrors": [
       "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
@@ -9322,8 +9322,8 @@
     "locale": "en",
     "theme": "dark",
     "data": "overridden",
-    "textLength": 680,
-    "firstLines": "Tuesday 29 Sept | Good afternoon, Sample | 4 | SD",
+    "textLength": 671,
+    "firstLines": "Sunday 11 Oct | Good evening, Sample | 2 | SD",
     "overflow": [],
     "consoleErrors": [
       "Failed to load resource: net::ERR_CONNECTION_REFUSED"
@@ -9341,8 +9341,8 @@
     "locale": "en",
     "theme": "dark",
     "data": "overridden",
-    "textLength": 634,
-    "firstLines": "Tuesday 29 Sept | Good afternoon, Sample | 4 | SD",
+    "textLength": 627,
+    "firstLines": "Sunday 11 Oct | Good evening, Sample | 2 | SD",
     "overflow": [],
     "consoleErrors": []
   },
@@ -9358,8 +9358,8 @@
     "locale": "en",
     "theme": "dark",
     "data": "overridden",
-    "textLength": 638,
-    "firstLines": "Tuesday 29 Sept | Good afternoon, Sample | 4 | SD",
+    "textLength": 629,
+    "firstLines": "Sunday 11 Oct | Good evening, Sample | 2 | SD",
     "overflow": [],
     "consoleErrors": []
   },
@@ -9375,8 +9375,8 @@
     "locale": "ru",
     "theme": "dark",
     "data": "seeded database",
-    "textLength": 703,
-    "firstLines": "вторник, 29 сент. | Добрый день, Sample | 4 | SD",
+    "textLength": 705,
+    "firstLines": "\u0432\u043e\u0441\u043a\u0440\u0435\u0441\u0435\u043d\u044c\u0435, 11 \u043e\u043a\u0442. | \u0414\u043e\u0431\u0440\u044b\u0439 \u0432\u0435\u0447\u0435\u0440, Sample | 2 | SD",
     "overflow": [],
     "consoleErrors": []
   },
@@ -9392,8 +9392,8 @@
     "locale": "uz",
     "theme": "dark",
     "data": "seeded database",
-    "textLength": 768,
-    "firstLines": "Seshanba, 29 sen | Xayrli kun, Sample | 4 | SD",
+    "textLength": 766,
+    "firstLines": "Yakshanba, 11 okt | Xayrli kech, Sample | 2 | SD",
     "overflow": [],
     "consoleErrors": []
   },
@@ -9409,8 +9409,8 @@
     "locale": "en",
     "theme": "light",
     "data": "seeded database",
-    "textLength": 649,
-    "firstLines": "Tuesday 29 Sept | Good afternoon, Sample | 4 | SD",
+    "textLength": 642,
+    "firstLines": "Sunday 11 Oct | Good evening, Sample | 2 | SD",
     "overflow": [],
     "consoleErrors": []
   },
@@ -9426,8 +9426,8 @@
     "locale": "en",
     "theme": "dark",
     "data": "seeded database",
-    "textLength": 649,
-    "firstLines": "Tuesday 29 Sept | Good afternoon, Sample | 4 | SD",
+    "textLength": 642,
+    "firstLines": "Sunday 11 Oct | Good evening, Sample | 2 | SD",
     "overflow": [],
     "consoleErrors": []
   },
@@ -9550,7 +9550,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 902,
-    "firstLines": "Здоровье | Обзор ваших анализов | Всё в норме | HEMATOCRIT",
+    "firstLines": "\u0417\u0434\u043e\u0440\u043e\u0432\u044c\u0435 | \u041e\u0431\u0437\u043e\u0440 \u0432\u0430\u0448\u0438\u0445 \u0430\u043d\u0430\u043b\u0438\u0437\u043e\u0432 | \u0412\u0441\u0451 \u0432 \u043d\u043e\u0440\u043c\u0435 | HEMATOCRIT",
     "overflow": [],
     "consoleErrors": []
   },
@@ -9654,7 +9654,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 925,
-    "firstLines": "Сдать кровь | Запланируйте следующую донацию. | Можно сдавать | Сегодня вы можете сдать кровь.",
+    "firstLines": "\u0421\u0434\u0430\u0442\u044c \u043a\u0440\u043e\u0432\u044c | \u0417\u0430\u043f\u043b\u0430\u043d\u0438\u0440\u0443\u0439\u0442\u0435 \u0441\u043b\u0435\u0434\u0443\u044e\u0449\u0443\u044e \u0434\u043e\u043d\u0430\u0446\u0438\u044e. | \u041c\u043e\u0436\u043d\u043e \u0441\u0434\u0430\u0432\u0430\u0442\u044c | \u0421\u0435\u0433\u043e\u0434\u043d\u044f \u0432\u044b \u043c\u043e\u0436\u0435\u0442\u0435 \u0441\u0434\u0430\u0442\u044c \u043a\u0440\u043e\u0432\u044c.",
     "overflow": [],
     "consoleErrors": []
   },
@@ -9775,7 +9775,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 1346,
-    "firstLines": "Сообщество | Ваша донорская сеть | В ЭТОМ МЕСЯЦЕ | #1",
+    "firstLines": "\u0421\u043e\u043e\u0431\u0449\u0435\u0441\u0442\u0432\u043e | \u0412\u0430\u0448\u0430 \u0434\u043e\u043d\u043e\u0440\u0441\u043a\u0430\u044f \u0441\u0435\u0442\u044c | \u0412 \u042d\u0422\u041e\u041c \u041c\u0415\u0421\u042f\u0426\u0415 | #1",
     "overflow": [],
     "consoleErrors": []
   },
@@ -9808,8 +9808,8 @@
     "locale": "en",
     "theme": "dark",
     "data": "seeded database",
-    "textLength": 561,
-    "firstLines": "Calendar | Appointments & donations | September 2026 | MON",
+    "textLength": 502,
+    "firstLines": "Calendar | Appointments & donations | October 2026 | MON",
     "overflow": [],
     "consoleErrors": []
   },
@@ -9825,8 +9825,8 @@
     "locale": "en",
     "theme": "dark",
     "data": "overridden",
-    "textLength": 334,
-    "firstLines": "Calendar | Appointments & donations | September 2026 | MON",
+    "textLength": 332,
+    "firstLines": "Calendar | Appointments & donations | October 2026 | MON",
     "overflow": [],
     "consoleErrors": []
   },
@@ -9842,8 +9842,8 @@
     "locale": "en",
     "theme": "dark",
     "data": "overridden",
-    "textLength": 362,
-    "firstLines": "Calendar | Appointments & donations | September 2026 | MON",
+    "textLength": 360,
+    "firstLines": "Calendar | Appointments & donations | October 2026 | MON",
     "overflow": [],
     "consoleErrors": [
       "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
@@ -9861,8 +9861,8 @@
     "locale": "ru",
     "theme": "dark",
     "data": "seeded database",
-    "textLength": 581,
-    "firstLines": "Календарь | Записи и донации | сентябрь 2026 г. | ПН",
+    "textLength": 529,
+    "firstLines": "\u041a\u0430\u043b\u0435\u043d\u0434\u0430\u0440\u044c | \u0417\u0430\u043f\u0438\u0441\u0438 \u0438 \u0434\u043e\u043d\u0430\u0446\u0438\u0438 | \u043e\u043a\u0442\u044f\u0431\u0440\u044c 2026 \u0433. | \u041f\u041d",
     "overflow": [],
     "consoleErrors": []
   },
@@ -9878,8 +9878,8 @@
     "locale": "uz",
     "theme": "dark",
     "data": "seeded database",
-    "textLength": 629,
-    "firstLines": "Kalendar | Uchrashuvlar va topshirishlar | sentabr, 2026 | DUSH",
+    "textLength": 566,
+    "firstLines": "Kalendar | Uchrashuvlar va topshirishlar | oktabr, 2026 | DUSH",
     "overflow": [],
     "consoleErrors": []
   },
@@ -9895,8 +9895,8 @@
     "locale": "en",
     "theme": "dark",
     "data": "seeded database",
-    "textLength": 561,
-    "firstLines": "Calendar | Appointments & donations | September 2026 | MON",
+    "textLength": 502,
+    "firstLines": "Calendar | Appointments & donations | October 2026 | MON",
     "overflow": [],
     "consoleErrors": []
   },
@@ -9930,7 +9930,7 @@
     "theme": "dark",
     "data": "overridden",
     "textLength": 446,
-    "firstLines": "Profile | — | — | Unverified",
+    "firstLines": "Profile | \u2014 | \u2014 | Unverified",
     "overflow": [],
     "consoleErrors": [
       "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
@@ -9967,8 +9967,8 @@
     "locale": "ru",
     "theme": "dark",
     "data": "seeded database",
-    "textLength": 563,
-    "firstLines": "Профиль | SD | Sample Donor | donor@donor.local",
+    "textLength": 567,
+    "firstLines": "\u041f\u0440\u043e\u0444\u0438\u043b\u044c | SD | Sample Donor | donor@donor.local",
     "overflow": [],
     "consoleErrors": []
   },
@@ -10161,7 +10161,7 @@
     "theme": "dark",
     "data": "overridden",
     "textLength": 479,
-    "firstLines": "2 АКТИВНЫХ ЗАПРОСА РЯДОМ С ВАМИ | Экстренный вызов | O+ | ГРУППА КРОВИ",
+    "firstLines": "2 \u0410\u041a\u0422\u0418\u0412\u041d\u042b\u0425 \u0417\u0410\u041f\u0420\u041e\u0421\u0410 \u0420\u042f\u0414\u041e\u041c \u0421 \u0412\u0410\u041c\u0418 | \u042d\u043a\u0441\u0442\u0440\u0435\u043d\u043d\u044b\u0439 \u0432\u044b\u0437\u043e\u0432 | O+ | \u0413\u0420\u0423\u041f\u041f\u0410 \u041a\u0420\u041e\u0412\u0418",
     "overflow": [],
     "consoleErrors": []
   },
@@ -10178,7 +10178,7 @@
     "theme": "dark",
     "data": "overridden",
     "textLength": 505,
-    "firstLines": "YAQININGIZDA 2 TA FAOL SO‘ROV | Shoshilinch SOS | O+ | QON GURUHI",
+    "firstLines": "YAQININGIZDA 2 TA FAOL SO\u2018ROV | Shoshilinch SOS | O+ | QON GURUHI",
     "overflow": [],
     "consoleErrors": []
   },
@@ -10202,7 +10202,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/small-360x640/booking/1-select-type/default.png",
     "screen": "booking/1-select-type",
-    "title": "Booking — type",
+    "title": "Booking \u2014 type",
     "route": "/(booking)/select-type",
     "state": "default",
     "intent": "",
@@ -10219,7 +10219,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/small-360x640/booking/1-select-type/selected.png",
     "screen": "booking/1-select-type",
-    "title": "Booking — type",
+    "title": "Booking \u2014 type",
     "route": "/(booking)/select-type",
     "state": "selected",
     "intent": "",
@@ -10236,7 +10236,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/small-360x640/booking/1-select-type/locale-ru.png",
     "screen": "booking/1-select-type",
-    "title": "Booking — type",
+    "title": "Booking \u2014 type",
     "route": "/(booking)/select-type",
     "state": "locale-ru",
     "intent": "",
@@ -10246,14 +10246,14 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 220,
-    "firstLines": "Шаг 1 из 5 | Выберите тип записи | Что вы хотите записать? | Донация крови",
+    "firstLines": "\u0428\u0430\u0433 1 \u0438\u0437 5 | \u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u0442\u0438\u043f \u0437\u0430\u043f\u0438\u0441\u0438 | \u0427\u0442\u043e \u0432\u044b \u0445\u043e\u0442\u0438\u0442\u0435 \u0437\u0430\u043f\u0438\u0441\u0430\u0442\u044c? | \u0414\u043e\u043d\u0430\u0446\u0438\u044f \u043a\u0440\u043e\u0432\u0438",
     "overflow": [],
     "consoleErrors": []
   },
   {
     "screenshot": "mobile-v4-visual-qa/small-360x640/booking/2-organizations/populated.png",
     "screen": "booking/2-organizations",
-    "title": "Booking — centre",
+    "title": "Booking \u2014 centre",
     "route": "/(booking)/organizations?type=BLOOD_DONATION",
     "state": "populated",
     "intent": "",
@@ -10270,7 +10270,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/small-360x640/booking/2-organizations/empty.png",
     "screen": "booking/2-organizations",
-    "title": "Booking — centre",
+    "title": "Booking \u2014 centre",
     "route": "/(booking)/organizations?type=BLOOD_DONATION",
     "state": "empty",
     "intent": "",
@@ -10287,7 +10287,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/small-360x640/booking/2-organizations/error.png",
     "screen": "booking/2-organizations",
-    "title": "Booking — centre",
+    "title": "Booking \u2014 centre",
     "route": "/(booking)/organizations?type=BLOOD_DONATION",
     "state": "error",
     "intent": "",
@@ -10306,7 +10306,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/small-360x640/booking/2-organizations/loading.png",
     "screen": "booking/2-organizations",
-    "title": "Booking — centre",
+    "title": "Booking \u2014 centre",
     "route": "/(booking)/organizations?type=BLOOD_DONATION",
     "state": "loading",
     "intent": "",
@@ -10323,7 +10323,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/small-360x640/booking/2-organizations/filters-open.png",
     "screen": "booking/2-organizations",
-    "title": "Booking — centre",
+    "title": "Booking \u2014 centre",
     "route": "/(booking)/organizations?type=BLOOD_DONATION",
     "state": "filters-open",
     "intent": "",
@@ -10340,7 +10340,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/small-360x640/booking/2-organizations/permission-location-explainer.png",
     "screen": "booking/2-organizations",
-    "title": "Booking — centre",
+    "title": "Booking \u2014 centre",
     "route": "/(booking)/organizations?type=BLOOD_DONATION",
     "state": "permission-location-explainer",
     "intent": "nearby asks before the OS does",
@@ -10359,7 +10359,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/small-360x640/booking/2-organizations/locale-ru.png",
     "screen": "booking/2-organizations",
-    "title": "Booking — centre",
+    "title": "Booking \u2014 centre",
     "route": "/(booking)/organizations?type=BLOOD_DONATION",
     "state": "locale-ru",
     "intent": "",
@@ -10369,15 +10369,15 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 2452,
-    "firstLines": "Шаг 2 из 5 | Выберите место | Выберите больницу или центр крови | Фильтры",
+    "firstLines": "\u0428\u0430\u0433 2 \u0438\u0437 5 | \u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u043c\u0435\u0441\u0442\u043e | \u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u0431\u043e\u043b\u044c\u043d\u0438\u0446\u0443 \u0438\u043b\u0438 \u0446\u0435\u043d\u0442\u0440 \u043a\u0440\u043e\u0432\u0438 | \u0424\u0438\u043b\u044c\u0442\u0440\u044b",
     "overflow": [],
     "consoleErrors": []
   },
   {
     "screenshot": "mobile-v4-visual-qa/small-360x640/booking/3-date/populated.png",
     "screen": "booking/3-date",
-    "title": "Booking — date",
-    "route": "/(booking)/date?organizationId=cmumf5m4o002q7dj8lhxgss4w&type=BLOOD_DONATION",
+    "title": "Booking \u2014 date",
+    "route": "/(booking)/date?organizationId=cmv2pjfsy002q7d0t0fj1fgqq&type=BLOOD_DONATION",
     "state": "populated",
     "intent": "",
     "device": "small-360x640",
@@ -10385,16 +10385,16 @@
     "locale": "en",
     "theme": "dark",
     "data": "seeded database",
-    "textLength": 205,
-    "firstLines": "Step 3 of 5 | Select date | Only dates with open slots can be picked | September 2026",
+    "textLength": 206,
+    "firstLines": "Step 3 of 5 | Select date | Only dates with open slots can be picked | October 2026",
     "overflow": [],
     "consoleErrors": []
   },
   {
     "screenshot": "mobile-v4-visual-qa/small-360x640/booking/3-date/no-open-dates.png",
     "screen": "booking/3-date",
-    "title": "Booking — date",
-    "route": "/(booking)/date?organizationId=cmumf5m4o002q7dj8lhxgss4w&type=BLOOD_DONATION",
+    "title": "Booking \u2014 date",
+    "route": "/(booking)/date?organizationId=cmv2pjfsy002q7d0t0fj1fgqq&type=BLOOD_DONATION",
     "state": "no-open-dates",
     "intent": "the month has nothing open",
     "device": "small-360x640",
@@ -10402,16 +10402,16 @@
     "locale": "en",
     "theme": "dark",
     "data": "overridden",
-    "textLength": 277,
-    "firstLines": "Step 3 of 5 | Select date | Only dates with open slots can be picked | September 2026",
+    "textLength": 278,
+    "firstLines": "Step 3 of 5 | Select date | Only dates with open slots can be picked | October 2026",
     "overflow": [],
     "consoleErrors": []
   },
   {
     "screenshot": "mobile-v4-visual-qa/small-360x640/booking/3-date/error.png",
     "screen": "booking/3-date",
-    "title": "Booking — date",
-    "route": "/(booking)/date?organizationId=cmumf5m4o002q7dj8lhxgss4w&type=BLOOD_DONATION",
+    "title": "Booking \u2014 date",
+    "route": "/(booking)/date?organizationId=cmv2pjfsy002q7d0t0fj1fgqq&type=BLOOD_DONATION",
     "state": "error",
     "intent": "",
     "device": "small-360x640",
@@ -10419,7 +10419,7 @@
     "locale": "en",
     "theme": "dark",
     "data": "overridden",
-    "textLength": 280,
+    "textLength": 281,
     "firstLines": "Step 3 of 5 | Select date | Only dates with open slots can be picked | Couldn't load availability. Check your connection and try again.",
     "overflow": [],
     "consoleErrors": [
@@ -10429,8 +10429,8 @@
   {
     "screenshot": "mobile-v4-visual-qa/small-360x640/booking/3-date/loading.png",
     "screen": "booking/3-date",
-    "title": "Booking — date",
-    "route": "/(booking)/date?organizationId=cmumf5m4o002q7dj8lhxgss4w&type=BLOOD_DONATION",
+    "title": "Booking \u2014 date",
+    "route": "/(booking)/date?organizationId=cmv2pjfsy002q7d0t0fj1fgqq&type=BLOOD_DONATION",
     "state": "loading",
     "intent": "",
     "device": "small-360x640",
@@ -10438,16 +10438,16 @@
     "locale": "en",
     "theme": "dark",
     "data": "overridden",
-    "textLength": 205,
-    "firstLines": "Step 3 of 5 | Select date | Only dates with open slots can be picked | September 2026",
+    "textLength": 206,
+    "firstLines": "Step 3 of 5 | Select date | Only dates with open slots can be picked | October 2026",
     "overflow": [],
     "consoleErrors": []
   },
   {
     "screenshot": "mobile-v4-visual-qa/small-360x640/booking/3-date/locale-ru.png",
     "screen": "booking/3-date",
-    "title": "Booking — date",
-    "route": "/(booking)/date?organizationId=cmumf5m4o002q7dj8lhxgss4w&type=BLOOD_DONATION",
+    "title": "Booking \u2014 date",
+    "route": "/(booking)/date?organizationId=cmv2pjfsy002q7d0t0fj1fgqq&type=BLOOD_DONATION",
     "state": "locale-ru",
     "intent": "",
     "device": "small-360x640",
@@ -10455,16 +10455,16 @@
     "locale": "ru",
     "theme": "dark",
     "data": "seeded database",
-    "textLength": 222,
-    "firstLines": "Шаг 3 из 5 | Выберите дату | Выбрать можно только даты со свободными местами | сентябрь 2026 г.",
+    "textLength": 224,
+    "firstLines": "\u0428\u0430\u0433 3 \u0438\u0437 5 | \u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u0434\u0430\u0442\u0443 | \u0412\u044b\u0431\u0440\u0430\u0442\u044c \u043c\u043e\u0436\u043d\u043e \u0442\u043e\u043b\u044c\u043a\u043e \u0434\u0430\u0442\u044b \u0441\u043e \u0441\u0432\u043e\u0431\u043e\u0434\u043d\u044b\u043c\u0438 \u043c\u0435\u0441\u0442\u0430\u043c\u0438 | \u043e\u043a\u0442\u044f\u0431\u0440\u044c 2026 \u0433.",
     "overflow": [],
     "consoleErrors": []
   },
   {
     "screenshot": "mobile-v4-visual-qa/small-360x640/booking/3-date/locale-uz.png",
     "screen": "booking/3-date",
-    "title": "Booking — date",
-    "route": "/(booking)/date?organizationId=cmumf5m4o002q7dj8lhxgss4w&type=BLOOD_DONATION",
+    "title": "Booking \u2014 date",
+    "route": "/(booking)/date?organizationId=cmv2pjfsy002q7d0t0fj1fgqq&type=BLOOD_DONATION",
     "state": "locale-uz",
     "intent": "",
     "device": "small-360x640",
@@ -10472,15 +10472,15 @@
     "locale": "uz",
     "theme": "dark",
     "data": "seeded database",
-    "textLength": 223,
-    "firstLines": "5 qadamdan 3-qadam | Sanani tanlang | Faqat bo‘sh joyi bor sanalarni tanlash mumkin | sentabr, 2026",
+    "textLength": 225,
+    "firstLines": "5 qadamdan 3-qadam | Sanani tanlang | Faqat bo\u2018sh joyi bor sanalarni tanlash mumkin | oktabr, 2026",
     "overflow": [],
     "consoleErrors": []
   },
   {
     "screenshot": "mobile-v4-visual-qa/small-360x640/booking/4-time/populated.png",
     "screen": "booking/4-time",
-    "title": "Booking — time",
+    "title": "Booking \u2014 time",
     "route": "/(booking)/time?organizationId=cmumf5m4o002q7dj8lhxgss4w&type=BLOOD_DONATION&date=2026-09-29",
     "state": "populated",
     "intent": "",
@@ -10497,7 +10497,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/small-360x640/booking/4-time/no-times.png",
     "screen": "booking/4-time",
-    "title": "Booking — time",
+    "title": "Booking \u2014 time",
     "route": "/(booking)/time?organizationId=cmumf5m4o002q7dj8lhxgss4w&type=BLOOD_DONATION&date=2026-09-29",
     "state": "no-times",
     "intent": "",
@@ -10514,7 +10514,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/small-360x640/booking/4-time/error.png",
     "screen": "booking/4-time",
-    "title": "Booking — time",
+    "title": "Booking \u2014 time",
     "route": "/(booking)/time?organizationId=cmumf5m4o002q7dj8lhxgss4w&type=BLOOD_DONATION&date=2026-09-29",
     "state": "error",
     "intent": "",
@@ -10533,7 +10533,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/small-360x640/booking/4-time/loading.png",
     "screen": "booking/4-time",
-    "title": "Booking — time",
+    "title": "Booking \u2014 time",
     "route": "/(booking)/time?organizationId=cmumf5m4o002q7dj8lhxgss4w&type=BLOOD_DONATION&date=2026-09-29",
     "state": "loading",
     "intent": "",
@@ -10550,8 +10550,8 @@
   {
     "screenshot": "mobile-v4-visual-qa/small-360x640/booking/5-review/populated.png",
     "screen": "booking/5-review",
-    "title": "Booking — review",
-    "route": "/(booking)/review?organizationId=cmumf5m4o002q7dj8lhxgss4w&type=BLOOD_DONATION&date=2026-09-29&slotId=cmumf5n2d00m07dj8r3frjbmz",
+    "title": "Booking \u2014 review",
+    "route": "/(booking)/review?organizationId=cmv2pjfsy002q7d0t0fj1fgqq&type=BLOOD_DONATION&date=2026-10-11&slotId=cmv2pjg7900k07d0t64vuomog",
     "state": "populated",
     "intent": "",
     "device": "small-360x640",
@@ -10559,7 +10559,7 @@
     "locale": "en",
     "theme": "dark",
     "data": "seeded database",
-    "textLength": 326,
+    "textLength": 325,
     "firstLines": "Step 5 of 5 | Review booking | Confirm your appointment details | Donation type",
     "overflow": [],
     "consoleErrors": []
@@ -10567,8 +10567,8 @@
   {
     "screenshot": "mobile-v4-visual-qa/small-360x640/booking/5-review/slot-taken.png",
     "screen": "booking/5-review",
-    "title": "Booking — review",
-    "route": "/(booking)/review?organizationId=cmumf5m4o002q7dj8lhxgss4w&type=BLOOD_DONATION&date=2026-09-29&slotId=cmumf5n2d00m07dj8r3frjbmz",
+    "title": "Booking \u2014 review",
+    "route": "/(booking)/review?organizationId=cmv2pjfsy002q7d0t0fj1fgqq&type=BLOOD_DONATION&date=2026-10-11&slotId=cmv2pjg7900k07d0t64vuomog",
     "state": "slot-taken",
     "intent": "someone else took it while this donor decided",
     "device": "small-360x640",
@@ -10576,7 +10576,7 @@
     "locale": "en",
     "theme": "dark",
     "data": "overridden",
-    "textLength": 357,
+    "textLength": 356,
     "firstLines": "Step 5 of 5 | Review booking | Confirm your appointment details | Donation type",
     "overflow": [],
     "consoleErrors": [
@@ -10586,8 +10586,8 @@
   {
     "screenshot": "mobile-v4-visual-qa/small-360x640/booking/5-review/server-error.png",
     "screen": "booking/5-review",
-    "title": "Booking — review",
-    "route": "/(booking)/review?organizationId=cmumf5m4o002q7dj8lhxgss4w&type=BLOOD_DONATION&date=2026-09-29&slotId=cmumf5n2d00m07dj8r3frjbmz",
+    "title": "Booking \u2014 review",
+    "route": "/(booking)/review?organizationId=cmv2pjfsy002q7d0t0fj1fgqq&type=BLOOD_DONATION&date=2026-10-11&slotId=cmv2pjg7900k07d0t64vuomog",
     "state": "server-error",
     "intent": "",
     "device": "small-360x640",
@@ -10595,7 +10595,7 @@
     "locale": "en",
     "theme": "dark",
     "data": "overridden",
-    "textLength": 369,
+    "textLength": 368,
     "firstLines": "Step 5 of 5 | Review booking | Confirm your appointment details | Donation type",
     "overflow": [],
     "consoleErrors": [
@@ -10605,8 +10605,8 @@
   {
     "screenshot": "mobile-v4-visual-qa/small-360x640/booking/5-review/submitting.png",
     "screen": "booking/5-review",
-    "title": "Booking — review",
-    "route": "/(booking)/review?organizationId=cmumf5m4o002q7dj8lhxgss4w&type=BLOOD_DONATION&date=2026-09-29&slotId=cmumf5n2d00m07dj8r3frjbmz",
+    "title": "Booking \u2014 review",
+    "route": "/(booking)/review?organizationId=cmv2pjfsy002q7d0t0fj1fgqq&type=BLOOD_DONATION&date=2026-10-11&slotId=cmv2pjg7900k07d0t64vuomog",
     "state": "submitting",
     "intent": "",
     "device": "small-360x640",
@@ -10614,7 +10614,7 @@
     "locale": "en",
     "theme": "dark",
     "data": "overridden",
-    "textLength": 326,
+    "textLength": 325,
     "firstLines": "Step 5 of 5 | Review booking | Confirm your appointment details | Donation type",
     "overflow": [],
     "consoleErrors": []
@@ -10622,8 +10622,8 @@
   {
     "screenshot": "mobile-v4-visual-qa/small-360x640/booking/6-confirmation/populated.png",
     "screen": "booking/6-confirmation",
-    "title": "Booking — confirmed",
-    "route": "/(booking)/confirmation?appointmentId=cmumfk3q0001h7d5f4jrp03j5",
+    "title": "Booking \u2014 confirmed",
+    "route": "/(booking)/confirmation?appointmentId=cmv2pjgc600qg7d0tmej28eal",
     "state": "populated",
     "intent": "",
     "device": "small-360x640",
@@ -10631,16 +10631,16 @@
     "locale": "en",
     "theme": "dark",
     "data": "seeded database",
-    "textLength": 337,
-    "firstLines": "Appointment confirmed! | Your appointment has been successfully scheduled. | REFERENCE NUMBER | DON-2026-473165",
+    "textLength": 345,
+    "firstLines": "Appointment confirmed! | Your appointment has been successfully scheduled. | REFERENCE NUMBER | DON-2026-780534",
     "overflow": [],
     "consoleErrors": []
   },
   {
     "screenshot": "mobile-v4-visual-qa/small-360x640/booking/6-confirmation/loading.png",
     "screen": "booking/6-confirmation",
-    "title": "Booking — confirmed",
-    "route": "/(booking)/confirmation?appointmentId=cmumfk3q0001h7d5f4jrp03j5",
+    "title": "Booking \u2014 confirmed",
+    "route": "/(booking)/confirmation?appointmentId=cmv2pjgc600qg7d0tmej28eal",
     "state": "loading",
     "intent": "",
     "device": "small-360x640",
@@ -10656,8 +10656,8 @@
   {
     "screenshot": "mobile-v4-visual-qa/small-360x640/booking/6-confirmation/locale-ru.png",
     "screen": "booking/6-confirmation",
-    "title": "Booking — confirmed",
-    "route": "/(booking)/confirmation?appointmentId=cmumfk3q0001h7d5f4jrp03j5",
+    "title": "Booking \u2014 confirmed",
+    "route": "/(booking)/confirmation?appointmentId=cmv2pjgc600qg7d0tmej28eal",
     "state": "locale-ru",
     "intent": "",
     "device": "small-360x640",
@@ -10665,15 +10665,15 @@
     "locale": "ru",
     "theme": "dark",
     "data": "seeded database",
-    "textLength": 338,
-    "firstLines": "Запись подтверждена! | Ваша запись успешно создана. | НОМЕР ЗАПИСИ | DON-2026-473165",
+    "textLength": 349,
+    "firstLines": "\u0417\u0430\u043f\u0438\u0441\u044c \u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d\u0430! | \u0412\u0430\u0448\u0430 \u0437\u0430\u043f\u0438\u0441\u044c \u0443\u0441\u043f\u0435\u0448\u043d\u043e \u0441\u043e\u0437\u0434\u0430\u043d\u0430. | \u041d\u041e\u041c\u0415\u0420 \u0417\u0410\u041f\u0418\u0421\u0418 | DON-2026-780534",
     "overflow": [],
     "consoleErrors": []
   },
   {
     "screenshot": "mobile-v4-visual-qa/small-360x640/lab-booking/1-test-type/populated.png",
     "screen": "lab-booking/1-test-type",
-    "title": "Lab — test",
+    "title": "Lab \u2014 test",
     "route": "/(lab-booking)/test-type",
     "state": "populated",
     "intent": "",
@@ -10690,7 +10690,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/small-360x640/lab-booking/1-test-type/empty.png",
     "screen": "lab-booking/1-test-type",
-    "title": "Lab — test",
+    "title": "Lab \u2014 test",
     "route": "/(lab-booking)/test-type",
     "state": "empty",
     "intent": "",
@@ -10707,7 +10707,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/small-360x640/lab-booking/1-test-type/error.png",
     "screen": "lab-booking/1-test-type",
-    "title": "Lab — test",
+    "title": "Lab \u2014 test",
     "route": "/(lab-booking)/test-type",
     "state": "error",
     "intent": "",
@@ -10717,7 +10717,7 @@
     "theme": "dark",
     "data": "overridden",
     "textLength": 164,
-    "firstLines": "Step 1 of 5 | Which test? | Choose the panel you want taken. | Couldn’t load the tests",
+    "firstLines": "Step 1 of 5 | Which test? | Choose the panel you want taken. | Couldn\u2019t load the tests",
     "overflow": [],
     "consoleErrors": [
       "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
@@ -10726,7 +10726,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/small-360x640/lab-booking/1-test-type/loading.png",
     "screen": "lab-booking/1-test-type",
-    "title": "Lab — test",
+    "title": "Lab \u2014 test",
     "route": "/(lab-booking)/test-type",
     "state": "loading",
     "intent": "",
@@ -10743,7 +10743,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/small-360x640/lab-booking/2-laboratory/populated.png",
     "screen": "lab-booking/2-laboratory",
-    "title": "Lab — laboratory",
+    "title": "Lab \u2014 laboratory",
     "route": "/(lab-booking)/laboratory?testTypeId=cmumf5nhn00wt7dj8plljgdld",
     "state": "populated",
     "intent": "",
@@ -10760,7 +10760,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/small-360x640/lab-booking/2-laboratory/empty.png",
     "screen": "lab-booking/2-laboratory",
-    "title": "Lab — laboratory",
+    "title": "Lab \u2014 laboratory",
     "route": "/(lab-booking)/laboratory?testTypeId=cmumf5nhn00wt7dj8plljgdld",
     "state": "empty",
     "intent": "",
@@ -10777,7 +10777,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/small-360x640/lab-booking/2-laboratory/error.png",
     "screen": "lab-booking/2-laboratory",
-    "title": "Lab — laboratory",
+    "title": "Lab \u2014 laboratory",
     "route": "/(lab-booking)/laboratory?testTypeId=cmumf5nhn00wt7dj8plljgdld",
     "state": "error",
     "intent": "",
@@ -10787,7 +10787,7 @@
     "theme": "dark",
     "data": "overridden",
     "textLength": 179,
-    "firstLines": "Step 2 of 5 | Where? | Laboratories that run Complete Blood Count (CBC). | Couldn’t load laboratories",
+    "firstLines": "Step 2 of 5 | Where? | Laboratories that run Complete Blood Count (CBC). | Couldn\u2019t load laboratories",
     "overflow": [],
     "consoleErrors": [
       "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
@@ -10796,7 +10796,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/small-360x640/lab-booking/3-date/populated.png",
     "screen": "lab-booking/3-date",
-    "title": "Lab — date",
+    "title": "Lab \u2014 date",
     "route": "/(lab-booking)/date?testTypeId=cmumf5nhn00wt7dj8plljgdld&laboratoryId=cmumf5m0x001g7dj8fk5mtnoa",
     "state": "populated",
     "intent": "",
@@ -10813,7 +10813,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/small-360x640/lab-booking/3-date/no-open-dates.png",
     "screen": "lab-booking/3-date",
-    "title": "Lab — date",
+    "title": "Lab \u2014 date",
     "route": "/(lab-booking)/date?testTypeId=cmumf5nhn00wt7dj8plljgdld&laboratoryId=cmumf5m0x001g7dj8fk5mtnoa",
     "state": "no-open-dates",
     "intent": "",
@@ -10830,7 +10830,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/small-360x640/lab-booking/3-date/error.png",
     "screen": "lab-booking/3-date",
-    "title": "Lab — date",
+    "title": "Lab \u2014 date",
     "route": "/(lab-booking)/date?testTypeId=cmumf5nhn00wt7dj8plljgdld&laboratoryId=cmumf5m0x001g7dj8fk5mtnoa",
     "state": "error",
     "intent": "",
@@ -10840,7 +10840,7 @@
     "theme": "dark",
     "data": "overridden",
     "textLength": 238,
-    "firstLines": "Step 3 of 5 | Which day? | Days with open times are highlighted. | Couldn’t load availability",
+    "firstLines": "Step 3 of 5 | Which day? | Days with open times are highlighted. | Couldn\u2019t load availability",
     "overflow": [],
     "consoleErrors": [
       "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
@@ -10849,7 +10849,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/small-360x640/lab-booking/3-date/loading.png",
     "screen": "lab-booking/3-date",
-    "title": "Lab — date",
+    "title": "Lab \u2014 date",
     "route": "/(lab-booking)/date?testTypeId=cmumf5nhn00wt7dj8plljgdld&laboratoryId=cmumf5m0x001g7dj8fk5mtnoa",
     "state": "loading",
     "intent": "",
@@ -10866,7 +10866,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/small-360x640/lab-booking/3-date/locale-uz.png",
     "screen": "lab-booking/3-date",
-    "title": "Lab — date",
+    "title": "Lab \u2014 date",
     "route": "/(lab-booking)/date?testTypeId=cmumf5nhn00wt7dj8plljgdld&laboratoryId=cmumf5m0x001g7dj8fk5mtnoa",
     "state": "locale-uz",
     "intent": "",
@@ -10876,15 +10876,15 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 219,
-    "firstLines": "5 qadamdan 3-qadam | Qaysi kuni? | Bo‘sh vaqti bor kunlar ajratib ko‘rsatilgan. | sentabr, 2026",
+    "firstLines": "5 qadamdan 3-qadam | Qaysi kuni? | Bo\u2018sh vaqti bor kunlar ajratib ko\u2018rsatilgan. | sentabr, 2026",
     "overflow": [],
     "consoleErrors": []
   },
   {
     "screenshot": "mobile-v4-visual-qa/small-360x640/lab-booking/4-slot/populated.png",
     "screen": "lab-booking/4-slot",
-    "title": "Lab — slot",
-    "route": "/(lab-booking)/slot?testTypeId=cmumf5nhn00wt7dj8plljgdld&laboratoryId=cmumf5m0x001g7dj8fk5mtnoa&date=2026-09-29",
+    "title": "Lab \u2014 slot",
+    "route": "/(lab-booking)/slot?testTypeId=cmv2pjgfj00th7d0tpawr4f0x&laboratoryId=cmv2pjfqm001g7d0tjbtszf5a&date=2026-10-11",
     "state": "populated",
     "intent": "",
     "device": "small-360x640",
@@ -10892,16 +10892,16 @@
     "locale": "en",
     "theme": "dark",
     "data": "seeded database",
-    "textLength": 102,
-    "firstLines": "Step 4 of 5 | Select time | Tuesday 29 Sept | Afternoon",
+    "textLength": 100,
+    "firstLines": "Step 4 of 5 | Select time | Sunday 11 Oct | Afternoon",
     "overflow": [],
     "consoleErrors": []
   },
   {
     "screenshot": "mobile-v4-visual-qa/small-360x640/lab-booking/4-slot/no-times.png",
     "screen": "lab-booking/4-slot",
-    "title": "Lab — slot",
-    "route": "/(lab-booking)/slot?testTypeId=cmumf5nhn00wt7dj8plljgdld&laboratoryId=cmumf5m0x001g7dj8fk5mtnoa&date=2026-09-29",
+    "title": "Lab \u2014 slot",
+    "route": "/(lab-booking)/slot?testTypeId=cmv2pjgfj00th7d0tpawr4f0x&laboratoryId=cmv2pjfqm001g7d0tjbtszf5a&date=2026-10-11",
     "state": "no-times",
     "intent": "",
     "device": "small-360x640",
@@ -10909,16 +10909,16 @@
     "locale": "en",
     "theme": "dark",
     "data": "overridden",
-    "textLength": 142,
-    "firstLines": "Step 4 of 5 | Select time | Tuesday 29 Sept | No times on this day",
+    "textLength": 140,
+    "firstLines": "Step 4 of 5 | Select time | Sunday 11 Oct | No times on this day",
     "overflow": [],
     "consoleErrors": []
   },
   {
     "screenshot": "mobile-v4-visual-qa/small-360x640/lab-booking/4-slot/error.png",
     "screen": "lab-booking/4-slot",
-    "title": "Lab — slot",
-    "route": "/(lab-booking)/slot?testTypeId=cmumf5nhn00wt7dj8plljgdld&laboratoryId=cmumf5m0x001g7dj8fk5mtnoa&date=2026-09-29",
+    "title": "Lab \u2014 slot",
+    "route": "/(lab-booking)/slot?testTypeId=cmv2pjgfj00th7d0tpawr4f0x&laboratoryId=cmv2pjfqm001g7d0tjbtszf5a&date=2026-10-11",
     "state": "error",
     "intent": "",
     "device": "small-360x640",
@@ -10926,8 +10926,8 @@
     "locale": "en",
     "theme": "dark",
     "data": "overridden",
-    "textLength": 143,
-    "firstLines": "Step 4 of 5 | Select time | Tuesday 29 Sept | Couldn't load times",
+    "textLength": 141,
+    "firstLines": "Step 4 of 5 | Select time | Sunday 11 Oct | Couldn't load times",
     "overflow": [],
     "consoleErrors": [
       "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
@@ -10936,8 +10936,8 @@
   {
     "screenshot": "mobile-v4-visual-qa/small-360x640/lab-booking/5-review/populated.png",
     "screen": "lab-booking/5-review",
-    "title": "Lab — review",
-    "route": "/(lab-booking)/review?testTypeId=cmumf5nhn00wt7dj8plljgdld&laboratoryId=cmumf5m0x001g7dj8fk5mtnoa&date=2026-09-29&slotId=cmumf5mri00fe7dj8666m13qe",
+    "title": "Lab \u2014 review",
+    "route": "/(lab-booking)/review?testTypeId=cmv2pjgfj00th7d0tpawr4f0x&laboratoryId=cmv2pjfqm001g7d0tjbtszf5a&date=2026-10-11&slotId=cmv2pjg3400eq7d0toaarytvu",
     "state": "populated",
     "intent": "",
     "device": "small-360x640",
@@ -10945,7 +10945,7 @@
     "locale": "en",
     "theme": "dark",
     "data": "seeded database",
-    "textLength": 348,
+    "textLength": 347,
     "firstLines": "Step 5 of 5 | Review booking | Confirm your appointment details | Test",
     "overflow": [],
     "consoleErrors": []
@@ -10953,8 +10953,8 @@
   {
     "screenshot": "mobile-v4-visual-qa/small-360x640/lab-booking/5-review/slot-taken.png",
     "screen": "lab-booking/5-review",
-    "title": "Lab — review",
-    "route": "/(lab-booking)/review?testTypeId=cmumf5nhn00wt7dj8plljgdld&laboratoryId=cmumf5m0x001g7dj8fk5mtnoa&date=2026-09-29&slotId=cmumf5mri00fe7dj8666m13qe",
+    "title": "Lab \u2014 review",
+    "route": "/(lab-booking)/review?testTypeId=cmv2pjgfj00th7d0tpawr4f0x&laboratoryId=cmv2pjfqm001g7d0tjbtszf5a&date=2026-10-11&slotId=cmv2pjg3400eq7d0toaarytvu",
     "state": "slot-taken",
     "intent": "",
     "device": "small-360x640",
@@ -10962,7 +10962,7 @@
     "locale": "en",
     "theme": "dark",
     "data": "overridden",
-    "textLength": 379,
+    "textLength": 378,
     "firstLines": "Step 5 of 5 | Review booking | Confirm your appointment details | Test",
     "overflow": [],
     "consoleErrors": [
@@ -10972,8 +10972,8 @@
   {
     "screenshot": "mobile-v4-visual-qa/small-360x640/lab-booking/5-review/server-error.png",
     "screen": "lab-booking/5-review",
-    "title": "Lab — review",
-    "route": "/(lab-booking)/review?testTypeId=cmumf5nhn00wt7dj8plljgdld&laboratoryId=cmumf5m0x001g7dj8fk5mtnoa&date=2026-09-29&slotId=cmumf5mri00fe7dj8666m13qe",
+    "title": "Lab \u2014 review",
+    "route": "/(lab-booking)/review?testTypeId=cmv2pjgfj00th7d0tpawr4f0x&laboratoryId=cmv2pjfqm001g7d0tjbtszf5a&date=2026-10-11&slotId=cmv2pjg3400eq7d0toaarytvu",
     "state": "server-error",
     "intent": "",
     "device": "small-360x640",
@@ -10981,7 +10981,7 @@
     "locale": "en",
     "theme": "dark",
     "data": "overridden",
-    "textLength": 391,
+    "textLength": 390,
     "firstLines": "Step 5 of 5 | Review booking | Confirm your appointment details | Test",
     "overflow": [],
     "consoleErrors": [
@@ -10991,8 +10991,8 @@
   {
     "screenshot": "mobile-v4-visual-qa/small-360x640/lab-booking/6-confirmation/populated.png",
     "screen": "lab-booking/6-confirmation",
-    "title": "Lab — confirmed",
-    "route": "/(lab-booking)/confirmation?appointmentId=cmumf5nju00xv7dj8musztggq",
+    "title": "Lab \u2014 confirmed",
+    "route": "/(lab-booking)/confirmation?appointmentId=cmv2pjggt00uj7d0tfmbkhud1",
     "state": "populated",
     "intent": "",
     "device": "small-360x640",
@@ -11000,16 +11000,16 @@
     "locale": "en",
     "theme": "dark",
     "data": "seeded database",
-    "textLength": 294,
-    "firstLines": "Test booked | The laboratory has your booking and knows which panel to prepare. | REFERENCE NUMBER | LAB-2026-077594",
+    "textLength": 295,
+    "firstLines": "Test booked | The laboratory has your booking and knows which panel to prepare. | REFERENCE NUMBER | LAB-2026-678088",
     "overflow": [],
     "consoleErrors": []
   },
   {
     "screenshot": "mobile-v4-visual-qa/small-360x640/lab-booking/6-confirmation/loading.png",
     "screen": "lab-booking/6-confirmation",
-    "title": "Lab — confirmed",
-    "route": "/(lab-booking)/confirmation?appointmentId=cmumf5nju00xv7dj8musztggq",
+    "title": "Lab \u2014 confirmed",
+    "route": "/(lab-booking)/confirmation?appointmentId=cmv2pjggt00uj7d0tfmbkhud1",
     "state": "loading",
     "intent": "",
     "device": "small-360x640",
@@ -11034,7 +11034,7 @@
     "locale": "en",
     "theme": "dark",
     "data": "seeded database",
-    "textLength": 534,
+    "textLength": 531,
     "firstLines": "Blood tests | Upcoming | 1 | Results",
     "overflow": [],
     "consoleErrors": []
@@ -11087,7 +11087,7 @@
     "locale": "en",
     "theme": "dark",
     "data": "overridden",
-    "textLength": 292,
+    "textLength": 293,
     "firstLines": "Blood tests | Upcoming | 1 | Results",
     "overflow": [],
     "consoleErrors": [
@@ -11123,7 +11123,7 @@
     "locale": "en",
     "theme": "dark",
     "data": "seeded database",
-    "textLength": 534,
+    "textLength": 531,
     "firstLines": "Blood tests | Upcoming | 1 | Results",
     "overflow": [],
     "consoleErrors": []
@@ -11141,7 +11141,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 609,
-    "firstLines": "Health trends | PARAMETER | Hematocrit | Haematology · 3 measurements",
+    "firstLines": "Health trends | PARAMETER | Hematocrit | Haematology \u00b7 3 measurements",
     "overflow": [],
     "consoleErrors": []
   },
@@ -11158,7 +11158,7 @@
     "theme": "dark",
     "data": "overridden",
     "textLength": 609,
-    "firstLines": "Health trends | PARAMETER | Hematocrit | Haematology · 3 measurements",
+    "firstLines": "Health trends | PARAMETER | Hematocrit | Haematology \u00b7 3 measurements",
     "overflow": [],
     "consoleErrors": []
   },
@@ -11175,7 +11175,7 @@
     "theme": "dark",
     "data": "overridden",
     "textLength": 609,
-    "firstLines": "Health trends | PARAMETER | Hematocrit | Haematology · 3 measurements",
+    "firstLines": "Health trends | PARAMETER | Hematocrit | Haematology \u00b7 3 measurements",
     "overflow": [],
     "consoleErrors": []
   },
@@ -11192,7 +11192,7 @@
     "theme": "dark",
     "data": "overridden",
     "textLength": 609,
-    "firstLines": "Health trends | PARAMETER | Hematocrit | Haematology · 3 measurements",
+    "firstLines": "Health trends | PARAMETER | Hematocrit | Haematology \u00b7 3 measurements",
     "overflow": [],
     "consoleErrors": []
   },
@@ -11209,7 +11209,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 609,
-    "firstLines": "Health trends | PARAMETER | Hematocrit | Haematology · 3 measurements",
+    "firstLines": "Health trends | PARAMETER | Hematocrit | Haematology \u00b7 3 measurements",
     "overflow": [],
     "consoleErrors": []
   },
@@ -11226,7 +11226,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 679,
-    "firstLines": "Powered by AI | AI insights | Personalized health recommendations | AI-generated informational content, drawn from your own recorded health data. It is not a medical diagnosis — always consult your doctor.",
+    "firstLines": "Powered by AI | AI insights | Personalized health recommendations | AI-generated informational content, drawn from your own recorded health data. It is not a medical diagnosis \u2014 always consult your doctor.",
     "overflow": [],
     "consoleErrors": []
   },
@@ -11243,7 +11243,7 @@
     "theme": "dark",
     "data": "overridden",
     "textLength": 679,
-    "firstLines": "Powered by AI | AI insights | Personalized health recommendations | AI-generated informational content, drawn from your own recorded health data. It is not a medical diagnosis — always consult your doctor.",
+    "firstLines": "Powered by AI | AI insights | Personalized health recommendations | AI-generated informational content, drawn from your own recorded health data. It is not a medical diagnosis \u2014 always consult your doctor.",
     "overflow": [],
     "consoleErrors": []
   },
@@ -11260,7 +11260,7 @@
     "theme": "dark",
     "data": "overridden",
     "textLength": 679,
-    "firstLines": "Powered by AI | AI insights | Personalized health recommendations | AI-generated informational content, drawn from your own recorded health data. It is not a medical diagnosis — always consult your doctor.",
+    "firstLines": "Powered by AI | AI insights | Personalized health recommendations | AI-generated informational content, drawn from your own recorded health data. It is not a medical diagnosis \u2014 always consult your doctor.",
     "overflow": [],
     "consoleErrors": []
   },
@@ -11277,7 +11277,7 @@
     "theme": "dark",
     "data": "overridden",
     "textLength": 679,
-    "firstLines": "Powered by AI | AI insights | Personalized health recommendations | AI-generated informational content, drawn from your own recorded health data. It is not a medical diagnosis — always consult your doctor.",
+    "firstLines": "Powered by AI | AI insights | Personalized health recommendations | AI-generated informational content, drawn from your own recorded health data. It is not a medical diagnosis \u2014 always consult your doctor.",
     "overflow": [],
     "consoleErrors": []
   },
@@ -11294,7 +11294,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 679,
-    "firstLines": "Powered by AI | AI insights | Personalized health recommendations | AI-generated informational content, drawn from your own recorded health data. It is not a medical diagnosis — always consult your doctor.",
+    "firstLines": "Powered by AI | AI insights | Personalized health recommendations | AI-generated informational content, drawn from your own recorded health data. It is not a medical diagnosis \u2014 always consult your doctor.",
     "overflow": [],
     "consoleErrors": []
   },
@@ -11310,7 +11310,7 @@
     "locale": "en",
     "theme": "dark",
     "data": "seeded database",
-    "textLength": 342,
+    "textLength": 341,
     "firstLines": "Donation history | All your previous donations | Total donations | 3",
     "overflow": [],
     "consoleErrors": []
@@ -11397,7 +11397,7 @@
     "locale": "en",
     "theme": "dark",
     "data": "seeded database",
-    "textLength": 342,
+    "textLength": 341,
     "firstLines": "Donation history | All your previous donations | Total donations | 3",
     "overflow": [],
     "consoleErrors": []
@@ -11406,7 +11406,7 @@
     "screenshot": "mobile-v4-visual-qa/small-360x640/history/donation-detail/populated.png",
     "screen": "history/donation-detail",
     "title": "Donation detail",
-    "route": "/(app)/donations/cmumf5nct00to7dj8usvm6ere",
+    "route": "/(app)/donations/cmv2pjgc200qc7d0tgm9aq6t8",
     "state": "populated",
     "intent": "",
     "device": "small-360x640",
@@ -11414,8 +11414,8 @@
     "locale": "en",
     "theme": "dark",
     "data": "seeded database",
-    "textLength": 248,
-    "firstLines": "Donation details | DONATION-2026-741749 | Whole blood | Cancelled",
+    "textLength": 247,
+    "firstLines": "Donation details | DONATION-2026-103390 | Whole blood | Cancelled",
     "overflow": [],
     "consoleErrors": []
   },
@@ -11423,7 +11423,7 @@
     "screenshot": "mobile-v4-visual-qa/small-360x640/history/donation-detail/error.png",
     "screen": "history/donation-detail",
     "title": "Donation detail",
-    "route": "/(app)/donations/cmumf5nct00to7dj8usvm6ere",
+    "route": "/(app)/donations/cmv2pjgc200qc7d0tgm9aq6t8",
     "state": "error",
     "intent": "",
     "device": "small-360x640",
@@ -11442,7 +11442,7 @@
     "screenshot": "mobile-v4-visual-qa/small-360x640/history/donation-detail/loading.png",
     "screen": "history/donation-detail",
     "title": "Donation detail",
-    "route": "/(app)/donations/cmumf5nct00to7dj8usvm6ere",
+    "route": "/(app)/donations/cmv2pjgc200qc7d0tgm9aq6t8",
     "state": "loading",
     "intent": "",
     "device": "small-360x640",
@@ -11459,7 +11459,7 @@
     "screenshot": "mobile-v4-visual-qa/small-360x640/history/donation-detail/locale-ru.png",
     "screen": "history/donation-detail",
     "title": "Donation detail",
-    "route": "/(app)/donations/cmumf5nct00to7dj8usvm6ere",
+    "route": "/(app)/donations/cmv2pjgc200qc7d0tgm9aq6t8",
     "state": "locale-ru",
     "intent": "",
     "device": "small-360x640",
@@ -11467,8 +11467,8 @@
     "locale": "ru",
     "theme": "dark",
     "data": "seeded database",
-    "textLength": 257,
-    "firstLines": "Детали донации | DONATION-2026-741749 | Цельная кровь | Отменена",
+    "textLength": 256,
+    "firstLines": "\u0414\u0435\u0442\u0430\u043b\u0438 \u0434\u043e\u043d\u0430\u0446\u0438\u0438 | DONATION-2026-103390 | \u0426\u0435\u043b\u044c\u043d\u0430\u044f \u043a\u0440\u043e\u0432\u044c | \u041e\u0442\u043c\u0435\u043d\u0435\u043d\u0430",
     "overflow": [],
     "consoleErrors": []
   },
@@ -11476,7 +11476,7 @@
     "screenshot": "mobile-v4-visual-qa/small-360x640/history/donation-detail/long-content.png",
     "screen": "history/donation-detail",
     "title": "Donation detail",
-    "route": "/(app)/donations/cmumf5nct00to7dj8usvm6ere",
+    "route": "/(app)/donations/cmv2pjgc200qc7d0tgm9aq6t8",
     "state": "long-content",
     "intent": "",
     "device": "small-360x640",
@@ -11484,8 +11484,8 @@
     "locale": "en",
     "theme": "dark",
     "data": "seeded database",
-    "textLength": 248,
-    "firstLines": "Donation details | DONATION-2026-741749 | Whole blood | Cancelled",
+    "textLength": 247,
+    "firstLines": "Donation details | DONATION-2026-103390 | Whole blood | Cancelled",
     "overflow": [],
     "consoleErrors": []
   },
@@ -11493,7 +11493,7 @@
     "screenshot": "mobile-v4-visual-qa/small-360x640/history/appointment-detail/populated.png",
     "screen": "history/appointment-detail",
     "title": "Appointment detail",
-    "route": "/(app)/appointment/cmumfk3q0001h7d5f4jrp03j5",
+    "route": "/(app)/appointment/cmv2pjgc600qg7d0tmej28eal",
     "state": "populated",
     "intent": "",
     "device": "small-360x640",
@@ -11501,8 +11501,8 @@
     "locale": "en",
     "theme": "dark",
     "data": "seeded database",
-    "textLength": 450,
-    "firstLines": "Blood donation | Pending | Date | 29 Sept 2026",
+    "textLength": 459,
+    "firstLines": "Blood donation | Confirmed | Date | 11 Oct 2026",
     "overflow": [],
     "consoleErrors": []
   },
@@ -11510,7 +11510,7 @@
     "screenshot": "mobile-v4-visual-qa/small-360x640/history/appointment-detail/cancel-confirmation.png",
     "screen": "history/appointment-detail",
     "title": "Appointment detail",
-    "route": "/(app)/appointment/cmumfk3q0001h7d5f4jrp03j5",
+    "route": "/(app)/appointment/cmv2pjgc600qg7d0tmej28eal",
     "state": "cancel-confirmation",
     "intent": "cancelling asks first",
     "device": "small-360x640",
@@ -11518,8 +11518,8 @@
     "locale": "en",
     "theme": "dark",
     "data": "seeded database",
-    "textLength": 552,
-    "firstLines": "Blood donation | Pending | Date | 29 Sept 2026",
+    "textLength": 561,
+    "firstLines": "Blood donation | Confirmed | Date | 11 Oct 2026",
     "overflow": [],
     "consoleErrors": [
       "BackHandler is not supported on web and should not be used."
@@ -11529,7 +11529,7 @@
     "screenshot": "mobile-v4-visual-qa/small-360x640/history/appointment-detail/error.png",
     "screen": "history/appointment-detail",
     "title": "Appointment detail",
-    "route": "/(app)/appointment/cmumfk3q0001h7d5f4jrp03j5",
+    "route": "/(app)/appointment/cmv2pjgc600qg7d0tmej28eal",
     "state": "error",
     "intent": "",
     "device": "small-360x640",
@@ -11548,7 +11548,7 @@
     "screenshot": "mobile-v4-visual-qa/small-360x640/history/appointment-detail/long-content.png",
     "screen": "history/appointment-detail",
     "title": "Appointment detail",
-    "route": "/(app)/appointment/cmumfk3q0001h7d5f4jrp03j5",
+    "route": "/(app)/appointment/cmv2pjgc600qg7d0tmej28eal",
     "state": "long-content",
     "intent": "",
     "device": "small-360x640",
@@ -11556,8 +11556,8 @@
     "locale": "en",
     "theme": "dark",
     "data": "seeded database",
-    "textLength": 450,
-    "firstLines": "Blood donation | Pending | Date | 29 Sept 2026",
+    "textLength": 459,
+    "firstLines": "Blood donation | Confirmed | Date | 11 Oct 2026",
     "overflow": [],
     "consoleErrors": []
   },
@@ -11767,7 +11767,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 815,
-    "firstLines": "Ta’lim markazi | Qon topshirish haqida o‘rganing va XP oling | Sizning natijangiz | Yakunlangan",
+    "firstLines": "Ta\u2019lim markazi | Qon topshirish haqida o\u2018rganing va XP oling | Sizning natijangiz | Yakunlangan",
     "overflow": [],
     "consoleErrors": []
   },
@@ -11791,7 +11791,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/small-360x640/community/education-article/populated.png",
     "screen": "community/education-article",
-    "title": "Education — the article",
+    "title": "Education \u2014 the article",
     "route": "/(app)/education/cmumf5noj01137dj8zte3qhoh",
     "state": "populated",
     "intent": "the body the module has always carried and never showed",
@@ -11808,7 +11808,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/small-360x640/community/education-article/error.png",
     "screen": "community/education-article",
-    "title": "Education — the article",
+    "title": "Education \u2014 the article",
     "route": "/(app)/education/cmumf5noj01137dj8zte3qhoh",
     "state": "error",
     "intent": "",
@@ -11827,7 +11827,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/small-360x640/community/education-article/loading.png",
     "screen": "community/education-article",
-    "title": "Education — the article",
+    "title": "Education \u2014 the article",
     "route": "/(app)/education/cmumf5noj01137dj8zte3qhoh",
     "state": "loading",
     "intent": "",
@@ -11844,7 +11844,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/small-360x640/community/education-article/locale-ru.png",
     "screen": "community/education-article",
-    "title": "Education — the article",
+    "title": "Education \u2014 the article",
     "route": "/(app)/education/cmumf5noj01137dj8zte3qhoh",
     "state": "locale-ru",
     "intent": "",
@@ -11854,14 +11854,14 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 518,
-    "firstLines": "Обучение | Статья | Начальный | Eligibility",
+    "firstLines": "\u041e\u0431\u0443\u0447\u0435\u043d\u0438\u0435 | \u0421\u0442\u0430\u0442\u044c\u044f | \u041d\u0430\u0447\u0430\u043b\u044c\u043d\u044b\u0439 | Eligibility",
     "overflow": [],
     "consoleErrors": []
   },
   {
     "screenshot": "mobile-v4-visual-qa/small-360x640/community/education-article/long-content.png",
     "screen": "community/education-article",
-    "title": "Education — the article",
+    "title": "Education \u2014 the article",
     "route": "/(app)/education/cmumf5noj01137dj8zte3qhoh",
     "state": "long-content",
     "intent": "",
@@ -11887,7 +11887,7 @@
     "locale": "en",
     "theme": "dark",
     "data": "seeded database",
-    "textLength": 827,
+    "textLength": 801,
     "firstLines": "Achievements | Your progress & rewards | LEVEL | 3",
     "overflow": [],
     "consoleErrors": []
@@ -11940,7 +11940,7 @@
     "locale": "en",
     "theme": "dark",
     "data": "seeded database",
-    "textLength": 827,
+    "textLength": 801,
     "firstLines": "Achievements | Your progress & rewards | LEVEL | 3",
     "overflow": [],
     "consoleErrors": []
@@ -11957,8 +11957,8 @@
     "locale": "en",
     "theme": "dark",
     "data": "seeded database",
-    "textLength": 225,
-    "firstLines": "2 OF 11 EARNED | Badges | Earned · 2 | First Drop",
+    "textLength": 198,
+    "firstLines": "2 OF 9 EARNED | Badges | Earned \u00b7 2 | First Drop",
     "overflow": [],
     "consoleErrors": []
   },
@@ -11975,7 +11975,7 @@
     "theme": "dark",
     "data": "overridden",
     "textLength": 113,
-    "firstLines": "0 OF 0 EARNED | Badges | No badges yet — your first donation earns one. | Home",
+    "firstLines": "0 OF 0 EARNED | Badges | No badges yet \u2014 your first donation earns one. | Home",
     "overflow": [],
     "consoleErrors": []
   },
@@ -12010,8 +12010,8 @@
     "locale": "en",
     "theme": "dark",
     "data": "seeded database",
-    "textLength": 225,
-    "firstLines": "2 OF 11 EARNED | Badges | Earned · 2 | First Drop",
+    "textLength": 198,
+    "firstLines": "2 OF 9 EARNED | Badges | Earned \u00b7 2 | First Drop",
     "overflow": [],
     "consoleErrors": []
   },
@@ -12028,7 +12028,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 1181,
-    "firstLines": "3 OF 19 UNLOCKED | Achievements | Unlocked · 3 | First Donation",
+    "firstLines": "3 OF 19 UNLOCKED | Achievements | Unlocked \u00b7 3 | First Donation",
     "overflow": [],
     "consoleErrors": []
   },
@@ -12081,7 +12081,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 1181,
-    "firstLines": "3 OF 19 UNLOCKED | Achievements | Unlocked · 3 | First Donation",
+    "firstLines": "3 OF 19 UNLOCKED | Achievements | Unlocked \u00b7 3 | First Donation",
     "overflow": [],
     "consoleErrors": []
   },
@@ -12202,7 +12202,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 880,
-    "firstLines": "Конфиденциальность | Контролируйте, чем вы делитесь | Геолокация и данные | Делиться геопозицией",
+    "firstLines": "\u041a\u043e\u043d\u0444\u0438\u0434\u0435\u043d\u0446\u0438\u0430\u043b\u044c\u043d\u043e\u0441\u0442\u044c | \u041a\u043e\u043d\u0442\u0440\u043e\u043b\u0438\u0440\u0443\u0439\u0442\u0435, \u0447\u0435\u043c \u0432\u044b \u0434\u0435\u043b\u0438\u0442\u0435\u0441\u044c | \u0413\u0435\u043e\u043b\u043e\u043a\u0430\u0446\u0438\u044f \u0438 \u0434\u0430\u043d\u043d\u044b\u0435 | \u0414\u0435\u043b\u0438\u0442\u044c\u0441\u044f \u0433\u0435\u043e\u043f\u043e\u0437\u0438\u0446\u0438\u0435\u0439",
     "overflow": [],
     "consoleErrors": []
   },
@@ -12322,8 +12322,8 @@
     "locale": "en",
     "theme": "dark",
     "data": "seeded database",
-    "textLength": 852,
-    "firstLines": "Mark all read | 4 UNREAD NOTIFICATIONS | Notifications | All",
+    "textLength": 681,
+    "firstLines": "Mark all read | 2 UNREAD NOTIFICATIONS | Notifications | All",
     "overflow": [],
     "consoleErrors": []
   },
@@ -12392,8 +12392,8 @@
     "locale": "en",
     "theme": "dark",
     "data": "seeded database",
-    "textLength": 852,
-    "firstLines": "Mark all read | 4 UNREAD NOTIFICATIONS | Notifications | All",
+    "textLength": 681,
+    "firstLines": "Mark all read | 2 UNREAD NOTIFICATIONS | Notifications | All",
     "overflow": [],
     "consoleErrors": []
   },
@@ -12465,7 +12465,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 677,
-    "firstLines": "Настройки уведомлений | Выберите, о чём приложение будет сообщать | На этом устройстве | Телефон пока не показывает уведомления Bloodchain.",
+    "firstLines": "\u041d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438 \u0443\u0432\u0435\u0434\u043e\u043c\u043b\u0435\u043d\u0438\u0439 | \u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435, \u043e \u0447\u0451\u043c \u043f\u0440\u0438\u043b\u043e\u0436\u0435\u043d\u0438\u0435 \u0431\u0443\u0434\u0435\u0442 \u0441\u043e\u043e\u0431\u0449\u0430\u0442\u044c | \u041d\u0430 \u044d\u0442\u043e\u043c \u0443\u0441\u0442\u0440\u043e\u0439\u0441\u0442\u0432\u0435 | \u0422\u0435\u043b\u0435\u0444\u043e\u043d \u043f\u043e\u043a\u0430 \u043d\u0435 \u043f\u043e\u043a\u0430\u0437\u044b\u0432\u0430\u0435\u0442 \u0443\u0432\u0435\u0434\u043e\u043c\u043b\u0435\u043d\u0438\u044f Bloodchain.",
     "overflow": [],
     "consoleErrors": []
   },
@@ -12605,7 +12605,7 @@
     "theme": "dark",
     "data": "seeded database",
     "textLength": 292,
-    "firstLines": "Профиль донора | Обновите данные донора | Группа крови | A+",
+    "firstLines": "\u041f\u0440\u043e\u0444\u0438\u043b\u044c \u0434\u043e\u043d\u043e\u0440\u0430 | \u041e\u0431\u043d\u043e\u0432\u0438\u0442\u0435 \u0434\u0430\u043d\u043d\u044b\u0435 \u0434\u043e\u043d\u043e\u0440\u0430 | \u0413\u0440\u0443\u043f\u043f\u0430 \u043a\u0440\u043e\u0432\u0438 | A+",
     "overflow": [],
     "consoleErrors": []
   },
@@ -12629,7 +12629,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/small-360x640/courier/active/populated.png",
     "screen": "courier/active",
-    "title": "Courier — active delivery",
+    "title": "Courier \u2014 active delivery",
     "route": "/(courier)/active",
     "state": "populated",
     "intent": "",
@@ -12649,7 +12649,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/small-360x640/courier/active/empty.png",
     "screen": "courier/active",
-    "title": "Courier — active delivery",
+    "title": "Courier \u2014 active delivery",
     "route": "/(courier)/active",
     "state": "empty",
     "intent": "",
@@ -12666,7 +12666,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/small-360x640/courier/active/error.png",
     "screen": "courier/active",
-    "title": "Courier — active delivery",
+    "title": "Courier \u2014 active delivery",
     "route": "/(courier)/active",
     "state": "error",
     "intent": "",
@@ -12685,7 +12685,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/small-360x640/courier/active/loading.png",
     "screen": "courier/active",
-    "title": "Courier — active delivery",
+    "title": "Courier \u2014 active delivery",
     "route": "/(courier)/active",
     "state": "loading",
     "intent": "",
@@ -12702,7 +12702,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/small-360x640/courier/active/permission-location-explainer.png",
     "screen": "courier/active",
-    "title": "Courier — active delivery",
+    "title": "Courier \u2014 active delivery",
     "route": "/(courier)/active",
     "state": "permission-location-explainer",
     "intent": "",
@@ -12722,7 +12722,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/small-360x640/courier/active/long-content.png",
     "screen": "courier/active",
-    "title": "Courier — active delivery",
+    "title": "Courier \u2014 active delivery",
     "route": "/(courier)/active",
     "state": "long-content",
     "intent": "",
@@ -12742,7 +12742,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/small-360x640/courier/history/populated.png",
     "screen": "courier/history",
-    "title": "Courier — history",
+    "title": "Courier \u2014 history",
     "route": "/(courier)/history",
     "state": "populated",
     "intent": "",
@@ -12759,7 +12759,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/small-360x640/courier/history/empty.png",
     "screen": "courier/history",
-    "title": "Courier — history",
+    "title": "Courier \u2014 history",
     "route": "/(courier)/history",
     "state": "empty",
     "intent": "",
@@ -12776,7 +12776,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/small-360x640/courier/history/error.png",
     "screen": "courier/history",
-    "title": "Courier — history",
+    "title": "Courier \u2014 history",
     "route": "/(courier)/history",
     "state": "error",
     "intent": "",
@@ -12795,7 +12795,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/small-360x640/courier/history/long-content.png",
     "screen": "courier/history",
-    "title": "Courier — history",
+    "title": "Courier \u2014 history",
     "route": "/(courier)/history",
     "state": "long-content",
     "intent": "",
@@ -12812,7 +12812,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/small-360x640/courier/profile/populated.png",
     "screen": "courier/profile",
-    "title": "Courier — profile",
+    "title": "Courier \u2014 profile",
     "route": "/(courier)/profile",
     "state": "populated",
     "intent": "",
@@ -12829,7 +12829,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/small-360x640/courier/profile/error.png",
     "screen": "courier/profile",
-    "title": "Courier — profile",
+    "title": "Courier \u2014 profile",
     "route": "/(courier)/profile",
     "state": "error",
     "intent": "",
@@ -12848,7 +12848,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/small-360x640/courier/profile/sign-out-confirmation.png",
     "screen": "courier/profile",
-    "title": "Courier — profile",
+    "title": "Courier \u2014 profile",
     "route": "/(courier)/profile",
     "state": "sign-out-confirmation",
     "intent": "",
@@ -12867,7 +12867,7 @@
   {
     "screenshot": "mobile-v4-visual-qa/small-360x640/courier/profile/long-content.png",
     "screen": "courier/profile",
-    "title": "Courier — profile",
+    "title": "Courier \u2014 profile",
     "route": "/(courier)/profile",
     "state": "long-content",
     "intent": "",
