@@ -216,6 +216,31 @@ jobs:
 
       # Last: this script deliberately changes its own seeded recovery account.
       # It starts its own loopback SMTP catcher and refuses skipped assertions.
+      # The earlier Sprint 0 scripts exercise the same per-IP reset limiter.
+      # Restart only after their four-step isolation contract has completed;
+      # keep the database unchanged and preserve the real production limits.
+      - name: Restart test API for independent recovery rate-limit counters
+        run: |
+          previous_pid=$(cat /tmp/api.pid)
+          kill "$previous_pid"
+          for i in $(seq 1 30); do
+            if ! kill -0 "$previous_pid" 2>/dev/null; then break; fi
+            sleep 1
+          done
+          if kill -0 "$previous_pid" 2>/dev/null; then
+            echo "Previous test API did not stop"
+            exit 1
+          fi
+          mv /tmp/api.log /tmp/api-verification.log
+          node apps/api/dist/src/main.js > /tmp/api.log 2>&1 &
+          echo $! > /tmp/api.pid
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:3001/api/v1/health/ready > /dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/api.log
+          exit 1
+
       - name: Email verification and password recovery (real SMTP + database)
         run: pnpm verify:recovery
 
