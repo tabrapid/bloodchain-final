@@ -1,0 +1,36 @@
+# Add to the existing Compose project; preserve its database and volumes.
+# NEXT_PUBLIC_API_URL is a browser URL, embedded at build time.
+services:
+  hospital-web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+      args:
+        WEB_APP: hospital-web
+        NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL:?Set PUBLIC_API_URL to the HTTPS API origin}
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:3000:3000'
+    mem_limit: 512m
+  blood-center-web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+      args:
+        WEB_APP: blood-center-web
+        NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL:?Set PUBLIC_API_URL to the HTTPS API origin}
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:3002:3000'
+    mem_limit: 512m
+  admin-web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+      args:
+        WEB_APP: admin-web
+        NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL:?Set PUBLIC_API_URL to the HTTPS API origin}
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:3003:3000'
+    mem_limit: 512m
