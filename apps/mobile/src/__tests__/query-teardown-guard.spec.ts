@@ -21,12 +21,34 @@
  */
 import { QueryClient } from '@tanstack/react-query';
 
-const { liveClients } = require('../../jest.teardown-query');
+const { liveClients, disposeClients } = require('../../jest.teardown-query');
 
 /** The value `useGeography` uses, and the one that actually hung the suite. */
 const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
 
 describe('the harness disposes React Query caches', () => {
+  it('cancels mutation timers even after a screen has emptied its cache', () => {
+    jest.useFakeTimers();
+    const client = new QueryClient();
+    client.mount();
+    const baseline = jest.getTimerCount();
+    const mutation = client.getMutationCache().build(client, {
+      mutationFn: async () => 'ok', gcTime: 300_000,
+    });
+    try {
+      mutation.removeObserver({} as never);
+      client.clear();
+      expect(client.getMutationCache().getAll()).toHaveLength(0);
+      expect(jest.getTimerCount()).toBeGreaterThan(baseline);
+      disposeClients();
+      expect(jest.getTimerCount()).toBe(baseline);
+    } finally {
+      mutation.destroy();
+      client.clear();
+      jest.useRealTimers();
+    }
+  });
+
   it('notices a client when it is mounted', () => {
     const client = new QueryClient();
 

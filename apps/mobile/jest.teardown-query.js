@@ -40,6 +40,16 @@ const reactQuery = require('@tanstack/react-query');
  * observers and therefore no gc timers, so missing it costs nothing.
  */
 const liveClients = new Set();
+// A screen can clear its cache before teardown (account deletion does this).
+// Keep mutations independently: cache.clear() evicts them without destroying
+// their GC timers, so enumerating the cache at the end misses those objects.
+const liveMutations = new Set();
+const realBuild = reactQuery.MutationCache.prototype.build;
+reactQuery.MutationCache.prototype.build = function build(...args) {
+  const mutation = realBuild.apply(this, args);
+  liveMutations.add(mutation);
+  return mutation;
+};
 
 const realMount = reactQuery.QueryClient.prototype.mount;
 reactQuery.QueryClient.prototype.mount = function mount(...args) {
@@ -47,7 +57,11 @@ reactQuery.QueryClient.prototype.mount = function mount(...args) {
   return realMount.apply(this, args);
 };
 
-afterAll(() => {
+function disposeClients() {
+  for (const mutation of liveMutations) {
+    if (typeof mutation.destroy === 'function') mutation.destroy();
+  }
+  liveMutations.clear();
   for (const client of liveClients) {
     // `unmount()` detaches the focus and online subscriptions.
     if (typeof client.unmount === 'function') client.unmount();
@@ -80,6 +94,8 @@ afterAll(() => {
     client.clear();
   }
   liveClients.clear();
-});
+}
 
-module.exports = { liveClients };
+afterAll(disposeClients);
+
+module.exports = { liveClients, disposeClients };

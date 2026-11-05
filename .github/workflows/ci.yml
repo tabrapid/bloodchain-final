@@ -439,6 +439,7 @@ jobs:
       # A two-core runner gives maxWorkers=1 anyway; saying so makes the
       # guarantee independent of how many cores the runner happens to have.
       - name: Mobile test suite (in band, so a leaked handle fails the job)
+        timeout-minutes: 4
         run: pnpm --filter @bloodchain/mobile exec jest --runInBand
 
       # The real proof that the app still builds: Metro resolves and bundles
