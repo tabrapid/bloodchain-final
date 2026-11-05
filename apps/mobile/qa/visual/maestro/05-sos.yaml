@@ -1,0 +1,36 @@
+# Emergency SOS. The donor journey is ACCEPTED -> EN_ROUTE -> ARRIVED and stops
+# there; there is no completion step to photograph because a donor does not have
+# one. Needs: an active emergency matching the signed-in donor's blood type --
+# raise one from the blood-centre console before running this.
+appId: uz.bloodchain.donor
+name: 05 sos
+---
+- launchApp
+- openLink: donor://sos
+- assertVisible:
+    text: 'Emergency'
+    timeout: 15000
+- takeScreenshot: sos-emergency-list
+
+- tapOn:
+    index: 0
+    text: 'SOS-.*'
+    optional: true
+- takeScreenshot: sos-emergency-viewing
+
+- tapOn:
+    text: 'I can donate'
+    optional: true
+- takeScreenshot: sos-emergency-accepted
+
+- tapOn:
+    text: 'Start journey'
+    optional: true
+- takeScreenshot: sos-emergency-en-route
+# The map: positions and a caption saying so. No route, no ETA, by design.
+- takeScreenshot: sos-emergency-en-route-map
+
+- tapOn:
+    text: "I've arrived"
+    optional: true
+- takeScreenshot: sos-emergency-arrived

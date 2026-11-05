@@ -42,6 +42,7 @@ services:
       # behaviour we want, and the reason not to paper over it.
       NODE_ENV: ${NODE_ENV:-development}
       PORT: 3001
+      TRUST_PROXY_HOPS: ${TRUST_PROXY_HOPS:-0}
       DATABASE_URL: postgresql://${POSTGRES_USER:-donor}:${POSTGRES_PASSWORD:-donor}@postgres:5432/${POSTGRES_DB:-donor}
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?Set JWT_ACCESS_SECRET in .env (min 32 chars)}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?Set JWT_REFRESH_SECRET in .env (min 32 chars)}

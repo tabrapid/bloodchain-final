@@ -1,0 +1,32 @@
+# The courier workspace, which is a different account and therefore a different
+# session. Nothing about the donor's authority is reused here: the courier signs
+# in as themselves and sees what their own role is allowed to see.
+appId: uz.bloodchain.donor
+name: 40 courier
+env:
+  EMAIL: courier@donor.local
+  PASSWORD: DevelopmentOnly!123
+---
+- launchApp:
+    clearState: true
+    permissions:
+      all: allow
+
+- tapOn: 'Sign In'
+- tapOn: 'Use my email address'
+- tapOn:
+    point: '50%,45%'
+- inputText: ${EMAIL}
+- hideKeyboard
+- tapOn:
+    id: 'password'
+    optional: true
+- inputText: ${PASSWORD}
+- hideKeyboard
+- tapOn: 'Sign in to your account'
+
+# The courier lands on their own active-delivery screen, not the donor tabs.
+- assertVisible:
+    text: 'Delivery'
+    timeout: 20000
+- takeScreenshot: 15-courier-active

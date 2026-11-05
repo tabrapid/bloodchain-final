@@ -122,6 +122,77 @@ export class UsersService {
     };
   }
 
+  /**
+   * Closes the donor's own account.
+   *
+   * What goes: the ability to sign in (status DEACTIVATED, which auth already
+   * refuses at login and at refresh), every session and refresh token on
+   * every device, the display name and avatar, the saved home area and
+   * coordinates, the location-sharing consent, every notification channel,
+   * and the leaderboard entry.
+   *
+   * What stays: the donation record -- the identity the blood service
+   * registered the donor under, their donations, screening and laboratory
+   * results, consents and the audit trail. A blood service has to be able to
+   * answer questions about a unit long after it was issued, and the app does
+   * not decide how long. No row is deleted here; the account is closed and
+   * the optional data the app itself collected is removed.
+   *
+   * Idempotent: asking twice closes once. Irreversible from the app: nothing
+   * in this product reopens a DEACTIVATED account.
+   */
+  async deleteOwnAccount(userId: string, ipAddress?: string) {
+    const user = await this.db.user.findUnique({ where: { id: userId }, select: { id: true, status: true } });
+    if (!user) {
+      throw new NotFoundException('User not found.');
+    }
+
+    if (user.status !== 'DEACTIVATED') {
+      const now = new Date();
+      await this.db.$transaction([
+        this.db.user.update({
+          where: { id: userId },
+          data: { status: 'DEACTIVATED', displayName: null, avatarUrl: null },
+        }),
+        this.db.donorProfile.updateMany({
+          where: { userId },
+          data: { consentLocation: false, latitude: null, longitude: null, city: null, district: null },
+        }),
+        this.db.notificationPreference.updateMany({
+          where: { userId },
+          data: {
+            emergencyRequests: false,
+            appointments: false,
+            donationReminders: false,
+            healthResults: false,
+            gamification: false,
+            bloodRequests: false,
+            shipments: false,
+            inventory: false,
+            system: false,
+            security: false,
+          },
+        }),
+        this.db.gamificationProfile.updateMany({
+          where: { userId },
+          data: { leaderboardVisibility: false },
+        }),
+        this.db.session.updateMany({ where: { userId, revokedAt: null }, data: { revokedAt: now } }),
+        this.db.refreshToken.updateMany({ where: { userId, revokedAt: null }, data: { revokedAt: now } }),
+      ]);
+    }
+
+    await this.audit.log({
+      actorId: userId,
+      action: 'ACCOUNT_DELETED_BY_USER',
+      entityType: 'User',
+      entityId: userId,
+      ipAddress,
+    });
+
+    return { data: { success: true } };
+  }
+
   async updateProfile(
     userId: string,
     data: {

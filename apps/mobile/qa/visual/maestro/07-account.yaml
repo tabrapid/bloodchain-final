@@ -1,0 +1,39 @@
+# Profile, privacy, security, notifications -- including the two destructive
+# confirmations, which must both ask before acting.
+appId: uz.bloodchain.donor
+name: 07 account
+---
+- launchApp
+- tapOn: 'Profile'
+- takeScreenshot: tabs-profile-populated
+
+- openLink: donor://(app)/privacy
+- takeScreenshot: account-privacy-default
+- scroll
+- takeScreenshot: account-privacy-default-scrolled
+
+- openLink: donor://(app)/security
+- takeScreenshot: account-security-default
+- tapOn: 'Change password'
+- takeScreenshot: account-security-change-password
+- tapOn: 'Change password'
+- takeScreenshot: account-security-validation-errors
+- back
+
+- openLink: donor://(app)/notification-settings
+- takeScreenshot: account-notification-settings-default
+- tapOn:
+    text: 'Set up notifications'
+    optional: true
+- takeScreenshot: account-notification-settings-permission-explainer
+- tapOn:
+    text: 'Not now'
+    optional: true
+
+- openLink: donor://(app)/notifications
+- takeScreenshot: account-notifications-populated
+
+- tapOn: 'Profile'
+- scroll
+- tapOn: 'Sign Out'
+- takeScreenshot: tabs-profile-sign-out-confirmation

@@ -3,19 +3,39 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryProvider } from '../src/providers/QueryProvider';
-import { ThemeProvider, useTheme } from '../src/theme';
+import { ThemeProvider } from '../src/theme';
 import { LocaleProvider } from '../src/i18n';
 import { AppBackground } from '../src/components/AppBackground';
 import { useAuthBootstrap } from '../src/hooks/useAuth';
 import { usePushNotifications } from '../src/hooks/usePushNotifications';
 import { useAuthStore } from '../src/stores/auth.store';
+import { useAppFonts } from '../src/design/fonts';
+import { useDesign } from '../src/design';
 import { ActivityIndicator, View } from 'react-native';
 
 function AppContent() {
   useAuthBootstrap();
   usePushNotifications();
   const isLoading = useAuthStore((s) => s.isLoading);
-  const { colors, isDark } = useTheme();
+  const { colors, isDark } = useDesign();
+  const fontsReady = useAppFonts();
+
+  // Held on the background colour until Inter is in memory.
+  //
+  // Rendering text in the system face and swapping it a frame later is not a
+  // neutral choice: every line re-measures, so the layout visibly jumps, and on
+  // a cold start that jump is the first thing a donor sees. A beat of the app's
+  // own background is calmer and reads as deliberate. There is no spinner here
+  // for the same reason -- font loading is fast enough that a spinner would
+  // flash rather than inform.
+  if (!fontsReady) {
+    return (
+      <>
+        <StatusBar style={isDark ? 'light' : 'dark'} />
+        <View style={{ flex: 1, backgroundColor: colors.background }} />
+      </>
+    );
+  }
 
   return (
     <>
@@ -26,7 +46,7 @@ function AppContent() {
       <AppBackground>
         {isLoading ? (
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-            <ActivityIndicator size="large" color={colors.primary} />
+            <ActivityIndicator size="large" color={colors.rose.base} />
           </View>
         ) : (
           <Stack

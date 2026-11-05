@@ -1,23 +1,66 @@
 {
   "expo": {
     "name": "Bloodchain",
-    "slug": "donor",
+    "slug": "bloodchain",
     "scheme": "donor",
-    "version": "0.1.0",
+    "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
-    "newArchEnabled": true,
+    "android": {
+      "package": "uz.bloodchain.donor",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/brand/adaptive-icon-foreground.png",
+        "backgroundImage": "./assets/brand/adaptive-icon-background.png",
+        "monochromeImage": "./assets/brand/adaptive-icon-foreground.png"
+      },
+      "blockedPermissions": [
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.ACCESS_BACKGROUND_LOCATION"
+      ]
+    },
+    "ios": {
+      "bundleIdentifier": "uz.bloodchain.donor",
+      "buildNumber": "1",
+      "config": {
+        "usesNonExemptEncryption": false
+      }
+    },
     "plugins": [
       "expo-router",
-      "expo-secure-store",
+      [
+        "expo-secure-store",
+        {
+          "faceIDPermission": false
+        }
+      ],
       "expo-notifications",
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Bloodchain uses your location during an active emergency response so the hospital can track your journey."
+          "locationWhenInUsePermission": "Bloodchain uses your location while you use the app to show which donation centres are nearest to you and, if you choose, to save a home area so nearby emergency requests can reach you. When you accept an emergency request or carry a delivery, your location is shared with the authorised hospital staff handling it, for that journey only.",
+          "locationAlwaysAndWhenInUsePermission": false,
+          "locationAlwaysPermission": false,
+          "motionUsagePermission": false
         }
-      ]
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/brand/splash-icon.png",
+          "imageWidth": 160,
+          "resizeMode": "contain",
+          "backgroundColor": "#0A0C16"
+        }
+      ],
+      "expo-system-ui"
     ],
-    "experiments": { "typedRoutes": true }
+    "experiments": {
+      "typedRoutes": true
+    },
+    "icon": "./assets/brand/icon.png",
+    "backgroundColor": "#0A0C16"
   }
 }

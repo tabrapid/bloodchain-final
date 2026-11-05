@@ -1,0 +1,50 @@
+# The donation booking wizard, end to end. Needs: API up, seeded database with
+# open slots (the seed opens 257).
+appId: uz.bloodchain.donor
+name: 04 booking
+---
+- launchApp
+- tapOn: 'Donate'
+- tapOn:
+    text: 'Schedule a donation'
+    timeout: 15000
+- takeScreenshot: booking-1-select-type-default
+- tapOn: 'Blood donation'
+- takeScreenshot: booking-1-select-type-selected
+- tapOn: 'Continue'
+
+- assertVisible: 'Select location'
+- takeScreenshot: booking-2-organizations-populated
+- tapOn: 'Show filters'
+- takeScreenshot: booking-2-organizations-filters-open
+- tapOn:
+    text: 'Near me'
+    optional: true
+- takeScreenshot: booking-2-organizations-permission-location-explainer
+- tapOn:
+    text: 'Not now'
+    optional: true
+- back
+
+- tapOn:
+    index: 0
+    text: '.*Hospital.*'
+- tapOn: 'Continue'
+- assertVisible: 'Which day?'
+- takeScreenshot: booking-3-date-populated
+- tapOn:
+    text: '.*open.*'
+    optional: true
+- tapOn: 'Continue'
+- takeScreenshot: booking-4-time-populated
+- tapOn:
+    index: 0
+    text: '\\d{1,2}:\\d{2}'
+- tapOn: 'Continue'
+- assertVisible: 'Review booking'
+- takeScreenshot: booking-5-review-populated
+- tapOn: 'Confirm appointment'
+- assertVisible:
+    text: '.*'
+    timeout: 20000
+- takeScreenshot: booking-6-confirmation-populated

@@ -11,6 +11,10 @@ import {
   formatAddress,
   formatDate,
   formatDateTime,
+  formatDayHeading,
+  formatMonth,
+  formatWeekday,
+  resetIntlProbe,
   formatNumber,
   formatTime,
   normalizeLocale,
@@ -169,6 +173,48 @@ describe('formatting', () => {
 
   it('returns an empty string for an unparseable date rather than "Invalid Date"', () => {
     expect(formatDate('uz', 'not-a-date')).toBe('');
+  });
+
+  it('names Uzbek months and weekdays even where Intl has no Uzbek data', () => {
+    const september = new Date(2026, 8, 1); // a Tuesday
+    const original = Intl.DateTimeFormat;
+    // A slim ICU does not throw for uz: it prints "M09" and English initials.
+    class SlimIntl extends original {
+      private readonly slim: boolean;
+      constructor(locale?: string | string[], options?: Intl.DateTimeFormatOptions) {
+        const slim = String(locale).startsWith('uz');
+        super(slim ? 'en-GB' : locale, options);
+        this.slim = slim;
+      }
+      static override supportedLocalesOf(locales: string | string[]) {
+        return original.supportedLocalesOf(locales).filter((l) => !l.startsWith('uz'));
+      }
+      override format(date?: Date | number) {
+        const text = super.format(date);
+        return this.slim && this.resolvedOptions().month === 'long' ? '2026 M09' : text;
+      }
+    }
+    Intl.DateTimeFormat = SlimIntl as unknown as typeof Intl.DateTimeFormat;
+    resetIntlProbe();
+    try {
+      expect(formatMonth('uz', september)).toBe('sentabr, 2026');
+      expect(formatMonth('uz', september, 'short')).toBe('sen 2026');
+      expect(formatWeekday('uz', september)).toBe('Sesh');
+      expect(formatWeekday('uz', september, 'narrow')).toBe('S');
+      expect(formatDate('uz', september)).toBe('1 sentabr, 2026');
+      expect(formatDate('uz', september, 'medium')).toBe('1 sen, 2026');
+      expect(formatDate('uz', september, 'full')).toBe('seshanba, 1 sentabr, 2026');
+      expect(formatDayHeading('uz', september)).toBe('Seshanba, 1 sen');
+      expect(formatMonth('en', september)).toContain('September');
+    } finally {
+      Intl.DateTimeFormat = original;
+      resetIntlProbe();
+    }
+  });
+
+  it('uses the runtime Uzbek names when they exist', () => {
+    expect(formatMonth('uz', new Date(2026, 8, 1))).toMatch(/sentabr/i);
+    expect(formatWeekday('uz', new Date(2026, 8, 1))).toMatch(/sesh/i);
     expect(formatTime('ru', 'not-a-date')).toBe('');
   });
 

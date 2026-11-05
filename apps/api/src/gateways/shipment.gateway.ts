@@ -46,7 +46,7 @@ const CONNECTION_TIMEOUT = 90000;
 @WebSocketGateway({
   namespace: '/shipments',
   cors: {
-    origin: process.env.WEB_URL || 'http://localhost:3000',
+    origin: (process.env.WEB_URL || 'http://localhost:3000').split(',').map((o) => o.trim()),
     credentials: true,
   },
 })

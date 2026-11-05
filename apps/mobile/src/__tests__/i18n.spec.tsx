@@ -39,7 +39,7 @@ jest.mock('@bloodchain/i18n', () => {
   return { ...actual, detectPlatformLocales: () => mockPlatformLocales };
 });
 
-jest.mock('expo-router', () => ({ router: { push: jest.fn(), replace: jest.fn() } }));
+jest.mock('expo-router', () => ({ router: { push: jest.fn(), replace: jest.fn(), dismissAll: jest.fn(), canGoBack: jest.fn(() => true) } }));
 
 jest.mock('expo-secure-store', () => ({
   getItemAsync: (key: string) => mockGetItem(key),

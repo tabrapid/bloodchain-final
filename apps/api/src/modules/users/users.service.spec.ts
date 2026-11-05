@@ -37,6 +37,12 @@ describe('UsersService', () => {
         count: jest.fn(),
         update: jest.fn(),
       },
+      donorProfile: { updateMany: jest.fn() },
+      notificationPreference: { updateMany: jest.fn() },
+      gamificationProfile: { updateMany: jest.fn() },
+      session: { updateMany: jest.fn() },
+      refreshToken: { updateMany: jest.fn() },
+      $transaction: jest.fn().mockResolvedValue([]),
     };
     audit = { log: jest.fn().mockResolvedValue({}) };
 
@@ -155,6 +161,70 @@ describe('UsersService', () => {
       expect(result.data.notificationPreference).toEqual(
         expect.objectContaining({ id: 'pref-1', emergencyRequests: true }),
       );
+    });
+  });
+
+  describe('deleteOwnAccount', () => {
+    it('throws NotFoundException when the user does not exist', async () => {
+      prisma.user.findUnique.mockResolvedValue(null);
+
+      await expect(service.deleteOwnAccount('missing')).rejects.toThrow(NotFoundException);
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('closes the account, removes the optional app data and signs every device out, in one transaction', async () => {
+      prisma.user.findUnique.mockResolvedValue({ id: 'user-1', status: 'ACTIVE' });
+
+      const result = await service.deleteOwnAccount('user-1', '203.0.113.9');
+
+      expect(result).toEqual({ data: { success: true } });
+      expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+      expect(prisma.user.update).toHaveBeenCalledWith({
+        where: { id: 'user-1' },
+        data: { status: 'DEACTIVATED', displayName: null, avatarUrl: null },
+      });
+      expect(prisma.donorProfile.updateMany).toHaveBeenCalledWith({
+        where: { userId: 'user-1' },
+        data: { consentLocation: false, latitude: null, longitude: null, city: null, district: null },
+      });
+      expect(prisma.gamificationProfile.updateMany).toHaveBeenCalledWith({
+        where: { userId: 'user-1' },
+        data: { leaderboardVisibility: false },
+      });
+      expect(prisma.session.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { userId: 'user-1', revokedAt: null } }),
+      );
+      expect(prisma.refreshToken.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { userId: 'user-1', revokedAt: null } }),
+      );
+      expect(audit.log).toHaveBeenCalledWith(
+        expect.objectContaining({ actorId: 'user-1', action: 'ACCOUNT_DELETED_BY_USER', ipAddress: '203.0.113.9' }),
+      );
+    });
+
+    it('never touches the identity or the medical record', async () => {
+      prisma.user.findUnique.mockResolvedValue({ id: 'user-1', status: 'ACTIVE' });
+
+      await service.deleteOwnAccount('user-1');
+
+      const userData = prisma.user.update.mock.calls[0][0].data;
+      for (const field of ['email', 'phone', 'firstName', 'lastName', 'dateOfBirth', 'passwordHash']) {
+        expect(userData).not.toHaveProperty(field);
+      }
+      const profileData = prisma.donorProfile.updateMany.mock.calls[0][0].data;
+      for (const field of ['bloodType', 'rhFactor', 'verificationStatus', 'donorStatus', 'dateOfBirth']) {
+        expect(profileData).not.toHaveProperty(field);
+      }
+    });
+
+    it('is idempotent: a second request on a closed account changes nothing and still succeeds', async () => {
+      prisma.user.findUnique.mockResolvedValue({ id: 'user-1', status: 'DEACTIVATED' });
+
+      const result = await service.deleteOwnAccount('user-1');
+
+      expect(result).toEqual({ data: { success: true } });
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+      expect(prisma.user.update).not.toHaveBeenCalled();
     });
   });
 

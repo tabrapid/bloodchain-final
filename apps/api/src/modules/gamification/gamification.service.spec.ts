@@ -68,3 +68,66 @@ describe('GamificationService.processChallengeCompleted', () => {
     expect(result).toEqual({ xpAwarded: false, xpAmount: 0, newTotalXp: 0 });
   });
 });
+
+describe('GamificationService.getGamificationProfile', () => {
+  const build = async (profile: Record<string, unknown> | null) => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        GamificationService,
+        {
+          provide: PrismaService,
+          useValue: {
+            gamificationProfile: { findUnique: jest.fn().mockResolvedValue(profile) },
+            donation: { findFirst: jest.fn().mockResolvedValue(null) },
+          },
+        },
+        { provide: XpService, useValue: {} },
+        {
+          provide: LevelService,
+          useValue: {
+            calculateLevelFromXp: jest.fn().mockReturnValue(1),
+            calculateXpToNextLevel: jest.fn().mockReturnValue(160),
+            calculateProgress: jest.fn().mockReturnValue(36),
+          },
+        },
+        { provide: AchievementService, useValue: {} },
+        { provide: BadgeService, useValue: {} },
+        {
+          provide: LeaderboardService,
+          useValue: {
+            getDonationStats: jest.fn().mockResolvedValue({
+              totalDonations: 0,
+              successfulEmergencyResponses: 0,
+              bloodTestsCompleted: 0,
+            }),
+            getUserRank: jest.fn().mockResolvedValue(null),
+          },
+        },
+        { provide: ReputationService, useValue: {} },
+        { provide: AntiAbuseService, useValue: {} },
+      ],
+    }).compile();
+
+    return module.get<GamificationService>(GamificationService);
+  };
+
+  // The leaderboard has always honoured this column and the setter has always
+  // been able to write it. Reading it back is what lets a donor be shown the
+  // switch in the position they left it -- without which the app could not
+  // offer the switch at all.
+  it('reports whether this donor is on the public leaderboard', async () => {
+    const service = await build({ totalXp: 340, level: 3, reputationScore: 45, leaderboardVisibility: false });
+
+    await expect(service.getGamificationProfile('user-1')).resolves.toMatchObject({
+      leaderboardVisibility: false,
+    });
+  });
+
+  it('defaults to visible for a donor with no profile row, as the column does', async () => {
+    const service = await build(null);
+
+    await expect(service.getGamificationProfile('user-1')).resolves.toMatchObject({
+      leaderboardVisibility: true,
+    });
+  });
+});

@@ -1,17 +1,28 @@
-import { useMemo, useState } from 'react';
-import { View, StyleSheet, ScrollView, Switch, Alert } from 'react-native';
+import { useState } from 'react';
+import { Linking, View } from 'react-native';
+import { router } from 'expo-router';
+import Constants from 'expo-constants';
+import { Download, UserX } from 'lucide-react-native';
 import {
-  AppText,
-  GlassCard,
-  Screen,
+  Banner,
+  ListGroup,
+  ListRow,
   ScreenHeader,
+  ScrollScreen,
   SectionHeader,
-  ListItem,
-  Divider,
-} from '../../src/components';
-import { spacing, useTheme, ThemeColors } from '../../src/theme';
+  Stack,
+  Surface,
+  Text,
+  Toggle,
+  space,
+} from '../../src/design';
 import { useDonorProfile, useUpdateDonorProfile } from '../../src/hooks/useDonors';
+import {
+  useGamificationProfile,
+  useUpdateLeaderboardVisibility,
+} from '../../src/hooks/useGamification';
 import { useTranslation } from '../../src/i18n';
+import { policyLinks } from '../../src/config/links';
 
 /**
  * When the policy text this screen points at was last revised. A date, not a
@@ -19,153 +30,180 @@ import { useTranslation } from '../../src/i18n';
  */
 const LAST_UPDATED = new Date(2026, 8, 1);
 
+/**
+ * Privacy, rebuilt for V2 — and still refusing to pretend.
+ *
+ * The reference shows five toggles. Three of them (public profile, donation
+ * history visibility, anonymised analytics) have no field behind them anywhere
+ * in this system, and a privacy switch that silently does nothing is worse than
+ * one that is absent. Only the consent this app actually stores and honours is
+ * offered.
+ *
+ * The fourth, leaderboard opt-out, turned out to be real: the column exists,
+ * the leaderboard query has always honoured it, and the setter has always been
+ * there -- but the profile endpoint did not return it, so the switch could not
+ * be drawn in the position the donor left it, and an earlier reading of this
+ * screen concluded there was nothing behind it. The endpoint returns it now
+ * (S11.1), and a donor can take their name off a public ranking here.
+ *
+ * The same rule applies to the rows below it. There is no data-export endpoint
+ * in this backend, so that row says so and is visibly, announced-ly disabled
+ * rather than a tappable thing that does nothing. Account deletion exists
+ * (DELETE /users/me) and the row leads to the screen that spells out what it
+ * does before offering it. The policy rows open the published pages when this
+ * build was given their addresses, and say "not yet published" otherwise.
+ */
 export default function Privacy() {
   const { t, formatMonth } = useTranslation();
-  const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
   const { data: donorProfile } = useDonorProfile();
   const updateDonorProfile = useUpdateDonorProfile();
+  const { data: gamificationProfile } = useGamificationProfile();
+  const updateLeaderboardVisibility = useUpdateLeaderboardVisibility();
   const [pendingConsent, setPendingConsent] = useState<boolean | null>(null);
+  const [pendingLeaderboard, setPendingLeaderboard] = useState<boolean | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const consentLocation = pendingConsent ?? donorProfile?.consentLocation ?? false;
+  const onLeaderboard = pendingLeaderboard ?? gamificationProfile?.leaderboardVisibility ?? true;
 
   const handleToggleLocation = (value: boolean) => {
+    setError(null);
     setPendingConsent(value);
     updateDonorProfile.mutate(
       { consentLocation: value },
       {
+        // The switch goes back to what the server actually holds, and the
+        // failure is said on the screen rather than in a system dialog.
         onError: () => {
           setPendingConsent(null);
-          Alert.alert(t('common.error'), t('privacy.consentUpdateFailed'));
+          setError(t('privacy.consentUpdateFailed'));
         },
         onSuccess: () => setPendingConsent(null),
       },
     );
   };
 
+  const handleToggleLeaderboard = (value: boolean) => {
+    setError(null);
+    setPendingLeaderboard(value);
+    updateLeaderboardVisibility.mutate(value, {
+      onError: () => {
+        setPendingLeaderboard(null);
+        setError(t('privacy.leaderboardUpdateFailed'));
+      },
+      onSuccess: () => setPendingLeaderboard(null),
+    });
+  };
+
+  const version = Constants.expoConfig?.version ?? '—';
+  const { privacyPolicyUrl, termsUrl } = policyLinks();
+
   return (
-    <Screen scroll={false}>
-      <ScreenHeader title={t('privacy.title')} subtitle={t('privacy.subtitle')} />
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {/* The reference shows five toggles. Four of them (public profile,
-            donation history visibility, leaderboard opt-out, anonymized
-            analytics) have no field behind them anywhere in this system, and
-            a privacy switch that silently does nothing is worse than one
-            that is absent. Only the consent this app actually stores and
-            honours is offered. */}
-        <SectionHeader>{t('privacy.locationAndData')}</SectionHeader>
-        <GlassCard>
-          <View style={styles.toggleRow}>
-            <View style={styles.toggleText}>
-              <AppText style={styles.toggleLabel}>{t('privacy.shareLocation')}</AppText>
-              <AppText style={styles.toggleDesc}>
-                {t('privacy.shareLocationHint')}
-              </AppText>
+    <ScrollScreen
+      header={
+        <ScreenHeader
+          title={t('privacy.title')}
+          size="large"
+          subtitle={t('privacy.subtitle')}
+          onBack={() => router.back()}
+          backLabel={t('common.a11yGoBack')}
+        />
+      }
+    >
+      <Stack gap="xl">
+        {error ? <Banner tone="critical" title={error} /> : null}
+
+        <Stack gap="md">
+          <SectionHeader title={t('privacy.locationAndData')} />
+          <Surface level="flat" padded={false}>
+            <View style={{ paddingHorizontal: space.lg }}>
+              <Toggle
+                label={t('privacy.shareLocation')}
+                description={t('privacy.shareLocationHint')}
+                value={consentLocation}
+                onValueChange={handleToggleLocation}
+                busy={updateDonorProfile.isPending}
+              />
+              <Toggle
+                label={t('privacy.leaderboardVisible')}
+                description={t('privacy.leaderboardVisibleHint')}
+                value={onLeaderboard}
+                onValueChange={handleToggleLeaderboard}
+                busy={updateLeaderboardVisibility.isPending}
+              />
             </View>
-            <Switch
-              value={consentLocation}
-              onValueChange={handleToggleLocation}
-              disabled={updateDonorProfile.isPending}
-              trackColor={{ false: colors.surfaceElevated, true: colors.primary }}
-              thumbColor={colors.white}
-            />
-          </View>
-        </GlassCard>
+          </Surface>
+        </Stack>
 
-        <SectionHeader>{t('privacy.yourData')}</SectionHeader>
-        <GlassCard>
-          <ListItem
-            title={t('privacy.downloadData')}
-            subtitle={t('privacy.downloadDataHint')}
+        <Stack gap="md">
+          <SectionHeader title={t('privacy.yourData')} />
+          <ListGroup
+            rows={[
+              <ListRow
+                key="download"
+                icon={({ size, color }) => <Download size={size} color={color} />}
+                title={t('privacy.downloadData')}
+                subtitle={t('privacy.downloadDataHint')}
+                disabled
+              />,
+              <ListRow
+                key="delete"
+                icon={({ size, color }) => <UserX size={size} color={color} />}
+                tone="critical"
+                title={t('privacy.deleteAccount')}
+                subtitle={t('privacy.deleteAccountHint')}
+                onPress={() => router.push('/delete-account')}
+              />,
+            ]}
           />
-          <Divider />
-          <ListItem
-            title={t('privacy.deleteAccount')}
-            subtitle={t('privacy.deleteAccountHint')}
-            destructive
+        </Stack>
+
+        <Stack gap="md">
+          <SectionHeader title={t('privacy.policies')} />
+          <ListGroup
+            rows={[
+              <ListRow
+                key="policy"
+                title={t('privacy.privacyPolicy')}
+                subtitle={privacyPolicyUrl ? t('privacy.opensInBrowser') : t('privacy.notPublished')}
+                onPress={privacyPolicyUrl ? () => void Linking.openURL(privacyPolicyUrl) : undefined}
+                disabled={!privacyPolicyUrl}
+              />,
+              <ListRow
+                key="terms"
+                title={t('privacy.termsOfService')}
+                subtitle={termsUrl ? t('privacy.opensInBrowser') : t('privacy.notPublished')}
+                onPress={termsUrl ? () => void Linking.openURL(termsUrl) : undefined}
+                disabled={!termsUrl}
+              />,
+              <ListRow
+                key="medical"
+                title={t('privacy.medicalDisclaimer')}
+                subtitle={t('privacy.medicalDisclaimerHint')}
+                disabled
+              />,
+            ]}
           />
-        </GlassCard>
+        </Stack>
 
-        <SectionHeader>{t('privacy.policies')}</SectionHeader>
-        <GlassCard>
-          <ListItem title={t('privacy.privacyPolicy')} subtitle={t('privacy.notPublished')} />
-          <Divider />
-          <ListItem title={t('privacy.termsOfService')} subtitle={t('privacy.notPublished')} />
-          <Divider />
-          <ListItem
-            title={t('privacy.medicalDisclaimer')}
-            subtitle={t('privacy.medicalDisclaimerHint')}
+        <Stack gap="md">
+          <SectionHeader title={t('privacy.about')} />
+          <ListGroup
+            rows={[
+              <ListRow key="version" title={t('privacy.version')} value={version} />,
+              <ListRow
+                key="updated"
+                title={t('privacy.lastUpdated')}
+                value={formatMonth(LAST_UPDATED)}
+              />,
+            ]}
           />
-        </GlassCard>
+        </Stack>
 
-        <SectionHeader>{t('privacy.about')}</SectionHeader>
-        <GlassCard style={styles.compactCard}>
-          <View style={styles.aboutRow}>
-            <AppText style={styles.aboutLabel}>{t('privacy.version')}</AppText>
-            <AppText style={styles.aboutValue}>1.0.0</AppText>
-          </View>
-          <Divider />
-          <View style={styles.aboutRow}>
-            <AppText style={styles.aboutLabel}>{t('privacy.lastUpdated')}</AppText>
-            <AppText style={styles.aboutValue}>{formatMonth(LAST_UPDATED)}</AppText>
-          </View>
-        </GlassCard>
-
-        <AppText style={styles.disclaimer}>{t('privacy.disclaimer')}</AppText>
-      </ScrollView>
-    </Screen>
+        <Text variant="caption" tone="tertiary" align="center">
+          {t('privacy.disclaimer')}
+        </Text>
+      </Stack>
+    </ScrollScreen>
   );
-}
-
-function createStyles(colors: ThemeColors) {
-  return StyleSheet.create({
-    content: {
-      paddingBottom: spacing['2xl'],
-    },
-    toggleRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 12,
-    },
-    toggleText: {
-      flex: 1,
-    },
-    toggleLabel: {
-      fontSize: 14,
-      fontWeight: '500',
-      color: colors.text,
-    },
-    toggleDesc: {
-      fontSize: 12,
-      color: colors.textMuted,
-      marginTop: 2,
-    },
-    compactCard: {
-      paddingVertical: 12,
-      paddingHorizontal: 14,
-    },
-    aboutRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      paddingVertical: spacing.sm,
-    },
-    aboutLabel: {
-      fontSize: 13,
-      color: colors.textMuted,
-    },
-    aboutValue: {
-      fontSize: 13,
-      fontWeight: '500',
-      color: colors.text,
-    },
-    disclaimer: {
-      fontSize: 11,
-      lineHeight: 17,
-      color: colors.textMuted,
-      textAlign: 'center',
-      marginTop: spacing.lg,
-      paddingHorizontal: spacing.md,
-    },
-  });
 }

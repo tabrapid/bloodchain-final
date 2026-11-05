@@ -1,27 +1,32 @@
 import { useMemo, useState } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
-import { View, StyleSheet, Pressable } from 'react-native';
-import { Sun, Sunrise, Sunset, type LucideIcon } from 'lucide-react-native';
+import { View } from 'react-native';
+import { Sun, Sunrise, Sunset } from 'lucide-react-native';
 import {
-  AppButton,
-  AppText,
-  BookingStep,
   EmptyState,
-  GlassCard,
+  ErrorState,
+  FlowStep,
+  OptionGrid,
+  Row,
   SectionHeader,
-} from '../../src/components';
+  Skeleton,
+  Stack,
+  Text,
+  iconSize,
+  useDesign,
+} from '../../src/design';
+import { LucideIcon } from '../../src/types/icons';
 import { useAvailability } from '../../src/hooks/useAppointments';
 import type { AppointmentSlot } from '../../src/api/appointments';
-import { radius, spacing, useTheme, ThemeColors } from '../../src/theme';
 import { useTranslation } from '../../src/i18n';
+import { BOOKING_STEP_COUNT } from './select-type';
 
-/** Below this, the number of remaining spots is worth showing on the chip. */
+/** Below this, the number of remaining spots is worth showing beside the time. */
 const SCARCE_SPOTS = 3;
 
 export default function SelectTime() {
   const { t, formatDayHeading, formatTime } = useTranslation();
-  const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const { colors } = useDesign();
   const params = useLocalSearchParams<{
     organizationId: string;
     type: string;
@@ -35,7 +40,6 @@ export default function SelectTime() {
     isLoading,
     isError,
     refetch,
-    isRefetching,
   } = useAvailability({
     organizationId: params.organizationId,
     appointmentType: params.type,
@@ -72,12 +76,19 @@ export default function SelectTime() {
   }, [params.date, t, formatDayHeading]);
 
   return (
-    <BookingStep
+    <FlowStep
       step={4}
+      total={BOOKING_STEP_COUNT}
+      counterLabel={t('booking.stepOf', { current: 4, total: BOOKING_STEP_COUNT })}
       title={params.rescheduleAppointmentId ? t('booking.pickNewTime') : t('booking.selectTime')}
       subtitle={subtitle}
-      nextDisabled={!selectedSlotId}
-      onNext={() =>
+      onBack={() => router.back()}
+      backLabel={t('common.a11yGoBack')}
+      onClose={() => router.replace('/(app)/donate')}
+      closeLabel={t('common.a11yCloseBooking')}
+      primaryLabel={t('common.continue')}
+      primaryDisabled={!selectedSlotId}
+      onPrimary={() =>
         router.push({
           pathname: '/(booking)/review',
           params: {
@@ -93,142 +104,76 @@ export default function SelectTime() {
       }
     >
       {isLoading ? (
-        <AppText style={styles.status}>{t('booking.loadingTimes')}</AppText>
+        <Stack gap="lg">
+          <Skeleton height={14} width="30%" />
+          <Skeleton height={52} />
+          <Skeleton height={52} />
+        </Stack>
       ) : isError ? (
-        <GlassCard style={styles.stateCard}>
-          <EmptyState
-            title={t('booking.timesFailed')}
-            description={t('common.offline')}
-          />
-          <AppButton
-            variant="secondary"
-            onPress={() => refetch()}
-            disabled={isRefetching}
-            loading={isRefetching}
-            style={styles.retry}
-          >
-            {t('common.retry')}
-          </AppButton>
-        </GlassCard>
+        <ErrorState
+          title={t('booking.timesFailed')}
+          description={t('common.offline')}
+          retryLabel={t('common.retry')}
+          onRetry={() => void refetch()}
+        />
       ) : slots.length === 0 ? (
-        <GlassCard style={styles.stateCard}>
-          <EmptyState
-            title={t('booking.noTimes')}
-            description={t('booking.noTimesHint')}
-          />
-        </GlassCard>
+        <EmptyState
+          title={t('booking.noTimes')}
+          description={t('booking.noTimesHint')}
+          action={{ label: t('common.back'), onPress: () => router.back() }}
+        />
       ) : (
-        groups
-          .filter((group) => group.slots.length > 0)
-          .map((group) => {
-            const Icon = group.icon;
-            return (
-              <View key={group.labelKey}>
-                <View style={styles.groupHeader}>
-                  <Icon size={16} color={colors.textMuted} />
-                  <SectionHeader>{t(group.labelKey)}</SectionHeader>
-                </View>
-                <View style={styles.grid}>
-                  {group.slots.map((slot) => {
-                    const selected = selectedSlotId === slot.id;
-                    const scarce = slot.availableSpots <= SCARCE_SPOTS;
-                    return (
-                      <View key={slot.id} style={styles.cell}>
-                        <Pressable
-                          onPress={() => setSelectedSlotId(slot.id)}
-                          accessibilityRole="radio"
-                          accessibilityState={{ selected }}
-                          style={({ pressed }) => [
-                            styles.chip,
-                            selected && styles.chipSelected,
-                            { opacity: pressed && !selected ? 0.7 : 1 },
-                          ]}
-                        >
-                          <AppText style={[styles.chipTime, selected && styles.chipTimeSelected]}>
-                            {formatTime(slot.startAt)}
-                          </AppText>
-                          {scarce && (
-                            <AppText
-                              style={[styles.chipMeta, selected && styles.chipMetaSelected]}
-                            >
-                              {slot.availableSpots} left
-                            </AppText>
-                          )}
-                        </Pressable>
-                      </View>
-                    );
-                  })}
-                </View>
-              </View>
-            );
-          })
+        <Stack gap="xl">
+          {groups
+            .filter((group) => group.slots.length > 0)
+            .map((group) => {
+              const Icon = group.icon;
+              return (
+                <Stack gap="md" key={group.labelKey}>
+                  <Row gap="sm">
+                    <Icon size={iconSize.sm} color={colors.textTertiary} />
+                    <View style={{ flex: 1 }}>
+                      <SectionHeader title={t(group.labelKey)} />
+                    </View>
+                  </Row>
+                  {/* Three to a row rather than four: a time is four
+                      characters wide and a scarcity note sits under it. */}
+                  <OptionGrid
+                    accessibilityLabel={t(group.labelKey)}
+                    columns={3}
+                    value={selectedSlotId}
+                    onChange={setSelectedSlotId}
+                    options={group.slots.map((slot) => ({
+                      value: slot.id,
+                      label: formatTime(slot.startAt),
+                      accessibilityLabel:
+                        slot.availableSpots <= SCARCE_SPOTS
+                          ? `${formatTime(slot.startAt)}, ${t('booking.spotsLeft', {
+                              count: slot.availableSpots,
+                            })}`
+                          : formatTime(slot.startAt),
+                    }))}
+                  />
+                  {/* The scarce ones, said once under the grid rather than
+                      crammed into a cell that is four characters wide. */}
+                  {group.slots.some((slot) => slot.availableSpots <= SCARCE_SPOTS) ? (
+                    <Text variant="caption" tone="warning">
+                      {group.slots
+                        .filter((slot) => slot.availableSpots <= SCARCE_SPOTS)
+                        .map(
+                          (slot) =>
+                            `${formatTime(slot.startAt)} — ${t('booking.spotsLeft', {
+                              count: slot.availableSpots,
+                            })}`,
+                        )
+                        .join(' · ')}
+                    </Text>
+                  ) : null}
+                </Stack>
+              );
+            })}
+        </Stack>
       )}
-    </BookingStep>
+    </FlowStep>
   );
-}
-
-function createStyles(colors: ThemeColors) {
-  return StyleSheet.create({
-    status: {
-      fontSize: 13,
-      color: colors.textMuted,
-    },
-    stateCard: {
-      paddingVertical: spacing.lg,
-    },
-    retry: {
-      marginTop: spacing.md,
-      alignSelf: 'center',
-    },
-    groupHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 6,
-    },
-    grid: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      marginHorizontal: -5,
-    },
-    cell: {
-      width: `${100 / 3}%`,
-      paddingHorizontal: 5,
-      paddingBottom: 10,
-    },
-    chip: {
-      minHeight: 46,
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderRadius: radius.sm,
-      backgroundColor: colors.glass.standard.fill,
-      borderWidth: 1,
-      borderColor: colors.glass.standard.border,
-    },
-    chipSelected: {
-      backgroundColor: colors.primary,
-      borderColor: 'transparent',
-      shadowColor: colors.primary,
-      shadowOpacity: 0.3,
-      shadowRadius: 12,
-      shadowOffset: { width: 0, height: 4 },
-      elevation: 4,
-    },
-    chipTime: {
-      fontSize: 14,
-      fontWeight: '500',
-      color: colors.text,
-    },
-    chipTimeSelected: {
-      fontWeight: '700',
-      color: colors.white,
-    },
-    chipMeta: {
-      fontSize: 10,
-      color: colors.onMuted.warning,
-      marginTop: 1,
-    },
-    chipMetaSelected: {
-      color: 'rgba(255,255,255,0.85)',
-    },
-  });
 }

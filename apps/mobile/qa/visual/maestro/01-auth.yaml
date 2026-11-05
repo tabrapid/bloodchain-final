@@ -1,0 +1,45 @@
+# Authentication, signed out. Needs: API up, seeded database.
+appId: uz.bloodchain.donor
+name: 01 auth
+---
+- launchApp:
+    clearState: true
+- assertVisible: 'A stronger tomorrow, together.'
+- takeScreenshot: auth-welcome-default
+
+- tapOn: 'Sign In'
+- assertVisible: 'Welcome back'
+- takeScreenshot: auth-login-empty
+
+# Every rule at once, which is the state a first-time donor is most likely to
+# see and the one most likely to overflow in Russian and Uzbek.
+- tapOn: 'Sign in to your account'
+- takeScreenshot: auth-login-validation-errors
+
+- tapOn: 'Use my email address'
+- takeScreenshot: auth-login-email-mode
+
+- inputText: 'donor@donor.local'
+- tapOn:
+    id: 'password'
+    optional: true
+- inputText: 'DevelopmentOnly!123'
+- takeScreenshot: auth-login-filled
+- tapOn: 'Sign in to your account'
+- assertVisible:
+    text: 'Good'
+    timeout: 20000
+- takeScreenshot: auth-login-success-home
+
+- launchApp:
+    clearState: true
+- tapOn: 'Create Account'
+- assertVisible: 'Create your account'
+- takeScreenshot: auth-register-empty
+- tapOn: 'Create Bloodchain account'
+- takeScreenshot: auth-register-validation-errors
+
+- back
+- tapOn: 'Sign In'
+- tapOn: 'Forgot password?'
+- takeScreenshot: auth-forgot-password-empty

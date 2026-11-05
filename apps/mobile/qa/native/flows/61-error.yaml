@@ -1,0 +1,36 @@
+# The error state, with the API genuinely unreachable.
+#
+# Run only by the runner, and only with the adb reverse tunnel removed. A
+# separate file because it needs the app to start with nothing to talk to: a
+# session established while the API was up would serve the home screen from
+# React Query's cache and photograph a working screen under an error label.
+appId: uz.bloodchain.donor
+name: 61 error
+env:
+  EMAIL: donor@donor.local
+  PASSWORD: DevelopmentOnly!123
+---
+- launchApp:
+    clearState: true
+    permissions:
+      all: allow
+
+- tapOn: 'Sign In'
+- tapOn: 'Use my email address'
+- tapOn:
+    point: '50%,45%'
+- inputText: ${EMAIL}
+- hideKeyboard
+- tapOn:
+    id: 'password'
+    optional: true
+- inputText: ${PASSWORD}
+- hideKeyboard
+- tapOn: 'Sign in to your account'
+
+# Sign-in itself fails with the tunnel down, which is the error state this
+# screenshot is for -- the first thing a donor meets when the server is gone.
+- assertVisible:
+    text: 'Could not reach|connection|server'
+    timeout: 25000
+- takeScreenshot: e4-home-error

@@ -33,7 +33,6 @@ jest.mock('expo-router', () => ({
   },
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 const Index = require('../../app/index').default;
 
 function renderIndex() {

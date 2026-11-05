@@ -1,0 +1,79 @@
+# The screens reached from a tab rather than by being one: booking, SOS, the
+# laboratory, AI insights, recognition and notifications.
+#
+# Each block returns to a known tab before the next one starts, so a block that
+# fails cannot drag the rest of the file with it into the wrong place.
+appId: uz.bloodchain.donor
+name: 30 flows
+env:
+  EMAIL: donor@donor.local
+  PASSWORD: DevelopmentOnly!123
+---
+- launchApp:
+    clearState: true
+    permissions:
+      all: allow
+
+- tapOn: 'Sign In'
+- tapOn: 'Use my email address'
+- tapOn:
+    point: '50%,45%'
+- inputText: ${EMAIL}
+- hideKeyboard
+- tapOn:
+    id: 'password'
+    optional: true
+- inputText: ${PASSWORD}
+- hideKeyboard
+- tapOn: 'Sign in to your account'
+- assertVisible:
+    text: 'Good'
+    timeout: 20000
+
+# --------------------------------------------------------------- booking, step 1
+- tapOn: 'Donate'
+- tapOn:
+    text: 'Schedule a donation'
+    optional: true
+- assertVisible:
+    text: 'donation'
+    timeout: 15000
+- takeScreenshot: 09-booking
+
+# ------------------------------------------------------------------------- SOS
+- tapOn: 'Home'
+- tapOn:
+    text: 'Emergency'
+    optional: true
+- assertVisible:
+    text: 'Emergency'
+    timeout: 15000
+- takeScreenshot: 10-sos
+
+# ------------------------------------------------------------------ laboratory
+- tapOn: 'Health'
+- tapOn:
+    text: 'View all'
+    optional: true
+- takeScreenshot: 11-laboratory
+
+# ----------------------------------------------------------------- AI insights
+- tapOn: 'Health'
+- tapOn:
+    text: 'Insights'
+    optional: true
+- takeScreenshot: 12-ai-insights
+
+# ---------------------------------------------------------------- recognition
+- tapOn: 'Community'
+- tapOn:
+    text: 'Recognition'
+    optional: true
+- takeScreenshot: 13-gamification
+
+# --------------------------------------------------------------- notifications
+- tapOn: 'Profile'
+- tapOn:
+    text: 'Notifications'
+    optional: true
+- takeScreenshot: 14-notifications

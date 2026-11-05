@@ -1,21 +1,22 @@
 import { useMemo, useState } from 'react';
-import { View, StyleSheet, Pressable } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Building2, Check, MapPin } from 'lucide-react-native';
+import { Building2 } from 'lucide-react-native';
 import {
-  AppButton,
-  AppText,
-  BookingStep,
+  Choice,
   EmptyState,
-  GlassCard,
-} from '../../src/components';
+  ErrorState,
+  FlowStep,
+  Skeleton,
+  Stack,
+  useDesign,
+} from '../../src/design';
 import {
   laboratoriesOfferingTestType,
   useLaboratories,
   useTestTypes,
 } from '../../src/hooks/useLaboratory';
-import { radius, spacing, useTheme, ThemeColors } from '../../src/theme';
 import { useTranslation } from '../../src/i18n';
+import { LAB_BOOKING_STEP_COUNT } from './test-type';
 
 /**
  * Step 2: which laboratory, out of the ones that run the chosen panel.
@@ -26,12 +27,11 @@ import { useTranslation } from '../../src/i18n';
  */
 export default function SelectLaboratory() {
   const { t } = useTranslation();
-  const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const { colors } = useDesign();
   const params = useLocalSearchParams<{ testTypeId: string }>();
   const [selected, setSelected] = useState<string | null>(null);
 
-  const { data: laboratories = [], isLoading, isError, refetch, isRefetching } = useLaboratories();
+  const { data: laboratories = [], isPending, isError, refetch } = useLaboratories();
   const { data: testTypes = [] } = useTestTypes();
   const testType = testTypes.find((type) => type.id === params.testTypeId);
 
@@ -41,157 +41,57 @@ export default function SelectLaboratory() {
   );
 
   return (
-    <BookingStep
+    <FlowStep
       step={2}
+      total={LAB_BOOKING_STEP_COUNT}
+      counterLabel={t('booking.stepOf', { current: 2, total: LAB_BOOKING_STEP_COUNT })}
       title={t('labBooking.selectLabTitle')}
       subtitle={
         testType
           ? t('labBooking.selectLabSubtitleFor', { test: testType.name })
           : t('labBooking.selectLabSubtitle')
       }
-      nextDisabled={!selected}
+      onBack={() => router.back()}
+      backLabel={t('common.a11yGoBack')}
       onClose={() => router.replace('/(app)/laboratory')}
-      onNext={() =>
+      closeLabel={t('common.a11yCloseBooking')}
+      primaryLabel={t('common.continue')}
+      primaryDisabled={!selected}
+      onPrimary={() =>
         router.push({
           pathname: '/(lab-booking)/date',
           params: { testTypeId: params.testTypeId, laboratoryId: selected! },
         })
       }
     >
-      {isLoading ? (
-        <AppText style={styles.status}>{t('labBooking.loadingLabs')}</AppText>
+      {isPending ? (
+        <Stack gap="md">
+          <Skeleton height={72} />
+          <Skeleton height={72} />
+        </Stack>
       ) : isError ? (
-        <GlassCard style={styles.stateCard}>
-          <EmptyState title={t('labBooking.labsFailed')} description={t('common.offline')} />
-          <AppButton
-            variant="secondary"
-            onPress={() => refetch()}
-            disabled={isRefetching}
-            loading={isRefetching}
-            style={styles.retry}
-          >
-            {t('common.retry')}
-          </AppButton>
-        </GlassCard>
+        <ErrorState
+          title={t('labBooking.labsFailed')}
+          description={t('common.offline')}
+          retryLabel={t('common.retry')}
+          onRetry={() => void refetch()}
+        />
       ) : offering.length === 0 ? (
-        <GlassCard style={styles.stateCard}>
-          <EmptyState title={t('labBooking.noLabs')} description={t('labBooking.noLabsHint')} />
-        </GlassCard>
+        <EmptyState title={t('labBooking.noLabs')} description={t('labBooking.noLabsHint')} />
       ) : (
-        <View style={styles.list}>
-          {offering.map((laboratory) => {
-            const isSelected = selected === laboratory.id;
-            return (
-              <Pressable
-                key={laboratory.id}
-                onPress={() => setSelected(laboratory.id)}
-                accessibilityRole="radio"
-                accessibilityState={{ selected: isSelected }}
-                style={({ pressed }) => ({ opacity: pressed && !isSelected ? 0.7 : 1 })}
-              >
-                <GlassCard
-                  tier={isSelected ? 'elevated' : 'standard'}
-                  style={isSelected ? styles.cardSelected : undefined}
-                >
-                  <View style={styles.row}>
-                    <View style={styles.icon}>
-                      <Building2 size={22} color={colors.onMuted.primary} />
-                    </View>
-                    <View style={styles.body}>
-                      <AppText style={styles.title}>{laboratory.name}</AppText>
-                      {laboratory.address ? (
-                        <View style={styles.metaRow}>
-                          <MapPin size={12} color={colors.textMuted} />
-                          <AppText style={styles.description}>{laboratory.address}</AppText>
-                        </View>
-                      ) : null}
-                    </View>
-                    {isSelected ? (
-                      <View style={styles.check}>
-                        <Check size={13} color={colors.white} strokeWidth={3} />
-                      </View>
-                    ) : (
-                      <View style={styles.radio} />
-                    )}
-                  </View>
-                </GlassCard>
-              </Pressable>
-            );
-          })}
-        </View>
+        <Stack gap="md">
+          {offering.map((laboratory) => (
+            <Choice
+              key={laboratory.id}
+              label={laboratory.name}
+              description={laboratory.address ?? undefined}
+              selected={selected === laboratory.id}
+              onPress={() => setSelected(laboratory.id)}
+              icon={({ size }) => <Building2 size={size} color={colors.rose.base} />}
+            />
+          ))}
+        </Stack>
       )}
-    </BookingStep>
+    </FlowStep>
   );
-}
-
-function createStyles(colors: ThemeColors) {
-  return StyleSheet.create({
-    status: {
-      fontSize: 13,
-      color: colors.textMuted,
-    },
-    stateCard: {
-      paddingVertical: spacing.lg,
-    },
-    retry: {
-      marginTop: spacing.md,
-      alignSelf: 'center',
-    },
-    list: {
-      gap: 10,
-    },
-    cardSelected: {
-      borderColor: 'rgba(216, 83, 96, 0.45)',
-    },
-    row: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 14,
-    },
-    icon: {
-      width: 44,
-      height: 44,
-      borderRadius: radius.sm,
-      alignItems: 'center',
-      justifyContent: 'center',
-      flexShrink: 0,
-      backgroundColor: colors.primaryMuted,
-    },
-    body: {
-      flex: 1,
-    },
-    title: {
-      fontSize: 15,
-      fontWeight: '600',
-      color: colors.text,
-    },
-    metaRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 4,
-      marginTop: 2,
-    },
-    description: {
-      flex: 1,
-      fontSize: 12,
-      color: colors.textMuted,
-    },
-    radio: {
-      width: 22,
-      height: 22,
-      borderRadius: 11,
-      borderWidth: 2,
-      borderColor: colors.border,
-      flexShrink: 0,
-    },
-    check: {
-      width: 22,
-      height: 22,
-      borderRadius: 11,
-      backgroundColor: colors.primary,
-      alignItems: 'center',
-      justifyContent: 'center',
-      flexShrink: 0,
-    },
-  });
 }

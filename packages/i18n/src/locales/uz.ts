@@ -52,6 +52,7 @@ export const uz: Catalog = {
     a11yGoBack: 'Orqaga qaytish',
     a11yCloseBooking: 'Band qilishni yopish',
     noLocationData: 'Joylashuv ma’lumoti hali yo‘q',
+    mapUnavailable: 'Bu yig‘mada xarita mavjud emas. Yuqoridagi manzillar o‘z kuchida qoladi.',
   },
 
   apiErrors: {
@@ -100,6 +101,7 @@ export const uz: Catalog = {
   },
 
   units: {
+    unitsNeeded: { other: '{{count}} ta birlik kerak' },
     unitsCount: { other: '{{count}} ta birlik' },
     ml: '{{count}} ml',
     points: { other: '{{count}} ball' },
@@ -294,11 +296,18 @@ export const uz: Catalog = {
   },
 
   home: {
+    identity: 'Sizning donorlik profilingiz',
+    impact: 'Sizning hissangiz',
+    quickActionSchedule: 'Qon topshirishga yozilish',
+    quickActionDonorProfile: 'Donor profilini tahrirlash',
+    quickActionPersonalInfo: 'Shaxsiy ma\'lumotlarni tahrirlash',
+    quickActionLearn: 'Donorlik haqida bilib oling',
+    verificationOpenProfile: 'Donor profilini ochish',
     greetingMorning: 'Xayrli tong',
     greetingAfternoon: 'Xayrli kun',
     greetingEvening: 'Xayrli kech',
     tagline: 'Har bir qon topshirish muhim.',
-    bloodTypeLabel: 'QON GURUHI',
+    bloodTypeLabel: 'Qon guruhi',
     nextAppointment: 'Keyingi uchrashuv',
     noAppointment: 'Uchrashuv yo‘q',
     scheduleNext: 'Keyingi qon topshirishni rejalashtiring.',
@@ -307,7 +316,6 @@ export const uz: Catalog = {
     eligibleNow: 'Hozir yaroqli',
     eligibleToday: 'Bugun qon topshirishni rejalashtirishingiz mumkin.',
     quickActions: 'Tezkor amallar',
-    levelAndXp: 'Daraja va XP',
     totalVolume: 'Umumiy hajm',
     donations: 'Topshirishlar',
     emergency: 'Shoshilinch',
@@ -329,6 +337,9 @@ export const uz: Catalog = {
   },
 
   health: {
+    noDataTitle: 'Hozircha tahlil ma’lumotlari yo‘q',
+    noDataBody: 'Laboratoriya natijangizni e’lon qilgach, ko‘rsatkichlar va ularning o‘zgarishi shu yerda ko‘rinadi.',
+    trendOfMeasurements: { other: '{{count}} ta o‘lchov bo‘yicha dinamika' },
     aiInsightsHint: 'So‘nggi qon tahlillaringiz uchun oddiy tilda izoh oling.',
     updatedToday: 'Bugun yangilandi',
     updatedYesterday: 'Kecha yangilandi',
@@ -337,7 +348,7 @@ export const uz: Catalog = {
     a11yLatestMarker: 'Oxirgi kuzatilgan ko‘rsatkich. Salomatlik dinamikasini ochish',
     title: 'Salomatlik',
     subtitle: 'Laboratoriya ko‘rsatkichlaringiz',
-    latestTracked: 'SO‘NGGI NATIJALAR',
+    latestTracked: 'So‘nggi natijalar',
     labResults: 'Tahlil natijalari',
     labMarkers: 'Laboratoriya ko‘rsatkichlari',
     aiInsights: 'AI tahlili',
@@ -349,6 +360,21 @@ export const uz: Catalog = {
   },
 
   donate: {
+    eligibleNow: 'Topshirish mumkin',
+    notEligible: 'Hozircha topshirib bo‘lmaydi',
+    canDonateToday: 'Bugun qon topshirishingiz mumkin.',
+    opensInDays: { other: 'Keyingi topshirish {{count}} kundan so‘ng ochiladi.' },
+    lastDonatedToday: 'Oxirgi topshirish bugun',
+    lastDonatedOn: 'Oxirgi topshirish {{date}}',
+    nextEligibleOn: 'Keyingi topshirish {{date}}',
+    schedule: 'Qon topshirishga yozilish',
+    everyDays: { other: 'Har {{count}} kunda' },
+    bookDonation: 'Qon topshirishga yozilish',
+    livesPerDonation: 'Taxminiy hisob: har topshirish bilan {{count}} ta hayotga yordam beriladi.',
+    readyToGive: 'Topshirishga tayyor',
+    now: 'Hozir',
+    ongoingCampaign: 'Davom etayotgan aksiya',
+    progressOf: '{{goal}} tadan {{done}} ta',
     title: 'Qon topshirish',
     subtitle: 'Keyingi topshirishni rejalashtiring.',
     journey: 'Sizning yo‘lingiz',
@@ -366,6 +392,7 @@ export const uz: Catalog = {
     viewImpact: 'Hissangizni ko‘rish',
     notYetEligible: 'HALI YAROQLI EMAS',
     ongoing: 'DAVOM ETMOQDA',
+    daysLabel: 'kun',
   },
 
   calendar: {
@@ -384,6 +411,9 @@ export const uz: Catalog = {
   },
 
   community: {
+    ofDonors: { other: '{{count}} donordan' },
+    rankOf: 'Bu oyda {{count}} donordan {{rank}}-o‘rin',
+    a11yShare: 'Ushbu postni ulashish: {{title}}',
     report: 'Shikoyat',
     a11yReport: 'Ushbu post haqida shikoyat qilish: {{title}}',
     reportTitle: 'Post haqida shikoyat',
@@ -401,7 +431,7 @@ export const uz: Catalog = {
     title: 'Hamjamiyat',
     subtitle: 'Donorlar tarmog‘ingiz',
     feed: 'Hamjamiyat lentasi',
-    thisMonth: 'SHU OY',
+    thisMonth: 'Shu oy',
     impact: 'Hissa',
     campaigns: 'Kampaniyalar',
     challenges: 'Chaqiriqlar',
@@ -421,10 +451,21 @@ export const uz: Catalog = {
   },
 
   profile: {
+    signOutBody: 'Yozilish, shoshilinch so‘rovga javob berish yoki natijalarni ko‘rish uchun qaytadan kirishingiz kerak bo‘ladi.',
+    stillNeeded: 'Yana kerak: {{items}}',
+    earnedCount: { other: '{{count}} ta olingan' },
+    inProgressCount: { other: '{{count}} tasi jarayonda' },
+    missingFields: {
+      basicIdentity: 'ismingiz',
+      contactVerified: 'tasdiqlangan email yoki telefon',
+      bloodType: 'qon guruhingiz',
+      dateOfBirth: 'tug‘ilgan sanangiz',
+      location: 'shahringiz',
+    },
     title: 'Profil',
-    bloodTypeLabel: 'QON GURUHINGIZ',
-    donorInfo: 'DONOR MA’LUMOTLARI',
-    settings: 'SOZLAMALAR',
+    bloodTypeLabel: 'Qon guruhingiz',
+    donorInfo: 'Donor ma’lumotlari',
+    settings: 'Sozlamalar',
     completion: 'Profil to‘ldirilishi',
     donations: 'Topshirishlar',
     emergencyResponses: 'Shoshilinch javoblar',
@@ -444,6 +485,7 @@ export const uz: Catalog = {
   },
 
   portal: {
+    greetingWithName: '{{greeting}}, {{name}}.',
     openMenu: 'Menyuni ochish',
     account: {
       title: 'Mening hisobim',
@@ -615,6 +657,12 @@ export const uz: Catalog = {
       DELIVERED: 'Yetkazilgan',
       PARTIALLY_DELIVERED: 'Qisman yetkazilgan',
     },
+    urgency: {
+      CRITICAL: 'Juda shoshilinch',
+      HIGH: 'Yuqori',
+      MEDIUM: 'O‘rta',
+      LOW: 'Past',
+    },
     priority: {
       ROUTINE: 'Oddiy',
       URGENT: 'Shoshilinch',
@@ -661,6 +709,16 @@ export const uz: Catalog = {
       CANCELLED: 'Bekor qilingan',
       EXPIRED: 'Muddati tugagan',
       FAILED: 'Muvaffaqiyatsiz',
+    },
+    match: {
+      MATCHED: 'Yangi so‘rov',
+      NOTIFIED: 'Sizga xabar yuborildi',
+      VIEWED: 'Ochilgan',
+      ACCEPTED: 'Siz rozilik bildirdingiz',
+      DECLINED: 'Siz rad etdingiz',
+      EXPIRED: 'Muddati tugagan',
+      CANCELLED: 'Shifoxona bekor qildi',
+      NO_RESPONSE: 'Javob qayd etilmagan',
     },
     response: {
       ACCEPTED: 'Qabul qilingan',
@@ -733,6 +791,7 @@ export const uz: Catalog = {
       OTHER: 'Boshqa',
     },
     cancellation: {
+      DEFERRED: 'Vaqtincha chetlatilgan',
       DONOR_CANCELLED: 'Donor bekor qildi',
       ORGANIZATION_CANCELLED: 'Tashkilot bekor qildi',
       NOT_COMPLETED: 'Yakunlanmadi',
@@ -1073,6 +1132,7 @@ export const uz: Catalog = {
       removeBody: 'Bu doiradagi zaxira uchun keyingi umumiyroq chegara qoʻllanadi yoki umuman qoʻllanmaydi.',
     },
     common: {
+      updatedAt: '{{time}} da yangilandi',
       refreshing: 'Yangilanmoqda…',
       creating: 'Yaratilmoqda…',
       submitting: 'Yuborilmoqda…',
@@ -1278,6 +1338,7 @@ export const uz: Catalog = {
       vitalsPlaceholder: 'masalan: Hb 14,2 g/dL, AB 120/78',
     },
     inventory: {
+      openUnitLabel: '{{reference}} birligini ochish',
       discardTitle: 'Bu birlik yo‘q qilinsinmi?',
       discardBody: 'Birlik zaxiradan butunlay chiqadi va hech qachon bemorga berilmaydi.',
       discardReason: 'Nima uchun yo‘q qilinmoqda?',
@@ -1422,6 +1483,7 @@ export const uz: Catalog = {
       noneFound: 'Qon so‘rovlari topilmadi',
     },
     shipments: {
+      etaHoursMinutes: '{{hours}} soat {{minutes}} daqiqa',
       discrepancyRequired: 'Yetkazishni tasdiqlashdan oldin farq sababini ko‘rsating.',
       cancelTitle: 'Bu yetkazma bekor qilinsinmi?',
       cancelBody: 'Kuryer to‘xtatiladi va birliklar yuboruvchi markaz zaxirasiga qaytadi.',
@@ -1476,6 +1538,7 @@ export const uz: Catalog = {
       noneFound: 'Jo‘natmalar topilmadi',
     },
     emergency: {
+      patientLabel: 'Bemor: {{reference}}',
       cancelTitle: 'Bu favqulodda so‘rov bekor qilinsinmi?',
       cancelBody: 'Moslashtirish to‘xtaydi va xabardor qilingan har bir donorga endi kerak emasligi bildiriladi.',
       createEmergency: 'Favqulodda holat yaratish',
@@ -1545,6 +1608,8 @@ export const uz: Catalog = {
       noneFound: 'Kuryerlar topilmadi',
     },
     analytics: {
+      vsPreviousPeriod: 'oldingi davrga nisbatan {{change}}',
+      acceptanceShare: '{{value}}% qabul qilingan',
       title: 'Tahlil paneli',
       intelligence: 'Operatsion tahlil',
       section: 'Tahlil bo‘limi',
@@ -1799,6 +1864,9 @@ export const uz: Catalog = {
     },
   },
   booking: {
+    stepOf: '{{total}} qadamdan {{current}}-qadam',
+    spotsLeft: { other: '{{count}} ta joy qoldi' },
+    slotTakenHint: 'Siz tanlab turganingizda bu vaqtni band qilishdi. Orqaga qaytib, boshqa vaqtni tanlang.',
     noOpenDatesHint: 'Keyingi oyni ko‘ring yoki orqaga qaytib boshqa joyni tanlang.',
     unavailableDay: 'band emas',
     noOpenDates: 'Bu oyda bo‘sh kun yo‘q',
@@ -1862,6 +1930,7 @@ export const uz: Catalog = {
     CONSULTATION_HINT: 'Shifokor bilan suhbatlashing',
   },
   appointment: {
+    aboutDuration: 'taxminan {{duration}}',
     title: 'Uchrashuv',
     preparation: 'Tayyorgarlik ro‘yxati',
     cancelTitle: 'Uchrashuv bekor qilinsinmi?',
@@ -1939,6 +2008,8 @@ export const uz: Catalog = {
     dateUnknown: 'Sana noma’lum',
   },
   healthTrends: {
+    previousValue: 'Oldingi: {{value}}',
+    chartSummary: '{{parameter}}: {{count}} ta o‘lchov, {{direction}}',
     title: 'Salomatlik dinamikasi',
     timeRange: 'Vaqt oralig‘i',
     trendChart: 'Dinamika grafigi',
@@ -1962,7 +2033,7 @@ export const uz: Catalog = {
     latest: 'Oxirgi tahlil',
     yours: 'Sizning tahlillaringiz',
     empty: 'Hali tahlillar yo‘q',
-    helpful: 'Bu tahlil foydali bo‘ldimi?',
+    helpful: 'Foydali',
     thanks: 'Fikringiz uchun rahmat',
     askPlaceholder: 'Salomatlik ma’lumotlaringiz haqida savol bering…',
     askAboutResults: 'Natijalarim haqida so‘rash',
@@ -1989,6 +2060,13 @@ export const uz: Catalog = {
     response: 'Javob',
   },
   notificationSettings: {
+    deviceSection: 'Ushbu qurilmada',
+    unavailableTitle: 'Bu ilova hozircha bildirishnoma ola olmaydi',
+    unavailableBody:
+      'Bu yig‘ma uchun push-bildirishnomalar sozlanmagan, shuning uchun quyidagilarning hech ' +
+      'biri sizga yetib bormaydi — shoshilinch so‘rovlar ham. Tanlovlaringiz saqlanadi va ' +
+      'sozlangach kuchga kiradi.',
+    notAllowedYet: 'Telefoningiz hozircha Bloodchain bildirishnomalarini ko‘rsatmayapti.',
     title: 'Bildirishnoma sozlamalari',
     subtitle: 'Ilova sizga nima haqida xabar berishini tanlang',
     whatYouReceive: 'Siz oladigan xabarlar',
@@ -2026,6 +2104,10 @@ export const uz: Catalog = {
     allCaughtUp: 'Hammasi o‘qilgan!',
   },
   sos: {
+    overdue: 'Muddati o‘tgan',
+    timeLeftMinutes: { other: '{{count}} daqiqa qoldi' },
+    timeLeftHours: { other: '{{count}} soat qoldi' },
+    timeLeftDays: { other: '{{count}} kun qoldi' },
     title: 'Shoshilinch SOS',
     details: 'Shoshilinch holat tafsilotlari',
     yourResponse: 'Sizning javobingiz',
@@ -2072,6 +2154,22 @@ export const uz: Catalog = {
     matchNotified: 'Bildirishnoma yuborildi',
     matchViewed: 'Ko‘rildi — qabul qiling yoki rad eting',
     responseReadyToGo: 'Qabul qilindi — yo‘lga tayyor',
+    locationExplainerTitle: 'Yo\'lda joylashuvingizni ulashasizmi?',
+    locationExplainerBody:
+      'Siz yo\'ldaligingizda Bloodchain joylashuvingizni shifoxonaga yuboradi, shunda ular sizni kutishlarini biladi va tayyorlanadi. Yetib borganingizda yoki bekor qilganingizda darhol to\'xtaydi.',
+    locationAssuranceOnlyEnRoute: 'Faqat yo\'ldaligingizda — undan oldin ham, keyin ham emas',
+    locationAssuranceHospitalOnly: 'Faqat shu so\'rovni yuborgan shifoxona ko\'radi',
+    locationAssuranceStopAnytime: 'Istalgan vaqtda javobingizni bekor qiling — u to\'xtaydi',
+    locationAllow: 'Joylashuvni ulashish',
+    locationNotNow: 'Hozir emas',
+    locationDeclinedTitle: 'Joylashuv ulashish o‘chiq',
+    locationDeclinedBody:
+      'Shifoxona sizning yo‘lda ekaningizni ko‘rmaydi. Buni yo‘l davomida istalgan payt yoqishingiz mumkin.',
+    locationDeniedTitle: 'Bu safar uchun joylashuv o\'chirilgan',
+    locationDeniedBody:
+      'Siz baribir borib, qabulxonada ro\'yxatdan o\'tishingiz mumkin. Shifoxona sizning yaqinlashayotganingizni ko\'rmaydi, shuning uchun qabulxonaga favqulodda donor ekanligingizni ayting.',
+    locationDeniedOpenSettings: 'Sozlamalarni ochish',
+    noRouteShown: 'Faqat joylashuvlar — Bloodchain marshrut yoki yetib borish vaqtini hisoblamaydi.',
   },
   campaigns: {
     title: 'Qon topshirish kampaniyalari',
@@ -2080,11 +2178,20 @@ export const uz: Catalog = {
     empty: 'Faol kampaniyalar yo‘q',
     emptyHint: 'Yangi kampaniyalar uchun keyinroq qaytib keling',
     joinCampaign: 'Kampaniyaga qo‘shilish',
+    joined: 'Siz qatnashyapsiz',
     joinFailed: 'Kampaniyaga qo‘shilib bo‘lmadi. Qayta urinib ko‘ring.',
     bloodTypesNeeded: 'Kerakli qon guruhlari: {{types}}',
     targetSuffix: ' / maqsad {{count}}',
   },
   challenges: {
+    types: {
+      DONATION_MILESTONE: 'Topshirish bosqichi',
+      CAMPAIGN_PARTICIPATION: 'Aksiya',
+      EDUCATION: 'Ta’lim',
+      COMMUNITY: 'Hamjamiyat',
+      APPOINTMENT_COMPLETION: 'Yozilishlar',
+      CONSISTENCY: 'Muntazamlik',
+    },
     title: 'Vazifalar',
     subtitle: 'XP va nishonlar olish uchun vazifalarni bajaring',
     loading: 'Vazifalar yuklanmoqda…',
@@ -2096,6 +2203,8 @@ export const uz: Catalog = {
     endsOn: '{{date}} da tugaydi',
   },
   education: {
+    types: { ARTICLE: 'Maqola', QUIZ: 'Test', VIDEO: 'Video' },
+    difficulties: { BEGINNER: 'Boshlang‘ich', INTERMEDIATE: 'O‘rta', ADVANCED: 'Yuqori' },
     title: 'Ta’lim markazi',
     subtitle: 'Qon topshirish haqida o‘rganing va XP oling',
     loading: 'Kontent yuklanmoqda…',
@@ -2110,9 +2219,15 @@ export const uz: Catalog = {
     availableContent: 'Mavjud materiallar',
     startFailed: 'Materialni boshlab bo‘lmadi. Qayta urinib ko‘ring.',
     completeFailed: 'Materialni yakunlab bo‘lmadi. Qayta urinib ko‘ring.',
+    readAgain: 'Qayta o‘qish',
     minutes: '{{count}} daq',
   },
   gamification: {
+    rankOf: '{{total}} tadan #{{rank}}',
+    levelShort: '{{level}}-daraja',
+    xpValue: '{{xp}} XP',
+    earnedOf: '{{total}} tadan {{earned}} tasi olingan',
+    unlockedOf: '{{total}} tadan {{unlocked}} tasi ochilgan',
     xpPoints: 'XP ballari',
     activeChallenges: 'Faol vazifalar',
     leaderboard: 'Reyting',
@@ -2130,8 +2245,23 @@ export const uz: Catalog = {
     topDonorsAllTime: 'Butun davr eng yaxshi donorlari',
     subtitle: 'Yutuqlaringiz va mukofotlar',
     newDonor: 'Yangi donor',
+    levelNames: {
+      newDonor: 'Yangi donor',
+      activeDonor: 'Faol donor',
+      regularDonor: 'Doimiy donor',
+      communityDonor: 'Jamoat donori',
+      dedicatedDonor: 'Sadoqatli donor',
+      champion: 'Chempion',
+      eliteDonor: 'Elita donor',
+      hero: 'Qahramon',
+      legend: 'Afsona',
+      platinum: 'Platina',
+    },
     nextLevel: 'keyingi daraja',
     progressToLevel: '{{level}} sari yo‘l',
+    xpToNext: {
+      other: '{{level}} darajasigacha {{count}} XP',
+    },
     noBadges: 'Hali nishon yo‘q — birinchi qon topshirishingiz nishon keltiradi.',
     nothingInProgress: 'Hozircha jarayonda hech narsa yo‘q. Boshlash uchun qon topshirishga yoziling.',
     unlocked: 'Ochilgan',
@@ -2148,9 +2278,23 @@ export const uz: Catalog = {
     shareLocation: 'Joylashuvni ulashish',
     yourData: 'Ma’lumotlaringiz',
     downloadData: 'Ma’lumotlaringizni yuklab olish',
-    downloadDataHint: 'Ma’lumotlaringiz nusxasi uchun qo‘llab-quvvatlashga murojaat qiling',
+    downloadDataHint: 'Hozircha mavjud emas. Ilova ma’lumotlaringiz nusxasini bera olmaydi.',
     deleteAccount: 'Hisobni o‘chirish',
-    deleteAccountHint: 'Hisobni butunlay o‘chirish uchun qo‘llab-quvvatlashga murojaat qiling',
+    deleteAccountHint: 'Hisobingizni butunlay yopadi',
+    deleteTitle: 'Hisobni o‘chirish',
+    deleteIntro: 'Hisobingiz butunlay yopiladi. Qaror qilishdan oldin bu nimani anglatishini o‘qing.',
+    deleteGoesTitle: 'Nima o‘chiriladi',
+    deleteGoesBody: 'Barcha qurilmalardagi kirish, ko‘rsatiladigan ism va surat, saqlangan uy hududi va joylashuv, joylashuvni ulashish, barcha bildirishnomalar va reytingdagi o‘rningiz.',
+    deleteStaysTitle: 'Nima saqlanadi',
+    deleteStaysBody: 'Donorlik yozuvingiz qon xizmatida uning tibbiy hujjatlari sifatida saqlanadi: ro‘yxatdan o‘tgan ma’lumotlaringiz, topshirishlaringiz, skrining va laboratoriya natijalari, roziliklaringiz va audit jurnali. Qon xizmati ularni qancha saqlashini ilova belgilamaydi.',
+    deleteNotTitle: 'Bu nima qilmaydi',
+    deleteNotBody: 'Allaqachon berilgan qonni qaytarib olmaydi va sizni shifoxona yozuvlaridan o‘chirmaydi. Hisobni qayta ochib bo‘lmaydi va bu elektron pochta bilan qayta ro‘yxatdan o‘tib bo‘lmaydi.',
+    deleteConfirmTitle: 'Hisob o‘chirilsinmi?',
+    deleteConfirmBody: 'Buni bekor qilib bo‘lmaydi. Barcha qurilmalarda hisobdan chiqasiz.',
+    deleteConfirm: 'Hisobimni o‘chirish',
+    deleteKeep: 'Hisobimni saqlab qolish',
+    deleteFailed: 'Hisobni o‘chirib bo‘lmadi. Qayta urinib ko‘ring.',
+    opensInBrowser: 'Brauzerda ochiladi',
     policies: 'Hujjatlar',
     privacyPolicy: 'Maxfiylik siyosati',
     termsOfService: 'Foydalanish shartlari',
@@ -2162,10 +2306,14 @@ export const uz: Catalog = {
     lastUpdated: 'Oxirgi yangilanish',
     locationAndData: 'Joylashuv va ma’lumotlar',
     shareLocationHint: 'SOS paytida yaqin atrofdagi shoshilinch so‘rovlar sizga yetib borishi uchun',
+    leaderboardVisible: 'Reytingda ko‘rsatilsin',
+    leaderboardVisibleHint: 'Ismingiz va donorlik soningiz boshqa donorlarga ko‘rinadi. O‘chirsangiz, ommaviy reytingdan chiqasiz.',
+    leaderboardUpdateFailed: 'Reyting sozlamasini o‘zgartirib bo‘lmadi. Yana urinib ko‘ring.',
     consentUpdateFailed: 'Joylashuvni ulashish sozlamasini yangilab bo‘lmadi. Qayta urinib ko‘ring.',
     disclaimer: 'Bu ilova sog‘liqqa oid ma’lumotlar bilan ishlaydi. Ko‘rsatilgan ma’lumotlar professional tibbiy maslahat, tashxis yoki davolash o‘rnini bosmaydi.',
   },
   security: {
+    minimumLength: 'Kamida {{count}} ta belgi',
     signOutThisDeviceTitle: 'Shu qurilmadan chiqilsinmi?',
     signOutThisDeviceBody: 'Siz hozir qo‘lingizdagi qurilmadan chiqmoqdasiz. Ilovadan foydalanish uchun qayta kirishingiz kerak bo‘ladi.',
     revokeOtherSessionTitle: '{{device}} bekor qilinsinmi?',
@@ -2217,6 +2365,12 @@ export const uz: Catalog = {
     districtPlaceholder: 'Tumaningiz',
   },
   medical: {
+    verificationSource: {
+      BLOOD_CENTER: 'Qon markazi tasdiqlagan',
+      HOSPITAL: 'Shifoxona tasdiqlagan',
+      LABORATORY: 'Laboratoriya tasdiqlagan',
+      OTHER_AUTHORIZED_SOURCE: 'Vakolatli tibbiyot muassasasi tasdiqlagan',
+    },
     services: {
       WHOLE_BLOOD_DONATION: 'To‘liq qon topshirish',
       PLASMA_DONATION: 'Plazma topshirish',
@@ -2266,6 +2420,7 @@ export const uz: Catalog = {
       rhFactorNote: 'Rezus musbat yoki manfiy',
     },
     resultFlags: {
+      withinRange: 'Me’yor doirasida',
       normal: 'Me’yorda',
       outsideRange: 'Me’yordan tashqarida',
       noReference: 'Me’yoriy oraliq yo‘q',
@@ -2368,8 +2523,35 @@ export const uz: Catalog = {
     },
   },
   onboarding: {
+    stopSharingLocation: 'Joylashuvni ulashishni to‘xtatish',
+    explainLocation: 'Joylashuvni ulashishni sozlash',
+    locationExplainerTitle: 'Joylashuvingiz ulashilsinmi?',
+    locationExplainerBody:
+      'Bloodchain joylashuvingizdan eng yaqin qon topshirish markazlarini ko‘rsatish va eng yaqin shoshilinch so‘rovlarni birinchi qo‘yish uchun foydalanadi.',
+    locationAssuranceNearest: 'Markazlar va so‘rovlarni masofa bo‘yicha saralash uchun ishlatiladi',
+    locationAssuranceNotTracked: 'Sizni kuzatish uchun emas — ilova buni siz so‘raganingizda o‘qiydi',
+    locationAssuranceOptional: 'Ixtiyoriy: usiz ham topshirish, yozilish va javob berish mumkin',
+    locationAllow: 'Joylashuvni ulashish',
+    locationBlockedTitle: 'Bloodchain uchun joylashuv o‘chirilgan',
+    locationBlockedBody:
+      'Telefon boshqa so‘ramaydi. Sozlamalardan yoqishingiz mumkin yoki usiz davom eting — yaqin markazlarni topish uchun shahar yetarli.',
+    notificationsPermissionNote:
+      'Mavzularni tanlash hali telefoningizga ularni ko‘rsatishga ruxsat bermaydi. Bu alohida ruxsat va telefon bir marta so‘raydi.',
+    explainNotifications: 'Bildirishnomalarni sozlash',
+    notificationsExplainerTitle: 'Bloodchain bildirishnoma yuborsinmi?',
+    notificationsExplainerBody:
+      'Qon guruhingizga mos shoshilinch so‘rovni o‘z vaqtida ko‘rmasangiz, undan foyda yo‘q. Bildirishnomalar — bu so‘rov sizga yetib boradigan yo‘l.',
+    notificationsAssuranceCategories: 'Faqat yuqorida tanlagan turlaringiz',
+    notificationsAssuranceNoMarketing: 'Reklama yo‘q va boshqa donorlar haqida hech narsa yo‘q',
+    notificationsAssuranceChangeLater: 'Profilda istalgan vaqtda o‘zgartirish yoki o‘chirish mumkin',
+    notificationsAllow: 'Bildirishnomalarni yoqish',
+    notificationsAllowed: 'Bildirishnomalar yoqilgan',
+    notificationsBlockedTitle: 'Bloodchain uchun bildirishnomalar o‘chirilgan',
+    notificationsBlockedBody:
+      'Telefon boshqa so‘ramaydi. Shoshilinch so‘rovlar ilovada qoladi — ularni ko‘rish uchun ilovani ochishingiz kerak bo‘ladi.',
     stepOf: '{{total}} dan {{current}}-qadam',
     previousStep: 'Oldingi qadam',
+    closeWizard: 'Profil sozlashni yopish',
     continue: 'Davom etish',
     completeSetup: 'Sozlashni yakunlash',
     welcomeTitle: 'Bloodchain’ga xush kelibsiz',
@@ -2420,6 +2602,14 @@ export const uz: Catalog = {
     saveFailed: 'Profilingizni saqlashda xatolik yuz berdi. Qayta urinib ko‘ring.',
   },
   courier: {
+    locationExplainerTitle: 'Yetkazish davomida joylashuv ulashilsinmi?',
+    locationExplainerBody:
+      'Ushbu komponentlarni kutayotgan shifoxona yetkazish qayerga yetganini ko‘radi. Joylashuv faqat yetkazish yo‘lda bo‘lganda ulashiladi.',
+    locationAssuranceInTransitOnly: 'Faqat yetkazish yo‘lda bo‘lganda — undan oldin ham, keyin ham emas',
+    locationAssuranceHospitalOnly: 'Ushbu jo‘natmani yurituvchi shifoxona va qon markazi ko‘radi',
+    locationAssuranceStops: 'Yetib borganingizda yoki yetkazish tugaganda darhol to‘xtaydi',
+    locationAllow: 'Joylashuvni ulashish',
+    locationDeclined: 'Joylashuv ulashish o‘chirilgan. Yetkazishni baribir yakunlash mumkin — shifoxona qayerdaligingizni ko‘rmaydi, xolos.',
     tabActive: 'Faol',
     tabHistory: 'Tarix',
     tabProfile: 'Profil',
@@ -2490,6 +2680,13 @@ export const uz: Catalog = {
   },
 
   directory: {
+    nearbyExplainerTitle: 'Ro‘yxat masofa bo‘yicha saralansinmi?',
+    nearbyExplainerBody:
+      'Bloodchain joylashuvingizni bir marta o‘qib, eng yaqin qon topshirish markazlarini ro‘yxat boshiga qo‘yishi mumkin.',
+    nearbyAssuranceSorting: 'Faqat shu ro‘yxatni saralash uchun ishlatiladi',
+    nearbyAssuranceNotStored: 'Siz so‘raganingizda o‘qiladi — ilova sizni kuzatmaydi',
+    nearbyAssuranceOptional: 'Ixtiyoriy: markazni viloyat bo‘yicha ham tanlash mumkin',
+    nearbyAllow: 'Masofa bo‘yicha saralash',
     coordinatesInvalid: 'Kenglik va uzunlik son bo‘lishi yoki bo‘sh qoldirilishi kerak.',
     title: 'Tashkilotlar',
     filters: 'Filtrlar',

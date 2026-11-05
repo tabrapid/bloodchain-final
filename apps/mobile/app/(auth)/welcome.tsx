@@ -1,217 +1,133 @@
-import { ReactNode, useState } from 'react';
+import { ReactNode } from 'react';
 import { router } from 'expo-router';
-import { LayoutChangeEvent, Linking, useWindowDimensions, View } from 'react-native';
+import { Linking, useWindowDimensions, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowRight } from 'lucide-react-native';
-import { AppButton, AppText, BrandMark, HeroWave } from '../../src/components';
-import { spacing, useTheme } from '../../src/theme';
+import { BrandMark } from '../../src/components/BrandMark';
+import { Button, Text, fonts, layout, space, useDesign } from '../../src/design';
 import { BRAND_NAME, BRAND_TAGLINE } from '../../src/brand';
 import { useTranslation } from '../../src/i18n';
+import { policyLinks } from '../../src/config/links';
 
 /**
- * Point these at the published legal pages and the two phrases below become
- * links. Until then they are emphasised but inert: the app has no Terms screen
- * and its `privacy` route is the signed-in location-consent settings, not a
- * policy document -- so linking either one from here would send a visitor who
- * has no account into the auth guard.
+ * The two legal phrases become links when the build was given the published
+ * pages (EXPO_PUBLIC_PRIVACY_POLICY_URL, EXPO_PUBLIC_TERMS_URL). Until then
+ * they are emphasised but inert: the app has no Terms screen and its
+ * `privacy` route is the signed-in location-consent settings, not a policy
+ * document -- so linking either one from here would send a visitor who has
+ * no account into the auth guard.
  */
-const TERMS_URL: string | null = null;
-const PRIVACY_URL: string | null = null;
 
 /**
- * Everything below the wave's crest sits on brand colour rather than on the
- * app's dark ground, so it uses white at fixed alphas. The theme's on-dark
- * text tokens are tuned for a near-black background and go muddy over rose.
- */
-const ON_WAVE_PRIMARY = '#FFFFFF';
-const ON_WAVE_SECONDARY = 'rgba(255,255,255,0.80)';
-const ON_WAVE_TERTIARY = 'rgba(255,255,255,0.68)';
-
-/**
- * The headline is the only thing on the screen sized per device: it has to
- * hold two lines, and 36pt on a 360pt phone does not.
+ * The headline is the one thing on the screen sized per device: it has to hold
+ * two lines, and the largest size does not fit a 360pt phone.
  */
 function headlineSize(width: number) {
-  if (width >= 414) return 36;
+  if (width >= 414) return 38;
   if (width >= 360) return 34;
-  return 32;
+  return 30;
 }
 
+/**
+ * The first screen.
+ *
+ * One hero moment: the brand's deep rose-plum, fading from the top of the
+ * screen into the page, with the mark sitting in it. The gradient is the
+ * same one the identity hero uses inside the app, so the first screen and
+ * the home screen are visibly the same product. Below it, the headline in
+ * the display face, two actions and the legal line.
+ *
+ * It deliberately does not scroll: no carousel, no dots, nothing to swipe.
+ * Phone-first is the primary action, because the number is the one thing a
+ * donor here knows about themselves without looking it up.
+ */
 export default function Welcome() {
   const { t } = useTranslation();
-  const { colors } = useTheme();
+  const { termsUrl, privacyPolicyUrl } = policyLinks();
+  const { colors } = useDesign();
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
-  const [heroHeight, setHeroHeight] = useState(0);
 
-  /**
-   * Short phones get a smaller mark and a tighter gap. The brand block, the
-   * hero block and the padding add up to more than a 568pt screen at full
-   * size, and the screen does not scroll -- so on the shortest devices the
-   * pieces have to give a little rather than run off the bottom.
-   */
   const compact = height < 700;
-
-  /**
-   * The band is sized from the hero block it has to sit behind, measured, plus
-   * the run-up the curve needs above the headline. Deriving it from a fraction
-   * of the window instead put the crest through the middle of the headline on
-   * short phones and left it stranded below the text on tall ones.
-   *
-   * The run-up is generous on purpose. At 104 the crest sat low enough to
-   * leave a tall empty stripe above the mark; carrying the band higher pulls
-   * the brand up with it, since the brand is anchored to the crest. The cap
-   * keeps a real dark field above it on short screens, where the same run-up
-   * would swallow the whole background.
-   */
-  const waveHeight =
-    heroHeight > 0
-      ? Math.min(heroHeight + 176, Math.round(height * 0.66))
-      : Math.round(height * 0.55);
-
-  const onHeroLayout = (event: LayoutChangeEvent) => {
-    setHeroHeight(event.nativeEvent.layout.height);
-  };
+  const size = headlineSize(width);
 
   return (
-    <View style={{ flex: 1 }}>
-      <HeroWave height={waveHeight} />
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+      <LinearGradient
+        pointerEvents="none"
+        colors={[colors.heroGradient[0], colors.background]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+        style={{ position: 'absolute', top: 0, left: 0, right: 0, height: Math.min(height * 0.5, 440) }}
+      />
 
       <View
         style={{
           flex: 1,
-          paddingTop: insets.top + spacing.lg,
-          // Clear of the home indicator, with room to spare -- the legal line
-          // used to sit directly on it.
-          paddingBottom: Math.max(insets.bottom, spacing.md) + spacing.sm,
+          paddingTop: insets.top + space.xl,
+          paddingBottom: Math.max(insets.bottom, space.lg) + space.sm,
+          paddingHorizontal: layout.gutter,
+          width: '100%',
+          maxWidth: layout.maxContentWidth,
+          alignSelf: 'center',
         }}
       >
-        {/*
-          All the slack collects here, above the brand. Centring the brand in
-          the leftover space instead split that slack in two and left a visible
-          gap between the wordmark and the wave -- the brand floated between
-          two empty halves rather than belonging to anything. Sitting a fixed
-          56pt above the crest, the mark, the wordmark and the band read as one
-          group, and what is left over reads as headroom.
-        */}
-        <View style={{ flex: 1 }} />
-        <View style={{ alignItems: 'center', marginBottom: compact ? 32 : 52 }}>
-          <BrandMark size={compact ? 68 : 84} />
-          <AppText
-            maxFontSizeMultiplier={1.3}
-            style={{
-              marginTop: spacing.md,
-              fontSize: compact ? 26 : 30,
-              fontWeight: '800',
-              letterSpacing: -0.6,
-              color: colors.text,
-            }}
-          >
-            {BRAND_NAME}
-          </AppText>
-          <AppText
-            muted
-            maxFontSizeMultiplier={1.3}
-            style={{ marginTop: 8, fontSize: 11, fontWeight: '600', letterSpacing: 4.4 }}
-          >
-            {BRAND_TAGLINE}
-          </AppText>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
+          <BrandMark size={compact ? 40 : 44} />
+          <View style={{ gap: 0 }}>
+            <Text variant="h3" maxFontSizeMultiplier={1.3}>
+              {BRAND_NAME}
+            </Text>
+            <Text variant="overline" tone="tertiary" caps maxFontSizeMultiplier={1.3}>
+              {BRAND_TAGLINE}
+            </Text>
+          </View>
         </View>
 
-        <View onLayout={onHeroLayout} style={{ paddingHorizontal: spacing.lg }}>
-          <AppText
-            maxFontSizeMultiplier={1.3}
-            style={{
-              fontSize: headlineSize(width),
-              // Tight, because the copy breaks at its comma into a long line
-              // and a short one. Nothing in React Native balances a wrap, so
-              // the two lines are pulled together into a single mass instead,
-              // which is what stops the short line reading as left over.
-              lineHeight: Math.round(headlineSize(width) * 1.14),
-              fontWeight: '700',
-              letterSpacing: -1.1,
-              color: ON_WAVE_PRIMARY,
-            }}
-          >
-            {t('auth.welcome.headline')}
-          </AppText>
+        {/* The slack collects here, so the headline and the actions read as
+            one block anchored to the thumb. */}
+        <View style={{ flex: 1, minHeight: space.xl }} />
 
-          <AppText
+        <View style={{ gap: compact ? space.xl : space.xxl }}>
+          <View style={{ gap: space.md }}>
+            <Text
+              variant="display"
+              maxFontSizeMultiplier={1.3}
+              style={{ fontSize: size, lineHeight: Math.round(size * 1.12), letterSpacing: -size * 0.03 }}
+            >
+              {t('auth.welcome.headline')}
+            </Text>
+            <Text variant="body" tone="secondary" maxFontSizeMultiplier={1.4} style={{ maxWidth: '92%' }}>
+              {t('auth.welcome.subheadline')}
+            </Text>
+          </View>
+
+          <View style={{ gap: space.md }}>
+            <Button
+              label={t('auth.welcome.createAccount')}
+              accessibilityLabel={t('auth.welcome.a11yCreateAccount')}
+              onPress={() => router.push('/(auth)/phone')}
+              icon={({ size: iconSize, color }) => <ArrowRight size={iconSize} color={color} />}
+            />
+            <Button
+              label={t('auth.welcome.signIn')}
+              accessibilityLabel={t('auth.welcome.a11ySignIn')}
+              variant="secondary"
+              onPress={() => router.push('/(auth)/login')}
+            />
+          </View>
+
+          <Text
+            variant="caption"
+            tone="tertiary"
+            align="center"
             maxFontSizeMultiplier={1.4}
-            style={{
-              marginTop: 14,
-              fontSize: 15,
-              lineHeight: 23,
-              // Stops the sentence running the full width into the right
-              // margin, which it did by a hair on a 390pt screen.
-              maxWidth: '92%',
-              color: ON_WAVE_SECONDARY,
-            }}
+            style={{ maxWidth: 300, alignSelf: 'center' }}
           >
-            {t('auth.welcome.subheadline')}
-          </AppText>
-
-          <AppButton
-            gradient
-            // The brand's own three-stop gradient, not the two-stop CTA blend.
-            gradientColors={colors.heroGradient}
-            trailingIcon={ArrowRight}
-            // Phone-first: the number is the one thing a donor here knows
-            // about themselves without looking it up. Email sign-up is still
-            // reachable from the next screen.
-            onPress={() => router.push('/(auth)/phone')}
-            accessibilityRole="button"
-            accessibilityLabel={t('auth.welcome.a11yCreateAccount')}
-            // The variant's 0.4 glow is tuned for the app's dark ground; on
-            // colour it haloes.
-            style={{ height: 54, marginTop: 30, shadowOpacity: 0.22 }}
-          >
-            {t('auth.welcome.createAccount')}
-          </AppButton>
-
-          {/*
-            Glass, not a hole. The variant's default is rose text on a warm
-            translucent tint, which over the wave stacks the two lowest
-            contrasts on the screen on each other; a dark plate fixed that and
-            overshot, reading as a disabled control cut out of the band. A
-            light film with a visible hairline sits where it should: clearly
-            secondary, clearly still a button.
-          */}
-          <AppButton
-            variant="secondary"
-            textColor={ON_WAVE_PRIMARY}
-            onPress={() => router.push('/(auth)/login')}
-            accessibilityRole="button"
-            accessibilityLabel={t('auth.welcome.a11ySignIn')}
-            style={{
-              height: 54,
-              marginTop: 12,
-              backgroundColor: 'rgba(255,255,255,0.13)',
-              borderColor: 'rgba(255,255,255,0.34)',
-            }}
-          >
-            {t('auth.welcome.signIn')}
-          </AppButton>
-
-          <AppText
-            maxFontSizeMultiplier={1.4}
-            style={{
-              marginTop: 22,
-              // Narrower than the buttons on purpose: at full width the
-              // sentence broke after "Privacy", leaving "Policy." alone on the
-              // second line. Given a measure it breaks near its middle.
-              maxWidth: 300,
-              alignSelf: 'center',
-              fontSize: 12,
-              lineHeight: 18,
-              textAlign: 'center',
-              color: ON_WAVE_TERTIARY,
-            }}
-          >
-            {t('auth.welcome.legalPrefix')}{' '}
-            <LegalLink url={TERMS_URL}>{t('auth.welcome.terms')}</LegalLink>{' '}
-            {t('auth.welcome.and')} <LegalLink url={PRIVACY_URL}>{t('auth.welcome.privacy')}</LegalLink>.
-          </AppText>
+            {t('auth.welcome.legalPrefix')} <LegalLink url={termsUrl}>{t('auth.welcome.terms')}</LegalLink>{' '}
+            {t('auth.welcome.and')} <LegalLink url={privacyPolicyUrl}>{t('auth.welcome.privacy')}</LegalLink>.
+          </Text>
         </View>
       </View>
     </View>
@@ -219,30 +135,29 @@ export default function Welcome() {
 }
 
 /**
- * The phrase is lifted out of the sentence by colour alone until it has
- * somewhere to go. Underlining it first was worse than leaving it plain: an
- * underline in running text is a promise of a tap, and these two do not
- * respond to one yet. The underline comes back with the URL.
+ * The phrase is lifted out of the sentence by weight alone until it has
+ * somewhere to go. An underline in running text is a promise of a tap, and
+ * these two do not respond to one yet.
  */
 function LegalLink({ url, children }: { url: string | null; children: ReactNode }) {
-  const style = {
-    fontSize: 12,
-    lineHeight: 18,
-    fontWeight: '600' as const,
-    color: 'rgba(255,255,255,0.92)',
-  };
+  const { colors } = useDesign();
 
   if (!url) {
-    return <AppText style={style}>{children}</AppText>;
+    return (
+      <Text variant="caption" style={{ color: colors.textSecondary, fontFamily: fonts.semibold }}>
+        {children}
+      </Text>
+    );
   }
 
   return (
-    <AppText
+    <Text
+      variant="caption"
       accessibilityRole="link"
       onPress={() => Linking.openURL(url)}
-      style={{ ...style, textDecorationLine: 'underline' }}
+      style={{ color: colors.clinical.text, fontFamily: fonts.semibold, textDecorationLine: 'underline' }}
     >
       {children}
-    </AppText>
+    </Text>
   );
 }

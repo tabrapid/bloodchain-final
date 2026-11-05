@@ -39,7 +39,6 @@ jest.mock('expo-status-bar', () => ({
   StatusBar: () => null,
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 const RootLayout = require('../../app/_layout').default;
 
 function renderLayout() {

@@ -1,32 +1,40 @@
-import { useEffect, useMemo, useState } from 'react';
-import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { useEffect, useState } from 'react';
+import { View } from 'react-native';
 import { router } from 'expo-router';
 import {
-  AppButton,
-  AppText,
-  AppTextInput,
   Avatar,
-  Screen,
+  Banner,
+  Button,
+  Field,
+  FormScreen,
+  PhoneField,
   ScreenHeader,
-} from '../../../src/components';
+  Stack,
+  Text,
+} from '../../../src/design';
 import { useUserProfile, useUpdateUserProfile } from '../../../src/hooks/useUsers';
-import { layout, spacing, useTheme, ThemeColors } from '../../../src/theme';
 import { ApiRequestError } from '../../../src/api/client';
 import { useTranslation } from '../../../src/i18n';
+import { normalizePhone } from '@bloodchain/validation';
+
+/** The stored `+998901234567` as the nine digits the field shows. */
+function toLocalDigits(phone: string | undefined): string {
+  if (!phone) return '';
+  return phone.replace(/\D/g, '').replace(/^998/, '');
+}
 
 export default function EditProfile() {
   const { t } = useTranslation();
-  const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
   const { data: user } = useUserProfile();
   const updateProfile = useUpdateUserProfile();
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [phoneError, setPhoneError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     firstName: user?.firstName ?? '',
     lastName: user?.lastName ?? '',
     displayName: user?.displayName ?? '',
-    phone: user?.phone ?? '',
+    phone: toLocalDigits(user?.phone),
   });
 
   // useState's initializer only runs on first render -- if this screen is
@@ -39,25 +47,32 @@ export default function EditProfile() {
       firstName: user.firstName ?? '',
       lastName: user.lastName ?? '',
       displayName: user.displayName ?? '',
-      phone: user.phone ?? '',
+      phone: toLocalDigits(user.phone),
     });
   }, [user]);
 
   const handleSave = async () => {
     setSaveError(null);
+    setPhoneError(null);
+    // A number that does not normalise used to be dropped from the request
+    // and the save reported success: the donor typed a phone and the app
+    // silently kept none. Say so at the field instead.
+    const phone = formData.phone ? normalizePhone(`+998${formData.phone}`) : null;
+    if (formData.phone && !phone) {
+      setPhoneError(t('validation.phoneUzbek'));
+      return;
+    }
     try {
       await updateProfile.mutateAsync({
         firstName: formData.firstName || undefined,
         lastName: formData.lastName || undefined,
         displayName: formData.displayName || undefined,
-        phone: formData.phone || undefined,
+        phone: phone ?? undefined,
       });
       router.back();
     } catch (error) {
       setSaveError(
-        error instanceof ApiRequestError
-          ? error.error.message
-          : t('profileEdit.saveFailed'),
+        error instanceof ApiRequestError ? error.error.message : t('profileEdit.saveFailed'),
       );
     }
   };
@@ -66,7 +81,7 @@ export default function EditProfile() {
     formData.firstName !== (user?.firstName ?? '') ||
     formData.lastName !== (user?.lastName ?? '') ||
     formData.displayName !== (user?.displayName ?? '') ||
-    formData.phone !== (user?.phone ?? '');
+    formData.phone !== toLocalDigits(user?.phone);
 
   const avatarName =
     [formData.firstName, formData.lastName].filter(Boolean).join(' ') ||
@@ -75,87 +90,72 @@ export default function EditProfile() {
     '?';
 
   return (
-    <Screen scroll={false}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.flex}
-      >
-        <ScreenHeader title={t('profileEdit.personalSection')} />
+    <FormScreen
+      header={
+        <ScreenHeader
+          title={t('profileEdit.personalSection')}
+          size="large"
+          onBack={() => router.back()}
+          backLabel={t('common.a11yGoBack')}
+        />
+      }
+    >
+      <Stack gap="xl">
+        <View style={{ alignItems: 'center', gap: 8 }}>
+          <Avatar name={avatarName} size={72} />
+          {user?.email ? (
+            <Text variant="caption" tone="tertiary">
+              {user.email}
+            </Text>
+          ) : null}
+        </View>
 
-        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          <View style={styles.avatarBlock}>
-            <Avatar name={avatarName} size={72} ring={colors.primary} />
-            {user?.email && <AppText style={styles.email}>{user.email}</AppText>}
-          </View>
+        <Stack gap="lg">
+          <Field
+            label={t('auth.register.firstName')}
+            placeholder={t('auth.register.firstNamePlaceholder')}
+            value={formData.firstName}
+            onChangeText={(firstName) => setFormData((prev) => ({ ...prev, firstName }))}
+            autoComplete="given-name"
+          />
+          <Field
+            label={t('auth.register.lastName')}
+            placeholder={t('auth.register.lastNamePlaceholder')}
+            value={formData.lastName}
+            onChangeText={(lastName) => setFormData((prev) => ({ ...prev, lastName }))}
+            autoComplete="family-name"
+          />
+          <Field
+            label={t('profileEdit.displayNameOptional')}
+            placeholder={t('profileEdit.displayNameHint')}
+            value={formData.displayName}
+            onChangeText={(displayName) => setFormData((prev) => ({ ...prev, displayName }))}
+          />
+          {/* The placeholder here was `+1 234 567 8900` -- a United States
+              number, on a product that only accepts Uzbekistan ones and
+              rejects anything else at the API. */}
+          <PhoneField
+            prefix="+998"
+            label={t('profileEdit.phoneOptional')}
+            placeholder={t('auth.phone.placeholder')}
+            value={formData.phone}
+            error={phoneError ?? undefined}
+            onChangeText={(phone) => {
+              setPhoneError(null);
+              setFormData((prev) => ({ ...prev, phone: phone.replace(/\D/g, '') }));
+            }}
+          />
+        </Stack>
 
-          <View style={styles.fields}>
-            <AppTextInput
-              label={t('auth.register.firstName')}
-              placeholder={t('auth.register.firstName')}
-              value={formData.firstName}
-              onChangeText={(firstName) => setFormData((prev) => ({ ...prev, firstName }))}
-            />
-            <AppTextInput
-              label={t('auth.register.lastName')}
-              placeholder={t('auth.register.lastName')}
-              value={formData.lastName}
-              onChangeText={(lastName) => setFormData((prev) => ({ ...prev, lastName }))}
-            />
-            <AppTextInput
-              label={t('profileEdit.displayNameOptional')}
-              placeholder={t('profileEdit.displayNameHint')}
-              value={formData.displayName}
-              onChangeText={(displayName) => setFormData((prev) => ({ ...prev, displayName }))}
-            />
-            <AppTextInput
-              label={t('profileEdit.phoneOptional')}
-              placeholder="+1 234 567 8900"
-              keyboardType="phone-pad"
-              value={formData.phone}
-              onChangeText={(phone) => setFormData((prev) => ({ ...prev, phone }))}
-            />
-          </View>
+        {saveError ? <Banner tone="critical" title={saveError} /> : null}
 
-          {saveError && <AppText style={styles.error}>{saveError}</AppText>}
-
-          <AppButton
-            onPress={handleSave}
-            disabled={!hasChanges || updateProfile.isPending}
-            loading={updateProfile.isPending}
-            style={styles.save}
-          >
-            {t('actions.saveChanges')}
-          </AppButton>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </Screen>
+        <Button
+          label={t('actions.saveChanges')}
+          disabled={!hasChanges || updateProfile.isPending}
+          loading={updateProfile.isPending}
+          onPress={() => void handleSave()}
+        />
+      </Stack>
+    </FormScreen>
   );
-}
-
-function createStyles(colors: ThemeColors) {
-  return StyleSheet.create({
-    flex: { flex: 1 },
-    content: {
-      paddingBottom: spacing.xl,
-      gap: layout.cardGap,
-    },
-    avatarBlock: {
-      alignItems: 'center',
-      gap: 10,
-    },
-    email: {
-      fontSize: 13,
-      color: colors.textMuted,
-    },
-    fields: {
-      gap: 14,
-    },
-    error: {
-      fontSize: 13,
-      color: colors.onMuted.danger,
-    },
-    save: {
-      marginTop: 2,
-    },
-  });
 }

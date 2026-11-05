@@ -1,15 +1,18 @@
-import { useMemo, useState } from 'react';
-import { View, StyleSheet, Pressable } from 'react-native';
+import { useState } from 'react';
 import { router } from 'expo-router';
-import { Check, Droplet, HeartPulse, Stethoscope, type LucideIcon } from 'lucide-react-native';
-import { AppText, BookingStep, GlassCard } from '../../src/components';
-import { radius, useTheme, ThemeColors } from '../../src/theme';
+import { Droplet, HeartPulse, Stethoscope } from 'lucide-react-native';
+import { Choice, FlowStep, Stack, useDesign } from '../../src/design';
+import { LucideIcon } from '../../src/types/icons';
 import { useTranslation } from '../../src/i18n';
+import type { AccentName } from '../../src/design';
+
+/** The wizard's five decision steps; the confirmation screen is outside it. */
+export const BOOKING_STEP_COUNT = 5;
 
 interface AppointmentTypeOption {
   id: string;
   icon: LucideIcon;
-  tintKey: 'primary' | 'success' | 'secondary';
+  tone: AccentName;
 }
 
 /**
@@ -22,120 +25,46 @@ interface AppointmentTypeOption {
  * strings in a file nobody opens.
  */
 const APPOINTMENT_TYPES: AppointmentTypeOption[] = [
-  { id: 'BLOOD_DONATION', icon: Droplet, tintKey: 'primary' },
-  { id: 'BLOOD_TEST', icon: HeartPulse, tintKey: 'success' },
-  { id: 'CONSULTATION', icon: Stethoscope, tintKey: 'secondary' },
+  { id: 'BLOOD_DONATION', icon: Droplet, tone: 'rose' },
+  { id: 'BLOOD_TEST', icon: HeartPulse, tone: 'success' },
+  { id: 'CONSULTATION', icon: Stethoscope, tone: 'clinical' },
 ];
 
 export default function SelectType() {
   const { t } = useTranslation();
-  const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const { colors } = useDesign();
   const [selected, setSelected] = useState<string | null>(null);
 
   return (
-    <BookingStep
+    <FlowStep
       step={1}
+      total={BOOKING_STEP_COUNT}
+      counterLabel={t('booking.stepOf', { current: 1, total: BOOKING_STEP_COUNT })}
       title={t('booking.selectType')}
       subtitle={t('booking.whatToBook')}
-      nextDisabled={!selected}
-      onNext={() =>
+      onClose={() => router.replace('/(app)/donate')}
+      closeLabel={t('common.a11yCloseBooking')}
+      primaryLabel={t('common.continue')}
+      primaryDisabled={!selected}
+      onPrimary={() =>
         router.push({ pathname: '/(booking)/organizations', params: { type: selected! } })
       }
     >
-      <View style={styles.list}>
+      <Stack gap="md">
         {APPOINTMENT_TYPES.map((type) => {
           const Icon = type.icon;
-          const isSelected = selected === type.id;
           return (
-            <Pressable
+            <Choice
               key={type.id}
+              label={t(`appointmentTypes.${type.id}`)}
+              description={t(`appointmentTypes.${type.id}_HINT`)}
+              selected={selected === type.id}
               onPress={() => setSelected(type.id)}
-              accessibilityRole="radio"
-              accessibilityState={{ selected: isSelected }}
-              style={({ pressed }) => ({ opacity: pressed && !isSelected ? 0.7 : 1 })}
-            >
-              <GlassCard
-                tier={isSelected ? 'elevated' : 'standard'}
-                style={isSelected ? styles.cardSelected : undefined}
-              >
-                <View style={styles.row}>
-                  <View
-                    style={[styles.icon, { backgroundColor: colors[`${type.tintKey}Muted`] }]}
-                  >
-                    <Icon size={22} color={colors.onMuted[type.tintKey]} />
-                  </View>
-                  <View style={styles.body}>
-                    <AppText style={styles.title}>{t(`appointmentTypes.${type.id}`)}</AppText>
-                    <AppText style={styles.description}>{t(`appointmentTypes.${type.id}_HINT`)}</AppText>
-                  </View>
-                  {isSelected ? (
-                    <View style={styles.check}>
-                      <Check size={13} color="#FFFFFF" strokeWidth={3} />
-                    </View>
-                  ) : (
-                    <View style={styles.radio} />
-                  )}
-                </View>
-              </GlassCard>
-            </Pressable>
+              icon={({ size }) => <Icon size={size} color={colors[type.tone].base} />}
+            />
           );
         })}
-      </View>
-    </BookingStep>
+      </Stack>
+    </FlowStep>
   );
-}
-
-function createStyles(colors: ThemeColors) {
-  return StyleSheet.create({
-    list: {
-      gap: 10,
-    },
-    cardSelected: {
-      borderColor: 'rgba(216, 83, 96, 0.45)',
-    },
-    row: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 14,
-    },
-    icon: {
-      width: 44,
-      height: 44,
-      borderRadius: radius.sm,
-      alignItems: 'center',
-      justifyContent: 'center',
-      flexShrink: 0,
-    },
-    body: {
-      flex: 1,
-    },
-    title: {
-      fontSize: 15,
-      fontWeight: '600',
-      color: colors.text,
-    },
-    description: {
-      fontSize: 12,
-      color: colors.textMuted,
-      marginTop: 2,
-    },
-    radio: {
-      width: 22,
-      height: 22,
-      borderRadius: 11,
-      borderWidth: 2,
-      borderColor: colors.border,
-      flexShrink: 0,
-    },
-    check: {
-      width: 22,
-      height: 22,
-      borderRadius: 11,
-      backgroundColor: colors.primary,
-      alignItems: 'center',
-      justifyContent: 'center',
-      flexShrink: 0,
-    },
-  });
 }

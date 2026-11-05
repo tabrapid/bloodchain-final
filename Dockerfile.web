@@ -1,0 +1,37 @@
+# syntax=docker/dockerfile:1
+# Build from the monorepo root. One image per portal.
+FROM node:22.22.2-slim AS build
+ENV COREPACK_HOME=/pnpm/corepack
+ENV PNPM_HOME=/pnpm
+ENV PATH=$PNPM_HOME:$PATH
+ENV NEXT_TELEMETRY_DISABLED=1
+RUN corepack enable
+WORKDIR /repo
+COPY . .
+ARG WEB_APP
+ARG NEXT_PUBLIC_API_URL
+RUN case "$WEB_APP" in hospital-web|blood-center-web|admin-web) ;; *) echo "Unsupported WEB_APP" >&2; exit 1 ;; esac
+RUN test -n "$NEXT_PUBLIC_API_URL"
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+RUN pnpm install --frozen-lockfile --filter @bloodchain/${WEB_APP}...
+RUN pnpm --filter @bloodchain/${WEB_APP} typecheck
+RUN pnpm --filter @bloodchain/${WEB_APP} lint
+RUN pnpm --filter @bloodchain/${WEB_APP} test
+RUN pnpm --filter @bloodchain/${WEB_APP} build
+
+FROM node:22.22.2-slim AS runtime
+ENV COREPACK_HOME=/pnpm/corepack
+ENV PNPM_HOME=/pnpm
+ENV PATH=$PNPM_HOME:$PATH
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+RUN corepack enable
+WORKDIR /repo
+ARG WEB_APP
+ENV WEB_APP=$WEB_APP
+COPY --from=build --chown=node:node /pnpm /pnpm
+COPY --from=build --chown=node:node /repo /repo
+USER node
+EXPOSE 3000
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s CMD node -e "require('http').get('http://127.0.0.1:3000',r=>process.exit(r.statusCode<400?0:1)).on('error',()=>process.exit(1))"
+CMD ["sh", "-c", "exec pnpm --filter @bloodchain/${WEB_APP} exec next start -H 0.0.0.0 -p 3000"]

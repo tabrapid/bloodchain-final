@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useRef } from 'react';
-import { StyleSheet, View } from 'react-native';
-import MapView, { Marker, Polyline, PROVIDER_DEFAULT, type Region } from 'react-native-maps';
-import { AppText } from '../AppText';
-import { radius, useTheme, ThemeColors } from '../../theme';
+import { Platform, StyleSheet, View } from 'react-native';
+import Constants from 'expo-constants';
+import MapView, { Marker, PROVIDER_DEFAULT, type Region } from 'react-native-maps';
+import { Text, radius, space, useDesign } from '../../design';
 import { useTranslation } from '../../i18n';
 
-// Deliberately NOT re-exported through '../index' - react-native-maps links a
-// native module that Expo Go doesn't ship, so importing it anywhere in the
-// shared component barrel would crash every screen (map or not) the moment
-// the app boots without a dev client. Import this file directly instead.
+// Deliberately NOT re-exported through '../index' or the design system's
+// barrel - react-native-maps links a native module that Expo Go doesn't ship,
+// so importing it from a shared barrel would crash every screen (map or not)
+// the moment the app boots without a dev client. Import this file directly.
 
 export type MapMarkerVariant = 'origin' | 'destination' | 'courier' | 'donor' | 'hospital';
 
@@ -23,8 +23,6 @@ export interface MapMarkerPoint {
 
 export interface LocationMapProps {
   markers: MapMarkerPoint[];
-  /** Draws a dashed line connecting markers in array order. */
-  showRoute?: boolean;
   height?: number;
 }
 
@@ -51,22 +49,29 @@ function regionFor(markers: MapMarkerPoint[]): Region {
 }
 
 /**
- * Renders live coordinates as an actual map instead of raw lat/lng text -
- * the mobile counterpart of packages/ui's web LocationMap (same marker
- * variants/colors). Uses react-native-maps, which needs a dev client or EAS
- * build to run - it is not available inside Expo Go.
+ * Live coordinates as an actual map instead of raw lat/lng text.
+ *
+ * It draws points and nothing else. It used to take `showRoute`, which
+ * connected the markers in array order with a dashed line -- pickup, courier,
+ * hospital -- and that line is not a route: nothing in this system computes
+ * one, and a straight line between two points in a city is not the way anyone
+ * will travel. On an emergency screen and on a delivery screen alike it was
+ * read as one, so the prop is gone rather than merely unused. A component
+ * that cannot draw the line cannot have it reintroduced by a later caller.
+ *
+ * Uses react-native-maps, which needs a dev client or an EAS build to run --
+ * it is not available inside Expo Go.
  */
-export function LocationMap({ markers, showRoute = false, height = 220 }: LocationMapProps) {
+export function LocationMap({ markers, height = 220 }: LocationMapProps) {
   const { t } = useTranslation();
-  const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const { colors } = useDesign();
   const variantColor: Record<MapMarkerVariant, string> = useMemo(
     () => ({
-      origin: colors.textMuted,
-      destination: colors.success,
-      courier: colors.secondary,
-      donor: colors.primary,
-      hospital: colors.success,
+      origin: colors.textTertiary,
+      destination: colors.success.base,
+      courier: colors.clinical.base,
+      donor: colors.rose.base,
+      hospital: colors.success.base,
     }),
     [colors],
   );
@@ -80,30 +85,77 @@ export function LocationMap({ markers, showRoute = false, height = 220 }: Locati
     );
   }, [markers]);
 
-  if (markers.length === 0) {
+  /**
+   * A map with no key is not a map.
+   *
+   * Google Maps on Android needs an API key in the manifest, and there is none
+   * for this product yet (EXTERNAL_BLOCKER_ANDROID_MAPS_KEY). Without it the
+   * tiles never load and `MapView` renders a grey rectangle -- which on the SOS
+   * screen, during a live emergency, is indistinguishable from a map that is
+   * still loading. A donor waits for something that is never going to arrive.
+   *
+   * iOS is unaffected: PROVIDER_DEFAULT is Apple Maps, which needs no key.
+   */
+  /**
+   * Whether to say so instead of drawing an empty map.
+   *
+   * `!== true` rather than `=== false`: an absent flag means the manifest did
+   * not come from this config layer, and a grey rectangle during a live
+   * emergency is the failure this branch exists to prevent -- being wrong in
+   * the direction of an honest caption is cheap.
+   *
+   * Development is exempt, and that is not laziness. The flag is computed from
+   * the *bundler's* environment at `expo start`; the key it describes lives in
+   * the native binary's manifest, built at some other time with some other
+   * environment. A developer whose dev client was built with a key would
+   * otherwise watch the map vanish because the variable was not exported in
+   * the shell they happened to run Metro from.
+   */
+  const extra = Constants.expoConfig?.extra as
+    | { androidMapsConfigured?: boolean; appEnv?: string }
+    | undefined;
+  const androidMapsUnconfigured =
+    Platform.OS === 'android' &&
+    extra?.appEnv !== 'development' &&
+    extra?.androidMapsConfigured !== true;
+
+  if (markers.length === 0 || androidMapsUnconfigured) {
     return (
-      <View style={[styles.empty, { height }]}>
-        <AppText style={{ color: colors.textMuted }}>{t('common.noLocationData')}</AppText>
+      <View
+        style={{
+          height,
+          borderRadius: radius.md,
+          borderWidth: 1,
+          borderColor: colors.divider,
+          backgroundColor: colors.surface,
+          alignItems: 'center',
+          justifyContent: 'center',
+          paddingHorizontal: space.lg,
+        }}
+      >
+        <Text variant="caption" tone="tertiary" align="center">
+          {androidMapsUnconfigured ? t('common.mapUnavailable') : t('common.noLocationData')}
+        </Text>
       </View>
     );
   }
 
   return (
-    <View style={[styles.container, { height }]}>
+    <View
+      style={{
+        height,
+        borderRadius: radius.md,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: colors.divider,
+      }}
+    >
       <MapView
         ref={mapRef}
         provider={PROVIDER_DEFAULT}
-        style={StyleSheet.absoluteFillObject}
+        style={StyleSheet.absoluteFill}
         initialRegion={regionFor(markers)}
       >
-        {showRoute && markers.length > 1 && (
-          <Polyline
-            coordinates={markers.map((m) => ({ latitude: m.latitude, longitude: m.longitude }))}
-            strokeColor={colors.textMuted}
-            strokeWidth={2}
-            lineDashPattern={[6, 6]}
-          />
-        )}
         {markers.map((marker) => (
           <Marker
             key={marker.id}
@@ -111,36 +163,19 @@ export function LocationMap({ markers, showRoute = false, height = 220 }: Locati
             title={marker.label}
             description={marker.sublabel}
           >
-            <View style={[styles.dot, { backgroundColor: variantColor[marker.variant] }]} />
+            <View
+              style={{
+                width: 16,
+                height: 16,
+                borderRadius: 8,
+                borderWidth: 2,
+                borderColor: colors.surface,
+                backgroundColor: variantColor[marker.variant],
+              }}
+            />
           </Marker>
         ))}
       </MapView>
     </View>
   );
-}
-
-function createStyles(colors: ThemeColors) {
-  return StyleSheet.create({
-    container: {
-      borderRadius: radius.md,
-      overflow: 'hidden',
-      borderWidth: 1,
-      borderColor: colors.border,
-    },
-    empty: {
-      borderRadius: radius.md,
-      borderWidth: 1,
-      borderColor: colors.border,
-      backgroundColor: colors.surfaceSolid,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    dot: {
-      width: 16,
-      height: 16,
-      borderRadius: 8,
-      borderWidth: 2,
-      borderColor: colors.surfaceSolid,
-    },
-  });
 }

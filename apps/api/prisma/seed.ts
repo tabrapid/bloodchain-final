@@ -2015,9 +2015,9 @@ async function main() {
   }
 
   const badgeSpecs = [
-    { code: 'BADGE_FIRST_DONATION', name: 'First Drop', description: 'Awarded for a first donation.',
+    { code: 'FIRST_DONATION_BADGE', name: 'First Drop', description: 'Awarded for a first donation.',
       icon: 'droplet', rarity: AchievementRarity.COMMON, achievementCode: 'FIRST_DONATION', displayOrder: 1 },
-    { code: 'BADGE_EMERGENCY_HERO', name: 'Emergency Hero', description: 'Awarded for answering an emergency.',
+    { code: 'EMERGENCY_RESPONDER_BADGE', name: 'Emergency Hero', description: 'Awarded for answering an emergency.',
       icon: 'siren', rarity: AchievementRarity.EPIC, achievementCode: 'EMERGENCY_HERO', displayOrder: 2 },
     { code: 'BADGE_HEALTH_AWARE', name: 'Health Aware', description: 'Awarded for a completed blood test.',
       icon: 'activity', rarity: AchievementRarity.COMMON, achievementCode: 'HEALTH_AWARE', displayOrder: 3 },
@@ -2104,7 +2104,7 @@ async function main() {
       },
     });
   }
-  for (const code of ['BADGE_FIRST_DONATION', 'BADGE_HEALTH_AWARE'] as const) {
+  for (const code of ['FIRST_DONATION_BADGE', 'BADGE_HEALTH_AWARE'] as const) {
     await db.userBadge.create({
       data: { userId: donor.id, badgeId: badges[code]!, earnedAt: daysAgo(DEMO_DONOR_LAST_DONATION_DAYS_AGO) },
     });

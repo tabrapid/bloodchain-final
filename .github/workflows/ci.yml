@@ -23,7 +23,12 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  NODE_VERSION: '22'
+  # Pinned rather than floating on 22.x. react-native 0.86.3 declares a floor of
+  # ^22.13.0 and setup-node's '22' resolves to whatever the runner image has
+  # cached, which may sit below it -- a version skew nothing in the repo would
+  # have caught. This is the version eas.json builds with and the version the
+  # suite is verified on.
+  NODE_VERSION: '22.22.2'
   # Named so the seed's own guard recognises it as disposable.
   #
   # `prisma/seed.ts` TRUNCATEs every table it owns, so it refuses to run unless
@@ -72,6 +77,8 @@ jobs:
       - name: Generate Prisma client
         run: pnpm --filter @bloodchain/api prisma:generate
       - run: pnpm test
+      - name: Operations monitor state and secret handling tests
+        run: python3 -m unittest discover -s scripts -p test_ops_monitor.py
 
   test-e2e:
     name: API e2e tests (real database)
@@ -155,6 +162,10 @@ jobs:
       VERIFY_API_URL: http://localhost:3001
       WEB_URL: http://localhost:3000,http://localhost:3002,http://localhost:3003
       SMS_PROVIDER: console
+      SMTP_HOST: 127.0.0.1
+      SMTP_PORT: '1025'
+      SMTP_SECURE: 'false'
+      AUTH_THROTTLE_LIMIT: '100'
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -202,6 +213,36 @@ jobs:
         run: pnpm verify:geography
       - name: verify:booleans
         run: pnpm verify:booleans
+
+      # Last: this script deliberately changes its own seeded recovery account.
+      # It starts its own loopback SMTP catcher and refuses skipped assertions.
+      # The earlier Sprint 0 scripts exercise the same per-IP reset limiter.
+      # Restart only after their four-step isolation contract has completed;
+      # keep the database unchanged and preserve the real production limits.
+      - name: Restart test API for independent recovery rate-limit counters
+        run: |
+          previous_pid=$(cat /tmp/api.pid)
+          kill "$previous_pid"
+          for i in $(seq 1 30); do
+            if ! kill -0 "$previous_pid" 2>/dev/null; then break; fi
+            sleep 1
+          done
+          if kill -0 "$previous_pid" 2>/dev/null; then
+            echo "Previous test API did not stop"
+            exit 1
+          fi
+          mv /tmp/api.log /tmp/api-verification.log
+          node apps/api/dist/src/main.js > /tmp/api.log 2>&1 &
+          echo $! > /tmp/api.pid
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:3001/api/v1/health/ready > /dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/api.log
+          exit 1
+
+      - name: Email verification and password recovery (real SMTP + database)
+        run: pnpm verify:recovery
 
       - name: API log on failure
         if: failure()
@@ -322,3 +363,105 @@ jobs:
       - name: Generate Prisma client
         run: pnpm --filter @bloodchain/api prisma:generate
       - run: pnpm build
+
+  mobile-release-readiness:
+    name: Mobile release readiness (SDK 57)
+    runs-on: ubuntu-latest
+    # Deliberately needs no secrets, no Expo account, no Apple or Google
+    # credentials, and no Android SDK. Everything here is reproducible by
+    # anyone who can clone the repository.
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # One React in the bundle. The mobile app is on React 19 while the three
+      # Next.js consoles are still on 18, so any dependency that resolves
+      # React from pnpm's hoisted copy gets the wrong one -- which React 19
+      # rejects at render with "A React Element from an older version of React
+      # was rendered". This found it in expo-modules-core during the SDK 53
+      # upgrade, where it affected every Expo native view.
+      - name: One React across the mobile dependency graph
+        run: pnpm verify:single-react
+
+      # targetSdkVersion 36, the identifiers a release build cannot be made
+      # without, and the permission decisions -- resolved from the same files
+      # Gradle reads, because `android/` is generated and not committed.
+      - name: Android release configuration
+        run: pnpm verify:android-release
+
+      # This step is split in two on purpose.
+      #
+      # `expo-doctor` was not a dependency of the mobile app, so for every run
+      # of this workflow the command below printed `Command "expo-doctor" not
+      # found` and exited 1 -- and `continue-on-error` turned that into a green
+      # tick. The step reported on a tool it never ran. It is a devDependency
+      # now, and this first half asserts the binary exists with no
+      # continue-on-error, so the same hole cannot reopen silently.
+      - name: Expo doctor is installed
+        run: pnpm --filter @bloodchain/mobile exec expo-doctor --version
+
+      - name: Expo doctor
+        # The checks themselves are reported and read rather than taken as a
+        # build break. On SDK 57 the offline checks pass, the Hermes V1 memory
+        # regression included -- that was the last standing failure and the
+        # reason the upgrade was asked for. The two that reach api.expo.dev and
+        # reactnative.directory pass only where egress is open, which is true of
+        # this runner and not of every environment the repository is worked on
+        # in; there they are NETWORK_UNVERIFIED rather than passing, and
+        # expo-doctor must not be reported as "fully green" from one of them.
+        # That, plus answers those two can change without a commit here, is what
+        # keeps this step off the critical path. The checks that matter for an
+        # upgrade -- package versions against the SDK, duplicate dependencies,
+        # React Navigation alongside expo-router -- are offline and are covered
+        # by the steps above and below.
+        continue-on-error: true
+        run: pnpm --filter @bloodchain/mobile exec expo-doctor
+
+      - name: Typecheck and lint the mobile app
+        run: |
+          pnpm --filter @bloodchain/mobile typecheck
+          pnpm --filter @bloodchain/mobile lint
+
+      # `--runInBand` on purpose, and not for speed.
+      #
+      # With workers, jest force-kills them at the end of the run, so a leaked
+      # ref'd timer or a tree still rendering leaves nothing but a "worker
+      # process has failed to exit gracefully" warning that reads as noise. In
+      # band, the leak lands in the main process and jest refuses to exit --
+      # which is how a mutation gc timer surfaced here as a job that passed all
+      # 263 tests and then sat for another four and three quarter minutes.
+      # A two-core runner gives maxWorkers=1 anyway; saying so makes the
+      # guarantee independent of how many cores the runner happens to have.
+      - name: Mobile test suite (in band, so a leaked handle fails the job)
+        timeout-minutes: 4
+        run: pnpm --filter @bloodchain/mobile exec jest --runInBand
+
+      # The real proof that the app still builds: Metro resolves and bundles
+      # every module and Hermes compiles it, exactly as a release build does.
+      # A typecheck cannot catch a module that fails to resolve at runtime;
+      # this does.
+      - name: Production JS bundle (Android)
+        run: pnpm --filter @bloodchain/mobile exec expo export --platform android --output-dir .expo-export-ci
+      - name: Production JS bundle (iOS)
+        run: pnpm --filter @bloodchain/mobile exec expo export --platform ios --output-dir .expo-export-ci-ios
+
+      # Native project generation. This does not compile anything -- it proves
+      # app.json still produces a valid Android and iOS project, which is what
+      # a CNG build starts from.
+      - name: Native project generation (prebuild)
+        run: pnpm --filter @bloodchain/mobile exec expo prebuild --platform all --no-install --clean
+
+      - name: The generated manifest carries only the permissions we justify
+        run: |
+          echo "--- Android permissions ---"
+          grep -E 'uses-permission' apps/mobile/android/app/src/main/AndroidManifest.xml
+          echo "--- iOS usage descriptions ---"
+          grep -A1 'UsageDescription' apps/mobile/ios/Bloodchain/Info.plist
+          echo "--- targetSdkVersion wiring ---"
+          grep -n 'targetSdkVersion' apps/mobile/android/app/build.gradle

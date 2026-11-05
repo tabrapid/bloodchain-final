@@ -52,6 +52,7 @@ export const ru: Catalog = {
     a11yGoBack: 'Вернуться назад',
     a11yCloseBooking: 'Закрыть запись',
     noLocationData: 'Данных о местоположении пока нет',
+    mapUnavailable: 'Карта недоступна в этой сборке. Адреса выше по-прежнему верны.',
   },
 
   apiErrors: {
@@ -100,6 +101,12 @@ export const ru: Catalog = {
   },
 
   units: {
+    unitsNeeded: {
+      one: 'нужна {{count}} единица',
+      few: 'нужно {{count}} единицы',
+      many: 'нужно {{count}} единиц',
+      other: 'нужно {{count}} единиц',
+    },
     unitsCount: {
       one: '{{count}} единица',
       few: '{{count}} единицы',
@@ -338,11 +345,18 @@ export const ru: Catalog = {
   },
 
   home: {
+    identity: 'Ваш донорский профиль',
+    impact: 'Ваш вклад',
+    quickActionSchedule: 'Записаться на донацию',
+    quickActionDonorProfile: 'Изменить донорский профиль',
+    quickActionPersonalInfo: 'Изменить личные данные',
+    quickActionLearn: 'Узнать о донорстве',
+    verificationOpenProfile: 'Открыть донорский профиль',
     greetingMorning: 'Доброе утро',
     greetingAfternoon: 'Добрый день',
     greetingEvening: 'Добрый вечер',
     tagline: 'Каждая донация имеет значение.',
-    bloodTypeLabel: 'ГРУППА КРОВИ',
+    bloodTypeLabel: 'Группа крови',
     nextAppointment: 'Ближайшая запись',
     noAppointment: 'Записей нет',
     scheduleNext: 'Запланируйте следующую донацию.',
@@ -351,7 +365,6 @@ export const ru: Catalog = {
     eligibleNow: 'Допуск открыт',
     eligibleToday: 'Сегодня вы можете записаться на донацию.',
     quickActions: 'Быстрые действия',
-    levelAndXp: 'Уровень и XP',
     totalVolume: 'Общий объём',
     donations: 'Донации',
     emergency: 'Экстренно',
@@ -378,6 +391,14 @@ export const ru: Catalog = {
   },
 
   health: {
+    noDataTitle: 'Данных анализов пока нет',
+    noDataBody: 'Как только лаборатория опубликует ваш результат, здесь появятся показатели и их динамика.',
+    trendOfMeasurements: {
+      one: 'Динамика по {{count}} измерению',
+      few: 'Динамика по {{count}} измерениям',
+      many: 'Динамика по {{count}} измерениям',
+      other: 'Динамика по {{count}} измерениям',
+    },
     aiInsightsHint: 'Получите понятные пояснения к последним анализам крови.',
     updatedToday: 'Обновлено сегодня',
     updatedYesterday: 'Обновлено вчера',
@@ -386,7 +407,7 @@ export const ru: Catalog = {
     a11yLatestMarker: 'Последний отслеженный показатель. Открыть динамику здоровья',
     title: 'Здоровье',
     subtitle: 'Обзор ваших анализов',
-    latestTracked: 'ПОСЛЕДНИЕ ПОКАЗАТЕЛИ',
+    latestTracked: 'Последние показатели',
     labResults: 'Результаты анализов',
     labMarkers: 'Лабораторные показатели',
     aiInsights: 'AI-анализ',
@@ -398,6 +419,31 @@ export const ru: Catalog = {
   },
 
   donate: {
+    eligibleNow: 'Можно сдавать',
+    notEligible: 'Пока нельзя сдавать',
+    canDonateToday: 'Сегодня вы можете сдать кровь.',
+    opensInDays: {
+      one: 'Следующая сдача станет доступна через {{count}} день.',
+      few: 'Следующая сдача станет доступна через {{count}} дня.',
+      many: 'Следующая сдача станет доступна через {{count}} дней.',
+      other: 'Следующая сдача станет доступна через {{count}} дней.',
+    },
+    lastDonatedToday: 'Последняя сдача сегодня',
+    lastDonatedOn: 'Последняя сдача {{date}}',
+    nextEligibleOn: 'Следующая сдача возможна {{date}}',
+    schedule: 'Записаться на сдачу',
+    everyDays: {
+      one: 'Каждый {{count}} день',
+      few: 'Каждые {{count}} дня',
+      many: 'Каждые {{count}} дней',
+      other: 'Каждые {{count}} дней',
+    },
+    bookDonation: 'Записаться на сдачу',
+    livesPerDonation: 'Оценка: примерно {{count}} жизни получают помощь с каждой сдачи.',
+    readyToGive: 'Готовы сдать',
+    now: 'Сейчас',
+    ongoingCampaign: 'Текущая акция',
+    progressOf: '{{done}} из {{goal}}',
     title: 'Сдать кровь',
     subtitle: 'Запланируйте следующую донацию.',
     journey: 'Ваш путь',
@@ -415,6 +461,7 @@ export const ru: Catalog = {
     viewImpact: 'Ваш вклад',
     notYetEligible: 'ПОКА НЕ ДОПУЩЕН',
     ongoing: 'ИДЁТ',
+    daysLabel: 'дней',
   },
 
   calendar: {
@@ -433,6 +480,14 @@ export const ru: Catalog = {
   },
 
   community: {
+    ofDonors: {
+      one: 'из {{count}} донора',
+      few: 'из {{count}} доноров',
+      many: 'из {{count}} доноров',
+      other: 'из {{count}} доноров',
+    },
+    rankOf: '{{rank}} место из {{count}} в этом месяце',
+    a11yShare: 'Поделиться публикацией: {{title}}',
     report: 'Пожаловаться',
     a11yReport: 'Пожаловаться на публикацию: {{title}}',
     reportTitle: 'Жалоба на публикацию',
@@ -450,7 +505,7 @@ export const ru: Catalog = {
     title: 'Сообщество',
     subtitle: 'Ваша донорская сеть',
     feed: 'Лента сообщества',
-    thisMonth: 'В ЭТОМ МЕСЯЦЕ',
+    thisMonth: 'В этом месяце',
     impact: 'Вклад',
     campaigns: 'Кампании',
     challenges: 'Челленджи',
@@ -470,10 +525,31 @@ export const ru: Catalog = {
   },
 
   profile: {
+    signOutBody: 'Чтобы записаться, ответить на экстренный запрос или посмотреть результаты, нужно будет войти снова.',
+    stillNeeded: 'Осталось добавить: {{items}}',
+    earnedCount: {
+      one: '{{count}} получено',
+      few: '{{count}} получено',
+      many: '{{count}} получено',
+      other: '{{count}} получено',
+    },
+    inProgressCount: {
+      one: '{{count}} в процессе',
+      few: '{{count}} в процессе',
+      many: '{{count}} в процессе',
+      other: '{{count}} в процессе',
+    },
+    missingFields: {
+      basicIdentity: 'ваше имя',
+      contactVerified: 'подтверждённый email или телефон',
+      bloodType: 'ваша группа крови',
+      dateOfBirth: 'ваша дата рождения',
+      location: 'ваш город',
+    },
     title: 'Профиль',
-    bloodTypeLabel: 'ВАША ГРУППА КРОВИ',
-    donorInfo: 'ДАННЫЕ ДОНОРА',
-    settings: 'НАСТРОЙКИ',
+    bloodTypeLabel: 'Ваша группа крови',
+    donorInfo: 'Данные донора',
+    settings: 'Настройки',
     completion: 'Заполненность профиля',
     donations: 'Донации',
     emergencyResponses: 'Экстренные отклики',
@@ -493,6 +569,7 @@ export const ru: Catalog = {
   },
 
   portal: {
+    greetingWithName: '{{greeting}}, {{name}}.',
     openMenu: 'Открыть меню',
     account: {
       title: 'Мой аккаунт',
@@ -664,6 +741,12 @@ export const ru: Catalog = {
       DELIVERED: 'Доставлена',
       PARTIALLY_DELIVERED: 'Частично доставлена',
     },
+    urgency: {
+      CRITICAL: 'Критический',
+      HIGH: 'Высокий',
+      MEDIUM: 'Средний',
+      LOW: 'Низкий',
+    },
     priority: {
       ROUTINE: 'Обычный',
       URGENT: 'Срочный',
@@ -710,6 +793,16 @@ export const ru: Catalog = {
       CANCELLED: 'Отменён',
       EXPIRED: 'Истёк',
       FAILED: 'Не выполнен',
+    },
+    match: {
+      MATCHED: 'Новый запрос',
+      NOTIFIED: 'Вам отправлено уведомление',
+      VIEWED: 'Открыт',
+      ACCEPTED: 'Вы согласились',
+      DECLINED: 'Вы отказались',
+      EXPIRED: 'Истёк',
+      CANCELLED: 'Отменён больницей',
+      NO_RESPONSE: 'Ответа не было',
     },
     response: {
       ACCEPTED: 'Принят',
@@ -782,6 +875,7 @@ export const ru: Catalog = {
       OTHER: 'Другое',
     },
     cancellation: {
+      DEFERRED: 'Отвод',
       DONOR_CANCELLED: 'Отменено донором',
       ORGANIZATION_CANCELLED: 'Отменено организацией',
       NOT_COMPLETED: 'Не завершено',
@@ -1122,6 +1216,7 @@ export const ru: Catalog = {
       removeBody: 'Для этой области будет применяться следующий более общий порог или ни одного.',
     },
     common: {
+      updatedAt: 'Обновлено {{time}}',
       refreshing: 'Обновление…',
       creating: 'Создание…',
       submitting: 'Отправка…',
@@ -1327,6 +1422,7 @@ export const ru: Catalog = {
       vitalsPlaceholder: 'например: Hb 14,2 г/дл, АД 120/78',
     },
     inventory: {
+      openUnitLabel: 'Открыть единицу {{reference}}',
       discardTitle: 'Списать эту единицу?',
       discardBody: 'Единица навсегда покидает запас и больше не может быть выдана пациенту.',
       discardReason: 'Причина списания',
@@ -1471,6 +1567,7 @@ export const ru: Catalog = {
       noneFound: 'Запросы на кровь не найдены',
     },
     shipments: {
+      etaHoursMinutes: '{{hours}} ч {{minutes}} мин',
       discrepancyRequired: 'Укажите причину расхождения перед подтверждением доставки.',
       cancelTitle: 'Отменить доставку?',
       cancelBody: 'Курьер отзывается, а единицы возвращаются в запас отправляющего центра.',
@@ -1525,6 +1622,7 @@ export const ru: Catalog = {
       noneFound: 'Отправления не найдены',
     },
     emergency: {
+      patientLabel: 'Пациент: {{reference}}',
       cancelTitle: 'Отменить экстренный запрос?',
       cancelBody: 'Подбор прекращается, и всем оповещённым донорам сообщат, что помощь больше не нужна.',
       createEmergency: 'Создать экстренный запрос',
@@ -1594,6 +1692,8 @@ export const ru: Catalog = {
       noneFound: 'Курьеры не найдены',
     },
     analytics: {
+      vsPreviousPeriod: '{{change}} к предыдущему периоду',
+      acceptanceShare: '{{value}}% принятия',
       title: 'Панель аналитики',
       intelligence: 'Операционная аналитика',
       section: 'Раздел аналитики',
@@ -1848,6 +1948,14 @@ export const ru: Catalog = {
     },
   },
   booking: {
+    stepOf: 'Шаг {{current}} из {{total}}',
+    spotsLeft: {
+      one: 'осталось {{count}} место',
+      few: 'осталось {{count}} места',
+      many: 'осталось {{count}} мест',
+      other: 'осталось {{count}} мест',
+    },
+    slotTakenHint: 'Пока вы выбирали, это время заняли. Вернитесь и выберите другое.',
     noOpenDatesHint: 'Посмотрите следующий месяц или вернитесь и выберите другое место.',
     unavailableDay: 'недоступно',
     noOpenDates: 'В этом месяце нет свободных дней',
@@ -1911,6 +2019,7 @@ export const ru: Catalog = {
     CONSULTATION_HINT: 'Поговорите с медицинским специалистом',
   },
   appointment: {
+    aboutDuration: 'около {{duration}}',
     title: 'Запись',
     preparation: 'Что подготовить',
     cancelTitle: 'Отменить эту запись?',
@@ -1993,6 +2102,8 @@ export const ru: Catalog = {
     dateUnknown: 'Дата неизвестна',
   },
   healthTrends: {
+    previousValue: 'Предыдущее: {{value}}',
+    chartSummary: '{{parameter}}: {{count}} измерений, {{direction}}',
     title: 'Динамика здоровья',
     timeRange: 'Период',
     trendChart: 'График динамики',
@@ -2016,7 +2127,7 @@ export const ru: Catalog = {
     latest: 'Последняя аналитика',
     yours: 'Ваша аналитика',
     empty: 'Пока нет аналитики',
-    helpful: 'Эта аналитика была полезна?',
+    helpful: 'Полезно',
     thanks: 'Спасибо за отзыв',
     askPlaceholder: 'Задайте вопрос о ваших данных о здоровье…',
     askAboutResults: 'Спросить о моих результатах',
@@ -2043,6 +2154,13 @@ export const ru: Catalog = {
     response: 'Ответ',
   },
   notificationSettings: {
+    deviceSection: 'На этом устройстве',
+    unavailableTitle: 'Это приложение пока не может получать уведомления',
+    unavailableBody:
+      'Push-уведомления для этой сборки не настроены, поэтому ничего из указанного ниже до вас ' +
+      'не дойдёт — включая экстренные запросы. Ваш выбор сохранён и начнёт действовать, как ' +
+      'только настройка будет выполнена.',
+    notAllowedYet: 'Телефон пока не показывает уведомления Bloodchain.',
     title: 'Настройки уведомлений',
     subtitle: 'Выберите, о чём приложение будет сообщать',
     whatYouReceive: 'Что вы получаете',
@@ -2085,6 +2203,25 @@ export const ru: Catalog = {
     allCaughtUp: 'Всё прочитано!',
   },
   sos: {
+    overdue: 'Просрочено',
+    timeLeftMinutes: {
+      one: 'осталась {{count}} мин',
+      few: 'осталось {{count}} мин',
+      many: 'осталось {{count}} мин',
+      other: 'осталось {{count}} мин',
+    },
+    timeLeftHours: {
+      one: 'остался {{count}} час',
+      few: 'осталось {{count}} часа',
+      many: 'осталось {{count}} часов',
+      other: 'осталось {{count}} часов',
+    },
+    timeLeftDays: {
+      one: 'остался {{count}} день',
+      few: 'осталось {{count}} дня',
+      many: 'осталось {{count}} дней',
+      other: 'осталось {{count}} дней',
+    },
     title: 'Экстренный вызов',
     details: 'Детали экстренного случая',
     yourResponse: 'Ваш отклик',
@@ -2131,6 +2268,21 @@ export const ru: Catalog = {
     matchNotified: 'Уведомление отправлено',
     matchViewed: 'Просмотрено — примите или отклоните',
     responseReadyToGo: 'Принято — готовы выехать',
+    locationExplainerTitle: 'Делиться местоположением в пути?',
+    locationExplainerBody:
+      'Пока вы в пути, Bloodchain передаёт ваше местоположение больнице, чтобы там знали о вашем приезде и успели подготовиться. Передача прекращается, как только вы прибудете или отмените отклик.',
+    locationAssuranceOnlyEnRoute: 'Только пока вы в пути — не раньше и не позже',
+    locationAssuranceHospitalOnly: 'Видит только больница, отправившая этот запрос',
+    locationAssuranceStopAnytime: 'Отмените отклик в любой момент — передача прекратится',
+    locationAllow: 'Делиться местоположением',
+    locationNotNow: 'Не сейчас',
+    locationDeclinedTitle: 'Геолокация выключена',
+    locationDeclinedBody: 'Больница не видит, что вы в пути. Включить можно в любой момент поездки.',
+    locationDeniedTitle: 'Местоположение для этой поездки отключено',
+    locationDeniedBody:
+      'Вы всё равно можете приехать и зарегистрироваться на стойке. Больница не увидит, что вы приближаетесь, поэтому скажите на стойке, что вы экстренный донор.',
+    locationDeniedOpenSettings: 'Открыть настройки',
+    noRouteShown: 'Только местоположения — Bloodchain не строит маршрут и не рассчитывает время прибытия.',
   },
   campaigns: {
     title: 'Кампании по донорству',
@@ -2139,11 +2291,20 @@ export const ru: Catalog = {
     empty: 'Нет активных кампаний',
     emptyHint: 'Загляните позже — появятся новые кампании',
     joinCampaign: 'Присоединиться к кампании',
+    joined: 'Вы участвуете',
     joinFailed: 'Не удалось присоединиться к кампании. Попробуйте снова.',
     bloodTypesNeeded: 'Нужные группы крови: {{types}}',
     targetSuffix: ' / цель {{count}}',
   },
   challenges: {
+    types: {
+      DONATION_MILESTONE: 'Рубеж донорства',
+      CAMPAIGN_PARTICIPATION: 'Акция',
+      EDUCATION: 'Обучение',
+      COMMUNITY: 'Сообщество',
+      APPOINTMENT_COMPLETION: 'Записи',
+      CONSISTENCY: 'Регулярность',
+    },
     title: 'Челленджи',
     subtitle: 'Выполняйте челленджи, чтобы получать XP и значки',
     loading: 'Загрузка челленджей…',
@@ -2155,6 +2316,8 @@ export const ru: Catalog = {
     endsOn: 'Завершается {{date}}',
   },
   education: {
+    types: { ARTICLE: 'Статья', QUIZ: 'Тест', VIDEO: 'Видео' },
+    difficulties: { BEGINNER: 'Начальный', INTERMEDIATE: 'Средний', ADVANCED: 'Продвинутый' },
     title: 'Обучение',
     subtitle: 'Узнавайте о донорстве и получайте XP',
     loading: 'Загрузка материалов…',
@@ -2169,9 +2332,15 @@ export const ru: Catalog = {
     availableContent: 'Доступные материалы',
     startFailed: 'Не удалось начать материал. Попробуйте снова.',
     completeFailed: 'Не удалось завершить материал. Попробуйте снова.',
+    readAgain: 'Прочитать снова',
     minutes: '{{count}} мин',
   },
   gamification: {
+    rankOf: '#{{rank}} из {{total}}',
+    levelShort: 'Ур.{{level}}',
+    xpValue: '{{xp}} XP',
+    earnedOf: 'получено {{earned}} из {{total}}',
+    unlockedOf: 'открыто {{unlocked}} из {{total}}',
     xpPoints: 'Очки XP',
     activeChallenges: 'Активные челленджи',
     leaderboard: 'Рейтинг',
@@ -2189,8 +2358,26 @@ export const ru: Catalog = {
     topDonorsAllTime: 'Лучшие доноры за всё время',
     subtitle: 'Ваш прогресс и награды',
     newDonor: 'Новый донор',
+    levelNames: {
+      newDonor: 'Новый донор',
+      activeDonor: 'Активный донор',
+      regularDonor: 'Постоянный донор',
+      communityDonor: 'Донор сообщества',
+      dedicatedDonor: 'Преданный донор',
+      champion: 'Чемпион',
+      eliteDonor: 'Элитный донор',
+      hero: 'Герой',
+      legend: 'Легенда',
+      platinum: 'Платина',
+    },
     nextLevel: 'следующий уровень',
     progressToLevel: 'Прогресс до «{{level}}»',
+    xpToNext: {
+      one: '{{count}} XP до уровня «{{level}}»',
+      few: '{{count}} XP до уровня «{{level}}»',
+      many: '{{count}} XP до уровня «{{level}}»',
+      other: '{{count}} XP до уровня «{{level}}»',
+    },
     noBadges: 'Значков пока нет — первый значок вы получите за первую сдачу крови.',
     nothingInProgress: 'Сейчас ничего не начато. Запишитесь на сдачу крови, чтобы начать.',
     unlocked: 'Открыто',
@@ -2207,9 +2394,23 @@ export const ru: Catalog = {
     shareLocation: 'Делиться геопозицией',
     yourData: 'Ваши данные',
     downloadData: 'Скачать ваши данные',
-    downloadDataHint: 'Обратитесь в поддержку за копией ваших данных',
+    downloadDataHint: 'Пока недоступно. Приложение не может выдать копию ваших данных.',
     deleteAccount: 'Удалить аккаунт',
-    deleteAccountHint: 'Обратитесь в поддержку для удаления аккаунта',
+    deleteAccountHint: 'Закрывает аккаунт навсегда',
+    deleteTitle: 'Удаление аккаунта',
+    deleteIntro: 'Аккаунт будет закрыт навсегда. Прочитайте, что это значит, прежде чем решить.',
+    deleteGoesTitle: 'Что удаляется',
+    deleteGoesBody: 'Вход на всех устройствах, отображаемое имя и фото, сохранённый домашний район и геопозиция, передача геопозиции, все уведомления и ваше место в рейтинге.',
+    deleteStaysTitle: 'Что остаётся',
+    deleteStaysBody: 'Ваша донорская запись остаётся у службы крови как часть её медицинской документации: данные, под которыми вы зарегистрированы, ваши донации, результаты скрининга и анализов, ваши согласия и журнал аудита. Приложение не определяет, как долго служба крови их хранит.',
+    deleteNotTitle: 'Чего это не делает',
+    deleteNotBody: 'Не отзывает уже выданную кровь и не удаляет вас из записей больницы. Аккаунт нельзя открыть заново, и этот адрес почты нельзя использовать для новой регистрации.',
+    deleteConfirmTitle: 'Удалить аккаунт?',
+    deleteConfirmBody: 'Это действие нельзя отменить. Вы выйдете из аккаунта на всех устройствах.',
+    deleteConfirm: 'Удалить мой аккаунт',
+    deleteKeep: 'Оставить аккаунт',
+    deleteFailed: 'Не удалось удалить аккаунт. Попробуйте ещё раз.',
+    opensInBrowser: 'Откроется в браузере',
     policies: 'Документы',
     privacyPolicy: 'Политика конфиденциальности',
     termsOfService: 'Условия использования',
@@ -2221,10 +2422,14 @@ export const ru: Catalog = {
     lastUpdated: 'Последнее обновление',
     locationAndData: 'Геолокация и данные',
     shareLocationHint: 'Позволяет срочным запросам поблизости дойти до вас во время SOS',
+    leaderboardVisible: 'Показывать меня в рейтинге',
+    leaderboardVisibleHint: 'Ваше имя и число донаций видны другим донорам. Если выключить, вы исчезнете из публичного рейтинга.',
+    leaderboardUpdateFailed: 'Не удалось изменить настройку рейтинга. Попробуйте ещё раз.',
     consentUpdateFailed: 'Не удалось обновить настройку геолокации. Попробуйте снова.',
     disclaimer: 'Это приложение работает с информацией о здоровье. Показанное не заменяет профессиональную медицинскую консультацию, диагностику или лечение.',
   },
   security: {
+    minimumLength: 'Не менее {{count}} символов',
     signOutThisDeviceTitle: 'Выйти на этом устройстве?',
     signOutThisDeviceBody: 'Вы выходите на устройстве, которое держите в руках. Чтобы пользоваться приложением, потребуется войти заново.',
     revokeOtherSessionTitle: 'Отозвать «{{device}}»?',
@@ -2276,6 +2481,12 @@ export const ru: Catalog = {
     districtPlaceholder: 'Ваш район',
   },
   medical: {
+    verificationSource: {
+      BLOOD_CENTER: 'Подтверждено центром крови',
+      HOSPITAL: 'Подтверждено больницей',
+      LABORATORY: 'Подтверждено лабораторией',
+      OTHER_AUTHORIZED_SOURCE: 'Подтверждено уполномоченным медицинским учреждением',
+    },
     services: {
       WHOLE_BLOOD_DONATION: 'Сдача цельной крови',
       PLASMA_DONATION: 'Сдача плазмы',
@@ -2325,6 +2536,7 @@ export const ru: Catalog = {
       rhFactorNote: 'Резус положительный или отрицательный',
     },
     resultFlags: {
+      withinRange: 'В пределах нормы',
       normal: 'В норме',
       outsideRange: 'Вне нормы',
       noReference: 'Нет референсного интервала',
@@ -2427,8 +2639,35 @@ export const ru: Catalog = {
     },
   },
   onboarding: {
+    stopSharingLocation: 'Не передавать геопозицию',
+    explainLocation: 'Настроить передачу геопозиции',
+    locationExplainerTitle: 'Передавать вашу геопозицию?',
+    locationExplainerBody:
+      'Bloodchain использует геопозицию, чтобы показать ближайшие к вам центры донорства и поставить ближайшие экстренные запросы первыми.',
+    locationAssuranceNearest: 'Используется, чтобы сортировать центры и запросы по расстоянию',
+    locationAssuranceNotTracked: 'Не используется для слежения — приложение считывает её, когда вы об этом просите',
+    locationAssuranceOptional: 'Необязательно: сдавать кровь, записываться и отвечать можно и без неё',
+    locationAllow: 'Передавать геопозицию',
+    locationBlockedTitle: 'Геопозиция отключена для Bloodchain',
+    locationBlockedBody:
+      'Телефон больше не спросит. Включить можно в настройках — или продолжайте без неё: города достаточно, чтобы найти ближайшие центры.',
+    notificationsPermissionNote:
+      'Выбор тем ещё не разрешает телефону их показывать. Это отдельное разрешение, и телефон спросит один раз.',
+    explainNotifications: 'Настроить уведомления',
+    notificationsExplainerTitle: 'Разрешить уведомления Bloodchain?',
+    notificationsExplainerBody:
+      'Экстренный запрос по вашей группе крови бесполезен, если вы не увидите его вовремя. Уведомления — это то, как он до вас доходит.',
+    notificationsAssuranceCategories: 'Только те виды, которые вы выбрали выше',
+    notificationsAssuranceNoMarketing: 'Никакой рекламы и ничего о других донорах',
+    notificationsAssuranceChangeLater: 'Изменить или отключить можно в любой момент в профиле',
+    notificationsAllow: 'Включить уведомления',
+    notificationsAllowed: 'Уведомления включены',
+    notificationsBlockedTitle: 'Уведомления отключены для Bloodchain',
+    notificationsBlockedBody:
+      'Телефон больше не спросит. Экстренные запросы останутся в приложении — их нужно будет открыть, чтобы увидеть.',
     stepOf: 'Шаг {{current}} из {{total}}',
     previousStep: 'Предыдущий шаг',
+    closeWizard: 'Закрыть настройку профиля',
     continue: 'Продолжить',
     completeSetup: 'Завершить настройку',
     welcomeTitle: 'Добро пожаловать в Bloodchain',
@@ -2479,6 +2718,14 @@ export const ru: Catalog = {
     saveFailed: 'При сохранении профиля произошла ошибка. Попробуйте снова.',
   },
   courier: {
+    locationExplainerTitle: 'Передавать геопозицию во время доставки?',
+    locationExplainerBody:
+      'Больница, ожидающая эти компоненты, видит, докуда дошла доставка. Геопозиция передаётся только пока доставка в пути.',
+    locationAssuranceInTransitOnly: 'Только пока доставка в пути — не раньше и не позже',
+    locationAssuranceHospitalOnly: 'Видят больница и центр крови, ведущие эту отправку',
+    locationAssuranceStops: 'Прекращается сразу после прибытия или завершения доставки',
+    locationAllow: 'Передавать геопозицию',
+    locationDeclined: 'Передача геопозиции выключена. Доставку можно завершить и так — больница просто не увидит, где вы.',
     tabActive: 'Активная',
     tabHistory: 'История',
     tabProfile: 'Профиль',
@@ -2549,6 +2796,13 @@ export const ru: Catalog = {
   },
 
   directory: {
+    nearbyExplainerTitle: 'Отсортировать список по расстоянию?',
+    nearbyExplainerBody:
+      'Bloodchain может один раз считать вашу геопозицию, чтобы поставить ближайшие центры донорства в начало списка.',
+    nearbyAssuranceSorting: 'Используется только для сортировки этого списка',
+    nearbyAssuranceNotStored: 'Считывается по вашему запросу — приложение не следит за вами',
+    nearbyAssuranceOptional: 'Необязательно: центр можно выбрать по региону',
+    nearbyAllow: 'Сортировать по расстоянию',
     coordinatesInvalid: 'Широта и долгота должны быть числами или оставаться пустыми.',
     title: 'Организации',
     filters: 'Фильтры',

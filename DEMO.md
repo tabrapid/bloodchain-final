@@ -321,9 +321,10 @@ npx ngrok http 3001
 EXPO_PUBLIC_API_URL=https://<the-ngrok-host> pnpm dev:mobile
 ```
 
-Override it only if the API is somewhere else: set `EXPO_PUBLIC_API_URL` (or
-`extra.apiUrl` in `app.json`) and restart `expo start` — `EXPO_PUBLIC_*` values
-are baked into the bundle when it is built, not read at runtime.
+Override it only if the API is somewhere else: set `EXPO_PUBLIC_API_URL` and
+restart `expo start` — `EXPO_PUBLIC_*` values are baked into the bundle when it
+is built, not read at runtime. (`app.json` has no `extra.apiUrl` to edit and
+never did; `app.config.ts` writes that key from the environment at build time.)
 
 The app prints the address it is using on startup: `[api] http://…:3001/api/v1`,
 followed by `[api] <reason>` when that address is unlikely to work. The same

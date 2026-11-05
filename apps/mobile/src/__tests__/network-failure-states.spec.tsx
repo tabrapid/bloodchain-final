@@ -5,7 +5,7 @@ import { LocaleProvider } from '../i18n';
 import { ThemeProvider } from '../theme';
 
 jest.mock('expo-router', () => ({
-  router: { push: jest.fn(), replace: jest.fn(), back: jest.fn() },
+  router: { push: jest.fn(), replace: jest.fn(), back: jest.fn(), dismissAll: jest.fn(), canGoBack: jest.fn(() => true) },
   useRouter: () => ({ push: jest.fn(), back: jest.fn() }),
   useLocalSearchParams: () => ({}),
 }));
@@ -32,7 +32,7 @@ import Donations from '../../app/(app)/donations';
 
 const { t } = createLocalization('en');
 
-function render(node: React.ReactElement) {
+function render(node: React.ReactNode) {
   let tree: renderer.ReactTestRenderer;
   act(() => {
     tree = renderer.create(

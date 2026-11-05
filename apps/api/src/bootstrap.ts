@@ -32,6 +32,10 @@ export const VALIDATION_PIPE_OPTIONS: ValidationPipeOptions = {
  * apart the way they did before (the e2e app was missing all of this).
  */
 export function configureApp(app: INestApplication, config: ConfigService): void {
+  // Enable only for a deployment with exactly one trusted proxy and no direct
+  // public API port. Keep direct/local deployments independent of forwarded IPs.
+  app.getHttpAdapter().getInstance().set('trust proxy', config.get<number>('TRUST_PROXY_HOPS', 0));
+
   app.enableCors({
     origin: (config.get<string>('WEB_URL') ?? 'http://localhost:3000')
       .split(',')

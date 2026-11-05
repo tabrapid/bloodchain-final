@@ -5,6 +5,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { LocaleProvider } from '../i18n';
 import { colors, ThemeProvider } from '../theme';
+import { themes } from '../design';
 
 /**
  * P3-9 regression tests.
@@ -23,7 +24,7 @@ import { colors, ThemeProvider } from '../theme';
  */
 
 jest.mock('expo-router', () => ({
-  router: { push: jest.fn() },
+  router: { push: jest.fn(), dismissAll: jest.fn(), canGoBack: jest.fn(() => true) },
 }));
 // Pin the resolved theme to dark so assertions against the static `colors`
 // export (the dark palette) stay meaningful regardless of what the test
@@ -306,19 +307,23 @@ describe('P3-9: the four screens that used className render with real styles', (
   it.each(screens)('%s applies the app theme rather than rendering unstyled', async (_name, Screen) => {
     const fingerprint = styleFingerprint(allNodes(await renderTree(Screen)));
 
-    // The app's real text color and surface border must be present — these
-    // come from src/theme.tsx, so a screen rendering unstyled (or reverting
-    // to light-mode Tailwind strings) fails here. (The screen background
-    // itself now paints via a LinearGradient `colors` prop, which React
-    // Native serializes to processed native color ints rather than the
+    // A real text colour and a real surface edge must be present, so a screen
+    // rendering unstyled (or reverting to light-mode Tailwind strings) fails
+    // here. Either palette counts: S11 moved Community to the V2 design
+    // system, and the other three screens on this list have not been rebuilt
+    // yet, so the check is "themed", not "themed by one particular module".
+    // (The V1 background paints via a LinearGradient `colors` prop, which
+    // React Native serializes to processed native colour ints rather than the
     // original hex string, so it isn't substring-matchable here.)
-    expect(fingerprint).toContain(colors.text);
-    // GlassCard borders come from `colors.border` (base cards) or
-    // `colors.glassBorder` (elevated cards) -- either is proof the screen is
-    // themed rather than unstyled; which one appears depends on whether this
-    // particular screen's mocked data renders an elevated card.
+    const dark = themes.dark;
     expect(
-      fingerprint.includes(colors.border) || fingerprint.includes(colors.glassBorder),
+      fingerprint.includes(colors.text) || fingerprint.includes(dark.textPrimary),
+    ).toBe(true);
+    expect(
+      fingerprint.includes(colors.border) ||
+        fingerprint.includes(colors.glassBorder) ||
+        fingerprint.includes(dark.surface) ||
+        fingerprint.includes(dark.divider),
     ).toBe(true);
   });
 
@@ -363,15 +368,27 @@ describe('P3-9: the four screens that used className render with real styles', (
 
     expect(text).toContain(campaignFixture.title);
     expect(text).toContain(campaignFixture.location);
-    expect(styleFingerprint(nodes)).toContain(colors.textMuted);
+    // Either palette: S11 moved this screen to the V2 design system, and what
+    // is being checked is that the detail rows are drawn in a real secondary
+    // text colour rather than unstyled.
+    const fingerprint = styleFingerprint(nodes);
+    expect(
+      fingerprint.includes(colors.textMuted) || fingerprint.includes(themes.dark.textSecondary),
+    ).toBe(true);
   });
 
   it('challenges renders a themed progress bar for a joined challenge', async () => {
     const nodes = allNodes(await renderTree(ChallengesScreen));
     const fingerprint = styleFingerprint(nodes);
 
-    // ProgressBar fills to userProgress/goal (1 of 3) using the primary color.
-    expect(fingerprint).toContain(colors.primary);
+    // The bar fills to userProgress/goal (1 of 3) in a real accent -- the
+    // brand rose, since a challenge in progress is not a warning -- rather
+    // than an unstyled rectangle.
+    expect(
+      fingerprint.includes(colors.primary) ||
+        fingerprint.includes(themes.dark.rose.base) ||
+        fingerprint.includes(themes.dark.warning.base),
+    ).toBe(true);
     expect(fingerprint).toMatch(/33\.3\d*%/);
     expect(renderedText(nodes)).toContain(challengeFixture.title);
   });
@@ -432,8 +449,38 @@ describe('P3-10: the education card offers the control the backend will accept',
 
     const text = await cardText();
 
-    expect(text).toContain('Complete');
+    // S11.1: the card used to offer "Complete" for an article the app had no
+    // screen for -- `Start` called the start endpoint and opened nothing, and
+    // the body has been in the payload since the module shipped. Completion
+    // now lives at the end of the article, where the donor has actually been
+    // through the thing they are claiming to have read; the card continues it.
+    expect(text).toContain('Continue');
     expect(text).not.toContain('Start');
+  });
+
+  it('opens the article rather than completing it from the list', async () => {
+    const { router } = require('expo-router');
+    jest.mocked(getMyEducationProgress).mockResolvedValue({
+      items: [],
+      total: 0,
+      page: 1,
+      limit: 100,
+    } as never);
+
+    const tree = await renderScreen(EducationScreen);
+    // The Button element carrying the Start label, whose onPress is the card's.
+    const startButton = tree.root.find(
+      (node) => node.props?.label === t('education.start') && typeof node.props?.onPress === 'function',
+    );
+
+    await act(async () => {
+      startButton.props.onPress();
+    });
+
+    expect(router.push).toHaveBeenCalledWith(
+      expect.objectContaining({ pathname: '/(app)/education/[id]' }),
+    );
+    tree.unmount();
   });
 
   it('offers no action once the content is completed', async () => {

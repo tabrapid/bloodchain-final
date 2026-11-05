@@ -23,6 +23,72 @@ function safe<T>(run: () => T, fallback: () => T): T {
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
+/**
+ * Uzbek calendar names, for runtimes whose ICU has no Uzbek.
+ *
+ * Node and both phone platforms know `uz-Latn-UZ`; a slim ICU (some browser
+ * builds, some Hermes builds) does not, and `Intl` then does not throw -- it
+ * prints "M09" for September and the English weekday initials. That is a
+ * calendar the donor cannot read, so the names are carried here as data and
+ * used whenever `Intl` hands back a placeholder. Locale data, not copy: the
+ * same names CLDR ships for uz-Latn.
+ */
+const UZ_MONTHS = {
+  long: ['yanvar', 'fevral', 'mart', 'aprel', 'may', 'iyun', 'iyul', 'avgust', 'sentabr', 'oktabr', 'noyabr', 'dekabr'],
+  short: ['yan', 'fev', 'mar', 'apr', 'may', 'iyn', 'iyl', 'avg', 'sen', 'okt', 'noy', 'dek'],
+} as const;
+
+const UZ_WEEKDAYS = {
+  long: ['yakshanba', 'dushanba', 'seshanba', 'chorshanba', 'payshanba', 'juma', 'shanba'],
+  short: ['Yak', 'Dush', 'Sesh', 'Chor', 'Pay', 'Jum', 'Shan'],
+  narrow: ['Y', 'D', 'S', 'C', 'P', 'J', 'S'],
+} as const;
+
+/** True when `Intl` returned ICU's "no data" placeholder for a month. */
+const isMonthPlaceholder = (text: string) => /\bM\d{2}\b/.test(text);
+
+/**
+ * Whether this runtime can name an Uzbek month at all.
+ *
+ * Probed once with a fixed date: a runtime that prints "M09" for September
+ * prints it for every date, in every formatter, so every Uzbek date below
+ * is composed from the tables instead. A runtime with the data never takes
+ * that path.
+ */
+let uzIntlHasNames: boolean | undefined;
+function uzHasNames(): boolean {
+  if (uzIntlHasNames === undefined) {
+    uzIntlHasNames = safe(() => {
+      if (Intl.DateTimeFormat.supportedLocalesOf([INTL_LOCALES.uz]).length === 0) return false;
+      const probe = new Intl.DateTimeFormat(INTL_LOCALES.uz, { month: 'long', weekday: 'short' }).format(
+        new Date(2026, 8, 1),
+      );
+      return !isMonthPlaceholder(probe) && !/\b(Mon|Tue|Wed|Thu|Fri|Sat|Sun)\b/.test(probe);
+    }, () => false);
+  }
+  return uzIntlHasNames;
+}
+
+/** Test seam: forget the probe result. */
+export function resetIntlProbe(): void {
+  uzIntlHasNames = undefined;
+}
+
+function uzDate(date: Date, style: 'full' | 'long' | 'medium' | 'short'): string {
+  const day = date.getDate();
+  const year = date.getFullYear();
+  switch (style) {
+    case 'full':
+      return `${UZ_WEEKDAYS.long[date.getDay()]}, ${day} ${UZ_MONTHS.long[date.getMonth()]}, ${year}`;
+    case 'long':
+      return `${day} ${UZ_MONTHS.long[date.getMonth()]}, ${year}`;
+    case 'medium':
+      return `${day} ${UZ_MONTHS.short[date.getMonth()]}, ${year}`;
+    default:
+      return `${pad(day)}.${pad(date.getMonth() + 1)}.${year}`;
+  }
+}
+
 /** "13 sentabr, 2026" / "13 сентября 2026 г." / "13 September 2026" */
 export function formatDate(
   locale: Locale,
@@ -31,6 +97,7 @@ export function formatDate(
 ): string {
   const date = toDate(value);
   if (Number.isNaN(date.getTime())) return '';
+  if (locale === 'uz' && !uzHasNames()) return uzDate(date, style);
   return safe(
     () => new Intl.DateTimeFormat(INTL_LOCALES[locale], { dateStyle: style }).format(date),
     () => `${pad(date.getDate())}.${pad(date.getMonth() + 1)}.${date.getFullYear()}`,
@@ -86,9 +153,11 @@ export function formatWeekday(
 ): string {
   const date = toDate(value);
   if (Number.isNaN(date.getTime())) return '';
+  const uzFallback = () => (locale === 'uz' ? (UZ_WEEKDAYS[width][date.getDay()] ?? '') : '');
+  if (locale === 'uz' && !uzHasNames()) return uzFallback();
   return safe(
     () => new Intl.DateTimeFormat(INTL_LOCALES[locale], { weekday: width }).format(date),
-    () => '',
+    uzFallback,
   );
 }
 
@@ -102,6 +171,10 @@ export function formatWeekday(
 export function formatDayHeading(locale: Locale, value: Date | string | number): string {
   const date = toDate(value);
   if (Number.isNaN(date.getTime())) return '';
+  if (locale === 'uz' && !uzHasNames()) {
+    const weekday = UZ_WEEKDAYS.long[date.getDay()] ?? '';
+    return `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)}, ${date.getDate()} ${UZ_MONTHS.short[date.getMonth()]}`;
+  }
   return safe(
     () =>
       new Intl.DateTimeFormat(INTL_LOCALES[locale], {
@@ -121,10 +194,17 @@ export function formatMonth(
 ): string {
   const date = toDate(value);
   if (Number.isNaN(date.getTime())) return '';
-  return safe(
-    () => new Intl.DateTimeFormat(INTL_LOCALES[locale], { month: width, year: 'numeric' }).format(date),
-    () => `${pad(date.getMonth() + 1)}.${date.getFullYear()}`,
-  );
+  // CLDR's uz pattern is "sentabr, 2026"; the short form drops the comma
+  // because a date block takes its first word and "sen," is not a month.
+  const fallback = () =>
+    locale === 'uz'
+      ? `${UZ_MONTHS[width][date.getMonth()] ?? pad(date.getMonth() + 1)}${width === 'long' ? ',' : ''} ${date.getFullYear()}`
+      : `${pad(date.getMonth() + 1)}.${date.getFullYear()}`;
+  if (locale === 'uz' && !uzHasNames()) return fallback();
+  return safe(() => {
+    const text = new Intl.DateTimeFormat(INTL_LOCALES[locale], { month: width, year: 'numeric' }).format(date);
+    return locale === 'uz' && isMonthPlaceholder(text) ? fallback() : text;
+  }, fallback);
 }
 
 /** "1 234 567,5" in uz and ru; "1,234,567.5" in en. */

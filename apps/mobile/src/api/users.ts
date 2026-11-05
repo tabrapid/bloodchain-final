@@ -59,3 +59,12 @@ export async function updateUserProfile(
     body: JSON.stringify(input),
   });
 }
+/**
+ * Closes the account for good. The server signs every device out as part of
+ * it; the caller clears the local session afterwards regardless of the
+ * response, because an account that is closed on the server has no session
+ * worth keeping on the phone.
+ */
+export async function deleteAccount(): Promise<void> {
+  await apiRequest(`${apiBasePath}/users/me`, { method: 'DELETE' });
+}

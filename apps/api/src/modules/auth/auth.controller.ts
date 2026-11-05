@@ -93,13 +93,30 @@ export class AuthController {
 
   @Get('verify-email')
   @Public()
-  @ApiOperation({ summary: 'Verify an email address from a browser link (returns an HTML page)' })
-  async verifyEmailLink(@Query('token') token: string, @Req() req: Request, @Res() res: Response) {
+  @ApiOperation({ summary: 'Show email confirmation without consuming the link' })
+  verifyEmailLink(@Query('token') token: string, @Res() res: Response) {
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('Referrer-Policy', 'no-referrer');
+    if (typeof token !== 'string' || token.length < 10 || token.length > 128) {
+      return res.status(HttpStatus.BAD_REQUEST).type('html').send(this.renderVerificationPage(false));
+    }
+    const escaped = token.replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    return res.status(HttpStatus.OK).type('html').send(`<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Verify email — BloodChain</title></head>
+<body><main><h1>Verify your email</h1><p>Confirm your email address, then sign in to BloodChain.</p>
+<form method="post" action="/api/v1/auth/verify-email-link"><input type="hidden" name="token" value="${escaped}"><button type="submit">Verify email</button></form></main></body></html>`);
+  }
+
+  @Post('verify-email-link')
+  @Public()
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  @ApiOperation({ summary: 'Confirm email from the browser without creating a session' })
+  async confirmEmailLink(@Body() dto: VerifyEmailDto, @Req() req: Request, @Res() res: Response) {
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('Referrer-Policy', 'no-referrer');
     try {
-      if (!token) {
-        throw new Error('Missing token');
-      }
-      await this.auth.verifyEmail(token, this.getIp(req));
+      await this.auth.confirmEmail(dto.token, this.getIp(req));
       res.status(HttpStatus.OK).type('html').send(this.renderVerificationPage(true));
     } catch {
       res.status(HttpStatus.BAD_REQUEST).type('html').send(this.renderVerificationPage(false));
@@ -305,22 +322,20 @@ export class AuthController {
   }
 
   private getIp(req: Request): string | undefined {
-    const forwarded = req.headers['x-forwarded-for'] as string | string[] | undefined;
-    if (typeof forwarded === 'string') return forwarded.split(',')[0]?.trim();
     return req.ip ?? undefined;
   }
 
   private renderVerificationPage(success: boolean): string {
     const title = success ? 'Email verified' : 'Verification failed';
     const message = success
-      ? 'Your email address has been verified. You can now sign in from the DONOR app.'
+      ? 'Your email address has been verified. You can now sign in to BloodChain.'
       : 'This verification link is invalid or has expired. Request a new one from the app.';
     return `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>${title} — DONOR</title>
+<title>${title} — BloodChain</title>
 <style>
   body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #0b0e14; color: #f5f6f7; display: flex; min-height: 100vh; align-items: center; justify-content: center; margin: 0; padding: 24px; }
   .card { max-width: 420px; text-align: center; }

@@ -1,19 +1,24 @@
 import { useMemo, useState } from 'react';
-import { View, StyleSheet, Pressable } from 'react-native';
+import { View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Sun, Sunrise, Sunset, type LucideIcon } from 'lucide-react-native';
+import { Sun, Sunrise, Sunset } from 'lucide-react-native';
 import {
-  AppButton,
-  AppText,
-  BookingStep,
   EmptyState,
-  GlassCard,
+  ErrorState,
+  FlowStep,
+  OptionGrid,
+  Row,
   SectionHeader,
-} from '../../src/components';
+  Skeleton,
+  Stack,
+  iconSize,
+  useDesign,
+} from '../../src/design';
+import { LucideIcon } from '../../src/types/icons';
 import { useLaboratorySlots } from '../../src/hooks/useLaboratory';
 import type { AppointmentSlot } from '../../src/api/laboratory';
-import { radius, spacing, useTheme, ThemeColors } from '../../src/theme';
 import { useTranslation } from '../../src/i18n';
+import { LAB_BOOKING_STEP_COUNT } from './test-type';
 
 /**
  * Step 4: which time.
@@ -25,8 +30,7 @@ import { useTranslation } from '../../src/i18n';
  */
 export default function SelectLabSlot() {
   const { t, formatDayHeading, formatTime } = useTranslation();
-  const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const { colors } = useDesign();
   const params = useLocalSearchParams<{
     testTypeId: string;
     laboratoryId: string;
@@ -34,13 +38,11 @@ export default function SelectLabSlot() {
   }>();
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
 
-  const {
-    data: slots = [],
-    isLoading,
-    isError,
-    refetch,
-    isRefetching,
-  } = useLaboratorySlots(params.laboratoryId, params.testTypeId, params.date);
+  const { data: slots = [], isPending, isError, refetch } = useLaboratorySlots(
+    params.laboratoryId,
+    params.testTypeId,
+    params.date,
+  );
 
   const bookable = useMemo(() => slots.filter((slot) => slot.isAvailable !== false), [slots]);
 
@@ -69,13 +71,19 @@ export default function SelectLabSlot() {
   }, [params.date, t, formatDayHeading]);
 
   return (
-    <BookingStep
+    <FlowStep
       step={4}
+      total={LAB_BOOKING_STEP_COUNT}
+      counterLabel={t('booking.stepOf', { current: 4, total: LAB_BOOKING_STEP_COUNT })}
       title={t('booking.selectTime')}
       subtitle={subtitle}
-      nextDisabled={!selectedSlotId}
+      onBack={() => router.back()}
+      backLabel={t('common.a11yGoBack')}
       onClose={() => router.replace('/(app)/laboratory')}
-      onNext={() =>
+      closeLabel={t('common.a11yCloseBooking')}
+      primaryLabel={t('common.continue')}
+      primaryDisabled={!selectedSlotId}
+      onPrimary={() =>
         router.push({
           pathname: '/(lab-booking)/review',
           params: {
@@ -87,138 +95,53 @@ export default function SelectLabSlot() {
         })
       }
     >
-      {isLoading ? (
-        <AppText style={styles.status}>{t('booking.loadingTimes')}</AppText>
+      {isPending ? (
+        <Stack gap="lg">
+          <Skeleton height={14} width="30%" />
+          <Skeleton height={52} />
+        </Stack>
       ) : isError ? (
-        <GlassCard style={styles.stateCard}>
-          <EmptyState title={t('booking.timesFailed')} description={t('common.offline')} />
-          <AppButton
-            variant="secondary"
-            onPress={() => refetch()}
-            disabled={isRefetching}
-            loading={isRefetching}
-            style={styles.retry}
-          >
-            {t('common.retry')}
-          </AppButton>
-        </GlassCard>
+        <ErrorState
+          title={t('booking.timesFailed')}
+          description={t('common.offline')}
+          retryLabel={t('common.retry')}
+          onRetry={() => void refetch()}
+        />
       ) : bookable.length === 0 ? (
-        <GlassCard style={styles.stateCard}>
-          <EmptyState
-            title={t('labBooking.noSlots')}
-            description={t('labBooking.noSlotsHint')}
-          />
-          <AppButton variant="secondary" onPress={() => router.back()} style={styles.retry}>
-            {t('labBooking.pickAnotherDay')}
-          </AppButton>
-        </GlassCard>
+        <EmptyState
+          title={t('labBooking.noSlots')}
+          description={t('labBooking.noSlotsHint')}
+          action={{ label: t('labBooking.pickAnotherDay'), onPress: () => router.back() }}
+        />
       ) : (
-        groups
-          .filter((group) => group.slots.length > 0)
-          .map((group) => {
-            const Icon = group.icon;
-            return (
-              <View key={group.labelKey}>
-                <View style={styles.groupHeader}>
-                  <Icon size={16} color={colors.textMuted} />
-                  <SectionHeader>{t(group.labelKey)}</SectionHeader>
-                </View>
-                <View style={styles.grid}>
-                  {group.slots.map((slot) => {
-                    const selected = selectedSlotId === slot.id;
-                    const remaining = slot.capacity - slot.bookedCount;
-                    return (
-                      <View key={slot.id} style={styles.cell}>
-                        <Pressable
-                          onPress={() => setSelectedSlotId(slot.id)}
-                          accessibilityRole="radio"
-                          accessibilityState={{ selected }}
-                          style={({ pressed }) => [
-                            styles.chip,
-                            selected && styles.chipSelected,
-                            { opacity: pressed && !selected ? 0.7 : 1 },
-                          ]}
-                        >
-                          <AppText style={[styles.chipTime, selected && styles.chipTimeSelected]}>
-                            {formatTime(slot.startAt)}
-                          </AppText>
-                          {remaining <= 3 && (
-                            <AppText
-                              style={[styles.chipMeta, selected && styles.chipMetaSelected]}
-                            >
-                              {t('labBooking.spotsLeft', { count: remaining })}
-                            </AppText>
-                          )}
-                        </Pressable>
-                      </View>
-                    );
-                  })}
-                </View>
-              </View>
-            );
-          })
+        <Stack gap="xl">
+          {groups
+            .filter((group) => group.slots.length > 0)
+            .map((group) => {
+              const Icon = group.icon;
+              return (
+                <Stack gap="md" key={group.labelKey}>
+                  <Row gap="sm">
+                    <Icon size={iconSize.sm} color={colors.textTertiary} />
+                    <View style={{ flex: 1 }}>
+                      <SectionHeader title={t(group.labelKey)} />
+                    </View>
+                  </Row>
+                  <OptionGrid
+                    accessibilityLabel={t(group.labelKey)}
+                    columns={3}
+                    value={selectedSlotId}
+                    onChange={setSelectedSlotId}
+                    options={group.slots.map((slot) => ({
+                      value: slot.id,
+                      label: formatTime(slot.startAt),
+                    }))}
+                  />
+                </Stack>
+              );
+            })}
+        </Stack>
       )}
-    </BookingStep>
+    </FlowStep>
   );
-}
-
-function createStyles(colors: ThemeColors) {
-  return StyleSheet.create({
-    status: {
-      fontSize: 13,
-      color: colors.textMuted,
-    },
-    stateCard: {
-      paddingVertical: spacing.lg,
-    },
-    retry: {
-      marginTop: spacing.md,
-      alignSelf: 'center',
-    },
-    groupHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 6,
-    },
-    grid: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      marginHorizontal: -5,
-    },
-    cell: {
-      width: `${100 / 3}%`,
-      paddingHorizontal: 5,
-      paddingBottom: 10,
-    },
-    chip: {
-      minHeight: 46,
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderRadius: radius.sm,
-      backgroundColor: colors.glass.standard.fill,
-      borderWidth: 1,
-      borderColor: colors.glass.standard.border,
-    },
-    chipSelected: {
-      backgroundColor: colors.primary,
-      borderColor: 'transparent',
-    },
-    chipTime: {
-      fontSize: 14,
-      fontWeight: '500',
-      color: colors.text,
-    },
-    chipTimeSelected: {
-      fontWeight: '700',
-      color: colors.white,
-    },
-    chipMeta: {
-      fontSize: 10,
-      color: colors.onMuted.warning,
-      marginTop: 1,
-    },
-    chipMetaSelected: {
-      color: 'rgba(255,255,255,0.85)',
-    },
-  });
 }

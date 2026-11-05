@@ -32,6 +32,18 @@ export class GamificationProfileDto {
 
   @ApiPropertyOptional()
   nextEligibleDonationDate?: Date;
+
+  /**
+   * Whether this donor appears on the public leaderboard.
+   *
+   * `POST me/gamification/leaderboard-visibility` has always been able to set
+   * it, and the leaderboard has always honoured it -- but nothing read it back,
+   * so the app could not draw the switch in the position the donor left it and
+   * therefore did not offer the switch at all. A privacy setting a person
+   * cannot see the state of is not a setting they control.
+   */
+  @ApiProperty()
+  leaderboardVisibility!: boolean;
 }
 
 export class XpTransactionDto {

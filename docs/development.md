@@ -132,4 +132,4 @@ The API has unit tests for authentication (including user status checks, suspend
 
 ## Mobile development
 
-The mobile app uses Expo Router with route groups `(auth)` and `(app)`. It expects the API URL via `EXPO_PUBLIC_API_URL` or falls back to `http://localhost:3001`. For physical devices, use your machine's local IP address.
+The mobile app uses Expo Router with route groups `(auth)` and `(app)`. In development it takes `EXPO_PUBLIC_API_URL` if set, and otherwise derives the API host from whichever machine served the bundle — so a phone on the same network needs nothing configured, and the Android emulator is rewritten to `10.0.2.2` because `localhost` there is the emulator. A preview or production build derives nothing: it must be given an explicit address (https, and not the device itself) or it fails to build. `APP_ENV` picks the rules and `apps/mobile/src/config/app-config.ts` is where they live.

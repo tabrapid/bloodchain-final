@@ -1,54 +1,44 @@
-import { useCallback, useEffect, useState } from 'react';
 import { router } from 'expo-router';
-import type { RelativePathString } from 'expo-router';
-import { Pressable, TouchableOpacity, View, RefreshControl } from 'react-native';
+import { View } from 'react-native';
 import {
   Activity,
   Brain,
+  CalendarPlus,
   ChevronRight,
-  Droplet,
-  Fingerprint,
-  Gauge,
-  Layers,
-  Percent,
+  FileText,
+  FlaskConical,
   ShieldCheck,
-  type LucideIcon,
 } from 'lucide-react-native';
 import {
-  AppText,
-  Divider,
-  GlassCard,
-  GradientCard,
-  LoadingState,
-  Screen,
-  SectionHeader,
-  Sparkline,
-} from '../../src/components';
-import { layout, radius, spacing, useTheme } from '../../src/theme';
-import { getTrendSummary, TrendSummary } from '../../src/api/health-trends';
-import { getDonorResults, LaboratoryResult } from '../../src/api/laboratory';
-import { getAiAvailability, getInsightHistory, AiInsight } from '../../src/api/ai-health';
+  Badge,
+  ErrorState,
+  EmptyState,
+  LinkButton,
+  ListGroup,
+  ListRow,
+  RecordRow,
+  Row,
+  ScreenTitle,
+  ScrollScreen,
+  Section,
+  SectionError,
+  Sections,
+  Skeleton,
+  SkeletonCard,
+  SkeletonRow,
+  Surface,
+  Text,
+  ValueBlock,
+  iconSize,
+  radius,
+  space,
+  useDesign,
+} from '../../src/design';
+import { useTrendSummary, useLatestInsight, useAiEnabled } from '../../src/hooks/useHealth';
+import { useDonorLaboratoryResults } from '../../src/hooks/useLaboratory';
 import { formatUpdated, isWithinReferenceRange } from '../../src/utils/health';
 import { useTranslation } from '../../src/i18n';
-
-type VitalColorKey = 'primary' | 'secondary' | 'warning' | 'ai' | 'success';
-
-// Keyed by the real lab-parameter code (see apps/api/prisma/seed.ts's
-// TestParameter records) so each vital gets the icon that actually matches
-// what it measures, instead of cycling icons by list position -- which is
-// how hemoglobin ended up with a "wind" icon and platelets a "thermometer".
-const VITAL_ICON_BY_CODE: Record<string, { icon: LucideIcon; color: VitalColorKey }> = {
-  HEMOGLOBIN: { icon: Droplet, color: 'primary' },
-  HEMATOCRIT: { icon: Percent, color: 'secondary' },
-  RBC: { icon: Activity, color: 'primary' },
-  WBC: { icon: ShieldCheck, color: 'success' },
-  PLATELETS: { icon: Layers, color: 'warning' },
-  FERRITIN: { icon: Gauge, color: 'ai' },
-  FERRITIN_LEVEL: { icon: Gauge, color: 'ai' },
-  BLOOD_GROUP: { icon: Fingerprint, color: 'secondary' },
-  ABO: { icon: Fingerprint, color: 'secondary' },
-  RH_FACTOR: { icon: Fingerprint, color: 'secondary' },
-};
+import { formatClinicalValue } from '../../src/utils/clinical';
 
 /**
  * What each marker is, in one line of plain language.
@@ -57,11 +47,8 @@ const VITAL_ICON_BY_CODE: Record<string, { icon: LucideIcon; color: VitalColorKe
  * load where there is no locale; the screen resolves them through `t`. A code
  * with no entry simply shows no description rather than a guess: the screen
  * never invents a meaning for a marker it does not recognise.
- *
- * Every value here is clinically sensitive and lives in the medical namespace,
- * so a reviewer finds all of them in one place.
  */
-const VITAL_DESCRIPTION_KEY_BY_CODE: Record<string, string> = {
+const MARKER_DESCRIPTION_KEY_BY_CODE: Record<string, string> = {
   HEMOGLOBIN: 'medical.markers.hemoglobinNote',
   HEMATOCRIT: 'medical.markers.hematocritNote',
   RBC: 'medical.markers.redBloodCellsNote',
@@ -74,91 +61,127 @@ const VITAL_DESCRIPTION_KEY_BY_CODE: Record<string, string> = {
   RH_FACTOR: 'medical.markers.rhFactorNote',
 };
 
-const VITAL_FALLBACK_ORDER: VitalColorKey[] = ['primary', 'secondary', 'warning', 'ai', 'success'];
-
-function getVitalIconAndColor(
-  code: string,
-  index: number,
-): { icon: LucideIcon; color: VitalColorKey } {
-  return VITAL_ICON_BY_CODE[code.toUpperCase()] ?? {
-    icon: Activity,
-    color: VITAL_FALLBACK_ORDER[index % VITAL_FALLBACK_ORDER.length]!,
-  };
-}
-
+/**
+ * Health, composed for V4: a health-data product, not a dashboard.
+ *
+ * The order is the order a clinician reads a report: the latest verified
+ * figure with its range and date, then every tracked marker as a record
+ * (parameter, value, unit, reference, status, date), then what the model
+ * said about it -- clearly marked as an explanation, not an opinion that
+ * outranks the data -- and finally the published reports themselves.
+ *
+ * Normal is quiet. A marker within range carries a small green pill and
+ * nothing else; a flagged one gets the amber, and it is the only amber on
+ * the screen. The eye lands on what needs attention because nothing else
+ * asks for it.
+ *
+ * Three states are told apart and the tests pin them: loading, failed with a
+ * retry, and genuinely empty with the one action that fills it.
+ */
 export default function Health() {
-  const { colors } = useTheme();
+  const { colors } = useDesign();
   const { t, formatDate } = useTranslation();
-  const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [summary, setSummary] = useState<TrendSummary | null>(null);
-  const [labResults, setLabResults] = useState<LaboratoryResult[]>([]);
-  const [latestInsight, setLatestInsight] = useState<AiInsight | null>(null);
-  // Whether AI is switched on at all. Undefined while the answer is in flight.
-  const [aiEnabled, setAiEnabled] = useState<boolean | undefined>(undefined);
 
-  const loadData = useCallback(async () => {
-    try {
-      const [trendData, resultsData, insightData, availability] = await Promise.all([
-        getTrendSummary(),
-        getDonorResults().catch(() => []),
-        getInsightHistory({ limit: 1 }).catch(() => ({ insights: [], total: 0 })),
-        // A failure is treated as "off": a card that promises AI and cannot
-        // deliver it is the thing this check exists to prevent.
-        getAiAvailability()
-          .then((a) => a.enabled)
-          .catch(() => false),
-      ]);
-      setSummary(trendData);
-      setLabResults(resultsData);
-      setLatestInsight(insightData.insights[0] ?? null);
-      setAiEnabled(availability);
-    } catch (err) {
-      console.error('Failed to load health summary:', err);
-    } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
-    }
-  }, []);
+  const summary = useTrendSummary();
+  const results = useDonorLaboratoryResults();
+  const insight = useLatestInsight();
+  const aiEnabled = useAiEnabled();
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  const refreshing =
+    summary.isRefetching || results.isRefetching || insight.isRefetching || aiEnabled.isRefetching;
 
-  const onRefresh = useCallback(() => {
-    setIsRefreshing(true);
-    loadData();
-  }, [loadData]);
+  const onRefresh = () => {
+    summary.refetch();
+    results.refetch();
+    insight.refetch();
+    aiEnabled.refetch();
+  };
 
-  const publishedResults = labResults.filter((r) => r.status === 'PUBLISHED');
+  const publishedResults = (results.data ?? []).filter((r) => r.status === 'PUBLISHED');
   const anyFlagged = publishedResults.some((r) =>
     r.items.some((item) => item.flag && item.flag !== 'NORMAL'),
   );
-  // Latest known flag per parameter code, so a marker row can carry the same
-  // Normal/Review badge the reference puts there.
-  const flagByParameterCode = new Map<string, string>();
+
+  // Latest known flag and reference range per parameter code.
+  const latestByCode = new Map<string, { flag?: string; referenceMin?: number; referenceMax?: number; unit?: string }>();
   publishedResults.forEach((result) => {
     result.items.forEach((item) => {
       const code = item.parameter?.code?.toUpperCase();
-      if (code && !flagByParameterCode.has(code)) {
-        flagByParameterCode.set(code, item.flag);
+      if (code && !latestByCode.has(code)) {
+        latestByCode.set(code, {
+          flag: item.flag,
+          referenceMin: item.referenceMin,
+          referenceMax: item.referenceMax,
+          unit: item.unit,
+        });
       }
     });
   });
 
-  if (isLoading) {
+  const header = (
+    <ScreenTitle
+      title={t('health.title')}
+      subtitle={t('health.subtitle')}
+      action={
+        publishedResults.length > 0 ? (
+          <Badge
+            label={anyFlagged ? t('health.needsReview') : t('health.allNormal')}
+            tone={anyFlagged ? 'warning' : 'success'}
+            dot
+          />
+        ) : null
+      }
+    />
+  );
+
+  if (summary.isPending || results.isPending) {
     return (
-      <Screen>
-        <AppText variant="title">{t('health.title')}</AppText>
-        <LoadingState />
-      </Screen>
+      <ScrollScreen>
+        <Sections>
+          {header}
+          <Surface>
+            <View style={{ gap: space.md }}>
+              <Skeleton width="35%" height={11} />
+              <Skeleton width="55%" height={36} />
+              <Skeleton width="70%" height={12} />
+            </View>
+          </Surface>
+          <View style={{ gap: space.sm }}>
+            <Skeleton width="40%" height={18} />
+            <Surface level="flat">
+              <SkeletonRow />
+              <SkeletonRow />
+              <SkeletonRow />
+            </Surface>
+          </View>
+          <SkeletonCard />
+        </Sections>
+      </ScrollScreen>
     );
   }
 
-  const latestParam = summary?.availableParameters[0];
-  const trend = summary?.recentTrend;
-  const trendValues = trend?.points.map((p) => p.value) ?? [];
+  // Both sources gone means the screen has nothing at all to draw, so it says
+  // so once with one retry. One source failing is handled where that section
+  // is: the rest of the screen is still true.
+  if (summary.isError && results.isError) {
+    return (
+      <ScrollScreen>
+        <Sections>
+          {header}
+          <ErrorState
+            title={t('common.errorTitle')}
+            description={t('common.errorBody')}
+            retryLabel={t('common.retry')}
+            onRetry={onRefresh}
+          />
+        </Sections>
+      </ScrollScreen>
+    );
+  }
 
+  const parameters = summary.data?.availableParameters ?? [];
+  const trend = summary.data?.recentTrend;
+  const latestParam = parameters[0];
   const inRange = isWithinReferenceRange(trend);
 
   const measurementCount = trend ? trend.points.length : (latestParam?.measurementCount ?? 0);
@@ -167,324 +190,302 @@ export default function Health() {
     formatDate,
   });
 
-  return (
-    <Screen
-      refreshControl={
-        <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor={colors.primary} />
-      }
-    >
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: spacing.sm }}>
-        <View style={{ flex: 1 }}>
-          <AppText style={{ fontSize: 32, fontWeight: '800', letterSpacing: -1, color: colors.text }}>
-            {t('health.title')}
-          </AppText>
-          <AppText muted style={{ fontSize: 14, marginTop: 2 }}>
-            {t('health.subtitle')}
-          </AppText>
-        </View>
-        {publishedResults.length > 0 && (
-          <StatusPill
-            label={anyFlagged ? 'Needs review' : t('health.allNormal')}
-            tone={anyFlagged ? 'warning' : 'success'}
+  if (parameters.length === 0 && publishedResults.length === 0) {
+    return (
+      <ScrollScreen>
+        <Sections>
+          {header}
+          <EmptyState
+            title={t('health.noDataTitle')}
+            description={t('health.noDataBody')}
+            icon={({ size, color }) => <Activity size={size} color={color} />}
+            action={{
+              label: t('laboratory.bookBloodTest'),
+              onPress: () => router.push('/(lab-booking)/test-type'),
+            }}
           />
-        )}
-      </View>
+        </Sections>
+      </ScrollScreen>
+    );
+  }
 
-      {(trend || latestParam) && (
-        <TouchableOpacity
-          onPress={() => router.push('/health-trends' as RelativePathString)}
-          activeOpacity={0.9}
-          accessibilityRole="button"
-          accessibilityLabel={t('health.a11yLatestMarker')}
-          style={{ marginTop: spacing.md }}
-        >
-          {/* Health's hero is a two-stop rose, distinct from the app's
-              rose-to-plum brand hero -- the plum is kept for blood-type
-              moments only. */}
-          <GradientCard colors={['#D85360', '#C0356B']}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <View style={{ flex: 1 }}>
-                <AppText style={{ fontSize: 11, fontWeight: '700', letterSpacing: 1.6, color: 'rgba(255,255,255,0.8)' }}>
-                  {t('health.latestTracked')}
-                </AppText>
-                <AppText style={{ fontSize: 17, fontWeight: '600', color: '#FFFFFF', marginTop: 3 }}>
-                  {(trend?.parameterName ?? latestParam?.name)!}
-                </AppText>
-              </View>
-              <Activity size={26} color="#FFFFFF" strokeWidth={2.5} />
-            </View>
+  const headlineName = trend?.parameterName ?? latestParam?.name;
+  const headlineValue = trend?.latestValue ?? latestParam?.latestValue;
+  const headlineUnit = trend?.unit ?? latestParam?.unit;
+  const rangeLabel =
+    inRange === null
+      ? null
+      : inRange
+        ? t('medical.resultFlags.withinRange')
+        : t('medical.resultFlags.outsideRange');
+  // The range comes from the published result for THIS parameter, never from
+  // the trend summary: the summary's range was observed carrying another
+  // parameter's limits, and a headline reading "42 % · 150 000–450 000 %" is a
+  // clinical claim the screen cannot stand behind.
+  const headlineCode = (trend?.parameterCode ?? latestParam?.code ?? '').toUpperCase();
+  const headlineRange = latestByCode.get(headlineCode);
+  const referenceText =
+    headlineRange?.referenceMin !== undefined && headlineRange?.referenceMax !== undefined
+      ? `${formatClinicalValue(headlineRange.referenceMin)}–${formatClinicalValue(
+          headlineRange.referenceMax,
+          headlineRange.unit ?? headlineUnit,
+        )}`
+      : null;
 
-            {/*
-              The figure and its shape on one line. The sparkline used to sit
-              in a band below the card with Min and Max captions under it,
-              which made the trend a second, smaller chart rather than the
-              backdrop to the number it belongs to.
-            */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginTop: 2 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 3 }}>
-                <AppText style={{ fontSize: 52, lineHeight: 60, fontWeight: '800', letterSpacing: -2.2, color: '#FFFFFF' }}>
-                  {trend?.latestValue ?? latestParam?.latestValue ?? '—'}
-                </AppText>
-                {(trend?.unit ?? latestParam?.unit) && (
-                  <AppText style={{ fontSize: 17, fontWeight: '600', color: 'rgba(255,255,255,0.75)' }}>
-                    {trend?.unit ?? latestParam?.unit}
-                  </AppText>
-                )}
-              </View>
-              {trendValues.length >= 2 && (
-                <View style={{ flex: 1, height: 56, justifyContent: 'center' }}>
-                  <Sparkline values={trendValues} color="rgba(255,255,255,0.72)" />
-                </View>
-              )}
-            </View>
-
-            {inRange !== null && (
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 4 }}>
-                <View
-                  style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: 4,
-                    backgroundColor: inRange ? colors.success : colors.warning,
-                  }}
-                />
-                <AppText style={{ fontSize: 14, fontWeight: '500', color: 'rgba(255,255,255,0.95)' }}>
-                  {inRange ? 'Within healthy range' : t('medical.resultFlags.outsideRange')}
-                </AppText>
-              </View>
-            )}
-
-            <AppText style={{ fontSize: 12, color: 'rgba(255,255,255,0.68)', marginTop: 8 }}>
-              {[updatedLabel, measurementCount ? `${measurementCount} measurement${measurementCount === 1 ? '' : 's'} tracked` : null]
-                .filter(Boolean)
-                .join(' · ')}
-            </AppText>
-          </GradientCard>
-        </TouchableOpacity>
-      )}
-
-      {summary && summary.availableParameters.length > 0 && (
-        <>
-          <SectionHeader
-            action={{
-              label: t('health.viewTrends'),
-              onPress: () => router.push('/health-trends' as RelativePathString),
-            }}
-          >
-            {t('health.labMarkers')}
-          </SectionHeader>
-          <GlassCard style={{ paddingVertical: spacing.sm }}>
-            {summary.availableParameters.slice(0, 5).map((param, index) => {
-              const code = param.code.toUpperCase();
-              const { icon: Icon, color: colorKey } = getVitalIconAndColor(param.code, index);
-              const flag = flagByParameterCode.get(code);
-              const descriptionKey = VITAL_DESCRIPTION_KEY_BY_CODE[code];
-              const description = descriptionKey ? t(descriptionKey) : undefined;
-              return (
-                <View key={param.code}>
-                  {index > 0 && <Divider style={{ marginVertical: spacing.sm }} />}
-                  <Pressable
-                    onPress={() => router.push('/health-trends' as RelativePathString)}
-                    accessibilityRole="button"
-                    accessibilityLabel={`${param.name}${param.latestValue !== undefined ? `, ${param.latestValue} ${param.unit ?? ''}` : ''}. Open trends`}
-                    style={({ pressed }) => ({
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      gap: 12,
-                      paddingVertical: 10,
-                      opacity: pressed ? 0.7 : 1,
-                    })}
-                  >
-                    <View
-                      style={{
-                        width: 42,
-                        height: 42,
-                        borderRadius: 13,
-                        backgroundColor: `${colors[colorKey]}26`,
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      <Icon size={19} color={colors[colorKey]} />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <AppText style={{ fontSize: 15, fontWeight: '700', color: colors.text }}>
-                        {param.name}
-                      </AppText>
-                      {description && (
-                        <AppText muted style={{ fontSize: 12, marginTop: 1 }}>
-                          {description}
-                        </AppText>
-                      )}
-                    </View>
-                    <View style={{ alignItems: 'flex-end', maxWidth: 96 }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 3 }}>
-                        <AppText style={{ fontSize: 17, fontWeight: '700', letterSpacing: -0.4 }}>
-                          {param.latestValue ?? '—'}
-                        </AppText>
-                        {param.unit && (
-                          <AppText muted style={{ fontSize: 11 }}>
-                            {param.unit}
-                          </AppText>
-                        )}
-                      </View>
-                    </View>
-                    {flag && (
-                      <StatusPill
-                        label={flag === 'NORMAL' ? t('medical.resultFlags.normal') : t('health.needsReview')}
-                        tone={flag === 'NORMAL' ? 'success' : 'warning'}
-                        compact
-                      />
-                    )}
-                    <ChevronRight size={16} color={colors.textMuted} />
-                  </Pressable>
-                </View>
-              );
-            })}
-          </GlassCard>
-        </>
-      )}
-
-      {/* When AI is switched off in this deployment the card is not shown at
-          all. A disabled-looking tile that still navigates to a screen full
-          of dead buttons is worse than the section simply not being there. */}
-      {aiEnabled !== false && (
-      <>
-      <SectionHeader>{t('health.aiInsights')}</SectionHeader>
-      <TouchableOpacity
-        onPress={() => router.push('/insights' as RelativePathString)}
-        activeOpacity={0.85}
-        accessibilityRole="button"
-        accessibilityLabel={t('health.aiInsights')}
-      >
-        <GlassCard style={{ borderColor: `${colors.ai}55`, backgroundColor: `${colors.ai}14` }}>
-          <View style={{ flexDirection: 'row', gap: spacing.md, alignItems: 'flex-start' }}>
-            <View
-              style={{
-                width: 46,
-                height: 46,
-                borderRadius: radius.md,
-                backgroundColor: `${colors.ai}2E`,
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <Brain size={22} color={colors.ai} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <AppText style={{ fontSize: 17, fontWeight: '700', color: colors.text }}>
-                {latestInsight?.title ?? t('health.aiInsights')}
-              </AppText>
-              <AppText muted style={{ fontSize: 14, lineHeight: 20, marginTop: 4 }} numberOfLines={3}>
-                {latestInsight?.summary ?? t('health.aiInsightsHint')}
-              </AppText>
-            </View>
-            <ChevronRight size={18} color={colors.textMuted} />
-          </View>
-
-          {/* The privacy line lives inside this card rather than in one of its
-              own at the foot of the screen: it is a statement about the thing
-              reading your results, and it means nothing floating on its own. */}
-          <Divider style={{ marginVertical: spacing.md }} />
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-            <ShieldCheck size={17} color={colors.onMuted.success} />
-            <AppText muted style={{ fontSize: 13 }}>
-              {t('health.privacyNote')}
-            </AppText>
-          </View>
-        </GlassCard>
-      </TouchableOpacity>
-      </>
-      )}
-
-      {publishedResults.length > 0 && (
-        <>
-          <SectionHeader
-            action={{
-              label: t('common.viewAll'),
-              onPress: () => router.push('/laboratory' as RelativePathString),
-            }}
-          >
-            {t('health.labResults')}
-          </SectionHeader>
-          {publishedResults.slice(0, 2).map((result) => {
-            const hasFlaggedItem = result.items.some((item) => item.flag && item.flag !== 'NORMAL');
-            return (
-              <TouchableOpacity
-                key={result.id}
-                onPress={() => router.push('/laboratory' as RelativePathString)}
-                activeOpacity={0.8}
-                accessibilityRole="button"
-                accessibilityLabel={`${result.testType.name} result`}
-              >
-                <GlassCard style={{ marginBottom: layout.cardGap }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-                    <View style={{ flex: 1 }}>
-                      <AppText style={{ fontSize: 15, fontWeight: '600' }}>
-                        {result.testType.name}
-                      </AppText>
-                      <AppText muted style={{ fontSize: 12, marginTop: 2 }}>
-                        {result.publishedAt
-                          ? formatDate(result.publishedAt, 'medium')
-                          : t('health.dateUnknown')}
-                      </AppText>
-                    </View>
-                    <StatusPill
-                      label={hasFlaggedItem ? t('health.needsReview') : t('medical.resultFlags.normal')}
-                      tone={hasFlaggedItem ? 'warning' : 'success'}
-                      compact
-                    />
-                    <ChevronRight size={16} color={colors.textMuted} />
-                  </View>
-                </GlassCard>
-              </TouchableOpacity>
-            );
-          })}
-        </>
-      )}
-    </Screen>
-  );
-}
-
-/**
- * A dot plus a word, on a tinted pill.
- *
- * The dot is what carries the status at a glance, and the word is what carries
- * it for anyone who cannot separate the greens from the ambers -- neither one
- * alone would do.
- */
-function StatusPill({
-  label,
-  tone,
-  compact,
-}: {
-  label: string;
-  tone: 'success' | 'warning';
-  compact?: boolean;
-}) {
-  const { colors } = useTheme();
-  const fill = tone === 'success' ? colors.successMuted : colors.warningMuted;
-  const text = tone === 'success' ? colors.onMuted.success : colors.onMuted.warning;
-  const dot = tone === 'success' ? colors.success : colors.warning;
+  const upcoming = summary.data?.nextUpcomingAppointment
+    ? new Date(summary.data.nextUpcomingAppointment)
+    : null;
 
   return (
-    <View
-      style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-        minHeight: compact ? 26 : 34,
-        paddingHorizontal: compact ? 9 : 14,
-        borderRadius: radius.pill,
-        backgroundColor: fill,
-        borderWidth: 1,
-        borderColor: `${text}33`,
-      }}
-    >
-      <View style={{ width: compact ? 6 : 8, height: compact ? 6 : 8, borderRadius: 4, backgroundColor: dot }} />
-      <AppText style={{ fontSize: compact ? 11 : 14, fontWeight: '600', color: text }}>
-        {label}
-      </AppText>
-    </View>
+    <ScrollScreen refreshing={refreshing} onRefresh={onRefresh}>
+      <Sections rhythm="major">
+        {header}
+
+        {/* ------------------------------------------ the last measurement */}
+        {headlineName ? (
+          <Surface
+            onPress={() => router.push('/health-trends')}
+            accessibilityLabel={`${t('health.latestTracked')}: ${headlineName}, ${headlineValue ?? '—'} ${headlineUnit ?? ''}. ${rangeLabel ?? ''} ${t('health.viewTrends')}`}
+          >
+            <View style={{ gap: space.lg }}>
+              <ValueBlock
+                label={headlineName}
+                value={headlineValue === undefined ? '—' : formatClinicalValue(headlineValue)}
+                unit={headlineUnit}
+                tone={inRange === false ? 'warning' : undefined}
+                trailing={<ChevronRight size={iconSize.md} color={colors.textTertiary} />}
+                context={
+                  <Text variant="caption" tone="tertiary" numberOfLines={2}>
+                    {[
+                      updatedLabel,
+                      measurementCount ? t('units.measurements', { count: measurementCount }) : null,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')}
+                  </Text>
+                }
+              />
+              {/* The claim and its evidence on one line: what the laboratory
+                  flagged, and the range it was measured against. Neither is
+                  stated without the other. */}
+              {rangeLabel ? (
+                <Row gap="md">
+                  <Badge label={rangeLabel} tone={inRange ? 'success' : 'warning'} dot />
+                  {referenceText ? (
+                    <Text variant="caption" tone="tertiary" numberOfLines={1} style={{ flex: 1 }}>
+                      {referenceText}
+                    </Text>
+                  ) : null}
+                </Row>
+              ) : null}
+            </View>
+          </Surface>
+        ) : null}
+
+        {/* ------------------------------------------------ the next test */}
+        {upcoming ? (
+          <Surface level="flat" padded="lg">
+            <Row gap="md">
+              <View
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: radius.sm,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: colors.clinical.soft,
+                }}
+              >
+                <FlaskConical size={iconSize.md} color={colors.clinical.base} />
+              </View>
+              <View style={{ flex: 1, gap: 1 }}>
+                <Text variant="bodyMedium">{t('laboratory.upcoming')}</Text>
+                <Text variant="caption" tone="secondary">
+                  {formatDate(upcoming, 'long')}
+                </Text>
+              </View>
+            </Row>
+          </Surface>
+        ) : null}
+
+        {/* ------------------------------------------------- every marker */}
+        {parameters.length > 0 ? (
+          <Section
+            title={t('health.labMarkers')}
+            action={
+              <LinkButton
+                label={t('health.viewTrends')}
+                onPress={() => router.push('/health-trends')}
+                icon={({ size, color }) => <ChevronRight size={size} color={color} />}
+              />
+            }
+          >
+            <ListGroup
+              rows={parameters.slice(0, 6).map((param) => {
+                const code = param.code.toUpperCase();
+                const latest = latestByCode.get(code);
+                const flag = latest?.flag;
+                const flagged = Boolean(flag && flag !== 'NORMAL');
+                const descriptionKey = MARKER_DESCRIPTION_KEY_BY_CODE[code];
+                const reference =
+                  latest?.referenceMin !== undefined && latest?.referenceMax !== undefined
+                    ? `${formatClinicalValue(latest.referenceMin)}–${formatClinicalValue(latest.referenceMax, latest.unit ?? param.unit)}`
+                    : descriptionKey
+                      ? t(descriptionKey)
+                      : undefined;
+                return (
+                  <RecordRow
+                    key={param.code}
+                    parameter={param.name}
+                    value={param.latestValue === undefined ? '—' : formatClinicalValue(param.latestValue)}
+                    unit={param.unit}
+                    reference={reference}
+                    status={
+                      flag
+                        ? {
+                            label: flagged ? t('health.needsReview') : t('medical.resultFlags.normal'),
+                            tone: flagged ? 'warning' : 'success',
+                          }
+                        : undefined
+                    }
+                    meta={formatUpdated(param.latestValueDate, { t, formatDate }) ?? undefined}
+                    accessibilityLabel={`${param.name}: ${param.latestValue ?? '—'} ${param.unit ?? ''}. ${
+                      flag ? (flagged ? t('health.needsReview') : t('medical.resultFlags.normal')) : ''
+                    } ${t('health.viewTrends')}`}
+                    onPress={() => router.push({ pathname: '/health-trends', params: { code: param.code } })}
+                  />
+                );
+              })}
+            />
+          </Section>
+        ) : null}
+
+        {/* ------------------------------------------------ what the AI said */}
+        {/* When AI is switched off in this deployment the section is not shown
+            at all; and the availability answer is awaited rather than assumed,
+            so the card is never drawn and then withdrawn. */}
+        {aiEnabled.data === true ? (
+          <Section title={t('health.aiInsights')}>
+            <Surface
+              onPress={() => router.push('/insights')}
+              accessibilityLabel={`${insight.data?.title ?? t('health.aiInsights')}. ${t('medical.aiSafety.disclaimer')}`}
+            >
+              <View style={{ gap: space.md }}>
+                <Row gap="md" align="flex-start">
+                  <View
+                    style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: radius.sm,
+                      backgroundColor: colors.insight.soft,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Brain size={iconSize.md + 2} color={colors.insight.base} />
+                  </View>
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <Text variant="title">{insight.data?.title ?? t('health.aiInsights')}</Text>
+                    <Text variant="body" tone="secondary" numberOfLines={3}>
+                      {insight.data?.summary ?? t('health.aiInsightsHint')}
+                    </Text>
+                  </View>
+                  <ChevronRight size={iconSize.md} color={colors.textTertiary} style={{ marginTop: 2 }} />
+                </Row>
+
+                {/* The disclaimer is inside the card, under the sentence it
+                    qualifies. */}
+                <Row gap="sm" align="flex-start" style={{ paddingTop: space.xs }}>
+                  <ShieldCheck size={iconSize.sm} color={colors.textTertiary} style={{ marginTop: 1 }} />
+                  <Text variant="caption" tone="tertiary" style={{ flex: 1 }}>
+                    {t('medical.aiSafety.disclaimer')}
+                  </Text>
+                </Row>
+              </View>
+            </Surface>
+          </Section>
+        ) : null}
+
+        {/* ------------------------------------------- published results */}
+        {publishedResults.length > 0 ? (
+          <Section
+            title={t('health.labResults')}
+            action={
+              <LinkButton
+                label={t('common.viewAll')}
+                onPress={() => router.push('/laboratory')}
+                icon={({ size, color }) => <ChevronRight size={size} color={color} />}
+              />
+            }
+          >
+            <ListGroup
+              rows={publishedResults.slice(0, 3).map((result) => {
+                const flagged = result.items.some((item) => item.flag && item.flag !== 'NORMAL');
+                return (
+                  <ListRow
+                    key={result.id}
+                    icon={({ size, color }) => <FileText size={size} color={color} />}
+                    iconTone={flagged ? 'warning' : undefined}
+                    title={result.testType.name}
+                    subtitle={
+                      result.publishedAt
+                        ? formatDate(result.publishedAt, 'medium')
+                        : t('health.dateUnknown')
+                    }
+                    subtitleTrailing={
+                      <Badge
+                        label={flagged ? t('health.needsReview') : t('medical.resultFlags.normal')}
+                        tone={flagged ? 'warning' : 'success'}
+                        dot
+                      />
+                    }
+                    onPress={() => router.push('/laboratory')}
+                  />
+                );
+              })}
+            />
+          </Section>
+        ) : (
+          <Surface level="flat">
+            <Row gap="lg">
+              <View style={{ flex: 1, gap: 2 }}>
+                <Text variant="bodyMedium">{t('laboratory.bookBloodTest')}</Text>
+                <Text variant="caption" tone="secondary">
+                  {t('laboratory.bookHint')}
+                </Text>
+              </View>
+              <LinkButton
+                label={t('laboratory.bookATest')}
+                onPress={() => router.push('/(lab-booking)/test-type')}
+                icon={({ size, color }) => <CalendarPlus size={size} color={color} />}
+              />
+            </Row>
+          </Surface>
+        )}
+
+        {/* A section that failed is said once, where it would have been. */}
+        {summary.isError ? (
+          <SectionError
+            message={t('common.errorBody')}
+            retryLabel={t('common.retry')}
+            onRetry={() => void summary.refetch()}
+          />
+        ) : null}
+        {results.isError ? (
+          <SectionError
+            message={t('common.errorBody')}
+            retryLabel={t('common.retry')}
+            onRetry={() => void results.refetch()}
+          />
+        ) : null}
+
+        <Row gap="sm" style={{ justifyContent: 'center', paddingTop: space.sm }}>
+          <ShieldCheck size={iconSize.sm} color={colors.textTertiary} />
+          <Text variant="caption" tone="tertiary">
+            {t('health.privacyNote')}
+          </Text>
+        </Row>
+      </Sections>
+    </ScrollScreen>
   );
 }

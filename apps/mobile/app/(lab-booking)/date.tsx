@@ -1,25 +1,23 @@
 import { useMemo, useState } from 'react';
-import { View, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
+import { View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { ChevronLeft, ChevronRight } from 'lucide-react-native';
-import { AppButton, AppText, BookingStep, GlassCard } from '../../src/components';
+import {
+  EmptyState,
+  FlowStep,
+  LoadingSection,
+  MonthGrid,
+  Row,
+  SectionError,
+  Stack,
+  Surface,
+  Text,
+  radius,
+  space,
+  useDesign,
+} from '../../src/design';
 import { useLaboratoryAvailableDates } from '../../src/hooks/useLaboratory';
-import { layout, radius, spacing, useTheme, ThemeColors } from '../../src/theme';
 import { useTranslation } from '../../src/i18n';
-
-/** Monday-first, matching the donation wizard and the app's Calendar screen. */
-const WEEKDAY_OFFSETS = [0, 1, 2, 3, 4, 5, 6];
-/** A Monday, so the weekday header can be formatted in the donor's locale. */
-const WEEKDAY_REFERENCE = new Date(2024, 0, 1);
-
-function getDaysInMonth(year: number, month: number): number {
-  return new Date(year, month + 1, 0).getDate();
-}
-
-/** Weekday index of the 1st, shifted so Monday is 0. */
-function getFirstWeekdayIndex(year: number, month: number): number {
-  return (new Date(year, month, 1).getDay() + 6) % 7;
-}
+import { LAB_BOOKING_STEP_COUNT } from './test-type';
 
 function toDateParam(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(
@@ -34,13 +32,12 @@ function toDateParam(date: Date): string {
  * on it at all, because `GET /laboratories/:id/slots` answers one day at a
  * time and drawing a real month would have meant twenty-one requests. The API
  * now answers a whole range in one call, so the donor sees the same month grid
- * the donation wizard uses -- open days highlighted, closed days visibly
- * disabled rather than tappable-then-empty.
+ * the donation wizard uses -- open days marked, closed days visibly disabled
+ * rather than tappable-then-empty.
  */
 export default function SelectLabDate() {
-  const { t, formatWeekday, formatMonth } = useTranslation();
-  const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const { t, formatWeekday, formatMonth, formatDate } = useTranslation();
+  const { colors } = useDesign();
   const params = useLocalSearchParams<{ testTypeId: string; laboratoryId: string }>();
 
   const [viewDate, setViewDate] = useState(() => new Date());
@@ -61,13 +58,7 @@ export default function SelectLabDate() {
   const rangeStart = monthStart < today ? today : monthStart;
   const rangeEnd = new Date(year, month + 1, 0);
 
-  const {
-    data: availability,
-    isLoading,
-    isError,
-    refetch,
-    isRefetching,
-  } = useLaboratoryAvailableDates(
+  const { data: availability, isLoading, isError, refetch } = useLaboratoryAvailableDates(
     params.laboratoryId,
     params.testTypeId,
     toDateParam(rangeStart),
@@ -82,17 +73,12 @@ export default function SelectLabDate() {
     return open;
   }, [availability]);
 
-  const calendarDays = useMemo(() => {
-    const leading = getFirstWeekdayIndex(year, month);
-    const days: (number | null)[] = Array.from({ length: leading }, () => null);
-    for (let day = 1; day <= getDaysInMonth(year, month); day++) days.push(day);
-    return days;
-  }, [year, month]);
-
   const changeMonth = (delta: number) => {
     setViewDate(new Date(year, month + delta, 1));
     setSelected(null);
   };
+
+  const isOpen = (day: number) => openDates.has(toDateParam(new Date(year, month, day)));
 
   // Stepping back is only useful while the previous month can still hold a
   // bookable day.
@@ -100,14 +86,22 @@ export default function SelectLabDate() {
   const hasLoaded = Boolean(availability) && !isLoading;
   const monthIsEmpty = hasLoaded && openDates.size === 0;
 
+  const selectedDay = selected ? Number(selected.split('-')[2]) : null;
+
   return (
-    <BookingStep
+    <FlowStep
       step={3}
+      total={LAB_BOOKING_STEP_COUNT}
+      counterLabel={t('booking.stepOf', { current: 3, total: LAB_BOOKING_STEP_COUNT })}
       title={t('labBooking.selectDateTitle')}
       subtitle={t('labBooking.selectDateSubtitleCalendar')}
-      nextDisabled={!selected}
+      onBack={() => router.back()}
+      backLabel={t('common.a11yGoBack')}
       onClose={() => router.replace('/(app)/laboratory')}
-      onNext={() =>
+      closeLabel={t('common.a11yCloseBooking')}
+      primaryLabel={t('common.continue')}
+      primaryDisabled={!selected}
+      onPrimary={() =>
         router.push({
           pathname: '/(lab-booking)/slot',
           params: {
@@ -118,232 +112,75 @@ export default function SelectLabDate() {
         })
       }
     >
-      {isError && (
-        <GlassCard danger style={styles.noticeCard}>
-          <AppText style={styles.errorText}>{t('labBooking.datesFailed')}</AppText>
-          <AppButton
-            variant="secondary"
-            onPress={() => refetch()}
-            disabled={isRefetching}
-            loading={isRefetching}
-            style={styles.retry}
-          >
-            {t('common.retry')}
-          </AppButton>
-        </GlassCard>
-      )}
+      <Stack gap="lg">
+        {isError ? (
+          <SectionError
+            message={t('labBooking.datesFailed')}
+            retryLabel={t('common.retry')}
+            onRetry={() => void refetch()}
+          />
+        ) : null}
 
-      <GlassCard tier="elevated">
-        <View style={styles.monthNav}>
-          <Pressable
-            onPress={() => changeMonth(-1)}
-            disabled={!canGoBack}
-            hitSlop={8}
-            accessibilityRole="button"
-            accessibilityState={{ disabled: !canGoBack }}
-            accessibilityLabel={t('booking.previousMonth')}
-            style={styles.navButton}
-          >
-            <ChevronLeft size={20} color={canGoBack ? colors.text : colors.textSubtle} />
-          </Pressable>
-          <AppText style={styles.monthLabel}>
-            {formatMonth(monthStart, 'long')} {year}
-          </AppText>
-          <Pressable
-            onPress={() => changeMonth(1)}
-            hitSlop={8}
-            accessibilityRole="button"
-            accessibilityLabel={t('booking.nextMonth')}
-            style={styles.navButton}
-          >
-            <ChevronRight size={20} color={colors.text} />
-          </Pressable>
-        </View>
+        <Surface>
+          <MonthGrid
+            year={year}
+            month={month}
+            today={today}
+            selectedDay={selectedDay}
+            onSelectDay={(day) => setSelected(toDateParam(new Date(year, month, day)))}
+            isDisabled={(day) => !isOpen(day)}
+            monthLabel={formatMonth(new Date(year, month, 1), 'long')}
+            formatWeekday={(day) => formatWeekday(day, 'narrow')}
+            onPrevious={() => changeMonth(-1)}
+            onNext={() => changeMonth(1)}
+            previousLabel={t('booking.previousMonth')}
+            nextLabel={t('booking.nextMonth')}
+            previousDisabled={!canGoBack}
+            dayAccessibilityLabel={(day) =>
+              `${formatDate(new Date(year, month, day), 'long')}${
+                isOpen(day) ? '' : `, ${t('booking.unavailableDay')}`
+              }`
+            }
+            renderMarkers={(day) =>
+              isOpen(day) ? (
+                <View
+                  style={{
+                    width: 4,
+                    height: 4,
+                    borderRadius: 2,
+                    backgroundColor: colors.success.base,
+                  }}
+                />
+              ) : null
+            }
+          />
+        </Surface>
 
-        <View style={styles.weekdayRow}>
-          {WEEKDAY_OFFSETS.map((offset) => {
-            const day = new Date(WEEKDAY_REFERENCE);
-            day.setDate(WEEKDAY_REFERENCE.getDate() + offset);
-            return (
-              <View key={offset} style={styles.cell}>
-                <AppText style={styles.weekdayText}>{formatWeekday(day, 'narrow')}</AppText>
-              </View>
-            );
-          })}
-        </View>
-
-        <View style={styles.grid}>
-          {calendarDays.map((day, index) => {
-            if (day === null) return <View key={`pad-${index}`} style={styles.cell} />;
-
-            const date = new Date(year, month, day);
-            const value = toDateParam(date);
-            const isPast = date < today;
-            const isToday = date.getTime() === today.getTime();
-            // Until the range has loaded nothing is claimed to be open: a
-            // highlighted grid that then unhighlights is worse than a plain one.
-            const bookable = hasLoaded && !isPast && openDates.has(value);
-            const isSelected = selected === value;
-
-            return (
-              <View key={value} style={styles.cell}>
-                <Pressable
-                  onPress={() => setSelected(value)}
-                  disabled={!bookable}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: isSelected, disabled: !bookable }}
-                  accessibilityLabel={`${formatMonth(date, 'long')} ${day}${
-                    bookable ? '' : `, ${t('booking.unavailableDay')}`
-                  }`}
-                  style={[
-                    styles.day,
-                    bookable && styles.dayAvailable,
-                    isToday && !isSelected && styles.dayToday,
-                    isSelected && styles.daySelected,
-                  ]}
-                >
-                  <AppText
-                    style={[
-                      styles.dayText,
-                      !bookable && styles.dayTextMuted,
-                      isSelected && styles.dayTextSelected,
-                    ]}
-                  >
-                    {day}
-                  </AppText>
-                </Pressable>
-              </View>
-            );
-          })}
-        </View>
-      </GlassCard>
-
-      {isLoading ? (
-        <View style={styles.legend}>
-          <ActivityIndicator size="small" color={colors.textMuted} />
-          <AppText style={styles.legendText}>{t('booking.loadingAvailability')}</AppText>
-        </View>
-      ) : monthIsEmpty ? (
-        <GlassCard style={styles.noticeCard}>
-          <AppText style={styles.emptyTitle}>{t('booking.noOpenDates')}</AppText>
-          <AppText style={styles.emptyHint}>{t('labBooking.noOpenDatesHint')}</AppText>
-        </GlassCard>
-      ) : (
-        <View style={styles.legend}>
-          <View style={styles.legendSwatch} />
-          <AppText style={styles.legendText}>{t('booking.datesWithSlots')}</AppText>
-        </View>
-      )}
-    </BookingStep>
+        {isLoading ? (
+          <LoadingSection label={t('booking.loadingAvailability')} />
+        ) : monthIsEmpty ? (
+          <EmptyState
+            title={t('booking.noOpenDates')}
+            description={t('labBooking.noOpenDatesHint')}
+            action={{ label: t('booking.nextMonth'), onPress: () => changeMonth(1) }}
+          />
+        ) : (
+          <Row gap="sm">
+            <View
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: radius.full,
+                backgroundColor: colors.success.base,
+                marginLeft: space.xs,
+              }}
+            />
+            <Text variant="caption" tone="tertiary">
+              {t('booking.datesWithSlots')}
+            </Text>
+          </Row>
+        )}
+      </Stack>
+    </FlowStep>
   );
-}
-
-function createStyles(colors: ThemeColors) {
-  return StyleSheet.create({
-    noticeCard: {
-      marginTop: layout.cardGap,
-    },
-    errorText: {
-      fontSize: 13,
-      color: colors.onMuted.danger,
-    },
-    retry: {
-      marginTop: spacing.md,
-      alignSelf: 'center',
-    },
-
-    monthNav: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      marginBottom: 14,
-    },
-    navButton: {
-      minWidth: 44,
-      minHeight: 44,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    monthLabel: {
-      fontSize: 15,
-      fontWeight: '700',
-      color: colors.text,
-    },
-    weekdayRow: {
-      flexDirection: 'row',
-      marginBottom: spacing.sm,
-    },
-    weekdayText: {
-      fontSize: 10,
-      fontWeight: '600',
-      color: colors.textMuted,
-    },
-    grid: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-    },
-    cell: {
-      width: `${100 / 7}%`,
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingVertical: 2,
-    },
-    day: {
-      width: '100%',
-      aspectRatio: 1,
-      borderRadius: radius.sm,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    dayAvailable: {
-      backgroundColor: colors.successMuted,
-    },
-    dayToday: {
-      borderWidth: 1,
-      borderColor: colors.primary,
-    },
-    daySelected: {
-      backgroundColor: colors.primary,
-    },
-    dayText: {
-      fontSize: 12,
-      color: colors.text,
-    },
-    dayTextMuted: {
-      color: colors.textSubtle,
-    },
-    dayTextSelected: {
-      fontWeight: '700',
-      color: colors.white,
-    },
-
-    legend: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: spacing.sm,
-      marginTop: spacing.md,
-    },
-    legendSwatch: {
-      width: 12,
-      height: 12,
-      borderRadius: 4,
-      backgroundColor: colors.successMuted,
-    },
-    legendText: {
-      fontSize: 12,
-      color: colors.textMuted,
-    },
-    emptyTitle: {
-      fontSize: 14,
-      fontWeight: '700',
-      color: colors.text,
-    },
-    emptyHint: {
-      fontSize: 13,
-      lineHeight: 19,
-      marginTop: spacing.xs,
-      color: colors.textMuted,
-    },
-  });
 }

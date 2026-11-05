@@ -1,0 +1,10 @@
+[Unit]
+Description=Daily BloodChain verified database backup
+
+[Timer]
+OnCalendar=*-*-* 02:30:00 Asia/Tashkent
+Persistent=true
+RandomizedDelaySec=5min
+
+[Install]
+WantedBy=timers.target

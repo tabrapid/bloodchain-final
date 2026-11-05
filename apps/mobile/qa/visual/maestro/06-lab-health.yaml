@@ -1,0 +1,30 @@
+# Laboratory booking and the health surfaces, including the AI disclaimer.
+appId: uz.bloodchain.donor
+name: 06 lab and health
+---
+- launchApp
+- tapOn: 'Health'
+- takeScreenshot: tabs-health-populated
+- tapOn:
+    text: 'Blood tests'
+    optional: true
+- takeScreenshot: health-laboratory-populated
+- scroll
+- takeScreenshot: health-laboratory-populated-scrolled
+
+- openLink: donor://(app)/health-trends
+- assertVisible:
+    text: '.*'
+    timeout: 15000
+- takeScreenshot: health-trends-populated
+
+- openLink: donor://(app)/insights
+- takeScreenshot: health-insights-populated
+
+- openLink: donor://(lab-booking)/test-type
+- takeScreenshot: lab-booking-1-test-type-populated
+- tapOn:
+    index: 0
+    text: '.*'
+- tapOn: 'Continue'
+- takeScreenshot: lab-booking-2-laboratory-populated

@@ -1,59 +1,81 @@
-import { useMemo, useState } from 'react';
-import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
+import { useState } from 'react';
+import { FlatList } from 'react-native';
+import { router } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Calendar, Users, MapPin, Droplet } from 'lucide-react-native';
+import { Calendar, Droplet, MapPin, Users } from 'lucide-react-native';
 import { getCampaigns, joinCampaign, type Campaign } from '../../../src/api/campaigns';
 import {
-  AppButton,
-  AppText,
   Badge,
-  Card,
+  Banner,
+  Button,
   EmptyState,
   ErrorState,
-  GlassCard,
-  LoadingState,
+  Row,
   Screen,
   ScreenHeader,
-} from '../../../src/components';
-import { layout, spacing, useTheme, ThemeColors } from '../../../src/theme';
+  SkeletonRow,
+  Stack,
+  Surface,
+  Text,
+  iconSize,
+  layout,
+  space,
+  useDesign,
+  useTabBarClearance,
+} from '../../../src/design';
 import { useTranslation } from '../../../src/i18n';
 
+/** Inside this many days, the deadline is worth saying out loud. */
+const CLOSING_SOON_DAYS = 7;
+
 export default function CampaignsScreen() {
+  const tabBarClearance = useTabBarClearance();
   const { t } = useTranslation();
-  const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
-  const [refreshing, setRefreshing] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
-  const { data, isLoading, isError, refetch } = useQuery({
+  const { data, isPending, isError, refetch, isRefetching } = useQuery({
     queryKey: ['campaigns'],
     queryFn: () => getCampaigns({ page: 1, limit: 50, status: 'ACTIVE' }),
   });
 
+  // Which campaign is being joined, not merely that one is.
+  //
+  // `joinMutation.isPending` was handed to every card, so tapping Join on one
+  // campaign put a spinner on all of them and disabled the lot.
+  const [joiningId, setJoiningId] = useState<string | null>(null);
+
   const joinMutation = useMutation({
     mutationFn: joinCampaign,
+    onSettled: () => setJoiningId(null),
     onSuccess: () => {
       setJoinError(null);
-      queryClient.invalidateQueries({ queryKey: ['campaigns'] });
-      queryClient.invalidateQueries({ queryKey: ['my-campaigns'] });
+      void queryClient.invalidateQueries({ queryKey: ['campaigns'] });
+      void queryClient.invalidateQueries({ queryKey: ['my-campaigns'] });
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       setJoinError(err.message || t('campaigns.joinFailed'));
     },
   });
 
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await refetch();
-    setRefreshing(false);
-  };
+  const header = (
+    <ScreenHeader
+      title={t('campaigns.title')}
+      size="large"
+      subtitle={t('campaigns.subtitle')}
+      onBack={() => router.back()}
+      backLabel={t('common.a11yGoBack')}
+    />
+  );
 
-  if (isLoading) {
+  if (isPending) {
     return (
       <Screen>
-        <ScreenHeader title={t('campaigns.title')} />
-        <LoadingState message={t('campaigns.loading')} />
+        {header}
+        <Surface level="flat">
+          <SkeletonRow />
+          <SkeletonRow />
+        </Surface>
       </Screen>
     );
   }
@@ -63,8 +85,13 @@ export default function CampaignsScreen() {
   if (isError) {
     return (
       <Screen>
-        <ScreenHeader title={t('campaigns.title')} />
-        <ErrorState onRetry={() => void refetch()} />
+        {header}
+        <ErrorState
+          title={t('common.errorTitle')}
+          description={t('common.errorBody')}
+          retryLabel={t('common.retry')}
+          onRetry={() => void refetch()}
+        />
       </Screen>
     );
   }
@@ -72,45 +99,39 @@ export default function CampaignsScreen() {
   const campaigns = data?.items ?? [];
 
   return (
-    <Screen scroll={false}>
-      <ScreenHeader
-        title={t('campaigns.title')}
-        subtitle={t('campaigns.subtitle')}
-      />
+    <Screen gutter={false}>
+      {header}
       <FlatList
         style={{ flex: 1 }}
         data={campaigns}
         keyExtractor={(campaign) => campaign.id}
-        contentContainerStyle={styles.list}
+        contentContainerStyle={{
+          paddingHorizontal: layout.gutter,
+          paddingBottom: tabBarClearance,
+          gap: space.md,
+        }}
+        showsVerticalScrollIndicator={false}
+        refreshing={isRefetching}
+        onRefresh={() => void refetch()}
         renderItem={({ item: campaign }) => (
           <CampaignCard
             campaign={campaign}
-            onJoin={() => joinMutation.mutate(campaign.id)}
-            isJoining={joinMutation.isPending}
+            onJoin={() => {
+              setJoiningId(campaign.id);
+              joinMutation.mutate(campaign.id);
+            }}
+            isJoining={joiningId === campaign.id}
           />
         )}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={colors.primary}
-          />
-        }
         ListHeaderComponent={
-          joinError ? (
-            <Card style={styles.errorCard}>
-              <AppText style={{ color: colors.onMuted.danger }}>{joinError}</AppText>
-            </Card>
-          ) : null
+          joinError ? <Banner tone="critical" title={joinError} style={{ marginBottom: space.md }} /> : null
         }
         ListEmptyComponent={
-          <Card>
-            <EmptyState
-              icon={Calendar}
-              title={t('campaigns.empty')}
-              description={t('campaigns.emptyHint')}
-            />
-          </Card>
+          <EmptyState
+            title={t('campaigns.empty')}
+            description={t('campaigns.emptyHint')}
+            icon={({ size, color }) => <Calendar size={size} color={color} />}
+          />
         }
       />
     </Screen>
@@ -126,114 +147,87 @@ function CampaignCard({
   onJoin: () => void;
   isJoining: boolean;
 }) {
-  const { t } = useTranslation();
-  const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
-  const startDate = new Date(campaign.startDate);
+  const { t, formatDate } = useTranslation();
+  const { colors } = useDesign();
+
   const endDate = new Date(campaign.endDate);
-  const now = new Date();
-  const daysLeft = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  const daysLeft = Math.ceil((endDate.getTime() - Date.now()) / 86_400_000);
 
   return (
-    <GlassCard>
-      <View style={styles.cardHeader}>
-        <View style={styles.cardHeading}>
-          <AppText variant="heading">{campaign.title}</AppText>
-          {campaign.organization && (
-            <AppText muted variant="bodySmall" style={styles.organization}>
-              {campaign.organization.name}
-            </AppText>
-          )}
-        </View>
-        {daysLeft > 0 && daysLeft <= 7 && (
-          <Badge variant="danger">{t('units.daysLeft', { count: daysLeft })}</Badge>
+    <Surface>
+      <Stack gap="md">
+        <Row gap="md" align="flex-start">
+          <Stack gap="xs" style={{ flex: 1 }}>
+            <Text variant="title">{campaign.title}</Text>
+            {campaign.organization ? (
+              <Text variant="caption" tone="tertiary">
+                {campaign.organization.name}
+              </Text>
+            ) : null}
+          </Stack>
+          {daysLeft > 0 && daysLeft <= CLOSING_SOON_DAYS ? (
+            <Badge label={t('units.daysLeft', { count: daysLeft })} tone="warning" />
+          ) : null}
+        </Row>
+
+        <Text variant="body" tone="secondary" numberOfLines={3}>
+          {campaign.description}
+        </Text>
+
+        <Stack gap="sm">
+          {/* `toLocaleDateString()` with no locale reads the device's, not the
+              app's: a donor with an English phone saw English dates inside an
+              Uzbek screen. */}
+          <Row gap="sm">
+            <Calendar size={iconSize.sm} color={colors.textTertiary} />
+            <Text variant="caption" tone="secondary" style={{ flex: 1 }}>
+              {`${formatDate(campaign.startDate, 'medium')} – ${formatDate(campaign.endDate, 'medium')}`}
+            </Text>
+          </Row>
+
+          {campaign.location ? (
+            <Row gap="sm">
+              <MapPin size={iconSize.sm} color={colors.textTertiary} />
+              <Text variant="caption" tone="secondary" style={{ flex: 1 }}>
+                {campaign.location}
+              </Text>
+            </Row>
+          ) : null}
+
+          {campaign.bloodGroupsNeeded && campaign.bloodGroupsNeeded.length > 0 ? (
+            <Row gap="sm">
+              <Droplet size={iconSize.sm} color={colors.rose.base} />
+              <Text variant="caption" tone="secondary" style={{ flex: 1 }}>
+                {t('campaigns.bloodTypesNeeded', { types: campaign.bloodGroupsNeeded.join(', ') })}
+              </Text>
+            </Row>
+          ) : null}
+
+          {campaign.participantCount !== undefined ? (
+            <Row gap="sm">
+              <Users size={iconSize.sm} color={colors.textTertiary} />
+              <Text variant="caption" tone="secondary" style={{ flex: 1 }}>
+                {`${t('units.participants', { count: campaign.participantCount })}${
+                  campaign.targetParticipants
+                    ? t('campaigns.targetSuffix', { count: campaign.targetParticipants })
+                    : ''
+                }`}
+              </Text>
+            </Row>
+          ) : null}
+        </Stack>
+
+        {/*
+          A joined campaign said nothing about being joined: the card kept its
+          "Join campaign" button, and a successful join changed nothing on
+          screen, so the only way to tell was to tap it again.
+        */}
+        {campaign.joinedAt ? (
+          <Badge label={t('campaigns.joined')} tone="success" />
+        ) : (
+          <Button label={t('campaigns.joinCampaign')} loading={isJoining} onPress={onJoin} />
         )}
-      </View>
-
-      <AppText variant="bodySmall" style={styles.description} numberOfLines={3}>
-        {campaign.description}
-      </AppText>
-
-      <View style={styles.details}>
-        <View style={styles.detailRow}>
-          <Calendar size={16} color={colors.textMuted} />
-          <AppText muted variant="bodySmall">
-            {startDate.toLocaleDateString()} - {endDate.toLocaleDateString()}
-          </AppText>
-        </View>
-
-        {campaign.location && (
-          <View style={styles.detailRow}>
-            <MapPin size={16} color={colors.textMuted} />
-            <AppText muted variant="bodySmall">
-              {campaign.location}
-            </AppText>
-          </View>
-        )}
-
-        {campaign.bloodGroupsNeeded && campaign.bloodGroupsNeeded.length > 0 && (
-          <View style={styles.detailRow}>
-            <Droplet size={16} color={colors.textMuted} />
-            <AppText muted variant="bodySmall">
-              {t('campaigns.bloodTypesNeeded', { types: campaign.bloodGroupsNeeded.join(', ') })}
-            </AppText>
-          </View>
-        )}
-
-        {campaign.participantCount !== undefined && (
-          <View style={styles.detailRow}>
-            <Users size={16} color={colors.textMuted} />
-            <AppText muted variant="bodySmall">
-              {t('units.participants', { count: campaign.participantCount })}
-              {campaign.targetParticipants &&
-                t('campaigns.targetSuffix', { count: campaign.targetParticipants })}
-            </AppText>
-          </View>
-        )}
-      </View>
-
-      <AppButton onPress={onJoin} loading={isJoining}>
-        {t('campaigns.joinCampaign')}
-      </AppButton>
-    </GlassCard>
+      </Stack>
+    </Surface>
   );
-}
-
-function createStyles(colors: ThemeColors) {
-  return StyleSheet.create({
-    errorCard: {
-      padding: spacing.md,
-      marginBottom: layout.cardGap,
-      backgroundColor: colors.dangerMuted,
-    },
-    list: {
-      gap: layout.cardGap,
-      paddingBottom: spacing.xl,
-    },
-    cardHeader: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      justifyContent: 'space-between',
-      gap: spacing.sm,
-      marginBottom: spacing.sm,
-    },
-    cardHeading: {
-      flex: 1,
-    },
-    organization: {
-      marginTop: spacing.xs,
-    },
-    description: {
-      marginBottom: spacing.md,
-    },
-    details: {
-      gap: spacing.xs,
-      marginBottom: spacing.md,
-    },
-    detailRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.xs,
-    },
-  });
 }

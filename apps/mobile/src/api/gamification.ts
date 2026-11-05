@@ -5,7 +5,10 @@ export interface GamificationProfile {
   level: number;
   totalXp: number;
   xpToNextLevel: number;
+  /** A percentage, 0-100. `percentAsFraction` turns it into a bar. */
   progress: number;
+  /** Whether this donor appears on the public leaderboard. */
+  leaderboardVisibility?: boolean;
   reputationScore: number;
   donationCount: number;
   emergencyResponseCount: number;

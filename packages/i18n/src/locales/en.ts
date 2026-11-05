@@ -55,6 +55,7 @@ export const en: Catalog = {
     a11yGoBack: 'Go back',
     a11yCloseBooking: 'Close booking',
     noLocationData: 'No location data yet',
+    mapUnavailable: 'The map is not available in this build. The addresses above are still correct.',
   },
 
   /**
@@ -110,6 +111,7 @@ export const en: Catalog = {
   },
 
   units: {
+    unitsNeeded: { one: '{{count}} unit needed', other: '{{count}} units needed' },
     unitsCount: { one: '{{count}} unit', other: '{{count}} units' },
     ml: '{{count}} ml',
     points: { one: '{{count}} point', other: '{{count}} points' },
@@ -310,11 +312,18 @@ export const en: Catalog = {
   },
 
   home: {
+    identity: 'Your donor identity',
+    impact: 'Your impact',
+    quickActionSchedule: 'Schedule a donation',
+    quickActionDonorProfile: 'Edit donor profile',
+    quickActionPersonalInfo: 'Edit personal info',
+    quickActionLearn: 'Learn about donating',
+    verificationOpenProfile: 'Open donor profile',
     greetingMorning: 'Good morning',
     greetingAfternoon: 'Good afternoon',
     greetingEvening: 'Good evening',
     tagline: 'Every donation makes a difference.',
-    bloodTypeLabel: 'BLOOD TYPE',
+    bloodTypeLabel: 'Blood type',
     nextAppointment: 'Next appointment',
     noAppointment: 'No appointment',
     scheduleNext: 'Schedule your next donation.',
@@ -323,7 +332,6 @@ export const en: Catalog = {
     eligibleNow: 'Eligible now',
     eligibleToday: 'You can schedule a donation today.',
     quickActions: 'Quick actions',
-    levelAndXp: 'Level & XP',
     totalVolume: 'Total volume',
     donations: 'Donations',
     emergency: 'Emergency',
@@ -348,6 +356,9 @@ export const en: Catalog = {
   },
 
   health: {
+    noDataTitle: 'No laboratory data yet',
+    noDataBody: 'Once a laboratory publishes a result for you, your markers and their trends appear here.',
+    trendOfMeasurements: { one: 'Trend across {{count}} measurement', other: 'Trend across {{count}} measurements' },
     aiInsightsHint: 'Get plain-language explanations of your latest blood results.',
     updatedToday: 'Updated today',
     updatedYesterday: 'Updated yesterday',
@@ -356,7 +367,7 @@ export const en: Catalog = {
     a11yLatestMarker: 'Latest tracked marker. Open health trends',
     title: 'Health',
     subtitle: 'Your laboratory overview',
-    latestTracked: 'LATEST TRACKED',
+    latestTracked: 'Latest tracked',
     labResults: 'Lab results',
     labMarkers: 'Laboratory markers',
     aiInsights: 'AI insights',
@@ -368,6 +379,24 @@ export const en: Catalog = {
   },
 
   donate: {
+    eligibleNow: 'Eligible now',
+    notEligible: 'Not eligible yet',
+    canDonateToday: 'You can donate today.',
+    opensInDays: {
+      one: 'Your next donation opens in {{count}} day.',
+      other: 'Your next donation opens in {{count}} days.',
+    },
+    lastDonatedToday: 'Last donated today',
+    lastDonatedOn: 'Last donated {{date}}',
+    nextEligibleOn: 'Next eligible {{date}}',
+    schedule: 'Schedule a donation',
+    everyDays: { one: 'Every {{count}} day', other: 'Every {{count}} days' },
+    bookDonation: 'Book a donation',
+    livesPerDonation: 'An estimate: about {{count}} lives supported per donation.',
+    readyToGive: 'Ready to give',
+    now: 'Now',
+    ongoingCampaign: 'Ongoing campaign',
+    progressOf: '{{done}} of {{goal}}',
     title: 'Donate',
     subtitle: 'Plan your next donation.',
     journey: 'Your journey',
@@ -385,6 +414,7 @@ export const en: Catalog = {
     viewImpact: 'View impact',
     notYetEligible: 'NOT YET ELIGIBLE',
     ongoing: 'ONGOING',
+    daysLabel: 'days',
   },
 
   calendar: {
@@ -403,6 +433,9 @@ export const en: Catalog = {
   },
 
   community: {
+    ofDonors: { one: 'of {{count}} donor', other: 'of {{count}} donors' },
+    rankOf: 'Ranked {{rank}} of {{count}} this month',
+    a11yShare: 'Share this post: {{title}}',
     report: 'Report',
     a11yReport: 'Report this post: {{title}}',
     reportTitle: 'Report this post',
@@ -420,7 +453,7 @@ export const en: Catalog = {
     title: 'Community',
     subtitle: 'Your donor network',
     feed: 'Community feed',
-    thisMonth: 'THIS MONTH',
+    thisMonth: 'This month',
     impact: 'Impact',
     campaigns: 'Campaigns',
     challenges: 'Challenges',
@@ -440,10 +473,21 @@ export const en: Catalog = {
   },
 
   profile: {
+    signOutBody: 'You will need to sign in again to book, respond to an emergency or see your results.',
+    stillNeeded: 'Still needed: {{items}}',
+    earnedCount: { one: '{{count}} earned', other: '{{count}} earned' },
+    inProgressCount: { one: '{{count}} in progress', other: '{{count}} in progress' },
+    missingFields: {
+      basicIdentity: 'your name',
+      contactVerified: 'a confirmed email or phone number',
+      bloodType: 'your blood type',
+      dateOfBirth: 'your date of birth',
+      location: 'your city',
+    },
     title: 'Profile',
-    bloodTypeLabel: 'YOUR BLOOD TYPE',
-    donorInfo: 'DONOR INFO',
-    settings: 'SETTINGS',
+    bloodTypeLabel: 'Your blood type',
+    donorInfo: 'Donor details',
+    settings: 'Settings',
     completion: 'Profile Completion',
     donations: 'Donations',
     emergencyResponses: 'Emergency responses',
@@ -463,6 +507,7 @@ export const en: Catalog = {
   },
 
   portal: {
+    greetingWithName: '{{greeting}}, {{name}}.',
     openMenu: 'Open menu',
     account: {
       title: 'My account',
@@ -675,6 +720,17 @@ export const en: Catalog = {
       DELIVERED: 'Delivered',
       PARTIALLY_DELIVERED: 'Partially delivered',
     },
+    /**
+     * Emergency urgency, which the API sends as CRITICAL / HIGH / MEDIUM / LOW.
+     * The badge used to print whichever of those came back, in English block
+     * capitals, on a screen otherwise fully translated.
+     */
+    urgency: {
+      CRITICAL: 'Critical',
+      HIGH: 'High',
+      MEDIUM: 'Medium',
+      LOW: 'Low',
+    },
     priority: {
       ROUTINE: 'Routine',
       URGENT: 'Urgent',
@@ -721,6 +777,22 @@ export const en: Catalog = {
       CANCELLED: 'Cancelled',
       EXPIRED: 'Expired',
       FAILED: 'Failed',
+    },
+    /**
+     * Every member of EmergencyMatchStatus, because the screen used to map
+     * three of them and print the database's own word for the other five --
+     * DECLINED, EXPIRED, CANCELLED and NO_RESPONSE are all states a donor can
+     * actually be in.
+     */
+    match: {
+      MATCHED: 'New request',
+      NOTIFIED: 'You were notified',
+      VIEWED: 'Opened',
+      ACCEPTED: 'You accepted',
+      DECLINED: 'You declined',
+      EXPIRED: 'Expired',
+      CANCELLED: 'Cancelled by the hospital',
+      NO_RESPONSE: 'No response recorded',
     },
     response: {
       ACCEPTED: 'Accepted',
@@ -793,6 +865,7 @@ export const en: Catalog = {
       OTHER: 'Other',
     },
     cancellation: {
+      DEFERRED: 'Deferred',
       DONOR_CANCELLED: 'Cancelled by the donor',
       ORGANIZATION_CANCELLED: 'Cancelled by the organisation',
       NOT_COMPLETED: 'Not completed',
@@ -1133,6 +1206,7 @@ export const en: Catalog = {
       removeBody: 'Stock in this scope falls back to the next most general threshold, or to none at all.',
     },
     common: {
+      updatedAt: 'Updated {{time}}',
       refreshing: 'Refreshing…',
       creating: 'Creating…',
       submitting: 'Submitting…',
@@ -1338,6 +1412,7 @@ export const en: Catalog = {
       vitalsPlaceholder: 'e.g. Hb 14.2 g/dL, BP 120/78',
     },
     inventory: {
+      openUnitLabel: 'Open unit {{reference}}',
       discardTitle: 'Discard this unit?',
       discardBody: 'The unit leaves stock permanently and can never be issued to a patient.',
       discardReason: 'Why is it being discarded?',
@@ -1482,6 +1557,7 @@ export const en: Catalog = {
       noneFound: 'No blood requests found',
     },
     shipments: {
+      etaHoursMinutes: '{{hours}} h {{minutes}} min',
       discrepancyRequired: 'Give a reason for the discrepancy before confirming delivery.',
       cancelTitle: 'Cancel this shipment?',
       cancelBody: 'The courier is stood down and the units go back to the sending centre’s stock.',
@@ -1536,6 +1612,7 @@ export const en: Catalog = {
       noneFound: 'No shipments found',
     },
     emergency: {
+      patientLabel: 'Patient: {{reference}}',
       cancelTitle: 'Cancel this emergency request?',
       cancelBody: 'Matching stops and every donor already alerted is told it is no longer needed.',
       createEmergency: 'Create emergency',
@@ -1605,6 +1682,8 @@ export const en: Catalog = {
       noneFound: 'No couriers found',
     },
     analytics: {
+      vsPreviousPeriod: '{{change}} vs previous period',
+      acceptanceShare: '{{value}}% acceptance',
       title: 'Analytics dashboard',
       intelligence: 'Operations intelligence',
       section: 'Analytics section',
@@ -1859,6 +1938,9 @@ export const en: Catalog = {
     },
   },
   booking: {
+    stepOf: 'Step {{current}} of {{total}}',
+    spotsLeft: { one: '{{count}} spot left', other: '{{count}} spots left' },
+    slotTakenHint: 'Someone booked it while you were deciding. Go back and pick another time.',
     noOpenDatesHint: 'Try the next month, or go back and pick another location.',
     unavailableDay: 'unavailable',
     noOpenDates: 'No open dates this month',
@@ -1922,6 +2004,7 @@ export const en: Catalog = {
     CONSULTATION_HINT: 'Speak with a healthcare professional',
   },
   appointment: {
+    aboutDuration: 'about {{duration}}',
     title: 'Appointment',
     preparation: 'Preparation checklist',
     cancelTitle: 'Cancel this appointment?',
@@ -1999,6 +2082,8 @@ export const en: Catalog = {
     dateUnknown: 'Date unknown',
   },
   healthTrends: {
+    previousValue: 'Previous: {{value}}',
+    chartSummary: '{{parameter}}: {{count}} measurements, {{direction}}',
     title: 'Health trends',
     timeRange: 'Time range',
     trendChart: 'Trend chart',
@@ -2022,7 +2107,7 @@ export const en: Catalog = {
     latest: 'Latest insight',
     yours: 'Your insights',
     empty: 'No insights yet',
-    helpful: 'Was this insight helpful?',
+    helpful: 'Helpful',
     thanks: 'Thank you for your feedback',
     askPlaceholder: 'Ask a question about your health data…',
     askAboutResults: 'Ask about my results',
@@ -2049,6 +2134,12 @@ export const en: Catalog = {
     response: 'Response',
   },
   notificationSettings: {
+    deviceSection: 'On this device',
+    unavailableTitle: 'This app cannot receive notifications yet',
+    unavailableBody:
+      'Push notifications are not set up for this build, so nothing below will reach you — ' +
+      'including emergency requests. Your choices are saved and will apply once it is.',
+    notAllowedYet: 'Your phone is not showing Bloodchain notifications yet.',
     title: 'Notification settings',
     subtitle: 'Choose what this app tells you about',
     whatYouReceive: 'What you receive',
@@ -2086,6 +2177,10 @@ export const en: Catalog = {
     allCaughtUp: 'You\'re all caught up!',
   },
   sos: {
+    overdue: 'Overdue',
+    timeLeftMinutes: { one: '{{count}} min left', other: '{{count}} min left' },
+    timeLeftHours: { one: '{{count}} hour left', other: '{{count}} hours left' },
+    timeLeftDays: { one: '{{count}} day left', other: '{{count}} days left' },
     title: 'Emergency SOS',
     details: 'Emergency details',
     yourResponse: 'Your response',
@@ -2132,6 +2227,21 @@ export const en: Catalog = {
     matchNotified: 'Notification sent',
     matchViewed: 'Viewed — accept or decline',
     responseReadyToGo: 'Accepted — ready to go',
+    locationExplainerTitle: 'Share your location while you travel?',
+    locationExplainerBody:
+      'While you are on your way, Bloodchain sends your position to the hospital so they know to expect you and can prepare. It stops the moment you arrive or cancel.',
+    locationAssuranceOnlyEnRoute: 'Only while you are en route — never before, never after',
+    locationAssuranceHospitalOnly: 'Seen only by the hospital handling this request',
+    locationAssuranceStopAnytime: 'Cancel your response at any time and it stops',
+    locationAllow: 'Share my location',
+    locationNotNow: 'Not now',
+    locationDeclinedTitle: 'Location sharing is off',
+    locationDeclinedBody: 'The hospital cannot see that you are on the way. You can turn it on at any point during the journey.',
+    locationDeniedTitle: 'Location is off for this journey',
+    locationDeniedBody:
+      'You can still travel and check in at reception. The hospital will not see you approaching, so tell the desk you are the emergency donor.',
+    locationDeniedOpenSettings: 'Open settings',
+    noRouteShown: 'Positions only — Bloodchain does not calculate a route or an arrival time.',
   },
   campaigns: {
     title: 'Blood donation campaigns',
@@ -2140,11 +2250,20 @@ export const en: Catalog = {
     empty: 'No active campaigns',
     emptyHint: 'Check back later for new blood donation campaigns',
     joinCampaign: 'Join campaign',
+    joined: 'Joined',
     joinFailed: 'Failed to join campaign. Please try again.',
     bloodTypesNeeded: 'Blood types needed: {{types}}',
     targetSuffix: ' / {{count}} target',
   },
   challenges: {
+    types: {
+      DONATION_MILESTONE: 'Donation milestone',
+      CAMPAIGN_PARTICIPATION: 'Campaign',
+      EDUCATION: 'Learning',
+      COMMUNITY: 'Community',
+      APPOINTMENT_COMPLETION: 'Appointments',
+      CONSISTENCY: 'Consistency',
+    },
     title: 'Challenges',
     subtitle: 'Complete challenges to earn XP and badges',
     loading: 'Loading challenges…',
@@ -2156,6 +2275,8 @@ export const en: Catalog = {
     endsOn: 'Ends {{date}}',
   },
   education: {
+    types: { ARTICLE: 'Article', QUIZ: 'Quiz', VIDEO: 'Video' },
+    difficulties: { BEGINNER: 'Beginner', INTERMEDIATE: 'Intermediate', ADVANCED: 'Advanced' },
     title: 'Education hub',
     subtitle: 'Learn about blood donation and earn XP',
     loading: 'Loading content…',
@@ -2170,9 +2291,15 @@ export const en: Catalog = {
     availableContent: 'Available content',
     startFailed: 'Failed to start content. Please try again.',
     completeFailed: 'Failed to complete content. Please try again.',
+    readAgain: 'Read again',
     minutes: '{{count}} min',
   },
   gamification: {
+    rankOf: '#{{rank}} of {{total}}',
+    levelShort: 'Lv.{{level}}',
+    xpValue: '{{xp}} XP',
+    earnedOf: '{{earned}} of {{total}} earned',
+    unlockedOf: '{{unlocked}} of {{total}} unlocked',
     xpPoints: 'XP points',
     activeChallenges: 'Active challenges',
     leaderboard: 'Leaderboard',
@@ -2190,8 +2317,24 @@ export const en: Catalog = {
     topDonorsAllTime: 'Top donors of all time',
     subtitle: 'Your progress & rewards',
     newDonor: 'New donor',
+    levelNames: {
+      newDonor: 'New Donor',
+      activeDonor: 'Active Donor',
+      regularDonor: 'Regular Donor',
+      communityDonor: 'Community Donor',
+      dedicatedDonor: 'Dedicated Donor',
+      champion: 'Champion',
+      eliteDonor: 'Elite Donor',
+      hero: 'Hero',
+      legend: 'Legend',
+      platinum: 'Platinum',
+    },
     nextLevel: 'next level',
     progressToLevel: 'Progress to {{level}}',
+    xpToNext: {
+      one: '{{count}} XP to {{level}}',
+      other: '{{count}} XP to {{level}}',
+    },
     noBadges: 'No badges yet — your first donation earns one.',
     nothingInProgress: 'Nothing in progress right now. Book a donation to start one.',
     unlocked: 'Unlocked',
@@ -2208,9 +2351,23 @@ export const en: Catalog = {
     shareLocation: 'Share location',
     yourData: 'Your data',
     downloadData: 'Download your data',
-    downloadDataHint: 'Contact support to request a copy of your data',
+    downloadDataHint: 'Not available yet. This app cannot produce a copy of your data.',
     deleteAccount: 'Delete account',
-    deleteAccountHint: 'Contact support to permanently delete your account',
+    deleteAccountHint: 'Closes your account for good',
+    deleteTitle: 'Delete your account',
+    deleteIntro: 'This closes your account for good. Read what it does before you decide.',
+    deleteGoesTitle: 'What goes',
+    deleteGoesBody: 'Your sign-in on every device, your display name and photo, your saved home area and location, location sharing, every notification, and your place on the leaderboard.',
+    deleteStaysTitle: 'What stays',
+    deleteStaysBody: 'Your donation record stays with the blood service as part of its medical records: the identity you registered under, your donations, screening and laboratory results, your consents and the audit trail. The app does not decide how long a blood service keeps them.',
+    deleteNotTitle: 'What it does not do',
+    deleteNotBody: 'It does not recall blood already issued and does not remove you from records a hospital holds. The account cannot be reopened, and this email address cannot be used to register again.',
+    deleteConfirmTitle: 'Delete your account?',
+    deleteConfirmBody: 'This cannot be undone. You will be signed out on every device.',
+    deleteConfirm: 'Delete my account',
+    deleteKeep: 'Keep my account',
+    deleteFailed: 'Could not delete your account. Please try again.',
+    opensInBrowser: 'Opens in your browser',
     policies: 'Policies',
     privacyPolicy: 'Privacy policy',
     termsOfService: 'Terms of service',
@@ -2222,10 +2379,14 @@ export const en: Catalog = {
     lastUpdated: 'Last updated',
     locationAndData: 'Location & data',
     shareLocationHint: 'Lets nearby emergency requests reach you during an SOS',
+    leaderboardVisible: 'Show me on the leaderboard',
+    leaderboardVisibleHint: 'Your name and donation count are visible to other donors. Turning this off removes you from the public ranking.',
+    leaderboardUpdateFailed: 'Could not update your leaderboard preference. Please try again.',
     consentUpdateFailed: 'Could not update your location sharing preference. Please try again.',
     disclaimer: 'This application handles health-related information. What it shows is not a substitute for professional medical advice, diagnosis, or treatment.',
   },
   security: {
+    minimumLength: 'At least {{count}} characters',
     signOutThisDeviceTitle: 'Sign out of this device?',
     signOutThisDeviceBody: 'You are signing out the device you are holding. You will need to sign in again to use the app.',
     revokeOtherSessionTitle: 'Revoke {{device}}?',
@@ -2277,6 +2438,12 @@ export const en: Catalog = {
     districtPlaceholder: 'Your district',
   },
   medical: {
+    verificationSource: {
+      BLOOD_CENTER: 'Confirmed by a blood centre',
+      HOSPITAL: 'Confirmed by a hospital',
+      LABORATORY: 'Confirmed by a laboratory',
+      OTHER_AUTHORIZED_SOURCE: 'Confirmed by an authorized healthcare provider',
+    },
     services: {
       WHOLE_BLOOD_DONATION: 'Whole blood donation',
       PLASMA_DONATION: 'Plasma donation',
@@ -2328,6 +2495,7 @@ export const en: Catalog = {
       rhFactorNote: 'Rh positive or negative',
     },
     resultFlags: {
+      withinRange: 'Within healthy range',
       normal: 'Normal',
       outsideRange: 'Outside healthy range',
       noReference: 'No reference range',
@@ -2430,8 +2598,35 @@ export const en: Catalog = {
     },
   },
   onboarding: {
+    stopSharingLocation: 'Stop sharing my location',
+    explainLocation: 'Set up location sharing',
+    locationExplainerTitle: 'Share your location?',
+    locationExplainerBody:
+      'Bloodchain uses your location to show the donation centres nearest to you, and to put the emergency requests closest to you first.',
+    locationAssuranceNearest: 'Used to sort centres and requests by distance',
+    locationAssuranceNotTracked: 'Not used to follow you around — the app reads it when you ask it to',
+    locationAssuranceOptional: 'Optional: you can donate, book and respond without it',
+    locationAllow: 'Share my location',
+    locationBlockedTitle: 'Location is turned off for Bloodchain',
+    locationBlockedBody:
+      'Your phone will not ask again. You can turn it on in Settings, or carry on without it — your city alone is enough to find nearby centres.',
+    notificationsPermissionNote:
+      'Choosing what to be told about does not let your phone show it yet. That is a separate permission, and your phone will ask once.',
+    explainNotifications: 'Set up notifications',
+    notificationsExplainerTitle: 'Let Bloodchain notify you?',
+    notificationsExplainerBody:
+      'An emergency request that matches your blood type is worth nothing if you do not see it in time. Notifications are how it reaches you.',
+    notificationsAssuranceCategories: 'Only the kinds you chose above',
+    notificationsAssuranceNoMarketing: 'No marketing, and nothing about other donors',
+    notificationsAssuranceChangeLater: 'Change or switch them off at any time in your profile',
+    notificationsAllow: 'Turn on notifications',
+    notificationsAllowed: 'Notifications are on',
+    notificationsBlockedTitle: 'Notifications are turned off for Bloodchain',
+    notificationsBlockedBody:
+      'Your phone will not ask again. Emergency requests will still appear in the app — you will just have to open it to see them.',
     stepOf: 'Step {{current}} of {{total}}',
     previousStep: 'Previous step',
+    closeWizard: 'Close profile setup',
     continue: 'Continue',
     completeSetup: 'Complete setup',
     welcomeTitle: 'Welcome to Bloodchain',
@@ -2482,6 +2677,14 @@ export const en: Catalog = {
     saveFailed: 'Something went wrong saving your profile. Please try again.',
   },
   courier: {
+    locationExplainerTitle: 'Share your location while delivering?',
+    locationExplainerBody:
+      'The hospital waiting for these units can see where the delivery has reached. Your location is shared only while a delivery is in transit.',
+    locationAssuranceInTransitOnly: 'Only while a delivery is in transit — never before, never after',
+    locationAssuranceHospitalOnly: 'Seen by the hospital and the blood centre handling this shipment',
+    locationAssuranceStops: 'Stops the moment you arrive or the delivery ends',
+    locationAllow: 'Share my location',
+    locationDeclined: 'Location sharing is off. You can still complete the delivery — the hospital just will not see where you are.',
     tabActive: 'Active',
     tabHistory: 'History',
     tabProfile: 'Profile',
@@ -2552,6 +2755,13 @@ export const en: Catalog = {
   },
 
   directory: {
+    nearbyExplainerTitle: 'Sort this list by distance?',
+    nearbyExplainerBody:
+      'Bloodchain can read your location once, to put the donation centres nearest to you at the top of this list.',
+    nearbyAssuranceSorting: 'Used to sort this list, nothing else',
+    nearbyAssuranceNotStored: 'Read when you ask for it — the app does not follow you',
+    nearbyAssuranceOptional: 'Optional: you can pick a centre by region instead',
+    nearbyAllow: 'Sort by distance',
     coordinatesInvalid: 'Latitude and longitude must be numbers, or left empty.',
     title: 'Organizations',
     filters: 'Filters',

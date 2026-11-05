@@ -273,6 +273,20 @@ to put it in. This section is the handover list.
 
 ### Email delivery (required before recovery works outside local dev)
 
+Email verification tokens are single-use, including after their expiry. Mobile
+`POST /auth/verify-email` consumes the token atomically before creating a
+session. Used tokens never create another session. Deactivated or suspended
+accounts cannot be activated by an old verification link.
+
+Browser `GET /auth/verify-email?token=...` only displays a confirmation form;
+link scanners do not consume it. The form posts to `/auth/verify-email-link`,
+which confirms the address without issuing a session. The user then signs in
+normally. Both browser responses disable caching and referrer disclosure.
+
+Authentication audit/rate-limit addresses use Express `req.ip`, governed by
+the deployment's `TRUST_PROXY_HOPS` setting, rather than trusting the first
+client-supplied `X-Forwarded-For` entry.
+
 Password reset and email verification both go through nodemailer. With
 `SMTP_HOST` empty — the state of every environment today — `EmailService` falls
 back to a stream transport and writes the message to the API log instead of

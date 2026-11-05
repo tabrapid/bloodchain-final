@@ -15,7 +15,7 @@ export function useDonorProfile() {
 }
 
 export function useProfileCompletion() {
-  return useQuery<{ data: ProfileCompletion }>({
+  return useQuery<ProfileCompletion>({
     queryKey: ['profile-completion'],
     queryFn: getProfileCompletion,
   });

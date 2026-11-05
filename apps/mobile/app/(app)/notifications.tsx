@@ -1,39 +1,49 @@
-import { useMemo, useState, useCallback } from 'react';
-import { View, StyleSheet, FlatList, Pressable, RefreshControl } from 'react-native';
+import { useCallback, useMemo, useState } from 'react';
+import { FlatList, Pressable, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
   AlertCircle,
-  Heart,
+  Bell,
   Calendar,
-  FlaskConical,
   Cpu,
-  Trophy,
   Droplet,
-  Truck,
+  FlaskConical,
+  Heart,
   Package,
-  Shield,
   Settings,
-  type LucideIcon,
+  Shield,
+  Trophy,
+  Truck,
 } from 'lucide-react-native';
 import {
-  AppText,
-  GlassCard,
+  Badge,
+  Divider,
+  EmptyState,
+  ErrorState,
+  LinkButton,
   Screen,
   ScreenHeader,
   SegmentedControl,
-  EmptyState,
-  ErrorState,
-  SkeletonCard,
-} from '../../src/components';
+  SkeletonRow,
+  Text,
+  iconSize,
+  layout,
+  radius,
+  space,
+  useDesign,
+  type AccentName,
+  useTabBarClearance,
+} from '../../src/design';
+import { LucideIcon } from '../../src/types/icons';
 import {
   useNotifications,
   useNotificationStats,
   useMarkAllNotificationsAsRead,
   useMarkNotificationAsRead,
 } from '../../src/hooks/useNotifications';
-import { spacing, useTheme, ThemeColors } from '../../src/theme';
 import type { Notification, NotificationType } from '../../src/api/notifications';
 import { useTranslation } from '../../src/i18n';
+import type { TranslateFn } from '@bloodchain/i18n';
 
 const TYPE_ICON: Record<NotificationType, LucideIcon> = {
   EMERGENCY: AlertCircle,
@@ -50,27 +60,28 @@ const TYPE_ICON: Record<NotificationType, LucideIcon> = {
 };
 
 /**
- * The reference tints each notification's icon square by what the
- * notification is about. These stay on the app's `xMuted` / `onMuted` pairs
- * rather than the reference's raw `rgba(accent, 0.15)`: the accents are
- * mid-tones that fall under 4.5:1 against their own tint, and this app fixed
- * that class of bug once already.
+ * What each kind of notification is about, as an accent.
+ *
+ * The reference tints each icon square with `rgba(accent, 0.15)` and draws the
+ * icon in the accent itself; the accents are mid-tones that fall under 4.5:1
+ * against their own tint. These use the token pairs, where the `.base` is
+ * checked against the `.soft` it sits on.
  */
-function typeTint(colors: ThemeColors): Record<NotificationType, { bg: string; icon: string }> {
-  return {
-    EMERGENCY: { bg: colors.dangerMuted, icon: colors.onMuted.danger },
-    DONATION: { bg: colors.primaryMuted, icon: colors.onMuted.primary },
-    APPOINTMENT: { bg: colors.secondaryMuted, icon: colors.onMuted.secondary },
-    LABORATORY: { bg: colors.secondaryMuted, icon: colors.onMuted.secondary },
-    AI: { bg: colors.aiMuted, icon: colors.onMuted.ai },
-    GAMIFICATION: { bg: colors.warningMuted, icon: colors.onMuted.warning },
-    BLOOD_REQUEST: { bg: colors.dangerMuted, icon: colors.onMuted.danger },
-    SHIPMENT: { bg: colors.secondaryMuted, icon: colors.onMuted.secondary },
-    INVENTORY: { bg: colors.warningMuted, icon: colors.onMuted.warning },
-    SECURITY: { bg: colors.warningMuted, icon: colors.onMuted.warning },
-    SYSTEM: { bg: colors.surfaceElevated, icon: colors.textMuted },
-  };
-}
+const TYPE_TONE: Record<NotificationType, AccentName | null> = {
+  EMERGENCY: 'critical',
+  DONATION: 'rose',
+  APPOINTMENT: 'clinical',
+  LABORATORY: 'clinical',
+  AI: 'insight',
+  // Rose, not amber: a badge is good news, and amber is reserved for the
+  // states that need attention.
+  GAMIFICATION: 'rose',
+  BLOOD_REQUEST: 'critical',
+  SHIPMENT: 'clinical',
+  INVENTORY: 'clinical',
+  SECURITY: 'warning',
+  SYSTEM: null,
+};
 
 // Keys, not words: this list is built at module load, where there is no
 // locale. The count is appended at render, where both are known.
@@ -82,14 +93,12 @@ const FILTERS = [
 type Filter = (typeof FILTERS)[number]['value'];
 
 export default function NotificationsCenter() {
+  const tabBarClearance = useTabBarClearance();
   const { t } = useTranslation();
-  const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
   const router = useRouter();
   const [filter, setFilter] = useState<Filter>('all');
-  const [refreshing, setRefreshing] = useState(false);
 
-  const { data, isLoading, isError, refetch } = useNotifications(
+  const { data, isPending, isError, refetch, isRefetching } = useNotifications(
     filter === 'unread' ? { isRead: false } : undefined,
   );
   const { data: stats } = useNotificationStats();
@@ -98,12 +107,6 @@ export default function NotificationsCenter() {
 
   const notifications = data?.items ?? [];
   const hasUnread = notifications.some((n) => !n.readAt);
-
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    await refetch();
-    setRefreshing(false);
-  }, [refetch]);
 
   const handlePress = useCallback(
     (notification: Notification) => {
@@ -120,28 +123,25 @@ export default function NotificationsCenter() {
       FILTERS.map(({ labelKey, value }) => ({
         value,
         label:
-          value === 'unread' && stats?.unread
-            ? `${t(labelKey)} (${stats.unread})`
-            : t(labelKey),
+          value === 'unread' && stats?.unread ? `${t(labelKey)} (${stats.unread})` : t(labelKey),
       })),
     [stats?.unread, t],
   );
 
   return (
-    <Screen scroll={false}>
+    <Screen gutter={false}>
       <ScreenHeader
         title={t('notifications.title')}
-        subtitle={stats?.unread ? `${stats.unread} unread` : undefined}
-        trailing={
+        size="large"
+        eyebrow={stats?.unread ? t('notifications.unreadCount', { count: stats.unread }) : undefined}
+        onBack={() => router.back()}
+        backLabel={t('common.a11yGoBack')}
+        actions={
           hasUnread ? (
-            <Pressable
+            <LinkButton
+              label={t('notifications.markAllRead')}
               onPress={() => markAllRead.mutate()}
-              hitSlop={8}
-              accessibilityRole="button"
-              style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
-            >
-              <AppText style={styles.markAll}>{t('notifications.markAllRead')}</AppText>
-            </Pressable>
+            />
           ) : undefined
         }
       />
@@ -152,39 +152,48 @@ export default function NotificationsCenter() {
         renderItem={({ item }) => (
           <NotificationRow notification={item} onPress={() => handlePress(item)} />
         )}
-        style={styles.list}
-        contentContainerStyle={styles.listContent}
+        style={{ flex: 1 }}
+        contentContainerStyle={{
+          paddingHorizontal: layout.gutter,
+          paddingBottom: tabBarClearance,
+        }}
+        ItemSeparatorComponent={() => <Divider inset />}
         showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
-        }
+        refreshing={isRefetching}
+        onRefresh={() => void refetch()}
         ListHeaderComponent={
-          <SegmentedControl
-            options={filterOptions}
-            value={filter}
-            onChange={setFilter}
-            style={styles.filter}
-          />
+          <View style={{ paddingBottom: space.md }}>
+            <SegmentedControl
+              options={filterOptions}
+              value={filter}
+              onChange={setFilter}
+              accessibilityLabel={t('notifications.title')}
+            />
+          </View>
         }
         ListEmptyComponent={
-          isLoading ? (
-            <View style={styles.skeletons}>
-              {[0, 1, 2, 3].map((i) => (
-                <SkeletonCard key={i} />
-              ))}
+          isPending ? (
+            <View>
+              <SkeletonRow />
+              <SkeletonRow />
+              <SkeletonRow />
             </View>
           ) : isError ? (
             // "All caught up" and "we could not reach the server" are not the
             // same message, and one of them is reassuring when it should not be.
-            <ErrorState onRetry={() => void refetch()} />
+            <ErrorState
+              title={t('common.errorTitle')}
+              description={t('common.errorBody')}
+              retryLabel={t('common.retry')}
+              onRetry={() => void refetch()}
+            />
           ) : (
             <EmptyState
               title={t('notifications.empty')}
               description={
-                filter === 'unread'
-                  ? t('notifications.allCaughtUp')
-                  : t('notifications.emptyHint')
+                filter === 'unread' ? t('notifications.allCaughtUp') : t('notifications.emptyHint')
               }
+              icon={({ size, color }) => <Bell size={size} color={color} />}
             />
           )
         }
@@ -201,48 +210,75 @@ function NotificationRow({
   onPress: () => void;
 }) {
   const { t, formatDate } = useTranslation();
-  const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const { colors } = useDesign();
+
   const unread = !notification.readAt;
-  const tint = typeTint(colors)[notification.type] ?? {
-    bg: colors.surfaceElevated,
-    icon: colors.textMuted,
-  };
+  const tone = TYPE_TONE[notification.type] ?? null;
+  const accent = tone ? colors[tone] : null;
   const Icon = TYPE_ICON[notification.type] ?? Settings;
+  const when = formatTimeAgo(new Date(notification.createdAt), t, formatDate);
 
   return (
+    // A Pressable rather than a Surface: a notification row sits on the page
+    // rather than on a card, and a Surface forced transparent would paint its
+    // pressed state underneath that override and show no feedback at all.
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+      accessibilityLabel={`${unread ? `${t('notifications.unread')}. ` : ''}${notification.title}. ${
+        notification.body
+      }. ${when}`}
+      style={({ pressed }) => ({
+        backgroundColor: pressed ? colors.surfacePressed : 'transparent',
+        marginHorizontal: -space.md,
+        paddingHorizontal: space.md,
+        borderRadius: radius.xs,
+      })}
     >
-      <GlassCard tier={unread ? 'elevated' : 'standard'} style={styles.rowCard}>
-        <View style={styles.row}>
-          <View style={[styles.rowIcon, { backgroundColor: tint.bg }]}>
-            <Icon size={18} color={tint.icon} />
-            {unread && <View style={[styles.unreadDot, { borderColor: colors.background }]} />}
+      <View style={{ flexDirection: 'row', gap: space.md, paddingVertical: space.md }}>
+        <View
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: radius.sm,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: accent ? accent.soft : colors.surfaceRaised,
+          }}
+        >
+          <Icon size={iconSize.md} color={accent ? accent.base : colors.textSecondary} />
+        </View>
+
+        <View style={{ flex: 1, gap: space.xs }}>
+          <View style={{ flexDirection: 'row', gap: space.sm, alignItems: 'flex-start' }}>
+            <Text
+              variant={unread ? 'bodyMedium' : 'body'}
+              tone={unread ? 'primary' : 'secondary'}
+              numberOfLines={2}
+              style={{ flex: 1 }}
+            >
+              {notification.title}
+            </Text>
+            <Text variant="caption" tone="tertiary">
+              {when}
+            </Text>
           </View>
 
-          <View style={styles.rowBody}>
-            <View style={styles.rowTitleLine}>
-              <AppText style={[styles.rowTitle, unread && styles.rowTitleUnread]} numberOfLines={2}>
-                {notification.title}
-              </AppText>
-              <AppText style={styles.rowTime}>
-                {formatTimeAgo(new Date(notification.createdAt), t, formatDate)}
-              </AppText>
-            </View>
-            <AppText style={styles.rowBodyText} numberOfLines={3}>
-              {notification.body}
-            </AppText>
-            {notification.priority === 'CRITICAL' && (
-              <View style={styles.urgent}>
-                <AppText style={styles.urgentText}>{t('status.priority.CRITICAL')}</AppText>
-              </View>
-            )}
+          <Text variant="caption" tone="secondary" numberOfLines={3}>
+            {notification.body}
+          </Text>
+
+          <View style={{ flexDirection: 'row', gap: space.sm, alignItems: 'center' }}>
+            {notification.priority === 'CRITICAL' ? (
+              <Badge label={t('status.priority.CRITICAL')} tone="critical" />
+            ) : null}
+            {/* Unread is a word as well as a weight: "slightly bolder" is not
+                a state anyone can see next to a read row they cannot compare
+                it against. */}
+            {unread ? <Badge label={t('notifications.unread')} tone="clinical" dot /> : null}
           </View>
         </View>
-      </GlassCard>
+      </View>
     </Pressable>
   );
 }
@@ -252,11 +288,7 @@ function NotificationRow({
  * hook, because this is a plain function called from a row's render -- and a
  * string built without them is stuck in whatever language the bundle shipped.
  */
-function formatTimeAgo(
-  date: Date,
-  t: (key: string, options?: Record<string, string | number>) => string,
-  formatDate: (value: Date | string | number, style?: 'full' | 'long' | 'medium' | 'short') => string,
-): string {
+function formatTimeAgo(date: Date, t: TranslateFn, formatDate: (value: Date | string | number, style?: 'full' | 'long' | 'medium' | 'short') => string): string {
   const diffMins = Math.floor((Date.now() - date.getTime()) / 60000);
   const diffHours = Math.floor(diffMins / 60);
   const diffDays = Math.floor(diffHours / 24);
@@ -266,98 +298,7 @@ function formatTimeAgo(
   if (diffHours < 24) return t('common.hoursAgo', { count: diffHours });
   if (diffDays === 1) return t('common.yesterday');
   if (diffDays < 7) return t('units.daysAgo', { count: diffDays });
-  return formatDate(date, 'short');
-}
-
-function createStyles(colors: ThemeColors) {
-  return StyleSheet.create({
-    markAll: {
-      fontSize: 13,
-      fontWeight: '500',
-      color: colors.primary,
-    },
-    list: { flex: 1 },
-    listContent: {
-      gap: spacing.sm,
-      paddingBottom: spacing.xl,
-    },
-    filter: {
-      marginBottom: spacing.sm,
-    },
-    skeletons: {
-      gap: spacing.sm,
-    },
-
-    rowCard: {
-      padding: 14,
-    },
-    row: {
-      flexDirection: 'row',
-      gap: 12,
-    },
-    rowIcon: {
-      width: 42,
-      height: 42,
-      borderRadius: 13,
-      alignItems: 'center',
-      justifyContent: 'center',
-      flexShrink: 0,
-    },
-    unreadDot: {
-      position: 'absolute',
-      top: -2,
-      right: -2,
-      width: 10,
-      height: 10,
-      borderRadius: 5,
-      backgroundColor: colors.primary,
-      borderWidth: 2,
-    },
-    rowBody: {
-      flex: 1,
-      minWidth: 0,
-    },
-    rowTitleLine: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      justifyContent: 'space-between',
-      gap: spacing.sm,
-    },
-    rowTitle: {
-      flex: 1,
-      fontSize: 13,
-      fontWeight: '500',
-      color: colors.text,
-    },
-    rowTitleUnread: {
-      fontWeight: '700',
-    },
-    rowTime: {
-      fontSize: 11,
-      color: colors.textMuted,
-      flexShrink: 0,
-    },
-    rowBodyText: {
-      fontSize: 12,
-      lineHeight: 18,
-      color: colors.textMuted,
-      marginTop: 3,
-    },
-    urgent: {
-      alignSelf: 'flex-start',
-      backgroundColor: colors.dangerMuted,
-      borderWidth: 1,
-      borderColor: `${colors.onMuted.danger}28`,
-      paddingHorizontal: spacing.sm,
-      paddingVertical: 2,
-      borderRadius: 999,
-      marginTop: spacing.sm,
-    },
-    urgentText: {
-      fontSize: 10,
-      fontWeight: '700',
-      letterSpacing: 1,
-      color: colors.onMuted.danger,
-    },
-  });
+  // The same style every other date in the app uses ("22 Sept 2026"); the
+  // numeric one ("22/09/2026") sat in this list alone and looked imported.
+  return formatDate(date, 'medium');
 }

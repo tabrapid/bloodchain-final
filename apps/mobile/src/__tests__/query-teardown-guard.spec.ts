@@ -21,13 +21,34 @@
  */
 import { QueryClient } from '@tanstack/react-query';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const { liveClients } = require('../../jest.teardown-query');
+const { liveClients, disposeClients } = require('../../jest.teardown-query');
 
 /** The value `useGeography` uses, and the one that actually hung the suite. */
 const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
 
 describe('the harness disposes React Query caches', () => {
+  it('cancels mutation timers even after a screen has emptied its cache', () => {
+    jest.useFakeTimers();
+    const client = new QueryClient();
+    client.mount();
+    const baseline = jest.getTimerCount();
+    const mutation = client.getMutationCache().build(client, {
+      mutationFn: async () => 'ok', gcTime: 300_000,
+    });
+    try {
+      mutation.removeObserver({} as never);
+      client.clear();
+      expect(client.getMutationCache().getAll()).toHaveLength(0);
+      expect(jest.getTimerCount()).toBeGreaterThan(baseline);
+      disposeClients();
+      expect(jest.getTimerCount()).toBe(baseline);
+    } finally {
+      mutation.destroy();
+      client.clear();
+      jest.useRealTimers();
+    }
+  });
+
   it('notices a client when it is mounted', () => {
     const client = new QueryClient();
 
@@ -73,5 +94,43 @@ describe('the harness disposes React Query caches', () => {
     expect(query.gcTime).toBe(TWENTY_FOUR_HOURS_MS);
 
     client.clear();
+  });
+  it('clearing a client does NOT dispose a mutation, which is why the teardown destroys them itself', () => {
+    // The asymmetry this guards. `QueryCache.clear()` removes each query, and
+    // removing one calls `Query.destroy()`, which clears its gc timeout.
+    // `MutationCache.clear()` emits a "removed" notification and drops its
+    // references without ever calling `destroy()` -- so a mutation that lost
+    // its last observer keeps the ref'd gc timer `Mutation.removeObserver`
+    // armed, at the default five minutes, and the suite does not exit.
+    //
+    // If a future React Query makes `clear()` destroy mutations too, this test
+    // fails and the extra loop in jest.teardown-query.js can go.
+    const client = new QueryClient();
+    client.mount();
+
+    const mutation = client.getMutationCache().build(client, { mutationFn: async () => 'ok' });
+
+    let gcTimerArmed = false;
+    const realScheduleGc = Object.getPrototypeOf(mutation).scheduleGc;
+    Object.getPrototypeOf(mutation).scheduleGc = function scheduleGc(...args: unknown[]) {
+      gcTimerArmed = true;
+      return realScheduleGc.apply(this, args);
+    };
+    try {
+      // What unmounting a form screen does.
+      mutation.removeObserver({} as never);
+      expect(gcTimerArmed).toBe(true);
+
+      gcTimerArmed = false;
+      client.clear();
+      // clear() did not re-arm anything, and -- the point -- it did not clear
+      // what removeObserver armed either: the cache is empty but the timer is
+      // not the cache's to cancel.
+      expect(client.getMutationCache().getAll()).toHaveLength(0);
+      expect(typeof mutation.destroy).toBe('function');
+    } finally {
+      Object.getPrototypeOf(mutation).scheduleGc = realScheduleGc;
+      mutation.destroy();
+    }
   });
 });

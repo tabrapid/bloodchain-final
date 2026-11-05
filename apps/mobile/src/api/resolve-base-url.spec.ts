@@ -22,14 +22,15 @@ export {};
  * answers. These cover the cases that previously ended in "the server took too
  * long to respond".
  */
-function load(candidates: string[]) {
+function load(candidates: string[], configError?: string) {
   let mod: typeof import('./client');
   jest.isolateModules(() => {
     jest.doMock('./config', () => ({
       apiCandidates: candidates,
-      apiBaseUrl: candidates[0],
+      apiBaseUrl: candidates[0] ?? '',
       apiBasePath: '/api/v1',
       apiHostWarning: undefined,
+      apiConfigError: configError,
     }));
     mod = require('./client');
   });
@@ -142,5 +143,45 @@ describe('when no candidate answers', () => {
     expect(error).toBeInstanceOf(ApiRequestError);
     expect((error as InstanceType<typeof ApiRequestError>).message).toContain(LAN);
     expect(calls).toContain(`${LAN}/api/v1/me`);
+  });
+});
+
+/**
+ * A build with nowhere to send anything sends nothing.
+ *
+ * The probe above exists because a development build genuinely cannot know
+ * which of three addresses is right. A preview or production build has no such
+ * excuse: it was told, or it was not built. When it was not, the failure has to
+ * be the configuration -- not a timeout on an address nobody chose, reported to
+ * the donor as "check your connection".
+ */
+describe('a build with no configured API', () => {
+  it('refuses the request instead of guessing at an address', async () => {
+    const calls = mockNetwork(null);
+    const { apiRequest, ApiRequestError } = load([], 'A production build must be given its API address explicitly.');
+
+    await expect(apiRequest('/api/v1/me')).rejects.toBeInstanceOf(ApiRequestError);
+    expect(calls).toEqual([]);
+  });
+
+  it('says the build is misconfigured, and carries the diagnosis for the log', async () => {
+    mockNetwork(null);
+    const { apiRequest } = load([], 'A production build must be given its API address explicitly.');
+
+    await expect(apiRequest('/api/v1/me')).rejects.toMatchObject({
+      error: {
+        code: 'API_NOT_CONFIGURED',
+        message: expect.stringContaining('no server to talk to'),
+        details: expect.stringContaining('explicitly'),
+      },
+    });
+  });
+
+  it('refuses a token refresh too, rather than 401-looping against nothing', async () => {
+    const calls = mockNetwork(null);
+    const { apiRequest } = load([], 'unconfigured');
+
+    await expect(apiRequest('/api/v1/me')).rejects.toThrow();
+    expect(calls.filter((url) => url.includes('/auth/refresh'))).toEqual([]);
   });
 });

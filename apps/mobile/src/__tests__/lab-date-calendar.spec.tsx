@@ -6,7 +6,7 @@ import { ThemeProvider } from '../theme';
 
 const mockPush = jest.fn();
 jest.mock('expo-router', () => ({
-  router: { push: (...args: unknown[]) => mockPush(...args), replace: jest.fn(), back: jest.fn() },
+  router: { push: (...args: unknown[]) => mockPush(...args), replace: jest.fn(), back: jest.fn(), dismissAll: jest.fn(), canGoBack: jest.fn(() => true) },
   useLocalSearchParams: () => ({ testTypeId: 'test-1', laboratoryId: 'lab-1' }),
 }));
 jest.mock('react-native/Libraries/Utilities/useColorScheme', () => ({
