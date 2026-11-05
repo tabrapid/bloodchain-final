@@ -227,6 +227,9 @@ try {
   // A second link for the same account, then aged past its expiry in the
   // database. Nothing else about it changes -- it is a live, unused token whose
   // only fault is the clock.
+  // Age only this fixture's request so the real per-account cooldown does not
+  // suppress the second email. No production data is used by this guarded script.
+  prisma(`db.passwordResetToken.updateMany({ where: { user: { email: ${JSON.stringify(ACCOUNT)} } }, data: { createdAt: new Date(Date.now() - 3600_000) } })`);
   const second = await call('POST', '/auth/forgot-password', { email: ACCOUNT });
   if (second.status === 429) {
     skip('an expired link is refused', 'out of reset requests for this 15-minute window');
@@ -241,7 +244,7 @@ try {
 
     if (expiredToken) {
       const aged = prisma(
-        "db.passwordResetToken.updateMany({ where: { usedAt: null }, data: { expiresAt: new Date(Date.now() - 60000) } })",
+        `db.passwordResetToken.updateMany({ where: { user: { email: ${JSON.stringify(ACCOUNT)} }, usedAt: null }, data: { expiresAt: new Date(Date.now() - 60000) } })`,
       );
       check('the token is aged past its expiry in the database', aged?.count >= 1, `${aged?.count} row(s)`);
 
@@ -289,6 +292,51 @@ try {
     `${unverified.status} ${unverified.raw?.code ?? ''}`,
   );
 
+  // Registration and resend each delivered a message. Resending rotates the
+  // token, so only the second message may activate the account.
+  const originalMail = await sink.next(8000);
+  const latestMail = await sink.next(8000);
+  const oldVerification = originalMail.links.find((l) => l.startsWith('http'));
+  const verificationUrl = latestMail.links.find((l) => l.startsWith('http'));
+  const verificationToken = new URL(verificationUrl ?? 'http://missing/').searchParams.get('token');
+  check('registration and resend deliver to the new account',
+    originalMail.to.includes(fresh) && latestMail.to.includes(fresh));
+  const superseded = await call('POST', '/auth/verify-email', {
+    token: new URL(oldVerification ?? 'http://missing/').searchParams.get('token'),
+  });
+  check('resending invalidates the original verification token', superseded.status === 400);
+  for (let i = 0; i < 2; i++) {
+    const page = await fetch(verificationUrl);
+    check(`scanner fetch ${i + 1} shows the confirmation form`,
+      page.status === 200 && (await page.text()).includes('method="post"'));
+  }
+  const pending = prisma(`db.user.findUnique({ where: { email: ${JSON.stringify(fresh)} }, select: { emailVerified: true } })`);
+  check('GET requests leave the account unverified', pending?.emailVerified === false);
+  const confirmed = await fetch(`${BASE}/auth/verify-email-link`, {
+    method: 'POST', body: new URLSearchParams({ token: verificationToken }),
+  });
+  check('the browser form activates the account', confirmed.status === 200);
+  check('the verified account can sign in', (await signIn(fresh, SEED_PASSWORD)).status === 200);
+  const verificationReplay = await call('POST', '/auth/verify-email', { token: verificationToken });
+  check('the browser-consumed token cannot mint a mobile session', verificationReplay.status === 400);
+
+  const concurrentEmail = `verification.race.${Date.now()}@donor.local`;
+  const concurrentRegistration = await call('POST', '/auth/register', {
+    email: concurrentEmail, password: SEED_PASSWORD, firstName: 'Concurrent', lastName: 'Verification',
+  });
+  check('a separate concurrency fixture is registered', concurrentRegistration.status === 201);
+  const concurrentMail = await sink.next(8000);
+  const concurrentToken = new URL(concurrentMail.links.find((l) => l.startsWith('http'))).searchParams.get('token');
+  const results = await Promise.all([
+    call('POST', '/auth/verify-email', { token: concurrentToken }),
+    call('POST', '/auth/verify-email', { token: concurrentToken }),
+  ]);
+  check('exactly one parallel verification succeeds',
+    results.filter((r) => r.status === 200).length === 1 && results.filter((r) => r.status === 400).length === 1,
+    results.map((r) => r.status).join(', '));
+  const sessions = prisma(`db.session.count({ where: { user: { email: ${JSON.stringify(concurrentEmail)} } } })`);
+  check('parallel verification creates exactly one session', sessions === 1, String(sessions));
+
   const seeded = await signIn('donor@donor.local', SEED_PASSWORD);
   check('Login still works for a seeded account', seeded.status === 200, `${seeded.status}`);
 
@@ -304,7 +352,8 @@ if (failures) {
   process.exit(1);
 }
 if (skipped) {
-  console.log(`  ! ${skipped} check(s) skipped — restart the API to clear the reset throttle and re-run.`);
+  console.log(`  ✗ ${skipped} required check(s) skipped — restart the API and re-run.`);
+  process.exit(1);
 }
 console.log('  ✓ Account recovery works end to end.');
 console.log(`    Run \`pnpm demo:reset\`: ${ACCOUNT} now has a different password.\n`);

@@ -1,0 +1,11 @@
+[Unit]
+Description=BloodChain snapshot backup and isolated restore verification
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+UMask=0077
+Nice=10
+TimeoutStartSec=15min
+ExecStart=/usr/bin/python3 /opt/bloodchain/scripts/vps-backup.py --restore-check

@@ -77,6 +77,8 @@ jobs:
       - name: Generate Prisma client
         run: pnpm --filter @bloodchain/api prisma:generate
       - run: pnpm test
+      - name: Operations monitor state and secret handling tests
+        run: python3 -m unittest discover -s scripts -p test_ops_monitor.py
 
   test-e2e:
     name: API e2e tests (real database)
@@ -160,6 +162,10 @@ jobs:
       VERIFY_API_URL: http://localhost:3001
       WEB_URL: http://localhost:3000,http://localhost:3002,http://localhost:3003
       SMS_PROVIDER: console
+      SMTP_HOST: 127.0.0.1
+      SMTP_PORT: '1025'
+      SMTP_SECURE: 'false'
+      AUTH_THROTTLE_LIMIT: '100'
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -207,6 +213,11 @@ jobs:
         run: pnpm verify:geography
       - name: verify:booleans
         run: pnpm verify:booleans
+
+      # Last: this script deliberately changes its own seeded recovery account.
+      # It starts its own loopback SMTP catcher and refuses skipped assertions.
+      - name: Email verification and password recovery (real SMTP + database)
+        run: pnpm verify:recovery
 
       - name: API log on failure
         if: failure()
