@@ -562,6 +562,11 @@ export class AuthService {
   }
 
   async verifyEmail(token: string, ipAddress?: string) {
+    const userId = await this.confirmEmail(token, ipAddress);
+    return this.buildAuthResponse(userId);
+  }
+
+  async confirmEmail(token: string, ipAddress?: string) {
     const record = await this.db.emailVerificationToken.findUnique({
       where: { token },
       include: { user: true },
@@ -572,12 +577,6 @@ export class AuthService {
     }
 
     if (record.usedAt) {
-      // Idempotent: a link that was already consumed (e.g. an email client's
-      // link-scanner pre-fetching it) still succeeds for the real user as
-      // long as the account ended up verified.
-      if (record.user.emailVerified) {
-        return this.buildAuthResponse(record.userId);
-      }
       throw new BadRequestException('This verification link has already been used.');
     }
 
@@ -586,17 +585,26 @@ export class AuthService {
     }
 
     const nextStatus = record.user.status === 'PENDING_VERIFICATION' ? 'ACTIVE' : record.user.status;
+    if (nextStatus !== 'ACTIVE') {
+      throw new ForbiddenException('This account cannot be activated.');
+    }
 
-    await this.db.$transaction([
-      this.db.user.update({
-        where: { id: record.userId },
-        data: { emailVerified: true, status: nextStatus },
-      }),
-      this.db.emailVerificationToken.update({
-        where: { userId: record.userId },
+    await this.db.$transaction(async (tx) => {
+      const claimed = await tx.emailVerificationToken.updateMany({
+        where: { token, usedAt: null, expiresAt: { gt: new Date() } },
         data: { usedAt: new Date() },
-      }),
-    ]);
+      });
+      if (claimed.count !== 1) {
+        throw new BadRequestException('Invalid or expired verification link.');
+      }
+      const activated = await tx.user.updateMany({
+        where: { id: record.userId, status: { in: ['PENDING_VERIFICATION', 'ACTIVE'] } },
+        data: { emailVerified: true, status: nextStatus },
+      });
+      if (activated.count !== 1) {
+        throw new ForbiddenException('This account cannot be activated.');
+      }
+    });
 
     await this.audit.log({
       actorId: record.userId,
@@ -606,7 +614,7 @@ export class AuthService {
       ipAddress,
     });
 
-    return this.buildAuthResponse(record.userId);
+    return record.userId;
   }
 
   async resendVerification(email: string, ipAddress?: string) {

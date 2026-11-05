@@ -14,7 +14,7 @@ import { AuthService } from './auth.service';
 import { PhoneVerificationService } from './phone-verification.service';
 
 type MockPrisma = {
-  user: { findUnique: jest.Mock; create: jest.Mock; update: jest.Mock };
+  user: { findUnique: jest.Mock; create: jest.Mock; update: jest.Mock; updateMany: jest.Mock };
   refreshToken: {
     create: jest.Mock;
     findUnique: jest.Mock;
@@ -34,6 +34,7 @@ type MockPrisma = {
     upsert: jest.Mock;
     findUnique: jest.Mock;
     update: jest.Mock;
+    updateMany: jest.Mock;
   };
   $transaction: jest.Mock;
 };
@@ -48,7 +49,7 @@ describe('AuthService', () => {
 
   beforeEach(async () => {
     prisma = {
-      user: { findUnique: jest.fn(), create: jest.fn(), update: jest.fn() },
+      user: { findUnique: jest.fn(), create: jest.fn(), update: jest.fn(), updateMany: jest.fn().mockResolvedValue({ count: 1 }) },
       refreshToken: {
         create: jest.fn(),
         findUnique: jest.fn(),
@@ -68,6 +69,7 @@ describe('AuthService', () => {
         upsert: jest.fn().mockResolvedValue({}),
         findUnique: jest.fn(),
         update: jest.fn(),
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
       },
       $transaction: jest.fn(),
     };
@@ -544,7 +546,7 @@ describe('AuthService', () => {
       expiresAt: new Date(Date.now() + 3600_000),
       user: { id: 'u1', status: 'PENDING_VERIFICATION', emailVerified: false },
     });
-    prisma.$transaction.mockResolvedValue([{}, {}]);
+    prisma.$transaction.mockImplementation(async (work) => work(prisma));
     prisma.user.findUnique.mockResolvedValue({
       id: 'u1',
       email: 'test@donor.local',
@@ -580,25 +582,54 @@ describe('AuthService', () => {
     await expect(service.verifyEmail('expired-token')).rejects.toThrow(BadRequestException);
   });
 
-  it('treats an already-used token as success if the account ended up verified', async () => {
+  it.each([3600_000, -3600_000])('never creates a session from a used token (expiry offset %i)', async (offset) => {
     prisma.emailVerificationToken.findUnique.mockResolvedValue({
-      userId: 'u1',
-      token: 'used-token',
-      usedAt: new Date(),
-      expiresAt: new Date(Date.now() + 3600_000),
+      userId: 'u1', token: 'used-token', usedAt: new Date(),
+      expiresAt: new Date(Date.now() + offset),
       user: { id: 'u1', status: 'ACTIVE', emailVerified: true },
     });
-    prisma.user.findUnique.mockResolvedValue({
-      id: 'u1',
-      email: 'test@donor.local',
-      firstName: 'Test',
-      lastName: 'User',
-      status: 'ACTIVE',
-      memberships: [],
-    });
+    await expect(service.verifyEmail('used-token')).rejects.toThrow(BadRequestException);
+    expect(jwt.signAsync).not.toHaveBeenCalled();
+    expect(prisma.session.create).not.toHaveBeenCalled();
+  });
 
-    const result = await service.verifyEmail('used-token');
-    expect(result.data.user.email).toBe('test@donor.local');
+  it('rejects a token claimed by another request before updating the user or creating a session', async () => {
+    prisma.emailVerificationToken.findUnique.mockResolvedValue({
+      userId: 'u1', token: 'valid-token', usedAt: null,
+      expiresAt: new Date(Date.now() + 3600_000),
+      user: { id: 'u1', status: 'PENDING_VERIFICATION', emailVerified: false },
+    });
+    prisma.emailVerificationToken.updateMany.mockResolvedValue({ count: 0 });
+    prisma.$transaction.mockImplementation(async (work) => work(prisma));
+    await expect(service.verifyEmail('valid-token')).rejects.toThrow(BadRequestException);
+    expect(prisma.user.update).not.toHaveBeenCalled();
+    expect(prisma.session.create).not.toHaveBeenCalled();
+  });
+
+  it('does not authenticate a deactivated account through an unused verification token', async () => {
+    prisma.emailVerificationToken.findUnique.mockResolvedValue({
+      userId: 'u1', token: 'valid-token', usedAt: null,
+      expiresAt: new Date(Date.now() + 3600_000),
+      user: { id: 'u1', status: 'DEACTIVATED', emailVerified: false },
+    });
+    await expect(service.verifyEmail('valid-token')).rejects.toThrow(ForbiddenException);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(prisma.session.create).not.toHaveBeenCalled();
+  });
+
+  it('refuses activation if the account is deactivated after reading the token', async () => {
+    prisma.emailVerificationToken.findUnique.mockResolvedValue({
+      userId: 'u1', token: 'valid-token', usedAt: null,
+      expiresAt: new Date(Date.now() + 3600_000),
+      user: { id: 'u1', status: 'PENDING_VERIFICATION', emailVerified: false },
+    });
+    prisma.$transaction.mockImplementation(async (work) => work(prisma));
+    prisma.user.updateMany.mockResolvedValue({ count: 0 });
+    await expect(service.verifyEmail('valid-token')).rejects.toThrow(ForbiddenException);
+    expect(prisma.user.updateMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: 'u1', status: { in: ['PENDING_VERIFICATION', 'ACTIVE'] } },
+    }));
+    expect(prisma.session.create).not.toHaveBeenCalled();
   });
 
   it('rejects a used, still-unverified token', async () => {
