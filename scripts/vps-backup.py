@@ -148,4 +148,20 @@ if __name__ == '__main__':
     parser.add_argument('--directory', type=Path, default=Path('/var/backups/bloodchain'))
     parser.add_argument('--restore-check', action='store_true')
     args = parser.parse_args()
-    backup(args.container, args.directory, args.restore_check)
+    def record_status(status, error=None):
+        args.directory.mkdir(parents=True, exist_ok=True, mode=0o700)
+        marker = args.directory / 'last-run.json'
+        temporary = marker.with_suffix('.tmp')
+        temporary.write_text(json.dumps({'status': status, 'error': error,
+                             'finishedAt': datetime.now(timezone.utc).isoformat()}) + '\n')
+        temporary.replace(marker)
+
+    try:
+        backup(args.container, args.directory, args.restore_check)
+        record_status('ok')
+    except Exception as error:
+        try:
+            record_status('failed', type(error).__name__)
+        except OSError:
+            pass  # The service still fails visibly when storage itself is broken.
+        raise

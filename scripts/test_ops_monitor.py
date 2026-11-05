@@ -34,6 +34,8 @@ class MonitorTests(unittest.TestCase):
                 self.assertEqual(not monitor.health_checks(directory), healthy)
             (directory / 'backup.json').write_text('[]')
             self.assertIn('Verified local backup freshness (26 hours)', monitor.health_checks(directory))
+            (directory / 'last-run.json').write_text('{"status":"failed"}')
+            self.assertIn('Latest local backup/restore run', monitor.health_checks(directory))
 
     def test_transient_failure_does_not_alert(self):
         state = monitor.transition({}, True)

@@ -54,6 +54,13 @@ def health_checks(backup_directory):
     disk = shutil.disk_usage(backup_directory if backup_directory.exists() else '/')
     if disk.free / disk.total < 0.10:
         failed.append('Backup disk free space (below 10%)')
+    marker = backup_directory / 'last-run.json'
+    if marker.exists():
+        try:
+            if json.loads(marker.read_text()).get('status') != 'ok':
+                failed.append('Latest local backup/restore run')
+        except (ValueError, OSError, AttributeError):
+            failed.append('Latest local backup/restore run')
     for name, url in TARGETS.items():
         try:
             with urllib.request.urlopen(url, timeout=8) as response:
@@ -144,6 +151,9 @@ def main():
     args = parser.parse_args()
     config = read_env(args.alerts_env)
     config.update(read_env(args.api_env, {'SMTP_HOST', 'SMTP_PORT', 'SMTP_SECURE', 'SMTP_USER', 'SMTP_PASSWORD', 'SMTP_FROM'}))
+    if not args.check_only and not (config.get('EMAIL_TO') or (
+            config.get('TELEGRAM_BOT_TOKEN') and config.get('TELEGRAM_CHAT_ID'))):
+        raise RuntimeError('No alert destination configured')
     if args.send_test:
         delivered = []
         channels, errors = notify(config, 'BloodChain monitoring — sinov',

@@ -58,7 +58,7 @@ acceptance remain open. No automatic deletion/retention rule is enabled.
 
 `bloodchain-monitor.timer` runs every minute. It checks HTTPS API readiness,
 the three portal roots, less than 26 hours since the last verified local
-backup, and at least 10% free space on the backup filesystem. Three consecutive
+backup, the latest backup job result, and at least 10% free space on the backup filesystem. Three consecutive
 failed cycles trigger an incident; recovery triggers one notification.
 Successful channels are not spammed when another channel needs retrying.
 

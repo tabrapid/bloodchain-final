@@ -6,6 +6,8 @@ node_modules
 dist
 .next
 coverage
+__pycache__/
+*.py[cod]
 expo-env.d.ts
 *.log
 
