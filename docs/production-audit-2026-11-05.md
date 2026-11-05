@@ -78,3 +78,15 @@ Completion means these checks have evidence on the target environment. A running
 - Recreated only the API to load SMTP configuration. HTTPS readiness remains healthy with the same applied migration.
 - SMTP authentication succeeded against Resend. One user-authorized test email was accepted for the supplied Gmail recipient, with no rejected recipients and SMTP response 250. The user subsequently confirmed inbox receipt.
 - Registration-verification and password-reset end-to-end delivery remain to be exercised. SMS and other production gates remain open.
+
+## Authentication hardening — 992cad7c
+
+- Fixed verification-link replay: a consumed token, even an expired one, cannot create another session. Token consumption uses a conditional update inside a transaction; competing requests cannot both claim it.
+- Confirmation also conditionally checks account status when updating the user, so concurrent deactivation cannot be overwritten by activation.
+- Browser GET displays a no-store confirmation form and consumes nothing. Browser POST confirms without creating an unused session; the mobile JSON endpoint still returns a session after a successful first confirmation.
+- Auth controller uses the trusted Express client IP instead of trusting a spoofable forwarded-header prefix.
+- Local validation: API typecheck, 86 suites / 1,500 tests, changed-file lint with no errors (two existing test warnings), and diff whitespace check passed. The suite still emits its pre-existing open-handle warning before exiting.
+- Changes pushed to `origin/claude/local-test-ready`. No force push or merge into main. Existing unrelated mobile script/screenshot changes remain outside these commits.
+- VPS synced by fast-forward after preserving its previous deployment edits in a named stash. Environment credentials were not stashed or committed. New pre-deploy database archive is readable; previous API image retained as `bloodchain-api:before-auth-992cad7c`.
+- API rebuilt and recreated; all five containers healthy. HTTPS smoke checks passed for readiness, repeated confirmation-page GETs, and rejection of an unknown browser confirmation token.
+- Real-account verification/reset journeys and database-backed concurrency rehearsal remain unverified; unit/controller tests and live invalid-token smoke checks do not replace those checks. GitHub status API returned no statuses, so GitHub CI success is not asserted.
