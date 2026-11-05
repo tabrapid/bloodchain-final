@@ -55,9 +55,11 @@ demo resets or demo seeds on this deployment.
 
 Follow `deployment-and-rollback.md`: review migrations, verify a database backup,
 retain the previous image and private environment file, build and test the API,
-then recreate only the API service. Its existing entrypoint runs `migrate deploy`;
-confirm that behavior before recreation. Apply reference seeding only when the
-release requires it, using the documented reference seed rather than demo data.
+then recreate only the API service. The entrypoint first rejects invalid production
+configuration, then runs `migrate deploy` and the idempotent compiled reference
+seed before starting the API. Reference data includes roles, permissions, consent
+posture and official regions; it creates no users or organisations. Review changes
+to that seed as part of each release. Never substitute the destructive demo seed.
 
 ## Verify
 

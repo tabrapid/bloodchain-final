@@ -45,6 +45,15 @@ env:
   CI_JWT_REFRESH_SECRET: ci-only-refresh-secret-at-least-32-characters-long
 
 jobs:
+  container-bootstrap:
+    name: Container startup (reference data, no demo accounts)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify guarded startup twice against an isolated database
+        run: BLOODCHAIN_QA_BOOTSTRAP_ONLY=1 bash scripts/release-qa-docker.sh
+
   lint-and-typecheck:
     name: Lint & typecheck
     runs-on: ubuntu-latest
