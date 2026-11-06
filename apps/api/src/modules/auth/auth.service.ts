@@ -1500,8 +1500,7 @@ export class AuthService {
         });
 
     const accessToken = await this.jwt.signAsync(
-      // `sid` is what lets `GET /auth/sessions` say which row is the caller's
-      // own device. It identifies a session, never authorises anything.
+      // HTTP authentication checks this session on every protected request.
       { sub: userId, roles, permissions, sid: session.id },
       {
         secret: this.config.getOrThrow<string>('JWT_ACCESS_SECRET'),

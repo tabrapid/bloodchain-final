@@ -100,12 +100,11 @@ describe('a donor closes their own account', () => {
     expect(audit).not.toBeNull();
   });
 
-  it('is idempotent: closing a closed account still answers success', async () => {
-    // The access token outlives the account until it expires; the endpoint
-    // itself must therefore tolerate a repeat rather than 500 on it.
+  it('rejects the old access token immediately after closure', async () => {
+    // A signed but revoked token must never reach the controller again.
     await request(app.getHttpServer())
-      .delete(`${API}/users/me`)
+      .get(`${API}/users/me`)
       .set('Authorization', `Bearer ${accessToken}`)
-      .expect(200);
+      .expect(401);
   });
 });
