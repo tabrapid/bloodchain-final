@@ -2,9 +2,9 @@
 
 **Blocker:** MS-01 · **Owner:** PO + INFRA · **Gate:** PILOT
 
-BloodChain sends SMS for exactly two things: the one-time codes donors sign in
-with, and emergency alerts. Neither works without a real SMS vendor, and no
-vendor has been contracted.
+The current code calls SMS from phone verification. The provider interface also
+supports notices; this is not evidence that emergency SMS delivery is wired or
+validated. No SMS vendor has been contracted for this deployment.
 
 The transport interface and optional adapter have contract tests; real delivery
 is not yet validated. The operator must supply the account and delivery evidence

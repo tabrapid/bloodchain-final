@@ -88,20 +88,21 @@ export class EmailService implements OnModuleInit {
       });
 
       if (this.isConfigured) {
-        this.logger.log(`Email sent to ${input.to} (${info.messageId})`);
+        this.logger.log(`Email sent (${info.messageId})`);
       } else if (this.isProduction) {
         // Unreachable while onModuleInit refuses to boot without SMTP in
         // production -- and written anyway, because "unreachable" is what
         // every logged secret was before somebody found the path.
         this.logger.error(
-          `Email to ${input.to} was NOT delivered: no SMTP transport is configured. Subject: ${input.subject}`,
+          'Email was NOT delivered: no SMTP transport is configured.',
         );
       } else {
         this.logger.log(`[dev email — not delivered] To: ${input.to} | Subject: ${input.subject}\n${input.text}`);
       }
-    } catch (error) {
+    } catch {
       // Email delivery failures must never break the calling request (e.g. registration).
-      this.logger.error(`Failed to send email to ${input.to}: ${(error as Error).message}`);
+      // SMTP errors may echo recipient addresses, credentials or message content.
+      this.logger.error('Outgoing email delivery failed. Check the SMTP provider.');
     }
   }
 

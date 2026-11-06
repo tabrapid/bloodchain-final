@@ -33,7 +33,7 @@ qa_image=${BLOODCHAIN_QA_IMAGE:-bloodchain-release-qa:local}
 if [[ -z ${BLOODCHAIN_QA_IMAGE:-} ]]; then
   docker build -f "$repo/apps/api/Dockerfile" -t "$qa_image" "$repo"
 fi
-docker run -d --name "$qa_pg" --network none --tmpfs /var/lib/postgresql/data:rw,nosuid,size=512m \
+docker run -d --name "$qa_pg" --network none --memory 768m --memory-swap 768m --tmpfs /var/lib/postgresql/data:rw,nosuid,size=512m \
   --env-file "$qa_tmp/postgres.env" postgres:16-alpine >/dev/null
 for attempt in {1..60}; do
   if docker exec "$qa_pg" pg_isready -U qa -d bloodchain_release_test >/dev/null 2>&1; then break; fi
@@ -45,6 +45,8 @@ done
 # Root can read private source checkouts; mounts are read-only and the runner
 # has no Docker socket. Production images continue to run as their non-root user.
 docker run -d --name "$qa_runner" --network "container:$qa_pg" \
+  --memory 1024m --memory-swap 1024m \
+  -e NODE_OPTIONS=--max-old-space-size=640 \
   --user 0 \
   --env-file "$qa_tmp/api.env" --workdir /repo \
   -v "$repo/apps/api/src:/repo/apps/api/src:ro" \
@@ -114,7 +116,14 @@ if [[ ${BLOODCHAIN_QA_BOOTSTRAP_ONLY:-0} == 1 ]]; then
   echo 'Container bootstrap QA passed.'; exit 0
 fi
 docker exec -w /repo/apps/api "$qa_runner" ./node_modules/.bin/tsx prisma/seed.ts
-docker exec -w /repo/apps/api "$qa_runner" ./node_modules/.bin/jest --config ./test/jest-e2e.json --runInBand --forceExit
+# A fresh process per suite bounds ts-jest/Nest memory on a small live host.
+# Keep every suite and the same database, with no reset between invocations.
+# Container limits protect live services even if a future test leaks memory.
+docker exec -w /repo/apps/api "$qa_runner" ./node_modules/.bin/jest --config ./test/jest-e2e.json --listTests --runInBand > "$qa_tmp/suites"
+[[ -s $qa_tmp/suites ]] || { echo 'No e2e suites discovered' >&2; exit 1; }
+while IFS= read -r suite; do
+  docker exec -w /repo/apps/api "$qa_runner" ./node_modules/.bin/jest --config ./test/jest-e2e.json --runInBand --forceExit --runTestsByPath "$suite"
+done < "$qa_tmp/suites"
 docker exec -d "$qa_runner" sh -c 'exec node /repo/apps/api/dist/src/main.js > /tmp/qa-api.log 2>&1'
 wait_ready
 docker exec "$qa_runner" node scripts/recovery-verify.mjs

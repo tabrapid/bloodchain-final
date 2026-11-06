@@ -2,6 +2,15 @@
 
 ## Release QA
 
+On small VPS hosts the disposable API runner is capped at 1 GiB (640 MiB
+Node heap), and disposable PostgreSQL at 768 MiB with a 512 MiB tmpfs. Every
+discovered e2e suite runs serially in a fresh Jest process against the same
+database, without resetting data between suites. This bounds accumulated
+ts-jest/Nest memory and protects live services. No suites are skipped; any
+failure aborts the release. CI's isolation and migration jobs still exercise
+their full existing contracts. Do not remove limits or force deployment after
+an OOM/test failure.
+
 ```sh
 bash scripts/release-qa-docker.sh
 ```
