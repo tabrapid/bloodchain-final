@@ -8,7 +8,7 @@ export interface FilterBarProps {
 
 export function FilterBar({ children, className }: FilterBarProps) {
   return (
-    <div className={cn('bc-glass flex flex-wrap items-center gap-3 rounded-card p-3', className)}>
+    <div className={cn('bc-filter-bar bc-glass flex flex-wrap items-center gap-3 rounded-card p-3', className)}>
       <SlidersHorizontal size={16} className="text-donor-muted" />
       {children}
     </div>

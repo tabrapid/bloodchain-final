@@ -52,7 +52,7 @@ export class HemovigilanceController {
       organizationId,
       userId,
       dto,
-      req.headers['x-forwarded-for'] as string,
+      req.ip,
     );
   }
 
@@ -71,7 +71,7 @@ export class HemovigilanceController {
       eventId,
       userId,
       dto,
-      req.headers['x-forwarded-for'] as string,
+      req.ip,
     );
   }
 
@@ -90,7 +90,7 @@ export class HemovigilanceController {
       eventId,
       userId,
       dto,
-      req.headers['x-forwarded-for'] as string,
+      req.ip,
     );
   }
 
@@ -109,7 +109,7 @@ export class HemovigilanceController {
       eventId,
       recallCaseId,
       userId,
-      req.headers['x-forwarded-for'] as string,
+      req.ip,
     );
   }
 

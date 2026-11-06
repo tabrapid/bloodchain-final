@@ -1,34 +1,7 @@
 /**
- * Bloodchain Mobile V4 — design tokens.
- *
- * Every value the interface is allowed to use lives here. A screen that needs a
- * colour, a size, a corner or a duration takes it from this file; a screen that
- * writes a hex code or a magic number is a bug, because the thing that makes an
- * app feel like one product rather than sixty screens is that nothing is
- * decided twice.
- *
- * WHAT V4 IS
- *
- * Three previous systems were built on the same near-black page with the same
- * bordered card as the unit of everything, and each was a little calmer than
- * the last. None of them had an identity. V4 is the first one designed from a
- * material rather than from a component:
- *
- *   The page is a deep navy-plum, not a black. Surfaces are lighter tones of
- *   the same material and are never outlined -- a border is a signal reserved
- *   for controls that take input. Depth comes from tone and from a hairline of
- *   light along the top edge of a raised surface, the way a physical panel
- *   catches light, and never from a black shadow cast onto a black page.
- *
- *   Two typefaces. Manrope carries every title and every number, Inter carries
- *   everything read as a sentence. A single family cannot be both a reading
- *   face and a display face, and three scales built on Inter alone proved it.
- *
- *   Colour is scarce. Rose is the brand and the primary action; clinical blue
- *   is factual information; violet appears only where a model produced
- *   something; green, amber and red mean a status and nothing else. One
- *   gradient exists in the system -- the identity hero -- and it is drawn
- *   nowhere else.
+ * BloodChain clinical workspace tokens, shared in direction with the web portals.
+ * Light paper surfaces, slate typography, blue actions and distinct red emergencies.
+ * Both palettes preserve contrast and the existing native component contracts.
  */
 
 import { fonts } from './fonts';
@@ -70,17 +43,17 @@ const ink = {
 } as const;
 
 const paper = {
-  950: '#F4F5F9',
+  950: '#EFF1F5',
   925: '#FFFFFF',
   900: '#FFFFFF',
-  850: '#F8F8FC',
-  800: '#EEEFF5',
-  750: 'rgba(18,20,40,0.08)',
-  700: 'rgba(18,20,40,0.16)',
+  850: '#F7F9FC',
+  800: '#E9EDF3',
+  750: '#E1E6EE',
+  700: '#C5CFDC',
   600: '#C6C9D8',
-  500: '#666B85',
-  400: '#4E536B',
-  100: '#12141F',
+  500: '#5B697D',
+  400: '#4C5C71',
+  100: '#303E50',
   highlight: 'rgba(255,255,255,0.6)',
 } as const;
 
@@ -97,7 +70,7 @@ const paper = {
  */
 const accentDark = {
   /** Brand and blood domain: identity, donation, the primary action. */
-  rose: { base: '#E44E6B', text: '#FF8DA4', fill: '#D13A58', soft: 'rgba(228,78,107,0.14)' },
+  rose: { base: '#8CA7FF', text: '#B5C6FF', fill: '#4C6CD2', soft: 'rgba(0,110,156,0.18)' },
   /** EMERGENCY ONLY. Hotter and more orange than rose, so the two never blur. */
   critical: { base: '#FF5644', text: '#FF9284', fill: '#E0301F', soft: 'rgba(255,86,68,0.16)' },
   /** Clinical information: laboratory values, appointments, anything factual. */
@@ -109,7 +82,7 @@ const accentDark = {
 } as const;
 
 const accentLight = {
-  rose: { base: '#C63652', text: '#A82843', fill: '#C63652', soft: 'rgba(198,54,82,0.10)' },
+  rose: { base: '#006E9C', text: '#00597F', fill: '#006E9C', soft: 'rgba(0,110,156,0.10)' },
   critical: { base: '#E02D1B', text: '#B81F10', fill: '#E02D1B', soft: 'rgba(224,45,27,0.10)' },
   clinical: { base: '#1F6FD0', text: '#15599E', fill: '#1F6FD0', soft: 'rgba(31,111,208,0.10)' },
   insight: { base: '#6B5BD6', text: '#5546B5', fill: '#6B5BD6', soft: 'rgba(107,91,214,0.10)' },
@@ -182,7 +155,7 @@ const darkColors: DesignColors = {
   textOnAccent: '#FFFFFF',
   ...accentDark,
   scrim: 'rgba(4,5,12,0.72)',
-  heroGradient: ['#3B1530', '#141829'],
+  heroGradient: ['#253956', '#141829'],
   chrome: { fill: '#0F1222', border: 'rgba(255,255,255,0.08)' },
 };
 
@@ -202,7 +175,7 @@ const lightColors: DesignColors = {
   textOnAccent: '#FFFFFF',
   ...accentLight,
   scrim: 'rgba(18,20,31,0.42)',
-  heroGradient: ['#FBE3E9', '#FFFFFF'],
+  heroGradient: ['#EDF1FD', '#FFFFFF'],
   chrome: { fill: '#FFFFFF', border: 'rgba(18,20,40,0.08)' },
 };
 
@@ -231,15 +204,15 @@ export const space = {
 
 export const radius = {
   /** Badges, small chips, inline markers. */
-  xs: 8,
+  xs: 4,
   /** Inputs, buttons, small controls. */
-  sm: 12,
+  sm: 6,
   /** Rows inside a group, option cells. */
-  md: 16,
+  md: 8,
   /** The default surface corner. */
-  lg: 20,
+  lg: 10,
   /** Sheets, the hero, anything full-bleed. */
-  xl: 28,
+  xl: 16,
   /** Pills and circles. */
   full: 999,
 } as const;
@@ -258,7 +231,7 @@ export const elevation = {
   /** Flush with the page. Lists, inline groups. */
   flat: { shadowOpacity: 0, shadowRadius: 0, shadowOffsetY: 0, android: 0 },
   /** A card. Tone and a top highlight on Android; a soft shadow on iOS. */
-  raised: { shadowOpacity: 0.28, shadowRadius: 18, shadowOffsetY: 6, android: 0 },
+  raised: { shadowOpacity: 0.06, shadowRadius: 6, shadowOffsetY: 2, android: 0 },
   /** Sheets, menus, the tab bar — over content, where a shadow reads. */
   floating: { shadowOpacity: 0.4, shadowRadius: 30, shadowOffsetY: 12, android: 14 },
 } as const;

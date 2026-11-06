@@ -66,15 +66,22 @@ describe('UsersController#findOne (GET /users/:id)', () => {
     expect(guard.canActivate(context)).toBe(true);
   });
 
-  it('allows a HOSPITAL_ADMIN', () => {
+  it('rejects a HOSPITAL_ADMIN from the global user lookup', () => {
     const controller = new UsersController({} as UsersService);
     const context = buildContext(controller.findOne, [RoleCode.HOSPITAL_ADMIN]);
-    expect(guard.canActivate(context)).toBe(true);
+    expect(guard.canActivate(context)).toBe(false);
   });
 
-  it('allows a BLOOD_CENTER_ADMIN', () => {
+  it('rejects a BLOOD_CENTER_ADMIN from the global user lookup', () => {
     const controller = new UsersController({} as UsersService);
     const context = buildContext(controller.findOne, [RoleCode.BLOOD_CENTER_ADMIN]);
-    expect(guard.canActivate(context)).toBe(true);
+    expect(guard.canActivate(context)).toBe(false);
   });
+
+  it.each([RoleCode.DONOR, RoleCode.HOSPITAL_ADMIN, RoleCode.BLOOD_CENTER_ADMIN])(
+    'rejects %s from the global user directory too', (role) => {
+      const controller = new UsersController({} as UsersService);
+      expect(guard.canActivate(buildContext(controller.list, [role]))).toBe(false);
+    },
+  );
 });

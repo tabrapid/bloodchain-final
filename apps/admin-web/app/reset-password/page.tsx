@@ -235,7 +235,7 @@ export default function AdminResetPasswordPage() {
   const { t } = useTranslation();
 
   return (
-    <div className="min-h-screen bc-app-bg flex items-center justify-center">
+    <div className="bc-auth-page min-h-screen bc-app-bg flex items-center justify-center">
       <div className="bc-glass rounded-card p-8 w-full max-w-md">
         {/* A signed-out admin who cannot read this page has no other way to
             change it: the console's switcher lives in the top bar, which only

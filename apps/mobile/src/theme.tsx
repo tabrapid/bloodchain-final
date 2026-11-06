@@ -8,12 +8,12 @@ import * as SecureStore from 'expo-secure-store';
  * reads cleanly on both a near-black and a near-white background.
  */
 const accent = {
-  primary: '#D85360',
+  primary: '#4263CF',
   secondary: '#68B7D1',
   ai: '#8E82DF',
   success: '#63C29B',
   warning: '#E5B86D',
-  danger: '#D85360',
+  danger: '#C73E50',
   white: '#FFFFFF',
 } as const;
 
@@ -119,8 +119,8 @@ const darkColors: ThemeColors = {
   ...accent,
   background: '#070B12',
   backgroundGradient: ['#0E1625', '#08101C', '#040609'],
-  heroGradient: ['#D85360', '#8E3A59', '#5B3080'],
-  ctaGradient: ['#E2495F', '#8B4BC8'],
+  heroGradient: ['#34445D', '#354D76', '#4263CF'],
+  ctaGradient: ['#4263CF', '#354FAE'],
   glass: {
     nav: {
       fill: 'rgba(255,255,255,0.11)',
@@ -177,7 +177,7 @@ const darkColors: ThemeColors = {
   dangerMuted: 'rgba(216,83,96,0.30)',
   aiMuted: 'rgba(142,130,223,0.30)',
   onMuted: {
-    primary: '#F2919A',
+    primary: '#B5C6FF',
     secondary: '#A8DCEE',
     success: '#8FDCBC',
     warning: '#F2D49B',
@@ -188,10 +188,10 @@ const darkColors: ThemeColors = {
 
 const lightColors: ThemeColors = {
   ...accent,
-  background: '#EFF1F9',
-  backgroundGradient: ['#F8F0FC', '#EEEEFC', '#E6EFF9'],
-  heroGradient: ['#D85360', '#8E3A59', '#5B3080'],
-  ctaGradient: ['#D8455B', '#7E43B8'],
+  background: '#EFF1F5',
+  backgroundGradient: ['#EFF1F5', '#EFF1F5', '#EFF1F5'],
+  heroGradient: ['#34445D', '#354D76', '#4263CF'],
+  ctaGradient: ['#4263CF', '#354FAE'],
   glass: {
     nav: {
       fill: 'rgba(255,255,255,0.88)',
@@ -213,7 +213,7 @@ const lightColors: ThemeColors = {
     },
     standard: {
       fill: 'rgba(255,255,255,0.72)',
-      border: 'rgba(255,255,255,0.80)',
+      border: '#D8DFE8',
       blur: 40,
       shadowOpacity: 0.07,
       shadowRadius: 6,
@@ -223,26 +223,26 @@ const lightColors: ThemeColors = {
   },
   glassSheen: ['rgba(255,255,255,0.85)', 'rgba(255,255,255,0.40)'],
   glassBorder: 'rgba(255,255,255,0.95)',
-  surface: 'rgba(255,255,255,0.72)',
-  surfaceElevated: 'rgba(255,255,255,0.92)',
+  surface: '#FFFFFF',
+  surfaceElevated: '#FFFFFF',
   surfaceHighlight: 'rgba(255,255,255,0.96)',
   surfaceSolid: '#FFFFFF',
   surfaceSolidElevated: '#FAFAFC',
-  text: '#06080D',
+  text: '#303E50',
   textMuted: '#4D6070',
   textSubtle: '#7A93A5',
-  border: 'rgba(255,255,255,0.80)',
+  border: '#D8DFE8',
   borderSubtle: 'rgba(15,23,42,0.05)',
   overlay: 'rgba(15,23,42,0.45)',
   blurTint: 'light',
-  primaryMuted: 'rgba(216,83,96,0.20)',
+  primaryMuted: 'rgba(66,99,207,0.10)',
   secondaryMuted: 'rgba(104,183,209,0.26)',
   successMuted: 'rgba(99,194,155,0.26)',
   warningMuted: 'rgba(229,184,109,0.30)',
   dangerMuted: 'rgba(216,83,96,0.20)',
   aiMuted: 'rgba(142,130,223,0.24)',
   onMuted: {
-    primary: '#A32C38',
+    primary: '#314DAE',
     secondary: '#1F6A83',
     success: '#1F7355',
     warning: '#8A6318',

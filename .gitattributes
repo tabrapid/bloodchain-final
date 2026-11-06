@@ -1,0 +1,2 @@
+# Unified patch context prefixes are semantic, including spaces before tabs.
+patches/*.patch -whitespace

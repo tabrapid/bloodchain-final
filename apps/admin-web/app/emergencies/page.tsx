@@ -71,7 +71,7 @@ export default function EmergenciesPage() {
 
         <div className="bc-glass rounded-card mb-6">
           <div className="p-4 border-b border-donor-border/40">
-            <form onSubmit={handleSearch} className="flex gap-4">
+            <form onSubmit={handleSearch} className="bc-filter-form flex flex-wrap gap-3">
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
@@ -96,7 +96,7 @@ export default function EmergenciesPage() {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="bc-data-table w-full">
               <thead>
                 <tr className="bg-donor-elevated border-b border-donor-border/40">
                   <th scope="col" className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('home.bloodTypeLabel')}</th>

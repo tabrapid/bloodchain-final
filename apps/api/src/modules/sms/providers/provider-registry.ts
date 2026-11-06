@@ -1,6 +1,7 @@
 import { ConfigService } from '@nestjs/config';
 
 import { ConsoleSmsProvider } from './console-sms.provider';
+import { EskizSmsProvider } from './eskiz-sms.provider';
 import type { SmsProvider } from './sms-provider.interface';
 
 /**
@@ -11,24 +12,20 @@ import type { SmsProvider } from './sms-provider.interface';
  * why this registry is a table of factories rather than a switch that grows a
  * branch of vendor-specific logic each time.
  *
- * **No vendor adapter ships in this repository, and this file does not invent
- * one.** Uzbekistan's SMS market is a handful of local aggregators (Eskiz, Play
- * Mobile, SMS.uz and others), each with its own authentication scheme — one
- * issues a JWT that expires and must be refreshed, another wants a static key,
- * a third requires message templates to be pre-registered with the operator.
- * Writing an adapter against a guessed API shape would produce code that looks
- * finished, passes its own tests, and fails the first time it meets the real
- * endpoint. Worse, it would make MS-01 look closed.
- *
- * What Sprint 8 provides instead is everything around the adapter: the
- * registry, the configuration surface, two independent production barriers, and
- * the tests. `docs/sms-provider-integration.md` says exactly what the operator
- * must supply and exactly what an adapter must implement.
+ * The optional Eskiz adapter follows its published multipart contract.
+ * It is not enabled or commercially contracted by adding it to the registry.
+ * Account credentials, sender/template approval and live delivery validation
+ * remain deployment requirements. See docs/sms-provider-integration.md.
  */
 export type SmsProviderFactory = (config: ConfigService) => SmsProvider;
 
 export const SMS_PROVIDER_REGISTRY: Record<string, SmsProviderFactory> = {
   console: (config) => new ConsoleSmsProvider(config.get<string>('SMS_DEV_LOG_FILE') || undefined),
+  eskiz: (config) => new EskizSmsProvider({
+    email: config.get<string>('SMS_API_USER') ?? '',
+    password: config.get<string>('SMS_API_SECRET') ?? '',
+    sender: config.get<string>('SMS_SENDER_ID') ?? '',
+  }),
 
   // ---------------------------------------------------------------------
   // Production adapters go here, one line each:
@@ -51,7 +48,7 @@ export function knownSmsProviders(): string[] {
   return Object.keys(SMS_PROVIDER_REGISTRY).sort();
 }
 
-/** The adapter names that actually deliver. Empty until a vendor is chosen. */
+/** Non-development adapters constructible with the supplied configuration. */
 export function productionSmsProviders(config: ConfigService): string[] {
   return knownSmsProviders().filter((name) => {
     try {

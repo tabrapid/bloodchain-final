@@ -205,6 +205,32 @@ describe('NotificationDeliveryService', () => {
     });
   });
 
+  it('keeps clinical content and arbitrary links out of third-party push payloads', async () => {
+    prisma.notification.findUnique.mockResolvedValue({
+      ...baseNotification,
+      title: 'Laboratory result: HIV',
+      body: 'Donor Example, O-, result positive',
+      deepLink: '/health/results/private-result?token=private-token',
+      data: { latitude: 41.3, diagnosis: 'private-diagnosis', notificationId: 'spoofed' },
+    });
+    pushDeviceService.getActiveDevicesForUser.mockResolvedValue([{ token: 'valid', platform: 'ios' }]);
+    pushProvider.send.mockResolvedValue([{ status: 'ok', id: 'ticket-1' }]);
+
+    await service.deliver('notif-1');
+
+    expect(pushProvider.send).toHaveBeenCalledWith([
+      expect.objectContaining({
+        title: 'BloodChain',
+        body: 'Yangi xabar bor. Ilovani oching.',
+        data: { notificationId: 'notif-1', deepLink: '/notifications' },
+      }),
+    ]);
+    const payload = JSON.stringify(pushProvider.send.mock.calls[0]);
+    for (const secret of ['HIV', 'positive', '41.3', 'private-result', 'private-token', 'private-diagnosis', 'spoofed']) {
+      expect(payload).not.toContain(secret);
+    }
+  });
+
   it('deactivates a device on DeviceNotRegistered and reports failure when every device fails', async () => {
     prisma.notification.findUnique.mockResolvedValue(baseNotification);
     pushDeviceService.getActiveDevicesForUser.mockResolvedValue([

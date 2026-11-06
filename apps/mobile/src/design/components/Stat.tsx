@@ -93,6 +93,8 @@ export function StatRow({ children, bare = false }: { children: ReactNode; bare?
               padding: space.lg,
               borderRadius: radius.lg,
               backgroundColor: colors.surface,
+              borderWidth: 1,
+              borderColor: colors.divider,
             }
       }
     >

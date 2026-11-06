@@ -100,7 +100,7 @@ export default function CouriersPage() {
         organizationType="Blood Center workspace"
         userName="Guest"
       >
-        <div className="flex flex-col items-center justify-center bc-glass rounded-card p-12">
+        <div className="bc-auth-card flex flex-col items-center justify-center bc-glass rounded-card p-12">
           <Truck className="mb-4 text-donor-primary" size={48} />
           <h2 className="mb-2 font-display text-2xl font-semibold text-donor-text">
             {t('ops.common.signInRequired')}

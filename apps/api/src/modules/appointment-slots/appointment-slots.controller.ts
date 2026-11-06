@@ -48,7 +48,7 @@ export class AppointmentSlotsController {
     @CurrentUser('sub') userId: string,
     @Req() req: Request,
   ) {
-    return this.slots.createSlot(organizationId, userId, dto, req.headers['x-forwarded-for'] as string);
+    return this.slots.createSlot(organizationId, userId, dto, req.ip);
   }
 
   @Patch('organizations/:organizationId/slots/:slotId')
@@ -63,7 +63,7 @@ export class AppointmentSlotsController {
     @CurrentUser('sub') userId: string,
     @Req() req: Request,
   ) {
-    return this.slots.updateSlot(organizationId, slotId, userId, dto, req.headers['x-forwarded-for'] as string);
+    return this.slots.updateSlot(organizationId, slotId, userId, dto, req.ip);
   }
 
   @Post('organizations/:organizationId/slots/:slotId/block')
@@ -78,6 +78,6 @@ export class AppointmentSlotsController {
     @CurrentUser('sub') userId: string,
     @Req() req: Request,
   ) {
-    return this.slots.blockSlot(organizationId, slotId, userId, req.headers['x-forwarded-for'] as string);
+    return this.slots.blockSlot(organizationId, slotId, userId, req.ip);
   }
 }

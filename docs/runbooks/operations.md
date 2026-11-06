@@ -2,6 +2,20 @@
 
 ## Release QA
 
+On small VPS hosts the disposable API runner is capped at 1 GiB (640 MiB
+Node heap), and disposable PostgreSQL at 768 MiB with a 512 MiB tmpfs. Every
+discovered e2e suite runs serially in a fresh Jest process against the same
+database, without resetting data between suites. This bounds accumulated
+ts-jest/Nest memory and protects live services. No suites are skipped; any
+failure aborts the release. CI's isolation and migration jobs still exercise
+their full existing contracts. Do not remove limits or force deployment after
+an OOM/test failure.
+
+Docker API/web build stages cap each Node heap at 768 MiB. Portal builds use
+one Next build worker and one Vitest worker. Build apps sequentially on the
+VPS, never concurrently with the release QA runner. These build settings do
+not raise the live containers' existing resource limits.
+
 ```sh
 bash scripts/release-qa-docker.sh
 ```
@@ -86,3 +100,16 @@ journalctl -u bloodchain-backup.service -u bloodchain-monitor.service
 A host-local monitor cannot report its own host losing power or internet.
 An external uptime monitor is still required before public launch. Telegram is
 not active until its token/chat are configured and a test message succeeds.
+
+## Nginx access log privacy
+
+Use `deploy/nginx/bloodchain-privacy-log.conf` in the HTTP context and select
+`bloodchain_privacy` in every BloodChain HTTP/HTTPS server block. Back up the
+affected configuration, run `nginx -t`, then reload. Verify with a synthetic
+query marker that the path/status is recorded and the query is absent.
+The 2026-11-06 VPS check passed this regression for the API readiness route.
+
+This protects access logs only. Nginx error logs can still contain request URLs
+on failures; restrict access and do not treat all proxy diagnostics as redacted.
+Paths and client IPs are still personal data in some contexts. Existing logs
+are not erased by this change; operator retention decisions remain outstanding.

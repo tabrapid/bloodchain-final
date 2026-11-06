@@ -28,6 +28,7 @@ COPY .npmrc .npmrc
 # ordinary ES2022 syntax already used throughout the codebase.
 COPY tsconfig.json tsconfig.json
 COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
+COPY patches patches
 COPY apps/api/package.json apps/api/package.json
 COPY packages/config/package.json packages/config/package.json
 COPY packages/types/package.json packages/types/package.json
@@ -37,6 +38,7 @@ RUN pnpm install --frozen-lockfile --filter=@bloodchain/api...
 
 # ---- build: generate the Prisma client and compile Nest ----
 FROM deps AS build
+ENV NODE_OPTIONS=--max-old-space-size=768
 COPY packages/config packages/config
 COPY packages/types packages/types
 COPY packages/utils packages/utils

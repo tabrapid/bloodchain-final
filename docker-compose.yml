@@ -66,6 +66,9 @@ services:
       # took the Joi default (`console`) with no way to choose otherwise --
       # there was no route to a production adapter through Compose at all.
       SMS_PROVIDER: ${SMS_PROVIDER:-console}
+      SMS_API_USER: ${SMS_API_USER:-}
+      SMS_API_SECRET: ${SMS_API_SECRET:-}
+      SMS_SENDER_ID: ${SMS_SENDER_ID:-}
       SMS_DEV_LOG_FILE: ${SMS_DEV_LOG_FILE:-}
       OTP_TTL_SECONDS: ${OTP_TTL_SECONDS:-300}
       OTP_MAX_ATTEMPTS: ${OTP_MAX_ATTEMPTS:-5}

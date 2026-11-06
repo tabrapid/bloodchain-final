@@ -15,6 +15,30 @@ import type { Catalog } from '../translate';
  * it.
  */
 export const uz: Catalog = {
+  clinical: {
+    "identity": "Yagona tibbiy axborot tizimi",
+    "workspace": "Operatsion ish maydoni",
+    "compact": "Ixcham ko‘rinish",
+    "print": "Chop etish",
+    "laboratory": "Laboratoriya nazorati",
+    "completion": "Natijalar tayyorligi",
+    "completedTests": "Yakunlangan tahlillar",
+    "queue": "Tahlillar navbati",
+    "inventory": "Qon zaxirasi",
+    "available": "Mavjud birliklar",
+    "reserved": "Band qilingan",
+    "quarantine": "Karantinda",
+    "distribution": "Yetkazib berish",
+    "activeShipments": "Faol jo‘natmalar",
+    "delayed": "Kechikkan",
+    "delivered": "Yakunlangan",
+    "noData": "Ma’lumot mavjud emas",
+    "total": "Jami",
+    "control": "Boshqaruv markazi",
+    "monitoring": "Qon ta’minoti monitoringi",
+    "workflows": "Ish jarayonlari",
+  },
+
   common: {
     daysAgo: { one: '{{count}} kun oldin', other: '{{count}} kun oldin' },
     dialog: 'Oyna',

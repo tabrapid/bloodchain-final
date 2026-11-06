@@ -50,7 +50,7 @@ export class DonorReviewController {
       triggerId,
       userId,
       dto,
-      req.headers['x-forwarded-for'] as string,
+      req.ip,
     );
   }
 }

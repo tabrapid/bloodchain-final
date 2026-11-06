@@ -1,5 +1,12 @@
 # Bloodchain Donor App — Privacy Policy (draft for legal review)
 
+**2026-11-06 implementation note:** the operator legal entity is not yet
+established. See `../privacy.md` for the current implementation inventory and
+`privacy-policy.uz.md` for the Uzbek draft. This older text is not evidence
+that every access is audited, a retention period is approved, a vendor is
+authorized or a self-service export exists. It must not be published as an
+approved policy merely because placeholders have been filled.
+
 **Status: DRAFT.** This text describes what the app actually does today, from
 the code. It has not been reviewed by a lawyer and names no legal basis under
 Uzbek law, no retention period and no supervisory authority. Before it is

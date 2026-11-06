@@ -149,7 +149,9 @@ async function seedConsentPosture(): Promise<number> {
       where: {
         scopeKey_purpose_featureKey: { scopeKey: 'PLATFORM', purpose: row.purpose, featureKey: '' },
       },
-      update: { mode: row.mode, note: row.note },
+      // Initial defaults only. A deploy must not overwrite the operator's
+      // reviewed legal/privacy posture with development product defaults.
+      update: {},
       create: {
         purpose: row.purpose,
         scopeKey: 'PLATFORM',

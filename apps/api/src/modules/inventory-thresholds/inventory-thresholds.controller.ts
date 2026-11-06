@@ -45,7 +45,7 @@ export class InventoryThresholdsController {
     @CurrentUser('sub') userId: string,
     @Req() req: Request,
   ) {
-    return this.thresholds.upsert(organizationId, userId, dto, req.headers['x-forwarded-for'] as string);
+    return this.thresholds.upsert(organizationId, userId, dto, req.ip);
   }
 
   @Delete(':thresholdId')
@@ -57,6 +57,6 @@ export class InventoryThresholdsController {
     @CurrentUser('sub') userId: string,
     @Req() req: Request,
   ) {
-    return this.thresholds.remove(organizationId, thresholdId, userId, req.headers['x-forwarded-for'] as string);
+    return this.thresholds.remove(organizationId, thresholdId, userId, req.ip);
   }
 }

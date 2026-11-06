@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from '@bloodchain/ui/i18n';
 import Link from 'next/link';
-import { Activity, AlertTriangle, Calendar, Clock, Droplet, Package } from 'lucide-react';
+import { Activity, Calendar, Clock, Droplet, Package } from 'lucide-react';
 import { EmptyState, StatCard } from '@bloodchain/ui/components';
 import { login, logout as logoutApi, me, isAuthenticated, MeResponse } from '../lib/auth';
 import { AppShell } from '../components/AppShell';
@@ -96,6 +96,9 @@ export default function HospitalDashboard() {
         roles: userData.roles,
         organizations: userData.organizations,
       });
+      // A fresh sign-in must select the organization just like session restore.
+      const organization = userData.organizations.find((org) => org.type === 'HOSPITAL');
+      setOrganizationId(organization?.organizationId ?? '');
     } catch (err: any) {
       // The server's own message when it has one; it is not translated yet,
       // which is a Sprint 1B item, so the generic fallback is.
@@ -135,7 +138,7 @@ export default function HospitalDashboard() {
         organizationType={t('portal.hospital.workspace')}
         userName={t('portal.guest')}
       >
-        <div className="flex flex-col items-center justify-center bc-glass rounded-card p-12">
+        <div className="bc-auth-card flex flex-col items-center justify-center bc-glass rounded-card p-12">
           <Activity className="mb-4 text-donor-primary" size={48} />
           <h2 className="mb-2 font-display text-2xl font-semibold text-donor-text">
             {t('portal.hospital.name')}
@@ -218,7 +221,7 @@ export default function HospitalDashboard() {
         organizationType={t('portal.hospital.workspace')}
         userName={`${user.firstName} ${user.lastName}`}
       >
-        <div className="flex flex-col items-center justify-center bc-glass rounded-card p-12 text-center">
+        <div className="bc-auth-card flex flex-col items-center justify-center bc-glass rounded-card p-12 text-center">
           <Clock className="mb-4 text-donor-primary" size={48} />
           <h2 className="mb-2 font-display text-2xl font-semibold text-donor-text">
             {isPending
@@ -274,48 +277,16 @@ export default function HospitalDashboard() {
 
   return (
     <AppShell
-      title={`Good morning, ${user.firstName}.`}
+      title={t('clinical.control')}
       subtitle={t('portal.hospital.console')}
       organizationName={hospitalOrg?.name ?? t('portal.hospital.name')}
       organizationType={t('portal.hospital.workspace')}
       userName={`${user.firstName} ${user.lastName}`}
     >
-      <div className="mb-8 flex items-center justify-between bc-glass rounded-card p-6">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-widest text-donor-muted">
-            {t('ops.dashboard.liveOverview')}
-          </p>
-          <h2 className="mt-2 font-display text-4xl font-semibold tracking-tight text-donor-text">
-            {t('ops.dashboard.hospitalHeadline')} <span className="text-donor-primary">{t('ops.dashboard.inFocus')}</span>
-          </h2>
-          <p className="mt-2 text-sm text-donor-muted">
-            {t('ops.dashboard.hospitalTagline')}
-          </p>
-        </div>
-        <div
-          className={`hidden bc-glass rounded-card p-5 md:block ${
-            alerts && alerts.critical > 0
-              ? 'border-donor-danger/30 bg-donor-dangerMuted'
-              : 'border-donor-success/30 bg-donor-successMuted'
-          }`}
-        >
-          {alerts && alerts.critical > 0 ? (
-            <>
-              <AlertTriangle className="mb-2 text-donor-onDangerMuted" size={24} />
-              <p className="text-sm font-semibold text-donor-text">
-                {alerts.critical} critical alert{alerts.critical === 1 ? '' : 's'}
-              </p>
-              <p className="text-xs text-donor-muted">{t('ops.dashboard.needsAttention')}</p>
-            </>
-          ) : (
-            <>
-              <Activity className="mb-2 text-donor-success" size={24} />
-              <p className="text-sm font-semibold text-donor-text">{t('ops.dashboard.noCriticalAlerts')}</p>
-              <p className="text-xs text-donor-muted">{t('ops.dashboard.underControl')}</p>
-            </>
-          )}
-        </div>
-      </div>
+      <section className="bc-page-heading">
+        <div><p>{t('clinical.workspace')}</p><h2>{t('clinical.monitoring')}</h2></div>
+        <Link href="/requests" className="bc-action-link">{t('ops.dashboard.viewBloodRequests')} <span aria-hidden="true">→</span></Link>
+      </section>
 
       <div className="mb-6 grid gap-4 md:grid-cols-3">
         <StatCard

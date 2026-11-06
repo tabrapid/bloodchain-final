@@ -2,13 +2,13 @@
 
 **Blocker:** MS-01 · **Owner:** PO + INFRA · **Gate:** PILOT
 
-BloodChain sends SMS for exactly two things: the one-time codes donors sign in
-with, and emergency alerts. Neither works without a real SMS vendor, and no
-vendor has been contracted.
+The current code calls SMS from phone verification. The provider interface also
+supports notices; this is not evidence that emergency SMS delivery is wired or
+validated. No SMS vendor has been contracted for this deployment.
 
-This document is the boundary. Everything on the software side is built and
-tested; everything below the line marked **What the operator must supply** is
-outside the repository and cannot be closed from here.
+The transport interface and optional adapter have contract tests; real delivery
+is not yet validated. The operator must supply the account and delivery evidence
+listed below before the pilot gate can close.
 
 ---
 
@@ -26,22 +26,32 @@ outside the repository and cannot be closed from here.
 `SmsProvider`, one line in the registry, and configuration. Nothing in the
 authentication domain moves — that is what the port is for.
 
-## Why no adapter ships in this repository
+## Optional Eskiz adapter (2026-11-06)
 
-Uzbekistan's SMS market is a handful of local aggregators — Eskiz, Play Mobile,
-SMS.uz and others. They do not share an API: one issues a JWT that expires and
-must be refreshed on a schedule, another takes a static key, a third requires
-every message template to be pre-registered with the operator before it will
-deliver.
+`SMS_PROVIDER=eskiz` selects the optional adapter. It requires `SMS_API_USER`,
+`SMS_API_SECRET` and `SMS_SENDER_ID`; missing values refuse startup. The API
+origin is fixed to HTTPS notify.eskiz.uz; redirects are refused. Credentials
+are sent only to that origin, never included in errors or logs.
 
-Writing an adapter against a guessed API shape would produce a file that looks
-finished, passes tests written against the same guess, and fails on first
-contact with the real endpoint. It would also make MS-01 look closed in the
-readiness register when nothing had been integrated.
+The implementation was checked against the [published Eskiz Postman
+collection](https://documenter.getpostman.com/view/663428/RzfmES4z?version=latest):
+multipart POST `/api/auth/login`, then POST `/api/message/sms/send` with
+`mobile_phone`, `message` and `from`. A `waiting` response with the provider
+receipt id means **queued**, not delivered to a handset.
 
-So the repository ships the boundary and stops there. `sms.module.spec.ts`
-asserts that no production adapter exists, which is both true today and the
-thing that will fail — deliberately — on the day one is added.
+Authentication is shared across concurrent sends, cached conservatively and
+invalidated on 401. No SMS is automatically retried after timeout, network or
+HTTP failure, because the provider may already have accepted it. Errors are
+stable codes rather than vendor bodies, which can echo OTPs and credentials.
+Only canonical Uzbekistan E.164 numbers are accepted by this adapter.
+
+Contract mocks verify the published fields, cache behavior, error handling and
+privacy. They do not prove live delivery. No account was opened, no sender or
+template was claimed approved, and the VPS remains on its existing provider.
+Before switching: obtain a contracted account, approved sender/template and
+budget, save secrets privately, verify delivery to an authorized test handset,
+and verify the actual template and balance failure paths. MS-01 stays open
+until those checks are complete.
 
 ---
 

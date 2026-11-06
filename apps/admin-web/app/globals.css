@@ -1,6 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
 
-/* Shared Bloodchainga Liquid Glass tokens (light + dark) and materials. */
+/* Shared clinical workspace tokens and surfaces. */
 @import '@bloodchain/ui/styles/glass.css';
 
 @tailwind base;

@@ -1,5 +1,9 @@
 # Reviewer packs
 
+These are historical review questions, not current implementation audits.
+Use `../uzbekistan-launch-status-2026-11-06.md` and the linked evidence to
+distinguish existing code from decisions and approvals still outstanding.
+
 Four documents, one per reviewer, each holding the questions that person — and
 only that person — can answer.
 

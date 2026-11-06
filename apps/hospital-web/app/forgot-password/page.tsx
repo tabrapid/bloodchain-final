@@ -46,7 +46,7 @@ export default function HospitalForgotPasswordPage() {
         organizationType={t('portal.hospital.workspace')}
         userName={t('portal.guest')}
       >
-        <div className="flex flex-col items-center justify-center bc-glass rounded-card p-12 text-center">
+        <div className="bc-auth-card flex flex-col items-center justify-center bc-glass rounded-card p-12 text-center">
           <MailCheck className="mb-4 text-donor-secondary" size={48} />
           <h2 className="mb-2 font-display text-2xl font-semibold text-donor-text">
             {t('auth.forgotPassword.sentTitle')}
@@ -81,7 +81,7 @@ export default function HospitalForgotPasswordPage() {
       organizationType={t('portal.hospital.workspace')}
       userName={t('portal.guest')}
     >
-      <div className="flex flex-col items-center justify-center bc-glass rounded-card p-12">
+      <div className="bc-auth-card flex flex-col items-center justify-center bc-glass rounded-card p-12">
         <KeyRound className="mb-4 text-donor-primary" size={48} />
         <h2 className="mb-2 font-display text-2xl font-semibold text-donor-text">
           {t('auth.forgotPassword.title')}

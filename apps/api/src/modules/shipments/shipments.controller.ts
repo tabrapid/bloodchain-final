@@ -125,7 +125,7 @@ export class ShipmentsController {
     @Req() req: Request,
   ) {
     return {
-      data: await this.shipments.createShipment(organizationId, userId, requestId, dto, req.headers['x-forwarded-for'] as string),
+      data: await this.shipments.createShipment(organizationId, userId, requestId, dto, req.ip),
     };
   }
 
@@ -182,7 +182,7 @@ export class ShipmentsController {
     @Req() req: Request,
   ) {
     return {
-      data: await this.shipments.assignCourier(organizationId, userId, shipmentId, dto.courierId, req.headers['x-forwarded-for'] as string),
+      data: await this.shipments.assignCourier(organizationId, userId, shipmentId, dto.courierId, req.ip),
     };
   }
 
@@ -194,7 +194,7 @@ export class ShipmentsController {
     @CurrentUser('sub') userId: string,
     @Req() req: Request,
   ) {
-    return { data: await this.shipments.acceptShipment(userId, shipmentId, req.headers['x-forwarded-for'] as string) };
+    return { data: await this.shipments.acceptShipment(userId, shipmentId, req.ip) };
   }
 
   @Post('courier/shipments/:shipmentId/decline')
@@ -206,7 +206,7 @@ export class ShipmentsController {
     @Body() dto: DeclineShipmentDto,
     @Req() req: Request,
   ) {
-    return { data: await this.shipments.declineShipment(userId, shipmentId, dto.reason, req.headers['x-forwarded-for'] as string) };
+    return { data: await this.shipments.declineShipment(userId, shipmentId, dto.reason, req.ip) };
   }
 
   @Post('courier/shipments/:shipmentId/start-pickup')
@@ -217,7 +217,7 @@ export class ShipmentsController {
     @CurrentUser('sub') userId: string,
     @Req() req: Request,
   ) {
-    return { data: await this.shipments.startPickup(userId, shipmentId, req.headers['x-forwarded-for'] as string) };
+    return { data: await this.shipments.startPickup(userId, shipmentId, req.ip) };
   }
 
   @Post('courier/shipments/:shipmentId/confirm-pickup')
@@ -228,7 +228,7 @@ export class ShipmentsController {
     @CurrentUser('sub') userId: string,
     @Req() req: Request,
   ) {
-    return { data: await this.shipments.confirmPickup(userId, shipmentId, req.headers['x-forwarded-for'] as string) };
+    return { data: await this.shipments.confirmPickup(userId, shipmentId, req.ip) };
   }
 
   @Post('courier/shipments/:shipmentId/start-delivery')
@@ -239,7 +239,7 @@ export class ShipmentsController {
     @CurrentUser('sub') userId: string,
     @Req() req: Request,
   ) {
-    return { data: await this.shipments.startDelivery(userId, shipmentId, req.headers['x-forwarded-for'] as string) };
+    return { data: await this.shipments.startDelivery(userId, shipmentId, req.ip) };
   }
 
   @Post('courier/shipments/:shipmentId/update-location')
@@ -251,7 +251,7 @@ export class ShipmentsController {
     @CurrentUser('sub') userId: string,
     @Req() req: Request,
   ) {
-    return { data: await this.shipments.updateLocation(userId, shipmentId, dto, req.headers['x-forwarded-for'] as string) };
+    return { data: await this.shipments.updateLocation(userId, shipmentId, dto, req.ip) };
   }
 
   @Post('courier/shipments/:shipmentId/arrive')
@@ -262,7 +262,7 @@ export class ShipmentsController {
     @CurrentUser('sub') userId: string,
     @Req() req: Request,
   ) {
-    return { data: await this.shipments.arriveAtHospital(userId, shipmentId, req.headers['x-forwarded-for'] as string) };
+    return { data: await this.shipments.arriveAtHospital(userId, shipmentId, req.ip) };
   }
 
   @Post('courier/shipments/:shipmentId/fail')
@@ -274,7 +274,7 @@ export class ShipmentsController {
     @CurrentUser('sub') userId: string,
     @Req() req: Request,
   ) {
-    return { data: await this.shipments.failShipment(userId, shipmentId, dto, req.headers['x-forwarded-for'] as string) };
+    return { data: await this.shipments.failShipment(userId, shipmentId, dto, req.ip) };
   }
 
   @Get('shipments/:shipmentId/locations')
@@ -318,7 +318,7 @@ export class ShipmentsController {
     @Req() req: Request,
   ) {
     return {
-      data: await this.shipments.cancelShipment(organizationId, userId, shipmentId, dto.reason, req.headers['x-forwarded-for'] as string),
+      data: await this.shipments.cancelShipment(organizationId, userId, shipmentId, dto.reason, req.ip),
     };
   }
 
@@ -333,7 +333,7 @@ export class ShipmentsController {
     @Req() req: Request,
   ) {
     return {
-      data: await this.shipments.reassignCourier(organizationId, userId, shipmentId, dto.courierId, req.headers['x-forwarded-for'] as string),
+      data: await this.shipments.reassignCourier(organizationId, userId, shipmentId, dto.courierId, req.ip),
     };
   }
 
@@ -350,7 +350,7 @@ export class ShipmentsController {
     @Req() req: Request,
   ) {
     return {
-      data: await this.shipments.confirmDeliveryFull(organizationId, userId, shipmentId, dto, req.headers['x-forwarded-for'] as string),
+      data: await this.shipments.confirmDeliveryFull(organizationId, userId, shipmentId, dto, req.ip),
     };
   }
 }

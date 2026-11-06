@@ -80,7 +80,7 @@ describe('Consent documents, acceptances and the gate', () => {
     // Fail closed. This is the production rule, and it holds here too: a test
     // fixture must never be able to masquerade as legal approval.
     await expect(
-      consent.accept(donor.id, { purpose: PURPOSE, locale: LOCALE, organizationId }),
+      consent.accept(donor.id, { purpose: PURPOSE, locale: LOCALE, organizationId, documentId: 'unapproved', contentHash: '0'.repeat(64) }),
     ).rejects.toMatchObject({
       response: { code: ConsentReason.NO_APPROVED_DOCUMENT },
     });
@@ -110,6 +110,8 @@ describe('Consent documents, acceptances and the gate', () => {
       purpose: PURPOSE,
       locale: LOCALE,
       organizationId,
+      documentId: approved.data.id,
+      contentHash: approved.data.contentHash,
     });
     expect(acceptance.data.purpose).toBe(PURPOSE);
 
@@ -157,6 +159,30 @@ describe('Consent documents, acceptances and the gate', () => {
     });
 
     await expect(consent.approveDocument(actorId, approved.id)).rejects.toThrow();
+  });
+
+  it('requires fresh acceptance after the accepted document is retired', async () => {
+    expect(await consent.check(donor.id, PURPOSE, organizationId)).toEqual({
+      allowed: false, reason: ConsentReason.NOT_ACCEPTED,
+    });
+  });
+
+  it('refuses stale displayed wording rather than accepting a different version on behalf of the donor', async () => {
+    const old = await db.consentDocument.findFirstOrThrow({ where: { purpose: PURPOSE, locale: LOCALE, version: 1 } });
+    const before = await db.consentAcceptance.count({ where: { userId: donor.id } });
+    await expect(consent.accept(donor.id, {
+      purpose: PURPOSE, locale: LOCALE, organizationId, documentId: old.id, contentHash: old.contentHash,
+    })).rejects.toMatchObject({ response: { code: ConsentReason.DOCUMENT_CHANGED } });
+    expect(await db.consentAcceptance.count({ where: { userId: donor.id } })).toBe(before);
+  });
+
+  it('does not reuse an organization acceptance for the platform scope', async () => {
+    await db.consentRequirement.upsert({
+      where: { scopeKey_purpose_featureKey: { scopeKey: 'PLATFORM', purpose: PURPOSE, featureKey: 'consent-e2e' } },
+      create: { scopeKey: 'PLATFORM', purpose: PURPOSE, featureKey: 'consent-e2e', mode: ConsentRequirementMode.REQUIRED_FOR_FEATURE },
+      update: { mode: ConsentRequirementMode.REQUIRED_FOR_FEATURE },
+    });
+    expect(await consent.check(donor.id, PURPOSE)).toEqual({ allowed: false, reason: ConsentReason.NOT_ACCEPTED });
   });
 
   it('records a withdrawal without erasing the evidence of the acceptance', async () => {

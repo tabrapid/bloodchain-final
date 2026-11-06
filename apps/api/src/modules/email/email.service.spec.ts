@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
+import { Logger } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
 import { EmailService } from './email.service';
 
@@ -113,6 +114,27 @@ describe('EmailService', () => {
         service.send({ to: 'donor@example.com', subject: 'Hi', html: '<p>hi</p>', text: 'hi' }),
       ).resolves.toBeUndefined();
     });
+  });
+
+  it('keeps recipients and provider error content out of configured SMTP logs', async () => {
+    config.get.mockImplementation((key: string) => key === 'SMTP_HOST' ? 'smtp.example.com' : undefined);
+    service.onModuleInit();
+    const log = jest.spyOn(Logger.prototype, 'log').mockImplementation(() => undefined);
+    const error = jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
+    try {
+      const input = { to: 'private@example.com', subject: 'private-subject', html: 'private-content', text: 'private-token' };
+      await service.send(input);
+      sendMail.mockRejectedValueOnce(new Error('private@example.com private-token smtp-secret'));
+      await service.send(input);
+      const output = JSON.stringify([log.mock.calls, error.mock.calls]);
+      for (const secret of ['private@example.com', 'private-subject', 'private-content', 'private-token', 'smtp-secret']) {
+        expect(output).not.toContain(secret);
+      }
+      expect(error).toHaveBeenCalled();
+    } finally {
+      log.mockRestore();
+      error.mockRestore();
+    }
   });
 
   describe('sendVerificationEmail', () => {

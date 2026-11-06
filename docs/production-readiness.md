@@ -1,5 +1,13 @@
 # Production readiness register
 
+**2026-11-05 status note:** historical sprint states below are not a fresh
+deployment audit. Current deployment evidence is in
+`production-audit-2026-11-05.md`; Uzbekistan launch evidence and remaining
+external dependencies are in `legal/uzbekistan-research-2026-11-05.md`.
+In particular, hosting/TLS/local backup now exist; consent models and draft
+privacy/terms exist. Their presence does not establish approved documents,
+complete endpoint enforcement or permission to start a clinical pilot.
+
 Everything between this repository and a real deployment, with severity, owner,
 current state, and what each item blocks.
 
@@ -103,7 +111,7 @@ The four packs live in [`review-packs/`](review-packs/).
 
 | ID | Blocker | Sev | Class | Owner | State | Next action | Blocks |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| **MS-01** | No SMS vendor. OTP and emergency alerts have a provider abstraction and no provider behind it. | P0 | INFRA | PO | **Boundary complete (S8).** Registry, config surface, four independent production refusals, masked recipients in logs, and tests. No adapter ships: the market is several aggregators with incompatible APIs and one written against a guess would pass its own tests and fail on contact. A test asserts the production-adapter list is empty | `docs/sms-provider-integration.md` lists the seven things the operator must supply. Items 1, 2 and 5 have external lead times no engineering shortens | PILOT |
+| **MS-01** | No contracted/configured SMS vendor or live delivery evidence. | P0 | INFRA | PO + INFRA | **2026-11-06:** optional Eskiz adapter and configuration/contract tests exist. VPS still uses the existing development provider; queue acknowledgement is not handset delivery. | Obtain API credentials, approved sender/template and budget; validate authorized handset delivery and failure cases per `sms-provider-integration.md`. | PILOT |
 | **MS-02** | Email is a local catcher (MailHog). No production SMTP, no sender domain, no SPF/DKIM/DMARC. | P0 | INFRA | INFRA | **Silent degradation closed (S8).** `EmailService` fell back to logging the *whole message* when `SMTP_HOST` was unset — in production that broke account recovery and published every password-reset link to the log at the same time. Now refused at boot, twice, and the body is never logged in production | A transactional email provider and a sender domain with SPF/DKIM/DMARC. Both external | PILOT |
 | **MS-03** | Push notifications use Expo's service with no production credentials. | P1 | INFRA | ENG + INFRA | Expo push, development | FCM and APNs credentials | BETA |
 | **MS-04** | No delivery monitoring — a failed OTP or emergency alert is invisible. | P1 | INFRA | ENG | Failures log only | Delivery status tracking and alerting | PILOT |

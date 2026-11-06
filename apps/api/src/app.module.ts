@@ -7,6 +7,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { LoggerModule } from 'nestjs-pino';
 import { envValidationSchema } from './config/env.validation';
+import { serializeHttpRequest, serializeHttpResponse } from './config/http-log-serializers';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { OrganizationGuard } from './common/guards/organization.guard';
 import { PermissionsGuard } from './common/guards/permissions.guard';
@@ -66,6 +67,7 @@ import { IdempotencyModule } from './modules/idempotency/idempotency.module';
       pinoHttp: {
         level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
         transport: process.env.NODE_ENV !== 'production' ? { target: 'pino-pretty' } : undefined,
+        serializers: { req: serializeHttpRequest, res: serializeHttpResponse },
         // What must never reach a log line, an aggregator, or its retention
         // period.
         //

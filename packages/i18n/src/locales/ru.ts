@@ -15,6 +15,30 @@ import type { Catalog } from '../translate';
  * read, and the explanations especially need a clinician's eye.
  */
 export const ru: Catalog = {
+  clinical: {
+    "identity": "Единая медицинская информационная система",
+    "workspace": "Операционное рабочее место",
+    "compact": "Компактный вид",
+    "print": "Печать",
+    "laboratory": "Лабораторный контроль",
+    "completion": "Готовность результатов",
+    "completedTests": "Завершённые исследования",
+    "queue": "Очередь исследований",
+    "inventory": "Запасы крови",
+    "available": "Доступные единицы",
+    "reserved": "Зарезервировано",
+    "quarantine": "В карантине",
+    "distribution": "Доставка",
+    "activeShipments": "Активные отправления",
+    "delayed": "Задержано",
+    "delivered": "Доставлено",
+    "noData": "Нет данных",
+    "total": "Всего",
+    "control": "Центр управления",
+    "monitoring": "Мониторинг обеспечения кровью",
+    "workflows": "Рабочие процессы",
+  },
+
   common: {
     daysAgo: { one: '{{count}} день назад', few: '{{count}} дня назад', other: '{{count}} дней назад' },
     dialog: 'Диалог',

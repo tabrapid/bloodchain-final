@@ -63,7 +63,7 @@ export class DonorsController {
     @CurrentUser('sub') userId: string,
     @Req() req: Request,
   ) {
-    return this.donors.verifyBloodType(id, userId, dto, req.headers['x-forwarded-for'] as string);
+    return this.donors.verifyBloodType(id, userId, dto, req.ip);
   }
 
   @Get(':id')

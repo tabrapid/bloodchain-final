@@ -1,5 +1,14 @@
 # Legal and privacy review pack
 
+**2026-11-05 correction:** the descriptions below are historical review
+questions. ConsentDocument/ConsentAcceptance/ConsentRequirement and a consent
+service now exist; wiring and approval remain to be verified. Account closure
+exists but does not erase all clinical history. Privacy/terms drafts exist in
+`docs/legal`, but are not approved. Regulatory research now identifies the
+3751 software-classification rules and Cabinet Resolution 415; see
+`../legal/uzbekistan-research-2026-11-05.md`. These findings do not answer the
+individual classification or sign-off questions on behalf of a reviewer.
+
 **Reviewer:** legal and privacy counsel, for Uzbekistan
 **Scope:** identity, consent, retention, location data, regulatory status.
 

@@ -4,6 +4,12 @@ import userEvent from '@testing-library/user-event';
 import { renderLocalized } from '../lib/test-render';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock('@bloodchain/ui/components', async (importOriginal) => ({
+  ...await importOriginal<typeof import('@bloodchain/ui/components')>(),
+  redirectToSignIn: vi.fn(),
+}));
+import { redirectToSignIn } from '@bloodchain/ui/components';
+
 const push = vi.fn();
 const refresh = vi.fn();
 const pathname = { current: '/' };
@@ -65,8 +71,7 @@ describe('AppShell', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Sign out' }));
 
     expect(logout).toHaveBeenCalledTimes(1);
-    expect(push).toHaveBeenCalledWith('/');
-    expect(refresh).toHaveBeenCalledTimes(1);
+    expect(redirectToSignIn).toHaveBeenCalledTimes(1);
   });
 
   it("navigates with the router's link rather than a plain anchor", () => {
