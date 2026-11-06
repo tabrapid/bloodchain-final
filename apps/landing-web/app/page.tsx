@@ -2,7 +2,7 @@ import Image from 'next/image';
 import { Icon, type IconName } from './icons';
 import { PartnershipForm } from './partnership-form';
 import { PublicNavigation } from './public-navigation';
-import { partnershipEmail } from './site-config';
+import { partnershipEmail, donorPortalUrl } from './site-config';
 
 const audiences: {
   icon: IconName;
@@ -23,8 +23,8 @@ const audiences: {
       'Shaxsiy tarix va mavjud natijalar',
       'Tegishli eslatma va bildirishnomalar',
     ],
-    href: '#donors',
-    link: 'Donor imkoniyatlari',
+    href: donorPortalUrl,
+    link: 'Donor kabinetiga kirish',
   },
   {
     icon: 'building',
@@ -168,7 +168,7 @@ export default function Home() {
                 muassasalar o‘rtasidagi hamkorlik uchun.
               </p>
               <div className="actions">
-                <a className="button donation-button" href="#donors">
+                <a className="button donation-button" href={donorPortalUrl}>
                   Donor bo‘lish <Icon name="arrow" size={18} />
                 </a>
                 <a className="button secondary" href="#partnership">
@@ -334,7 +334,7 @@ export default function Home() {
               description="Murakkab tizimni o‘rganish shart emas. O‘zingizga tegishli jarayonni biling."
             />
             <span className="release-badge">
-              <Icon name="drop" size={16} /> Donor mobil ilovasi
+              <Icon name="drop" size={16} /> Donor web kabineti
             </span>
           </div>
           <ol className="donor-steps">
@@ -365,14 +365,14 @@ export default function Home() {
           <div className="donor-notice">
             <Icon name="calendar" size={22} />
             <div>
-              <strong>Ilovani yuklab olish</strong>
+              <strong>Donor kabinetiga brauzerdan kiring</strong>
               <p>
-                Rasmiy yuklab olish havolalari tayyor bo‘lgach shu sahifada e’lon qilinadi.
-                Donorlikka yaroqlilikni muassasa tibbiyot xodimi baholaydi.
+                Mobil ilovadagi akkauntingiz web kabinetda ham ishlaydi. Qabulga yoziling va tahlil
+                natijalarini ko‘ring. Donorlikka yaroqlilikni tibbiyot xodimi baholaydi.
               </p>
             </div>
-            <a className="text-link" href="#questions">
-              Savollar va javoblar <Icon name="arrow" size={16} />
+            <a className="text-link" href={donorPortalUrl}>
+              Donor kabinetini ochish <Icon name="arrow" size={16} />
             </a>
           </div>
         </section>
@@ -547,6 +547,7 @@ export default function Home() {
             <div>
               <h2>Boshlash</h2>
               <a href="#donors">Donorlar uchun</a>
+              <a href={donorPortalUrl}>Donor kabineti</a>
               <a href="#portals">Muassasalar uchun</a>
               <a href="#partnership">Hamkorlikka murojaat</a>
               <a href="https://admin.bloodchain.uz">Admin kabineti</a>

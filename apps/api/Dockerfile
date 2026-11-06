@@ -6,10 +6,11 @@
 #   docker build -f apps/api/Dockerfile -t bloodchain-api .
 # docker-compose.yml at the repo root is set up to do this automatically.
 
-FROM node:22-slim AS base
+FROM node:22.22.2-slim AS base
 RUN apt-get update -y && apt-get install -y --no-install-recommends openssl \
   && rm -rf /var/lib/apt/lists/*
 ENV PNPM_HOME="/pnpm"
+ENV COREPACK_HOME="/pnpm/corepack"
 ENV PATH="$PNPM_HOME:$PATH"
 RUN corepack enable
 WORKDIR /repo
@@ -34,7 +35,9 @@ COPY packages/config/package.json packages/config/package.json
 COPY packages/types/package.json packages/types/package.json
 COPY packages/utils/package.json packages/utils/package.json
 COPY packages/validation/package.json packages/validation/package.json
-RUN pnpm install --frozen-lockfile --filter=@bloodchain/api...
+RUN --mount=type=secret,id=proxy_ca \
+    if [ -f /run/secrets/proxy_ca ]; then export NODE_EXTRA_CA_CERTS=/run/secrets/proxy_ca; fi; \
+    pnpm install --frozen-lockfile --filter=@bloodchain/api...
 
 # ---- build: generate the Prisma client and compile Nest ----
 FROM deps AS build
@@ -44,12 +47,17 @@ COPY packages/types packages/types
 COPY packages/utils packages/utils
 COPY packages/validation packages/validation
 COPY apps/api apps/api
-RUN pnpm --filter @bloodchain/api prisma:generate
+RUN --mount=type=secret,id=proxy_ca \
+    if [ -f /run/secrets/proxy_ca ]; then export NODE_EXTRA_CA_CERTS=/run/secrets/proxy_ca; fi; \
+    pnpm --filter @bloodchain/api prisma:generate
 RUN pnpm --filter @bloodchain/api build
 
 # ---- runtime: the actual production image ----
 FROM base AS runtime
 ENV NODE_ENV=production
+# Keep the repository package-manager pin available without runtime downloads.
+COPY --from=deps /repo/package.json /repo/package.json
+COPY --from=deps --chown=1001:1001 /pnpm/corepack /pnpm/corepack
 COPY --from=build /repo/node_modules /repo/node_modules
 COPY --from=build /repo/apps/api/node_modules /repo/apps/api/node_modules
 COPY --from=build /repo/apps/api/dist /repo/apps/api/dist

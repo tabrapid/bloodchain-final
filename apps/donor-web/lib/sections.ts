@@ -1,0 +1,18 @@
+export const sections = [
+  { id: 'home', label: 'Bosh sahifa', icon: 'home' },
+  { id: 'appointments', label: 'Qabul va bronlar', icon: 'calendar' },
+  { id: 'organizations', label: 'Markazlarni topish', icon: 'home' },
+  { id: 'laboratory', label: 'Laboratoriya', icon: 'flask' },
+  { id: 'donations', label: 'Donatsiyalar tarixi', icon: 'droplet' },
+  { id: 'health', label: 'Sog‘liq dinamikasi', icon: 'heart' },
+  { id: 'insights', label: 'AI yordamchi', icon: 'sparkles' },
+  { id: 'emergency', label: 'Shoshilinch chaqiriqlar', icon: 'siren' },
+  { id: 'education', label: 'Bilim markazi', icon: 'book' },
+  { id: 'campaigns', label: 'Donorlik aksiyalari', icon: 'flag' },
+  { id: 'challenges', label: 'Chaqiriqlar', icon: 'target' },
+  { id: 'community', label: 'Hamjamiyat', icon: 'users' },
+  { id: 'achievements', label: 'Yutuqlar va reyting', icon: 'award' },
+  { id: 'notifications', label: 'Bildirishnomalar', icon: 'bell' },
+  { id: 'profile', label: 'Shaxsiy ma’lumotlar', icon: 'user' },
+  { id: 'security', label: 'Xavfsizlik va maxfiylik', icon: 'shield' },
+] as const;

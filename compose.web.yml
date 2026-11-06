@@ -46,3 +46,18 @@ services:
     ports:
       - '127.0.0.1:3004:3000'
     mem_limit: 512m
+
+  donor-web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+      args:
+        WEB_APP: donor-web
+        NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL:?Set PUBLIC_API_URL to the HTTPS API origin}
+    environment:
+      API_UPSTREAM_URL: http://api:3001
+      DONOR_ORIGIN: ${DONOR_ORIGIN:-https://donor.bloodchain.uz}
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:3005:3000'
+    mem_limit: 512m

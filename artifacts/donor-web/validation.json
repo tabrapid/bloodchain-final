@@ -1,0 +1,35 @@
+{
+  "date": "2026-11-06",
+  "base_commit": "c558f9c6",
+  "data": "synthetic disposable local PostgreSQL database",
+  "workspace_verify": "passed",
+  "donor_regression_tests": 17,
+  "api_e2e_tests": 291,
+  "api_unit_tests": 1557,
+  "mobile_unit_tests": 645,
+  "browser_read_sections": 15,
+  "browser_mutations": [
+    "booking",
+    "admin visibility of donor booking",
+    "cancellation",
+    "profile persistence"
+  ],
+  "session_checks": [
+    "HttpOnly cookies",
+    "no token storage in browser JavaScript",
+    "real expired-access cookie refresh",
+    "origin checks"
+  ],
+  "docker_images": {
+    "api": "built and running",
+    "donor": "built and healthy",
+    "node": "22.22.2",
+    "nested_env_files": "excluded"
+  },
+  "domain": "donor.bloodchain.uz",
+  "public_deployment": "not performed",
+  "external_blockers": [
+    "DNS A record not yet added",
+    "SSH from the cloud executor refused"
+  ]
+}
