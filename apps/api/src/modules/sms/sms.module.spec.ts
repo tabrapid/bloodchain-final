@@ -95,15 +95,17 @@ describe('SMS provider selection', () => {
       expect(knownSmsProviders()).toContain('console');
     });
 
-    it('ships no production adapter, and this test is the record of that', () => {
-      // Deliberate, and MS-01's remaining external boundary. No vendor has been
-      // contracted, and writing an adapter against a guessed API shape would
-      // produce code that passes its own tests and fails on first contact with
-      // the real endpoint — while making the blocker look closed.
-      //
-      // When a vendor is chosen, this expectation changes to name it. That is
-      // the intended way to find out this file needs updating.
+    it('offers no usable production adapter without its account configuration', () => {
+      // Adding adapter code does not make an unconfigured account usable.
       expect(productionSmsProviders(configOf({}))).toEqual([]);
+    });
+
+    it('selects Eskiz only when all account fields are explicitly supplied', () => {
+      const config = configOf({ NODE_ENV: 'production', SMS_PROVIDER: 'eskiz',
+        SMS_API_USER: 'test@example.invalid', SMS_API_SECRET: 'test-secret', SMS_SENDER_ID: 'test-sender' });
+      expect(knownSmsProviders()).toContain('eskiz');
+      expect(productionSmsProviders(config)).toEqual(['eskiz']);
+      expect(createSmsProvider(config).isDevelopmentOnly).toBe(false);
     });
   });
 });

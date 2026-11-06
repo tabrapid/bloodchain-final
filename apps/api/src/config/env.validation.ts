@@ -54,6 +54,9 @@ export const envValidationSchema = Joi.object({
   // degraded mode. A real Uzbekistan provider is a new adapter and a new value
   // here; nothing in the auth domain changes.
   SMS_PROVIDER: Joi.string().default('console'),
+  SMS_API_USER: Joi.string().email().allow('').optional(),
+  SMS_API_SECRET: Joi.string().allow('').optional(),
+  SMS_SENDER_ID: Joi.string().max(64).allow('').optional(),
   // Where the console adapter also appends messages, so a script can read codes
   // back without scraping stdout. Local convenience only.
   SMS_DEV_LOG_FILE: Joi.string().allow('').optional(),

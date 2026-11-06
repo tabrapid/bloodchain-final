@@ -24,6 +24,9 @@ function validProductionEnv(overrides: Record<string, string | undefined> = {}) 
     OTP_HASH_SECRET: 'Bn5Mk8Ju3Hy6Gt9Fr2Ed7Wq4Za1Sx6Cd3Vf8Bg5Nh2Mj7Ki4',
     PHONE_TICKET_SECRET: 'Pl3Ok6Ij9Uh2Yg5Tf8Rd1Es4Wa7Qz0Xs3Cd6Vf9Bg2Nh5Mj8',
     SMS_PROVIDER: 'eskiz',
+    SMS_API_USER: 'qa@example.com',
+    SMS_API_SECRET: 'synthetic-provider-secret',
+    SMS_SENDER_ID: 'synthetic-sender',
     SMTP_HOST: 'smtp.example.uz',
     SMTP_FROM: 'BloodChain <no-reply@bloodchain.uz>',
     WEB_URL: 'https://hospital.example.uz,https://centre.example.uz',
@@ -122,6 +125,11 @@ describe('production configuration guard', () => {
   });
 
   describe('SMS', () => {
+    it.each(['SMS_API_USER', 'SMS_API_SECRET', 'SMS_SENDER_ID'])(
+      'refuses incomplete Eskiz configuration: %s', (variable) => {
+        expect(codes(validProductionEnv({ [variable]: undefined }))).toContain(`${variable}_NOT_SET`);
+      },
+    );
     it('refuses an unset provider, and says it is unset rather than that it is console', () => {
       const violations = checkProductionConfig(validProductionEnv({ SMS_PROVIDER: undefined }));
 

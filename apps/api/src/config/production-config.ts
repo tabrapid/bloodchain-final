@@ -72,6 +72,9 @@ export interface ProductionConfigInput {
   OTP_HASH_SECRET?: string;
   PHONE_TICKET_SECRET?: string;
   SMS_PROVIDER?: string;
+  SMS_API_USER?: string;
+  SMS_API_SECRET?: string;
+  SMS_SENDER_ID?: string;
   SMS_DEV_LOG_FILE?: string;
   SMTP_HOST?: string;
   SMTP_FROM?: string;
@@ -163,6 +166,17 @@ export function checkProductionConfig(env: ProductionConfigInput): ProductionCon
       message: `SMS_PROVIDER is "${smsProvider}", which prints one-time codes rather than delivering them. A code in a log is an authentication bypass, not a degraded mode.`,
       remedy: 'Set SMS_PROVIDER to a configured production adapter.',
     });
+  }
+  if (smsProvider === 'eskiz') {
+    for (const variable of ['SMS_API_USER', 'SMS_API_SECRET', 'SMS_SENDER_ID'] as const) {
+      if (!(env[variable] ?? '').trim()) {
+        violations.push({
+          code: `${variable}_NOT_SET`, variable,
+          message: `${variable} is required by the Eskiz adapter.`,
+          remedy: 'Configure the contracted account and approved sender before selecting SMS_PROVIDER=eskiz.',
+        });
+      }
+    }
   }
 
   // The development console adapter appends every message, including the code
