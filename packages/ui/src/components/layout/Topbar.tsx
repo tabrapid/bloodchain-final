@@ -40,7 +40,7 @@ export function Topbar({
   return (
     <header
       className={cn(
-        'bc-glass-chrome relative z-10 flex items-center justify-between gap-4 border-b border-donor-border/60 px-4 py-4 sm:px-6 sm:py-5 lg:px-10',
+        'bc-topbar bc-glass-chrome relative z-10 flex items-center justify-between gap-4 border-b border-donor-border/60',
         className,
       )}
     >
@@ -60,7 +60,7 @@ export function Topbar({
               {subtitle}
             </p>
           )}
-          <h1 className="truncate text-xl font-bold tracking-tight text-donor-text sm:text-[26px]">
+          <h1 className="truncate text-xl font-semibold tracking-tight text-donor-text">
             {title}
           </h1>
         </div>

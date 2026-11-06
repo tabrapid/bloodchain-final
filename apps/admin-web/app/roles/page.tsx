@@ -143,7 +143,7 @@ export default function RolesPage() {
 
         <div className="bc-glass rounded-card">
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="bc-data-table w-full">
               <thead>
                 <tr className="bg-donor-elevated border-b border-donor-border/40">
                   <th scope="col" className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.role')}</th>

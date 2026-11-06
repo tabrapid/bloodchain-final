@@ -66,7 +66,7 @@ function ResetPasswordForm() {
 
   if (done) {
     return (
-      <div className="flex flex-col items-center justify-center bc-glass rounded-card p-12 text-center">
+      <div className="bc-auth-card flex flex-col items-center justify-center bc-glass rounded-card p-12 text-center">
         <CheckCircle className="mb-4 text-donor-success" size={48} />
         <h2 className="mb-2 font-display text-2xl font-semibold text-donor-text">
           {t('auth.resetPassword.doneTitle')}
@@ -86,7 +86,7 @@ function ResetPasswordForm() {
 
   if (tokenRejected) {
     return (
-      <div className="flex flex-col items-center justify-center bc-glass rounded-card p-12 text-center">
+      <div className="bc-auth-card flex flex-col items-center justify-center bc-glass rounded-card p-12 text-center">
         <Link2Off className="mb-4 text-donor-onDangerMuted" size={48} />
         <h2 className="mb-2 font-display text-2xl font-semibold text-donor-text">
           {t('auth.resetPassword.rejectedTitle')}
@@ -111,7 +111,7 @@ function ResetPasswordForm() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center bc-glass rounded-card p-12">
+    <div className="bc-auth-card flex flex-col items-center justify-center bc-glass rounded-card p-12">
       <Lock className="mb-4 text-donor-primary" size={48} />
       <h2 className="mb-2 font-display text-2xl font-semibold text-donor-text">{t('auth.resetPassword.title')}</h2>
       <p className="mb-6 max-w-sm text-center text-donor-muted">

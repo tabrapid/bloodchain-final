@@ -4,7 +4,7 @@ import type { PropsWithChildren } from 'react';
 import { LanguageSwitcher, useTranslation } from '@bloodchain/ui/i18n';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { DashboardShell } from '@bloodchain/ui/components';
+import { DashboardShell, redirectToSignIn } from '@bloodchain/ui/components';
 import { NotificationBell, useNotificationCenter } from '@bloodchain/ui/notifications';
 
 import { navItems } from '@lib/navigation';
@@ -61,8 +61,7 @@ export function AppShell({
     // `logout` clears the stored tokens even if the revoke call fails, so the
     // redirect is safe to run unconditionally. `/` renders the sign-in form.
     await logout();
-    router.push('/');
-    router.refresh();
+    redirectToSignIn();
   };
 
   return (

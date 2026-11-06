@@ -96,6 +96,9 @@ export default function HospitalDashboard() {
         roles: userData.roles,
         organizations: userData.organizations,
       });
+      // A fresh sign-in must select the organization just like session restore.
+      const organization = userData.organizations.find((org) => org.type === 'HOSPITAL');
+      setOrganizationId(organization?.organizationId ?? '');
     } catch (err: any) {
       // The server's own message when it has one; it is not translated yet,
       // which is a Sprint 1B item, so the generic fallback is.
@@ -135,7 +138,7 @@ export default function HospitalDashboard() {
         organizationType={t('portal.hospital.workspace')}
         userName={t('portal.guest')}
       >
-        <div className="flex flex-col items-center justify-center bc-glass rounded-card p-12">
+        <div className="bc-auth-card flex flex-col items-center justify-center bc-glass rounded-card p-12">
           <Activity className="mb-4 text-donor-primary" size={48} />
           <h2 className="mb-2 font-display text-2xl font-semibold text-donor-text">
             {t('portal.hospital.name')}
@@ -218,7 +221,7 @@ export default function HospitalDashboard() {
         organizationType={t('portal.hospital.workspace')}
         userName={`${user.firstName} ${user.lastName}`}
       >
-        <div className="flex flex-col items-center justify-center bc-glass rounded-card p-12 text-center">
+        <div className="bc-auth-card flex flex-col items-center justify-center bc-glass rounded-card p-12 text-center">
           <Clock className="mb-4 text-donor-primary" size={48} />
           <h2 className="mb-2 font-display text-2xl font-semibold text-donor-text">
             {isPending

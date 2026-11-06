@@ -416,7 +416,7 @@ export default function DonationsPage() {
   if (!user) {
     return (
       <AppShell title={t('ops.common.signInRequired')} subtitle={t('portal.hospital.console')}>
-        <div className="flex flex-col items-center justify-center bc-glass rounded-card p-12">
+        <div className="bc-auth-card flex flex-col items-center justify-center bc-glass rounded-card p-12">
           <Droplet className="mb-4 text-donor-primary" size={48} />
           <h2 className="mb-2 font-display text-2xl font-semibold text-donor-text">{t('ops.common.signInRequired')}</h2>
           <p className="text-center text-donor-muted">{t('ops.donations.signInHint')}</p>

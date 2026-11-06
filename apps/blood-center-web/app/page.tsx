@@ -106,6 +106,9 @@ export default function BloodCenterDashboard() {
         roles: userData.roles,
         organizations: userData.organizations,
       });
+      // A fresh sign-in must select the organization just like session restore.
+      const organization = userData.organizations.find((org) => org.type === 'BLOOD_CENTER');
+      setOrganizationId(organization?.organizationId ?? '');
     } catch (err: any) {
       // The server's own message when it has one; it is not translated yet,
       // which is a Sprint 1B item, so the generic fallback is.
@@ -145,7 +148,7 @@ export default function BloodCenterDashboard() {
         organizationType={t('portal.bloodCenter.workspace')}
         userName={t('portal.guest')}
       >
-        <div className="flex flex-col items-center justify-center bc-glass rounded-card p-12">
+        <div className="bc-auth-card flex flex-col items-center justify-center bc-glass rounded-card p-12">
           <Activity className="mb-4 text-donor-secondary" size={48} />
           <h2 className="mb-2 font-display text-2xl font-semibold text-donor-text">
             {t('portal.bloodCenter.name')}
@@ -228,7 +231,7 @@ export default function BloodCenterDashboard() {
         organizationType={t('portal.bloodCenter.workspace')}
         userName={`${user.firstName} ${user.lastName}`}
       >
-        <div className="flex flex-col items-center justify-center bc-glass rounded-card p-12 text-center">
+        <div className="bc-auth-card flex flex-col items-center justify-center bc-glass rounded-card p-12 text-center">
           <Clock className="mb-4 text-donor-secondary" size={48} />
           <h2 className="mb-2 font-display text-2xl font-semibold text-donor-text">
             {isPending

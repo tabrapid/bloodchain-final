@@ -90,8 +90,8 @@ export function Surface({
   const frame: ViewStyle = {
     backgroundColor: hero ? colors.surface : background,
     borderRadius: cornerRadius,
-    borderWidth: bordered ? 1 : 0,
-    borderColor: colors.border,
+    borderWidth: bordered || !tone ? 1 : 0,
+    borderColor: bordered ? colors.border : colors.divider,
     opacity: disabled ? 0.5 : 1,
     // The gradient and the highlight are children that must not spill past
     // the corner.

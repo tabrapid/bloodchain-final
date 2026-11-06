@@ -48,8 +48,18 @@ export function DashboardShell({
     setSidebarOpen(false);
   }, [currentPath]);
 
+  useEffect(() => {
+    if (!sidebarOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setSidebarOpen(false);
+    };
+    document.addEventListener('keydown', closeOnEscape);
+    return () => document.removeEventListener('keydown', closeOnEscape);
+  }, [sidebarOpen]);
+
   return (
     <div className={cn('bc-app-bg flex min-h-screen text-donor-text', className)}>
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded focus:bg-white focus:p-3 focus:text-slate-900">{title}</a>
       <Sidebar
         items={sidebarItems}
         activeItem={activeItem}
@@ -60,7 +70,7 @@ export function DashboardShell({
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
       />
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="bc-workspace flex min-w-0 flex-1 flex-col">
         <Topbar
           title={title}
           subtitle={subtitle}
@@ -71,7 +81,7 @@ export function DashboardShell({
           onMenuClick={() => setSidebarOpen((open) => !open)}
           actions={topbarActions}
         />
-        <main className="flex-1 overflow-x-hidden p-4 sm:p-6 lg:p-10">{children}</main>
+        <main id="main-content" className="bc-main flex-1 overflow-x-hidden">{children}</main>
       </div>
     </div>
   );

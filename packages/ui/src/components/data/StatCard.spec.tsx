@@ -19,10 +19,10 @@ describe('StatCard', () => {
     expect(screen.getByText('+12% vs last week')).toBeInTheDocument();
   });
 
-  it('applies danger-variant tint styling', () => {
+  it('marks danger with a persistent accent without tinting the entire card', () => {
     const { container } = render(<StatCard label="Critical stock" value="0" variant="danger" />);
-    // Variants tint the glass surface with the muted brand color rather than
-    // swapping the border, so the card still reads as glass in every state.
-    expect(container.firstElementChild).toHaveClass('bg-donor-dangerMuted');
+    expect(container.firstElementChild).toHaveClass('bc-stat');
+    expect(container.querySelector('.bg-donor-danger')).toBeInTheDocument();
+    expect(container.firstElementChild).not.toHaveClass('bg-donor-dangerMuted');
   });
 });

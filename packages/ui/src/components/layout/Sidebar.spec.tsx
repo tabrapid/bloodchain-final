@@ -85,6 +85,7 @@ describe('Sidebar', () => {
     render(<Sidebar items={items} currentPath="/shipments" />);
 
     expect(screen.getByText('Shipments').closest('a')?.className).toContain('bg-donor-primary/12');
+    expect(screen.getByText('Shipments').closest('a')).toHaveAttribute('aria-current', 'page');
     expect(screen.getByText('Dashboard').closest('a')?.className).not.toContain('bg-donor-primary/12');
   });
 

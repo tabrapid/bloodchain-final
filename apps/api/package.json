@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "scripts": {
-    "dev": "nest start --watch",
+    "dev": "node --env-file-if-exists=../../.env node_modules/@nestjs/cli/bin/nest.js start --watch",
     "build": "nest build",
     "start": "node dist/src/main.js",
     "lint": "eslint \"src/**/*.ts\"",

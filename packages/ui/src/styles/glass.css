@@ -1,249 +1,286 @@
-/*
- * Bloodchainga — Liquid Glass design tokens (web).
- *
- * Shared by hospital-web, blood-center-web and admin-web so the three
- * dashboards and the donor mobile app read as one product.
- *
- * Surface tokens are space-separated RGB triplets rather than hex, because
- * the Tailwind preset exposes them as `rgb(var(--token) / <alpha-value>)`.
- * That is what keeps the ~38 existing `bg-donor-primary/80`,
- * `border-donor-border/60` style opacity modifiers working after the tokens
- * stopped being static colors.
- *
- * Brand accents deliberately stay OUT of this file: they are identical in
- * light and dark (a brand red is a brand red), so they live in the preset as
- * plain hex where Tailwind's alpha handling is already native.
- */
-
-:root {
-  /* Ambient page wash. Glass blurs whatever is behind it, so a flat
-     background blurs to that same flat color -- these stops and the orbs
-     below are the color variation that makes the material read as glass. */
-  --bc-bg: 244 245 250;
-  --bc-bg-gradient-from: #f5f2fb;
-  --bc-bg-gradient-to: #eef3fb;
-  --bc-orb-1: rgba(216, 83, 96, 0.16);
-  --bc-orb-2: rgba(104, 183, 209, 0.16);
-  --bc-orb-3: rgba(142, 130, 223, 0.16);
-
-  /* Layered surfaces. Translucent so the wash shows through. These two
-     (`--bc-surface`/`--bc-surface-elevated`) are consumed ONLY by the
-     hand-composed `.bc-glass`/`.bc-glass-elevated` rules below, which pair
-     them with their `-alpha` companion and a backdrop blur. They must never
-     be read by a plain Tailwind utility class (`bg-donor-surface`) without
-     that pairing: `<alpha-value>` defaults to 1 with no `/NN` modifier, so a
-     bare utility would render solid opaque white over a dark theme instead
-     of the intended low-alpha tint -- see `--bc-surface-solid*` below for
-     the token Tailwind's `surface`/`elevated` keys actually read. */
+/* BloodChain clinical workspace. Legacy material names remain API-compatible. */
+:root,
+:root.light {
+  color-scheme: light;
+  --bc-bg: 239 241 245;
   --bc-surface: 255 255 255;
-  --bc-surface-alpha: 0.62;
   --bc-surface-elevated: 255 255 255;
-  --bc-surface-elevated-alpha: 0.78;
-  /* Opaque, theme-correct surfaces for anything that needs to be legible
-     without a blur backdrop: badges, active/hover nav states, table rows,
-     dropdown menus, skeleton loaders. Two tiers for real elevation
-     hierarchy -- same values as the mobile app's `surfaceSolid`/
-     `surfaceSolidElevated` tokens, so the web and mobile apps read as one
-     product at this tier too. */
   --bc-surface-solid: 255 255 255;
-  --bc-surface-solid-elevated: 250 250 252;
-
-  --bc-text: 18 22 28;
-  --bc-muted: 91 102 116;
-  --bc-border: 15 23 42;
-  --bc-border-alpha: 0.1;
-  /* The bright inner edge that sells the "lit glass" look. */
-  --bc-glass-highlight: rgba(255, 255, 255, 0.85);
-  --bc-shadow: 0 8px 32px rgba(15, 23, 42, 0.08);
-  --bc-shadow-lg: 0 16px 48px rgba(15, 23, 42, 0.12);
-  --bc-blur: 20px;
-
-  /* Muted tint backgrounds for badges/stat cards (variant surface, not the
-     brand color itself) and the text color that sits on top of them. A raw
-     mid-tone brand accent fails 4.5:1 small-text contrast against its own
-     tint in both themes, so "on" gets a shade shifted darker (light mode) or
-     lighter (dark mode) than the accent -- identical fix, and identical
-     values, to the mobile app's `onMuted` tokens. */
-  --bc-tint-primary: rgba(216, 83, 96, 0.14);
-  --bc-tint-secondary: rgba(104, 183, 209, 0.18);
-  --bc-tint-success: rgba(99, 194, 155, 0.18);
-  --bc-tint-warning: rgba(229, 184, 109, 0.22);
-  --bc-tint-danger: rgba(216, 83, 96, 0.14);
-  --bc-tint-ai: rgba(142, 130, 223, 0.16);
-  --bc-on-primary: 163 44 56;
-  --bc-on-secondary: 31 106 131;
-  --bc-on-success: 31 115 85;
-  --bc-on-warning: 138 99 24;
-  --bc-on-danger: 163 44 56;
-  --bc-on-ai: 78 66 168;
+  --bc-surface-solid-elevated: 246 248 251;
+  --bc-text: 48 62 80;
+  --bc-muted: 96 111 130;
+  --bc-border: 216 223 232;
+  --bc-border-alpha: 1;
+  --bc-shadow: 0 1px 3px rgb(33 49 71 / 0.06);
+  --bc-shadow-lg: 0 12px 36px rgb(33 49 71 / 0.12);
+  --bc-focus: 66 99 207;
+  --bc-tint-primary: #edf1fd;
+  --bc-tint-secondary: #e9f3fb;
+  --bc-tint-success: #e8f4ef;
+  --bc-tint-warning: #fff4df;
+  --bc-tint-danger: #fceced;
+  --bc-tint-ai: #f0edfb;
+  --bc-on-primary: 49 77 174;
+  --bc-on-secondary: 30 91 141;
+  --bc-on-success: 24 104 75;
+  --bc-on-warning: 126 84 14;
+  --bc-on-danger: 176 47 64;
+  --bc-on-ai: 93 66 161;
 }
-
-/* Dark is opt-in via a class on <html>, and also follows the OS when the
-   app has not pinned a choice. Both selectors carry the same values. */
-.dark,
-:root.dark {
-  --bc-bg: 8 11 18;
-  --bc-bg-gradient-from: #0d1420;
-  --bc-bg-gradient-to: #05080d;
-  --bc-orb-1: rgba(216, 83, 96, 0.24);
-  --bc-orb-2: rgba(104, 183, 209, 0.24);
-  --bc-orb-3: rgba(142, 130, 223, 0.24);
-
-  --bc-surface: 255 255 255;
-  --bc-surface-alpha: 0.07;
-  --bc-surface-elevated: 255 255 255;
-  --bc-surface-elevated-alpha: 0.11;
-  --bc-surface-solid: 17 26 36;
-  --bc-surface-solid-elevated: 24 36 49;
-
-  --bc-text: 242 245 247;
-  --bc-muted: 132 149 163;
-  --bc-border: 255 255 255;
-  --bc-border-alpha: 0.12;
-  --bc-glass-highlight: rgba(255, 255, 255, 0.18);
-  --bc-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-  --bc-shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.5);
-  --bc-blur: 24px;
-
-  --bc-tint-primary: rgba(216, 83, 96, 0.18);
-  --bc-tint-secondary: rgba(104, 183, 209, 0.16);
-  --bc-tint-success: rgba(99, 194, 155, 0.16);
-  --bc-tint-warning: rgba(229, 184, 109, 0.16);
-  --bc-tint-danger: rgba(216, 83, 96, 0.18);
-  --bc-tint-ai: rgba(142, 130, 223, 0.18);
-  --bc-on-primary: 242 145 154;
-  --bc-on-secondary: 168 220 238;
-  --bc-on-success: 143 220 188;
-  --bc-on-warning: 242 212 155;
-  --bc-on-danger: 242 145 154;
-  --bc-on-ai: 179 170 238;
+:root.dark,
+.dark {
+  color-scheme: dark;
+  --bc-bg: 23 32 45;
+  --bc-surface: 33 45 62;
+  --bc-surface-elevated: 39 53 72;
+  --bc-surface-solid: 33 45 62;
+  --bc-surface-solid-elevated: 39 53 72;
+  --bc-text: 235 240 247;
+  --bc-muted: 173 188 207;
+  --bc-border: 65 82 104;
+  --bc-shadow: 0 1px 4px rgb(0 0 0 / 0.12);
+  --bc-shadow-lg: 0 12px 36px rgb(0 0 0 / 0.3);
+  --bc-tint-primary: #2c3d68;
+  --bc-tint-secondary: #25445d;
+  --bc-tint-success: #214d40;
+  --bc-tint-warning: #564528;
+  --bc-tint-danger: #59323b;
+  --bc-tint-ai: #41385d;
+  --bc-on-primary: 181 198 255;
+  --bc-on-secondary: 166 211 247;
+  --bc-on-success: 147 221 184;
+  --bc-on-warning: 244 209 148;
+  --bc-on-danger: 255 179 189;
+  --bc-on-ai: 208 188 250;
 }
-
-@media (prefers-color-scheme: dark) {
-  :root:not(.light) {
-    --bc-bg: 8 11 18;
-    --bc-bg-gradient-from: #0d1420;
-    --bc-bg-gradient-to: #05080d;
-    --bc-orb-1: rgba(216, 83, 96, 0.24);
-    --bc-orb-2: rgba(104, 183, 209, 0.24);
-    --bc-orb-3: rgba(142, 130, 223, 0.24);
-
-    --bc-surface-alpha: 0.07;
-    --bc-surface-elevated-alpha: 0.11;
-    --bc-surface-solid: 17 26 36;
-    --bc-surface-solid-elevated: 24 36 49;
-
-    --bc-text: 242 245 247;
-    --bc-muted: 132 149 163;
-    --bc-border: 255 255 255;
-    --bc-border-alpha: 0.12;
-    --bc-glass-highlight: rgba(255, 255, 255, 0.18);
-    --bc-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-    --bc-shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.5);
-    --bc-blur: 24px;
-
-    --bc-tint-primary: rgba(216, 83, 96, 0.18);
-    --bc-tint-secondary: rgba(104, 183, 209, 0.16);
-    --bc-tint-success: rgba(99, 194, 155, 0.16);
-    --bc-tint-warning: rgba(229, 184, 109, 0.16);
-    --bc-tint-danger: rgba(216, 83, 96, 0.18);
-    --bc-tint-ai: rgba(142, 130, 223, 0.18);
-    --bc-on-primary: 242 145 154;
-    --bc-on-secondary: 168 220 238;
-    --bc-on-success: 143 220 188;
-    --bc-on-warning: 242 212 155;
-    --bc-on-danger: 242 145 154;
-    --bc-on-ai: 179 170 238;
-  }
-}
-
-/* ------------------------------------------------------------------ */
-/* The ambient page wash                                               */
-/* ------------------------------------------------------------------ */
-
 .bc-app-bg {
   position: relative;
   min-height: 100vh;
-  background:
-    radial-gradient(60rem 40rem at 12% -8%, var(--bc-orb-1), transparent 60%),
-    radial-gradient(52rem 36rem at 92% 4%, var(--bc-orb-2), transparent 62%),
-    radial-gradient(46rem 34rem at 48% 100%, var(--bc-orb-3), transparent 62%),
-    linear-gradient(160deg, var(--bc-bg-gradient-from), var(--bc-bg-gradient-to));
-  background-attachment: fixed;
+  background: rgb(var(--bc-bg));
 }
-
-/* ------------------------------------------------------------------ */
-/* Glass materials — a hierarchy, not one blur applied to everything.  */
-/* ------------------------------------------------------------------ */
-
-/* Level 1: the main content surface. Slightly opaque so text stays crisp. */
-.bc-glass {
-  background-color: rgb(var(--bc-surface) / var(--bc-surface-alpha));
-  border: 1px solid rgb(var(--bc-border) / var(--bc-border-alpha));
-  -webkit-backdrop-filter: blur(var(--bc-blur)) saturate(160%);
-  backdrop-filter: blur(var(--bc-blur)) saturate(160%);
-  box-shadow: var(--bc-shadow), inset 0 1px 0 0 var(--bc-glass-highlight);
-}
-
-/* Level 2: cards that need to sit above level 1. */
+.bc-glass,
 .bc-glass-elevated {
-  background-color: rgb(var(--bc-surface-elevated) / var(--bc-surface-elevated-alpha));
-  border: 1px solid rgb(var(--bc-border) / var(--bc-border-alpha));
-  -webkit-backdrop-filter: blur(var(--bc-blur)) saturate(180%);
-  backdrop-filter: blur(var(--bc-blur)) saturate(180%);
-  box-shadow: var(--bc-shadow-lg), inset 0 1px 0 0 var(--bc-glass-highlight);
+  background: rgb(var(--bc-surface-solid));
+  border: 1px solid rgb(var(--bc-border));
+  box-shadow: var(--bc-shadow);
 }
-
-/* Level 0: chrome (sidebar, topbar). More transparent than content, so
-   content stays the focus and the chrome recedes. */
+.bc-glass-elevated {
+  box-shadow: var(--bc-shadow-lg);
+}
 .bc-glass-chrome {
-  background-color: rgb(var(--bc-surface) / calc(var(--bc-surface-alpha) * 0.75));
-  -webkit-backdrop-filter: blur(calc(var(--bc-blur) * 1.4)) saturate(180%);
-  backdrop-filter: blur(calc(var(--bc-blur) * 1.4)) saturate(180%);
+  background: rgb(var(--bc-surface-solid));
 }
-
-/* Opaque: inputs, dropdowns, sticky table headers — anywhere translucency
-   would let content scroll through and destroy legibility. */
 .bc-solid {
-  background-color: rgb(var(--bc-surface-solid));
-  border: 1px solid rgb(var(--bc-border) / var(--bc-border-alpha));
+  background: rgb(var(--bc-surface-solid));
+  border: 1px solid rgb(var(--bc-border));
 }
-
 .bc-hairline {
-  border-color: rgb(var(--bc-border) / var(--bc-border-alpha));
+  border-color: rgb(var(--bc-border));
 }
-
-/* Respect users who have asked for less motion/effects. Dropping the blur
-   also helps low-end GPUs, where a full-page backdrop-filter is expensive. */
-@media (prefers-reduced-transparency: reduce) {
-  .bc-glass,
-  .bc-glass-elevated,
-  .bc-glass-chrome {
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
-    background-color: rgb(var(--bc-surface-solid));
-  }
+.bc-sidebar.bc-sidebar {
+  background: #34445d;
+  color: #e8edf5;
+  border: 0;
+  height: 100dvh;
+  padding: 0;
+  position: fixed;
+  width: 252px;
 }
-
-/* ------------------------------------------------------------------ */
-/* Focus — one visible ring for everything a keyboard can reach.       */
-/* ------------------------------------------------------------------ */
-
-/*
- * Sixty-one buttons across the three consoles carried no focus styling at all,
- * so a keyboard user tabbing through a row of actions had nothing on screen
- * telling them where they were. The handful of components that style focus
- * themselves still win: `:where()` has zero specificity, so this is only the
- * floor, and it is `:focus-visible` rather than `:focus` so a mouse click does
- * not leave a ring behind.
- *
- * `--bc-focus` is the brand secondary, which clears 3:1 against every surface
- * token in both themes.
- */
-:root {
-  --bc-focus: 104 183 209;
+.bc-sidebar-brand {
+  height: 76px;
+  margin: 0;
+  padding: 0 24px;
+  background: #2c3950;
+  flex-shrink: 0;
 }
-
+.bc-sidebar-brand > span:first-child {
+  background: #4263cf;
+  color: white;
+  border-radius: 6px;
+  width: 34px;
+  height: 34px;
+}
+.bc-sidebar-brand > span:last-child {
+  color: white;
+  font-size: 18px;
+  letter-spacing: -0.35px;
+}
+.bc-sidebar nav {
+  padding: 16px 0;
+  gap: 3px;
+}
+.bc-sidebar nav a,
+.bc-sidebar nav [aria-disabled] {
+  min-height: 44px;
+  margin: 0 12px;
+  padding: 11px 14px;
+  border-radius: 5px;
+  color: #cbd5e4;
+  font-size: 13px;
+  font-weight: 500;
+}
+.bc-sidebar nav a:hover {
+  background: #40516d;
+  color: white;
+}
+.bc-sidebar nav a[aria-current='page'] {
+  background: #29394f;
+  color: white;
+}
+.bc-sidebar nav a[aria-current='page'] > span:first-child {
+  background: #7d9bff;
+}
+.bc-sidebar nav a svg {
+  color: #a9bad1;
+  flex-shrink: 0;
+}
+.bc-sidebar nav a[aria-current='page'] svg {
+  color: #a9beff;
+}
+.bc-sidebar-footer {
+  padding: 18px 24px;
+  border-top: 1px solid #4c5c73;
+  margin: 0;
+}
+.bc-sidebar-footer p:first-child {
+  color: #edf2fa;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.bc-sidebar-footer p:last-child {
+  color: #acbcd2;
+  font-size: 11px;
+  margin-top: 4px;
+}
+.bc-workspace {
+  min-width: 0;
+  width: 100%;
+}
+.bc-topbar.bc-topbar {
+  min-height: 76px;
+  padding: 14px 28px;
+  box-shadow: 0 1px 3px rgb(33 49 71 / 0.05);
+}
+.bc-topbar h1 {
+  font-size: 20px;
+  line-height: 1.4;
+  font-weight: 600;
+  letter-spacing: -0.4px;
+}
+.bc-main.bc-main {
+  padding: 28px;
+}
+.bc-main .bc-glass {
+  border-radius: 6px;
+}
+.bc-main > * {
+  max-width: 1600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.bc-stat.bc-stat {
+  min-height: 132px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+.bc-stat-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  flex-shrink: 0;
+  border-radius: 8px;
+}
+.bc-stat-value {
+  font-size: 30px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.8px;
+  line-height: 1.1;
+}
+.bc-stat-label {
+  margin-top: 8px;
+  font-size: 13px;
+  color: rgb(var(--bc-muted));
+}
+.bc-table-scroll {
+  overflow: auto;
+  max-height: 72vh;
+  overscroll-behavior: contain;
+}
+.bc-data-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  font-variant-numeric: tabular-nums;
+}
+.bc-data-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: rgb(var(--bc-surface-solid-elevated));
+}
+.bc-data-table.bc-data-table th {
+  font-size: 12px;
+  text-transform: none;
+  letter-spacing: 0;
+  padding: 13px 18px;
+  color: rgb(var(--bc-text));
+  border-bottom: 1px solid rgb(var(--bc-border));
+}
+.bc-data-table.bc-data-table td {
+  font-size: 13px;
+  padding: 13px 18px;
+  border-bottom: 1px solid rgb(var(--bc-border) / 0.65);
+}
+.bc-data-table th + th,
+.bc-data-table td + td {
+  border-left: 1px solid rgb(var(--bc-border) / 0.4);
+}
+.bc-data-table tbody tr:nth-child(even) {
+  background: rgb(var(--bc-surface-solid-elevated) / 0.45);
+}
+.bc-data-table tbody tr:hover {
+  background: var(--bc-tint-primary);
+}
+.bc-data-table td button,
+.bc-data-table td a {
+  font-weight: 500;
+}
+.bc-filter-bar {
+  padding: 16px;
+  gap: 12px;
+}
+.bc-main :where(input:not([type='checkbox']):not([type='radio']), select, textarea) {
+  border-color: rgb(var(--bc-border));
+  border-radius: 5px;
+  background-color: rgb(var(--bc-surface-solid));
+  min-height: 36px;
+  max-width: 100%;
+}
+.bc-main :where(input[type='checkbox'], input[type='radio']) {
+  accent-color: #4263cf;
+}
+.bc-main :where(button, a).bg-donor-primary {
+  box-shadow: 0 1px 2px rgb(33 49 71 / 0.12);
+}
+.bc-auth-page.bc-auth-page {
+  padding: 24px;
+  background: linear-gradient(135deg, #26374f 0%, #354d76 48%, #4263cf 100%);
+}
+.bc-auth-page > .bc-glass {
+  width: 100%;
+  max-width: 440px;
+  padding: 32px;
+  border-radius: 8px;
+}
+.bc-auth-card.bc-auth-card {
+  max-width: 520px;
+  margin: 4vh auto;
+  padding: 40px 28px;
+}
 :where(
   a[href],
   button,
@@ -256,39 +293,84 @@
   [tabindex]:not([tabindex='-1'])
 ):focus-visible {
   outline: 2px solid rgb(var(--bc-focus));
-  outline-offset: 2px;
+  outline-offset: 3px;
 }
-
-/*
- * Several controls set `outline-none` to replace the browser ring with their
- * own `focus:ring-*`. Tailwind's `outline-none` is a *transparent* outline, so
- * those keep working; this only restores one where nothing replaced it.
- */
-@media (forced-colors: active) {
-  :where(a[href], button, input, select, textarea, [role='button']):focus-visible {
-    outline: 2px solid Highlight;
+:where(button, input, select, textarea) {
+  font: inherit;
+}
+:where(button):disabled {
+  cursor: not-allowed;
+}
+:where(input, textarea)::placeholder {
+  color: rgb(var(--bc-muted));
+  opacity: 0.8;
+}
+:where(html) {
+  scrollbar-color: #b7c1ce transparent;
+  scrollbar-width: thin;
+}
+@media (min-width: 1024px) {
+  .bc-workspace {
+    margin-left: 252px;
+    width: calc(100% - 252px);
+  }
+  .bc-sidebar.bc-sidebar {
+    position: fixed;
+    width: 252px;
   }
 }
-
-/* ------------------------------------------------------------------ */
-/* Motion — subtle, and fully disabled under reduced-motion.           */
-/* ------------------------------------------------------------------ */
-
+@media (max-width: 767px) {
+  .bc-topbar.bc-topbar {
+    padding: 12px 16px;
+    min-height: 68px;
+    gap: 8px;
+  }
+  .bc-topbar h1 {
+    font-size: 17px;
+  }
+  .bc-topbar > div:last-child {
+    gap: 6px;
+  }
+  .bc-main.bc-main {
+    padding: 16px;
+  }
+  .bc-stat.bc-stat {
+    min-height: 112px;
+    padding: 16px;
+    gap: 12px;
+  }
+  .bc-stat-value {
+    font-size: 26px;
+  }
+  .bc-stat-icon {
+    width: 40px;
+    height: 40px;
+  }
+  .bc-stat-icon svg {
+    width: 28px;
+    height: 28px;
+  }
+  .bc-auth-page.bc-auth-page {
+    padding: 16px;
+  }
+  .bc-auth-page > .bc-glass,
+  .bc-auth-card.bc-auth-card {
+    padding: 24px;
+  }
+}
 @keyframes bc-rise {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(4px);
   }
   to {
     opacity: 1;
     transform: none;
   }
 }
-
 .bc-rise {
-  animation: bc-rise 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: bc-rise 0.2s ease-out both;
 }
-
 @media (prefers-reduced-motion: reduce) {
   .bc-rise {
     animation: none;
@@ -298,5 +380,37 @@
   *::after {
     animation-duration: 0.001ms !important;
     transition-duration: 0.001ms !important;
+  }
+}
+@media (forced-colors: active) {
+  :where(a[href], button, input, select, textarea, [role='button']):focus-visible {
+    outline: 2px solid Highlight;
+  }
+  .bc-sidebar nav a[aria-current='page'] {
+    outline: 2px solid Highlight;
+  }
+}
+
+/* Filters wrap as a unit rather than hiding the submit action on small screens. */
+.bc-filter-form > .relative {
+  flex: 1 1 240px;
+  min-width: min(100%, 240px);
+}
+.bc-filter-form > select {
+  flex: 0 1 auto;
+  min-width: 120px;
+}
+.bc-filter-form > button {
+  flex-shrink: 0;
+}
+.bc-main > .p-6 {
+  padding: 0;
+}
+@media (max-width: 767px) {
+  .bc-filter-form > select {
+    flex: 1 1 120px;
+  }
+  .bc-filter-form > button {
+    width: 100%;
   }
 }

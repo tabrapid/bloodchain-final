@@ -60,8 +60,8 @@ export function DataTable<T>({
       {/* The card clips to its rounded corners (`overflow-hidden` above);
           this inner wrapper is what actually scrolls a table too wide for a
           small screen, instead of silently clipping columns off the edge. */}
-      <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm">
+      <div className="bc-table-scroll">
+        <table className="bc-data-table w-full text-left text-sm">
           {/* Solid, not glass -- a translucent sticky header would let scrolled
               rows show through and blur the column labels along with them. */}
           <thead className="bc-solid border-0 border-b border-donor-border/60">

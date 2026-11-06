@@ -32,6 +32,7 @@ export interface SidebarLinkProps {
   href: string;
   className?: string;
   children?: ReactNode;
+  'aria-current'?: 'page';
 }
 
 /**
@@ -42,8 +43,8 @@ export interface SidebarLinkProps {
  */
 export type SidebarLinkComponent = (props: SidebarLinkProps) => ReactNode;
 
-const DefaultLink: SidebarLinkComponent = ({ href, className, children }) => (
-  <a href={href} className={className}>
+const DefaultLink: SidebarLinkComponent = ({ href, className, children, ...rest }) => (
+  <a href={href} className={className} {...rest}>
     {children}
   </a>
 );
@@ -130,12 +131,12 @@ export function Sidebar({
 
       <aside
         className={cn(
-          'bc-glass-chrome fixed inset-y-0 left-0 z-40 flex w-72 flex-col border-r border-donor-border/60 px-5 py-8 transition-transform duration-200 ease-out lg:static lg:z-10 lg:w-64 lg:translate-x-0',
+          'bc-sidebar bc-glass-chrome fixed inset-y-0 left-0 z-40 flex w-72 flex-col border-r border-donor-border/60 px-5 py-8 transition-transform duration-200 ease-out lg:static lg:z-10 lg:w-64 lg:translate-x-0',
           isOpen ? 'translate-x-0' : '-translate-x-full',
           className,
         )}
       >
-        <div className="mb-10 flex items-center gap-3 px-3">
+        <div className="bc-sidebar-brand flex items-center gap-3">
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-donor-primary/15 text-donor-primary">
             <Activity size={18} />
           </span>
@@ -205,7 +206,7 @@ export function Sidebar({
         </nav>
 
         {(organizationName || organizationType) && (
-          <div className="mt-auto border-t border-donor-border/60 px-3 pt-5">
+          <div className="bc-sidebar-footer mt-auto">
             <p className="text-sm font-medium text-donor-text">{organizationName}</p>
             {organizationType && <p className="text-xs text-donor-muted">{organizationType}</p>}
           </div>
