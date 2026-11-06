@@ -1,5 +1,7 @@
 'use client';
 
+import { Modal } from '@bloodchain/ui/components';
+
 import { useEffect, useState } from 'react';
 import { ConfirmDialog, LoadingState } from '@bloodchain/ui/components';
 import {
@@ -34,8 +36,10 @@ export default function OrganizationsPage() {
   const [actionLoading, setActionLoading] = useState(false);
   // Approving, rejecting and suspending an organization all decide whether
   // real staff can sign in tomorrow; none of them belonged in an OS dialog.
-  const [pendingAction, setPendingAction] =
-    useState<{ kind: 'verify' | 'reject' | 'suspend'; id: string } | null>(null);
+  const [pendingAction, setPendingAction] = useState<{
+    kind: 'verify' | 'reject' | 'suspend';
+    id: string;
+  } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -44,7 +48,11 @@ export default function OrganizationsPage() {
         if (!isAuthenticated()) return;
         const userData = await me();
         if (!userData.roles.includes('SUPER_ADMIN')) return;
-        setCurrentUser({ firstName: userData.firstName, lastName: userData.lastName, roles: userData.roles });
+        setCurrentUser({
+          firstName: userData.firstName,
+          lastName: userData.lastName,
+          roles: userData.roles,
+        });
         await loadOrgs();
       } catch (err) {
         console.error(err);
@@ -154,14 +162,20 @@ export default function OrganizationsPage() {
 
   if (isLoading) {
     return (
-      <AppShell title={t('ops.organizations.title')} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
+      <AppShell
+        title={t('ops.organizations.title')}
+        userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}
+      >
         <LoadingState />
       </AppShell>
     );
   }
 
   return (
-    <AppShell title={t('ops.organizations.title')} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
+    <AppShell
+      title={t('ops.organizations.title')}
+      userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}
+    >
       <div className="p-6">
         <div className="mb-6">
           <p className="text-sm text-donor-muted">{t('ops.organizations.subtitle')}</p>
@@ -190,6 +204,7 @@ export default function OrganizationsPage() {
                 />
               </div>
               <select
+                aria-label={t('filters.allTypes')}
                 value={typeFilter}
                 onChange={(e) => setTypeFilter(e.target.value)}
                 className="bc-solid rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-donor-primary"
@@ -199,13 +214,16 @@ export default function OrganizationsPage() {
                 <option value="BLOOD_CENTER">{t('table.bloodCenter')}</option>
               </select>
               <select
+                aria-label={t('filters.allStatuses')}
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
                 className="bc-solid rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-donor-primary"
               >
                 <option value="">{t('ops.common.allStatus')}</option>
                 <option value="ACTIVE">{t('status.organization.ACTIVE')}</option>
-                <option value="PENDING_APPROVAL">{t('status.organization.PENDING_APPROVAL')}</option>
+                <option value="PENDING_APPROVAL">
+                  {t('status.organization.PENDING_APPROVAL')}
+                </option>
                 <option value="SUSPENDED">{t('status.organization.SUSPENDED')}</option>
                 <option value="DEACTIVATED">{t('status.organization.DEACTIVATED')}</option>
               </select>
@@ -222,12 +240,42 @@ export default function OrganizationsPage() {
             <table className="bc-data-table w-full">
               <thead>
                 <tr className="bg-donor-elevated border-b border-donor-border/40">
-                  <th scope="col" className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.organization')}</th>
-                  <th scope="col" className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.type')}</th>
-                  <th scope="col" className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.status')}</th>
-                  <th scope="col" className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('ops.organizations.staff')}</th>
-                  <th scope="col" className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.created')}</th>
-                  <th scope="col" className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.actions')}</th>
+                  <th
+                    scope="col"
+                    className="text-left px-4 py-3 text-sm font-medium text-donor-muted"
+                  >
+                    {t('table.organization')}
+                  </th>
+                  <th
+                    scope="col"
+                    className="text-left px-4 py-3 text-sm font-medium text-donor-muted"
+                  >
+                    {t('table.type')}
+                  </th>
+                  <th
+                    scope="col"
+                    className="text-left px-4 py-3 text-sm font-medium text-donor-muted"
+                  >
+                    {t('table.status')}
+                  </th>
+                  <th
+                    scope="col"
+                    className="text-left px-4 py-3 text-sm font-medium text-donor-muted"
+                  >
+                    {t('ops.organizations.staff')}
+                  </th>
+                  <th
+                    scope="col"
+                    className="text-left px-4 py-3 text-sm font-medium text-donor-muted"
+                  >
+                    {t('table.created')}
+                  </th>
+                  <th
+                    scope="col"
+                    className="text-left px-4 py-3 text-sm font-medium text-donor-muted"
+                  >
+                    {t('table.actions')}
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-donor-border/40">
@@ -247,7 +295,9 @@ export default function OrganizationsPage() {
                           </div>
                           <div>
                             <p className="font-medium text-donor-text">{org.name}</p>
-                            <p className="text-sm text-donor-muted">{org.address || 'No address'}</p>
+                            <p className="text-sm text-donor-muted">
+                              {org.address || 'No address'}
+                            </p>
                           </div>
                         </div>
                       </td>
@@ -259,16 +309,16 @@ export default function OrganizationsPage() {
                       <td className="px-4 py-3">
                         <StatusBadgeWrapper status={org.status} domain="organization" />
                       </td>
-                      <td className="px-4 py-3 text-sm text-donor-muted">
-                        {org.staffCount}
-                      </td>
+                      <td className="px-4 py-3 text-sm text-donor-muted">{org.staffCount}</td>
                       <td className="px-4 py-3 text-sm text-donor-muted">
                         {new Date(org.createdAt).toLocaleDateString()}
                       </td>
                       <td className="px-4 py-3">
                         <button
                           onClick={async () => {
-                            const data = await import('@lib/api').then(m => m.getOrganization(org.id));
+                            const data = await import('@lib/api').then((m) =>
+                              m.getOrganization(org.id),
+                            );
                             // The directory entry is a separate read: the
                             // admin detail endpoint has its own projection
                             // and does not carry the geography fields.
@@ -292,7 +342,8 @@ export default function OrganizationsPage() {
           {meta.totalPages > 1 && (
             <div className="px-4 py-3 border-t border-donor-border/40 flex items-center justify-between">
               <p className="text-sm text-donor-muted">
-                Showing {(meta.page - 1) * meta.limit + 1} to {Math.min(meta.page * meta.limit, meta.total)} of {meta.total}
+                Showing {(meta.page - 1) * meta.limit + 1} to{' '}
+                {Math.min(meta.page * meta.limit, meta.total)} of {meta.total}
               </p>
               <div className="flex gap-2">
                 <button
@@ -316,173 +367,15 @@ export default function OrganizationsPage() {
       </div>
 
       {selectedOrg && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bc-glass-elevated bc-rise rounded-panel w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
-            <div className="px-6 py-4 border-b border-donor-border/40 flex items-center justify-between sticky top-0 bc-solid">
-              <h3 className="text-lg font-semibold text-donor-text">{t('ops.organizations.details')}</h3>
-              <button onClick={() => { setSelectedOrg(null); setDirectory(null); }}>
-                <X className="w-5 h-5 text-donor-muted" />
-              </button>
-            </div>
-            <div className="p-6 space-y-4">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-donor-secondaryMuted rounded-full flex items-center justify-center">
-                  <Building2 className="w-6 h-6 text-donor-onSecondaryMuted" />
-                </div>
-                <div>
-                  <p className="font-semibold text-donor-text">{selectedOrg.name}</p>
-                  <p className="text-sm text-donor-muted">{selectedOrg.type}</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-donor-muted">{t('table.status')}</p>
-                  <StatusBadgeWrapper status={selectedOrg.status} domain="organization" />
-                </div>
-                <div>
-                  <p className="text-sm text-donor-muted">{t('ops.organizations.staffCount')}</p>
-                  <p className="text-sm font-medium text-donor-text">{selectedOrg.staffCount || selectedOrg.staff?.length || 0}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-donor-muted">{t('table.email')}</p>
-                  <p className="text-sm font-medium text-donor-text">{selectedOrg.email || '-'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-donor-muted">{t('table.phone')}</p>
-                  <p className="text-sm font-medium text-donor-text">{selectedOrg.phone || '-'}</p>
-                </div>
-              </div>
-
-              <div>
-                <p className="text-sm text-donor-muted mb-1">{t('table.address')}</p>
-                <p className="text-sm font-medium text-donor-text">{selectedOrg.address || '-'}</p>
-              </div>
-
-              {directory && (
-                <div className="border-t border-donor-border/40 pt-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium text-donor-text">{t('directory.entry')}</p>
-                    <div className="flex items-center gap-2">
-                      {directory.isDemo && (
-                        <span className="rounded-full bg-donor-warningMuted px-2 py-0.5 text-xs font-semibold text-donor-onWarningMuted">
-                          {t('directory.demo')}
-                        </span>
-                      )}
-                      <span
-                        className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${
-                          directory.isVerified
-                            ? 'bg-donor-successMuted text-donor-onSuccessMuted'
-                            : 'bc-solid text-donor-muted'
-                        }`}
-                      >
-                        {directory.isVerified && <ShieldCheck className="w-3 h-3" />}
-                        {directory.isVerified ? t('directory.verified') : t('directory.notVerified')}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <p className="text-donor-muted">{t('directory.region')}</p>
-                      <p className="font-medium text-donor-text">
-                        {directory.region ? geoName(directory.region, locale) : '-'}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-donor-muted">{t('directory.district')}</p>
-                      <p className="font-medium text-donor-text">
-                        {directory.district ? geoName(directory.district, locale) : '-'}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-donor-muted">{t('directory.publicPhone')}</p>
-                      <p className="font-medium text-donor-text">{directory.publicPhone || '-'}</p>
-                    </div>
-                    <div>
-                      <p className="text-donor-muted">{t('directory.coordinates')}</p>
-                      <p className="flex items-center gap-1 font-medium text-donor-text">
-                        {directory.latitude !== null && directory.longitude !== null ? (
-                          <>
-                            <MapPin className="w-3 h-3 text-donor-muted" />
-                            {`${directory.latitude}, ${directory.longitude}`}
-                          </>
-                        ) : (
-                          '-'
-                        )}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap gap-2">
-                    {directory.acceptsDonations && (
-                      <span className="rounded-full bc-solid px-2 py-0.5 text-xs text-donor-text">
-                        {t('directory.acceptsDonations')}
-                      </span>
-                    )}
-                    {directory.providesLaboratory && (
-                      <span className="rounded-full bc-solid px-2 py-0.5 text-xs text-donor-text">
-                        {t('directory.providesLaboratory')}
-                      </span>
-                    )}
-                  </div>
-
-                  <div>
-                    <p className="text-sm text-donor-muted mb-1">{t('directory.services')}</p>
-                    {directory.services.length === 0 ? (
-                      <p className="text-sm text-donor-muted">-</p>
-                    ) : (
-                      <div className="flex flex-wrap gap-2">
-                        {directory.services.map((entry) => (
-                          <span
-                            key={entry.service}
-                            className="rounded-full bg-donor-elevated px-2 py-0.5 text-xs text-donor-text"
-                          >
-                            {t(`medical.services.${entry.service}`)}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  <p className="text-xs text-donor-muted">{t('directory.verifiedHint')}</p>
-                  <button
-                    onClick={() => handleDirectoryVerification(!directory.isVerified)}
-                    disabled={actionLoading}
-                    className="w-full rounded-lg bc-solid py-2 px-4 text-sm font-medium text-donor-text hover:bg-donor-elevated disabled:opacity-50"
-                  >
-                    {directory.isVerified
-                      ? t('directory.withdrawVerification')
-                      : t('directory.markVerified')}
-                  </button>
-                </div>
-              )}
-
-              {selectedOrg.stats && (
-                <div className="border-t border-donor-border/40 pt-4">
-                  <p className="text-sm font-medium text-donor-text mb-2">{t('ops.organizations.statistics')}</p>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div className="bg-donor-elevated p-2 rounded-card">
-                      <p className="text-donor-muted">{t('ops.requests.title')}</p>
-                      <p className="font-medium">{selectedOrg.stats.bloodRequestsReceived || 0}</p>
-                    </div>
-                    <div className="bg-donor-elevated p-2 rounded-card">
-                      <p className="text-donor-muted">{t('ops.shipments.title')}</p>
-                      <p className="font-medium">{selectedOrg.stats.shipmentsCreated || 0}</p>
-                    </div>
-                    <div className="bg-donor-elevated p-2 rounded-card">
-                      <p className="text-donor-muted">{t('portal.nav.couriers')}</p>
-                      <p className="font-medium">{selectedOrg.stats.couriers || 0}</p>
-                    </div>
-                    <div className="bg-donor-elevated p-2 rounded-card">
-                      <p className="text-donor-muted">{t('ops.requests.fulfilled')}</p>
-                      <p className="font-medium">{selectedOrg.stats.bloodRequestsFulfilled || 0}</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-            <div className="px-6 py-4 border-t border-donor-border/40 flex gap-3">
+        <Modal
+          open
+          onClose={() => {
+            setSelectedOrg(null);
+            setDirectory(null);
+          }}
+          title={t('ops.organizations.details')}
+          footer={
+            <div className="bc-dialog-actions flex w-full gap-3">
               {selectedOrg.status === 'PENDING_APPROVAL' && (
                 <>
                   <button
@@ -520,8 +413,171 @@ export default function OrganizationsPage() {
                 </button>
               )}
             </div>
+          }
+        >
+          <div className="space-y-4">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-donor-secondaryMuted rounded-full flex items-center justify-center">
+                <Building2 className="w-6 h-6 text-donor-onSecondaryMuted" />
+              </div>
+              <div>
+                <p className="font-semibold text-donor-text">{selectedOrg.name}</p>
+                <p className="text-sm text-donor-muted">{selectedOrg.type}</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm text-donor-muted">{t('table.status')}</p>
+                <StatusBadgeWrapper status={selectedOrg.status} domain="organization" />
+              </div>
+              <div>
+                <p className="text-sm text-donor-muted">{t('ops.organizations.staffCount')}</p>
+                <p className="text-sm font-medium text-donor-text">
+                  {selectedOrg.staffCount || selectedOrg.staff?.length || 0}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-donor-muted">{t('table.email')}</p>
+                <p className="text-sm font-medium text-donor-text">{selectedOrg.email || '-'}</p>
+              </div>
+              <div>
+                <p className="text-sm text-donor-muted">{t('table.phone')}</p>
+                <p className="text-sm font-medium text-donor-text">{selectedOrg.phone || '-'}</p>
+              </div>
+            </div>
+
+            <div>
+              <p className="text-sm text-donor-muted mb-1">{t('table.address')}</p>
+              <p className="text-sm font-medium text-donor-text">{selectedOrg.address || '-'}</p>
+            </div>
+
+            {directory && (
+              <div className="border-t border-donor-border/40 pt-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium text-donor-text">{t('directory.entry')}</p>
+                  <div className="flex items-center gap-2">
+                    {directory.isDemo && (
+                      <span className="rounded-full bg-donor-warningMuted px-2 py-0.5 text-xs font-semibold text-donor-onWarningMuted">
+                        {t('directory.demo')}
+                      </span>
+                    )}
+                    <span
+                      className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${
+                        directory.isVerified
+                          ? 'bg-donor-successMuted text-donor-onSuccessMuted'
+                          : 'bc-solid text-donor-muted'
+                      }`}
+                    >
+                      {directory.isVerified && <ShieldCheck className="w-3 h-3" />}
+                      {directory.isVerified ? t('directory.verified') : t('directory.notVerified')}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="text-donor-muted">{t('directory.region')}</p>
+                    <p className="font-medium text-donor-text">
+                      {directory.region ? geoName(directory.region, locale) : '-'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-donor-muted">{t('directory.district')}</p>
+                    <p className="font-medium text-donor-text">
+                      {directory.district ? geoName(directory.district, locale) : '-'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-donor-muted">{t('directory.publicPhone')}</p>
+                    <p className="font-medium text-donor-text">{directory.publicPhone || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-donor-muted">{t('directory.coordinates')}</p>
+                    <p className="flex items-center gap-1 font-medium text-donor-text">
+                      {directory.latitude !== null && directory.longitude !== null ? (
+                        <>
+                          <MapPin className="w-3 h-3 text-donor-muted" />
+                          {`${directory.latitude}, ${directory.longitude}`}
+                        </>
+                      ) : (
+                        '-'
+                      )}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  {directory.acceptsDonations && (
+                    <span className="rounded-full bc-solid px-2 py-0.5 text-xs text-donor-text">
+                      {t('directory.acceptsDonations')}
+                    </span>
+                  )}
+                  {directory.providesLaboratory && (
+                    <span className="rounded-full bc-solid px-2 py-0.5 text-xs text-donor-text">
+                      {t('directory.providesLaboratory')}
+                    </span>
+                  )}
+                </div>
+
+                <div>
+                  <p className="text-sm text-donor-muted mb-1">{t('directory.services')}</p>
+                  {directory.services.length === 0 ? (
+                    <p className="text-sm text-donor-muted">-</p>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {directory.services.map((entry) => (
+                        <span
+                          key={entry.service}
+                          className="rounded-full bg-donor-elevated px-2 py-0.5 text-xs text-donor-text"
+                        >
+                          {t(`medical.services.${entry.service}`)}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <p className="text-xs text-donor-muted">{t('directory.verifiedHint')}</p>
+                <button
+                  onClick={() => handleDirectoryVerification(!directory.isVerified)}
+                  disabled={actionLoading}
+                  className="w-full rounded-lg bc-solid py-2 px-4 text-sm font-medium text-donor-text hover:bg-donor-elevated disabled:opacity-50"
+                >
+                  {directory.isVerified
+                    ? t('directory.withdrawVerification')
+                    : t('directory.markVerified')}
+                </button>
+              </div>
+            )}
+
+            {selectedOrg.stats && (
+              <div className="border-t border-donor-border/40 pt-4">
+                <p className="text-sm font-medium text-donor-text mb-2">
+                  {t('ops.organizations.statistics')}
+                </p>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="bg-donor-elevated p-2 rounded-card">
+                    <p className="text-donor-muted">{t('ops.requests.title')}</p>
+                    <p className="font-medium">{selectedOrg.stats.bloodRequestsReceived || 0}</p>
+                  </div>
+                  <div className="bg-donor-elevated p-2 rounded-card">
+                    <p className="text-donor-muted">{t('ops.shipments.title')}</p>
+                    <p className="font-medium">{selectedOrg.stats.shipmentsCreated || 0}</p>
+                  </div>
+                  <div className="bg-donor-elevated p-2 rounded-card">
+                    <p className="text-donor-muted">{t('portal.nav.couriers')}</p>
+                    <p className="font-medium">{selectedOrg.stats.couriers || 0}</p>
+                  </div>
+                  <div className="bg-donor-elevated p-2 rounded-card">
+                    <p className="text-donor-muted">{t('ops.requests.fulfilled')}</p>
+                    <p className="font-medium">{selectedOrg.stats.bloodRequestsFulfilled || 0}</p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
-        </div>
+        </Modal>
       )}
 
       <ConfirmDialog

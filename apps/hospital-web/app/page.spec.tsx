@@ -12,9 +12,19 @@ vi.mock('../lib/auth', () => ({
   login: vi.fn().mockResolvedValue(undefined),
   logout: vi.fn().mockResolvedValue(undefined),
   me: vi.fn().mockResolvedValue({
-    firstName: 'Test', lastName: 'Admin', roles: ['HOSPITAL_ADMIN'],
-    organizations: [{organizationId: 'org-test', name: 'Test institution', type: 'HOSPITAL',
-      status: 'ACTIVE', organizationStatus: 'ACTIVE', role: 'HOSPITAL_ADMIN'}],
+    firstName: 'Test',
+    lastName: 'Admin',
+    roles: ['HOSPITAL_ADMIN'],
+    organizations: [
+      {
+        organizationId: 'org-test',
+        name: 'Test institution',
+        type: 'HOSPITAL',
+        status: 'ACTIVE',
+        organizationStatus: 'ACTIVE',
+        role: 'HOSPITAL_ADMIN',
+      },
+    ],
   }),
 }));
 vi.mock('../lib/analytics', () => ({
@@ -33,7 +43,22 @@ describe('dashboard sign-in', () => {
     renderLocalized(<Dashboard />);
     await userEvent.type(await screen.findByLabelText('Email'), 'staff@example.test');
     await userEvent.type(screen.getByLabelText('Password'), 'TestPassword!123');
-    await userEvent.click(screen.getByRole('button', {name: /^Sign in$/}));
-    await waitFor(() => expect(getOverviewAnalytics).toHaveBeenCalledWith('org-test', {range: 'TODAY'}));
+    await userEvent.click(screen.getByRole('button', { name: /^Sign in$/ }));
+    await waitFor(() =>
+      expect(getOverviewAnalytics).toHaveBeenCalledWith('org-test', { range: 'TODAY' }),
+    );
+  });
+});
+
+describe('dashboard data recovery', () => {
+  it('shows a failed request as an error and recovers after retry', async () => {
+    vi.mocked(getOverviewAnalytics).mockRejectedValueOnce(new Error('Service unavailable'));
+    renderLocalized(<Dashboard />);
+    await userEvent.type(await screen.findByLabelText('Email'), 'staff@example.test');
+    await userEvent.type(screen.getByLabelText('Password'), 'TestPassword!123');
+    await userEvent.click(screen.getByRole('button', { name: /^Sign in$/ }));
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: /retry|try again/i }));
+    await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument());
   });
 });

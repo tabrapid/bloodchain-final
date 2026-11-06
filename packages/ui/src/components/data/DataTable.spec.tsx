@@ -1,3 +1,4 @@
+import userEvent from '@testing-library/user-event';
 import { render, screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
@@ -92,4 +93,30 @@ describe('DataTable', () => {
     expect(screen.queryByText('REQ-1')).not.toBeInTheDocument();
     expect(container.querySelectorAll('.animate-pulse')).toHaveLength(4);
   });
+});
+
+it('sorts only on explicit sortable columns without mutating input rows', async () => {
+  const user = userEvent.setup();
+  const rows = [
+    { id: 'b', name: 'Unit 10' },
+    { id: 'a', name: 'Unit 2' },
+  ];
+  render(
+    <DataTable
+      rows={rows}
+      keyExtractor={(row) => row.id}
+      columns={[{ key: 'name', header: 'Component', sortValue: (row) => row.name }]}
+    />,
+  );
+  await user.click(screen.getByRole('button', { name: /Component/ }));
+  expect(screen.getAllByRole('cell').map((cell) => cell.textContent)).toEqual([
+    'Unit 2',
+    'Unit 10',
+  ]);
+  await user.click(screen.getByRole('button', { name: /Component/ }));
+  expect(screen.getAllByRole('cell').map((cell) => cell.textContent)).toEqual([
+    'Unit 10',
+    'Unit 2',
+  ]);
+  expect(rows[0]?.id).toBe('b');
 });

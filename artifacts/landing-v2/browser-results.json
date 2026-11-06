@@ -1,0 +1,89 @@
+{
+  "results": [
+    {
+      "width": 1920,
+      "status": "PASS",
+      "checks": [
+        "HTTP 200",
+        "three portal URLs",
+        "three role views",
+        "keyboard selection",
+        "FAQ",
+        "navigation anchors",
+        "no overflow",
+        "no runtime errors"
+      ]
+    },
+    {
+      "width": 1440,
+      "status": "PASS",
+      "checks": [
+        "HTTP 200",
+        "three portal URLs",
+        "three role views",
+        "keyboard selection",
+        "FAQ",
+        "navigation anchors",
+        "no overflow",
+        "no runtime errors"
+      ]
+    },
+    {
+      "width": 1024,
+      "status": "PASS",
+      "checks": [
+        "HTTP 200",
+        "three portal URLs",
+        "three role views",
+        "keyboard selection",
+        "FAQ",
+        "navigation anchors",
+        "no overflow",
+        "no runtime errors"
+      ]
+    },
+    {
+      "width": 768,
+      "status": "PASS",
+      "checks": [
+        "HTTP 200",
+        "three portal URLs",
+        "three role views",
+        "keyboard selection",
+        "FAQ",
+        "navigation anchors",
+        "no overflow",
+        "no runtime errors"
+      ]
+    },
+    {
+      "width": 390,
+      "status": "PASS",
+      "checks": [
+        "HTTP 200",
+        "three portal URLs",
+        "three role views",
+        "keyboard selection",
+        "FAQ",
+        "navigation anchors",
+        "no overflow",
+        "no runtime errors"
+      ]
+    },
+    {
+      "width": 360,
+      "status": "PASS",
+      "checks": [
+        "HTTP 200",
+        "three portal URLs",
+        "three role views",
+        "keyboard selection",
+        "FAQ",
+        "navigation anchors",
+        "no overflow",
+        "no runtime errors"
+      ]
+    }
+  ],
+  "noJavaScriptPortalAccess": "PASS"
+}

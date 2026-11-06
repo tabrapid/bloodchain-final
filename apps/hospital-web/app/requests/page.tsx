@@ -2,20 +2,8 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import {
-  CheckCircle,
-  Clock,
-  Droplet,
-  Package,
-  Plus,
-  RefreshCw,
-  Truck,
-} from 'lucide-react';
-import {
-  EmptyState,
-  StatCard,
-  StatusBadge,
-} from '@bloodchain/ui/components';
+import { CheckCircle, Clock, Droplet, Package, Plus, RefreshCw, Truck } from 'lucide-react';
+import { RequestWorklist, StatCard } from '@bloodchain/ui/components';
 import { me, isAuthenticated, MeResponse } from '../../lib/auth';
 import { getBloodRequests, BloodRequest } from '../../lib/shipments';
 import { AppShell } from '../../components/AppShell';
@@ -26,26 +14,6 @@ import { useTranslation } from '@bloodchain/ui/i18n';
  * written into a module-level map is fixed in one language, so the words
  * come from `t('status.request.<STATUS>')` at render instead.
  */
-const STATUS_VARIANT: Record<string, 'success' | 'warning' | 'info' | 'default' | 'danger'> = {
-  DRAFT: 'default',
-  SUBMITTED: 'info',
-  UNDER_REVIEW: 'info',
-  APPROVED: 'success',
-  PARTIALLY_APPROVED: 'warning',
-  REJECTED: 'danger',
-  CANCELLED: 'danger',
-  READY_FOR_PICKUP: 'warning',
-  IN_TRANSIT: 'info',
-  DELIVERED: 'success',
-  PARTIALLY_DELIVERED: 'warning',
-};
-
-const PRIORITY_COLOR: Record<string, string> = {
-  ROUTINE: 'bg-donor-secondaryMuted text-donor-onSecondaryMuted',
-  URGENT: 'bg-donor-warningMuted text-donor-onWarningMuted',
-  CRITICAL: 'bg-donor-dangerMuted text-donor-onDangerMuted',
-};
-
 export default function BloodRequestsPage() {
   const { t } = useTranslation();
   const [user, setUser] = useState<MeResponse | null>(null);
@@ -54,6 +22,7 @@ export default function BloodRequestsPage() {
   const [requests, setRequests] = useState<BloodRequest[]>([]);
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [refreshing, setRefreshing] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
 
   const loadRequests = useCallback(async () => {
     if (!organizationId) return;
@@ -63,7 +32,9 @@ export default function BloodRequestsPage() {
       if (statusFilter) filters.status = statusFilter;
       const data = await getBloodRequests(organizationId, filters);
       setRequests(data);
+      setLoadFailed(false);
     } catch (err) {
+      setLoadFailed(true);
       console.error('Failed to load blood requests:', err);
     } finally {
       setRefreshing(false);
@@ -126,24 +97,30 @@ export default function BloodRequestsPage() {
           <h2 className="mb-2 font-display text-2xl font-semibold text-donor-text">
             {t('ops.common.signInRequired')}
           </h2>
-          <p className="mb-6 text-center text-donor-muted">
-            {t('ops.common.signInToRequests')}
-          </p>
+          <p className="mb-6 text-center text-donor-muted">{t('ops.common.signInToRequests')}</p>
         </div>
       </AppShell>
     );
   }
 
-  const pendingCount = requests.filter((r) => ['SUBMITTED', 'UNDER_REVIEW'].includes(r.status)).length;
-  const approvedCount = requests.filter((r) => ['APPROVED', 'PARTIALLY_APPROVED', 'READY_FOR_PICKUP'].includes(r.status)).length;
+  const pendingCount = requests.filter((r) =>
+    ['SUBMITTED', 'UNDER_REVIEW'].includes(r.status),
+  ).length;
+  const approvedCount = requests.filter((r) =>
+    ['APPROVED', 'PARTIALLY_APPROVED', 'READY_FOR_PICKUP'].includes(r.status),
+  ).length;
   const inTransitCount = requests.filter((r) => r.status === 'IN_TRANSIT').length;
-  const deliveredCount = requests.filter((r) => ['DELIVERED', 'PARTIALLY_DELIVERED'].includes(r.status)).length;
+  const deliveredCount = requests.filter((r) =>
+    ['DELIVERED', 'PARTIALLY_DELIVERED'].includes(r.status),
+  ).length;
 
   return (
     <AppShell
       title={t('ops.requests.title')}
       subtitle={t('ops.dashboard.hospitalOperations')}
-      organizationName={user.organizations.find((org) => org.type === 'HOSPITAL')?.name ?? 'Hospital Console'}
+      organizationName={
+        user.organizations.find((org) => org.type === 'HOSPITAL')?.name ?? 'Hospital Console'
+      }
       organizationType="Hospital Console"
       userName={`${user.firstName} ${user.lastName}`}
     >
@@ -153,9 +130,7 @@ export default function BloodRequestsPage() {
             <h1 className="font-display text-2xl font-semibold text-donor-text">
               {t('ops.requests.title')}
             </h1>
-            <p className="text-sm text-donor-muted">
-              {t('ops.requests.pageSubtitleHospital')}
-            </p>
+            <p className="text-sm text-donor-muted">{t('ops.requests.pageSubtitleHospital')}</p>
           </div>
           <div className="flex items-center gap-3">
             <button
@@ -199,83 +174,37 @@ export default function BloodRequestsPage() {
       <div className="mb-6 grid gap-4 md:grid-cols-4">
         <StatCard
           label={t('ops.requests.awaitingReview')}
-          value={pendingCount.toString()}
+          value={loadFailed || (refreshing && !requests.length) ? '—' : pendingCount.toString()}
           icon={Clock}
           variant={pendingCount > 0 ? 'warning' : 'success'}
         />
         <StatCard
           label={t('ops.requests.approvedCount')}
-          value={approvedCount.toString()}
+          value={loadFailed || (refreshing && !requests.length) ? '—' : approvedCount.toString()}
           icon={CheckCircle}
           variant="info"
         />
         <StatCard
           label={t('status.request.IN_TRANSIT')}
-          value={inTransitCount.toString()}
+          value={loadFailed || (refreshing && !requests.length) ? '—' : inTransitCount.toString()}
           icon={Truck}
           variant="info"
         />
         <StatCard
           label={t('status.request.DELIVERED')}
-          value={deliveredCount.toString()}
+          value={loadFailed || (refreshing && !requests.length) ? '—' : deliveredCount.toString()}
           icon={Package}
           variant="success"
         />
       </div>
 
-      {requests.length === 0 ? (
-        <EmptyState
-          title={t('ops.requests.emptyOwn')}
-          description={t('ops.requests.emptyOwnHint')}
-        />
-      ) : (
-        <div className="space-y-4">
-          {requests.map((request) => {
-            const statusVariant = STATUS_VARIANT[request.status] ?? 'default';
-            const totalRequested = request.items.reduce((sum, i) => sum + i.unitsRequested, 0);
-            return (
-              <Link
-                key={request.id}
-                href={`/requests/${request.id}`}
-                className="block bc-glass rounded-card p-5 transition-colors hover:bg-donor-border/50"
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start gap-4">
-                    <div className="rounded-full bg-donor-primaryMuted p-3">
-                      <Droplet size={24} className="text-donor-onPrimaryMuted" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-3">
-                        <h3 className="font-display text-lg font-semibold text-donor-text">
-                          {request.requestReference}
-                        </h3>
-                        <StatusBadge variant={statusVariant}>{t(`status.request.${request.status}`)}</StatusBadge>
-                        <span className={`rounded-full px-2 py-0.5 text-xs font-semibold uppercase ${PRIORITY_COLOR[request.priority] || 'bg-donor-elevated text-donor-muted'}`}>
-                          {request.priority}
-                        </span>
-                      </div>
-                      <p className="mt-1 text-sm text-donor-muted">
-                        {request.items.map((i) => `${i.bloodType}${i.rhFactor === 'POSITIVE' ? '+' : i.rhFactor === 'NEGATIVE' ? '-' : ''} ${t(`medical.components.${i.componentType}`)}`).join(', ')}
-                        {' — '}
-                        {totalRequested} unit{totalRequested !== 1 ? 's' : ''} requested
-                      </p>
-                      <div className="mt-2 flex items-center gap-4 text-xs text-donor-muted">
-                        <span className="flex items-center gap-1">
-                          <Clock size={12} />
-                          {new Date(request.createdAt).toLocaleString()}
-                        </span>
-                        {request.fulfillingOrganization && (
-                          <span>Fulfilled by {request.fulfillingOrganization.name}</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </Link>
-            );
-          })}
-        </div>
-      )}
+      <RequestWorklist
+        rows={requests}
+        incoming={false}
+        loading={refreshing}
+        failed={loadFailed}
+        onRetry={() => void loadRequests()}
+      />
     </AppShell>
   );
 }

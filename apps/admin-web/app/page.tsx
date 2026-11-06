@@ -17,7 +17,7 @@ import {
   Clock,
   Activity,
 } from 'lucide-react';
-import { StatCard, LoadingState } from '@bloodchain/ui/components';
+import { ErrorState, StatCard, LoadingState } from '@bloodchain/ui/components';
 import { StatusBadgeWrapper } from '@lib/status';
 import { login, me, isAuthenticated } from '@lib/auth';
 import {
@@ -59,6 +59,7 @@ export default function AdminDashboard() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
 
   useEffect(() => {
     async function checkAuth() {
@@ -88,10 +89,7 @@ export default function AdminDashboard() {
 
   async function loadDashboardData() {
     try {
-      const [statsData, healthData] = await Promise.all([
-        getDashboard(),
-        getSystemHealth(),
-      ]);
+      const [statsData, healthData] = await Promise.all([getDashboard(), getSystemHealth()]);
       setStats(statsData);
       setHealth(healthData);
 
@@ -103,7 +101,9 @@ export default function AdminDashboard() {
       setPendingOrgs(orgsData.data);
       setActiveEmergencies(emergenciesData.data);
       setActiveAlerts(alertsData.data);
+      setLoadFailed(false);
     } catch (err) {
+      setLoadFailed(true);
       console.error('Failed to load dashboard data:', err);
     }
   }
@@ -132,7 +132,10 @@ export default function AdminDashboard() {
 
   if (isLoading) {
     return (
-      <AppShell title={t('portal.admin.dashboard')} userName={user ? `${user.firstName} ${user.lastName}` : undefined}>
+      <AppShell
+        title={t('portal.admin.dashboard')}
+        userName={user ? `${user.firstName} ${user.lastName}` : undefined}
+      >
         <LoadingState />
       </AppShell>
     );
@@ -142,12 +145,12 @@ export default function AdminDashboard() {
     return (
       <div className="bc-auth-page min-h-screen bc-app-bg flex items-center justify-center">
         <div className="bc-glass rounded-card p-8 w-full max-w-md">
-        {/* A signed-out admin who cannot read this page has no other way to
+          {/* A signed-out admin who cannot read this page has no other way to
             change it: the console's switcher lives in the top bar, which only
             renders once you are inside. */}
-        <div className="mb-4 flex justify-end">
-          <LanguageSwitcher />
-        </div>
+          <div className="mb-4 flex justify-end">
+            <LanguageSwitcher />
+          </div>
           <div className="flex items-center gap-3 mb-6">
             <div className="w-10 h-10 bg-donor-primary rounded-lg flex items-center justify-center">
               <Shield className="w-6 h-6 text-white" />
@@ -219,191 +222,235 @@ export default function AdminDashboard() {
   }
 
   return (
-    <AppShell title={t('portal.admin.dashboard')} userName={user ? `${user.firstName} ${user.lastName}` : undefined}>
-      <div className="p-6">
-        <div className="mb-8">
-          <h1 className="text-2xl font-semibold text-donor-text">{t('ops.dashboard.platformDashboard')}</h1>
-          <p className="text-sm text-donor-muted mt-1">{t('ops.dashboard.platformOverview')}</p>
-        </div>
-
-        {error && (
-          <div className="mb-6 p-4 bg-donor-warningMuted border border-donor-warning/30 rounded-lg flex items-center gap-3">
-            <AlertTriangle className="w-5 h-5 text-donor-onWarningMuted" />
-            <p className="text-sm text-donor-onWarningMuted">{error}</p>
-            <button onClick={() => setError(null)} className="ml-auto">
-              <X className="w-4 h-4 text-donor-onWarningMuted" />
-            </button>
-          </div>
-        )}
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <StatCard
-            label={t('ops.dashboard.totalUsers')}
-            value={String(stats?.users.total ?? '-')}
-            icon={Users}
-            note={`${stats?.users.active ?? 0} active`}
-          />
-          <StatCard
-            label={t('ops.dashboard.verifiedDonors')}
-            value={String(stats?.users.verifiedDonors ?? '-')}
-            icon={UserCheck}
-            note={t('ops.dashboard.activeDonors')}
-          />
-          <StatCard
-            label={t('ops.dashboard.hospitals')}
-            value={String(stats?.organizations.hospitals ?? '-')}
-            icon={Building2}
-            note={`${stats?.organizations.pending ?? 0} pending`}
-          />
-          <StatCard
-            label={t('ops.dashboard.bloodCenters')}
-            value={String(stats?.organizations.bloodCenters ?? '-')}
-            icon={Droplet}
-            note={`${stats?.organizations.suspended ?? 0} suspended`}
-          />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <StatCard
-            label={t('ops.dashboard.activeShipments')}
-            value={String(stats?.shipments.active ?? '-')}
-            icon={Package}
-            note={t('status.shipment.IN_TRANSIT')}
-          />
-          <StatCard
-            label={t('ops.dashboard.activeEmergencies')}
-            value={String(stats?.emergencies.active ?? '-')}
-            icon={AlertTriangle}
-            note={t('ops.dashboard.sosRequests')}
-          />
-          <StatCard
-            label={t('ops.requests.title')}
-            value={String(stats?.bloodRequests.active ?? '-')}
-            icon={Droplet}
-            note={`${stats?.bloodRequests.critical ?? 0} critical`}
-          />
-          <StatCard
-            label={t('portal.nav.couriers')}
-            value={String(stats?.couriers ?? '-')}
-            icon={Ship}
-            note={t('ops.dashboard.registered')}
-          />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <StatCard
-            label={t('ops.dashboard.donationsToday')}
-            value={String(stats?.todayActivity.donations ?? '-')}
-            icon={TestTube}
-            note={t('table.completedAt')}
-          />
-          <StatCard
-            label={t('ops.dashboard.appointmentsToday')}
-            value={String(stats?.todayActivity.appointments ?? '-')}
-            icon={Clock}
-            note={t('table.scheduled')}
-          />
-          <StatCard
-            label={t('ops.dashboard.bloodTestsToday')}
-            value={String(stats?.todayActivity.bloodTests ?? '-')}
-            icon={Activity}
-            note={t('ops.dashboard.processed')}
-          />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div className="bc-glass rounded-card overflow-hidden">
-            <div className="px-4 py-3 border-b border-donor-border/40 flex items-center justify-between">
-              <h3 className="font-medium text-donor-text">{t('ops.dashboard.pendingOrganizations')}</h3>
-              <span className="text-sm text-donor-warning font-medium">{pendingOrgs.length}</span>
+    <AppShell
+      title={t('portal.admin.dashboard')}
+      userName={user ? `${user.firstName} ${user.lastName}` : undefined}
+    >
+      {loadFailed ? (
+        <ErrorState onRetry={() => void loadDashboardData()} />
+      ) : (
+        <>
+          <div className="p-6">
+            <div className="mb-8">
+              <h1 className="text-2xl font-semibold text-donor-text">
+                {t('ops.dashboard.platformDashboard')}
+              </h1>
+              <p className="text-sm text-donor-muted mt-1">{t('ops.dashboard.platformOverview')}</p>
             </div>
-            <div className="divide-y divide-donor-border/40">
-              {pendingOrgs.length === 0 ? (
-                <div className="p-4 text-sm text-donor-muted text-center">{t('ops.dashboard.noPendingOrganizations')}</div>
-              ) : (
-                pendingOrgs.map((org) => (
-                  <div key={org.id} className="p-4 flex items-center justify-between">
-                    <div>
-                      <p className="font-medium text-donor-text">{org.name}</p>
-                      <p className="text-sm text-donor-muted">{t(`directory.organizationTypes.${org.type}`)}</p>
+
+            {error && (
+              <div className="mb-6 p-4 bg-donor-warningMuted border border-donor-warning/30 rounded-lg flex items-center gap-3">
+                <AlertTriangle className="w-5 h-5 text-donor-onWarningMuted" />
+                <p className="text-sm text-donor-onWarningMuted">{error}</p>
+                <button onClick={() => setError(null)} className="ml-auto">
+                  <X className="w-4 h-4 text-donor-onWarningMuted" />
+                </button>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+              <StatCard
+                label={t('ops.dashboard.totalUsers')}
+                value={String(stats?.users.total ?? '-')}
+                icon={Users}
+                note={`${stats?.users.active ?? 0} active`}
+              />
+              <StatCard
+                label={t('ops.dashboard.verifiedDonors')}
+                value={String(stats?.users.verifiedDonors ?? '-')}
+                icon={UserCheck}
+                note={t('ops.dashboard.activeDonors')}
+              />
+              <StatCard
+                label={t('ops.dashboard.hospitals')}
+                value={String(stats?.organizations.hospitals ?? '-')}
+                icon={Building2}
+                note={`${stats?.organizations.pending ?? 0} pending`}
+              />
+              <StatCard
+                label={t('ops.dashboard.bloodCenters')}
+                value={String(stats?.organizations.bloodCenters ?? '-')}
+                icon={Droplet}
+                note={`${stats?.organizations.suspended ?? 0} suspended`}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+              <StatCard
+                label={t('ops.dashboard.activeShipments')}
+                value={String(stats?.shipments.active ?? '-')}
+                icon={Package}
+                note={t('status.shipment.IN_TRANSIT')}
+              />
+              <StatCard
+                label={t('ops.dashboard.activeEmergencies')}
+                value={String(stats?.emergencies.active ?? '-')}
+                icon={AlertTriangle}
+                note={t('ops.dashboard.sosRequests')}
+              />
+              <StatCard
+                label={t('ops.requests.title')}
+                value={String(stats?.bloodRequests.active ?? '-')}
+                icon={Droplet}
+                note={`${stats?.bloodRequests.critical ?? 0} critical`}
+              />
+              <StatCard
+                label={t('portal.nav.couriers')}
+                value={String(stats?.couriers ?? '-')}
+                icon={Ship}
+                note={t('ops.dashboard.registered')}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+              <StatCard
+                label={t('ops.dashboard.donationsToday')}
+                value={String(stats?.todayActivity.donations ?? '-')}
+                icon={TestTube}
+                note={t('table.completedAt')}
+              />
+              <StatCard
+                label={t('ops.dashboard.appointmentsToday')}
+                value={String(stats?.todayActivity.appointments ?? '-')}
+                icon={Clock}
+                note={t('table.scheduled')}
+              />
+              <StatCard
+                label={t('ops.dashboard.bloodTestsToday')}
+                value={String(stats?.todayActivity.bloodTests ?? '-')}
+                icon={Activity}
+                note={t('ops.dashboard.processed')}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="bc-glass rounded-card overflow-hidden">
+                <div className="px-4 py-3 border-b border-donor-border/40 flex items-center justify-between">
+                  <h3 className="font-medium text-donor-text">
+                    {t('ops.dashboard.pendingOrganizations')}
+                  </h3>
+                  <span className="text-sm text-donor-warning font-medium">
+                    {pendingOrgs.length}
+                  </span>
+                </div>
+                <div className="divide-y divide-donor-border/40">
+                  {pendingOrgs.length === 0 ? (
+                    <div className="p-4 text-sm text-donor-muted text-center">
+                      {t('ops.dashboard.noPendingOrganizations')}
                     </div>
-                    <StatusBadgeWrapper status="PENDING_APPROVAL" domain="organization" />
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
+                  ) : (
+                    pendingOrgs.map((org) => (
+                      <div key={org.id} className="p-4 flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-donor-text">{org.name}</p>
+                          <p className="text-sm text-donor-muted">
+                            {t(`directory.organizationTypes.${org.type}`)}
+                          </p>
+                        </div>
+                        <StatusBadgeWrapper status="PENDING_APPROVAL" domain="organization" />
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
 
-          <div className="bc-glass rounded-card overflow-hidden">
-            <div className="px-4 py-3 border-b border-donor-border/40 flex items-center justify-between">
-              <h3 className="font-medium text-donor-text">{t('ops.dashboard.activeEmergencies')}</h3>
-              <span className="text-sm text-donor-danger font-medium">{activeEmergencies.length}</span>
-            </div>
-            <div className="divide-y divide-donor-border/40">
-              {activeEmergencies.length === 0 ? (
-                <div className="p-4 text-sm text-donor-muted text-center">{t('ops.dashboard.noActiveEmergencies')}</div>
-              ) : (
-                activeEmergencies.map((emergency) => (
-                  <div key={emergency.id} className="p-4 flex items-center justify-between">
-                    <div>
-                      <p className="font-medium text-donor-text">
-                        {emergency.bloodType}{emergency.rhFactor} - {emergency.unitsRequired} units
-                      </p>
-                      <p className="text-sm text-donor-muted">{emergency.hospital?.name}</p>
+              <div className="bc-glass rounded-card overflow-hidden">
+                <div className="px-4 py-3 border-b border-donor-border/40 flex items-center justify-between">
+                  <h3 className="font-medium text-donor-text">
+                    {t('ops.dashboard.activeEmergencies')}
+                  </h3>
+                  <span className="text-sm text-donor-danger font-medium">
+                    {activeEmergencies.length}
+                  </span>
+                </div>
+                <div className="divide-y divide-donor-border/40">
+                  {activeEmergencies.length === 0 ? (
+                    <div className="p-4 text-sm text-donor-muted text-center">
+                      {t('ops.dashboard.noActiveEmergencies')}
                     </div>
-                    <StatusBadgeWrapper status={emergency.status} domain="emergency" />
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
+                  ) : (
+                    activeEmergencies.map((emergency) => (
+                      <div key={emergency.id} className="p-4 flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-donor-text">
+                            {emergency.bloodType}
+                            {emergency.rhFactor} - {emergency.unitsRequired} units
+                          </p>
+                          <p className="text-sm text-donor-muted">{emergency.hospital?.name}</p>
+                        </div>
+                        <StatusBadgeWrapper status={emergency.status} domain="emergency" />
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
 
-          <div className="bc-glass rounded-card overflow-hidden">
-            <div className="px-4 py-3 border-b border-donor-border/40 flex items-center justify-between">
-              <h3 className="font-medium text-donor-text">{t('ops.dashboard.activeAlerts')}</h3>
-              <span className="text-sm text-donor-danger font-medium">{activeAlerts.length}</span>
-            </div>
-            <div className="divide-y divide-donor-border/40">
-              {activeAlerts.length === 0 ? (
-                <div className="p-4 text-sm text-donor-muted text-center">{t('ops.dashboard.noActiveAlerts')}</div>
-              ) : (
-                activeAlerts.slice(0, 5).map((alert) => (
-                  <div key={alert.id} className="p-4 flex items-center justify-between">
-                    <div>
-                      <p className="font-medium text-donor-text">{alert.message}</p>
+              <div className="bc-glass rounded-card overflow-hidden">
+                <div className="px-4 py-3 border-b border-donor-border/40 flex items-center justify-between">
+                  <h3 className="font-medium text-donor-text">{t('ops.dashboard.activeAlerts')}</h3>
+                  <span className="text-sm text-donor-danger font-medium">
+                    {activeAlerts.length}
+                  </span>
+                </div>
+                <div className="divide-y divide-donor-border/40">
+                  {activeAlerts.length === 0 ? (
+                    <div className="p-4 text-sm text-donor-muted text-center">
+                      {t('ops.dashboard.noActiveAlerts')}
                     </div>
-                    <StatusBadgeWrapper status={alert.type} domain="alert" />
-                  </div>
-                ))
-              )}
+                  ) : (
+                    activeAlerts.slice(0, 5).map((alert) => (
+                      <div key={alert.id} className="p-4 flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-donor-text">{alert.message}</p>
+                        </div>
+                        <StatusBadgeWrapper status={alert.type} domain="alert" />
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
 
-        <div className="mt-6 bc-glass rounded-card p-4">
-          <h3 className="font-medium text-donor-text mb-4">{t('portal.nav.health')}</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full ${health?.status === 'healthy' ? 'bg-donor-success' : 'bg-donor-danger'}`} />
-              <span className="text-sm text-donor-muted">{t('ops.dashboard.apiStatus')}</span>
-              <span className="text-sm font-medium text-donor-text ml-auto">{health?.status ?? '-'}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full ${health?.database === 'up' ? 'bg-donor-success' : 'bg-donor-danger'}`} />
-              <span className="text-sm text-donor-muted">{t('ops.dashboard.database')}</span>
-              <span className="text-sm font-medium text-donor-text ml-auto">{health?.database ?? '-'}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-donor-muted">{t('ops.dashboard.pendingOrgs')}</span>
-              <span className="text-sm font-medium text-donor-text ml-auto">{health?.pending?.organizations ?? '-'}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-donor-muted">{t('ops.dashboard.activeAlerts')}</span>
-              <span className="text-sm font-medium text-donor-text ml-auto">{health?.alerts ?? '-'}</span>
+            <div className="mt-6 bc-glass rounded-card p-4">
+              <h3 className="font-medium text-donor-text mb-4">{t('portal.nav.health')}</h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="flex items-center gap-2">
+                  <div
+                    className={`w-2 h-2 rounded-full ${health?.status === 'healthy' ? 'bg-donor-success' : 'bg-donor-danger'}`}
+                  />
+                  <span className="text-sm text-donor-muted">{t('ops.dashboard.apiStatus')}</span>
+                  <span className="text-sm font-medium text-donor-text ml-auto">
+                    {health?.status ?? '-'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div
+                    className={`w-2 h-2 rounded-full ${health?.database === 'up' ? 'bg-donor-success' : 'bg-donor-danger'}`}
+                  />
+                  <span className="text-sm text-donor-muted">{t('ops.dashboard.database')}</span>
+                  <span className="text-sm font-medium text-donor-text ml-auto">
+                    {health?.database ?? '-'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-donor-muted">{t('ops.dashboard.pendingOrgs')}</span>
+                  <span className="text-sm font-medium text-donor-text ml-auto">
+                    {health?.pending?.organizations ?? '-'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-donor-muted">
+                    {t('ops.dashboard.activeAlerts')}
+                  </span>
+                  <span className="text-sm font-medium text-donor-text ml-auto">
+                    {health?.alerts ?? '-'}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
+        </>
+      )}
     </AppShell>
   );
 }

@@ -25,8 +25,9 @@ export function ErrorState({
 
   return (
     <div
+      role="alert"
       className={cn(
-        'bc-glass bc-rise flex flex-col items-center justify-center rounded-card border-donor-danger/30 bg-donor-dangerMuted p-10 text-center',
+        'bc-feedback bc-glass bc-rise flex flex-col items-center justify-center rounded-card border-donor-danger/30 bg-donor-dangerMuted p-10 text-center',
         className,
       )}
     >

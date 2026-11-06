@@ -1,0 +1,136 @@
+{
+  "results": [
+    {
+      "width": 1920,
+      "status": "PASS",
+      "checks": [
+        "HTTP 200",
+        "local Inter",
+        "two real product previews",
+        "portal destinations",
+        "FAQ keyboard control",
+        "navigation and mobile dismissal",
+        "required fields",
+        "invalid contact rejection",
+        "correct email draft recipient",
+        "no automatic submission",
+        "draft invalidation",
+        "no persistent contact data",
+        "no overflow",
+        "no runtime errors"
+      ]
+    },
+    {
+      "width": 1440,
+      "status": "PASS",
+      "checks": [
+        "HTTP 200",
+        "local Inter",
+        "two real product previews",
+        "portal destinations",
+        "FAQ keyboard control",
+        "navigation and mobile dismissal",
+        "required fields",
+        "invalid contact rejection",
+        "correct email draft recipient",
+        "no automatic submission",
+        "draft invalidation",
+        "no persistent contact data",
+        "no overflow",
+        "no runtime errors"
+      ]
+    },
+    {
+      "width": 1024,
+      "status": "PASS",
+      "checks": [
+        "HTTP 200",
+        "local Inter",
+        "two real product previews",
+        "portal destinations",
+        "FAQ keyboard control",
+        "navigation and mobile dismissal",
+        "required fields",
+        "invalid contact rejection",
+        "correct email draft recipient",
+        "no automatic submission",
+        "draft invalidation",
+        "no persistent contact data",
+        "no overflow",
+        "no runtime errors"
+      ]
+    },
+    {
+      "width": 768,
+      "status": "PASS",
+      "checks": [
+        "HTTP 200",
+        "local Inter",
+        "two real product previews",
+        "portal destinations",
+        "FAQ keyboard control",
+        "navigation and mobile dismissal",
+        "required fields",
+        "invalid contact rejection",
+        "correct email draft recipient",
+        "no automatic submission",
+        "draft invalidation",
+        "no persistent contact data",
+        "no overflow",
+        "no runtime errors"
+      ]
+    },
+    {
+      "width": 390,
+      "status": "PASS",
+      "checks": [
+        "HTTP 200",
+        "local Inter",
+        "two real product previews",
+        "portal destinations",
+        "FAQ keyboard control",
+        "navigation and mobile dismissal",
+        "required fields",
+        "invalid contact rejection",
+        "correct email draft recipient",
+        "no automatic submission",
+        "draft invalidation",
+        "no persistent contact data",
+        "no overflow",
+        "no runtime errors"
+      ]
+    },
+    {
+      "width": 360,
+      "status": "PASS",
+      "checks": [
+        "HTTP 200",
+        "local Inter",
+        "two real product previews",
+        "portal destinations",
+        "FAQ keyboard control",
+        "navigation and mobile dismissal",
+        "required fields",
+        "invalid contact rejection",
+        "correct email draft recipient",
+        "no automatic submission",
+        "draft invalidation",
+        "no persistent contact data",
+        "no overflow",
+        "no runtime errors"
+      ]
+    }
+  ],
+  "legal": [
+    {
+      "route": "/privacy",
+      "status": "PASS"
+    },
+    {
+      "route": "/terms",
+      "status": "PASS"
+    }
+  ],
+  "noJavaScriptContent": "PASS",
+  "emailSent": false
+}

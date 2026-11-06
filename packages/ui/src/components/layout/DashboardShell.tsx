@@ -6,6 +6,7 @@ import { cn } from '../cn';
 import { WorkspaceToolbar } from './WorkspaceToolbar';
 
 export interface DashboardShellProps extends PropsWithChildren {
+  clinical?: boolean;
   title: string;
   subtitle?: string;
   sidebarItems: SidebarItem[];
@@ -25,6 +26,7 @@ export interface DashboardShellProps extends PropsWithChildren {
 
 export function DashboardShell({
   children,
+  clinical = false,
   title,
   subtitle,
   sidebarItems,
@@ -41,7 +43,26 @@ export function DashboardShell({
   className,
 }: DashboardShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [compact, setCompact] = useState(false);
+  const [compact, setCompact] = useState(clinical);
+  const densityKey = clinical ? 'bloodchain.clinical.compact' : 'bloodchain.workspace.compact';
+
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(densityKey);
+      setCompact(saved === null ? clinical : saved === 'true');
+    } catch {
+      /* Private browsing can disable storage. */
+    }
+  }, [densityKey, clinical]);
+
+  const changeCompact = (value: boolean) => {
+    setCompact(value);
+    try {
+      window.localStorage.setItem(densityKey, String(value));
+    } catch {
+      /* The toggle still works for the current page. */
+    }
+  };
 
   // A route change is the one moment a drawer left open should close itself
   // -- otherwise the backdrop from the page you navigated away from sits
@@ -64,6 +85,7 @@ export function DashboardShell({
       className={cn(
         'bc-app-bg flex min-h-screen text-donor-text',
         compact && 'bc-compact',
+        clinical && 'bc-clinical',
         className,
       )}
     >
@@ -97,7 +119,7 @@ export function DashboardShell({
         <WorkspaceToolbar
           organizationName={organizationName}
           compact={compact}
-          onCompactChange={setCompact}
+          onCompactChange={changeCompact}
         />
         <main id="main-content" className="bc-main flex-1 overflow-x-hidden">
           {children}

@@ -1,4 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
 
 /* Shared clinical workspace tokens and surfaces. */
 @import '@bloodchain/ui/styles/glass.css';
@@ -10,7 +9,7 @@
 body {
   background-color: rgb(var(--bc-bg));
   color: rgb(var(--bc-text));
-  font-family: 'DM Sans', system-ui, sans-serif;
+  font-family: var(--font-portal), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 

@@ -1,5 +1,7 @@
 'use client';
 
+import { Modal } from '@bloodchain/ui/components';
+
 import { useEffect, useState } from 'react';
 import { LoadingState } from '@bloodchain/ui/components';
 import {
@@ -34,7 +36,11 @@ export default function ModerationPage() {
         if (!isAuthenticated()) return;
         const userData = await me();
         if (!userData.roles.includes('SUPER_ADMIN')) return;
-        setCurrentUser({ firstName: userData.firstName, lastName: userData.lastName, roles: userData.roles });
+        setCurrentUser({
+          firstName: userData.firstName,
+          lastName: userData.lastName,
+          roles: userData.roles,
+        });
         await loadReports();
       } catch (err) {
         console.error(err);
@@ -88,14 +94,20 @@ export default function ModerationPage() {
 
   if (isLoading) {
     return (
-      <AppShell title={t('portal.nav.moderation')} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
+      <AppShell
+        title={t('portal.nav.moderation')}
+        userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}
+      >
         <LoadingState />
       </AppShell>
     );
   }
 
   return (
-    <AppShell title={t('portal.nav.moderation')} userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}>
+    <AppShell
+      title={t('portal.nav.moderation')}
+      userName={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : undefined}
+    >
       <div className="p-6">
         <div className="mb-6">
           <p className="text-sm text-donor-muted">{t('ops.moderation.subtitle')}</p>
@@ -151,12 +163,42 @@ export default function ModerationPage() {
             <table className="bc-data-table w-full">
               <thead>
                 <tr className="bg-donor-elevated border-b border-donor-border/40">
-                  <th scope="col" className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('ops.moderation.post')}</th>
-                  <th scope="col" className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.reason')}</th>
-                  <th scope="col" className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('ops.moderation.reporter')}</th>
-                  <th scope="col" className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.status')}</th>
-                  <th scope="col" className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('ops.moderation.reported')}</th>
-                  <th scope="col" className="text-left px-4 py-3 text-sm font-medium text-donor-muted">{t('table.actions')}</th>
+                  <th
+                    scope="col"
+                    className="text-left px-4 py-3 text-sm font-medium text-donor-muted"
+                  >
+                    {t('ops.moderation.post')}
+                  </th>
+                  <th
+                    scope="col"
+                    className="text-left px-4 py-3 text-sm font-medium text-donor-muted"
+                  >
+                    {t('table.reason')}
+                  </th>
+                  <th
+                    scope="col"
+                    className="text-left px-4 py-3 text-sm font-medium text-donor-muted"
+                  >
+                    {t('ops.moderation.reporter')}
+                  </th>
+                  <th
+                    scope="col"
+                    className="text-left px-4 py-3 text-sm font-medium text-donor-muted"
+                  >
+                    {t('table.status')}
+                  </th>
+                  <th
+                    scope="col"
+                    className="text-left px-4 py-3 text-sm font-medium text-donor-muted"
+                  >
+                    {t('ops.moderation.reported')}
+                  </th>
+                  <th
+                    scope="col"
+                    className="text-left px-4 py-3 text-sm font-medium text-donor-muted"
+                  >
+                    {t('table.actions')}
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-donor-border/40">
@@ -175,8 +217,12 @@ export default function ModerationPage() {
                             <Flag className="w-4 h-4 text-donor-muted" />
                           </div>
                           <div>
-                            <p className="font-medium text-donor-text max-w-xs truncate">{report.post.title}</p>
-                            <p className="text-xs text-donor-muted">Post status: {report.post.status}</p>
+                            <p className="font-medium text-donor-text max-w-xs truncate">
+                              {report.post.title}
+                            </p>
+                            <p className="text-xs text-donor-muted">
+                              Post status: {report.post.status}
+                            </p>
                           </div>
                         </div>
                       </td>
@@ -212,7 +258,8 @@ export default function ModerationPage() {
           {meta.totalPages > 1 && (
             <div className="px-4 py-3 border-t border-donor-border/40 flex items-center justify-between">
               <p className="text-sm text-donor-muted">
-                Showing {(meta.page - 1) * meta.limit + 1} to {Math.min(meta.page * meta.limit, meta.total)} of {meta.total}
+                Showing {(meta.page - 1) * meta.limit + 1} to{' '}
+                {Math.min(meta.page * meta.limit, meta.total)} of {meta.total}
               </p>
               <div className="flex gap-2">
                 <button
@@ -236,115 +283,119 @@ export default function ModerationPage() {
       </div>
 
       {selectedReport && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bc-glass-elevated bc-rise rounded-panel w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
-            <div className="px-6 py-4 border-b border-donor-border/40 flex items-center justify-between sticky top-0 bc-solid">
-              <h3 className="text-lg font-semibold text-donor-text">{t('ops.moderation.details')}</h3>
-              <button onClick={() => setSelectedReport(null)}>
-                <X className="w-5 h-5 text-donor-muted" />
-              </button>
+        <Modal
+          open
+          onClose={() => setSelectedReport(null)}
+          title={t('ops.moderation.details')}
+          footer={
+            <>
+              {(selectedReport.status === 'PENDING' || selectedReport.status === 'REVIEWED') && (
+                <div className="bc-dialog-actions flex w-full gap-2">
+                  <button
+                    onClick={() => handleResolve('DISMISS')}
+                    disabled={actionLoading}
+                    className="flex-1 bg-donor-muted text-white py-2 px-3 rounded-lg text-sm font-medium hover:bg-donor-muted/85 disabled:opacity-50"
+                  >
+                    {t('actions.dismiss')}
+                  </button>
+                  <button
+                    onClick={() => handleResolve('HIDE')}
+                    disabled={actionLoading}
+                    className="flex-1 bg-donor-warning text-white py-2 px-3 rounded-lg text-sm font-medium hover:bg-donor-warning/85 disabled:opacity-50"
+                  >
+                    {t('ops.moderation.hidePost')}
+                  </button>
+                  <button
+                    onClick={() => handleResolve('REMOVE')}
+                    disabled={actionLoading}
+                    className="flex-1 bg-donor-primary text-white py-2 px-3 rounded-lg text-sm font-medium hover:bg-donor-primary/85 disabled:opacity-50"
+                  >
+                    {t('ops.moderation.removePost')}
+                  </button>
+                </div>
+              )}
+            </>
+          }
+        >
+          <div className="space-y-4">
+            <div>
+              <p className="text-sm text-donor-muted">{t('ops.moderation.post')}</p>
+              <p className="font-semibold text-donor-text">{selectedReport.post.title}</p>
+              <p className="mt-1 text-sm text-donor-text whitespace-pre-wrap">
+                {selectedReport.post.body}
+              </p>
+              <p className="mt-1 text-xs text-donor-muted">
+                By {selectedReport.post.author?.firstName} {selectedReport.post.author?.lastName} ·
+                Post status: {selectedReport.post.status}
+              </p>
             </div>
-            <div className="p-6 space-y-4">
+
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-sm text-donor-muted">{t('ops.moderation.post')}</p>
-                <p className="font-semibold text-donor-text">{selectedReport.post.title}</p>
-                <p className="mt-1 text-sm text-donor-text whitespace-pre-wrap">{selectedReport.post.body}</p>
-                <p className="mt-1 text-xs text-donor-muted">
-                  By {selectedReport.post.author?.firstName} {selectedReport.post.author?.lastName} ·
-                  Post status: {selectedReport.post.status}
+                <p className="text-sm text-donor-muted">{t('table.reason')}</p>
+                <p className="text-sm font-medium text-donor-text">{selectedReport.reason}</p>
+              </div>
+              <div>
+                <p className="text-sm text-donor-muted">{t('table.status')}</p>
+                <StatusBadgeWrapper status={selectedReport.status} domain="moderation" />
+              </div>
+              <div>
+                <p className="text-sm text-donor-muted">{t('ops.moderation.reporter')}</p>
+                <p className="text-sm font-medium text-donor-text">
+                  {selectedReport.reporter.firstName} {selectedReport.reporter.lastName}
                 </p>
               </div>
+              <div>
+                <p className="text-sm text-donor-muted">{t('ops.moderation.reported')}</p>
+                <p className="text-sm font-medium text-donor-text">
+                  {new Date(selectedReport.createdAt).toLocaleString()}
+                </p>
+              </div>
+            </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-donor-muted">{t('table.reason')}</p>
-                  <p className="text-sm font-medium text-donor-text">{selectedReport.reason}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-donor-muted">{t('table.status')}</p>
-                  <StatusBadgeWrapper status={selectedReport.status} domain="moderation" />
-                </div>
-                <div>
-                  <p className="text-sm text-donor-muted">{t('ops.moderation.reporter')}</p>
-                  <p className="text-sm font-medium text-donor-text">
-                    {selectedReport.reporter.firstName} {selectedReport.reporter.lastName}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-donor-muted">{t('ops.moderation.reported')}</p>
-                  <p className="text-sm font-medium text-donor-text">
-                    {new Date(selectedReport.createdAt).toLocaleString()}
-                  </p>
+            {selectedReport.description && (
+              <div>
+                <p className="text-sm text-donor-muted mb-1">{t('ops.moderation.reporterNotes')}</p>
+                <p className="text-sm text-donor-text">{selectedReport.description}</p>
+              </div>
+            )}
+
+            {selectedReport.otherReportsOnPost.length > 0 && (
+              <div className="border-t border-donor-border/40 pt-4">
+                <p className="text-sm font-medium text-donor-text mb-2">
+                  {selectedReport.otherReportsOnPost.length} other report(s) on this post
+                </p>
+                <div className="space-y-1">
+                  {selectedReport.otherReportsOnPost.map((r) => (
+                    <div key={r.id} className="text-xs text-donor-muted flex justify-between">
+                      <span>{r.reason}</span>
+                      <span>{r.status}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
+            )}
 
-              {selectedReport.description && (
-                <div>
-                  <p className="text-sm text-donor-muted mb-1">{t('ops.moderation.reporterNotes')}</p>
-                  <p className="text-sm text-donor-text">{selectedReport.description}</p>
-                </div>
-              )}
-
-              {selectedReport.otherReportsOnPost.length > 0 && (
-                <div className="border-t border-donor-border/40 pt-4">
-                  <p className="text-sm font-medium text-donor-text mb-2">
-                    {selectedReport.otherReportsOnPost.length} other report(s) on this post
-                  </p>
-                  <div className="space-y-1">
-                    {selectedReport.otherReportsOnPost.map((r) => (
-                      <div key={r.id} className="text-xs text-donor-muted flex justify-between">
-                        <span>{r.reason}</span>
-                        <span>{r.status}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {selectedReport.status === 'PENDING' || selectedReport.status === 'REVIEWED' ? (
-                <div>
-                  <label className="text-sm text-donor-muted mb-1 block">{t('ops.moderation.resolutionNote')}</label>
-                  <textarea
-                    value={resolution}
-                    onChange={(e) => setResolution(e.target.value)}
-                    rows={2}
-                    className="w-full bc-solid rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-donor-primary"
-                  />
-                </div>
-              ) : (
-                <div className="border-t border-donor-border/40 pt-4">
-                  <p className="text-sm text-donor-muted">{t('ops.moderation.resolution')}</p>
-                  <p className="text-sm text-donor-text">{selectedReport.resolution || '-'}</p>
-                </div>
-              )}
-            </div>
-            {(selectedReport.status === 'PENDING' || selectedReport.status === 'REVIEWED') && (
-              <div className="px-6 py-4 border-t border-donor-border/40 flex gap-2">
-                <button
-                  onClick={() => handleResolve('DISMISS')}
-                  disabled={actionLoading}
-                  className="flex-1 bg-donor-muted text-white py-2 px-3 rounded-lg text-sm font-medium hover:bg-donor-muted/85 disabled:opacity-50"
-                >
-                  {t('actions.dismiss')}
-                </button>
-                <button
-                  onClick={() => handleResolve('HIDE')}
-                  disabled={actionLoading}
-                  className="flex-1 bg-donor-warning text-white py-2 px-3 rounded-lg text-sm font-medium hover:bg-donor-warning/85 disabled:opacity-50"
-                >
-                  {t('ops.moderation.hidePost')}
-                </button>
-                <button
-                  onClick={() => handleResolve('REMOVE')}
-                  disabled={actionLoading}
-                  className="flex-1 bg-donor-primary text-white py-2 px-3 rounded-lg text-sm font-medium hover:bg-donor-primary/85 disabled:opacity-50"
-                >
-                  {t('ops.moderation.removePost')}
-                </button>
+            {selectedReport.status === 'PENDING' || selectedReport.status === 'REVIEWED' ? (
+              <div>
+                <label className="text-sm text-donor-muted mb-1 block">
+                  {t('ops.moderation.resolutionNote')}
+                </label>
+                <textarea
+                  value={resolution}
+                  onChange={(e) => setResolution(e.target.value)}
+                  rows={2}
+                  className="w-full bc-solid rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-donor-primary"
+                />
+              </div>
+            ) : (
+              <div className="border-t border-donor-border/40 pt-4">
+                <p className="text-sm text-donor-muted">{t('ops.moderation.resolution')}</p>
+                <p className="text-sm text-donor-text">{selectedReport.resolution || '-'}</p>
               </div>
             )}
           </div>
-        </div>
+        </Modal>
       )}
     </AppShell>
   );
