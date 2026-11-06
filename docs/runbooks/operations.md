@@ -11,6 +11,11 @@ failure aborts the release. CI's isolation and migration jobs still exercise
 their full existing contracts. Do not remove limits or force deployment after
 an OOM/test failure.
 
+Docker API/web build stages cap each Node heap at 768 MiB. Portal builds use
+one Next build worker and one Vitest worker. Build apps sequentially on the
+VPS, never concurrently with the release QA runner. These build settings do
+not raise the live containers' existing resource limits.
+
 ```sh
 bash scripts/release-qa-docker.sh
 ```

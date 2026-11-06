@@ -38,6 +38,7 @@ RUN pnpm install --frozen-lockfile --filter=@bloodchain/api...
 
 # ---- build: generate the Prisma client and compile Nest ----
 FROM deps AS build
+ENV NODE_OPTIONS=--max-old-space-size=768
 COPY packages/config packages/config
 COPY packages/types packages/types
 COPY packages/utils packages/utils
