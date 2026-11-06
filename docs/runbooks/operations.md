@@ -100,3 +100,16 @@ journalctl -u bloodchain-backup.service -u bloodchain-monitor.service
 A host-local monitor cannot report its own host losing power or internet.
 An external uptime monitor is still required before public launch. Telegram is
 not active until its token/chat are configured and a test message succeeds.
+
+## Nginx access log privacy
+
+Use `deploy/nginx/bloodchain-privacy-log.conf` in the HTTP context and select
+`bloodchain_privacy` in every BloodChain HTTP/HTTPS server block. Back up the
+affected configuration, run `nginx -t`, then reload. Verify with a synthetic
+query marker that the path/status is recorded and the query is absent.
+The 2026-11-06 VPS check passed this regression for the API readiness route.
+
+This protects access logs only. Nginx error logs can still contain request URLs
+on failures; restrict access and do not treat all proxy diagnostics as redacted.
+Paths and client IPs are still personal data in some contexts. Existing logs
+are not erased by this change; operator retention decisions remain outstanding.

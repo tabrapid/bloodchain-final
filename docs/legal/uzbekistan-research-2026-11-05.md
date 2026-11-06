@@ -52,12 +52,14 @@ Pilot shartnomasi uchun bandlar: scope, mas’ullar, ishlov berish rollari, uchi
 
 | Oqim | Kuzatilgan yoki koddagi ma’lumot | Ish va holat |
 | --- | --- | --- |
-| VPS/PostgreSQL va lokal backup | Profil, sog‘liq/klinik ma’lumotlar, tokenlar xeshlari, audit | Datacenter mamlakati va shartnoma dalili yo‘q. IP/domen lokatsiya dalili emas; provayder hujjati talab etiladi. |
+| VPS/PostgreSQL va lokal backup | Profil, sog‘liq/klinik ma’lumotlar, tokenlar xeshlari, audit | RIPE RDAP 2026-11-06: 45.130.148.0–255 prefiksi `UZ-BESTINTERNETSOLUTION-20240611`, country `UZ`, registrant `BEST INTERNET SOLUTION XK`. Bu tarmoq taqsimoti; jismoniy datacenter manzili yoki shartnoma dalili emas. Provayder hujjati talab etiladi. |
 | Resend SMTP | Qabul qiluvchi email, tasdiqlash/tiklash xatlari va bir martalik havola | [DPA](https://resend.com/legal/dpa) va [subpudratchilar](https://resend.com/legal) manbalari topildi. Ushbu shartlar O‘zbekiston talabini avtomatik yopmaydi; klinik mazmun emailga chiqarilmasligi tekshiriladi. |
 | Expo → APNs/FCM | Device push token va notification payload | [Expo security](https://expo.dev/security) va [push hujjatlari](https://docs.expo.dev/push-notifications/sending-notifications/) tekshirildi. Payload generic xabar va inbox yo‘liga kamaytirildi; klinik mazmun API ichida qoladi. Tokenning o‘zi ham hisobga olinadi. |
 | Telegram monitoring | Server holati va tiklanish xabarlari | Tibbiy mazmun, shaxsiy profil, OTP va credential yuborilmasligi shart. Bot faqat tasdiqlangan operator chatiga yo‘naltiriladi. |
 | Maps/OSM va qurilma ruxsatlari | Manzil/koordinata va tashqi tile so‘rovi ehtimoli | Web map kutubxonasi bor. Har ekran va haqiqiy provider oqimi alohida inventory qilinadi; aniq donor location ommaviy xaritaga chiqarilmaydi. |
 | AI, crash analytics, boshqa SDK | Konfiguratsiyaga bog‘liq | Pilot scope’ida AI o‘chiq qoladi; yangi xizmat qo‘shishdan oldin payload va maqsad tahlili qilinadi. “O‘chiq” holat deployment dalili bilan tekshiriladi. |
+
+IP taqsimotining birlamchi manbasi: [RIPE RDAP](https://rdap.db.ripe.net/ip/45.130.148.59).
 
 ## Kod tekshiruvida topilgan kamchiliklar va tuzatmalar
 
