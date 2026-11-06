@@ -26,7 +26,7 @@ export const bloodchaingaPreset = {
           border: surface('--bc-border'),
 
           // Brand accents — constant across themes.
-          primary: '#4263CF',
+          primary: '#006E9C',
           secondary: '#2875AE',
           ai: '#8E82DF',
           success: '#21845E',

@@ -79,10 +79,7 @@ export interface SidebarProps {
  * rather than the `/` one. Exported for tests; the matching rule is the part
  * worth pinning.
  */
-export function resolveActiveItem(
-  items: SidebarItem[],
-  currentPath?: string,
-): string | undefined {
+export function resolveActiveItem(items: SidebarItem[], currentPath?: string): string | undefined {
   if (!currentPath) return undefined;
 
   let best: SidebarItem | undefined;
@@ -140,10 +137,17 @@ export function Sidebar({
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-donor-primary/15 text-donor-primary">
             <Activity size={18} />
           </span>
-          <span className="font-semibold tracking-wider text-donor-text">BloodChain</span>
+          <span className="bc-wordmark">
+            <strong>BloodChain</strong>
+            <small>{t('clinical.identity')}</small>
+          </span>
         </div>
 
-        <nav className="flex flex-1 flex-col gap-1 overflow-y-auto" aria-label={t('portal.nav.primary')}>
+        <p className="bc-nav-caption">{t('clinical.workflows')}</p>
+        <nav
+          className="flex flex-1 flex-col gap-1 overflow-y-auto"
+          aria-label={t('portal.nav.primary')}
+        >
           {items.map((item) => {
             const Icon = item.icon ?? Activity;
             const isActive = item.id === active;

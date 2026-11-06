@@ -70,7 +70,7 @@ const paper = {
  */
 const accentDark = {
   /** Brand and blood domain: identity, donation, the primary action. */
-  rose: { base: '#8CA7FF', text: '#B5C6FF', fill: '#4C6CD2', soft: 'rgba(66,99,207,0.18)' },
+  rose: { base: '#8CA7FF', text: '#B5C6FF', fill: '#4C6CD2', soft: 'rgba(0,110,156,0.18)' },
   /** EMERGENCY ONLY. Hotter and more orange than rose, so the two never blur. */
   critical: { base: '#FF5644', text: '#FF9284', fill: '#E0301F', soft: 'rgba(255,86,68,0.16)' },
   /** Clinical information: laboratory values, appointments, anything factual. */
@@ -82,7 +82,7 @@ const accentDark = {
 } as const;
 
 const accentLight = {
-  rose: { base: '#4263CF', text: '#314DAE', fill: '#4263CF', soft: 'rgba(66,99,207,0.10)' },
+  rose: { base: '#006E9C', text: '#00597F', fill: '#006E9C', soft: 'rgba(0,110,156,0.10)' },
   critical: { base: '#E02D1B', text: '#B81F10', fill: '#E02D1B', soft: 'rgba(224,45,27,0.10)' },
   clinical: { base: '#1F6FD0', text: '#15599E', fill: '#1F6FD0', soft: 'rgba(31,111,208,0.10)' },
   insight: { base: '#6B5BD6', text: '#5546B5', fill: '#6B5BD6', soft: 'rgba(107,91,214,0.10)' },

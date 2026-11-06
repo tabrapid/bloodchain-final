@@ -3,6 +3,7 @@ import { PropsWithChildren, useEffect, useState } from 'react';
 import { Sidebar, SidebarItem, type SidebarLinkComponent } from './Sidebar';
 import { Topbar } from './Topbar';
 import { cn } from '../cn';
+import { WorkspaceToolbar } from './WorkspaceToolbar';
 
 export interface DashboardShellProps extends PropsWithChildren {
   title: string;
@@ -40,6 +41,7 @@ export function DashboardShell({
   className,
 }: DashboardShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [compact, setCompact] = useState(false);
 
   // A route change is the one moment a drawer left open should close itself
   // -- otherwise the backdrop from the page you navigated away from sits
@@ -58,8 +60,19 @@ export function DashboardShell({
   }, [sidebarOpen]);
 
   return (
-    <div className={cn('bc-app-bg flex min-h-screen text-donor-text', className)}>
-      <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded focus:bg-white focus:p-3 focus:text-slate-900">{title}</a>
+    <div
+      className={cn(
+        'bc-app-bg flex min-h-screen text-donor-text',
+        compact && 'bc-compact',
+        className,
+      )}
+    >
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded focus:bg-white focus:p-3 focus:text-slate-900"
+      >
+        {title}
+      </a>
       <Sidebar
         items={sidebarItems}
         activeItem={activeItem}
@@ -81,7 +94,14 @@ export function DashboardShell({
           onMenuClick={() => setSidebarOpen((open) => !open)}
           actions={topbarActions}
         />
-        <main id="main-content" className="bc-main flex-1 overflow-x-hidden">{children}</main>
+        <WorkspaceToolbar
+          organizationName={organizationName}
+          compact={compact}
+          onCompactChange={setCompact}
+        />
+        <main id="main-content" className="bc-main flex-1 overflow-x-hidden">
+          {children}
+        </main>
       </div>
     </div>
   );

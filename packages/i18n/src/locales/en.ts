@@ -18,6 +18,30 @@ import type { Catalog } from '../translate';
  * search across nine screens.
  */
 export const en: Catalog = {
+  clinical: {
+    "identity": "Unified medical information system",
+    "workspace": "Operations workspace",
+    "compact": "Compact view",
+    "print": "Print",
+    "laboratory": "Laboratory control",
+    "completion": "Results completion",
+    "completedTests": "Completed tests",
+    "queue": "Test queue",
+    "inventory": "Blood inventory",
+    "available": "Available units",
+    "reserved": "Reserved",
+    "quarantine": "Quarantined",
+    "distribution": "Distribution",
+    "activeShipments": "Active shipments",
+    "delayed": "Delayed",
+    "delivered": "Delivered",
+    "noData": "No data available",
+    "total": "Total",
+    "control": "Control center",
+    "monitoring": "Blood supply monitoring",
+    "workflows": "Workflows",
+  },
+
   common: {
     daysAgo: { one: '{{count}} day ago', other: '{{count}} days ago' },
     dialog: 'Dialog',

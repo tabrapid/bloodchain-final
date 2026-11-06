@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from '@bloodchain/ui/i18n';
 import Link from 'next/link';
-import { Activity, AlertTriangle, Beaker, Clock, Droplet, Truck } from 'lucide-react';
-import { EmptyState, StatCard } from '@bloodchain/ui/components';
+import { Activity, Beaker, Clock, Droplet, Truck } from 'lucide-react';
+import { EmptyState, StatCard, ClinicalMonitor } from '@bloodchain/ui/components';
 import { login, logout as logoutApi, me, isAuthenticated, MeResponse } from '../lib/auth';
 import { AppShell } from '../components/AppShell';
 import {
@@ -287,48 +287,16 @@ export default function BloodCenterDashboard() {
 
   return (
     <AppShell
-      title={`Good morning, ${user.firstName}.`}
+      title={t('clinical.control')}
       subtitle={t('portal.bloodCenter.console')}
       organizationName={bloodCenterOrg?.name ?? t('portal.bloodCenter.name')}
       organizationType={t('portal.bloodCenter.workspace')}
       userName={`${user.firstName} ${user.lastName}`}
     >
-      <div className="mb-8 flex items-center justify-between bc-glass rounded-card p-6">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-widest text-donor-muted">
-            {t('ops.dashboard.centerOverview')}
-          </p>
-          <h2 className="mt-2 font-display text-4xl font-semibold tracking-tight text-donor-text">
-            {t('ops.dashboard.everyUnit')} <span className="text-donor-secondary">{t('ops.dashboard.accountedFor')}</span>
-          </h2>
-          <p className="mt-2 text-sm text-donor-muted">
-            {t('portal.tagline')}
-          </p>
-        </div>
-        <div
-          className={`hidden bc-glass rounded-card p-5 md:block ${
-            alerts && alerts.critical > 0
-              ? 'border-donor-danger/30 bg-donor-dangerMuted'
-              : 'border-donor-secondary/30 bg-donor-secondaryMuted'
-          }`}
-        >
-          {alerts && alerts.critical > 0 ? (
-            <>
-              <AlertTriangle className="mb-2 text-donor-onDangerMuted" size={24} />
-              <p className="text-sm font-semibold text-donor-text">
-                {alerts.critical} critical alert{alerts.critical === 1 ? '' : 's'}
-              </p>
-              <p className="text-xs text-donor-muted">{t('ops.dashboard.needsAttention')}</p>
-            </>
-          ) : (
-            <>
-              <Activity className="mb-2 text-donor-secondary" size={24} />
-              <p className="text-sm font-semibold text-donor-text">{t('ops.dashboard.noCriticalAlerts')}</p>
-              <p className="text-xs text-donor-muted">{t('ops.dashboard.underControl')}</p>
-            </>
-          )}
-        </div>
-      </div>
+      <section className="bc-page-heading">
+        <div><p>{t('clinical.workspace')}</p><h2>{t('clinical.monitoring')}</h2></div>
+        <Link href="/requests" className="bc-action-link">{t('ops.dashboard.viewBloodRequests')} <span aria-hidden="true">→</span></Link>
+      </section>
 
       <div className="mb-6 grid gap-4 md:grid-cols-3">
         <StatCard
@@ -359,6 +327,13 @@ export default function BloodCenterDashboard() {
           variant="info"
         />
       </div>
+
+      <ClinicalMonitor
+        laboratory={laboratory?.summary ?? null}
+        inventory={overview?.inventory ?? null}
+        shipments={shipments?.summary ?? null}
+        loading={isLoadingStats}
+      />
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="bc-glass rounded-card p-6 lg:col-span-2">
