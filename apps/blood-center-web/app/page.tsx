@@ -4,8 +4,15 @@ import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from '@bloodchain/ui/i18n';
 import Link from 'next/link';
 import { Activity, Beaker, Clock, Droplet, Truck } from 'lucide-react';
-import { EmptyState, StatCard, ClinicalMonitor } from '@bloodchain/ui/components';
+import {
+  RoleWorkbench,
+  ErrorState,
+  EmptyState,
+  StatCard,
+  ClinicalMonitor,
+} from '@bloodchain/ui/components';
 import { login, logout as logoutApi, me, isAuthenticated, MeResponse } from '../lib/auth';
+import { LaboratoryQueue } from '../components/LaboratoryQueue';
 import { AppShell } from '../components/AppShell';
 import {
   DateRangeType,
@@ -34,6 +41,7 @@ export default function BloodCenterDashboard() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [organizationId, setOrganizationId] = useState<string>('');
   const [overview, setOverview] = useState<OverviewAnalytics | null>(null);
   const [laboratory, setLaboratory] = useState<LaboratoryAnalytics | null>(null);
@@ -41,8 +49,11 @@ export default function BloodCenterDashboard() {
   const [alerts, setAlerts] = useState<AlertsResponse | null>(null);
   const [isLoadingStats, setIsLoadingStats] = useState(false);
 
+  const activeRole =
+    user?.organizations.find((o) => o.organizationId === organizationId)?.role ?? '';
   const loadDashboardData = useCallback(async () => {
-    if (!organizationId) return;
+    if (!organizationId || ['LAB_TECHNICIAN', 'LAB_REVIEWER', 'LAB_ADMIN'].includes(activeRole))
+      return;
     setIsLoadingStats(true);
     try {
       const [overviewData, laboratoryData, shipmentData, alertsData] = await Promise.all([
@@ -55,12 +66,14 @@ export default function BloodCenterDashboard() {
       setLaboratory(laboratoryData);
       setShipments(shipmentData);
       setAlerts(alertsData);
+      setLoadFailed(false);
     } catch (err) {
+      setLoadFailed(true);
       console.error('Failed to load dashboard data:', err);
     } finally {
       setIsLoadingStats(false);
     }
-  }, [organizationId]);
+  }, [organizationId, activeRole]);
 
   useEffect(() => {
     async function checkAuth() {
@@ -159,7 +172,10 @@ export default function BloodCenterDashboard() {
           {error && <p className="mb-4 text-sm text-donor-danger">{error}</p>}
           <form onSubmit={handleLogin} className="w-full max-w-xs space-y-3">
             <div>
-              <label htmlFor="email" className="mb-1 block text-left text-xs font-medium text-donor-muted">
+              <label
+                htmlFor="email"
+                className="mb-1 block text-left text-xs font-medium text-donor-muted"
+              >
                 {t('portal.email')}
               </label>
               <input
@@ -173,7 +189,10 @@ export default function BloodCenterDashboard() {
               />
             </div>
             <div>
-              <label htmlFor="password" className="mb-1 block text-left text-xs font-medium text-donor-muted">
+              <label
+                htmlFor="password"
+                className="mb-1 block text-left text-xs font-medium text-donor-muted"
+              >
                 {t('portal.password')}
               </label>
               <input
@@ -216,7 +235,14 @@ export default function BloodCenterDashboard() {
   }
 
   const hasBloodCenterAccess = user.roles.some((r) =>
-    ['BLOOD_CENTER_ADMIN', 'BLOOD_CENTER_STAFF', 'SUPER_ADMIN'].includes(r),
+    [
+      'BLOOD_CENTER_ADMIN',
+      'BLOOD_CENTER_STAFF',
+      'LAB_TECHNICIAN',
+      'LAB_REVIEWER',
+      'LAB_ADMIN',
+      'SUPER_ADMIN',
+    ].includes(r),
   );
 
   const bloodCenterOrg = user.organizations.find((org) => org.type === 'BLOOD_CENTER');
@@ -262,7 +288,9 @@ export default function BloodCenterDashboard() {
       <AppShell
         title={t('portal.accessDenied')}
         subtitle={t('portal.bloodCenter.console')}
-        organizationName={bloodCenterOrg?.name ?? user.organizations[0]?.name ?? t('portal.bloodCenter.name')}
+        organizationName={
+          bloodCenterOrg?.name ?? user.organizations[0]?.name ?? t('portal.bloodCenter.name')
+        }
         organizationType={t('portal.bloodCenter.workspace')}
         userName={`${user.firstName} ${user.lastName}`}
       >
@@ -271,9 +299,7 @@ export default function BloodCenterDashboard() {
           <h2 className="mb-2 font-display text-2xl font-semibold text-donor-text">
             {t('portal.accessDenied')}
           </h2>
-          <p className="mb-6 text-center text-donor-muted">
-            {t('portal.accessDeniedBody')}
-          </p>
+          <p className="mb-6 text-center text-donor-muted">{t('portal.accessDeniedBody')}</p>
           <button
             onClick={handleLogout}
             className="bc-solid rounded-lg px-6 py-3 font-semibold text-donor-text transition-colors hover:bg-donor-elevated"
@@ -281,6 +307,26 @@ export default function BloodCenterDashboard() {
             {t('portal.signOut')}
           </button>
         </div>
+      </AppShell>
+    );
+  }
+
+  if (
+    bloodCenterOrg &&
+    ['LAB_TECHNICIAN', 'LAB_REVIEWER', 'LAB_ADMIN'].includes(bloodCenterOrg.role)
+  ) {
+    return (
+      <AppShell
+        title={t('workbench.laboratory')}
+        membershipRole={bloodCenterOrg.role}
+        organizationName={bloodCenterOrg.name}
+        userName={`${user.firstName} ${user.lastName}`}
+      >
+        <RoleWorkbench role={bloodCenterOrg.role} scope="center" />
+        <LaboratoryQueue
+          organizationId={bloodCenterOrg.organizationId}
+          role={bloodCenterOrg.role}
+        />
       </AppShell>
     );
   }
@@ -293,107 +339,145 @@ export default function BloodCenterDashboard() {
       organizationType={t('portal.bloodCenter.workspace')}
       userName={`${user.firstName} ${user.lastName}`}
     >
-      <section className="bc-page-heading">
-        <div><p>{t('clinical.workspace')}</p><h2>{t('clinical.monitoring')}</h2></div>
-        <Link href="/requests" className="bc-action-link">{t('ops.dashboard.viewBloodRequests')} <span aria-hidden="true">→</span></Link>
-      </section>
-
-      <div className="mb-6 grid gap-4 md:grid-cols-3">
-        <StatCard
-          label={t('ops.dashboard.unitsAvailable')}
-          value={isLoadingStats || !overview ? '—' : overview.inventory.availableUnits.toString()}
-          note={
-            isLoadingStats || !overview
-              ? t('common.loading')
-              : overview.inventory.criticalGroups.length > 0
-              ? t('ops.dashboard.criticalGroups', { groups: overview.inventory.criticalGroups.join(', ') })
-              : t('ops.dashboard.unitsOnHand')
-          }
-          icon={Droplet}
-          variant={overview && overview.inventory.criticalGroups.length > 0 ? 'danger' : 'success'}
-        />
-        <StatCard
-          label={t('ops.dashboard.pendingTests')}
-          value={isLoadingStats || !laboratory ? '—' : laboratory.summary.pendingTests.toString()}
-          note={isLoadingStats || !laboratory ? t('common.loading') : t('ops.dashboard.awaitingResults')}
-          icon={Beaker}
-          variant={laboratory && laboratory.summary.pendingTests > 0 ? 'warning' : 'success'}
-        />
-        <StatCard
-          label={t('ops.dashboard.openShipments')}
-          value={isLoadingStats || !shipments ? '—' : shipments.summary.active.toString()}
-          note={isLoadingStats || !shipments ? t('common.loading') : t('ops.dashboard.inTransit')}
-          icon={Truck}
-          variant="info"
-        />
-      </div>
-
-      <ClinicalMonitor
-        laboratory={laboratory?.summary ?? null}
-        inventory={overview?.inventory ?? null}
-        shipments={shipments?.summary ?? null}
-        loading={isLoadingStats}
-      />
-
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="bc-glass rounded-card p-6 lg:col-span-2">
-          <p className="text-xs font-bold uppercase tracking-widest text-donor-muted">
-            {t('ops.common.inventoryStatus')}
-          </p>
-          {overview && (
-            <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
-              <div>
-                <p className="text-2xl font-semibold text-donor-text">{overview.inventory.totalUnits}</p>
-                <p className="text-xs text-donor-muted">{t('ops.dashboard.totalUnits')}</p>
-              </div>
-              <div>
-                <p className="text-2xl font-semibold text-donor-text">{overview.inventory.availableUnits}</p>
-                <p className="text-xs text-donor-muted">{t('status.unit.AVAILABLE')}</p>
-              </div>
-              <div>
-                <p className="text-2xl font-semibold text-donor-text">{overview.inventory.reservedUnits}</p>
-                <p className="text-xs text-donor-muted">{t('status.unit.RESERVED')}</p>
-              </div>
-              <div>
-                <p className="text-2xl font-semibold text-donor-text">{overview.inventory.quarantinedUnits}</p>
-                <p className="text-xs text-donor-muted">{t('status.unit.QUARANTINED')}</p>
-              </div>
+      <RoleWorkbench role={bloodCenterOrg?.role ?? ''} scope="center" />
+      {loadFailed ? (
+        <ErrorState onRetry={() => void loadDashboardData()} />
+      ) : (
+        <>
+          <section className="bc-page-heading">
+            <div>
+              <p>{t('clinical.workspace')}</p>
+              <h2>{t('clinical.monitoring')}</h2>
             </div>
-          )}
-          {overview && overview.inventory.lowStockGroups.length > 0 && (
-            <p className="mt-4 text-sm text-donor-onWarningMuted">
-              Low stock: {overview.inventory.lowStockGroups.join(', ')}
-            </p>
-          )}
-        </div>
+            <Link href="/requests" className="bc-action-link">
+              {t('ops.dashboard.viewBloodRequests')} <span aria-hidden="true">→</span>
+            </Link>
+          </section>
 
-        <div className="bc-glass rounded-card p-6">
-          <p className="text-xs font-bold uppercase tracking-widest text-donor-muted">{t('ops.common.alerts')}</p>
-          <div className="mt-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-donor-text">{t('medical.resultFlagsByCode.CRITICAL')}</span>
-              <span className="text-sm font-semibold text-donor-onDangerMuted">
-                {alerts?.critical ?? '—'}
-              </span>
+          <div className="mb-6 grid gap-4 md:grid-cols-3">
+            <StatCard
+              label={t('ops.dashboard.unitsAvailable')}
+              value={
+                isLoadingStats || !overview ? '—' : overview.inventory.availableUnits.toString()
+              }
+              note={
+                isLoadingStats || !overview
+                  ? t('common.loading')
+                  : overview.inventory.criticalGroups.length > 0
+                    ? t('ops.dashboard.criticalGroups', {
+                        groups: overview.inventory.criticalGroups.join(', '),
+                      })
+                    : t('ops.dashboard.unitsOnHand')
+              }
+              icon={Droplet}
+              variant={
+                overview && overview.inventory.criticalGroups.length > 0 ? 'danger' : 'success'
+              }
+            />
+            <StatCard
+              label={t('ops.dashboard.pendingTests')}
+              value={
+                isLoadingStats || !laboratory ? '—' : laboratory.summary.pendingTests.toString()
+              }
+              note={
+                isLoadingStats || !laboratory
+                  ? t('common.loading')
+                  : t('ops.dashboard.awaitingResults')
+              }
+              icon={Beaker}
+              variant={laboratory && laboratory.summary.pendingTests > 0 ? 'warning' : 'success'}
+            />
+            <StatCard
+              label={t('ops.dashboard.openShipments')}
+              value={isLoadingStats || !shipments ? '—' : shipments.summary.active.toString()}
+              note={
+                isLoadingStats || !shipments ? t('common.loading') : t('ops.dashboard.inTransit')
+              }
+              icon={Truck}
+              variant="info"
+            />
+          </div>
+
+          <ClinicalMonitor
+            laboratory={laboratory?.summary ?? null}
+            inventory={overview?.inventory ?? null}
+            shipments={shipments?.summary ?? null}
+            loading={isLoadingStats}
+          />
+
+          <div className="grid gap-6 lg:grid-cols-3">
+            <div className="bc-glass rounded-card p-6 lg:col-span-2">
+              <p className="text-xs font-bold uppercase tracking-widest text-donor-muted">
+                {t('ops.common.inventoryStatus')}
+              </p>
+              {overview && (
+                <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
+                  <div>
+                    <p className="text-2xl font-semibold text-donor-text">
+                      {overview.inventory.totalUnits}
+                    </p>
+                    <p className="text-xs text-donor-muted">{t('ops.dashboard.totalUnits')}</p>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-semibold text-donor-text">
+                      {overview.inventory.availableUnits}
+                    </p>
+                    <p className="text-xs text-donor-muted">{t('status.unit.AVAILABLE')}</p>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-semibold text-donor-text">
+                      {overview.inventory.reservedUnits}
+                    </p>
+                    <p className="text-xs text-donor-muted">{t('status.unit.RESERVED')}</p>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-semibold text-donor-text">
+                      {overview.inventory.quarantinedUnits}
+                    </p>
+                    <p className="text-xs text-donor-muted">{t('status.unit.QUARANTINED')}</p>
+                  </div>
+                </div>
+              )}
+              {overview && overview.inventory.lowStockGroups.length > 0 && (
+                <p className="mt-4 text-sm text-donor-onWarningMuted">
+                  Low stock: {overview.inventory.lowStockGroups.join(', ')}
+                </p>
+              )}
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-donor-text">{t('ops.common.high')}</span>
-              <span className="text-sm font-semibold text-donor-onWarningMuted">
-                {alerts?.high ?? '—'}
-              </span>
+
+            <div className="bc-glass rounded-card p-6">
+              <p className="text-xs font-bold uppercase tracking-widest text-donor-muted">
+                {t('ops.common.alerts')}
+              </p>
+              <div className="mt-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-donor-text">
+                    {t('medical.resultFlagsByCode.CRITICAL')}
+                  </span>
+                  <span className="text-sm font-semibold text-donor-onDangerMuted">
+                    {alerts?.critical ?? '—'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-donor-text">{t('ops.common.high')}</span>
+                  <span className="text-sm font-semibold text-donor-onWarningMuted">
+                    {alerts?.high ?? '—'}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      <div className="mt-6">
-        <Link href="/requests" className="block">
-          <EmptyState
-            title={t('ops.dashboard.viewBloodRequests')}
-            description={t('ops.dashboard.viewBloodRequestsHint')}
-          />
-        </Link>
-      </div>
+          <div className="mt-6">
+            <Link href="/requests" className="block">
+              <EmptyState
+                title={t('ops.dashboard.viewBloodRequests')}
+                description={t('ops.dashboard.viewBloodRequestsHint')}
+              />
+            </Link>
+          </div>
+        </>
+      )}
     </AppShell>
   );
 }

@@ -1,3 +1,4 @@
+import userEvent from '@testing-library/user-event';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
@@ -11,7 +12,6 @@ import { createLocalization, DEFAULT_LOCALE } from '@bloodchain/i18n';
  * happened to be English.
  */
 const { t } = createLocalization(DEFAULT_LOCALE);
-
 
 const items: SidebarItem[] = [
   { id: 'dashboard', label: 'Dashboard', href: '/' },
@@ -63,4 +63,23 @@ describe('DashboardShell', () => {
 
     expect(container.querySelectorAll('[data-router-link="true"]')).toHaveLength(2);
   });
+});
+
+it('keeps the chosen density when the workspace remounts', async () => {
+  window.localStorage.clear();
+  const first = render(
+    <DashboardShell title="Test" sidebarItems={items}>
+      content
+    </DashboardShell>,
+  );
+  await userEvent.click(screen.getByRole('button', { name: t('clinical.compact') }));
+  expect(first.container.querySelector('.bc-app-bg')).toHaveClass('bc-compact');
+  first.unmount();
+  const second = render(
+    <DashboardShell title="Test" sidebarItems={items}>
+      content
+    </DashboardShell>,
+  );
+  expect(second.container.querySelector('.bc-app-bg')).toHaveClass('bc-compact');
+  window.localStorage.clear();
 });

@@ -24,7 +24,7 @@ export function EmptyState({
   const body = description ?? t('common.nothingHereHint');
 
   return (
-    <div className={cn('bc-glass bc-rise flex flex-col items-center justify-center rounded-card p-10 text-center', className)}>
+    <div className={cn('bc-feedback bc-glass bc-rise flex flex-col items-center justify-center rounded-card p-10 text-center', className)}>
       <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-donor-elevated text-donor-muted">
         <Icon size={24} />
       </div>

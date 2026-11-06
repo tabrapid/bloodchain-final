@@ -31,12 +31,14 @@ import { notificationsClient, resolveNotificationHref } from '../lib/notificatio
  */
 export function AppShell({
   title,
+  membershipRole,
   subtitle,
   userName,
   organizationName,
   organizationType,
   children,
 }: PropsWithChildren<{
+  membershipRole?: string;
   title: string;
   subtitle?: string;
   userName?: string;
@@ -46,7 +48,12 @@ export function AppShell({
   const { t } = useTranslation();
   // Labels are catalogue keys held in lib/navigation, resolved here because
   // that list is built at module load where there is no locale.
-  const localizedNav = sidebarItems.map((item) => ({
+  const visibleItems = membershipRole?.startsWith('LAB_')
+    ? sidebarItems.filter((item) =>
+        ['dashboard', 'laboratory', 'notifications', 'account'].includes(item.id),
+      )
+    : sidebarItems;
+  const localizedNav = visibleItems.map((item) => ({
     ...item,
     label: item.labelKey ? t(item.labelKey) : item.label,
   }));
@@ -66,6 +73,7 @@ export function AppShell({
 
   return (
     <DashboardShell
+      clinical
       title={title}
       subtitle={subtitle}
       userName={userName}

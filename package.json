@@ -10,6 +10,7 @@
     "dev:hospital": "pnpm --filter @bloodchain/hospital-web dev",
     "dev:blood-center": "pnpm --filter @bloodchain/blood-center-web dev",
     "dev:admin": "pnpm --filter @bloodchain/admin-web dev",
+    "dev:landing": "pnpm --filter @bloodchain/landing-web dev",
     "build": "turbo build",
     "lint": "turbo lint",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",

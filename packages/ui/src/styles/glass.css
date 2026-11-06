@@ -40,13 +40,13 @@
   --bc-border: 65 82 104;
   --bc-shadow: 0 1px 4px rgb(0 0 0 / 0.12);
   --bc-shadow-lg: 0 12px 36px rgb(0 0 0 / 0.3);
-  --bc-tint-primary: #2c3d68;
+  --bc-tint-primary: #512b3c;
   --bc-tint-secondary: #25445d;
   --bc-tint-success: #214d40;
   --bc-tint-warning: #564528;
   --bc-tint-danger: #59323b;
   --bc-tint-ai: #41385d;
-  --bc-on-primary: 181 198 255;
+  --bc-on-primary: 255 179 198;
   --bc-on-secondary: 166 211 247;
   --bc-on-success: 147 221 184;
   --bc-on-warning: 244 209 148;
@@ -415,29 +415,29 @@
   }
 }
 
-/* Institutional clinical workspace: paper panels, navy navigation and cyan identity. */
+/* Institutional clinical workspace: paper panels, navy navigation and burgundy identity with warm gold accents. */
 :root,
 :root.light {
-  --bc-bg: 238 243 246;
+  --bc-bg: 249 245 243;
   --bc-text: 31 48 64;
   --bc-muted: 82 103 119;
   --bc-border: 206 218 226;
-  --bc-focus: 0 110 156;
-  --bc-tint-primary: #e4f2f7;
-  --bc-on-primary: 0 89 127;
+  --bc-focus: 163 41 75;
+  --bc-tint-primary: #fbecef;
+  --bc-on-primary: 133 33 62;
 }
 .bc-sidebar.bc-sidebar {
-  background: #293d4d;
+  background: #352a35;
   width: 232px;
 }
 .bc-sidebar-brand {
   height: 72px;
-  background: #1c3041;
+  background: #291f2b;
   padding: 0 18px;
-  border-bottom: 3px solid #22a6bf;
+  border-bottom: 3px solid #e6b44d;
 }
 .bc-sidebar-brand > span:first-child {
-  background: #007da6;
+  background: #a3294b;
   border-radius: 3px;
 }
 .bc-sidebar-brand .bc-wordmark {
@@ -477,16 +477,16 @@
   font-size: 12px;
 }
 .bc-sidebar nav a:hover {
-  background: #344e61;
+  background: #503544;
 }
 .bc-sidebar nav a[aria-current='page'] {
-  background: #006e9c;
+  background: #a3294b;
 }
 .bc-sidebar nav a[aria-current='page'] svg {
   color: #fff;
 }
 .bc-sidebar nav a[aria-current='page'] > span:first-child {
-  background: #64d5e6;
+  background: #f5cb72;
   height: 100%;
   width: 3px;
   border-radius: 0;
@@ -494,7 +494,7 @@
 .bc-topbar.bc-topbar {
   min-height: 72px;
   padding: 12px 24px;
-  border-top: 3px solid #007da6;
+  border-top: 3px solid #a3294b;
   box-shadow: none;
 }
 .bc-topbar h1 {
@@ -574,13 +574,13 @@
   gap: 14px;
   padding: 9px 14px;
   color: white;
-  background: #006e9c;
-  border: 1px solid #005d86;
+  background: #a3294b;
+  border: 1px solid #85213e;
   border-radius: 3px;
   font-size: 12px;
 }
 .bc-action-link:hover {
-  background: #00597f;
+  background: #85213e;
 }
 .bc-stat.bc-stat {
   min-height: 112px;
@@ -654,7 +654,7 @@
   gap: 8px;
 }
 .bc-panel-heading svg {
-  color: #007da6;
+  color: #a3294b;
 }
 .bc-panel-heading a {
   padding: 4px;
@@ -681,7 +681,7 @@
   stroke: rgb(var(--bc-border));
 }
 .bc-gauge-value {
-  stroke: #007da6;
+  stroke: #a3294b;
 }
 .bc-gauge > div {
   position: absolute;
@@ -772,7 +772,7 @@
   background: #26845d;
 }
 .bc-tone-reserved {
-  background: #007da6;
+  background: #a3294b;
 }
 .bc-tone-quarantine {
   background: #af791a;
@@ -802,7 +802,7 @@
   border-color: #af791a;
 }
 .bc-auth-card.bc-auth-card {
-  border-top: 3px solid #007da6;
+  border-top: 3px solid #a3294b;
   box-shadow: 0 8px 32px rgb(21 48 68 / 0.07);
 }
 @media (min-width: 1024px) {
@@ -876,5 +876,599 @@
   .bc-monitor-panel,
   .bc-stat {
     break-inside: avoid;
+  }
+}
+
+/* Dense, light clinical workspaces: scoped to hospital and blood-center portals. */
+.bc-clinical {
+  color-scheme: light;
+  --bc-bg: 242 245 249;
+  --bc-surface-solid: 255 255 255;
+  --bc-surface-solid-elevated: 246 248 251;
+  --bc-text: 32 47 65;
+  --bc-muted: 82 101 123;
+  --bc-border: 210 219 230;
+  --bc-tint-primary: #eaf2fc;
+  --bc-on-primary: 29 79 139;
+  --bc-focus: 29 94 170;
+}
+.bc-clinical .bc-sidebar.bc-sidebar {
+  background: #213248;
+  width: 216px;
+}
+.bc-clinical .bc-sidebar-brand {
+  background: #18273b;
+  border-bottom: 2px solid #c99d40;
+  height: 62px;
+}
+.bc-clinical .bc-sidebar-brand > span:first-child {
+  background: #a3294b;
+}
+.bc-clinical .bc-sidebar nav a {
+  font-size: 12px;
+  padding: 8px 10px;
+  min-height: 36px;
+}
+.bc-clinical .bc-sidebar nav a[aria-current='page'] {
+  background: #1d5eaa;
+}
+.bc-clinical .bc-nav-caption {
+  padding-top: 15px;
+}
+.bc-clinical .bc-topbar.bc-topbar {
+  min-height: 62px;
+  padding: 8px 18px;
+  border-top: 2px solid #1d5eaa;
+}
+.bc-clinical .bc-main.bc-main {
+  padding: 16px 18px;
+}
+.bc-clinical .bc-workspace-toolbar {
+  min-height: 34px;
+  padding: 6px 18px;
+}
+.bc-clinical .bc-glass {
+  border-radius: 4px;
+  box-shadow: none;
+}
+.bc-clinical .bc-page-heading {
+  margin-bottom: 12px;
+  gap: 10px;
+}
+.bc-clinical .bc-page-heading h2 {
+  font-size: 20px;
+}
+.bc-clinical .bc-stat.bc-stat {
+  min-height: 68px;
+  padding: 11px 14px;
+  border-top-width: 1px;
+}
+.bc-clinical .bc-stat-value {
+  font-size: 25px;
+}
+.bc-clinical .bc-stat-label {
+  font-size: 11px;
+}
+.bc-clinical .bc-stat-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+}
+.bc-clinical .bc-stat-icon svg {
+  width: 18px;
+  height: 18px;
+}
+.bc-clinical .bc-main .mb-6 {
+  margin-bottom: 14px;
+}
+.bc-clinical .bc-main .gap-6 {
+  gap: 14px;
+}
+.bc-clinical .bc-main .gap-4 {
+  gap: 12px;
+}
+.bc-clinical .bc-main .p-6 {
+  padding: 16px;
+}
+.bc-clinical .bc-table-scroll {
+  max-height: 65vh;
+  overflow: auto;
+}
+.bc-clinical .bc-data-table {
+  font-size: 12px;
+}
+.bc-clinical .bc-data-table.bc-data-table th {
+  padding: 8px 10px;
+  font-size: 10px;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #eef3f9;
+}
+.bc-clinical .bc-data-table.bc-data-table td {
+  padding: 8px 10px;
+  vertical-align: middle;
+}
+.bc-clinical.bc-compact .bc-data-table.bc-data-table td {
+  padding: 6px 9px;
+}
+.bc-clinical .bc-data-table tr[data-selected='true'] {
+  background: #e5effc;
+  outline: 1px solid #95b8e6;
+  outline-offset: -1px;
+}
+.bc-clinical .bc-data-table td button {
+  min-height: 30px;
+  border-radius: 4px;
+}
+.bc-clinical .bg-donor-primary,
+.bc-clinical .bc-action-link {
+  background: #1d5eaa;
+  border-color: #1d5eaa;
+}
+.bc-clinical .text-donor-primary {
+  color: #1d5eaa;
+}
+.bc-clinical .bc-main input,
+.bc-clinical .bc-main select {
+  min-height: 34px;
+  border-radius: 4px;
+}
+.bc-sort-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: inherit;
+  text-transform: inherit;
+  letter-spacing: inherit;
+  background: none;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  padding: 2px 0;
+}
+.bc-role-workbench {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  border: 1px solid #cbd9eb;
+  border-left: 3px solid #1d5eaa;
+  background: white;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  border-radius: 4px;
+}
+.bc-role-workbench > div > span {
+  font-size: 9px;
+  color: #50657e;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.bc-role-workbench h2 {
+  font-size: 16px;
+  margin: 3px 0;
+}
+.bc-role-workbench p {
+  font-size: 10px;
+  color: #52657b;
+  max-width: 450px;
+}
+.bc-role-workbench nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-width: 58%;
+  justify-content: flex-end;
+}
+.bc-role-workbench nav a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 9px;
+  min-height: 32px;
+  font-size: 11px;
+  border: 1px solid #d1deef;
+  background: #f6f9ff;
+  color: #235386;
+  border-radius: 3px;
+}
+.bc-role-workbench nav a:hover {
+  background: #e9f2ff;
+}
+.bc-lab-workspace.has-selection {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 40%);
+  gap: 14px;
+  align-items: start;
+}
+.bc-lab-workspace > div {
+  min-width: 0;
+}
+.bc-lab-inspector {
+  min-width: 0;
+  border: 1px solid #cbd7e7;
+  background: white;
+  border-radius: 4px;
+  padding: 12px;
+}
+.bc-lab-inspector header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid #dae2ed;
+  padding-bottom: 10px;
+}
+.bc-lab-inspector header span {
+  font-size: 10px;
+  color: #52657b;
+}
+.bc-lab-inspector h2 {
+  font-size: 14px;
+  font-family: monospace;
+  overflow-wrap: anywhere;
+}
+.bc-lab-inspector header button {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #d1dce9;
+  border-radius: 3px;
+}
+.bc-lab-inspector h3 {
+  font-size: 12px;
+  font-weight: 600;
+  margin: 12px 0;
+}
+.bc-lab-identity {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px 12px;
+  font-size: 12px;
+  padding: 12px 0;
+}
+.bc-lab-identity span {
+  font-size: 10px;
+  color: #385c88;
+  background: #edf3fc;
+  padding: 3px 6px;
+  border-radius: 3px;
+}
+.bc-result-timeline {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 8px;
+}
+.bc-result-timeline li {
+  border-left: 3px solid #c5cfdb;
+  padding: 8px 10px;
+  background: #f6f8fb;
+}
+.bc-result-timeline li[data-recorded='true'] {
+  border-left-color: #2c7a5c;
+}
+.bc-result-timeline strong {
+  font-size: 11px;
+}
+.bc-result-timeline dl {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 3px 10px;
+  font-size: 10px;
+  margin-top: 6px;
+}
+.bc-result-timeline dt {
+  color: #52657b;
+}
+.bc-result-timeline dd {
+  overflow-wrap: anywhere;
+}
+.bc-workbench-note {
+  font-size: 10px;
+  color: #52657b;
+  margin: 10px 0;
+}
+.bc-parent-reference {
+  display: block;
+  font-size: 9px;
+  color: #52657b;
+  max-width: 210px;
+  overflow-wrap: anywhere;
+  margin-top: 3px;
+}
+.bc-trace-banner {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  background: #f4f7fc;
+  border: 1px solid #d1dceb;
+  border-radius: 4px;
+  padding: 12px;
+  margin-bottom: 14px;
+}
+.bc-trace-banner dl {
+  font-size: 11px;
+  flex: 1;
+  min-width: 140px;
+  align-self: center;
+}
+.bc-trace-banner dt {
+  color: #52657b;
+  margin-top: 5px;
+}
+.bc-trace-banner dd {
+  font-family: monospace;
+  overflow-wrap: anywhere;
+}
+.bc-component-barcode {
+  margin: 0;
+  max-width: 100%;
+  background: white;
+  padding: 8px;
+  border: 1px solid #dbe2ec;
+}
+.bc-component-barcode figcaption {
+  font-size: 9px;
+  margin-bottom: 4px;
+  color: #52657b;
+}
+.bc-component-barcode svg {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+.bc-component-barcode code {
+  display: block;
+  font-size: 12px;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+@media (min-width: 1024px) {
+  .bc-clinical .bc-workspace {
+    margin-left: 216px;
+  }
+}
+@media (max-width: 1200px) {
+  .bc-lab-workspace.has-selection {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .bc-role-workbench {
+    align-items: flex-start;
+  }
+  .bc-role-workbench nav {
+    max-width: 55%;
+  }
+}
+@media (max-width: 640px) {
+  .bc-clinical .bc-main.bc-main {
+    padding: 12px;
+  }
+  .bc-role-workbench {
+    flex-direction: column;
+  }
+  .bc-role-workbench nav {
+    max-width: 100%;
+    justify-content: flex-start;
+  }
+  .bc-clinical .bc-stat.bc-stat {
+    min-height: 64px;
+    padding: 10px;
+  }
+  .bc-lab-filters > * {
+    max-width: 100%;
+  }
+  .bc-lab-inspector {
+    padding: 10px;
+  }
+}
+
+/* Final common web density: applies through AppShell to all staff screens. */
+.bc-clinical .bc-main > * {
+  max-width: none;
+}
+.bc-clinical .bc-main > .p-6 {
+  padding: 0;
+}
+.bc-clinical .bc-main h1.text-2xl {
+  font-size: 20px;
+  line-height: 1.35;
+}
+.bc-clinical .bc-main .mb-8 {
+  margin-bottom: 16px;
+}
+.bc-clinical .bc-main .mb-6 {
+  margin-bottom: 12px;
+}
+.bc-clinical .bc-main .space-y-6 > :not([hidden]) ~ :not([hidden]) {
+  margin-top: 14px;
+}
+.bc-clinical .bc-main .space-y-4 > :not([hidden]) ~ :not([hidden]) {
+  margin-top: 10px;
+}
+.bc-clinical .bc-main .p-5 {
+  padding: 14px;
+}
+.bc-clinical .bc-main .p-8 {
+  padding: 18px;
+}
+.bc-clinical .bc-main .gap-8 {
+  gap: 16px;
+}
+.bc-clinical .bc-filter-bar {
+  padding: 10px 12px;
+  gap: 8px;
+}
+.bc-clinical .bc-filter-form {
+  align-items: center;
+  gap: 8px;
+}
+.bc-clinical .bc-filter-form > .relative {
+  min-width: min(220px, 100%);
+}
+.bc-clinical .bc-feedback {
+  padding: 22px 16px;
+}
+.bc-clinical .bc-feedback > .h-12 {
+  height: 36px;
+  width: 36px;
+  margin-bottom: 10px;
+}
+.bc-clinical .bc-feedback h3 {
+  font-size: 14px;
+}
+.bc-clinical .bc-feedback p {
+  font-size: 12px;
+}
+.bc-clinical .overflow-x-auto:has(> table) {
+  max-height: 65vh;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.bc-clinical .bc-stat {
+  gap: 12px;
+}
+.bc-clinical .bc-main input,
+.bc-clinical .bc-main select,
+.bc-clinical .bc-main textarea {
+  font-size: 12px;
+}
+.bc-clinical .bc-main input[type='checkbox'] {
+  min-height: unset;
+}
+.bc-clinical .bc-workspace-location {
+  min-width: 0;
+}
+.bc-clinical .bc-workspace-location span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bc-clinical .bc-record-link {
+  color: #1d5eaa;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  font-family: monospace;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+}
+.bc-component-summary {
+  display: grid;
+  gap: 3px;
+  min-width: 130px;
+}
+.bc-dialog {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 32px);
+}
+.bc-dialog-header,
+.bc-dialog-footer {
+  flex-shrink: 0;
+  gap: 12px;
+}
+.bc-dialog-header > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.bc-dialog-body {
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.bc-drawer-body {
+  min-height: 0;
+  overscroll-behavior: contain;
+}
+.bc-clinical .bc-dialog,
+.bc-clinical .bc-drawer {
+  padding: 18px;
+  border-radius: 5px;
+}
+.bc-clinical .bc-dialog-header h2,
+.bc-clinical .bc-drawer h2 {
+  font-size: 16px;
+}
+.bc-clinical .bc-dialog-body {
+  margin-top: 12px;
+}
+.bc-clinical .bc-dialog-footer {
+  margin-top: 14px;
+  gap: 8px;
+}
+.bc-clinical .bc-drawer-body {
+  padding-top: 16px;
+  padding-bottom: 16px;
+}
+.bc-clinical [role='dialog'] button {
+  min-height: 32px;
+}
+.bc-clinical .bc-topbar h1 {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  line-height: 1.35;
+}
+@media (max-width: 640px) {
+  .bc-clinical .bc-topbar.bc-topbar {
+    flex-wrap: wrap;
+    padding: 8px 12px;
+    gap: 8px;
+  }
+  .bc-clinical .bc-topbar > div:first-child {
+    min-width: 140px;
+    flex: 1;
+  }
+  .bc-clinical .bc-topbar > div:last-child {
+    margin-left: auto;
+  }
+  .bc-clinical .bc-workspace-toolbar {
+    padding: 6px 12px;
+    gap: 8px;
+  }
+  .bc-clinical .bc-main .flex.items-center.justify-between {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .bc-clinical .bc-filter-form > .relative {
+    flex-basis: 100%;
+    min-width: 0;
+  }
+  .bc-clinical .bc-filter-form > select {
+    flex: 1;
+    min-width: 0;
+  }
+  .bc-clinical .bc-filter-form > button {
+    min-height: 40px;
+  }
+  .bc-clinical .bc-data-table.bc-data-table th {
+    padding: 8px;
+  }
+  .bc-clinical .bc-data-table.bc-data-table td {
+    padding: 8px;
+  }
+  .bc-dialog {
+    max-height: calc(100dvh - 24px);
+  }
+  .bc-clinical .bc-dialog {
+    padding: 14px;
+  }
+  .bc-clinical .bc-dialog-footer {
+    flex-wrap: wrap;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bc-rise {
+    animation: none;
+  }
+  .bc-clinical *,
+  .bc-clinical *::before,
+  .bc-clinical *::after {
+    scroll-behavior: auto;
+    transition: none;
   }
 }

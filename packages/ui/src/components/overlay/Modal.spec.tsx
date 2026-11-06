@@ -13,7 +13,6 @@ import { createLocalization, DEFAULT_LOCALE } from '@bloodchain/i18n';
  */
 const { t } = createLocalization(DEFAULT_LOCALE);
 
-
 /**
  * P3-16. The Modal had no tests, and two gaps that only show up when you try
  * to use it: nothing identified it to assistive tech as a dialog, and Escape
@@ -192,4 +191,22 @@ describe('Modal', () => {
     await user.click(screen.getByRole('button', { name: 'Done' }));
     await waitFor(() => expect(document.activeElement).toBe(opener));
   });
+});
+
+it('lets only the top dialog handle Escape during a nested confirmation', async () => {
+  const outer = vi.fn(),
+    inner = vi.fn();
+  render(
+    <>
+      <Modal open onClose={outer} title="Record">
+        <p>Record details</p>
+      </Modal>
+      <Modal open onClose={inner} title="Confirm">
+        <p>Confirm operation</p>
+      </Modal>
+    </>,
+  );
+  await userEvent.keyboard('{Escape}');
+  expect(inner).toHaveBeenCalledOnce();
+  expect(outer).not.toHaveBeenCalled();
 });

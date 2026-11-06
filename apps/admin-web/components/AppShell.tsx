@@ -66,6 +66,7 @@ export function AppShell({
 
   return (
     <DashboardShell
+      clinical
       title={title}
       subtitle={subtitle}
       userName={userName}

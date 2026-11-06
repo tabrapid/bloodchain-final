@@ -11,7 +11,7 @@ export function LoadingState({ message, className }: LoadingStateProps) {
   const { t } = useOptionalTranslation();
 
   return (
-    <div className={cn('flex flex-col items-center justify-center p-10 text-center', className)}>
+    <div className={cn('bc-feedback flex flex-col items-center justify-center p-10 text-center', className)}>
       <Loader2 size={28} className="animate-spin text-donor-secondary" />
       <p className="mt-3 text-sm text-donor-muted">{message ?? t('common.loading')}</p>
     </div>

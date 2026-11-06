@@ -1,6 +1,6 @@
 /**
  * BloodChain clinical workspace tokens, shared in direction with the web portals.
- * Light paper surfaces, slate typography, blue actions and distinct red emergencies.
+ * Light paper surfaces, slate typography, burgundy actions, warm gold accents and distinct red emergencies.
  * Both palettes preserve contrast and the existing native component contracts.
  */
 
@@ -70,7 +70,7 @@ const paper = {
  */
 const accentDark = {
   /** Brand and blood domain: identity, donation, the primary action. */
-  rose: { base: '#8CA7FF', text: '#B5C6FF', fill: '#4C6CD2', soft: 'rgba(0,110,156,0.18)' },
+  rose: { base: '#FF91AD', text: '#FFB3C6', fill: '#C43E65', soft: 'rgba(196,62,101,0.18)' },
   /** EMERGENCY ONLY. Hotter and more orange than rose, so the two never blur. */
   critical: { base: '#FF5644', text: '#FF9284', fill: '#E0301F', soft: 'rgba(255,86,68,0.16)' },
   /** Clinical information: laboratory values, appointments, anything factual. */
@@ -82,7 +82,7 @@ const accentDark = {
 } as const;
 
 const accentLight = {
-  rose: { base: '#006E9C', text: '#00597F', fill: '#006E9C', soft: 'rgba(0,110,156,0.10)' },
+  rose: { base: '#A3294B', text: '#85213E', fill: '#A3294B', soft: 'rgba(163,41,75,0.10)' },
   critical: { base: '#E02D1B', text: '#B81F10', fill: '#E02D1B', soft: 'rgba(224,45,27,0.10)' },
   clinical: { base: '#1F6FD0', text: '#15599E', fill: '#1F6FD0', soft: 'rgba(31,111,208,0.10)' },
   insight: { base: '#6B5BD6', text: '#5546B5', fill: '#6B5BD6', soft: 'rgba(107,91,214,0.10)' },
@@ -264,7 +264,12 @@ export type ElevationName = keyof typeof elevation;
  * Text; Manrope and Inter both have tall x-heights, so these run a little loose.
  */
 export const type = {
-  display: { fontSize: 40, lineHeight: 46, fontFamily: fonts.displayExtraBold, letterSpacing: -1.2 },
+  display: {
+    fontSize: 40,
+    lineHeight: 46,
+    fontFamily: fonts.displayExtraBold,
+    letterSpacing: -1.2,
+  },
   h1: { fontSize: 28, lineHeight: 34, fontFamily: fonts.displayBold, letterSpacing: -0.7 },
   h2: { fontSize: 22, lineHeight: 28, fontFamily: fonts.displayBold, letterSpacing: -0.4 },
   h3: { fontSize: 18, lineHeight: 24, fontFamily: fonts.displaySemibold, letterSpacing: -0.2 },
