@@ -1,12 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import {
-  Activity,
-  Beaker,
-  RefreshCw,
-  Search,
-} from 'lucide-react';
+import { Activity, Beaker, RefreshCw, Search } from 'lucide-react';
 import {
   ConfirmDialog,
   DataTable,
@@ -16,11 +11,7 @@ import {
   StatCard,
   StatusBadge,
 } from '@bloodchain/ui/components';
-import {
-  me,
-  isAuthenticated,
-  MeResponse,
-} from '../../lib/auth';
+import { me, isAuthenticated, MeResponse } from '../../lib/auth';
 import {
   getLaboratoryAppointments,
   confirmLaboratoryAppointment,
@@ -35,6 +26,8 @@ import {
   LaboratoryAppointment,
   TestType,
 } from '../../lib/laboratory';
+import { laboratoryAccess } from '../../lib/laboratory-access';
+import { LaboratoryInspector } from '../../components/LaboratoryInspector';
 import { AppShell } from '../../components/AppShell';
 import { useTranslation } from '@bloodchain/ui/i18n';
 
@@ -57,7 +50,7 @@ const statusVariant: Record<string, 'success' | 'warning' | 'danger' | 'info' | 
 };
 
 export default function LaboratoryPage() {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const [user, setUser] = useState<MeResponse | null>(null);
   const [organizationId, setOrganizationId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
@@ -67,6 +60,16 @@ export default function LaboratoryPage() {
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [selected, setSelected] = useState<LaboratoryAppointment | null>(null);
+  const [resultFilter, setResultFilter] = useState('');
+  const membership = user?.organizations.find((o) => o.organizationId === organizationId);
+  const access = laboratoryAccess(membership?.role ?? '');
+  useEffect(() => {
+    const query = new URLSearchParams(window.location.search);
+    setStatusFilter(query.get('status') ?? '');
+    setResultFilter(query.get('result') ?? '');
+  }, []);
+
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   // Result entry. The booked test type is not stored on the appointment, so
@@ -86,6 +89,8 @@ export default function LaboratoryPage() {
         search: searchQuery || undefined,
       });
       setAppointments(data);
+      const ref = new URLSearchParams(window.location.search).get('ref');
+      if (ref) setSelected(data.find((a) => a.id === ref) ?? null);
       setError(null);
     } catch (err: any) {
       // Without this the table just renders empty, which reads as "no
@@ -104,12 +109,10 @@ export default function LaboratoryPage() {
           const userData = await me();
           setUser(userData);
           const org = userData.organizations.find(
-            (o) => o.type === 'BLOOD_CENTER' || o.type === 'BLOOD_CENTER_ADMIN'
+            (o) => o.type === 'BLOOD_CENTER' || o.type === 'BLOOD_CENTER_ADMIN',
           );
           if (org) {
             setOrganizationId(org.organizationId);
-          } else if (userData.organizations.length > 0) {
-            setOrganizationId(userData.organizations[0]!.organizationId);
           }
         }
       } catch (err) {
@@ -138,13 +141,20 @@ export default function LaboratoryPage() {
 
   const openEntry = (appointment: LaboratoryAppointment) => {
     setEntering(appointment);
-    const first = testTypes[0];
-    setSelectedTestTypeId(first?.id ?? '');
+    setSelectedTestTypeId('');
     setValues({});
   };
 
   const submitResults = async () => {
     if (!entering || !organizationId || !selectedTestType) return;
+    if (
+      selectedTestType.parameters.some(
+        (param) => param.required && !(values[param.id] ?? '').trim(),
+      )
+    ) {
+      setError(t('workbench.required'));
+      return;
+    }
     const items = selectedTestType.parameters
       .filter((param) => (values[param.id] ?? '').trim() !== '')
       .map((param) => {
@@ -258,6 +268,10 @@ export default function LaboratoryPage() {
     }
   };
 
+  const [validation, setValidation] = useState<{
+    appointment: LaboratoryAppointment;
+    kind: 'review' | 'publish';
+  } | null>(null);
   const [noShowing, setNoShowing] = useState<LaboratoryAppointment | null>(null);
 
   const handleNoShow = async (appointmentId: string) => {
@@ -274,36 +288,77 @@ export default function LaboratoryPage() {
   };
 
   const getActionButtons = (appointment: LaboratoryAppointment) => {
-    const actions: { label: string; onClick: () => void; variant?: 'primary' | 'secondary' | 'danger' }[] = [];
+    const actions: {
+      label: string;
+      onClick: () => void;
+      variant?: 'primary' | 'secondary' | 'danger';
+    }[] = [];
 
-    switch (appointment.status) {
-      case 'PENDING':
-        actions.push({ label: t('actions.confirm'), onClick: () => handleConfirm(appointment.id), variant: 'primary' });
-        actions.push({ label: t('status.appointment.NO_SHOW'), onClick: () => setNoShowing(appointment), variant: 'danger' });
-        break;
-      case 'CONFIRMED':
-        actions.push({ label: t('actions.checkIn'), onClick: () => handleCheckIn(appointment.id), variant: 'primary' });
-        actions.push({ label: t('status.appointment.NO_SHOW'), onClick: () => setNoShowing(appointment), variant: 'danger' });
-        break;
-      case 'CHECKED_IN':
-        actions.push({ label: t('ops.laboratory.startTest'), onClick: () => handleStart(appointment.id), variant: 'primary' });
-        break;
-      case 'IN_PROGRESS':
-        actions.push({ label: t('ops.laboratory.sampleCollected'), onClick: () => handleComplete(appointment.id), variant: 'primary' });
-        break;
-    }
+    if (access.manage)
+      switch (appointment.status) {
+        case 'PENDING':
+          actions.push({
+            label: t('actions.confirm'),
+            onClick: () => handleConfirm(appointment.id),
+            variant: 'primary',
+          });
+          actions.push({
+            label: t('status.appointment.NO_SHOW'),
+            onClick: () => setNoShowing(appointment),
+            variant: 'danger',
+          });
+          break;
+        case 'CONFIRMED':
+          actions.push({
+            label: t('actions.checkIn'),
+            onClick: () => handleCheckIn(appointment.id),
+            variant: 'primary',
+          });
+          actions.push({
+            label: t('status.appointment.NO_SHOW'),
+            onClick: () => setNoShowing(appointment),
+            variant: 'danger',
+          });
+          break;
+        case 'CHECKED_IN':
+          actions.push({
+            label: t('ops.laboratory.startTest'),
+            onClick: () => handleStart(appointment.id),
+            variant: 'primary',
+          });
+          break;
+        case 'IN_PROGRESS':
+          actions.push({
+            label: t('ops.laboratory.sampleCollected'),
+            onClick: () => handleComplete(appointment.id),
+            variant: 'primary',
+          });
+          break;
+      }
 
     // Entering, reviewing and publishing a result are the steps that put a
     // number in front of the donor, and none of them had a control here: the
     // console could take a sample and then had nowhere to write down what it
     // found.
     const result = appointment.laboratoryResult;
-    if (!result && appointment.status === 'RESULT_PENDING') {
-      actions.push({ label: t('ops.laboratory.enterResultsShort'), onClick: () => openEntry(appointment), variant: 'primary' });
-    } else if (result?.status === 'ENTERED') {
-      actions.push({ label: t('actions.review'), onClick: () => handleReview(appointment), variant: 'primary' });
-    } else if (result?.status === 'REVIEWED') {
-      actions.push({ label: t('ops.laboratory.publishToDonor'), onClick: () => handlePublish(appointment), variant: 'primary' });
+    if (access.enter && !result && appointment.status === 'RESULT_PENDING') {
+      actions.push({
+        label: t('ops.laboratory.enterResultsShort'),
+        onClick: () => openEntry(appointment),
+        variant: 'primary',
+      });
+    } else if (access.review && result?.status === 'ENTERED') {
+      actions.push({
+        label: t('actions.review'),
+        onClick: () => setValidation({ appointment, kind: 'review' }),
+        variant: 'primary',
+      });
+    } else if (access.publish && result?.status === 'REVIEWED') {
+      actions.push({
+        label: t('ops.laboratory.publishToDonor'),
+        onClick: () => setValidation({ appointment, kind: 'publish' }),
+        variant: 'primary',
+      });
     }
 
     return actions;
@@ -312,13 +367,13 @@ export default function LaboratoryPage() {
   const columns: DataTableColumn<LaboratoryAppointment>[] = [
     {
       key: 'referenceNumber',
+      sortValue: (a) => a.referenceNumber,
       header: t('ops.requests.reference'),
-      render: (appointment) => (
-        <span className="font-mono">{appointment.referenceNumber}</span>
-      ),
+      render: (appointment) => <span className="font-mono">{appointment.referenceNumber}</span>,
     },
     {
       key: 'donor',
+      sortValue: (a) => `${a.donor.lastName} ${a.donor.firstName}`,
       header: t('table.donor'),
       render: (appointment) => (
         <div>
@@ -331,9 +386,14 @@ export default function LaboratoryPage() {
     },
     {
       key: 'scheduledStart',
-      header: t('booking.dateAndTime'),
+      sortValue: (a) => Date.parse(a.scheduledStart),
+      header: t('workbench.time'),
       render: (appointment) =>
-        `${new Date(appointment.scheduledStart).toLocaleDateString()} ${new Date(appointment.scheduledStart).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
+        new Intl.DateTimeFormat(locale, {
+          timeZone: 'Asia/Tashkent',
+          dateStyle: 'short',
+          timeStyle: 'short',
+        }).format(new Date(appointment.scheduledStart)),
     },
     {
       key: 'status',
@@ -341,7 +401,9 @@ export default function LaboratoryPage() {
       render: (appointment) => {
         const variant = statusVariant[appointment.status] ?? 'default';
         return (
-          <StatusBadge variant={variant}>{t(`status.appointment.${appointment.status}`)}</StatusBadge>
+          <StatusBadge variant={variant}>
+            {t(`status.appointment.${appointment.status}`)}
+          </StatusBadge>
         );
       },
     },
@@ -355,11 +417,11 @@ export default function LaboratoryPage() {
               appointment.laboratoryResult.status === 'PUBLISHED'
                 ? 'success'
                 : appointment.laboratoryResult.status === 'REVIEWED'
-                ? 'info'
-                : 'warning'
+                  ? 'info'
+                  : 'warning'
             }
           >
-            {appointment.laboratoryResult.status}
+            {t(`status.labResult.${appointment.laboratoryResult.status}`)}
           </StatusBadge>
         ) : (
           <span className="text-xs text-donor-muted">—</span>
@@ -382,8 +444,8 @@ export default function LaboratoryPage() {
                   action.variant === 'primary'
                     ? 'bg-donor-primary text-white hover:bg-donor-primary/80'
                     : action.variant === 'danger'
-                    ? 'border border-donor-danger/50 text-donor-danger hover:bg-donor-dangerMuted'
-                    : 'border border-donor-border text-donor-text hover:bg-donor-elevated'
+                      ? 'border border-donor-danger/50 text-donor-danger hover:bg-donor-dangerMuted'
+                      : 'border border-donor-border text-donor-text hover:bg-donor-elevated'
                 }`}
               >
                 {action.label}
@@ -421,7 +483,7 @@ export default function LaboratoryPage() {
       <AppShell
         title={t('portal.authRequired')}
         subtitle={t('portal.bloodCenter.console')}
-        organizationName="Northstar Blood Center"
+        organizationName={membership?.name ?? t('portal.bloodCenter.name')}
         userName="Guest"
       >
         <div className="bc-auth-card flex flex-col items-center justify-center bc-glass rounded-card p-12">
@@ -429,9 +491,7 @@ export default function LaboratoryPage() {
           <h2 className="mb-2 font-display text-2xl font-semibold text-donor-text">
             {t('ops.common.signInRequired')}
           </h2>
-          <p className="mb-6 text-center text-donor-muted">
-            {t('ops.common.signInToLaboratory')}
-          </p>
+          <p className="mb-6 text-center text-donor-muted">{t('ops.common.signInToLaboratory')}</p>
         </div>
       </AppShell>
     );
@@ -439,9 +499,10 @@ export default function LaboratoryPage() {
 
   return (
     <AppShell
+      membershipRole={membership?.role}
       title={t('portal.nav.laboratory')}
       subtitle={t('ops.laboratory.management')}
-      organizationName="Northstar Blood Center"
+      organizationName={membership?.name ?? t('portal.bloodCenter.name')}
       userName={`${user.firstName} ${user.lastName}`}
     >
       <div className="mb-6 flex items-center justify-between">
@@ -449,17 +510,15 @@ export default function LaboratoryPage() {
           <h1 className="font-display text-2xl font-semibold text-donor-text">
             {t('ops.laboratory.pageTitle')}
           </h1>
-          <p className="text-sm text-donor-muted">
-            {t('ops.laboratory.pageSubtitle')}
-          </p>
+          <p className="text-sm text-donor-muted">{t('ops.laboratory.pageSubtitle')}</p>
         </div>
       </div>
 
       {error && (
         <div className="mb-4 rounded-lg border border-donor-danger/30 bg-donor-dangerMuted p-4 text-donor-onDangerMuted">
           {error}
-          <button onClick={() => setError(null)} className="ml-2 underline">
-            {t('actions.dismiss')}
+          <button onClick={loadAppointments} className="ml-2 underline">
+            {t('actions.refresh')}
           </button>
         </div>
       )}
@@ -492,7 +551,7 @@ export default function LaboratoryPage() {
         />
       </div>
 
-      <div className="mb-4 flex items-center gap-4">
+      <div className="bc-lab-filters mb-4 flex flex-wrap items-center gap-3">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-donor-muted" size={16} />
           <input
@@ -528,27 +587,71 @@ export default function LaboratoryPage() {
           <RefreshCw size={14} />
           {t('actions.refresh')}
         </button>
+        <select
+          aria-label={t('workbench.result')}
+          value={resultFilter}
+          onChange={(e) => setResultFilter(e.target.value)}
+        >
+          <option value="">
+            {t('workbench.result')}: {t('filters.allStatuses')}
+          </option>
+          {['ENTERED', 'REVIEWED', 'PUBLISHED'].map((status) => (
+            <option key={status} value={status}>
+              {t(`status.labResult.${status}`)}
+            </option>
+          ))}
+        </select>
       </div>
 
-      {isLoadingData ? (
-        <DataTable columns={columns} rows={[]} keyExtractor={(a) => a.id} loading />
-      ) : appointments.length === 0 ? (
-        <EmptyState
-          title={t('ops.laboratory.empty')}
-          description={t('ops.laboratory.emptyHint')}
-        />
-      ) : (
-        <DataTable columns={columns} rows={appointments} keyExtractor={(a) => a.id} />
-      )}
+      <p className="bc-workbench-note">
+        {t('workbench.scopeCount')}: {appointments.length}
+      </p>
+      <div className={selected ? 'bc-lab-workspace has-selection' : 'bc-lab-workspace'}>
+        <div>
+          {isLoadingData ? (
+            <DataTable columns={columns} rows={[]} keyExtractor={(a) => a.id} loading />
+          ) : appointments.length === 0 ? (
+            <EmptyState
+              title={t('ops.laboratory.empty')}
+              description={t('ops.laboratory.emptyHint')}
+            />
+          ) : (
+            <DataTable
+              columns={columns}
+              rows={appointments.filter(
+                (a) => !resultFilter || a.laboratoryResult?.status === resultFilter,
+              )}
+              keyExtractor={(a) => a.id}
+              selectedKey={selected?.id}
+              onRowClick={setSelected}
+              rowLabel={(a) => `${t('workbench.selected')}: ${a.referenceNumber}`}
+            />
+          )}
+        </div>
+        {selected && (
+          <LaboratoryInspector
+            appointment={appointments.find((a) => a.id === selected.id) ?? selected}
+            organizationId={organizationId}
+            onClose={() => setSelected(null)}
+          />
+        )}
+      </div>
 
-      <Modal open={entering !== null} onClose={() => setEntering(null)} title={t('ops.laboratory.enterResults')}>
+      <Modal
+        open={entering !== null}
+        onClose={() => setEntering(null)}
+        title={t('ops.laboratory.enterResults')}
+      >
         {entering && (
           <div className="space-y-4">
             <p className="text-sm text-donor-muted">
               {entering.donor.firstName} {entering.donor.lastName} — {entering.referenceNumber}
             </p>
             <div>
-              <label htmlFor="test-type" className="mb-1 block text-xs font-semibold text-donor-muted">
+              <label
+                htmlFor="test-type"
+                className="mb-1 block text-xs font-semibold text-donor-muted"
+              >
                 {t('ops.laboratory.testType')}
               </label>
               <select
@@ -560,6 +663,7 @@ export default function LaboratoryPage() {
                 }}
                 className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-sm text-donor-text"
               >
+                <option value="">{t('ops.laboratory.testType')}</option>
                 {testTypes.map((type) => (
                   <option key={type.id} value={type.id}>
                     {type.name}
@@ -603,7 +707,9 @@ export default function LaboratoryPage() {
                 disabled={actionLoading === entering.id || !selectedTestType?.parameters.length}
                 className="rounded-lg bg-donor-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-donor-primary/80 disabled:opacity-50"
               >
-                {actionLoading === entering.id ? t('common.saving') : t('ops.laboratory.saveResults')}
+                {actionLoading === entering.id
+                  ? t('common.saving')
+                  : t('ops.laboratory.saveResults')}
               </button>
               <button
                 onClick={() => setEntering(null)}
@@ -616,6 +722,28 @@ export default function LaboratoryPage() {
         )}
       </Modal>
 
+      <ConfirmDialog
+        open={!!validation}
+        title={
+          validation?.kind === 'review' ? t('actions.review') : t('ops.laboratory.publishToDonor')
+        }
+        context={
+          validation
+            ? `${validation.appointment.referenceNumber} · ${validation.appointment.donor.firstName} ${validation.appointment.donor.lastName}`
+            : ''
+        }
+        confirmLabel={
+          validation?.kind === 'review' ? t('actions.review') : t('ops.laboratory.publishToDonor')
+        }
+        onConfirm={async () => {
+          if (!validation) return;
+          if (validation.kind === 'review') await handleReview(validation.appointment);
+          else await handlePublish(validation.appointment);
+          setValidation(null);
+        }}
+        onClose={() => setValidation(null)}
+        loading={!!validation && actionLoading === validation.appointment.id}
+      />
       <ConfirmDialog
         open={noShowing !== null}
         onClose={() => setNoShowing(null)}

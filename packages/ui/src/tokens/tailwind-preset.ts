@@ -26,7 +26,7 @@ export const bloodchaingaPreset = {
           border: surface('--bc-border'),
 
           // Brand accents — constant across themes.
-          primary: '#006E9C',
+          primary: '#A3294B',
           secondary: '#2875AE',
           ai: '#8E82DF',
           success: '#21845E',
@@ -53,8 +53,8 @@ export const bloodchaingaPreset = {
         },
       },
       fontFamily: {
-        sans: ['DM Sans', 'system-ui', 'sans-serif'],
-        display: ['Space Grotesk', 'system-ui', 'sans-serif'],
+        sans: ['var(--font-portal, system-ui)', 'system-ui', 'sans-serif'],
+        display: ['var(--font-portal, system-ui)', 'system-ui', 'sans-serif'],
       },
       borderRadius: {
         // One rounded-geometry scale instead of ad-hoc values per screen.

@@ -18,3 +18,8 @@ export * from './account/PasswordChangeCard';
 export * from './account/redirectToSignIn';
 
 export * from "./data/ClinicalMonitor";
+
+export * from './layout/RoleWorkbench';
+export * from './data/ComponentBarcode';
+
+export * from './data/RequestWorklist';

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from '@bloodchain/ui/i18n';
 import Link from 'next/link';
 import { Activity, Calendar, Clock, Droplet, Package } from 'lucide-react';
-import { EmptyState, StatCard } from '@bloodchain/ui/components';
+import { RoleWorkbench, ErrorState, EmptyState, StatCard } from '@bloodchain/ui/components';
 import { login, logout as logoutApi, me, isAuthenticated, MeResponse } from '../lib/auth';
 import { AppShell } from '../components/AppShell';
 import {
@@ -30,6 +30,7 @@ export default function HospitalDashboard() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [organizationId, setOrganizationId] = useState<string>('');
   const [overview, setOverview] = useState<OverviewAnalytics | null>(null);
   const [alerts, setAlerts] = useState<AlertsResponse | null>(null);
@@ -45,7 +46,9 @@ export default function HospitalDashboard() {
       ]);
       setOverview(overviewData);
       setAlerts(alertsData);
+      setLoadFailed(false);
     } catch (err) {
+      setLoadFailed(true);
       console.error('Failed to load dashboard data:', err);
     } finally {
       setIsLoadingStats(false);
@@ -149,7 +152,10 @@ export default function HospitalDashboard() {
           {error && <p className="mb-4 text-sm text-donor-danger">{error}</p>}
           <form onSubmit={handleLogin} className="w-full max-w-xs space-y-3">
             <div>
-              <label htmlFor="email" className="mb-1 block text-left text-xs font-medium text-donor-muted">
+              <label
+                htmlFor="email"
+                className="mb-1 block text-left text-xs font-medium text-donor-muted"
+              >
                 {t('portal.email')}
               </label>
               <input
@@ -163,7 +169,10 @@ export default function HospitalDashboard() {
               />
             </div>
             <div>
-              <label htmlFor="password" className="mb-1 block text-left text-xs font-medium text-donor-muted">
+              <label
+                htmlFor="password"
+                className="mb-1 block text-left text-xs font-medium text-donor-muted"
+              >
                 {t('portal.password')}
               </label>
               <input
@@ -252,7 +261,9 @@ export default function HospitalDashboard() {
       <AppShell
         title={t('portal.accessDenied')}
         subtitle={t('portal.hospital.console')}
-        organizationName={hospitalOrg?.name ?? user.organizations[0]?.name ?? t('portal.hospital.name')}
+        organizationName={
+          hospitalOrg?.name ?? user.organizations[0]?.name ?? t('portal.hospital.name')
+        }
         organizationType={t('portal.hospital.workspace')}
         userName={`${user.firstName} ${user.lastName}`}
       >
@@ -261,9 +272,7 @@ export default function HospitalDashboard() {
           <h2 className="mb-2 font-display text-2xl font-semibold text-donor-text">
             {t('portal.accessDenied')}
           </h2>
-          <p className="mb-6 text-center text-donor-muted">
-            {t('portal.accessDeniedBody')}
-          </p>
+          <p className="mb-6 text-center text-donor-muted">{t('portal.accessDeniedBody')}</p>
           <button
             onClick={handleLogout}
             className="rounded-lg bc-solid px-6 py-3 font-semibold text-donor-text transition-colors hover:bg-donor-elevated"
@@ -283,100 +292,140 @@ export default function HospitalDashboard() {
       organizationType={t('portal.hospital.workspace')}
       userName={`${user.firstName} ${user.lastName}`}
     >
-      <section className="bc-page-heading">
-        <div><p>{t('clinical.workspace')}</p><h2>{t('clinical.monitoring')}</h2></div>
-        <Link href="/requests" className="bc-action-link">{t('ops.dashboard.viewBloodRequests')} <span aria-hidden="true">→</span></Link>
-      </section>
-
-      <div className="mb-6 grid gap-4 md:grid-cols-3">
-        <StatCard
-          label={t('ops.dashboard.pendingRequests')}
-          value={isLoadingStats || !overview ? '—' : overview.requests.pending.value.toString()}
-          note={isLoadingStats || !overview ? t('common.loading') : t('ops.dashboard.awaitingReview')}
-          icon={Package}
-          variant={overview && overview.requests.pending.value > 0 ? 'warning' : 'success'}
-        />
-        <StatCard
-          label={t('ops.dashboard.todaysAppointments')}
-          value={isLoadingStats || !overview ? '—' : overview.appointments.total.value.toString()}
-          note={isLoadingStats || !overview ? t('common.loading') : t('ops.dashboard.scheduledToday')}
-          icon={Calendar}
-          variant="info"
-        />
-        <StatCard
-          label={t('ops.dashboard.availableInventory')}
-          value={isLoadingStats || !overview ? '—' : overview.inventory.availableUnits.toString()}
-          note={
-            isLoadingStats || !overview
-              ? t('common.loading')
-              : overview.inventory.criticalGroups.length > 0
-              ? t('ops.dashboard.criticalGroups', { groups: overview.inventory.criticalGroups.join(', ') })
-              : t('ops.dashboard.unitsOnHand')
-          }
-          icon={Droplet}
-          variant={overview && overview.inventory.criticalGroups.length > 0 ? 'danger' : 'success'}
-        />
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="bc-glass rounded-card p-6 lg:col-span-2">
-          <p className="text-xs font-bold uppercase tracking-widest text-donor-muted">
-            {t('ops.common.inventoryStatus')}
-          </p>
-          {overview && (
-            <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
-              <div>
-                <p className="text-2xl font-semibold text-donor-text">{overview.inventory.totalUnits}</p>
-                <p className="text-xs text-donor-muted">{t('ops.dashboard.totalUnits')}</p>
-              </div>
-              <div>
-                <p className="text-2xl font-semibold text-donor-text">{overview.inventory.availableUnits}</p>
-                <p className="text-xs text-donor-muted">{t('status.unit.AVAILABLE')}</p>
-              </div>
-              <div>
-                <p className="text-2xl font-semibold text-donor-text">{overview.inventory.reservedUnits}</p>
-                <p className="text-xs text-donor-muted">{t('status.unit.RESERVED')}</p>
-              </div>
-              <div>
-                <p className="text-2xl font-semibold text-donor-text">{overview.inventory.quarantinedUnits}</p>
-                <p className="text-xs text-donor-muted">{t('status.unit.QUARANTINED')}</p>
-              </div>
+      <RoleWorkbench role={hospitalOrg?.role ?? ''} scope="hospital" />
+      {loadFailed ? (
+        <ErrorState onRetry={() => void loadDashboardData()} />
+      ) : (
+        <>
+          <section className="bc-page-heading">
+            <div>
+              <p>{t('clinical.workspace')}</p>
+              <h2>{t('clinical.monitoring')}</h2>
             </div>
-          )}
-          {overview && overview.inventory.lowStockGroups.length > 0 && (
-            <p className="mt-4 text-sm text-donor-onWarningMuted">
-              Low stock: {overview.inventory.lowStockGroups.join(', ')}
-            </p>
-          )}
-        </div>
+            <Link href="/requests" className="bc-action-link">
+              {t('ops.dashboard.viewBloodRequests')} <span aria-hidden="true">→</span>
+            </Link>
+          </section>
 
-        <div className="bc-glass rounded-card p-6">
-          <p className="text-xs font-bold uppercase tracking-widest text-donor-muted">{t('ops.common.alerts')}</p>
-          <div className="mt-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-donor-text">{t('medical.resultFlagsByCode.CRITICAL')}</span>
-              <span className="text-sm font-semibold text-donor-onDangerMuted">
-                {alerts?.critical ?? '—'}
-              </span>
+          <div className="mb-6 grid gap-4 md:grid-cols-3">
+            <StatCard
+              label={t('ops.dashboard.pendingRequests')}
+              value={isLoadingStats || !overview ? '—' : overview.requests.pending.value.toString()}
+              note={
+                isLoadingStats || !overview
+                  ? t('common.loading')
+                  : t('ops.dashboard.awaitingReview')
+              }
+              icon={Package}
+              variant={overview && overview.requests.pending.value > 0 ? 'warning' : 'success'}
+            />
+            <StatCard
+              label={t('ops.dashboard.todaysAppointments')}
+              value={
+                isLoadingStats || !overview ? '—' : overview.appointments.total.value.toString()
+              }
+              note={
+                isLoadingStats || !overview
+                  ? t('common.loading')
+                  : t('ops.dashboard.scheduledToday')
+              }
+              icon={Calendar}
+              variant="info"
+            />
+            <StatCard
+              label={t('ops.dashboard.availableInventory')}
+              value={
+                isLoadingStats || !overview ? '—' : overview.inventory.availableUnits.toString()
+              }
+              note={
+                isLoadingStats || !overview
+                  ? t('common.loading')
+                  : overview.inventory.criticalGroups.length > 0
+                    ? t('ops.dashboard.criticalGroups', {
+                        groups: overview.inventory.criticalGroups.join(', '),
+                      })
+                    : t('ops.dashboard.unitsOnHand')
+              }
+              icon={Droplet}
+              variant={
+                overview && overview.inventory.criticalGroups.length > 0 ? 'danger' : 'success'
+              }
+            />
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-3">
+            <div className="bc-glass rounded-card p-6 lg:col-span-2">
+              <p className="text-xs font-bold uppercase tracking-widest text-donor-muted">
+                {t('ops.common.inventoryStatus')}
+              </p>
+              {overview && (
+                <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
+                  <div>
+                    <p className="text-2xl font-semibold text-donor-text">
+                      {overview.inventory.totalUnits}
+                    </p>
+                    <p className="text-xs text-donor-muted">{t('ops.dashboard.totalUnits')}</p>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-semibold text-donor-text">
+                      {overview.inventory.availableUnits}
+                    </p>
+                    <p className="text-xs text-donor-muted">{t('status.unit.AVAILABLE')}</p>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-semibold text-donor-text">
+                      {overview.inventory.reservedUnits}
+                    </p>
+                    <p className="text-xs text-donor-muted">{t('status.unit.RESERVED')}</p>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-semibold text-donor-text">
+                      {overview.inventory.quarantinedUnits}
+                    </p>
+                    <p className="text-xs text-donor-muted">{t('status.unit.QUARANTINED')}</p>
+                  </div>
+                </div>
+              )}
+              {overview && overview.inventory.lowStockGroups.length > 0 && (
+                <p className="mt-4 text-sm text-donor-onWarningMuted">
+                  Low stock: {overview.inventory.lowStockGroups.join(', ')}
+                </p>
+              )}
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-donor-text">{t('ops.common.high')}</span>
-              <span className="text-sm font-semibold text-donor-onWarningMuted">
-                {alerts?.high ?? '—'}
-              </span>
+
+            <div className="bc-glass rounded-card p-6">
+              <p className="text-xs font-bold uppercase tracking-widest text-donor-muted">
+                {t('ops.common.alerts')}
+              </p>
+              <div className="mt-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-donor-text">
+                    {t('medical.resultFlagsByCode.CRITICAL')}
+                  </span>
+                  <span className="text-sm font-semibold text-donor-onDangerMuted">
+                    {alerts?.critical ?? '—'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-donor-text">{t('ops.common.high')}</span>
+                  <span className="text-sm font-semibold text-donor-onWarningMuted">
+                    {alerts?.high ?? '—'}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      <div className="mt-6">
-        <Link href="/emergency" className="block">
-          <EmptyState
-            title={t('ops.dashboard.viewEmergencyRequests')}
-            description={t('ops.dashboard.viewEmergencyHint')}
-          />
-        </Link>
-      </div>
+          <div className="mt-6">
+            <Link href="/emergency" className="block">
+              <EmptyState
+                title={t('ops.dashboard.viewEmergencyRequests')}
+                description={t('ops.dashboard.viewEmergencyHint')}
+              />
+            </Link>
+          </div>
+        </>
+      )}
     </AppShell>
   );
 }

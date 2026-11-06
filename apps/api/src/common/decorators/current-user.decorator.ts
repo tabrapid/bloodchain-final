@@ -7,8 +7,8 @@ export interface RequestUser {
   /**
    * The `Session` row this access token was minted for, when it has one.
    *
-   * Used only to mark the caller's own device in their session list. Tokens
-   * issued before sessions were written carry no `sid`, so it is optional.
+   * HTTP authentication validates this session and current grants on every
+   * protected request. Optional here for non-HTTP callers and guard fixtures.
    */
   sid?: string;
 }

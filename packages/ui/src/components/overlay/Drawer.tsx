@@ -1,3 +1,4 @@
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import { useEffect, useId, useRef } from 'react';
 import { X } from 'lucide-react';
 import { useOptionalTranslation } from '../../i18n';
@@ -17,6 +18,7 @@ export interface DrawerProps {
 }
 
 export function Drawer({ open, onClose, title, children, footer, className }: DrawerProps) {
+  useBodyScrollLock(open);
   const titleId = useId();
   const { t } = useOptionalTranslation();
   const panelRef = useRef<HTMLDivElement>(null);
@@ -27,6 +29,8 @@ export function Drawer({ open, onClose, title, children, footer, className }: Dr
     if (!open) return;
 
     const onKeyDown = (event: KeyboardEvent) => {
+      const dialogs = document.querySelectorAll('[role="dialog"][aria-modal="true"]');
+      if (dialogs[dialogs.length - 1] !== panelRef.current) return;
       if (event.key === 'Escape') {
         onClose();
         return;
@@ -81,7 +85,7 @@ export function Drawer({ open, onClose, title, children, footer, className }: Dr
         aria-label={title ? undefined : t('common.panel')}
         aria-labelledby={title ? titleId : undefined}
         className={cn(
-          'bc-glass-elevated bc-rise relative z-10 flex w-full max-w-md flex-col border-y-0 border-r-0 p-6',
+          'bc-drawer bc-glass-elevated bc-rise relative z-10 flex w-full max-w-md flex-col border-y-0 border-r-0 p-6',
           className,
         )}
       >
@@ -99,9 +103,11 @@ export function Drawer({ open, onClose, title, children, footer, className }: Dr
             <X size={20} />
           </button>
         </div>
-        <div className="flex-1 overflow-auto py-6">{children}</div>
+        <div className="bc-drawer-body flex-1 overflow-auto py-6">{children}</div>
         {footer && (
-          <div className="flex justify-end gap-3 border-t border-donor-border/60 pt-5">{footer}</div>
+          <div className="flex justify-end gap-3 border-t border-donor-border/60 pt-5">
+            {footer}
+          </div>
         )}
       </div>
     </div>

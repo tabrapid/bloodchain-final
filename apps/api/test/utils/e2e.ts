@@ -1,4 +1,5 @@
 import { INestApplication } from '@nestjs/common';
+import { randomBytes } from 'node:crypto';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Test } from '@nestjs/testing';
@@ -46,7 +47,7 @@ export async function createTestApp(): Promise<INestApplication> {
  * actor, not a re-test of login.
  *
  * The token is genuine either way — same JwtService, same secret, same
- * `{ sub, roles, permissions }` payload the login route mints, with roles and
+ * `{ sub, roles, permissions, sid }` payload the login route mints, with roles and
  * permissions read from the database. Every guard on the routes under test
  * validates it for real.
  */
@@ -70,9 +71,16 @@ export async function tokenFor(app: INestApplication, email: string): Promise<st
 
   const roles = user.memberships.map((m) => m.role.code) as RoleCode[];
   const permissions = await permissionsService.getUserPermissions(user.id);
+  const session = await db.session.create({
+    data: {
+      userId: user.id,
+      tokenHash: randomBytes(32).toString('hex'),
+      expiresAt: new Date(Date.now() + 15 * 60 * 1000),
+    },
+  });
 
   return jwt.signAsync(
-    { sub: user.id, roles, permissions },
+    { sub: user.id, roles, permissions, sid: session.id },
     {
       secret: config.getOrThrow<string>('JWT_ACCESS_SECRET'),
       expiresIn: '15m',

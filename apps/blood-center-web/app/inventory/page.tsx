@@ -16,6 +16,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import {
+  ComponentBarcode,
   ConfirmDialog,
   EmptyState,
   StatCard,
@@ -24,11 +25,7 @@ import {
   DataTableColumn,
   Modal,
 } from '@bloodchain/ui/components';
-import {
-  me,
-  isAuthenticated,
-  MeResponse,
-} from '../../lib/auth';
+import { me, isAuthenticated, MeResponse } from '../../lib/auth';
 import {
   getInventorySummary,
   getInventory,
@@ -47,7 +44,15 @@ import { useTranslation } from '@bloodchain/ui/i18n';
 const BLOOD_TYPES = ['A', 'B', 'AB', 'O'] as const;
 const RH_FACTORS = ['POSITIVE', 'NEGATIVE'] as const;
 const COMPONENT_TYPES = ['WHOLE_BLOOD', 'RED_CELLS', 'PLASMA', 'PLATELETS', 'OTHER'] as const;
-const STATUSES = ['COLLECTED', 'AVAILABLE', 'RESERVED', 'QUARANTINED', 'USED', 'EXPIRED', 'DISCARDED'] as const;
+const STATUSES = [
+  'COLLECTED',
+  'AVAILABLE',
+  'RESERVED',
+  'QUARANTINED',
+  'USED',
+  'EXPIRED',
+  'DISCARDED',
+] as const;
 
 type StatusVariant = 'default' | 'success' | 'warning' | 'danger' | 'info';
 
@@ -105,7 +110,7 @@ export default function InventoryPage() {
           const userData = await me();
           setUser(userData);
           const org = userData.organizations.find(
-            (o) => o.type === 'BLOOD_CENTER' || o.type === 'BLOOD_CENTER_ADMIN'
+            (o) => o.type === 'BLOOD_CENTER' || o.type === 'BLOOD_CENTER_ADMIN',
           );
           if (org) {
             setOrganizationId(org.organizationId);
@@ -309,39 +314,90 @@ export default function InventoryPage() {
 
   const getStatusVariant = (status: string): StatusVariant => {
     switch (status) {
-      case 'AVAILABLE': return 'success';
-      case 'QUARANTINED': return 'warning';
-      case 'RESERVED': return 'info';
-      case 'USED': return 'success';
-      case 'EXPIRED': return 'danger';
-      case 'DISCARDED': return 'danger';
-      default: return 'default';
+      case 'AVAILABLE':
+        return 'success';
+      case 'QUARANTINED':
+        return 'warning';
+      case 'RESERVED':
+        return 'info';
+      case 'USED':
+        return 'success';
+      case 'EXPIRED':
+        return 'danger';
+      case 'DISCARDED':
+        return 'danger';
+      default:
+        return 'default';
     }
   };
 
   const getLocationTypeLabel = (type: string) => {
     switch (type) {
-      case 'STORAGE': return t('ops.inventory.storage');
-      case 'TESTING': return 'Testing Lab';
-      case 'QUARANTINE': return t('ops.inventory.quarantine');
-      case 'ISSUING': return 'Issuing';
-      case 'PROCESSING': return t('ops.inventory.processing');
-      case 'DISTRIBUTION': return t('ops.inventory.distribution');
-      default: return type;
+      case 'STORAGE':
+        return t('ops.inventory.storage');
+      case 'TESTING':
+        return 'Testing Lab';
+      case 'QUARANTINE':
+        return t('ops.inventory.quarantine');
+      case 'ISSUING':
+        return 'Issuing';
+      case 'PROCESSING':
+        return t('ops.inventory.processing');
+      case 'DISTRIBUTION':
+        return t('ops.inventory.distribution');
+      default:
+        return type;
     }
   };
 
   const columns: DataTableColumn<InventoryUnit>[] = [
-    { key: 'unitReference', header: t('ops.inventory.unitReference'), render: (u) => <span className="font-mono text-xs">{u.unitReference}</span> },
-    { key: 'bloodType', header: t('home.bloodTypeLabel'), render: (u) => (
-      <span><span className="font-semibold">{u.bloodType}</span><span className="text-donor-muted text-xs ml-1">{u.rhFactor === 'POSITIVE' ? '+' : '-'}</span></span>
-    )},
-    { key: 'componentType', header: t('ops.common.component'), render: (u) => t(`medical.components.${u.componentType ?? 'WHOLE_BLOOD'}`) },
+    {
+      key: 'unitReference',
+      sortValue: (u) => u.unitReference,
+      header: t('ops.inventory.unitReference'),
+      render: (u) => (
+        <div>
+          <span className="font-mono text-xs">{u.unitReference}</span>
+          <small className="bc-parent-reference">
+            {t('workbench.parentDonation')}: {u.donationReference ?? '—'}
+          </small>
+        </div>
+      ),
+    },
+    {
+      key: 'bloodType',
+      header: t('home.bloodTypeLabel'),
+      render: (u) => (
+        <span>
+          <span className="font-semibold">{u.bloodType}</span>
+          <span className="text-donor-muted text-xs ml-1">
+            {u.rhFactor === 'POSITIVE' ? '+' : '-'}
+          </span>
+        </span>
+      ),
+    },
+    {
+      key: 'componentType',
+      header: t('ops.common.component'),
+      render: (u) => t(`medical.components.${u.componentType ?? 'WHOLE_BLOOD'}`),
+    },
     { key: 'volumeMl', header: t('table.volume'), render: (u) => `${u.volumeMl} ml` },
-    { key: 'status', header: t('table.status'), render: (u) => <StatusBadge variant={getStatusVariant(u.status)}>{u.status}</StatusBadge> },
+    {
+      key: 'status',
+      header: t('table.status'),
+      render: (u) => <StatusBadge variant={getStatusVariant(u.status)}>{u.status}</StatusBadge>,
+    },
     { key: 'location', header: t('table.location'), render: (u) => u.location?.name ?? '—' },
-    { key: 'collectedAt', header: t('ops.common.collected'), render: (u) => new Date(u.collectedAt).toLocaleDateString() },
-    { key: 'expiresAt', header: t('table.expires'), render: (u) => u.expiresAt ? new Date(u.expiresAt).toLocaleDateString() : '—' },
+    {
+      key: 'collectedAt',
+      header: t('ops.common.collected'),
+      render: (u) => new Date(u.collectedAt).toLocaleDateString(),
+    },
+    {
+      key: 'expiresAt',
+      header: t('table.expires'),
+      render: (u) => (u.expiresAt ? new Date(u.expiresAt).toLocaleDateString() : '—'),
+    },
   ];
 
   if (isLoading) {
@@ -374,9 +430,7 @@ export default function InventoryPage() {
           <h2 className="mb-2 font-display text-2xl font-semibold text-donor-text">
             {t('ops.common.signInRequired')}
           </h2>
-          <p className="mb-6 text-center text-donor-muted">
-            {t('ops.common.signInToInventory')}
-          </p>
+          <p className="mb-6 text-center text-donor-muted">{t('ops.common.signInToInventory')}</p>
         </div>
       </AppShell>
     );
@@ -386,22 +440,47 @@ export default function InventoryPage() {
     <AppShell
       title={t('ops.inventory.title')}
       subtitle={t('portal.bloodCenter.console')}
-      organizationName={user.organizations.find((org) => org.type === 'BLOOD_CENTER' || org.type === 'BLOOD_CENTER_ADMIN')?.name ?? 'Blood Center Console'}
+      organizationName={
+        user.organizations.find(
+          (org) => org.type === 'BLOOD_CENTER' || org.type === 'BLOOD_CENTER_ADMIN',
+        )?.name ?? 'Blood Center Console'
+      }
       organizationType="Operations workspace"
       userName={`${user.firstName} ${user.lastName}`}
     >
       {error && (
         <div className="mb-4 rounded-lg border border-donor-danger/30 bg-donor-dangerMuted p-4 text-donor-onDangerMuted">
           {error}
-          <button onClick={() => setError(null)} className="ml-2 underline">{t('actions.dismiss')}</button>
+          <button onClick={() => setError(null)} className="ml-2 underline">
+            {t('actions.dismiss')}
+          </button>
         </div>
       )}
 
       <div className="mb-6 grid gap-4 md:grid-cols-4">
-        <StatCard label={t('ops.dashboard.totalUnits')} value={summary?.totalUnits?.toString() ?? '—'} icon={Package} />
-        <StatCard label={t('status.unit.AVAILABLE')} value={summary?.availableUnits?.toString() ?? '—'} variant="success" icon={CheckCircle} />
-        <StatCard label={t('status.unit.QUARANTINED')} value={summary?.quarantinedUnits?.toString() ?? '—'} variant="warning" icon={AlertTriangle} />
-        <StatCard label={t('status.unit.RESERVED')} value={summary?.reservedUnits?.toString() ?? '—'} variant="info" icon={Clock} />
+        <StatCard
+          label={t('ops.dashboard.totalUnits')}
+          value={summary?.totalUnits?.toString() ?? '—'}
+          icon={Package}
+        />
+        <StatCard
+          label={t('status.unit.AVAILABLE')}
+          value={summary?.availableUnits?.toString() ?? '—'}
+          variant="success"
+          icon={CheckCircle}
+        />
+        <StatCard
+          label={t('status.unit.QUARANTINED')}
+          value={summary?.quarantinedUnits?.toString() ?? '—'}
+          variant="warning"
+          icon={AlertTriangle}
+        />
+        <StatCard
+          label={t('status.unit.RESERVED')}
+          value={summary?.reservedUnits?.toString() ?? '—'}
+          variant="info"
+          icon={Clock}
+        />
       </div>
 
       <div className="mb-6 flex flex-wrap items-center gap-2 border-b border-donor-border/60">
@@ -442,151 +521,182 @@ export default function InventoryPage() {
           }}
         />
       ) : (
-      <>
-      <div className="mb-6 flex flex-wrap items-center gap-4">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-donor-muted" size={18} />
-          <input
-            type="text"
-            placeholder={t('ops.inventory.searchPlaceholder')}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-            className="w-full rounded-lg bc-solid px-10 py-2 text-sm text-donor-text placeholder:text-donor-muted focus:border-donor-secondary focus:outline-none"
-          />
-        </div>
-        <button
-          onClick={() => setShowFilters(!showFilters)}
-          className="flex items-center gap-2 rounded-lg bc-solid px-4 py-2 text-sm text-donor-text transition-colors hover:bg-donor-elevated"
-        >
-          <Filter size={16} />
-          {t('ops.common.filters')}
-        </button>
-        <button
-          onClick={() => setShowLocationModal(true)}
-          className="flex items-center gap-2 rounded-lg bc-solid px-4 py-2 text-sm text-donor-text transition-colors hover:bg-donor-elevated"
-        >
-          <Plus size={16} />
-          {t('ops.inventory.addLocation')}
-        </button>
-      </div>
-
-      {showFilters && (
-        <div className="bc-glass mb-6 rounded-card p-4">
-          <div className="grid gap-4 md:grid-cols-4">
-            <div>
-              <label className="mb-1 block text-xs font-semibold text-donor-muted">{t('home.bloodTypeLabel')}</label>
-              <select
-                value={filters.bloodType ?? ''}
-                onChange={(e) => handleFilterChange('bloodType', e.target.value)}
-                className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-sm text-donor-text"
-              >
-                <option value="">{t('filters.all')}</option>
-                {BLOOD_TYPES.map((bt) => (
-                  <option key={bt} value={bt}>{bt}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-semibold text-donor-muted">{t('medical.rhFactor')}</label>
-              <select
-                value={filters.rhFactor ?? ''}
-                onChange={(e) => handleFilterChange('rhFactor', e.target.value)}
-                className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-sm text-donor-text"
-              >
-                <option value="">{t('filters.all')}</option>
-                {RH_FACTORS.map((rh) => (
-                  <option key={rh} value={rh}>{rh}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-semibold text-donor-muted">{t('ops.common.component')}</label>
-              <select
-                value={filters.componentType ?? ''}
-                onChange={(e) => handleFilterChange('componentType', e.target.value)}
-                className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-sm text-donor-text"
-              >
-                <option value="">{t('filters.all')}</option>
-                {COMPONENT_TYPES.map((ct) => (
-                  <option key={ct} value={ct}>{t(`medical.components.${ct}`)}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-semibold text-donor-muted">{t('table.status')}</label>
-              <select
-                value={filters.status ?? ''}
-                onChange={(e) => handleFilterChange('status', e.target.value)}
-                className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-sm text-donor-text"
-              >
-                <option value="">{t('filters.all')}</option>
-                {STATUSES.map((s) => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {isLoadingData ? (
-        <DataTable columns={columns} rows={[]} keyExtractor={(u) => u.id} loading />
-      ) : units.length === 0 ? (
-        <EmptyState
-          title={t('ops.inventory.empty')}
-          description={
-            searchQuery ? t('ops.common.noResultsFilterHint') : t('ops.inventory.noUnitsHint')
-          }
-        />
-      ) : (
         <>
-          <DataTable
-            columns={columns}
-            rows={units}
-            keyExtractor={(u) => u.id}
-            onRowClick={handleUnitClick}
-            rowLabel={(u) => `Open unit ${u.unitReference}`}
-            emptyMessage={t('ops.inventory.empty')}
-          />
+          <div className="mb-6 flex flex-wrap items-center gap-4">
+            <div className="relative flex-1 min-w-[200px]">
+              <Search
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-donor-muted"
+                size={18}
+              />
+              <input
+                type="text"
+                placeholder={t('ops.inventory.searchPlaceholder')}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                className="w-full rounded-lg bc-solid px-10 py-2 text-sm text-donor-text placeholder:text-donor-muted focus:border-donor-secondary focus:outline-none"
+              />
+            </div>
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className="flex items-center gap-2 rounded-lg bc-solid px-4 py-2 text-sm text-donor-text transition-colors hover:bg-donor-elevated"
+            >
+              <Filter size={16} />
+              {t('ops.common.filters')}
+            </button>
+            <button
+              onClick={() => setShowLocationModal(true)}
+              className="flex items-center gap-2 rounded-lg bc-solid px-4 py-2 text-sm text-donor-text transition-colors hover:bg-donor-elevated"
+            >
+              <Plus size={16} />
+              {t('ops.inventory.addLocation')}
+            </button>
+          </div>
 
-          {totalPages > 1 && (
-            <div className="mt-4 flex items-center justify-between">
-              <p className="text-sm text-donor-muted">
-                Showing {((filters.page ?? 1) - 1) * (filters.limit ?? 20) + 1} to{' '}
-                {Math.min((filters.page ?? 1) * (filters.limit ?? 20), totalUnits)} of {totalUnits} units
-              </p>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => handlePageChange((filters.page ?? 1) - 1)}
-                  disabled={(filters.page ?? 1) <= 1}
-                  className="rounded-lg bc-solid px-3 py-1.5 text-sm text-donor-text transition-colors hover:bg-donor-elevated disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {t('actions.previous')}
-                </button>
-                <button
-                  onClick={() => handlePageChange((filters.page ?? 1) + 1)}
-                  disabled={(filters.page ?? 1) >= totalPages}
-                  className="rounded-lg bc-solid px-3 py-1.5 text-sm text-donor-text transition-colors hover:bg-donor-elevated disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {t('actions.next')}
-                </button>
+          {showFilters && (
+            <div className="bc-glass mb-6 rounded-card p-4">
+              <div className="grid gap-4 md:grid-cols-4">
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-donor-muted">
+                    {t('home.bloodTypeLabel')}
+                  </label>
+                  <select
+                    value={filters.bloodType ?? ''}
+                    onChange={(e) => handleFilterChange('bloodType', e.target.value)}
+                    className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-sm text-donor-text"
+                  >
+                    <option value="">{t('filters.all')}</option>
+                    {BLOOD_TYPES.map((bt) => (
+                      <option key={bt} value={bt}>
+                        {bt}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-donor-muted">
+                    {t('medical.rhFactor')}
+                  </label>
+                  <select
+                    value={filters.rhFactor ?? ''}
+                    onChange={(e) => handleFilterChange('rhFactor', e.target.value)}
+                    className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-sm text-donor-text"
+                  >
+                    <option value="">{t('filters.all')}</option>
+                    {RH_FACTORS.map((rh) => (
+                      <option key={rh} value={rh}>
+                        {rh}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-donor-muted">
+                    {t('ops.common.component')}
+                  </label>
+                  <select
+                    value={filters.componentType ?? ''}
+                    onChange={(e) => handleFilterChange('componentType', e.target.value)}
+                    className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-sm text-donor-text"
+                  >
+                    <option value="">{t('filters.all')}</option>
+                    {COMPONENT_TYPES.map((ct) => (
+                      <option key={ct} value={ct}>
+                        {t(`medical.components.${ct}`)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-donor-muted">
+                    {t('table.status')}
+                  </label>
+                  <select
+                    value={filters.status ?? ''}
+                    onChange={(e) => handleFilterChange('status', e.target.value)}
+                    className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-sm text-donor-text"
+                  >
+                    <option value="">{t('filters.all')}</option>
+                    {STATUSES.map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
             </div>
+          )}
+
+          {isLoadingData ? (
+            <DataTable columns={columns} rows={[]} keyExtractor={(u) => u.id} loading />
+          ) : units.length === 0 ? (
+            <EmptyState
+              title={t('ops.inventory.empty')}
+              description={
+                searchQuery ? t('ops.common.noResultsFilterHint') : t('ops.inventory.noUnitsHint')
+              }
+            />
+          ) : (
+            <>
+              <DataTable
+                columns={columns}
+                rows={units}
+                keyExtractor={(u) => u.id}
+                onRowClick={handleUnitClick}
+                rowLabel={(u) => `Open unit ${u.unitReference}`}
+                emptyMessage={t('ops.inventory.empty')}
+              />
+
+              {totalPages > 1 && (
+                <div className="mt-4 flex items-center justify-between">
+                  <p className="text-sm text-donor-muted">
+                    Showing {((filters.page ?? 1) - 1) * (filters.limit ?? 20) + 1} to{' '}
+                    {Math.min((filters.page ?? 1) * (filters.limit ?? 20), totalUnits)} of{' '}
+                    {totalUnits} units
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handlePageChange((filters.page ?? 1) - 1)}
+                      disabled={(filters.page ?? 1) <= 1}
+                      className="rounded-lg bc-solid px-3 py-1.5 text-sm text-donor-text transition-colors hover:bg-donor-elevated disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {t('actions.previous')}
+                    </button>
+                    <button
+                      onClick={() => handlePageChange((filters.page ?? 1) + 1)}
+                      disabled={(filters.page ?? 1) >= totalPages}
+                      className="rounded-lg bc-solid px-3 py-1.5 text-sm text-donor-text transition-colors hover:bg-donor-elevated disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {t('actions.next')}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </>
       )}
 
-      </>
-      )}
-
       <Modal
         open={showUnitModal}
-        onClose={() => { setShowUnitModal(false); setSelectedUnit(null); }}
+        onClose={() => {
+          setShowUnitModal(false);
+          setSelectedUnit(null);
+        }}
         title={t('ops.inventory.unitDetails')}
       >
         {selectedUnit && (
           <div className="space-y-4">
+            <section className="bc-trace-banner" aria-label={t('workbench.trace')}>
+              <ComponentBarcode reference={selectedUnit.unitReference} />
+              <dl>
+                <dt>{t('workbench.internalId')}</dt>
+                <dd>{selectedUnit.id}</dd>
+                <dt>{t('workbench.parentDonation')}</dt>
+                <dd>{selectedUnit.donationReference ?? t('workbench.notRecorded')}</dd>
+              </dl>
+            </section>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-xs text-donor-muted">{t('ops.inventory.unitReference')}</p>
@@ -594,15 +704,21 @@ export default function InventoryPage() {
               </div>
               <div>
                 <p className="text-xs text-donor-muted">{t('table.status')}</p>
-                <StatusBadge variant={getStatusVariant(selectedUnit.status)}>{selectedUnit.status}</StatusBadge>
+                <StatusBadge variant={getStatusVariant(selectedUnit.status)}>
+                  {selectedUnit.status}
+                </StatusBadge>
               </div>
               <div>
                 <p className="text-xs text-donor-muted">{t('home.bloodTypeLabel')}</p>
-                <p className="text-sm">{selectedUnit.bloodType} {selectedUnit.rhFactor === 'POSITIVE' ? '+' : '-'}</p>
+                <p className="text-sm">
+                  {selectedUnit.bloodType} {selectedUnit.rhFactor === 'POSITIVE' ? '+' : '-'}
+                </p>
               </div>
               <div>
                 <p className="text-xs text-donor-muted">{t('ops.common.component')}</p>
-                <p className="text-sm">{t(`medical.components.${selectedUnit.componentType ?? 'WHOLE_BLOOD'}`)}</p>
+                <p className="text-sm">
+                  {t(`medical.components.${selectedUnit.componentType ?? 'WHOLE_BLOOD'}`)}
+                </p>
               </div>
               <div>
                 <p className="text-xs text-donor-muted">{t('table.volume')}</p>
@@ -618,7 +734,11 @@ export default function InventoryPage() {
               </div>
               <div>
                 <p className="text-xs text-donor-muted">{t('table.expires')}</p>
-                <p className="text-sm">{selectedUnit.expiresAt ? new Date(selectedUnit.expiresAt).toLocaleDateString() : '—'}</p>
+                <p className="text-sm">
+                  {selectedUnit.expiresAt
+                    ? new Date(selectedUnit.expiresAt).toLocaleDateString()
+                    : '—'}
+                </p>
               </div>
               {selectedUnit.donationReference && (
                 <div className="col-span-2">
@@ -810,28 +930,42 @@ export default function InventoryPage() {
 
       <Modal
         open={showMovementModal}
-        onClose={() => { setShowMovementModal(false); setSelectedUnit(null); }}
+        onClose={() => {
+          setShowMovementModal(false);
+          setSelectedUnit(null);
+        }}
         title={t('ops.inventory.moveUnit')}
       >
         {selectedUnit && (
           <div className="space-y-4">
             <div>
-              <p className="mb-2 text-sm">{t('ops.inventory.movingUnit')} <span className="font-mono">{selectedUnit.unitReference}</span></p>
+              <p className="mb-2 text-sm">
+                {t('ops.inventory.movingUnit')}{' '}
+                <span className="font-mono">{selectedUnit.unitReference}</span>
+              </p>
             </div>
             <div>
-              <label className="mb-1 block text-xs font-semibold text-donor-muted">{t('ops.inventory.toLocation')}</label>
+              <label className="mb-1 block text-xs font-semibold text-donor-muted">
+                {t('ops.inventory.toLocation')}
+              </label>
               <select
                 id="move-location"
                 className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-sm text-donor-text"
               >
                 <option value="">{t('booking.selectLocation')}</option>
-                {locations.filter((l) => l.active).map((loc) => (
-                  <option key={loc.id} value={loc.id}>{loc.name} ({getLocationTypeLabel(loc.type)})</option>
-                ))}
+                {locations
+                  .filter((l) => l.active)
+                  .map((loc) => (
+                    <option key={loc.id} value={loc.id}>
+                      {loc.name} ({getLocationTypeLabel(loc.type)})
+                    </option>
+                  ))}
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-xs font-semibold text-donor-muted">{t('ops.common.reasonOptional')}</label>
+              <label className="mb-1 block text-xs font-semibold text-donor-muted">
+                {t('ops.common.reasonOptional')}
+              </label>
               <input
                 type="text"
                 id="move-reason"
@@ -842,7 +976,8 @@ export default function InventoryPage() {
             <div className="flex gap-2 pt-4">
               <button
                 onClick={() => {
-                  const locationId = (document.getElementById('move-location') as HTMLSelectElement).value;
+                  const locationId = (document.getElementById('move-location') as HTMLSelectElement)
+                    .value;
                   const reason = (document.getElementById('move-reason') as HTMLInputElement).value;
                   if (locationId) handleMoveUnit(selectedUnit.id, locationId, reason);
                 }}
@@ -852,7 +987,10 @@ export default function InventoryPage() {
                 {actionLoading ? t('ops.common.moving') : t('ops.inventory.confirmMove')}
               </button>
               <button
-                onClick={() => { setShowMovementModal(false); setSelectedUnit(null); }}
+                onClick={() => {
+                  setShowMovementModal(false);
+                  setSelectedUnit(null);
+                }}
                 className="rounded-lg bc-solid px-4 py-2 text-sm text-donor-text transition-colors hover:bg-donor-elevated"
               >
                 {t('actions.cancel')}
@@ -864,18 +1002,20 @@ export default function InventoryPage() {
 
       <Modal
         open={showAdjustModal}
-        onClose={() => { setShowAdjustModal(false); setSelectedUnit(null); }}
+        onClose={() => {
+          setShowAdjustModal(false);
+          setSelectedUnit(null);
+        }}
         title={t('ops.inventory.adjustUnit')}
       >
         {selectedUnit && (
           <div className="space-y-4">
             <div>
               <p className="mb-2 text-sm">
-                {t('ops.inventory.correctingUnit')} <span className="font-mono">{selectedUnit.unitReference}</span>
+                {t('ops.inventory.correctingUnit')}{' '}
+                <span className="font-mono">{selectedUnit.unitReference}</span>
               </p>
-              <p className="text-xs text-donor-muted">
-                {t('ops.inventory.adjustHint')}
-              </p>
+              <p className="text-xs text-donor-muted">{t('ops.inventory.adjustHint')}</p>
             </div>
             <div>
               <label className="mb-1 block text-xs font-semibold text-donor-muted">
@@ -902,7 +1042,9 @@ export default function InventoryPage() {
               >
                 <option value="">{t('ops.inventory.keepCurrent')}</option>
                 {COMPONENT_TYPES.map((ct) => (
-                  <option key={ct} value={ct}>{t(`medical.components.${ct}`)}</option>
+                  <option key={ct} value={ct}>
+                    {t(`medical.components.${ct}`)}
+                  </option>
                 ))}
               </select>
             </div>
@@ -921,7 +1063,9 @@ export default function InventoryPage() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-semibold text-donor-muted">{t('ops.common.reasonRequired')}</label>
+              <label className="mb-1 block text-xs font-semibold text-donor-muted">
+                {t('ops.common.reasonRequired')}
+              </label>
               <input
                 type="text"
                 id="adjust-reason"
@@ -932,10 +1076,15 @@ export default function InventoryPage() {
             <div className="flex gap-2 pt-4">
               <button
                 onClick={() => {
-                  const volumeMlRaw = (document.getElementById('adjust-volume') as HTMLInputElement).value;
-                  const componentType = (document.getElementById('adjust-component') as HTMLSelectElement).value;
-                  const expiresAt = (document.getElementById('adjust-expires') as HTMLInputElement).value;
-                  const reason = (document.getElementById('adjust-reason') as HTMLInputElement).value;
+                  const volumeMlRaw = (document.getElementById('adjust-volume') as HTMLInputElement)
+                    .value;
+                  const componentType = (
+                    document.getElementById('adjust-component') as HTMLSelectElement
+                  ).value;
+                  const expiresAt = (document.getElementById('adjust-expires') as HTMLInputElement)
+                    .value;
+                  const reason = (document.getElementById('adjust-reason') as HTMLInputElement)
+                    .value;
                   if (!reason) return;
                   if (!volumeMlRaw && !componentType && !expiresAt) return;
                   handleAdjustUnit(selectedUnit.id, {
@@ -951,7 +1100,10 @@ export default function InventoryPage() {
                 {actionLoading ? t('common.saving') : t('ops.inventory.saveAdjustment')}
               </button>
               <button
-                onClick={() => { setShowAdjustModal(false); setSelectedUnit(null); }}
+                onClick={() => {
+                  setShowAdjustModal(false);
+                  setSelectedUnit(null);
+                }}
                 className="rounded-lg bc-solid px-4 py-2 text-sm text-donor-text transition-colors hover:bg-donor-elevated"
               >
                 {t('actions.cancel')}
@@ -963,12 +1115,17 @@ export default function InventoryPage() {
 
       <Modal
         open={showLocationModal}
-        onClose={() => { setShowLocationModal(false); setNewLocation({ name: '', code: '', type: 'STORAGE' }); }}
+        onClose={() => {
+          setShowLocationModal(false);
+          setNewLocation({ name: '', code: '', type: 'STORAGE' });
+        }}
         title={t('ops.inventory.addLocation')}
       >
         <div className="space-y-4">
           <div>
-            <label className="mb-1 block text-xs font-semibold text-donor-muted">{t('table.name')}</label>
+            <label className="mb-1 block text-xs font-semibold text-donor-muted">
+              {t('table.name')}
+            </label>
             <input
               type="text"
               value={newLocation.name}
@@ -978,17 +1135,23 @@ export default function InventoryPage() {
             />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-semibold text-donor-muted">{t('ops.inventory.code')}</label>
+            <label className="mb-1 block text-xs font-semibold text-donor-muted">
+              {t('ops.inventory.code')}
+            </label>
             <input
               type="text"
               value={newLocation.code}
-              onChange={(e) => setNewLocation({ ...newLocation, code: e.target.value.toUpperCase() })}
+              onChange={(e) =>
+                setNewLocation({ ...newLocation, code: e.target.value.toUpperCase() })
+              }
               placeholder={t('ops.couriers.codePlaceholder')}
               className="w-full rounded-lg border border-donor-border bc-solid px-3 py-2 text-sm text-donor-text placeholder:text-donor-muted"
             />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-semibold text-donor-muted">{t('table.type')}</label>
+            <label className="mb-1 block text-xs font-semibold text-donor-muted">
+              {t('table.type')}
+            </label>
             <select
               value={newLocation.type}
               onChange={(e) => setNewLocation({ ...newLocation, type: e.target.value })}
@@ -1009,7 +1172,10 @@ export default function InventoryPage() {
               {actionLoading ? t('ops.common.creating') : t('ops.inventory.createLocation')}
             </button>
             <button
-              onClick={() => { setShowLocationModal(false); setNewLocation({ name: '', code: '', type: 'STORAGE' }); }}
+              onClick={() => {
+                setShowLocationModal(false);
+                setNewLocation({ name: '', code: '', type: 'STORAGE' });
+              }}
               className="rounded-lg bc-solid px-4 py-2 text-sm text-donor-text transition-colors hover:bg-donor-elevated"
             >
               {t('actions.cancel')}

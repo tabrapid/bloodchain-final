@@ -37,3 +37,6 @@ export const sidebarItems: SidebarItem[] = [
   // now the account page, which is the only setting this console actually has.
   { id: 'account', label: 'My account', labelKey: 'portal.nav.account', icon: UserRound, href: '/account' },
 ];
+
+const clinicalOrder = ['dashboard','donors','donations','screening','laboratory','inventory','requests','shipments','couriers','appointments','analytics','organization','notifications','account'];
+sidebarItems.sort((a,b)=>clinicalOrder.indexOf(a.id)-clinicalOrder.indexOf(b.id));

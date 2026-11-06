@@ -1,3 +1,4 @@
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import { useEffect, useId, useRef } from 'react';
 import { X } from 'lucide-react';
 import { useOptionalTranslation } from '../../i18n';
@@ -26,6 +27,7 @@ export function Modal({
   footer,
   className,
 }: ModalProps) {
+  useBodyScrollLock(open);
   const titleId = useId();
   const { t } = useOptionalTranslation();
   const panelRef = useRef<HTMLDivElement>(null);
@@ -41,6 +43,8 @@ export function Modal({
     if (!open) return;
 
     const onKeyDown = (event: KeyboardEvent) => {
+      const dialogs = document.querySelectorAll('[role="dialog"][aria-modal="true"]');
+      if (dialogs[dialogs.length - 1] !== panelRef.current) return;
       if (event.key === 'Escape') {
         onClose();
         return;
@@ -97,11 +101,11 @@ export function Modal({
         aria-label={title ? undefined : t('common.dialog')}
         aria-labelledby={title ? titleId : undefined}
         className={cn(
-          'bc-glass-elevated bc-rise relative z-10 w-full max-w-lg overflow-hidden rounded-panel p-6',
+          'bc-dialog bc-glass-elevated bc-rise relative z-10 w-full max-w-lg overflow-hidden rounded-panel p-6',
           className,
         )}
       >
-        <div className="flex items-start justify-between">
+        <div className="bc-dialog-header flex items-start justify-between">
           <div>
             {title && (
               <h2 id={titleId} className="text-lg font-semibold text-donor-text">
@@ -118,8 +122,8 @@ export function Modal({
             <X size={18} />
           </button>
         </div>
-        <div className="mt-4">{children}</div>
-        {footer && <div className="mt-6 flex justify-end gap-3">{footer}</div>}
+        <div className="bc-dialog-body mt-4">{children}</div>
+        {footer && <div className="bc-dialog-footer mt-6 flex justify-end gap-3">{footer}</div>}
       </div>
     </div>
   );

@@ -68,6 +68,10 @@ export interface LaboratoryAppointment {
 export interface LaboratoryResult {
   id: string;
   status: string;
+  createdAt?: string;
+  performedBy?: string | null;
+  reviewedBy?: string | null;
+  publishedBy?: string | null;
   performedAt?: string;
   reviewedAt?: string;
   publishedAt?: string;

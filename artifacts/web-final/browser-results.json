@@ -1,0 +1,455 @@
+{
+  "results": [
+    {
+      "app": "admin",
+      "width": 1440,
+      "status": "PASS",
+      "checks": [
+        "compact style",
+        "native tables",
+        "responsive filters",
+        "bounded modal actions",
+        "nested Escape",
+        "scroll restore",
+        "density persistence",
+        "no external fonts",
+        "no runtime errors"
+      ]
+    },
+    {
+      "app": "admin",
+      "width": 1024,
+      "status": "PASS",
+      "checks": [
+        "compact style",
+        "native tables",
+        "responsive filters",
+        "bounded modal actions",
+        "nested Escape",
+        "scroll restore",
+        "density persistence",
+        "no external fonts",
+        "no runtime errors"
+      ]
+    },
+    {
+      "app": "admin",
+      "width": 390,
+      "status": "PASS",
+      "checks": [
+        "compact style",
+        "native tables",
+        "responsive filters",
+        "bounded modal actions",
+        "nested Escape",
+        "scroll restore",
+        "density persistence",
+        "no external fonts",
+        "no runtime errors"
+      ]
+    },
+    {
+      "app": "hospital",
+      "width": 1440,
+      "status": "PASS",
+      "checks": [
+        "three-row request worklist",
+        "no page overflow",
+        "error distinct from empty",
+        "retry recovery",
+        "no external fonts",
+        "no runtime errors"
+      ]
+    },
+    {
+      "app": "hospital",
+      "width": 390,
+      "status": "PASS",
+      "checks": [
+        "three-row request worklist",
+        "no page overflow",
+        "error distinct from empty",
+        "retry recovery",
+        "no external fonts",
+        "no runtime errors"
+      ]
+    },
+    {
+      "app": "center",
+      "width": 1440,
+      "status": "PASS",
+      "checks": [
+        "three-row request worklist",
+        "no page overflow",
+        "error distinct from empty",
+        "retry recovery",
+        "no external fonts",
+        "no runtime errors"
+      ]
+    },
+    {
+      "app": "center",
+      "width": 390,
+      "status": "PASS",
+      "checks": [
+        "three-row request worklist",
+        "no page overflow",
+        "error distinct from empty",
+        "retry recovery",
+        "no external fonts",
+        "no runtime errors"
+      ]
+    }
+  ],
+  "smoke": [
+    {
+      "app": "admin-web",
+      "route": "/account",
+      "status": "PASS",
+      "state": "signed-out"
+    },
+    {
+      "app": "admin-web",
+      "route": "/ai-analytics",
+      "status": "PASS",
+      "state": "signed-out"
+    },
+    {
+      "app": "admin-web",
+      "route": "/alerts",
+      "status": "PASS",
+      "state": "signed-out"
+    },
+    {
+      "app": "admin-web",
+      "route": "/audit",
+      "status": "PASS",
+      "state": "signed-out"
+    },
+    {
+      "app": "admin-web",
+      "route": "/couriers",
+      "status": "PASS",
+      "state": "signed-out"
+    },
+    {
+      "app": "admin-web",
+      "route": "/emergencies",
+      "status": "PASS",
+      "state": "signed-out"
+    },
+    {
+      "app": "admin-web",
+      "route": "/forgot-password",
+      "status": "PASS",
+      "state": "signed-out"
+    },
+    {
+      "app": "admin-web",
+      "route": "/health",
+      "status": "PASS",
+      "state": "signed-out"
+    },
+    {
+      "app": "admin-web",
+      "route": "/inventory",
+      "status": "PASS",
+      "state": "signed-out"
+    },
+    {
+      "app": "admin-web",
+      "route": "/moderation",
+      "status": "PASS",
+      "state": "signed-out"
+    },
+    {
+      "app": "admin-web",
+      "route": "/notifications",
+      "status": "PASS",
+      "state": "signed-out"
+    },
+    {
+      "app": "admin-web",
+      "route": "/organizations",
+      "status": "PASS",
+      "state": "signed-out"
+    },
+    {
+      "app": "admin-web",
+      "route": "/",
+      "status": "PASS",
+      "state": "signed-out"
+    },
+    {
+      "app": "admin-web",
+      "route": "/requests",
+      "status": "PASS",
+      "state": "signed-out"
+    },
+    {
+      "app": "admin-web",
+      "route": "/reset-password",
+      "status": "PASS",
+      "state": "signed-out"
+    },
+    {
+      "app": "admin-web",
+      "route": "/roles",
+      "status": "PASS",
+      "state": "signed-out"
+    },
+    {
+      "app": "admin-web",
+      "route": "/settings",
+      "status": "PASS",
+      "state": "signed-out"
+    },
+    {
+      "app": "admin-web",
+      "route": "/shipments",
+      "status": "PASS",
+      "state": "signed-out"
+    },
+    {
+      "app": "admin-web",
+      "route": "/users",
+      "status": "PASS",
+      "state": "signed-out"
+    },
+    {
+      "app": "hospital-web",
+      "route": "/account",
+      "status": "PASS",
+      "state": "signed-out"
+    },
+    {
+      "app": "hospital-web",
+      "route": "/analytics",
+      "status": "PASS",
+      "state": "signed-out"
+    },
+    {
+      "app": "hospital-web",
+      "route": "/appointments",
+      "status": "PASS",
+      "state": "signed-out"
+    },
+    {
+      "app": "hospital-web",
+      "route": "/donations",
+      "status": "PASS",
+      "state": "signed-out"
+    },
+    {
+      "app": "hospital-web",
+      "route": "/donors/demo-id",
+      "status": "PASS",
+      "state": "signed-out"
+    },
+    {
+      "app": "hospital-web",
+      "route": "/donors",
+      "status": "PASS",
+      "state": "signed-out"
+    },
+    {
+      "app": "hospital-web",
+      "route": "/emergency",
+      "status": "PASS",
+      "state": "signed-out"
+    },
+    {
+      "app": "hospital-web",
+      "route": "/forgot-password",
+      "status": "PASS",
+      "state": "signed-out"
+    },
+    {
+      "app": "hospital-web",
+      "route": "/inventory",
+      "status": "PASS",
+      "state": "signed-out"
+    },
+    {
+      "app": "hospital-web",
+      "route": "/notifications",
+      "status": "PASS",
+      "state": "signed-out"
+    },
+    {
+      "app": "hospital-web",
+      "route": "/organization",
+      "status": "PASS",
+      "state": "signed-out"
+    },
+    {
+      "app": "hospital-web",
+      "route": "/",
+      "status": "PASS",
+      "state": "signed-out"
+    },
+    {
+      "app": "hospital-web",
+      "route": "/register",
+      "status": "PASS",
+      "state": "signed-out"
+    },
+    {
+      "app": "hospital-web",
+      "route": "/requests/demo-id",
+      "status": "PASS",
+      "state": "signed-out"
+    },
+    {
+      "app": "hospital-web",
+      "route": "/requests/new",
+      "status": "PASS",
+      "state": "signed-out"
+    },
+    {
+      "app": "hospital-web",
+      "route": "/requests",
+      "status": "PASS",
+      "state": "signed-out"
+    },
+    {
+      "app": "hospital-web",
+      "route": "/reset-password",
+      "status": "PASS",
+      "state": "signed-out"
+    },
+    {
+      "app": "hospital-web",
+      "route": "/shipments/demo-id",
+      "status": "PASS",
+      "state": "signed-out"
+    },
+    {
+      "app": "hospital-web",
+      "route": "/shipments",
+      "status": "PASS",
+      "state": "signed-out"
+    },
+    {
+      "app": "blood-center-web",
+      "route": "/account",
+      "status": "PASS",
+      "state": "signed-out"
+    },
+    {
+      "app": "blood-center-web",
+      "route": "/analytics",
+      "status": "PASS",
+      "state": "signed-out"
+    },
+    {
+      "app": "blood-center-web",
+      "route": "/appointments",
+      "status": "PASS",
+      "state": "signed-out"
+    },
+    {
+      "app": "blood-center-web",
+      "route": "/couriers",
+      "status": "PASS",
+      "state": "signed-out"
+    },
+    {
+      "app": "blood-center-web",
+      "route": "/donations",
+      "status": "PASS",
+      "state": "signed-out"
+    },
+    {
+      "app": "blood-center-web",
+      "route": "/donors/demo-id",
+      "status": "PASS",
+      "state": "signed-out"
+    },
+    {
+      "app": "blood-center-web",
+      "route": "/donors",
+      "status": "PASS",
+      "state": "signed-out"
+    },
+    {
+      "app": "blood-center-web",
+      "route": "/forgot-password",
+      "status": "PASS",
+      "state": "signed-out"
+    },
+    {
+      "app": "blood-center-web",
+      "route": "/inventory",
+      "status": "PASS",
+      "state": "signed-out"
+    },
+    {
+      "app": "blood-center-web",
+      "route": "/laboratory",
+      "status": "PASS",
+      "state": "signed-out"
+    },
+    {
+      "app": "blood-center-web",
+      "route": "/notifications",
+      "status": "PASS",
+      "state": "signed-out"
+    },
+    {
+      "app": "blood-center-web",
+      "route": "/organization",
+      "status": "PASS",
+      "state": "signed-out"
+    },
+    {
+      "app": "blood-center-web",
+      "route": "/",
+      "status": "PASS",
+      "state": "signed-out"
+    },
+    {
+      "app": "blood-center-web",
+      "route": "/register",
+      "status": "PASS",
+      "state": "signed-out"
+    },
+    {
+      "app": "blood-center-web",
+      "route": "/requests/demo-id",
+      "status": "PASS",
+      "state": "signed-out"
+    },
+    {
+      "app": "blood-center-web",
+      "route": "/requests",
+      "status": "PASS",
+      "state": "signed-out"
+    },
+    {
+      "app": "blood-center-web",
+      "route": "/reset-password",
+      "status": "PASS",
+      "state": "signed-out"
+    },
+    {
+      "app": "blood-center-web",
+      "route": "/screening",
+      "status": "PASS",
+      "state": "signed-out"
+    },
+    {
+      "app": "blood-center-web",
+      "route": "/shipments/demo-id",
+      "status": "PASS",
+      "state": "signed-out"
+    },
+    {
+      "app": "blood-center-web",
+      "route": "/shipments",
+      "status": "PASS",
+      "state": "signed-out"
+    }
+  ],
+  "mode": "Synthetic API fixtures for workflows; signed-out route smoke for route coverage. No live backend or email submission."
+}

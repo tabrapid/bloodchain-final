@@ -1,0 +1,10 @@
+{
+  "status": "PASS",
+  "outcomes": [
+    "Reviewer dashboard queue, no result entry actions, server actor/time (Tashkent), explicit confirmation, no stale result leakage",
+    "Technician can enter results but cannot validate; test type requires explicit choice",
+    "Component label renders real barcode and parent donation reference",
+    "Hospital default compact light layout at 1440/1024/390px without page overflow"
+  ],
+  "mode": "Synthetic API fixtures; not live-backend validation"
+}
