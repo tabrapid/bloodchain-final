@@ -1,89 +1,104 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { JwtService } from '@nestjs/jwt';
-import { PrismaService } from '../database/prisma.service';
-import { LocationService } from '../modules/shipments/services/location.service';
+import { RoleCode } from '@prisma/client';
 import { ShipmentGateway } from './shipment.gateway';
+import { LocationService } from '../modules/shipments/services/location.service';
+import { socketFixture } from './socket.test-helper';
 
-describe('ShipmentGateway broadcasts', () => {
+describe('ShipmentGateway live recipient authorization', () => {
+  let f: ReturnType<typeof socketFixture>;
   let gateway: ShipmentGateway;
-  let serverEmit: jest.Mock;
-  let serverTo: jest.Mock;
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        ShipmentGateway,
-        { provide: PrismaService, useValue: {} },
-        { provide: JwtService, useValue: { verify: jest.fn() } },
-        { provide: LocationService, useValue: {} },
-      ],
-    }).compile();
-
-    gateway = module.get<ShipmentGateway>(ShipmentGateway);
-
-    serverEmit = jest.fn();
-    serverTo = jest.fn().mockReturnValue({ emit: serverEmit });
-    (gateway as any).server = { to: serverTo };
-  });
-
-  it('emitShipmentStatusChanged targets the shipment room with status and metadata', () => {
-    gateway.emitShipmentStatusChanged('shp-1', 'IN_TRANSIT', { note: 'left the depot' });
-
-    expect(serverTo).toHaveBeenCalledWith('shipment:shp-1');
-    expect(serverEmit).toHaveBeenCalledWith('shipment_status_changed', {
-      shipmentId: 'shp-1',
+  beforeEach(() => {
+    f = socketFixture();
+    gateway = new ShipmentGateway(f.jwtService, f.prisma, {} as LocationService);
+    f.db.shipment.findUnique.mockResolvedValue({
+      id: 'shp-1',
       status: 'IN_TRANSIT',
-      metadata: { note: 'left the depot' },
-      timestamp: expect.any(String),
+      shipmentReference: 'REF-1',
+      sourceOrganizationId: 'source-1',
+      destinationOrganizationId: 'hospital-1',
+      courier: { userId: 'courier' },
     });
+    f.db.user.findUnique.mockResolvedValue({ memberships: [{ organizationId: 'hospital-1' }] });
   });
-
-  it('emitCourierLocation targets the shipment room with the courier position', () => {
-    gateway.emitCourierLocation('shp-1', {
-      courierId: 'courier-1',
-      latitude: 40.7128,
-      longitude: -74.006,
-      accuracy: 5,
-      heading: null,
-      speed: null,
-      recordedAt: '2026-01-01T00:00:00.000Z',
-    });
-
-    expect(serverTo).toHaveBeenCalledWith('shipment:shp-1');
-    expect(serverEmit).toHaveBeenCalledWith('courier_location', {
-      shipmentId: 'shp-1',
-      courierId: 'courier-1',
-      latitude: 40.7128,
-      longitude: -74.006,
-      accuracy: 5,
-      heading: null,
-      speed: null,
-      recordedAt: '2026-01-01T00:00:00.000Z',
-    });
+  afterEach(() => gateway.onModuleDestroy());
+  async function join(id: string, roles: RoleCode[]) {
+    const client = f.client(id, roles);
+    await gateway.handleConnection(client);
+    await gateway.handleJoin(client, { shipmentId: 'shp-1' });
+    return client;
+  }
+  it('delivers shipment events only to a current authorized subscriber', async () => {
+    const staff = await join('staff', [RoleCode.HOSPITAL_STAFF]);
+    await gateway.emitShipmentStatusChanged('shp-1', 'IN_TRANSIT', { note: 'departed' });
+    expect(staff.emit).toHaveBeenCalledWith(
+      'shipment_status_changed',
+      expect.objectContaining({
+        shipmentId: 'shp-1',
+        status: 'IN_TRANSIT',
+        metadata: { note: 'departed' },
+      }),
+    );
+    await gateway.emitEtaUpdated('shp-1', 12, 4.5);
+    expect(staff.emit).toHaveBeenCalledWith(
+      'eta_updated',
+      expect.objectContaining({ etaMinutes: 12 }),
+    );
+    await gateway.emitDeliveryConfirmed('shp-1', 3, 'Receiver');
+    expect(staff.emit).toHaveBeenCalledWith(
+      'delivery_confirmed',
+      expect.objectContaining({ receivedUnits: 3 }),
+    );
+    await gateway.emitShipmentUpdated('shp-1', { status: 'DELIVERED' });
+    expect(staff.emit).toHaveBeenCalledWith('shipment_updated', expect.anything());
   });
-
-  it('emitEtaUpdated targets the shipment room with eta and distance', () => {
-    gateway.emitEtaUpdated('shp-1', 12, 4.5);
-
-    expect(serverTo).toHaveBeenCalledWith('shipment:shp-1');
-    expect(serverEmit).toHaveBeenCalledWith('eta_updated', {
-      shipmentId: 'shp-1',
-      etaMinutes: 12,
-      distanceKm: 4.5,
-      timestamp: expect.any(String),
+  it('denies an unassigned courier after reassignment, even if already joined', async () => {
+    const courier = await join('courier', [RoleCode.COURIER]);
+    f.db.shipment.findUnique.mockResolvedValue({
+      sourceOrganizationId: 'source-1',
+      destinationOrganizationId: 'hospital-1',
+      courier: { userId: 'new-courier' },
     });
+    f.db.user.findUnique.mockResolvedValue({ memberships: [] });
+    await gateway.emitCourierLocation('shp-1', {
+      courierId: 'new-courier',
+      latitude: 41,
+      longitude: 69,
+      recordedAt: '2026-11-06T00:00:00Z',
+    });
+    expect(courier.emit).not.toHaveBeenCalledWith('courier_location', expect.anything());
+    expect(courier.disconnect).toHaveBeenCalled();
   });
-
-  it('emitDeliveryConfirmed targets the shipment room with delivery details', () => {
-    gateway.emitDeliveryConfirmed('shp-1', 3, 'Dr. Smith', 'all good');
-
-    expect(serverTo).toHaveBeenCalledWith('shipment:shp-1');
-    expect(serverEmit).toHaveBeenCalledWith('delivery_confirmed', {
+  it('does not send after session revocation', async () => {
+    const staff = await join('staff', [RoleCode.HOSPITAL_STAFF]);
+    f.records.get('staff')!.revokedAt = new Date();
+    await gateway.emitShipmentStatusChanged('shp-1', 'DELIVERED');
+    expect(staff.emit).not.toHaveBeenCalledWith('shipment_status_changed', expect.anything());
+  });
+  it('blocks new location writes from revoked sessions before touching courier data', async () => {
+    const courier = await join('courier', [RoleCode.COURIER]);
+    f.records.get('courier')!.revokedAt = new Date();
+    const result = await gateway.handleLocationUpdate(courier, {
       shipmentId: 'shp-1',
-      receivedUnits: 3,
-      receiverName: 'Dr. Smith',
-      notes: 'all good',
-      timestamp: expect.any(String),
+      latitude: 41,
+      longitude: 69,
     });
+    expect(result.success).toBe(false);
+    expect(f.db.courier.findUnique).not.toHaveBeenCalled();
+    expect(f.db.shipmentLocation.create).not.toHaveBeenCalled();
+  });
+  it('does not send after a subscriber leaves while an access query is pending', async () => {
+    const staff = await join('staff', [RoleCode.HOSPITAL_STAFF]);
+    let release!: (value: unknown) => void;
+    f.db.shipment.findUnique.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          release = resolve;
+        }),
+    );
+    const delivery = gateway.emitShipmentStatusChanged('shp-1', 'DELIVERED');
+    await new Promise((resolve) => setImmediate(resolve));
+    gateway.handleLeave(staff, { shipmentId: 'shp-1' });
+    release({ sourceOrganizationId: 'source-1', destinationOrganizationId: 'hospital-1' });
+    await delivery;
+    expect(staff.emit).not.toHaveBeenCalledWith('shipment_status_changed', expect.anything());
   });
 });

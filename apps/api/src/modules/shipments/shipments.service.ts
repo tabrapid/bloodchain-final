@@ -810,7 +810,7 @@ export class ShipmentsService {
       recipientIds: bloodCenterUsers.map((u) => u.id),
     });
 
-    this.shipmentGateway.emitShipmentStatusChanged(result.id, ShipmentStatus.CREATED);
+    await this.shipmentGateway.emitShipmentStatusChanged(result.id, ShipmentStatus.CREATED);
 
     return result;
   }
@@ -1061,7 +1061,7 @@ export class ShipmentsService {
       recipientIds: [courier.userId],
     });
 
-    this.shipmentGateway.emitShipmentStatusChanged(shipmentId, ShipmentStatus.COURIER_ASSIGNED);
+    await this.shipmentGateway.emitShipmentStatusChanged(shipmentId, ShipmentStatus.COURIER_ASSIGNED);
 
     return result;
   }
@@ -1135,7 +1135,7 @@ export class ShipmentsService {
       recipientIds: bloodCenterUsers.map((u) => u.id),
     });
 
-    this.shipmentGateway.emitShipmentStatusChanged(shipmentId, ShipmentStatus.COURIER_ACCEPTED);
+    await this.shipmentGateway.emitShipmentStatusChanged(shipmentId, ShipmentStatus.COURIER_ACCEPTED);
 
     return result;
   }
@@ -1217,7 +1217,7 @@ export class ShipmentsService {
       recipientIds: bloodCenterUsers.map((u) => u.id),
     });
 
-    this.shipmentGateway.emitShipmentStatusChanged(shipmentId, ShipmentStatus.COURIER_DECLINED, { reason });
+    await this.shipmentGateway.emitShipmentStatusChanged(shipmentId, ShipmentStatus.COURIER_DECLINED, { reason });
 
     return result;
   }
@@ -1280,7 +1280,7 @@ export class ShipmentsService {
       ipAddress,
     });
 
-    this.shipmentGateway.emitShipmentStatusChanged(shipmentId, ShipmentStatus.PICKUP_STARTED);
+    await this.shipmentGateway.emitShipmentStatusChanged(shipmentId, ShipmentStatus.PICKUP_STARTED);
 
     return result;
   }
@@ -1384,7 +1384,7 @@ export class ShipmentsService {
       recipientIds: bloodCenterUsers.map((u) => u.id),
     });
 
-    this.shipmentGateway.emitShipmentStatusChanged(shipmentId, ShipmentStatus.PICKED_UP);
+    await this.shipmentGateway.emitShipmentStatusChanged(shipmentId, ShipmentStatus.PICKED_UP);
 
     return result;
   }
@@ -1458,7 +1458,7 @@ export class ShipmentsService {
       recipientIds: hospitalUsers.map((u) => u.id),
     });
 
-    this.shipmentGateway.emitShipmentStatusChanged(shipmentId, ShipmentStatus.IN_TRANSIT);
+    await this.shipmentGateway.emitShipmentStatusChanged(shipmentId, ShipmentStatus.IN_TRANSIT);
 
     return result;
   }
@@ -1535,7 +1535,7 @@ export class ShipmentsService {
     // gateway's own `location_update` socket event, so this is the only
     // place that broadcasts a REST-submitted position to live-tracking
     // web clients watching this shipment's room.
-    this.shipmentGateway.emitCourierLocation(shipmentId, {
+    await this.shipmentGateway.emitCourierLocation(shipmentId, {
       courierId: courier.id,
       latitude: Number(location.latitude),
       longitude: Number(location.longitude),
@@ -1617,7 +1617,7 @@ export class ShipmentsService {
       recipientIds: hospitalUsers.map((u) => u.id),
     });
 
-    this.shipmentGateway.emitShipmentStatusChanged(shipmentId, ShipmentStatus.ARRIVED_AT_HOSPITAL);
+    await this.shipmentGateway.emitShipmentStatusChanged(shipmentId, ShipmentStatus.ARRIVED_AT_HOSPITAL);
 
     return result;
   }
@@ -1725,7 +1725,7 @@ export class ShipmentsService {
       recipientIds: bloodCenterUsers.map((u) => u.id),
     });
 
-    this.shipmentGateway.emitShipmentStatusChanged(shipmentId, ShipmentStatus.FAILED);
+    await this.shipmentGateway.emitShipmentStatusChanged(shipmentId, ShipmentStatus.FAILED);
 
     return result;
   }
@@ -2049,7 +2049,7 @@ export class ShipmentsService {
       ipAddress,
     });
 
-    this.shipmentGateway.emitShipmentStatusChanged(shipmentId, ShipmentStatus.CANCELLED, { reason });
+    await this.shipmentGateway.emitShipmentStatusChanged(shipmentId, ShipmentStatus.CANCELLED, { reason });
 
     return result;
   }
@@ -2154,7 +2154,7 @@ export class ShipmentsService {
       ipAddress,
     });
 
-    this.shipmentGateway.emitShipmentStatusChanged(shipmentId, ShipmentStatus.COURIER_ASSIGNED, {
+    await this.shipmentGateway.emitShipmentStatusChanged(shipmentId, ShipmentStatus.COURIER_ASSIGNED, {
       courierId: newCourierId,
     });
 
@@ -2384,7 +2384,7 @@ export class ShipmentsService {
       recipientIds: [...bloodCenterUsers.map((u) => u.id), ...(courierUser ? [courierUser.userId] : [])],
     });
 
-    this.shipmentGateway.emitShipmentStatusChanged(shipmentId, ShipmentStatus.DELIVERED, {
+    await this.shipmentGateway.emitShipmentStatusChanged(shipmentId, ShipmentStatus.DELIVERED, {
       unitsDelivered: dto.unitsReceived,
       totalUnits,
       discrepancy: hasDiscrepancy,

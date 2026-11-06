@@ -2,24 +2,16 @@ import {
   WebSocketGateway,
   WebSocketServer,
   SubscribeMessage,
-  OnGatewayInit,
-  OnGatewayConnection,
-  OnGatewayDisconnect,
   ConnectedSocket,
   MessageBody,
 } from '@nestjs/websockets';
-import { Logger, UseGuards } from '@nestjs/common';
-import { Server, Socket } from 'socket.io';
+import { Logger } from '@nestjs/common';
+import { Server } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../database/prisma.service';
 import { LocationService } from '../modules/shipments/services/location.service';
 
-interface AuthenticatedSocket extends Socket {
-  userId?: string;
-  organizationId?: string;
-  roles?: string[];
-  lastHeartbeat?: number;
-}
+import { AuthenticatedSocket, SessionSocketGateway } from './session-socket.gateway';
 
 interface JoinRoomPayload {
   shipmentId: string;
@@ -34,15 +26,6 @@ interface LocationUpdatePayload {
   speed?: number;
 }
 
-interface ShipmentUpdatePayload {
-  shipmentId: string;
-  status: string;
-  timestamp: string;
-}
-
-const HEARTBEAT_INTERVAL = 30000;
-const CONNECTION_TIMEOUT = 90000;
-
 @WebSocketGateway({
   namespace: '/shipments',
   cors: {
@@ -50,105 +33,23 @@ const CONNECTION_TIMEOUT = 90000;
     credentials: true,
   },
 })
-export class ShipmentGateway
-  implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
-{
+export class ShipmentGateway extends SessionSocketGateway {
   @WebSocketServer()
   server!: Server;
 
   private readonly logger = new Logger(ShipmentGateway.name);
-  private readonly connectedClients = new Map<string, AuthenticatedSocket>();
-  private readonly roomSubscriptions = new Map<string, Set<string>>();
-  private heartbeatInterval: ReturnType<typeof setInterval> | null = null;
-
   constructor(
-    private readonly jwtService: JwtService,
-    private readonly db: PrismaService,
+    jwtService: JwtService,
+    db: PrismaService,
     private readonly locationService: LocationService,
-  ) {}
-
-  afterInit(server: Server) {
-    this.logger.log('ShipmentGateway initialized');
-    this.startHeartbeat();
-  }
-
-  private startHeartbeat() {
-    this.heartbeatInterval = setInterval(() => {
-      const now = Date.now();
-      this.connectedClients.forEach((client, clientId) => {
-        if (client.lastHeartbeat && now - client.lastHeartbeat > CONNECTION_TIMEOUT) {
-          this.logger.warn(`Client ${clientId} heartbeat timeout, disconnecting`);
-          client.emit('timeout', { message: 'Connection timeout' });
-          client.disconnect();
-        }
-      });
-    }, HEARTBEAT_INTERVAL);
-  }
-
-  async handleConnection(client: AuthenticatedSocket) {
-    try {
-      const token = client.handshake.auth?.token || client.handshake.headers?.authorization?.replace('Bearer ', '');
-
-      if (!token) {
-        this.logger.warn(`Client ${client.id} connected without token`);
-        client.emit('error', { message: 'Authentication required' });
-        client.disconnect();
-        return;
-      }
-
-      const payload = this.jwtService.verify(token);
-      const user = await this.db.user.findUnique({
-        where: { id: payload.sub },
-        include: {
-          memberships: {
-            include: { role: true },
-          },
-          courier: true,
-        },
-      });
-
-      if (!user) {
-        client.emit('error', { message: 'User not found' });
-        client.disconnect();
-        return;
-      }
-
-      client.userId = user.id;
-      client.roles = user.memberships.map((m: any) => m.role.code);
-      client.lastHeartbeat = Date.now();
-
-      const bloodCenterMembership = user.memberships.find((m: any) => m.organization?.type === 'BLOOD_CENTER');
-      const hospitalMembership = user.memberships.find((m: any) => m.organization?.type === 'HOSPITAL');
-
-      client.organizationId = bloodCenterMembership?.organizationId || hospitalMembership?.organizationId;
-
-      this.connectedClients.set(client.id, client);
-
-      this.logger.log(`Client ${client.id} connected as user ${user.id}`);
-      client.emit('connected', { userId: user.id });
-    } catch (error) {
-      this.logger.warn(`Client ${client.id} authentication failed: ${(error as Error).message}`);
-      client.emit('error', { message: 'Authentication failed' });
-      client.disconnect();
-    }
-  }
-
-  handleDisconnect(client: AuthenticatedSocket) {
-    const userId = client.userId;
-    this.connectedClients.delete(client.id);
-
-    this.roomSubscriptions.forEach((clients, roomId) => {
-      clients.delete(client.id);
-      if (clients.size === 0) {
-        this.roomSubscriptions.delete(roomId);
-      }
-    });
-
-    this.logger.log(`Client ${client.id} (user: ${userId}) disconnected`);
+  ) {
+    super(jwtService, db);
   }
 
   @SubscribeMessage('ping')
-  handlePing(@ConnectedSocket() client: AuthenticatedSocket) {
+  async handlePing(@ConnectedSocket() client: AuthenticatedSocket) {
+    if (!(await this.authorizeClient(client)))
+      return { success: false, error: 'Not authenticated' };
     client.lastHeartbeat = Date.now();
     return { event: 'pong', data: { timestamp: Date.now() } };
   }
@@ -158,26 +59,33 @@ export class ShipmentGateway
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() payload: JoinRoomPayload,
   ) {
-    if (!client.userId) {
+    if (!(await this.authorizeClient(client))) {
       client.emit('error', { message: 'Not authenticated' });
       return { success: false, error: 'Not authenticated' };
     }
 
+    if (
+      !payload ||
+      typeof payload.shipmentId !== 'string' ||
+      !payload.shipmentId ||
+      payload.shipmentId.length > 200
+    ) {
+      return { success: false, error: 'Invalid resource id' };
+    }
     const { shipmentId } = payload;
 
-    const hasAccess = await this.checkShipmentAccess(client.userId, client.roles || [], shipmentId);
+    const hasAccess = await this.checkShipmentAccess(
+      client.userId!,
+      client.roles || [],
+      shipmentId,
+    );
     if (!hasAccess) {
       client.emit('error', { message: 'Access denied to this shipment' });
       return { success: false, error: 'Access denied' };
     }
 
     const roomName = `shipment:${shipmentId}`;
-    client.join(roomName);
-
-    if (!this.roomSubscriptions.has(roomName)) {
-      this.roomSubscriptions.set(roomName, new Set());
-    }
-    this.roomSubscriptions.get(roomName)!.add(client.id);
+    await this.subscribe(client, roomName);
 
     this.logger.log(`Client ${client.id} joined room ${roomName}`);
 
@@ -192,6 +100,13 @@ export class ShipmentGateway
         },
       },
     });
+
+    if (
+      !(await this.authorizeClient(client)) ||
+      !(await this.checkShipmentAccess(client.userId!, client.roles ?? [], shipmentId)) ||
+      !this.roomSubscriptions.get(roomName)?.has(client.id)
+    )
+      return { success: false, error: 'Access denied' };
 
     client.emit('shipment_state', {
       shipmentId,
@@ -208,6 +123,14 @@ export class ShipmentGateway
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() payload: JoinRoomPayload,
   ) {
+    if (
+      !payload ||
+      typeof payload.shipmentId !== 'string' ||
+      !payload.shipmentId ||
+      payload.shipmentId.length > 200
+    ) {
+      return { success: false, error: 'Invalid resource id' };
+    }
     const { shipmentId } = payload;
     const roomName = `shipment:${shipmentId}`;
 
@@ -230,11 +153,18 @@ export class ShipmentGateway
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() payload: LocationUpdatePayload,
   ) {
-    if (!client.userId) {
+    if (!(await this.authorizeClient(client))) {
       client.emit('error', { message: 'Not authenticated' });
       return { success: false, error: 'Not authenticated' };
     }
 
+    if (
+      !payload ||
+      typeof payload.shipmentId !== 'string' ||
+      !payload.shipmentId ||
+      payload.shipmentId.length > 200
+    )
+      return { success: false, error: 'Invalid resource id' };
     const { shipmentId, latitude, longitude, accuracy, heading, speed } = payload;
 
     if (
@@ -246,6 +176,8 @@ export class ShipmentGateway
       return { success: false, error: 'Invalid coordinates' };
     }
 
+    if (!client.roles?.includes('COURIER')) return { success: false, error: 'Access denied' };
+
     const courier = await this.db.courier.findUnique({
       where: { userId: client.userId },
     });
@@ -254,10 +186,7 @@ export class ShipmentGateway
       return { success: false, error: 'Courier profile not found' };
     }
 
-    const access = await this.locationService.validateCourierShipmentAccess(
-      courier.id,
-      shipmentId,
-    );
+    const access = await this.locationService.validateCourierShipmentAccess(courier.id, shipmentId);
 
     if (!access.valid) {
       return { success: false, error: access.error };
@@ -301,7 +230,7 @@ export class ShipmentGateway
       },
     });
 
-    this.emitCourierLocation(shipmentId, {
+    await this.emitCourierLocation(shipmentId, {
       courierId: courier.id,
       latitude: Number(location.latitude),
       longitude: Number(location.longitude),
@@ -321,7 +250,7 @@ export class ShipmentGateway
    * app actually uses today) - without this, REST-submitted location
    * updates would never reach live-tracking web clients.
    */
-  emitCourierLocation(
+  async emitCourierLocation(
     shipmentId: string,
     location: {
       courierId: string;
@@ -334,19 +263,19 @@ export class ShipmentGateway
     },
   ) {
     const roomName = `shipment:${shipmentId}`;
-    this.server.to(roomName).emit('courier_location', {
+    await this.emitShipment(shipmentId, roomName, 'courier_location', {
       shipmentId,
       ...location,
     });
   }
 
-  emitShipmentStatusChanged(
+  async emitShipmentStatusChanged(
     shipmentId: string,
     status: string,
     metadata?: Record<string, unknown>,
   ) {
     const roomName = `shipment:${shipmentId}`;
-    this.server.to(roomName).emit('shipment_status_changed', {
+    await this.emitShipment(shipmentId, roomName, 'shipment_status_changed', {
       shipmentId,
       status,
       metadata,
@@ -354,18 +283,18 @@ export class ShipmentGateway
     });
   }
 
-  emitShipmentUpdated(shipmentId: string, data: Record<string, unknown>) {
+  async emitShipmentUpdated(shipmentId: string, data: Record<string, unknown>) {
     const roomName = `shipment:${shipmentId}`;
-    this.server.to(roomName).emit('shipment_updated', {
+    await this.emitShipment(shipmentId, roomName, 'shipment_updated', {
       shipmentId,
       ...data,
       timestamp: new Date().toISOString(),
     });
   }
 
-  emitEtaUpdated(shipmentId: string, etaMinutes: number, distanceKm: number) {
+  async emitEtaUpdated(shipmentId: string, etaMinutes: number, distanceKm: number) {
     const roomName = `shipment:${shipmentId}`;
-    this.server.to(roomName).emit('eta_updated', {
+    await this.emitShipment(shipmentId, roomName, 'eta_updated', {
       shipmentId,
       etaMinutes,
       distanceKm,
@@ -373,20 +302,26 @@ export class ShipmentGateway
     });
   }
 
-  emitDeliveryConfirmed(
+  async emitDeliveryConfirmed(
     shipmentId: string,
     receivedUnits: number,
     receiverName: string,
     notes?: string,
   ) {
     const roomName = `shipment:${shipmentId}`;
-    this.server.to(roomName).emit('delivery_confirmed', {
+    await this.emitShipment(shipmentId, roomName, 'delivery_confirmed', {
       shipmentId,
       receivedUnits,
       receiverName,
       notes,
       timestamp: new Date().toISOString(),
     });
+  }
+
+  private async emitShipment(id: string, room: string, event: string, data: unknown) {
+    await this.emitAuthorized(room, event, data, (client) =>
+      this.checkShipmentAccess(client.userId!, client.roles ?? [], id),
+    );
   }
 
   private async checkShipmentAccess(
@@ -421,6 +356,17 @@ export class ShipmentGateway
         memberships: {
           where: {
             status: 'ACTIVE',
+            organization: { status: 'ACTIVE' },
+            role: {
+              code: {
+                in: [
+                  'HOSPITAL_ADMIN',
+                  'HOSPITAL_STAFF',
+                  'BLOOD_CENTER_ADMIN',
+                  'BLOOD_CENTER_STAFF',
+                ],
+              },
+            },
           },
         },
       },
@@ -430,7 +376,7 @@ export class ShipmentGateway
       return false;
     }
 
-    const organizationIds = user.memberships.map((m: any) => m.organizationId);
+    const organizationIds = user.memberships.map((m) => m.organizationId);
 
     if (organizationIds.includes(shipment.sourceOrganizationId)) {
       return true;
@@ -441,15 +387,5 @@ export class ShipmentGateway
     }
 
     return false;
-  }
-
-  getConnectionState() {
-    return {
-      totalConnections: this.connectedClients.size,
-      rooms: Array.from(this.roomSubscriptions.keys()).map((room) => ({
-        room,
-        subscribers: this.roomSubscriptions.get(room)?.size || 0,
-      })),
-    };
   }
 }
