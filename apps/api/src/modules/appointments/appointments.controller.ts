@@ -36,7 +36,7 @@ export class AppointmentsController {
     @CurrentUser('sub') userId: string,
     @Req() req: Request,
   ) {
-    return this.appointments.bookAppointment(userId, dto, req.headers['x-forwarded-for'] as string);
+    return this.appointments.bookAppointment(userId, dto, req.ip);
   }
 
   @Get('me')
@@ -85,7 +85,7 @@ export class AppointmentsController {
       id,
       userId,
       dto.reason,
-      req.headers['x-forwarded-for'] as string,
+      req.ip,
     );
   }
 
@@ -104,7 +104,7 @@ export class AppointmentsController {
       id,
       userId,
       dto.reason ?? 'Cancelled by staff',
-      req.headers['x-forwarded-for'] as string,
+      req.ip,
     );
   }
 
@@ -129,7 +129,7 @@ export class AppointmentsController {
     @CurrentUser('sub') userId: string,
     @Req() req: Request,
   ) {
-    return this.appointments.cancelAppointment(id, userId, dto, req.headers['x-forwarded-for'] as string);
+    return this.appointments.cancelAppointment(id, userId, dto, req.ip);
   }
 
   @Post(':id/reschedule')
@@ -144,7 +144,7 @@ export class AppointmentsController {
     @CurrentUser('sub') userId: string,
     @Req() req: Request,
   ) {
-    return this.appointments.rescheduleAppointment(id, userId, dto, req.headers['x-forwarded-for'] as string);
+    return this.appointments.rescheduleAppointment(id, userId, dto, req.ip);
   }
 
   @Post(':id/confirm')
@@ -157,7 +157,7 @@ export class AppointmentsController {
     @CurrentUser('sub') userId: string,
     @Req() req: Request,
   ) {
-    return this.appointments.confirmAppointment(id, userId, req.headers['x-forwarded-for'] as string);
+    return this.appointments.confirmAppointment(id, userId, req.ip);
   }
 
   @Post(':id/complete')
@@ -170,6 +170,6 @@ export class AppointmentsController {
     @CurrentUser('sub') userId: string,
     @Req() req: Request,
   ) {
-    return this.appointments.completeAppointment(id, userId, req.headers['x-forwarded-for'] as string);
+    return this.appointments.completeAppointment(id, userId, req.ip);
   }
 }

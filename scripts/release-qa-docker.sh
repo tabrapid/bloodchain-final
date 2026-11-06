@@ -88,7 +88,20 @@ for boot in 1 2; do
   docker exec -d -w /repo/apps/api "$qa_runner" sh -c 'echo $$ > /tmp/qa-entrypoint.pid; exec sh ./docker-entrypoint.sh > /tmp/qa-api.log 2>&1'
   wait_ready
   counts=$(reference_counts)
-  if [[ $boot == 1 ]]; then first_counts=$counts; else [[ $counts == "$first_counts" ]]; fi
+  if [[ $boot == 1 ]]; then
+    first_counts=$counts
+    docker exec -w /repo/apps/api "$qa_runner" node -e '
+      const {PrismaClient}=require("@prisma/client"); const db=new PrismaClient();
+      db.consentRequirement.update({where:{scopeKey_purpose_featureKey:{scopeKey:"PLATFORM",purpose:"SERVICE_NOTIFICATIONS",featureKey:""}},data:{mode:"DISABLED",note:"qa-operator-reviewed-posture"}})
+        .catch(()=>{process.exitCode=1}).finally(()=>db.$disconnect());'
+  else
+    [[ $counts == "$first_counts" ]]
+    docker exec -w /repo/apps/api "$qa_runner" node -e '
+      const {PrismaClient}=require("@prisma/client"); const db=new PrismaClient();
+      db.consentRequirement.findUniqueOrThrow({where:{scopeKey_purpose_featureKey:{scopeKey:"PLATFORM",purpose:"SERVICE_NOTIFICATIONS",featureKey:""}}})
+        .then(row=>{if(row.mode!=="DISABLED"||row.note!=="qa-operator-reviewed-posture") throw Error("Reference seed overwrote operator posture")})
+        .catch(()=>{process.exitCode=1}).finally(()=>db.$disconnect());'
+  fi
   docker exec "$qa_runner" sh -c 'kill "$(cat /tmp/qa-entrypoint.pid)"'
   for attempt in {1..30}; do
     if docker exec "$qa_runner" node -e 'fetch("http://127.0.0.1:3001/api/v1/health/live").then(()=>process.exit(1)).catch(()=>process.exit(0))'; then break; fi

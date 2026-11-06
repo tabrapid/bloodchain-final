@@ -88,6 +88,10 @@ jobs:
       - run: pnpm test
       - name: Operations monitor state and secret handling tests
         run: python3 -m unittest discover -s scripts -p test_ops_monitor.py
+      - name: Operational scripts and patched URI decoder regressions
+        run: pnpm test:scripts
+      - name: Refuse critical production dependency advisories
+        run: pnpm audit --prod --audit-level=critical
 
   test-e2e:
     name: API e2e tests (real database)
@@ -390,7 +394,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       # One React in the bundle. The mobile app is on React 19 while the three
-      # Next.js consoles are still on 18, so any dependency that resolves
+      # Next.js consoles can resolve a different React version, so a dependency that resolves
       # React from pnpm's hoisted copy gets the wrong one -- which React 19
       # rejects at render with "A React Element from an older version of React
       # was rendered". This found it in expo-modules-core during the SDK 53

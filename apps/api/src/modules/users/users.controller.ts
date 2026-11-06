@@ -54,7 +54,7 @@ export class UsersController {
       phone: dto.phone,
       dateOfBirth: dto.dateOfBirth ? new Date(dto.dateOfBirth) : undefined,
     };
-    return this.users.updateProfile(userId, data, req.headers['x-forwarded-for'] as string);
+    return this.users.updateProfile(userId, data, req.ip);
   }
 
   /**
@@ -68,12 +68,12 @@ export class UsersController {
   @ApiResponse({ status: 200, description: 'Account closed; every session is signed out' })
   @ApiResponse({ status: 404, description: 'User not found' })
   deleteOwnAccount(@CurrentUser('sub') userId: string, @Req() req: Request) {
-    return this.users.deleteOwnAccount(userId, req.headers['x-forwarded-for'] as string);
+    return this.users.deleteOwnAccount(userId, req.ip);
   }
 
   @Get()
   @UseGuards(RolesGuard)
-  @Roles(RoleCode.SUPER_ADMIN, RoleCode.HOSPITAL_ADMIN, RoleCode.BLOOD_CENTER_ADMIN)
+  @Roles(RoleCode.SUPER_ADMIN)
   @ApiOperation({ summary: 'List users (administrators)' })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
@@ -91,7 +91,7 @@ export class UsersController {
   @Get(':id')
   @UseInterceptors(WrapResponseInterceptor)
   @UseGuards(RolesGuard)
-  @Roles(RoleCode.SUPER_ADMIN, RoleCode.HOSPITAL_ADMIN, RoleCode.BLOOD_CENTER_ADMIN)
+  @Roles(RoleCode.SUPER_ADMIN)
   @ApiOperation({ summary: 'Get a user by ID (administrators)' })
   @ApiResponse({ status: 200, description: 'User found' })
   @ApiResponse({ status: 404, description: 'User not found' })

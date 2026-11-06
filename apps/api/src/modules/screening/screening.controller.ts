@@ -70,7 +70,7 @@ export class ScreeningController {
       organizationId,
       donationId,
       userId,
-      req.headers['x-forwarded-for'] as string,
+      req.ip,
     );
   }
 
@@ -89,7 +89,7 @@ export class ScreeningController {
       donationId,
       userId,
       dto,
-      req.headers['x-forwarded-for'] as string,
+      req.ip,
     );
   }
 
@@ -108,7 +108,7 @@ export class ScreeningController {
       sampleId,
       userId,
       dto,
-      req.headers['x-forwarded-for'] as string,
+      req.ip,
     );
   }
 
@@ -127,7 +127,7 @@ export class ScreeningController {
       orderId,
       userId,
       dto,
-      req.headers['x-forwarded-for'] as string,
+      req.ip,
     );
   }
 
@@ -146,7 +146,7 @@ export class ScreeningController {
       orderId,
       userId,
       dto,
-      req.headers['x-forwarded-for'] as string,
+      req.ip,
     );
   }
 
@@ -165,7 +165,7 @@ export class ScreeningController {
       resultId,
       userId,
       dto,
-      req.headers['x-forwarded-for'] as string,
+      req.ip,
     );
   }
 
@@ -186,7 +186,7 @@ export class ScreeningController {
       resultId,
       userId,
       dto,
-      req.headers['x-forwarded-for'] as string,
+      req.ip,
     );
   }
 }

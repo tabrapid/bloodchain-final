@@ -2,6 +2,12 @@
 
 Sana: 2026-11-05. Holat: bajarish uchun ishchi reja; yuridik xulosa yoki klinik protokol emas.
 
+Internet tadqiqoti va kod tekshiruvi bo‘yicha bajarish dalillari:
+[2026-11-05 tadqiqot reyestri](legal/uzbekistan-research-2026-11-05.md).
+Operator yuridik shaxsi hali yo‘qligi egasi tomonidan tasdiqlandi; UZ-01 ochiq.
+3751-son tibbiy dastur tasnifi va VMQ 415 transchegaraviy talablar aniqlandi;
+tegishli tartiblar [incident runbook](runbooks/incident-response.md)ga kiritildi.
+
 Asos: foydalanuvchi taqdim etgan muassasa/vakolat roadmap’i, joriy repository va quyida keltirilgan rasmiy manbalar. Biriktirilgan matndagi Python ko‘rsatmalari bajarilmadi; undagi reja mazmuni talablar sifatida ko‘rib chiqildi.
 
 ## 1. Birinchi mahsulot chegarasi

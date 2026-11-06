@@ -75,7 +75,7 @@ export class RecallController {
       donationId,
       userId,
       dto,
-      req.headers['x-forwarded-for'] as string,
+      req.ip,
     );
   }
 
@@ -94,7 +94,7 @@ export class RecallController {
       recallCaseId,
       userId,
       dto,
-      req.headers['x-forwarded-for'] as string,
+      req.ip,
     );
   }
 
@@ -115,7 +115,7 @@ export class RecallController {
       componentId,
       userId,
       dto,
-      req.headers['x-forwarded-for'] as string,
+      req.ip,
     );
   }
 
@@ -134,7 +134,7 @@ export class RecallController {
       recallCaseId,
       userId,
       dto,
-      req.headers['x-forwarded-for'] as string,
+      req.ip,
     );
   }
 }

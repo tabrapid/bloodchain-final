@@ -123,7 +123,7 @@ export class NotificationsController {
       data: await this.preferenceService.updatePreferences(
         userId,
         dto,
-        req.headers['x-forwarded-for'] as string,
+        req.ip,
       ),
     };
   }

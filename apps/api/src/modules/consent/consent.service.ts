@@ -54,14 +54,18 @@ export class ConsentService {
       organizationId?: string;
       content?: string;
       contentReference?: string;
+      contentHash?: string;
       effectiveAt?: string;
     },
     ipAddress?: string,
   ) {
-    if (!dto.content && !dto.contentReference) {
+    if (Boolean(dto.content) === Boolean(dto.contentReference)) {
       throw new BadRequestException(
-        'A consent document needs either its wording or a reference to where the wording lives.',
+        'A consent document needs exactly one of its wording or an immutable content reference.',
       );
+    }
+    if (dto.contentReference && !/^[a-f0-9]{64}$/i.test(dto.contentHash ?? '')) {
+      throw new BadRequestException('An external consent document requires the SHA-256 of its actual wording.');
     }
 
     const scopeKey = scopeKeyFor(dto.organizationId);
@@ -81,10 +85,9 @@ export class ConsentService {
         version: (latest?.version ?? 0) + 1,
         content: dto.content ?? null,
         contentReference: dto.contentReference ?? null,
-        // The hash binds an acceptance to exact wording. Hashing the reference
-        // when there is no inline content is deliberate: it still changes when
-        // the pointer changes, so a swapped document is detectable.
-        contentHash: ConsentService.hashContent(dto.content ?? dto.contentReference ?? ''),
+        // A URL hash is not a wording hash: remote content can change without
+        // changing its URL. External documents need an explicit content digest.
+        contentHash: dto.content ? ConsentService.hashContent(dto.content) : dto.contentHash!.toLowerCase(),
         status: ConsentDocumentStatus.DRAFT,
         effectiveAt: dto.effectiveAt ? new Date(dto.effectiveAt) : null,
       },
@@ -205,6 +208,8 @@ export class ConsentService {
       purpose: ConsentPurpose;
       locale: string;
       organizationId?: string;
+      documentId: string;
+      contentHash: string;
       source?: ConsentAcceptanceSource;
       clientReference?: string;
       context?: string;
@@ -231,6 +236,12 @@ export class ConsentService {
         code: permitted.reason,
         message: 'Only an approved consent document can carry an acceptance.',
         details: { purpose: dto.purpose, locale: dto.locale, status: document.status },
+      });
+    }
+    if (dto.documentId !== document.id || dto.contentHash !== document.contentHash) {
+      throw new ConflictException({
+        code: ConsentReason.DOCUMENT_CHANGED,
+        message: 'The consent document changed. Display the current wording before accepting it.',
       });
     }
 
@@ -322,20 +333,26 @@ export class ConsentService {
   async check(userId: string, purpose: ConsentPurpose, organizationId?: string | null) {
     const mode = await this.requirementMode(purpose, organizationId);
 
-    const [approved, acceptance] = await Promise.all([
-      this.documentInForce(purpose, 'uz', organizationId).then(
-        async (uz) => uz ?? (await this.anyApproved(purpose, organizationId)),
-      ),
-      this.db.consentAcceptance.findFirst({
-        where: { userId, purpose },
-        orderBy: { acceptedAt: 'desc' },
-      }),
-    ]);
+    const acceptance = await this.db.consentAcceptance.findFirst({
+      where: { userId, purpose, organizationId: organizationId ?? null },
+      orderBy: [{ acceptedAt: 'desc' }, { id: 'desc' }],
+    });
+    // Resolve the current wording in the language actually accepted. A newer
+    // document in another language cannot authorize an old or foreign-scope
+    // acceptance. All fallback lookups must also honor effectiveAt.
+    const approved = acceptance
+      ? await this.documentInForce(purpose, acceptance.locale, organizationId)
+      : await this.anyApproved(purpose, organizationId);
+    const matchesDocument = approved !== null && acceptance !== null &&
+      acceptance.documentId === approved.id &&
+      acceptance.documentVersion === approved.version &&
+      acceptance.contentHash === approved.contentHash &&
+      acceptance.locale === approved.locale;
 
     return decideConsent({
       mode,
       hasApprovedDocument: approved !== null,
-      accepted: acceptance !== null && acceptance.withdrawnAt === null,
+      accepted: matchesDocument && acceptance.withdrawnAt === null,
       withdrawn: acceptance !== null && acceptance.withdrawnAt !== null,
     });
   }
@@ -359,14 +376,19 @@ export class ConsentService {
   }
 
   private async anyApproved(purpose: ConsentPurpose, organizationId?: string | null) {
-    return this.db.consentDocument.findFirst({
-      where: {
-        scopeKey: { in: [scopeKeyFor(organizationId), PLATFORM_SCOPE] },
-        purpose,
-        status: ConsentDocumentStatus.APPROVED,
-      },
-      orderBy: { version: 'desc' },
-    });
+    for (const scopeKey of new Set([scopeKeyFor(organizationId), PLATFORM_SCOPE])) {
+      const document = await this.db.consentDocument.findFirst({
+        where: {
+          scopeKey,
+          purpose,
+          status: ConsentDocumentStatus.APPROVED,
+          OR: [{ effectiveAt: null }, { effectiveAt: { lte: new Date() } }],
+        },
+        orderBy: { version: 'desc' },
+      });
+      if (document) return document;
+    }
+    return null;
   }
 
   private projectDocument(document: {

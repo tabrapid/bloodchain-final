@@ -28,6 +28,7 @@ COPY .npmrc .npmrc
 # ordinary ES2022 syntax already used throughout the codebase.
 COPY tsconfig.json tsconfig.json
 COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
+COPY patches patches
 COPY apps/api/package.json apps/api/package.json
 COPY packages/config/package.json packages/config/package.json
 COPY packages/types/package.json packages/types/package.json

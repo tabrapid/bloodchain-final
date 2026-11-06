@@ -121,7 +121,7 @@ export class InventoryController {
     @CurrentUser('sub') userId: string,
     @Req() req: Request,
   ) {
-    return this.inventory.releaseUnit(organizationId, unitId, userId, dto, req.headers['x-forwarded-for'] as string);
+    return this.inventory.releaseUnit(organizationId, unitId, userId, dto, req.ip);
   }
 
   @Post('units/:unitId/quarantine')
@@ -134,7 +134,7 @@ export class InventoryController {
     @CurrentUser('sub') userId: string,
     @Req() req: Request,
   ) {
-    return this.inventory.quarantineUnit(organizationId, unitId, userId, dto, req.headers['x-forwarded-for'] as string);
+    return this.inventory.quarantineUnit(organizationId, unitId, userId, dto, req.ip);
   }
 
   @Post('units/:unitId/discard')
@@ -147,7 +147,7 @@ export class InventoryController {
     @CurrentUser('sub') userId: string,
     @Req() req: Request,
   ) {
-    return this.inventory.discardUnit(organizationId, unitId, userId, dto, req.headers['x-forwarded-for'] as string);
+    return this.inventory.discardUnit(organizationId, unitId, userId, dto, req.ip);
   }
 
   @Post('units/:unitId/issue')
@@ -162,7 +162,7 @@ export class InventoryController {
     @CurrentUser('sub') userId: string,
     @Req() req: Request,
   ) {
-    return this.inventory.issueUnit(organizationId, unitId, userId, dto, req.headers['x-forwarded-for'] as string);
+    return this.inventory.issueUnit(organizationId, unitId, userId, dto, req.ip);
   }
 
   @Patch('units/:unitId/adjust')
@@ -175,7 +175,7 @@ export class InventoryController {
     @CurrentUser('sub') userId: string,
     @Req() req: Request,
   ) {
-    return this.inventory.adjustUnit(organizationId, unitId, userId, dto, req.headers['x-forwarded-for'] as string);
+    return this.inventory.adjustUnit(organizationId, unitId, userId, dto, req.ip);
   }
 
   @Post('units/:unitId/move')
@@ -188,7 +188,7 @@ export class InventoryController {
     @CurrentUser('sub') userId: string,
     @Req() req: Request,
   ) {
-    return this.inventory.moveUnit(organizationId, unitId, userId, dto, req.headers['x-forwarded-for'] as string);
+    return this.inventory.moveUnit(organizationId, unitId, userId, dto, req.ip);
   }
 
   @Post('units/:unitId/reserve')
@@ -203,7 +203,7 @@ export class InventoryController {
     @CurrentUser('sub') userId: string,
     @Req() req: Request,
   ) {
-    return this.inventory.reserveUnit(organizationId, unitId, userId, dto, req.headers['x-forwarded-for'] as string);
+    return this.inventory.reserveUnit(organizationId, unitId, userId, dto, req.ip);
   }
 
   @Post('reservations/:reservationId/release')
@@ -216,7 +216,7 @@ export class InventoryController {
     @CurrentUser('sub') userId: string,
     @Req() req: Request,
   ) {
-    return this.inventory.releaseReservation(organizationId, reservationId, userId, dto, req.headers['x-forwarded-for'] as string);
+    return this.inventory.releaseReservation(organizationId, reservationId, userId, dto, req.ip);
   }
 
   @Get('locations')
@@ -238,7 +238,7 @@ export class InventoryController {
     @CurrentUser('sub') userId: string,
     @Req() req: Request,
   ) {
-    return this.inventory.createLocation(organizationId, userId, dto, req.headers['x-forwarded-for'] as string);
+    return this.inventory.createLocation(organizationId, userId, dto, req.ip);
   }
 
   @Patch('locations/:locationId')
@@ -251,7 +251,7 @@ export class InventoryController {
     @CurrentUser('sub') userId: string,
     @Req() req: Request,
   ) {
-    return this.inventory.updateLocation(organizationId, locationId, userId, dto, req.headers['x-forwarded-for'] as string);
+    return this.inventory.updateLocation(organizationId, locationId, userId, dto, req.ip);
   }
 
   @Get('movements')
@@ -295,7 +295,7 @@ export class InventoryController {
     @CurrentUser('sub') userId: string,
     @Req() req: Request,
   ) {
-    return this.inventory.acknowledgeAlert(organizationId, alertId, userId, req.headers['x-forwarded-for'] as string);
+    return this.inventory.acknowledgeAlert(organizationId, alertId, userId, req.ip);
   }
 }
 

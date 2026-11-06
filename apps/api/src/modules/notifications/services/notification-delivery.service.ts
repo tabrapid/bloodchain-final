@@ -193,13 +193,14 @@ export class NotificationDeliveryService {
 
     return {
       to: token,
-      title: notification.title,
-      body: notification.body,
+      // Lock screens and third-party push infrastructure must not receive
+      // clinical text, location, arbitrary metadata or token-bearing links.
+      // The authenticated inbox retains the full original notification.
+      title: 'BloodChain',
+      body: 'Yangi xabar bor. Ilovani oching.',
       data: {
         notificationId: notification.id,
-        type: notification.type,
-        deepLink: notification.deepLink,
-        ...(typeof notification.data === 'object' && notification.data ? notification.data : {}),
+        deepLink: '/notifications',
       },
       sound: 'default',
       priority,

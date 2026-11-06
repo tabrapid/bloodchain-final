@@ -1,5 +1,13 @@
 # Production readiness register
 
+**2026-11-05 status note:** historical sprint states below are not a fresh
+deployment audit. Current deployment evidence is in
+`production-audit-2026-11-05.md`; Uzbekistan launch evidence and remaining
+external dependencies are in `legal/uzbekistan-research-2026-11-05.md`.
+In particular, hosting/TLS/local backup now exist; consent models and draft
+privacy/terms exist. Their presence does not establish approved documents,
+complete endpoint enforcement or permission to start a clinical pilot.
+
 Everything between this repository and a real deployment, with severity, owner,
 current state, and what each item blocks.
 

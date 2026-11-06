@@ -34,6 +34,8 @@ export const ConsentReason = {
   DISABLED: 'CONSENT_PURPOSE_DISABLED',
   /** A document that is not APPROVED cannot carry a legally meaningful acceptance. */
   DOCUMENT_NOT_APPROVED: 'CONSENT_DOCUMENT_NOT_APPROVED',
+  /** The version/hash the person saw is no longer the version being accepted. */
+  DOCUMENT_CHANGED: 'CONSENT_DOCUMENT_CHANGED',
 } as const;
 
 export type ConsentReasonCode = (typeof ConsentReason)[keyof typeof ConsentReason];

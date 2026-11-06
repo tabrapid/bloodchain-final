@@ -110,7 +110,7 @@ export class OrganizationDonationsController {
       organizationId,
       userId,
       dto,
-      req.headers['x-forwarded-for'] as string,
+      req.ip,
     );
   }
 
@@ -132,7 +132,7 @@ export class OrganizationDonationsController {
       organizationId,
       userId,
       dto,
-      req.headers['x-forwarded-for'] as string,
+      req.ip,
     );
   }
 
@@ -153,7 +153,7 @@ export class OrganizationDonationsController {
       organizationId,
       userId,
       dto,
-      req.headers['x-forwarded-for'] as string,
+      req.ip,
     );
   }
 
@@ -177,7 +177,7 @@ export class OrganizationDonationsController {
       organizationId,
       userId,
       dto,
-      req.headers['x-forwarded-for'] as string,
+      req.ip,
     );
   }
 
@@ -199,7 +199,7 @@ export class OrganizationDonationsController {
       organizationId,
       userId,
       dto,
-      req.headers['x-forwarded-for'] as string,
+      req.ip,
     );
   }
 
@@ -221,7 +221,7 @@ export class OrganizationDonationsController {
       organizationId,
       userId,
       dto,
-      req.headers['x-forwarded-for'] as string,
+      req.ip,
     );
   }
 }

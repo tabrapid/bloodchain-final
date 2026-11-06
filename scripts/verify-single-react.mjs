@@ -2,12 +2,12 @@
 /**
  * One React in the mobile app, and one only.
  *
- * This monorepo runs two React major versions on purpose: the three Next.js
- * consoles are on React 18 and the Expo app is on React 19. That is fine
+ * This monorepo can resolve different React versions across the Next.js
+ * consoles and the Expo app. That is fine
  * while each workspace resolves its own copy. It stops being fine the moment
  * a package the mobile app depends on resolves React from pnpm's *hoisted*
  * copy in `node_modules/.pnpm/node_modules` instead of from the app, because
- * that copy is a single version for the whole repo and it is React 18.
+ * that copy is a single version for the whole repo and may differ from mobile.
  *
  * The failure this catches is not subtle and not confined to tests. React 19
  * changed the element brand from `Symbol.for('react.element')` to

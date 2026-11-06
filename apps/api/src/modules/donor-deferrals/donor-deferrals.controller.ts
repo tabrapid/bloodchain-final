@@ -59,7 +59,7 @@ export class DonorDeferralsController {
       donorId,
       userId,
       dto,
-      req.headers['x-forwarded-for'] as string,
+      req.ip,
     );
   }
 
@@ -84,7 +84,7 @@ export class DonorDeferralsController {
       deferralId,
       userId,
       dto.reason,
-      req.headers['x-forwarded-for'] as string,
+      req.ip,
     );
   }
 }
