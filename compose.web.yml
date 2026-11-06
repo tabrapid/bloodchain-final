@@ -34,3 +34,15 @@ services:
     ports:
       - '127.0.0.1:3003:3000'
     mem_limit: 512m
+
+  landing-web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+      args:
+        WEB_APP: landing-web
+        NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL:?Set PUBLIC_API_URL to the HTTPS API origin}
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:3004:3000'
+    mem_limit: 512m
