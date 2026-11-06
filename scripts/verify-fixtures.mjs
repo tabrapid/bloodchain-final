@@ -24,7 +24,7 @@
  *    limiter on themselves -- the 429 that made `verify:safety` fail when run
  *    after `demo:verify`. The rate limiter is shared global state like any
  *    other, and this is how the scripts stop depending on it. The token is
- *    genuine: same secret, same `{ sub, roles, permissions }` payload the login
+ *    genuine: same secret, same `{ sub, roles, permissions, sid }` payload the login
  *    route mints, with roles and permissions read from the database, and every
  *    guard validates it for real.
  *
@@ -45,6 +45,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const require_ = createRequire(path.join(ROOT, 'apps', 'api', 'package.json'));
 
 let client = null;
+const ownedSessions = new Set();
 
 /** One Prisma client per process, opened lazily. */
 export function db() {
@@ -57,7 +58,12 @@ export function db() {
 
 export async function disconnect() {
   if (client) {
-    await client.$disconnect();
+    try {
+      await client.session.deleteMany({ where: { id: { in: [...ownedSessions] } } });
+      ownedSessions.clear();
+    } finally {
+      await client.$disconnect();
+    }
     client = null;
   }
 }
@@ -75,11 +81,11 @@ const base64url = (input) =>
  * a token that this produces and the API rejects means the two have diverged --
  * which is a thing worth finding out.
  */
-function signAccessToken({ sub, roles, permissions, secret, expiresInSeconds = 900 }) {
+function signAccessToken({ sub, sid, roles, permissions, secret, expiresInSeconds = 900 }) {
   const header = base64url(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
   const now = Math.floor(Date.now() / 1000);
   const payload = base64url(
-    JSON.stringify({ sub, roles, permissions, iat: now, exp: now + expiresInSeconds }),
+    JSON.stringify({ sub, sid, roles, permissions, iat: now, exp: now + expiresInSeconds }),
   );
   const signature = crypto
     .createHmac('sha256', secret)
@@ -112,6 +118,20 @@ async function permissionsFor(userId) {
   return { roles: memberships.map((m) => m.role.code), permissions: Array.from(permissions) };
 }
 
+async function sessionFor(userId) {
+  const session = await db().session.create({
+    data: {
+      userId,
+      tokenHash: crypto.randomBytes(32).toString('hex'),
+      expiresAt: new Date(Date.now() + 900_000),
+      deviceName: 'verification-script',
+    },
+    select: { id: true },
+  });
+  ownedSessions.add(session.id);
+  return session.id;
+}
+
 /** An access token for a user, by email. Never touches /auth/login. */
 export async function tokenFor(email) {
   loadEnvFile();
@@ -126,7 +146,7 @@ export async function tokenFor(email) {
   }
 
   const { roles, permissions } = await permissionsFor(user.id);
-  return signAccessToken({ sub: user.id, roles, permissions, secret });
+  return signAccessToken({ sub: user.id, sid: await sessionFor(user.id), roles, permissions, secret });
 }
 
 /** The same, by user id. */
@@ -137,7 +157,7 @@ export async function tokenForId(userId) {
     throw new Error('JWT_ACCESS_SECRET is not set, so no token can be minted. Copy .env.example to .env.');
   }
   const { roles, permissions } = await permissionsFor(userId);
-  return signAccessToken({ sub: userId, roles, permissions, secret });
+  return signAccessToken({ sub: userId, sid: await sessionFor(userId), roles, permissions, secret });
 }
 
 /**
