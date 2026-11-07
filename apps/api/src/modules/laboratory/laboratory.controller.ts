@@ -7,6 +7,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { LaboratoryService } from './laboratory.service';
 import {
   AvailableDatesQueryDto,
+  AvailableSlotsQueryDto,
   BookLaboratoryAppointmentDto,
   CancelLaboratoryAppointmentDto,
   CreateLaboratoryResultDto,
@@ -74,11 +75,10 @@ export class LaboratoryController {
   @Roles(RoleCode.DONOR, RoleCode.SUPER_ADMIN)
   getAvailableSlots(
     @Param('laboratoryId') laboratoryId: string,
-    @Query('testTypeId') testTypeId: string,
-    @Query('date') date: string,
+    @Query() query: AvailableSlotsQueryDto,
     @CurrentUser('sub') userId: string,
   ) {
-    return this.laboratory.getAvailableSlots(laboratoryId, testTypeId, date, userId);
+    return this.laboratory.getAvailableSlots(laboratoryId, query.testTypeId, query.date, userId);
   }
 
   @Post('laboratory-appointments')

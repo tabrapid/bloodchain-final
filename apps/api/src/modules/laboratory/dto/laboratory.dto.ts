@@ -3,6 +3,7 @@ import { Type } from 'class-transformer';
 import {
   ArrayMinSize,
   IsArray,
+  IsDateString,
   IsEnum,
   IsNotEmpty,
   IsNumber,
@@ -51,6 +52,20 @@ export class BookLaboratoryAppointmentDto {
  * `@Query('from')` strings) so the global ValidationPipe actually runs: an
  * inline `@Query() dto: { ... }` resolves to `Object` and is skipped entirely.
  */
+export class AvailableSlotsQueryDto {
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(200)
+  testTypeId!: string;
+
+  @ApiProperty({ example: '2026-11-07' })
+  @IsString()
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
+  @IsDateString({ strict: true })
+  date!: string;
+}
+
 export class AvailableDatesQueryDto {
   @ApiProperty()
   @IsString()
