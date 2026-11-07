@@ -1472,3 +1472,10 @@
     transition: none;
   }
 }
+
+/* The supplied Bloodchain identity replaces generic activity/drop brand icons. */
+.bc-brand-logo { display: block; width: 100%; height: auto; flex-shrink: 0; }
+.bc-sidebar-brand .bc-sidebar-identity { width: 100%; min-width: 0; }
+.bc-sidebar-brand .bc-brand-logo { width: 188px; max-width: 100%; height: auto; }
+.bc-sidebar-identity > small { display: block; margin-top: 6px; font-size: 8px; letter-spacing: .2px; line-height: 1.4; color: #b7cbd9; }
+.bc-auth-logo { width: 250px; max-width: 100%; margin-bottom: 22px; }

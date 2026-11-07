@@ -16,9 +16,35 @@ Regression coverage includes account closure, device revocation, user suspension
 session expiry and membership removal against the real test database. The test
 harness creates a real session instead of bypassing session validation.
 
-This change covers HTTP only. Shipment/emergency WebSocket connections still
-need a separate session-revalidation/disconnect review, including already joined
-rooms. It does not close the complete offboarding/MFA or authorization workstream.
-Before release, run all API E2E suites in an isolated database and retain a verified
-backup and previous API image. After release, verify HTTPS readiness, current
-image identity and a synthetic session-revocation journey in the test environment.
+## WebSocket follow-up — 2026-11-06
+
+Shipment and emergency gateways now share the persisted-session authorization
+function with HTTP. They validate the signature/expiry and live session at
+handshake, ping, join and courier location writes. Before every sensitive
+outgoing event, each local subscriber's session and resource access are checked
+again; being in a Socket.IO room does not itself authorize delivery. Revoked
+clients are disconnected and removed from subscription maps. Errors returned to
+clients omit private token/database diagnostics.
+
+Emergency locations remain hospital-only, and response status reaches only the
+hospital and the affected donor. Hospital access requires an active staff/admin
+grant at an active hospital. Shipment access also rechecks current assignment
+and active staff membership. A courier reassigned away from a shipment cannot
+continue receiving its events through an old subscription.
+
+Idle connections are revalidated on a 30-second timer (which can be delayed by
+an overloaded event loop). Each outgoing event still checks access independently
+of that timer. Shutdown clears the timer and subscriptions. A leave/disconnect
+while an authorization query is pending suppresses the resulting delivery.
+These checks are not a distributed transaction with concurrent role changes.
+
+Fanout currently uses local connection/subscription maps: deploy as one API
+instance. Multi-instance delivery needs a separately reviewed distributed design
+before scaling; adding a Socket.IO adapter alone would not distribute these
+maps. Privileged MFA and full staff offboarding workflows remain outstanding.
+
+Socket.IO lifecycle/room APIs were checked against the
+[official server API](https://socket.io/docs/v4/server-api/). Regression tests use
+both mocked failure/race cases and actual Socket.IO clients with the real Nest
+application, JWT verifier and isolated PostgreSQL database. No live user account
+is created or revoked by this rehearsal.

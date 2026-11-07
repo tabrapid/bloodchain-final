@@ -4,7 +4,8 @@ import { Suspense, useState } from 'react';
 import { LanguageSwitcher, useTranslation } from '@bloodchain/ui/i18n';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { CheckCircle, Link2Off, Shield } from 'lucide-react';
+import { CheckCircle, Link2Off } from 'lucide-react';
+import { BrandLogo } from '@bloodchain/ui/brand';
 import { strongPasswordSchema } from '@bloodchain/validation';
 import { resetPassword, isRejectedResetToken, recoveryErrorMessage } from '../../lib/auth';
 
@@ -125,9 +126,7 @@ function ResetPasswordForm() {
   return (
     <>
       <div className="flex items-center gap-3 mb-6">
-        <div className="w-10 h-10 bg-donor-primary rounded-lg flex items-center justify-center">
-          <Shield className="w-6 h-6 text-white" />
-        </div>
+        <BrandLogo className="bc-admin-brand" />
         <div>
           <h1 className="text-xl font-semibold text-donor-text">{t('portal.admin.name')}</h1>
           <p className="text-sm text-donor-muted">{t('portal.admin.workspace')}</p>
@@ -190,7 +189,10 @@ function ResetPasswordForm() {
         </div>
 
         <div>
-          <label htmlFor="confirmPassword" className="block text-sm font-medium text-donor-text mb-1">
+          <label
+            htmlFor="confirmPassword"
+            className="block text-sm font-medium text-donor-text mb-1"
+          >
             {t('auth.resetPassword.confirmPassword')}
           </label>
           <input

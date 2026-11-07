@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { LanguageSwitcher, useTranslation } from '@bloodchain/ui/i18n';
 import Link from 'next/link';
-import { MailCheck, Shield } from 'lucide-react';
+import { BrandLogo } from '@bloodchain/ui/brand';
 import { requestPasswordReset, recoveryErrorMessage } from '../../lib/auth';
 
 /**
@@ -46,13 +46,7 @@ export default function AdminForgotPasswordPage() {
           <LanguageSwitcher />
         </div>
         <div className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 bg-donor-primary rounded-lg flex items-center justify-center">
-            {sentTo ? (
-              <MailCheck className="w-6 h-6 text-white" />
-            ) : (
-              <Shield className="w-6 h-6 text-white" />
-            )}
-          </div>
+          <BrandLogo className="bc-admin-brand" />
           <div>
             <h1 className="text-xl font-semibold text-donor-text">{t('portal.admin.name')}</h1>
             <p className="text-sm text-donor-muted">{t('portal.admin.workspace')}</p>

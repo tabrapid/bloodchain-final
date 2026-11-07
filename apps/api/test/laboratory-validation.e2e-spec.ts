@@ -208,4 +208,18 @@ describe('P3-14: routes with previously-inline request bodies validate their inp
       expect(JSON.stringify(res.body)).toContain('courierId');
     });
   });
+  it.each([
+    {},
+    { testTypeId: 'some-test' },
+    { date: '2026-11-07' },
+    { testTypeId: 'some-test', date: 'not-a-date' },
+    { testTypeId: 'some-test', date: '2026-02-30' },
+  ])('returns 400 for invalid laboratory slot query %j', async query => {
+    await request(app.getHttpServer())
+      .get(`${API}/laboratories/${organizationId}/slots`)
+      .set('Authorization', `Bearer ${donorToken}`)
+      .query(query)
+      .expect(400);
+  });
+
 });

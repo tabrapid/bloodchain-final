@@ -17,8 +17,8 @@ va GitHub CI. Quyidagi holatlar individual regulyator yoki klinik tasdiq emas.
 | UZ-09 | Asossiz 90 kun/umumiy export va’dalari hujjatdan olib tashlandi | Har sinf bo‘yicha tasdiqlangan retention va murojaatlar jarayoni; tegishli kod |
 | UZ-10 | Organization va membership modellari bor | Kelishilgan filial/legal-basis/tekshiruv workflow’i va UI/API |
 | UZ-11 | Ayrim klinik release qoidalari bor | Muassasa/filial/xizmat capability’lari bo‘yicha to‘liq gate va dalillar |
-| UZ-12 | Shaxsiy hisob, sessiya/recovery mexanizmlari bor | Kelishilgan staff invitation/offboarding va privileged MFA oqimlari |
-| UZ-13 | Tenant/ownership testlari bor; global users route tenant adminidan yopildi | Barcha clinical/export/fayl yo‘llari va role/scope matritsasining to‘liq review’i |
+| UZ-12 | Shaxsiy hisob/recovery bor; HTTP va WebSocket sessiya/grant bekor qilinishi kuchaytirildi | Kelishilgan staff invitation/offboarding va privileged MFA oqimlari |
+| UZ-13 | Tenant/ownership testlari bor; global users route yopildi; WebSocket xabarlari oldidan sessiya/resurs vakolati qayta tekshiriladi | Barcha clinical/export/fayl yo‘llari va role/scope matritsasining to‘liq review’i |
 | UZ-14 | Amaldagi donorlik tartibi rasmiy manbasi topildi | Muassasa tasdiqlagan identifikatsiya/eligibility/deferral qoidalari |
 | UZ-15 | Screening va laboratory modellari/testlari mavjud | Uch klinik workflow chegarasi, katalog/interval/QC tasdig‘i |
 | UZ-16 | Natija versiyalari va mavjud release testlari bor | Vakolatli validation/release/correction hamda zarur ERI qarori |

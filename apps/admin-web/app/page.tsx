@@ -5,7 +5,6 @@ import { LanguageSwitcher, useTranslation } from '@bloodchain/ui/i18n';
 import Link from 'next/link';
 import {
   AlertTriangle,
-  Shield,
   TestTube,
   UserCheck,
   X,
@@ -17,7 +16,7 @@ import {
   Clock,
   Activity,
 } from 'lucide-react';
-import { ErrorState, StatCard, LoadingState } from '@bloodchain/ui/components';
+import { ErrorState, StatCard, LoadingState, BrandLogo } from '@bloodchain/ui/components';
 import { StatusBadgeWrapper } from '@lib/status';
 import { login, me, isAuthenticated } from '@lib/auth';
 import {
@@ -152,9 +151,7 @@ export default function AdminDashboard() {
             <LanguageSwitcher />
           </div>
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 bg-donor-primary rounded-lg flex items-center justify-center">
-              <Shield className="w-6 h-6 text-white" />
-            </div>
+            <BrandLogo className="bc-admin-brand" />
             <div>
               <h1 className="text-xl font-semibold text-donor-text">{t('portal.admin.name')}</h1>
               <p className="text-sm text-donor-muted">{t('portal.admin.workspace')}</p>

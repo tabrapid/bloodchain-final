@@ -1,4 +1,5 @@
 'use client';
+import { BrandLogo } from '@bloodchain/ui/components';
 
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from '@bloodchain/ui/i18n';
@@ -142,7 +143,7 @@ export default function HospitalDashboard() {
         userName={t('portal.guest')}
       >
         <div className="bc-auth-card flex flex-col items-center justify-center bc-glass rounded-card p-12">
-          <Activity className="mb-4 text-donor-primary" size={48} />
+          <BrandLogo className="bc-auth-logo" />
           <h2 className="mb-2 font-display text-2xl font-semibold text-donor-text">
             {t('portal.hospital.name')}
           </h2>

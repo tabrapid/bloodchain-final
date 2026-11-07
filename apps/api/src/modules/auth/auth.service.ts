@@ -1376,6 +1376,7 @@ export class AuthService {
     if (roles.some((role) => bloodCentreRoles.includes(role))) {
       return portal('WEB_URL_BLOOD_CENTER');
     }
+    if (roles.includes(RoleCode.DONOR)) return portal('WEB_URL_DONOR');
     return fallback;
   }
 

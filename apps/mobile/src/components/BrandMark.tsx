@@ -1,43 +1,39 @@
-import Svg, { Defs, LinearGradient, Path, Stop } from 'react-native-svg';
+import Svg, { Path } from 'react-native-svg';
+import geometry from '@bloodchain/brand/geometry';
 import { useDesign } from '../design';
-
 export interface BrandMarkProps {
   size?: number;
+  wordmark?: boolean;
 }
-
-/**
- * The app's mark: a droplet drawn as a thick outline rather than a solid glyph
- * in a tinted square.
- *
- * A filled icon inside a rounded square is a *button*; every other tappable
- * surface in the app looks like that. The mark on the welcome screen is the
- * one thing on the screen that is not an affordance, so it is drawn as a shape
- * in its own right -- hollow, so the backdrop reads through it, in the brand
- * rose running to the hero plum.
- */
-export function BrandMark({ size = 96 }: BrandMarkProps) {
-  const { colors } = useDesign();
-
+/** Same outlined geometry as every web portal and the standalone SVG downloads. */
+export function BrandMark({ size = 96, wordmark = false }: BrandMarkProps) {
+  const { isDark } = useDesign();
+  const navy = isDark ? geometry.colors.darkNavy : geometry.colors.navy;
+  const red = isDark ? geometry.colors.darkRed : geometry.colors.red;
   return (
-    <Svg width={size} height={size} viewBox="0 0 48 48">
-      <Defs>
-        <LinearGradient id="brand-mark" x1="0" y1="0" x2="1" y2="1">
-          <Stop offset="0" stopColor={colors.rose.base} />
-          <Stop offset="1" stopColor={colors.rose.fill} />
-        </LinearGradient>
-      </Defs>
-      {/*
-        A teardrop: a point at the top, two symmetric flanks falling away from
-        it, closed by a circular bowl. Stroked, never filled -- the hollow is
-        the mark.
-      */}
-      <Path
-        d="M24 4 C24 4 8 19.5 8 29 a16 16 0 0 0 32 0 C40 19.5 24 4 24 4 Z"
-        stroke="url(#brand-mark)"
-        strokeWidth={5}
-        strokeLinejoin="round"
-        fill="none"
-      />
+    <Svg
+      width={wordmark ? (size * 1364) / 202 : size}
+      height={size}
+      viewBox={wordmark ? geometry.viewBox : geometry.markViewBox}
+      accessible
+      accessibilityLabel={geometry.name}
+    >
+      {geometry.markNavy.map((d, i) => (
+        <Path key={`m${i}`} d={d} fill={navy} fillRule="evenodd" />
+      ))}
+      {geometry.drop.map((p, i) => (
+        <Path key={`d${i}`} d={p.d} fill={isDark && i === 0 ? red : p.fill} />
+      ))}
+      {wordmark && (
+        <>
+          {geometry.wordNavy.map((d, i) => (
+            <Path key={`n${i}`} d={d} fill={navy} fillRule="evenodd" />
+          ))}
+          {geometry.wordRed.map((d, i) => (
+            <Path key={`r${i}`} d={d} fill={red} fillRule="evenodd" />
+          ))}
+        </>
+      )}
     </Svg>
   );
 }

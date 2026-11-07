@@ -1,0 +1,47 @@
+[
+  {
+    "app": "landing-web",
+    "logoCount": 2,
+    "favicon": 200,
+    "download": 200,
+    "outlined": true,
+    "mobileOverflow": false,
+    "errors": []
+  },
+  {
+    "app": "donor-web",
+    "logoCount": 1,
+    "favicon": 200,
+    "download": 200,
+    "outlined": true,
+    "mobileOverflow": false,
+    "errors": []
+  },
+  {
+    "app": "hospital-web",
+    "logoCount": 2,
+    "favicon": 200,
+    "download": 200,
+    "outlined": true,
+    "mobileOverflow": false,
+    "errors": []
+  },
+  {
+    "app": "admin-web",
+    "logoCount": 1,
+    "favicon": 200,
+    "download": 200,
+    "outlined": true,
+    "mobileOverflow": false,
+    "errors": []
+  },
+  {
+    "app": "blood-center-web",
+    "logoCount": 2,
+    "favicon": 200,
+    "download": 200,
+    "outlined": true,
+    "mobileOverflow": false,
+    "errors": []
+  }
+]

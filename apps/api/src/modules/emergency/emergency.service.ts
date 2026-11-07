@@ -847,7 +847,7 @@ export class EmergencyService {
       data: { status: EmergencyStatus.DONOR_EN_ROUTE },
     });
 
-    this.gateway.emitResponseStatusChanged(response.emergencyRequestId, {
+    await this.gateway.emitResponseStatusChanged(response.emergencyRequestId, {
       responseId,
       donorId,
       status: EmergencyResponseStatus.EN_ROUTE,
@@ -895,7 +895,7 @@ export class EmergencyService {
       },
     });
 
-    this.gateway.emitDonorLocationUpdate(response.emergencyRequestId, {
+    await this.gateway.emitDonorLocationUpdate(response.emergencyRequestId, {
       responseId,
       donorId,
       latitude: dto.latitude,
@@ -940,7 +940,7 @@ export class EmergencyService {
       data: { status: EmergencyStatus.DONOR_ARRIVED },
     });
 
-    this.gateway.emitResponseStatusChanged(response.emergencyRequestId, {
+    await this.gateway.emitResponseStatusChanged(response.emergencyRequestId, {
       responseId,
       donorId,
       status: EmergencyResponseStatus.ARRIVED,
@@ -1128,7 +1128,7 @@ export class EmergencyService {
       donorId: response.donorId,
     });
 
-    this.gateway.emitResponseStatusChanged(response.emergencyRequestId, {
+    await this.gateway.emitResponseStatusChanged(response.emergencyRequestId, {
       responseId,
       donorId: response.donorId,
       status: EmergencyResponseStatus.COMPLETED,

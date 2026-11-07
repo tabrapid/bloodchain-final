@@ -1989,3 +1989,8 @@ h1 {
     padding: 20px;
   }
 }
+
+.landing-brand-lockup { display: block; width: 190px; }
+.landing-brand-lockup .bc-brand-logo { display: block; width: 100%; height: auto; }
+.landing-brand-lockup small { margin-top: 7px; letter-spacing: .35px; }
+@media (max-width: 480px) { .landing-brand-lockup { width: 148px; } }

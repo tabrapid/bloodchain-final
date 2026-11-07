@@ -133,15 +133,18 @@ describe('every GET route returns the { data } envelope its clients unwrap', () 
 
   it('returns an enveloped body from every reachable route', async () => {
     const bare: string[] = [];
+    const serverErrors: string[] = [];
 
     for (const path of [...paths, ...parameterised]) {
       const res = await request(app.getHttpServer())
         .get(path)
-        .set('Authorization', `Bearer ${adminToken}`);
+        .set('Authorization', `Bearer ${adminToken}`)
+        .timeout({ response: 3000, deadline: 5000 });
 
       // 4xx is fine here — a route this actor cannot reach, or one needing
       // query parameters, still tells us nothing about the envelope. Only
       // successful responses are evidence.
+      if (res.status >= 500) { serverErrors.push(`${path} -> ${res.status}`); continue; }
       if (res.status >= 400) continue;
 
       const body = res.body as Record<string, unknown> | null;
@@ -150,6 +153,9 @@ describe('every GET route returns the { data } envelope its clients unwrap', () 
       }
     }
 
+    expect(serverErrors).toEqual([]);
     expect(bare).toEqual([]);
-  });
+  // This sweeps 100+ routes sequentially on the 4 GB VPS. Keep per-request
+  // deadlines, but allow the aggregate sweep more than Jest's 5-second default.
+  }, 30_000);
 });

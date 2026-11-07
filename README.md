@@ -1,3 +1,8 @@
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="packages/brand/assets/bloodchain-logo-dark.svg">
+  <img src="packages/brand/assets/bloodchain-logo.svg" alt="Bloodchain" width="420">
+</picture>
+
 # BloodChain
 
 BloodChain is a production-oriented healthcare technology platform that connects donors, hospitals, blood centers, and couriers around a safer, more transparent blood supply.
@@ -10,6 +15,7 @@ This repository contains the **Phase 1 + Phase 2 foundation**: a scalable monore
 donor/
 ├── apps/
 │   ├── api/                 # NestJS REST API
+│   ├── donor-web/           # Donor web cabinet (same API/account as mobile)
 │   ├── hospital-web/        # Next.js hospital dashboard
 │   ├── blood-center-web/    # Next.js blood-center dashboard
 │   └── mobile/              # Expo React Native mobile app
@@ -92,6 +98,9 @@ pnpm dev:hospital
 
 # Start the blood-center web app (http://localhost:3002)
 pnpm dev:blood-center
+
+# Start the donor web cabinet (http://localhost:3005)
+pnpm dev:donor
 
 # Start the Expo mobile app
 pnpm dev:mobile
@@ -252,3 +261,5 @@ this system is finished.
 ## License
 
 Proprietary — BloodChain. All rights reserved.
+
+Donor web workflows, secure gateway and domain deployment: [Donor web workspace](./docs/donor-web.md).

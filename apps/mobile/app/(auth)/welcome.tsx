@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowRight } from 'lucide-react-native';
 import { BrandMark } from '../../src/components/BrandMark';
 import { Button, Text, fonts, layout, space, useDesign } from '../../src/design';
-import { BRAND_NAME, BRAND_TAGLINE } from '../../src/brand';
+import { BRAND_TAGLINE } from '../../src/brand';
 import { useTranslation } from '../../src/i18n';
 import { policyLinks } from '../../src/config/links';
 
@@ -59,7 +59,13 @@ export default function Welcome() {
         colors={[colors.heroGradient[0], colors.background]}
         start={{ x: 0, y: 0 }}
         end={{ x: 0, y: 1 }}
-        style={{ position: 'absolute', top: 0, left: 0, right: 0, height: Math.min(height * 0.5, 440) }}
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: Math.min(height * 0.5, 440),
+        }}
       />
 
       <View
@@ -73,16 +79,11 @@ export default function Welcome() {
           alignSelf: 'center',
         }}
       >
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
-          <BrandMark size={compact ? 40 : 44} />
-          <View style={{ gap: 0 }}>
-            <Text variant="h3" maxFontSizeMultiplier={1.3}>
-              {BRAND_NAME}
-            </Text>
-            <Text variant="overline" tone="tertiary" caps maxFontSizeMultiplier={1.3}>
-              {BRAND_TAGLINE}
-            </Text>
-          </View>
+        <View style={{ gap: space.sm }}>
+          <BrandMark size={compact ? 34 : 38} wordmark />
+          <Text variant="overline" tone="tertiary" caps maxFontSizeMultiplier={1.3}>
+            {BRAND_TAGLINE}
+          </Text>
         </View>
 
         {/* The slack collects here, so the headline and the actions read as
@@ -94,11 +95,20 @@ export default function Welcome() {
             <Text
               variant="display"
               maxFontSizeMultiplier={1.3}
-              style={{ fontSize: size, lineHeight: Math.round(size * 1.12), letterSpacing: -size * 0.03 }}
+              style={{
+                fontSize: size,
+                lineHeight: Math.round(size * 1.12),
+                letterSpacing: -size * 0.03,
+              }}
             >
               {t('auth.welcome.headline')}
             </Text>
-            <Text variant="body" tone="secondary" maxFontSizeMultiplier={1.4} style={{ maxWidth: '92%' }}>
+            <Text
+              variant="body"
+              tone="secondary"
+              maxFontSizeMultiplier={1.4}
+              style={{ maxWidth: '92%' }}
+            >
               {t('auth.welcome.subheadline')}
             </Text>
           </View>
@@ -125,8 +135,9 @@ export default function Welcome() {
             maxFontSizeMultiplier={1.4}
             style={{ maxWidth: 300, alignSelf: 'center' }}
           >
-            {t('auth.welcome.legalPrefix')} <LegalLink url={termsUrl}>{t('auth.welcome.terms')}</LegalLink>{' '}
-            {t('auth.welcome.and')} <LegalLink url={privacyPolicyUrl}>{t('auth.welcome.privacy')}</LegalLink>.
+            {t('auth.welcome.legalPrefix')}{' '}
+            <LegalLink url={termsUrl}>{t('auth.welcome.terms')}</LegalLink> {t('auth.welcome.and')}{' '}
+            <LegalLink url={privacyPolicyUrl}>{t('auth.welcome.privacy')}</LegalLink>.
           </Text>
         </View>
       </View>
@@ -155,7 +166,11 @@ function LegalLink({ url, children }: { url: string | null; children: ReactNode 
       variant="caption"
       accessibilityRole="link"
       onPress={() => Linking.openURL(url)}
-      style={{ color: colors.clinical.text, fontFamily: fonts.semibold, textDecorationLine: 'underline' }}
+      style={{
+        color: colors.clinical.text,
+        fontFamily: fonts.semibold,
+        textDecorationLine: 'underline',
+      }}
     >
       {children}
     </Text>

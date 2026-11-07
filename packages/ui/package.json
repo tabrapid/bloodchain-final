@@ -10,7 +10,8 @@
     "./map": "./src/components/map/LocationMap.tsx",
     "./tailwind-preset": "./src/tokens/tailwind-preset.ts",
     "./styles/glass.css": "./src/styles/glass.css",
-    "./notifications": "./src/notifications/index.ts"
+    "./notifications": "./src/notifications/index.ts",
+    "./brand": "./src/components/BrandLogo.tsx"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",
@@ -19,7 +20,8 @@
   },
   "dependencies": {
     "@bloodchain/i18n": "workspace:*",
-    "jsbarcode": "3.12.1"
+    "jsbarcode": "3.12.1",
+    "@bloodchain/brand": "workspace:*"
   },
   "peerDependencies": {
     "react": ">=18.0.0",

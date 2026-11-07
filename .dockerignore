@@ -12,3 +12,7 @@
 .env
 .env.*
 !.env.example
+# Match environment files in every workspace, not just the repository root.
+**/.env
+**/.env.*
+!**/.env.example
