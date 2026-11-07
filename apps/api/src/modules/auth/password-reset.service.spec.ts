@@ -195,8 +195,13 @@ describe('AuthService password reset', () => {
         expect(url.searchParams.get('token')).toMatch(/^[a-f0-9]{64}$/);
       });
 
-      it('sends a donor to the fallback, since they have no console of their own', async () => {
+      it('keeps the fallback when no donor console is configured', async () => {
         expect(new URL(await linkFor(['DONOR'])).origin).toBe('http://fallback.test');
+      });
+
+      it('sends donors to the configured donor console', async () => {
+        portalUrls.WEB_URL_DONOR = 'https://donor.bloodchain.uz';
+        expect(new URL(await linkFor(['DONOR'])).origin).toBe('https://donor.bloodchain.uz');
       });
 
       it('prefers the admin console for someone who is both an admin and staff', async () => {

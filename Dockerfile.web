@@ -11,10 +11,12 @@ WORKDIR /repo
 COPY . .
 ARG WEB_APP
 ARG NEXT_PUBLIC_API_URL
-RUN case "$WEB_APP" in hospital-web|blood-center-web|admin-web|landing-web) ;; *) echo "Unsupported WEB_APP" >&2; exit 1 ;; esac
+RUN case "$WEB_APP" in hospital-web|blood-center-web|admin-web|landing-web|donor-web) ;; *) echo "Unsupported WEB_APP" >&2; exit 1 ;; esac
 RUN test -n "$NEXT_PUBLIC_API_URL"
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
-RUN pnpm install --frozen-lockfile --filter @bloodchain/${WEB_APP}...
+RUN --mount=type=secret,id=proxy_ca \
+    if [ -f /run/secrets/proxy_ca ]; then export NODE_EXTRA_CA_CERTS=/run/secrets/proxy_ca; fi; \
+    pnpm install --frozen-lockfile --filter @bloodchain/${WEB_APP}...
 RUN pnpm --filter @bloodchain/${WEB_APP} typecheck
 RUN pnpm --filter @bloodchain/${WEB_APP} lint
 RUN if [ "$WEB_APP" != "landing-web" ]; then pnpm --filter @bloodchain/${WEB_APP} run test --maxWorkers=1 --minWorkers=1; fi
@@ -30,7 +32,7 @@ RUN corepack enable
 WORKDIR /repo
 ARG WEB_APP
 ENV WEB_APP=$WEB_APP
-COPY --from=build --chown=node:node /pnpm /pnpm
+COPY --from=build --chown=node:node /pnpm/corepack /pnpm/corepack
 COPY --from=build --chown=node:node /repo /repo
 USER node
 EXPOSE 3000

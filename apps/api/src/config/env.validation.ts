@@ -30,6 +30,7 @@ export const envValidationSchema = Joi.object({
   WEB_URL_HOSPITAL: Joi.string().uri().optional(),
   WEB_URL_BLOOD_CENTER: Joi.string().uri().optional(),
   WEB_URL_ADMIN: Joi.string().uri().optional(),
+  WEB_URL_DONOR: Joi.string().uri().allow('').optional(),
   API_URL: Joi.string().uri().default('http://localhost:3001'),
   MOBILE_DEEP_LINK: Joi.string().default('donor://'),
   THROTTLER_TTL: Joi.number().default(60),
