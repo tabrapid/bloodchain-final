@@ -539,6 +539,9 @@ importers:
 
   apps/landing-web:
     dependencies:
+      '@bloodchain/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
       next:
         specifier: ^15.5.29
         version: 15.5.29(@types/node@22.20.1)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -567,6 +570,9 @@ importers:
       '@babel/runtime':
         specifier: ^8.0.0
         version: 8.0.0
+      '@bloodchain/brand':
+        specifier: workspace:*
+        version: link:../../packages/brand
       '@bloodchain/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
@@ -731,6 +737,8 @@ importers:
         specifier: ^5.7.2
         version: 5.9.3
 
+  packages/brand: {}
+
   packages/config:
     devDependencies:
       typescript:
@@ -754,6 +762,9 @@ importers:
 
   packages/ui:
     dependencies:
+      '@bloodchain/brand':
+        specifier: workspace:*
+        version: link:../brand
       '@bloodchain/i18n':
         specifier: workspace:*
         version: link:../i18n

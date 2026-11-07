@@ -1,8 +1,9 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Droplet, ArrowLeft, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, ShieldCheck } from 'lucide-react';
 import { authAction, login } from '../lib/api/auth';
+import { BrandLogo } from '@bloodchain/ui/components';
 import { Field, FormMessage } from './common';
 type Mode =
   | 'login'
@@ -56,8 +57,7 @@ export function AuthScreen() {
     <main className="donor-auth">
       <section className="donor-auth-story">
         <div className="donor-auth-brand">
-          <Droplet size={30} />
-          <strong>BloodChain</strong>
+          <BrandLogo dark />
         </div>
         <span className="donor-eyebrow">YAGONA DONORLIK EKOTIZIMI</span>
         <h1>

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { cn } from '../cn';
 import { Activity, type LucideIcon } from 'lucide-react';
+import { BrandLogo } from '../BrandLogo';
 import { useOptionalTranslation } from '../../i18n';
 
 export interface SidebarItem {
@@ -134,13 +135,10 @@ export function Sidebar({
         )}
       >
         <div className="bc-sidebar-brand flex items-center gap-3">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-donor-primary/15 text-donor-primary">
-            <Activity size={18} />
-          </span>
-          <span className="bc-wordmark">
-            <strong>BloodChain</strong>
+          <div className="bc-sidebar-identity">
+            <BrandLogo dark />
             <small>{t('clinical.identity')}</small>
-          </span>
+          </div>
         </div>
 
         <p className="bc-nav-caption">{t('clinical.workflows')}</p>

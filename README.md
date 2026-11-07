@@ -1,3 +1,8 @@
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="packages/brand/assets/bloodchain-logo-dark.svg">
+  <img src="packages/brand/assets/bloodchain-logo.svg" alt="Bloodchain" width="420">
+</picture>
+
 # BloodChain
 
 BloodChain is a production-oriented healthcare technology platform that connects donors, hospitals, blood centers, and couriers around a safer, more transparent blood supply.

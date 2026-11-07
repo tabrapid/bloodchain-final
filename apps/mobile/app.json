@@ -12,7 +12,7 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/brand/adaptive-icon-foreground.png",
         "backgroundImage": "./assets/brand/adaptive-icon-background.png",
-        "monochromeImage": "./assets/brand/adaptive-icon-foreground.png"
+        "monochromeImage": "./assets/brand/adaptive-icon-monochrome.png"
       },
       "blockedPermissions": [
         "android.permission.SYSTEM_ALERT_WINDOW",
@@ -52,7 +52,7 @@
           "image": "./assets/brand/splash-icon.png",
           "imageWidth": 160,
           "resizeMode": "contain",
-          "backgroundColor": "#0A0C16"
+          "backgroundColor": "#FFFFFF"
         }
       ],
       "expo-system-ui"
@@ -61,6 +61,6 @@
       "typedRoutes": true
     },
     "icon": "./assets/brand/icon.png",
-    "backgroundColor": "#0A0C16"
+    "backgroundColor": "#FFFFFF"
   }
 }

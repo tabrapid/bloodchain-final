@@ -1,4 +1,5 @@
 import Image from 'next/image';
+import { BrandLogo } from '@bloodchain/ui/brand';
 import { Icon, type IconName } from './icons';
 import { PartnershipForm } from './partnership-form';
 import { PublicNavigation } from './public-navigation';
@@ -88,11 +89,9 @@ function Brand({ light = false }: { light?: boolean }) {
       href="/"
       aria-label="BloodChain bosh sahifa"
     >
-      <span className="brand-icon">
-        <Icon name="drop" size={24} />
-      </span>
-      <span>
-        BloodChain<small>Bir donorlik. Yagona tizim.</small>
+      <span className="landing-brand-lockup">
+        <BrandLogo dark={light} decorative />
+        <small>Bir donorlik. Yagona tizim.</small>
       </span>
     </a>
   );
